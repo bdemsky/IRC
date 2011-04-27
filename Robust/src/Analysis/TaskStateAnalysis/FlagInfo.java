@@ -37,11 +37,11 @@ public class FlagInfo {
       /* Adding the flags of the super class */
       ClassDescriptor tmp=cd;
       while(tmp!=null) {
-	for(Iterator it_cflags=tmp.getFlags(); it_cflags.hasNext(); ) {
-	  FlagDescriptor fd = (FlagDescriptor)it_cflags.next();
-	  vFlags.add(fd);
-	}
-	tmp=tmp.getSuperDesc();
+        for(Iterator it_cflags=tmp.getFlags(); it_cflags.hasNext(); ) {
+          FlagDescriptor fd = (FlagDescriptor)it_cflags.next();
+          vFlags.add(fd);
+        }
+        tmp=tmp.getSuperDesc();
       }
 
       flag=new FlagDescriptor[vFlags.size()];

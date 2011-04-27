@@ -129,11 +129,11 @@ public class ClassDescriptor extends Descriptor {
       st += "implements ";
       boolean needcomma = false;
       for(int i = 0; i < this.superinterfaces.size(); i++) {
-	if(needcomma) {
-	  st += ", ";
-	}
-	st += this.superinterfaces.elementAt(i);
-	needcomma = true;
+        if(needcomma) {
+          st += ", ";
+        }
+        st += this.superinterfaces.elementAt(i);
+        needcomma = true;
       }
     }
     st+=" {\n";
@@ -173,14 +173,14 @@ public class ClassDescriptor extends Descriptor {
       String[] econstants = new String[keys.size()];
       Iterator it_keys = keys.iterator();
       while(it_keys.hasNext()) {
-	String key = (String)it_keys.next();
-	econstants[icd.getEnumConstant(key)] = key;
+        String key = (String)it_keys.next();
+        econstants[icd.getEnumConstant(key)] = key;
       }
       for(int i = 0; i < econstants.length; i++) {
-	st += econstants[i];
-	if(i < econstants.length-1) {
-	  st += ", ";
-	}
+        st += econstants[i];
+        if(i < econstants.length-1) {
+          st += ", ";
+        }
       }
       st+="\n}\n";
       printcr=true;
@@ -202,21 +202,21 @@ public class ClassDescriptor extends Descriptor {
     ClassDescriptor cn=this;
     while(true) {
       if (cn==null) {
-	// TODO: the original code returned "null" if no super class
-	// ever defines the method.  Is there a situation where this is
-	// fine and the client should take other actions?  If not, we should
-	// change this warning to an error.
-	System.out.println("ClassDescriptor.java: WARNING "+md+
-	                   " did not resolve to an actual method.");
-	return null;
+        // TODO: the original code returned "null" if no super class
+        // ever defines the method.  Is there a situation where this is
+        // fine and the client should take other actions?  If not, we should
+        // change this warning to an error.
+        System.out.println("ClassDescriptor.java: WARNING "+md+
+                           " did not resolve to an actual method.");
+        return null;
       }
       Set possiblematches=cn.getMethodTable().getSetFromSameScope(md.getSymbol());
       for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
-	MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
 
-	if (md.matches(matchmd)) {
-	  return matchmd;
-	}
+        if (md.matches(matchmd)) {
+          return matchmd;
+        }
       }
 
       //Not found...walk one level up

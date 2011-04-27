@@ -57,7 +57,7 @@ public class FlagEffects {
       FlagEffect fe=(FlagEffect)effects.get(i);
       st+=fe.printNode(0);
       if ((i+1)!=effects.size())
-	st+=",";
+        st+=",";
     }
     return st+")";
   }

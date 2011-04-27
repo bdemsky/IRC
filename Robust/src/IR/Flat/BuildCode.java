@@ -115,15 +115,15 @@ public class BuildCode {
       outmethod=new CodePrinter(new FileOutputStream(PREFIX+"methods.c"), true);
       outvirtual=new CodePrinter(new FileOutputStream(PREFIX+"virtualtable.h"), true);
       if (state.TASK) {
-	outtask=new CodePrinter(new FileOutputStream(PREFIX+"task.h"), true);
-	outtaskdefs=new CodePrinter(new FileOutputStream(PREFIX+"taskdefs.c"), true);
-	if (state.OPTIONAL) {
-	  outoptionalarrays=new CodePrinter(new FileOutputStream(PREFIX+"optionalarrays.c"), true);
-	  optionalheaders=new CodePrinter(new FileOutputStream(PREFIX+"optionalstruct.h"), true);
-	}
+        outtask=new CodePrinter(new FileOutputStream(PREFIX+"task.h"), true);
+        outtaskdefs=new CodePrinter(new FileOutputStream(PREFIX+"taskdefs.c"), true);
+        if (state.OPTIONAL) {
+          outoptionalarrays=new CodePrinter(new FileOutputStream(PREFIX+"optionalarrays.c"), true);
+          optionalheaders=new CodePrinter(new FileOutputStream(PREFIX+"optionalstruct.h"), true);
+        }
       }
       if (state.structfile!=null) {
-	outrepairstructs=new CodePrinter(new FileOutputStream(PREFIX+state.structfile+".struct"), true);
+        outrepairstructs=new CodePrinter(new FileOutputStream(PREFIX+state.structfile+".struct"), true);
       }
     } catch (Exception e) {
       e.printStackTrace();
@@ -177,8 +177,8 @@ public class BuildCode {
       /* The runtime keeps track of flags using these integers */
       it=state.getClassSymbolTable().getDescriptorsIterator();
       while(it.hasNext()) {
-	ClassDescriptor cn=(ClassDescriptor)it.next();
-	mapFlags(cn);
+        ClassDescriptor cn=(ClassDescriptor)it.next();
+        mapFlags(cn);
       }
       /* Generate Tasks */
       generateTaskStructs(outstructs, outmethodheader);
@@ -282,7 +282,7 @@ public class BuildCode {
       ClassDescriptor cd = (ClassDescriptor)it_sclasses.next();
       MethodDescriptor md = (MethodDescriptor)cd.getMethodTable().get("staticblocks");
       if(md != null) {
-	tovisit.add(md);
+        tovisit.add(md);
       }
     }
 
@@ -292,13 +292,13 @@ public class BuildCode {
       visited.add(current_md);
       Iterator it_callee = this.callgraph.getCalleeSet(current_md).iterator();
       while(it_callee.hasNext()) {
-	Descriptor d = (Descriptor)it_callee.next();
-	if(d instanceof MethodDescriptor) {
-	  if(!visited.contains(d)) {
-	    ((MethodDescriptor)d).setIsInvokedByStatic(true);
-	    tovisit.add(d);
-	  }
-	}
+        Descriptor d = (Descriptor)it_callee.next();
+        if(d instanceof MethodDescriptor) {
+          if(!visited.contains(d)) {
+            ((MethodDescriptor)d).setIsInvokedByStatic(true);
+            tovisit.add(d);
+          }
+        }
       }
     }
   }
@@ -312,20 +312,20 @@ public class BuildCode {
     Iterator it_sclasses = sctbl.getDescriptorsIterator();
     if(it_sclasses.hasNext()) {
       while(it_sclasses.hasNext()) {
-	ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
-	MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
+        ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
+        MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
 
-	if(t_md != null&&callgraph.isInit(t_cd)) {
-	  outmethod.println("   {");
-	  if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	    outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-	    outmethod.println("0, NULL};");
-	    outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-	  } else {
-	    outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
-	  }
-	  outmethod.println("   }");
-	}
+        if(t_md != null&&callgraph.isInit(t_cd)) {
+          outmethod.println("   {");
+          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+            outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+            outmethod.println("0, NULL};");
+            outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+          } else {
+            outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+          }
+          outmethod.println("   }");
+        }
       }
     }
   }
@@ -451,9 +451,9 @@ public class BuildCode {
     while(taskit.hasNext()) {
       TaskDescriptor td=(TaskDescriptor)taskit.next();
       if (first)
-	first=false;
+        first=false;
       else
-	outtaskdefs.println(",");
+        outtaskdefs.println(",");
       outtaskdefs.print("&task_"+td.getSafeSymbol());
     }
     outtaskdefs.println("};");
@@ -485,7 +485,7 @@ public class BuildCode {
     }
     if(state.MULTICORE) {
       if(state.TASK) {
-	outmethod.println("#include \"task.h\"");
+        outmethod.println("#include \"task.h\"");
       }
       outmethod.println("#include \"multicoreruntime.h\"");
       outmethod.println("#include \"runtime_arch.h\"");
@@ -530,18 +530,18 @@ public class BuildCode {
       ClassDescriptor cn=(ClassDescriptor)classit.next();
       Iterator methodit=cn.getMethods();
       while(methodit.hasNext()) {
-	/* Classify parameters */
-	MethodDescriptor md=(MethodDescriptor)methodit.next();
-	if (!callgraph.isCallable(md)&&(!md.isStaticBlock()||!callgraph.isInit(cn))) {
-	  continue;
-	}
+        /* Classify parameters */
+        MethodDescriptor md=(MethodDescriptor)methodit.next();
+        if (!callgraph.isCallable(md)&&(!md.isStaticBlock()||!callgraph.isInit(cn))) {
+          continue;
+        }
 
-	FlatMethod fm=state.getMethodFlat(md);
-	if (!md.getModifiers().isNative()) {
-	  generateFlatMethod(fm, outmethod);
-	} else if (state.JNI) {
-	  generateNativeFlatMethod(fm, outmethod);
-	}
+        FlatMethod fm=state.getMethodFlat(md);
+        if (!md.getModifiers().isNative()) {
+          generateFlatMethod(fm, outmethod);
+        } else if (state.JNI) {
+          generateNativeFlatMethod(fm, outmethod);
+        }
       }
     }
   }
@@ -617,10 +617,10 @@ public class BuildCode {
       outclassdefs.println("struct "+cn.getSafeSymbol()+";");
 
       if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
-	// this class has static fields/blocks, need to add a global flag to
-	// indicate if its static fields have been initialized and/or if its
-	// static blocks have been executed
-	outglobaldefsprim.println("  int "+cn.getSafeSymbol()+"static_block_exe_flag;");
+        // this class has static fields/blocks, need to add a global flag to
+        // indicate if its static fields have been initialized and/or if its
+        // static blocks have been executed
+        outglobaldefsprim.println("  int "+cn.getSafeSymbol()+"static_block_exe_flag;");
       }
     }
     outclassdefs.println("");
@@ -644,26 +644,26 @@ public class BuildCode {
       outclassdefs.println("  volatile int notifycount;");
       outclassdefs.println("  volatile int objlock;");
       if(state.MULTICOREGC) {
-	outclassdefs.println("  int marked;");
+        outclassdefs.println("  int marked;");
       }
     }
     if (state.TASK) {
       outclassdefs.println("  int flag;");
       outclassdefs.println("  int ___cachedCode___;");
       if(!state.MULTICORE) {
-	outclassdefs.println("  void * flagptr;");
+        outclassdefs.println("  void * flagptr;");
       } else {
-	outclassdefs.println("  int version;");
-	outclassdefs.println("  int * lock;");  // lock entry for this obj
-	outclassdefs.println("  int mutex;");
-	outclassdefs.println("  volatile int lockcount;");
-	if(state.MULTICOREGC) {
-	  outclassdefs.println("  int marked;");
-	}
+        outclassdefs.println("  int version;");
+        outclassdefs.println("  int * lock;");  // lock entry for this obj
+        outclassdefs.println("  int mutex;");
+        outclassdefs.println("  volatile int lockcount;");
+        if(state.MULTICOREGC) {
+          outclassdefs.println("  int marked;");
+        }
       }
       if(state.OPTIONAL) {
-	outclassdefs.println("  int numfses;");
-	outclassdefs.println("  int * fses;");
+        outclassdefs.println("  int numfses;");
+        outclassdefs.println("  int * fses;");
       }
     }
 
@@ -719,10 +719,10 @@ public class BuildCode {
       outrepairstructs.println("structure "+cn.getSymbol()+" {");
       outrepairstructs.println("  int __type__;");
       if (state.TASK) {
-	outrepairstructs.println("  int __flag__;");
-	if(!state.MULTICORE) {
-	  outrepairstructs.println("  int __flagptr__;");
-	}
+        outrepairstructs.println("  int __flag__;");
+        if(!state.MULTICORE) {
+          outrepairstructs.println("  int __flagptr__;");
+        }
       }
       printRepairStruct(cn, outrepairstructs);
       outrepairstructs.println("}\n");
@@ -749,13 +749,13 @@ public class BuildCode {
     for(int i=0; i<fields.size(); i++) {
       FieldDescriptor fd=(FieldDescriptor)fields.get(i);
       if (fd.getType().isArray()) {
-	output.println("  "+arraytype+"_"+ state.getArrayNumber(fd.getType()) +" * "+fd.getSymbol()+";");
+        output.println("  "+arraytype+"_"+ state.getArrayNumber(fd.getType()) +" * "+fd.getSymbol()+";");
       } else if (fd.getType().isClass())
-	output.println("  "+fd.getType().getRepairSymbol()+" * "+fd.getSymbol()+";");
+        output.println("  "+fd.getType().getRepairSymbol()+" * "+fd.getSymbol()+";");
       else if (fd.getType().isFloat())
-	output.println("  int "+fd.getSymbol()+"; /* really float */");
+        output.println("  int "+fd.getSymbol()+"; /* really float */");
       else
-	output.println("  "+fd.getType().getRepairSymbol()+" "+fd.getSymbol()+";");
+        output.println("  "+fd.getType().getRepairSymbol()+" "+fd.getSymbol()+";");
     }
   }
 
@@ -769,48 +769,48 @@ public class BuildCode {
 
       int dnfterms;
       if (param_flag==null) {
-	output.println("int parameterdnf_"+i+"_"+task.getSafeSymbol()+"[]={");
-	output.println("0x0, 0x0 };");
-	dnfterms=1;
+        output.println("int parameterdnf_"+i+"_"+task.getSafeSymbol()+"[]={");
+        output.println("0x0, 0x0 };");
+        dnfterms=1;
       } else {
-	DNFFlag dflag=param_flag.getDNF();
-	dnfterms=dflag.size();
+        DNFFlag dflag=param_flag.getDNF();
+        dnfterms=dflag.size();
 
-	Hashtable flags=(Hashtable)flagorder.get(param_type.getClassDesc());
-	output.println("int parameterdnf_"+i+"_"+task.getSafeSymbol()+"[]={");
-	for(int j=0; j<dflag.size(); j++) {
-	  if (j!=0)
-	    output.println(",");
-	  Vector term=dflag.get(j);
-	  int andmask=0;
-	  int checkmask=0;
-	  for(int k=0; k<term.size(); k++) {
-	    DNFFlagAtom dfa=(DNFFlagAtom)term.get(k);
-	    FlagDescriptor fd=dfa.getFlag();
-	    boolean negated=dfa.getNegated();
-	    int flagid=1<<((Integer)flags.get(fd)).intValue();
-	    andmask|=flagid;
-	    if (!negated)
-	      checkmask|=flagid;
-	  }
-	  output.print("0x"+Integer.toHexString(andmask)+", 0x"+Integer.toHexString(checkmask));
-	}
-	output.println("};");
+        Hashtable flags=(Hashtable)flagorder.get(param_type.getClassDesc());
+        output.println("int parameterdnf_"+i+"_"+task.getSafeSymbol()+"[]={");
+        for(int j=0; j<dflag.size(); j++) {
+          if (j!=0)
+            output.println(",");
+          Vector term=dflag.get(j);
+          int andmask=0;
+          int checkmask=0;
+          for(int k=0; k<term.size(); k++) {
+            DNFFlagAtom dfa=(DNFFlagAtom)term.get(k);
+            FlagDescriptor fd=dfa.getFlag();
+            boolean negated=dfa.getNegated();
+            int flagid=1<<((Integer)flags.get(fd)).intValue();
+            andmask|=flagid;
+            if (!negated)
+              checkmask|=flagid;
+          }
+          output.print("0x"+Integer.toHexString(andmask)+", 0x"+Integer.toHexString(checkmask));
+        }
+        output.println("};");
       }
 
       output.println("int parametertag_"+i+"_"+task.getSafeSymbol()+"[]={");
       if (param_tag!=null)
-	for(int j=0; j<param_tag.numTags(); j++) {
-	  if (j!=0)
-	    output.println(",");
-	  /* for each tag we need */
-	  /* which slot it is */
-	  /* what type it is */
-	  TagVarDescriptor tvd=(TagVarDescriptor)task.getParameterTable().get(param_tag.getName(j));
-	  TempDescriptor tmp=param_tag.getTemp(j);
-	  int slot=fm.getTagInt(tmp);
-	  output.println(slot+", "+state.getTagId(tvd.getTag()));
-	}
+        for(int j=0; j<param_tag.numTags(); j++) {
+          if (j!=0)
+            output.println(",");
+          /* for each tag we need */
+          /* which slot it is */
+          /* what type it is */
+          TagVarDescriptor tvd=(TagVarDescriptor)task.getParameterTable().get(param_tag.getName(j));
+          TempDescriptor tmp=param_tag.getTemp(j);
+          int slot=fm.getTagInt(tmp);
+          output.println(slot+", "+state.getTagId(tvd.getTag()));
+        }
       output.println("};");
 
       output.println("struct parameterdescriptor parameter_"+i+"_"+task.getSafeSymbol()+"={");
@@ -819,9 +819,9 @@ public class BuildCode {
       output.println("parameterdnf_"+i+"_"+task.getSafeSymbol()+",");
       output.println("0,");
       if (param_tag!=null)
-	output.println("/* number of tags */"+param_tag.numTags()+",");
+        output.println("/* number of tags */"+param_tag.numTags()+",");
       else
-	output.println("/* number of tags */ 0,");
+        output.println("/* number of tags */ 0,");
       output.println("parametertag_"+i+"_"+task.getSafeSymbol());
       output.println("};");
     }
@@ -830,7 +830,7 @@ public class BuildCode {
     output.println("struct parameterdescriptor * parameterdescriptors_"+task.getSafeSymbol()+"[] = {");
     for (int i=0; i<task.numParameters(); i++) {
       if (i!=0)
-	output.println(",");
+        output.println(",");
       output.print("&parameter_"+i+"_"+task.getSafeSymbol());
     }
     output.println("};");
@@ -854,7 +854,7 @@ public class BuildCode {
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
       if (virtualcalls.getMethodCount(cd)>maxcount)
-	maxcount=virtualcalls.getMethodCount(cd);
+        maxcount=virtualcalls.getMethodCount(cd);
     }
     MethodDescriptor[][] virtualtable=null;
     virtualtable=new MethodDescriptor[state.numClasses()+state.numArrays()][maxcount];
@@ -864,7 +864,7 @@ public class BuildCode {
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
       if(cd.isInterface()) {
-	continue;
+        continue;
       }
       fillinRow(cd, virtualtable, cd.getId());
     }
@@ -881,15 +881,15 @@ public class BuildCode {
     boolean needcomma=false;
     for(int i=0; i<state.numClasses()+state.numArrays(); i++) {
       for(int j=0; j<maxcount; j++) {
-	if (needcomma)
-	  outvirtual.print(", ");
-	if (virtualtable[i][j]!=null) {
-	  MethodDescriptor md=virtualtable[i][j];
-	  outvirtual.print("& "+md.getClassDesc().getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
-	} else {
-	  outvirtual.print("0");
-	}
-	needcomma=true;
+        if (needcomma)
+          outvirtual.print(", ");
+        if (virtualtable[i][j]!=null) {
+          MethodDescriptor md=virtualtable[i][j];
+          outvirtual.print("& "+md.getClassDesc().getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
+        } else {
+          outvirtual.print("0");
+        }
+        needcomma=true;
       }
       outvirtual.println("");
     }
@@ -910,10 +910,10 @@ public class BuildCode {
     for(Iterator it=cd.getMethods(); it.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
-	continue;
+        continue;
 
       if (!callgraph.isCallable(md)) {
-	continue;
+        continue;
       }
 
       int methodnum = virtualcalls.getMethodNumber(md);
@@ -937,9 +937,9 @@ public class BuildCode {
     while(it.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)it.next();
       if(cd.isInterface()) {
-	ifarray[cd.getId()] = cd;
+        ifarray[cd.getId()] = cd;
       } else {
-	cdarray[cd.getId()] = cd;
+        cdarray[cd.getId()] = cd;
       }
     }
 
@@ -957,9 +957,9 @@ public class BuildCode {
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cd=cdarray[i];
       if(cd == null) {
-	outclassdefs.println("NULL " + i);
+        outclassdefs.println("NULL " + i);
       } else {
-	outclassdefs.println(cd +"  "+i);
+        outclassdefs.println(cd +"  "+i);
       }
     }
 
@@ -981,11 +981,11 @@ public class BuildCode {
     boolean needcomma=false;
     for(int i=0; i<state.numClasses(); i++) {
       if (needcomma)
-	outclassdefs.print(", ");
+        outclassdefs.print(", ");
       if(i>0) {
-	outclassdefs.print("sizeof(struct "+cdarray[i].getSafeSymbol()+")");
+        outclassdefs.print("sizeof(struct "+cdarray[i].getSafeSymbol()+")");
       } else {
-	outclassdefs.print("0");
+        outclassdefs.print("0");
       }
       needcomma=true;
     }
@@ -993,18 +993,18 @@ public class BuildCode {
 
     for(int i=0; i<state.numArrays(); i++) {
       if (needcomma)
-	outclassdefs.print(", ");
+        outclassdefs.print(", ");
       TypeDescriptor tdelement=arraytable[i].dereference();
       if (tdelement.isArray()||tdelement.isClass()||tdelement.isNull())
-	outclassdefs.print("sizeof(void *)");
+        outclassdefs.print("sizeof(void *)");
       else
-	outclassdefs.print("sizeof("+tdelement.getSafeSymbol()+")");
+        outclassdefs.print("sizeof("+tdelement.getSafeSymbol()+")");
       needcomma=true;
     }
 
     for(int i=0; i<state.numInterfaces(); i++) {
       if (needcomma)
-	outclassdefs.print(", ");
+        outclassdefs.print(", ");
       outclassdefs.print("sizeof(struct "+ifarray[i].getSafeSymbol()+")");
       needcomma=true;
     }
@@ -1018,14 +1018,14 @@ public class BuildCode {
       ClassDescriptor cd=cdarray[i];
       ClassDescriptor supercd=i>0?cd.getSuperDesc():null;
       if(supercd != null && supercd.isInterface()) {
-	throw new Error("Super class can not be interfaces");
+        throw new Error("Super class can not be interfaces");
       }
       if (needcomma)
-	outclassdefs.print(", ");
+        outclassdefs.print(", ");
       if (supercd==null)
-	outclassdefs.print("-1");
+        outclassdefs.print("-1");
       else
-	outclassdefs.print(supercd.getId());
+        outclassdefs.print(supercd.getId());
       needcomma=true;
     }
 
@@ -1033,26 +1033,26 @@ public class BuildCode {
       TypeDescriptor arraytd=arraytable[i];
       ClassDescriptor arraycd=arraytd.getClassDesc();
       if (arraycd==null) {
-	if (needcomma)
-	  outclassdefs.print(", ");
-	outclassdefs.print(objectclass.getId());
-	needcomma=true;
-	continue;
+        if (needcomma)
+          outclassdefs.print(", ");
+        outclassdefs.print(objectclass.getId());
+        needcomma=true;
+        continue;
       }
       ClassDescriptor cd=arraycd.getSuperDesc();
       int type=-1;
       while(cd!=null) {
-	TypeDescriptor supertd=new TypeDescriptor(cd);
-	supertd.setArrayCount(arraytd.getArrayCount());
-	type=state.getArrayNumber(supertd);
-	if (type!=-1) {
-	  type+=state.numClasses();
-	  break;
-	}
-	cd=cd.getSuperDesc();
+        TypeDescriptor supertd=new TypeDescriptor(cd);
+        supertd.setArrayCount(arraytd.getArrayCount());
+        type=state.getArrayNumber(supertd);
+        if (type!=-1) {
+          type+=state.numClasses();
+          break;
+        }
+        cd=cd.getSuperDesc();
       }
       if (needcomma)
-	outclassdefs.print(", ");
+        outclassdefs.print(", ");
       outclassdefs.print(type);
       needcomma=true;
     }
@@ -1061,14 +1061,14 @@ public class BuildCode {
       ClassDescriptor cd=ifarray[i];
       ClassDescriptor supercd=cd.getSuperDesc();
       if(supercd != null && supercd.isInterface()) {
-	throw new Error("Super class can not be interfaces");
+        throw new Error("Super class can not be interfaces");
       }
       if (needcomma)
-	outclassdefs.print(", ");
+        outclassdefs.print(", ");
       if (supercd==null)
-	outclassdefs.print("-1");
+        outclassdefs.print("-1");
       else
-	outclassdefs.print(supercd.getId());
+        outclassdefs.print(supercd.getId());
       needcomma=true;
     }
 
@@ -1082,26 +1082,26 @@ public class BuildCode {
       TypeDescriptor arraytd=arraytable[i];
       ClassDescriptor arraycd=arraytd.getClassDesc();
       if (arraycd==null) {
-	if (needcomma)
-	  outclassdefs.print(", ");
-	outclassdefs.print("-1");
-	needcomma=true;
-	continue;
+        if (needcomma)
+          outclassdefs.print(", ");
+        outclassdefs.print("-1");
+        needcomma=true;
+        continue;
       }
       ClassDescriptor cd=arraycd.getSuperDesc();
       int level=arraytd.getArrayCount()-1;
       int type=-1;
       for(; level>0; level--) {
-	TypeDescriptor supertd=new TypeDescriptor(objectclass);
-	supertd.setArrayCount(level);
-	type=state.getArrayNumber(supertd);
-	if (type!=-1) {
-	  type+=state.numClasses();
-	  break;
-	}
+        TypeDescriptor supertd=new TypeDescriptor(objectclass);
+        supertd.setArrayCount(level);
+        type=state.getArrayNumber(supertd);
+        if (type!=-1) {
+          type+=state.numClasses();
+          break;
+        }
       }
       if (needcomma)
-	outclassdefs.print(", ");
+        outclassdefs.print(", ");
       outclassdefs.print(type);
       needcomma=true;
     }
@@ -1126,17 +1126,17 @@ public class BuildCode {
       TempDescriptor temp=fm.getParameter(i);
       TypeDescriptor type=temp.getType();
       if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
-	objectparams.addPtr(temp);
+        objectparams.addPtr(temp);
       else
-	objectparams.addPrim(temp);
+        objectparams.addPrim(temp);
     }
 
     for(int i=0; i<fm.numTags(); i++) {
       TempDescriptor temp=fm.getTag(i);
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
-	objectparams.addPtr(temp);
+        objectparams.addPtr(temp);
       else
-	objectparams.addPrim(temp);
+        objectparams.addPrim(temp);
     }
 
     TempObject objecttemps=md!=null?new TempObject(objectparams,md,tag++):new TempObject(objectparams, task, tag++);
@@ -1149,12 +1149,12 @@ public class BuildCode {
       FlatNode fn=(FlatNode)nodeit.next();
       TempDescriptor[] writes=fn.writesTemps();
       for(int i=0; i<writes.length; i++) {
-	TempDescriptor temp=writes[i];
-	TypeDescriptor type=temp.getType();
-	if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
-	  objecttemps.addPtr(temp);
-	else
-	  objecttemps.addPrim(temp);
+        TempDescriptor temp=writes[i];
+        TypeDescriptor type=temp.getType();
+        if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
+          objecttemps.addPtr(temp);
+        else
+          objecttemps.addPrim(temp);
       }
     }
   }
@@ -1172,32 +1172,32 @@ public class BuildCode {
       ClassDescriptor cn=(ClassDescriptor)it.next();
       output.print("unsigned INTPTR "+cn.getSafeSymbol()+"_pointers[]={");
       if (javabuilder!=null&&!javabuilder.hasLayout(cn)) {
-	output.println("0};");
-	continue;
+        output.println("0};");
+        continue;
       }
 
       int count=0;
       for(Iterator allit=cn.getFieldTable().getAllDescriptorsIterator(); allit.hasNext(); ) {
-	FieldDescriptor fd=(FieldDescriptor)allit.next();
-	if(fd.isStatic()) {
-	  continue;
-	}
-	TypeDescriptor type=fd.getType();
-	if (type.isPtr())
-	  count++;
+        FieldDescriptor fd=(FieldDescriptor)allit.next();
+        if(fd.isStatic()) {
+          continue;
+        }
+        TypeDescriptor type=fd.getType();
+        if (type.isPtr())
+          count++;
       }
       output.print(count);
       for(Iterator allit=cn.getFieldTable().getAllDescriptorsIterator(); allit.hasNext(); ) {
-	FieldDescriptor fd=(FieldDescriptor)allit.next();
-	if(fd.isStatic()) {
-	  continue;
-	}
-	TypeDescriptor type=fd.getType();
-	if (type.isPtr()) {
-	  output.print(", ");
-	  output.print("((unsigned INTPTR)&(((struct "+cn.getSafeSymbol() +" *)0)->"+
-	               fd.getSafeSymbol()+"))");
-	}
+        FieldDescriptor fd=(FieldDescriptor)allit.next();
+        if(fd.isStatic()) {
+          continue;
+        }
+        TypeDescriptor type=fd.getType();
+        if (type.isPtr()) {
+          output.print(", ");
+          output.print("((unsigned INTPTR)&(((struct "+cn.getSafeSymbol() +" *)0)->"+
+                       fd.getSafeSymbol()+"))");
+        }
       }
       output.println("};");
     }
@@ -1207,23 +1207,23 @@ public class BuildCode {
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cn=cdarray[i];
       if (needcomma)
-	output.println(",");
+        output.println(",");
       needcomma=true;
       if(cn != null) {
-	output.print(cn.getSafeSymbol()+"_pointers");
+        output.print(cn.getSafeSymbol()+"_pointers");
       } else {
-	output.print("NULL");
+        output.print("NULL");
       }
     }
 
     for(int i=0; i<state.numArrays(); i++) {
       if (needcomma)
-	output.println(", ");
+        output.println(", ");
       TypeDescriptor tdelement=arraytable[i].dereference();
       if (tdelement.isArray()||tdelement.isClass())
-	output.print("((unsigned INTPTR *)1)");
+        output.print("((unsigned INTPTR *)1)");
       else
-	output.print("0");
+        output.print("0");
       needcomma=true;
     }
 
@@ -1233,12 +1233,12 @@ public class BuildCode {
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cn=cdarray[i];
       if (needcomma)
-	output.println(", ");
+        output.println(", ");
       needcomma=true;
       if ((cn != null) && (cn.hasFlags()))
-	output.print("1");
+        output.print("1");
       else
-	output.print("0");
+        output.print("0");
     }
     output.println("};");
   }
@@ -1257,7 +1257,7 @@ public class BuildCode {
     if(cd != null) {
       type = checkarraysupertype(cd, arraytd);
       if(type != -1) {
-	return type;
+        return type;
       }
     }
 
@@ -1266,7 +1266,7 @@ public class BuildCode {
       ClassDescriptor ifcd = (ClassDescriptor)it_sifs.next();
       type = checkarraysupertype(ifcd, arraytd);
       if(type != -1) {
-	return type;
+        return type;
       }
     }
 
@@ -1280,34 +1280,34 @@ public class BuildCode {
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cn=cdarray[i];
       if(cn == null) {
-	continue;
+        continue;
       }
       output.print("int supertypes" + cn.getSafeSymbol() + "[] = {");
       boolean ncomma = false;
       int snum = 0;
       if((cn != null) && (cn.getSuperDesc() != null)) {
-	snum++;
+        snum++;
       }
       Iterator it_sifs = cn != null?cn.getSuperInterfaces():null;
       while(it_sifs != null && it_sifs.hasNext()) {
-	snum++;
-	it_sifs.next();
+        snum++;
+        it_sifs.next();
       }
       output.print(snum);
       ncomma = true;
       if ((cn != null) && (cn.getSuperDesc()!=null)) {
-	if(ncomma) {
-	  output.print(",");
-	}
-	ClassDescriptor cdsuper=cn.getSuperDesc();
-	output.print(cdsuper.getId());
+        if(ncomma) {
+          output.print(",");
+        }
+        ClassDescriptor cdsuper=cn.getSuperDesc();
+        output.print(cdsuper.getId());
       }
       it_sifs = cn != null?cn.getSuperInterfaces():null;
       while(it_sifs != null && it_sifs.hasNext()) {
-	if(ncomma) {
-	  output.print(",");
-	}
-	output.print(((ClassDescriptor)it_sifs.next()).getId()+state.numClasses()+state.numArrays());
+        if(ncomma) {
+          output.print(",");
+        }
+        output.print(((ClassDescriptor)it_sifs.next()).getId()+state.numClasses()+state.numArrays());
       }
 
       output.println("};");
@@ -1320,46 +1320,46 @@ public class BuildCode {
       boolean ncomma = false;
       int snum = 0;
       if (arraycd==null) {
-	snum++;
-	output.print(snum);
-	output.print(", ");
-	output.print(objectclass.getId());
-	output.println("};");
-	continue;
+        snum++;
+        output.print(snum);
+        output.print(", ");
+        output.print(objectclass.getId());
+        output.println("};");
+        continue;
       }
       if((arraycd != null) && (arraycd.getSuperDesc() != null)) {
-	snum++;
+        snum++;
       }
       Iterator it_sifs = arraycd != null?arraycd.getSuperInterfaces():null;
       while(it_sifs != null && it_sifs.hasNext()) {
-	snum++;
-	it_sifs.next();
+        snum++;
+        it_sifs.next();
       }
       output.print(snum);
       ncomma = true;
       if ((arraycd != null) && (arraycd.getSuperDesc()!=null)) {
-	ClassDescriptor cd=arraycd.getSuperDesc();
-	int type=-1;
-	if(cd!=null) {
-	  type = checkarraysupertype(cd, arraytd);
-	  if(type != -1) {
-	    type += state.numClasses();
-	  }
-	}
-	if (ncomma)
-	  output.print(", ");
-	output.print(type);
+        ClassDescriptor cd=arraycd.getSuperDesc();
+        int type=-1;
+        if(cd!=null) {
+          type = checkarraysupertype(cd, arraytd);
+          if(type != -1) {
+            type += state.numClasses();
+          }
+        }
+        if (ncomma)
+          output.print(", ");
+        output.print(type);
       }
       it_sifs = arraycd != null?arraycd.getSuperInterfaces():null;
       while(it_sifs != null && it_sifs.hasNext()) {
-	ClassDescriptor ifcd = (ClassDescriptor)it_sifs.next();
-	int type = checkarraysupertype(ifcd, arraytd);
-	if(type != -1) {
-	  type += state.numClasses();
-	}
-	if (ncomma)
-	  output.print(", ");
-	output.print(type);
+        ClassDescriptor ifcd = (ClassDescriptor)it_sifs.next();
+        int type = checkarraysupertype(ifcd, arraytd);
+        if(type != -1) {
+          type += state.numClasses();
+        }
+        if (ncomma)
+          output.print(", ");
+        output.print(type);
       }
       output.println("};");
     }
@@ -1367,34 +1367,34 @@ public class BuildCode {
     for(int i=0; i<state.numInterfaces(); i++) {
       ClassDescriptor cn=ifarray[i];
       if(cn == null) {
-	continue;
+        continue;
       }
       output.print("int supertypes" + cn.getSafeSymbol() + "[] = {");
       boolean ncomma = false;
       int snum = 0;
       if((cn != null) && (cn.getSuperDesc() != null)) {
-	snum++;
+        snum++;
       }
       Iterator it_sifs = cn != null?cn.getSuperInterfaces():null;
       while(it_sifs != null && it_sifs.hasNext()) {
-	snum++;
-	it_sifs.next();
+        snum++;
+        it_sifs.next();
       }
       output.print(snum);
       ncomma = true;
       if ((cn != null) && (cn.getSuperDesc()!=null)) {
-	if(ncomma) {
-	  output.print(",");
-	}
-	ClassDescriptor cdsuper=cn.getSuperDesc();
-	output.print(cdsuper.getId());
+        if(ncomma) {
+          output.print(",");
+        }
+        ClassDescriptor cdsuper=cn.getSuperDesc();
+        output.print(cdsuper.getId());
       }
       it_sifs = cn != null?cn.getSuperInterfaces():null;
       while(it_sifs != null && it_sifs.hasNext()) {
-	if(ncomma) {
-	  output.print(",");
-	}
-	output.print(((ClassDescriptor)it_sifs.next()).getId()+state.numClasses()+state.numArrays());
+        if(ncomma) {
+          output.print(",");
+        }
+        output.print(((ClassDescriptor)it_sifs.next()).getId()+state.numClasses()+state.numArrays());
       }
 
       output.println("};");
@@ -1405,18 +1405,18 @@ public class BuildCode {
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cn=cdarray[i];
       if (needcomma)
-	output.println(",");
+        output.println(",");
       needcomma=true;
       if(cn != null) {
-	output.print("supertypes" + cn.getSafeSymbol());
+        output.print("supertypes" + cn.getSafeSymbol());
       } else {
-	output.print(0);
+        output.print(0);
       }
     }
 
     for(int i=0; i<state.numArrays(); i++) {
       if (needcomma)
-	output.println(",");
+        output.println(",");
       needcomma = true;
       output.print("supertypes___arraytype___" + (i+state.numClasses()));
     }
@@ -1424,7 +1424,7 @@ public class BuildCode {
     for(int i=0; i<state.numInterfaces(); i++) {
       ClassDescriptor cn=ifarray[i];
       if (needcomma)
-	output.println(",");
+        output.println(",");
       needcomma=true;
       output.print("supertypes" + cn.getSafeSymbol());
     }
@@ -1453,19 +1453,19 @@ public class BuildCode {
       Vector fieldvec=cn.getFieldVec();
 fldloop:
       for(int i=0; i<fieldvec.size(); i++) {
-	FieldDescriptor fd=(FieldDescriptor)fieldvec.get(i);
-	if((sp != null) && sp.getFieldTable().contains(fd.getSymbol())) {
-	  // a shadow field
-	} else {
-	  it_sifs = sitbl.getDescriptorsIterator();
-	  while(it_sifs.hasNext()) {
-	    ClassDescriptor si = (ClassDescriptor)it_sifs.next();
-	    if(si.getFieldTable().contains(fd.getSymbol())) {
-	      continue fldloop;
-	    }
-	  }
-	  fields.add(fd);
-	}
+        FieldDescriptor fd=(FieldDescriptor)fieldvec.get(i);
+        if((sp != null) && sp.getFieldTable().contains(fd.getSymbol())) {
+          // a shadow field
+        } else {
+          it_sifs = sitbl.getDescriptorsIterator();
+          while(it_sifs.hasNext()) {
+            ClassDescriptor si = (ClassDescriptor)it_sifs.next();
+            if(si.getFieldTable().contains(fd.getSymbol())) {
+              continue fldloop;
+            }
+          }
+          fields.add(fd);
+        }
       }
     }
     //Vector fields=(Vector)fieldorder.get(cn);
@@ -1476,47 +1476,47 @@ fldloop:
       FieldDescriptor fd=(FieldDescriptor)fields.get(i);
       String fstring = fd.getSafeSymbol();
       if(printedfieldstbl.containsKey(fstring)) {
-	printedfieldstbl.put(fstring, cn);
-	continue;
+        printedfieldstbl.put(fstring, cn);
+        continue;
       } else {
-	printedfieldstbl.put(fstring, cn);
+        printedfieldstbl.put(fstring, cn);
       }
       if (fd.getType().isClass()
           && fd.getType().getClassDesc().isEnum()) {
-	classdefout.println("  int " + fd.getSafeSymbol() + ";");
+        classdefout.println("  int " + fd.getSafeSymbol() + ";");
       } else if (fd.getType().isClass()||fd.getType().isArray()) {
-	if (fd.isStatic()) {
-	  // TODO add version for normal Java later
-	  // static field
-	  if(globaldefout != null) {
-	    if(fd.isVolatile()) {
-	      globaldefout.println("  volatile struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
-	    } else {
-	      globaldefout.println("  struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
-	    }
-	    globaldefscount++;
-	  }
-	} else if (fd.isVolatile()) {
-	  //volatile field
-	  classdefout.println("  volatile struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
-	} else {
-	  classdefout.println("  struct "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
-	}
+        if (fd.isStatic()) {
+          // TODO add version for normal Java later
+          // static field
+          if(globaldefout != null) {
+            if(fd.isVolatile()) {
+              globaldefout.println("  volatile struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
+            } else {
+              globaldefout.println("  struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
+            }
+            globaldefscount++;
+          }
+        } else if (fd.isVolatile()) {
+          //volatile field
+          classdefout.println("  volatile struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
+        } else {
+          classdefout.println("  struct "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
+        }
       } else if (fd.isStatic()) {
-	// TODO add version for normal Java later
-	// static field
-	if(globaldefout != null) {
-	  if(fd.isVolatile()) {
-	    globaldefprimout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
-	  } else {
-	    globaldefprimout.println("  "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
-	  }
-	}
+        // TODO add version for normal Java later
+        // static field
+        if(globaldefout != null) {
+          if(fd.isVolatile()) {
+            globaldefprimout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
+          } else {
+            globaldefprimout.println("  "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
+          }
+        }
       } else if (fd.isVolatile()) {
-	//volatile field
-	classdefout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
+        //volatile field
+        classdefout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
       } else
-	classdefout.println("  "+fd.getType().getSafeSymbol()+" "+fd.getSafeSymbol()+";");
+        classdefout.println("  "+fd.getType().getSafeSymbol()+" "+fd.getSafeSymbol()+";");
     }
   }
 
@@ -1533,22 +1533,22 @@ fldloop:
       Hashtable flags=new Hashtable();
       flagorder.put(cn,flags);
       if (sp!=null) {
-	Hashtable superflags=(Hashtable)flagorder.get(sp);
-	Iterator superflagit=superflags.keySet().iterator();
-	while(superflagit.hasNext()) {
-	  FlagDescriptor fd=(FlagDescriptor)superflagit.next();
-	  Integer number=(Integer)superflags.get(fd);
-	  flags.put(fd, number);
-	  if ((number.intValue()+1)>max)
-	    max=number.intValue()+1;
-	}
+        Hashtable superflags=(Hashtable)flagorder.get(sp);
+        Iterator superflagit=superflags.keySet().iterator();
+        while(superflagit.hasNext()) {
+          FlagDescriptor fd=(FlagDescriptor)superflagit.next();
+          Integer number=(Integer)superflags.get(fd);
+          flags.put(fd, number);
+          if ((number.intValue()+1)>max)
+            max=number.intValue()+1;
+        }
       }
 
       Iterator flagit=cn.getFlags();
       while(flagit.hasNext()) {
-	FlagDescriptor fd=(FlagDescriptor)flagit.next();
-	if (sp==null||!sp.getFlagTable().contains(fd.getSymbol()))
-	  flags.put(fd, new Integer(max++));
+        FlagDescriptor fd=(FlagDescriptor)flagit.next();
+        if (sp==null||!sp.getFlagTable().contains(fd.getSymbol()))
+          flags.put(fd, new Integer(max++));
       }
     }
   }
@@ -1579,26 +1579,26 @@ fldloop:
       classdefout.println("  volatile int notifycount;");
       classdefout.println("  volatile int objlock;");
       if(state.MULTICOREGC) {
-	classdefout.println("  int marked;");
+        classdefout.println("  int marked;");
       }
     }
     if (state.TASK) {
       classdefout.println("  int flag;");
       classdefout.println("  int ___cachedCode___;");
       if((!state.MULTICORE) || (cn.getSymbol().equals("TagDescriptor"))) {
-	classdefout.println("  void * flagptr;");
+        classdefout.println("  void * flagptr;");
       } else if (state.MULTICORE) {
-	classdefout.println("  int version;");
-	classdefout.println("  int * lock;"); // lock entry for this obj
-	classdefout.println("  int mutex;");
-	classdefout.println("  volatile int lockcount;");
-	if(state.MULTICOREGC) {
-	  classdefout.println("  int marked;");
-	}
+        classdefout.println("  int version;");
+        classdefout.println("  int * lock;"); // lock entry for this obj
+        classdefout.println("  int mutex;");
+        classdefout.println("  volatile int lockcount;");
+        if(state.MULTICOREGC) {
+          classdefout.println("  int marked;");
+        }
       }
       if (state.OPTIONAL) {
-	classdefout.println("  int numfses;");
-	classdefout.println("  int * fses;");
+        classdefout.println("  int numfses;");
+        classdefout.println("  int * fses;");
       }
     }
     if (javabuilder==null||javabuilder.hasLayout(cn))
@@ -1617,11 +1617,11 @@ fldloop:
       FlatMethod fm=state.getMethodFlat(md);
 
       if (!callgraph.isCallable(md)&&(!md.isStaticBlock()||!callgraph.isInit(cn))) {
-	if (callgraph.isCalled(md)) {
-	  generateTempStructs(fm);
-	  generateMethodParam(cn, md, output);
-	}
-	continue;
+        if (callgraph.isCalled(md)) {
+          generateTempStructs(fm);
+          generateMethodParam(cn, md, output);
+        }
+        continue;
       }
 
       generateTempStructs(fm);
@@ -1635,22 +1635,22 @@ fldloop:
     /* Output parameter structure */
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if(md.isInvokedByStatic() && !md.isStaticBlock() && !md.getModifiers().isNative()) {
-	// generate the staticinit version
-	String mdstring = md.getSafeMethodDescriptor() + "staticinit";
+        // generate the staticinit version
+        String mdstring = md.getSafeMethodDescriptor() + "staticinit";
 
-	ParamsObject objectparams=(ParamsObject) paramstable.get(md);
-	output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params {");
-	output.println("  int size;");
-	output.println("  void * next;");
-	for(int i=0; i<objectparams.numPointers(); i++) {
-	  TempDescriptor temp=objectparams.getPointer(i);
-	  if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	    output.println("  int " + temp.getSafeSymbol() + ";");
-	  } else {
-	    output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-	  }
-	}
-	output.println("};\n");
+        ParamsObject objectparams=(ParamsObject) paramstable.get(md);
+        output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params {");
+        output.println("  int size;");
+        output.println("  void * next;");
+        for(int i=0; i<objectparams.numPointers(); i++) {
+          TempDescriptor temp=objectparams.getPointer(i);
+          if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+            output.println("  int " + temp.getSafeSymbol() + ";");
+          } else {
+            output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+          }
+        }
+        output.println("};\n");
       }
 
       ParamsObject objectparams=(ParamsObject) paramstable.get(md);
@@ -1658,12 +1658,12 @@ fldloop:
       output.println("  int size;");
       output.println("  void * next;");
       for(int i=0; i<objectparams.numPointers(); i++) {
-	TempDescriptor temp=objectparams.getPointer(i);
-	if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	  output.println("  int " + temp.getSafeSymbol() + ";");
-	} else {
-	  output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-	}
+        TempDescriptor temp=objectparams.getPointer(i);
+        if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+          output.println("  int " + temp.getSafeSymbol() + ";");
+        } else {
+          output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+        }
       }
       output.println("};\n");
     }
@@ -1682,55 +1682,55 @@ fldloop:
 
       /* Output temp structure */
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_locals {");
-	output.println("  int size;");
-	output.println("  void * next;");
-	for(int i=0; i<objecttemps.numPointers(); i++) {
-	  TempDescriptor temp=objecttemps.getPointer(i);
-	  if (!temp.getType().isArray() && temp.getType().isNull())
-	    output.println("  void * "+temp.getSafeSymbol()+";");
-	  else
-	    output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-	}
-	output.println("};\n");
+        output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_locals {");
+        output.println("  int size;");
+        output.println("  void * next;");
+        for(int i=0; i<objecttemps.numPointers(); i++) {
+          TempDescriptor temp=objecttemps.getPointer(i);
+          if (!temp.getType().isArray() && temp.getType().isNull())
+            output.println("  void * "+temp.getSafeSymbol()+";");
+          else
+            output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+        }
+        output.println("};\n");
       }
 
       headersout.println("#define D"+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+" 1");
       /* First the return type */
       if (md.getReturnType()!=null) {
-	if(md.getReturnType().isClass() && md.getReturnType().getClassDesc().isEnum()) {
-	  headersout.println("  int ");
-	} else if (md.getReturnType().isClass()||md.getReturnType().isArray())
-	  headersout.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
-	else
-	  headersout.print(md.getReturnType().getSafeSymbol()+" ");
+        if(md.getReturnType().isClass() && md.getReturnType().getClassDesc().isEnum()) {
+          headersout.println("  int ");
+        } else if (md.getReturnType().isClass()||md.getReturnType().isArray())
+          headersout.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
+        else
+          headersout.print(md.getReturnType().getSafeSymbol()+" ");
       } else
-	//catch the constructor case
-	headersout.print("void ");
+        //catch the constructor case
+        headersout.print("void ");
 
       /* Next the method name */
       headersout.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"(");
       printcomma=false;
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * "+paramsprefix);
-	printcomma=true;
+        headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * "+paramsprefix);
+        printcomma=true;
       }
 
       /*  Output parameter list*/
       for(int i=0; i<objectparams.numPrimitives(); i++) {
-	TempDescriptor temp=objectparams.getPrimitive(i);
-	if (printcomma)
-	  headersout.print(", ");
-	printcomma=true;
-	if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	  headersout.print("int " + temp.getSafeSymbol());
-	} else if (temp.getType().isClass()||temp.getType().isArray())
-	  headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
-	else
-	  headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+        TempDescriptor temp=objectparams.getPrimitive(i);
+        if (printcomma)
+          headersout.print(", ");
+        printcomma=true;
+        if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+          headersout.print("int " + temp.getSafeSymbol());
+        } else if (temp.getType().isClass()||temp.getType().isArray())
+          headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+        else
+          headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
       }
       if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
-	headersout.print(", int linenum");
+        headersout.print(", int linenum");
       }
       headersout.println(");\n");
     }
@@ -1741,11 +1741,11 @@ fldloop:
       output.println("  int size;");
       output.println("  void * next;");
       for(int i=0; i<objecttemps.numPointers(); i++) {
-	TempDescriptor temp=objecttemps.getPointer(i);
-	if (!temp.getType().isArray() && temp.getType().isNull())
-	  output.println("  void * "+temp.getSafeSymbol()+";");
-	else
-	  output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+        TempDescriptor temp=objecttemps.getPointer(i);
+        if (!temp.getType().isArray() && temp.getType().isNull())
+          output.println("  void * "+temp.getSafeSymbol()+";");
+        else
+          output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
       }
       output.println("};\n");
     }
@@ -1755,11 +1755,11 @@ fldloop:
     /* First the return type */
     if (md.getReturnType()!=null) {
       if(md.getReturnType().isClass() && md.getReturnType().getClassDesc().isEnum()) {
-	headersout.println("  int ");
+        headersout.println("  int ");
       } else if (md.getReturnType().isClass()||md.getReturnType().isArray())
-	headersout.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
+        headersout.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
       else
-	headersout.print(md.getReturnType().getSafeSymbol()+" ");
+        headersout.print(md.getReturnType().getSafeSymbol()+" ");
     } else
       //catch the constructor case
       headersout.print("void ");
@@ -1776,14 +1776,14 @@ fldloop:
     for(int i=0; i<objectparams.numPrimitives(); i++) {
       TempDescriptor temp=objectparams.getPrimitive(i);
       if (printcomma)
-	headersout.print(", ");
+        headersout.print(", ");
       printcomma=true;
       if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	headersout.print("int " + temp.getSafeSymbol());
+        headersout.print("int " + temp.getSafeSymbol());
       } else if (temp.getType().isClass()||temp.getType().isArray())
-	headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+        headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
       else
-	headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+        headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
     }
     if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
       headersout.print(", int linenum");
@@ -1811,36 +1811,36 @@ fldloop:
 
       /* Output parameter structure */
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println("struct "+task.getSafeSymbol()+"_params {");
-	output.println("  int size;");
-	output.println("  void * next;");
-	for(int i=0; i<objectparams.numPointers(); i++) {
-	  TempDescriptor temp=objectparams.getPointer(i);
-	  output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-	}
+        output.println("struct "+task.getSafeSymbol()+"_params {");
+        output.println("  int size;");
+        output.println("  void * next;");
+        for(int i=0; i<objectparams.numPointers(); i++) {
+          TempDescriptor temp=objectparams.getPointer(i);
+          output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+        }
 
-	output.println("};\n");
-	if ((objectparams.numPointers()+fm.numTags())>maxtaskparams) {
-	  maxtaskparams=objectparams.numPointers()+fm.numTags();
-	}
+        output.println("};\n");
+        if ((objectparams.numPointers()+fm.numTags())>maxtaskparams) {
+          maxtaskparams=objectparams.numPointers()+fm.numTags();
+        }
       }
 
       /* Output temp structure */
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println("struct "+task.getSafeSymbol()+"_locals {");
-	output.println("  int size;");
-	output.println("  void * next;");
-	for(int i=0; i<objecttemps.numPointers(); i++) {
-	  TempDescriptor temp=objecttemps.getPointer(i);
-	  if (!temp.getType().isArray() && temp.getType().isNull())
-	    output.println("  void * "+temp.getSafeSymbol()+";");
-	  else if(temp.getType().isTag())
-	    output.println("  struct "+
-	                   (new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass))).getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-	  else
-	    output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-	}
-	output.println("};\n");
+        output.println("struct "+task.getSafeSymbol()+"_locals {");
+        output.println("  int size;");
+        output.println("  void * next;");
+        for(int i=0; i<objecttemps.numPointers(); i++) {
+          TempDescriptor temp=objecttemps.getPointer(i);
+          if (!temp.getType().isArray() && temp.getType().isNull())
+            output.println("  void * "+temp.getSafeSymbol()+";");
+          else if(temp.getType().isTag())
+            output.println("  struct "+
+                           (new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass))).getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+          else
+            output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+        }
+        output.println("};\n");
       }
 
       /* Output task declaration */
@@ -1848,9 +1848,9 @@ fldloop:
 
       boolean printcomma=false;
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	headersout.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
+        headersout.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
       } else
-	headersout.print("void * parameterarray[]");
+        headersout.print("void * parameterarray[]");
       headersout.println(");\n");
     }
   }
@@ -1870,7 +1870,7 @@ fldloop:
     for(int i=startindex; i<fm.numParameters(); i++) {
       TempDescriptor tmp=fm.getParameter(i);
       if (tmp.getType().isPtr()) {
-	outmethod.println("jobject param"+i+"=JNIWRAP("+generateTemp(fm, fm.getParameter(i))+");");
+        outmethod.println("jobject param"+i+"=JNIWRAP("+generateTemp(fm, fm.getParameter(i))+");");
       }
     }
     if (GENERATEPRECISEGC) {
@@ -1878,9 +1878,9 @@ fldloop:
     }
     if (!md.getReturnType().isVoid()) {
       if (md.getReturnType().isPtr())
-	outmethod.print("jobject retval=");
+        outmethod.print("jobject retval=");
       else
-	outmethod.print(md.getReturnType().getSafeSymbol()+" retval=");
+        outmethod.print(md.getReturnType().getSafeSymbol()+" retval=");
     }
     outmethod.print("Java_");
     outmethod.print(cd.getPackage().replace('.','_'));
@@ -1891,9 +1891,9 @@ fldloop:
       outmethod.print(", ");
       TempDescriptor tmp=fm.getParameter(i);
       if (tmp.getType().isPtr()) {
-	outmethod.print("param"+i);
+        outmethod.print("param"+i);
       } else {
-	outmethod.print(generateTemp(fm, tmp));
+        outmethod.print(generateTemp(fm, tmp));
       }
     }
     outmethod.println(");");
@@ -1902,12 +1902,12 @@ fldloop:
     }
     if (!md.getReturnType().isVoid()) {
       if (md.getReturnType().isPtr()) {
-	outmethod.println("struct ___Object___ * retobj=JNIUNWRAP(retval);");
-	outmethod.println("JNIPOPFRAME();");
-	outmethod.println("return retobj;");
+        outmethod.println("struct ___Object___ * retobj=JNIUNWRAP(retval);");
+        outmethod.println("JNIPOPFRAME();");
+        outmethod.println("return retobj;");
       } else {
-	outmethod.println("JNIPOPFRAME();");
-	outmethod.println("return retval;");
+        outmethod.println("JNIPOPFRAME();");
+        outmethod.println("return retval;");
       }
     } else
       outmethod.println("JNIPOPFRAME();");
@@ -1933,25 +1933,25 @@ fldloop:
       TempObject objecttemp=(TempObject) tempstable.get(md!=null?md:task);
 
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_locals "+localsprefix+"={");
-	output.print(objecttemp.numPointers()+",");
-	output.print(paramsprefix);
-	for(int j=0; j<objecttemp.numPointers(); j++)
-	  output.print(", NULL");
-	output.println("};");
+        output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_locals "+localsprefix+"={");
+        output.print(objecttemp.numPointers()+",");
+        output.print(paramsprefix);
+        for(int j=0; j<objecttemp.numPointers(); j++)
+          output.print(", NULL");
+        output.println("};");
       }
 
       for(int i=0; i<objecttemp.numPrimitives(); i++) {
-	TempDescriptor td=objecttemp.getPrimitive(i);
-	TypeDescriptor type=td.getType();
-	if (type.isNull() && !type.isArray())
-	  output.println("   void * "+td.getSafeSymbol()+";");
-	else if (type.isClass() && type.getClassDesc().isEnum()) {
-	  output.println("   int " + td.getSafeSymbol() + ";");
-	} else if (type.isClass()||type.isArray())
-	  output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
-	else
-	  output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
+        TempDescriptor td=objecttemp.getPrimitive(i);
+        TypeDescriptor type=td.getType();
+        if (type.isNull() && !type.isArray())
+          output.println("   void * "+td.getSafeSymbol()+";");
+        else if (type.isClass() && type.getClassDesc().isEnum()) {
+          output.println("   int " + td.getSafeSymbol() + ";");
+        } else if (type.isClass()||type.isArray())
+          output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
+        else
+          output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
       }
 
       additionalCodeAtTopFlatMethodBody(output, fm);
@@ -1960,14 +1960,14 @@ fldloop:
        * multi-threaded program...*/
 
       if (((state.OOOJAVA||state.THREAD)&&GENERATEPRECISEGC) || state.MULTICOREGC) {
-	//Don't bother if we aren't in recursive methods...The loops case will catch it
-	if (callgraph.getAllMethods(md).contains(md)) {
-	  if (this.state.MULTICOREGC) {
-	    output.println("if(gcflag) gc("+localsprefixaddr+");");
-	  } else {
-	    output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
-	  }
-	}
+        //Don't bother if we aren't in recursive methods...The loops case will catch it
+        if (callgraph.getAllMethods(md).contains(md)) {
+          if (this.state.MULTICOREGC) {
+            output.println("if(gcflag) gc("+localsprefixaddr+");");
+          } else {
+            output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+          }
+        }
       }
 
       generateCode(fm.getNext(0), fm, null, output);
@@ -1986,13 +1986,13 @@ fldloop:
 
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (md!=null)
-	output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
+        output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
       else
-	output.print("   struct "+task.getSafeSymbol()+"_locals "+localsprefix+"={");
+        output.print("   struct "+task.getSafeSymbol()+"_locals "+localsprefix+"={");
       output.print(objecttemp.numPointers()+",");
       output.print(paramsprefix);
       for(int j=0; j<objecttemp.numPointers(); j++)
-	output.print(", NULL");
+        output.print(", NULL");
       output.println("};");
     }
 
@@ -2000,13 +2000,13 @@ fldloop:
       TempDescriptor td=objecttemp.getPrimitive(i);
       TypeDescriptor type=td.getType();
       if (type.isNull() && !type.isArray())
-	output.println("   void * "+td.getSafeSymbol()+";");
+        output.println("   void * "+td.getSafeSymbol()+";");
       else if (type.isClass() && type.getClassDesc().isEnum()) {
-	output.println("   int " + td.getSafeSymbol() + ";");
+        output.println("   int " + td.getSafeSymbol() + ";");
       } else if (type.isClass()||type.isArray())
-	output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
+        output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
       else
-	output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
+        output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
     }
 
     additionalCodeAtTopFlatMethodBody(output, fm);
@@ -2018,11 +2018,11 @@ fldloop:
         || this.state.MULTICOREGC) {
       //Don't bother if we aren't in recursive methods...The loops case will catch it
       if (callgraph.getAllMethods(md).contains(md)) {
-	if (this.state.MULTICOREGC) {
-	  output.println("if(gcflag) gc("+localsprefixaddr+");");
-	} else {
-	  output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
-	}
+        if (this.state.MULTICOREGC) {
+          output.println("if(gcflag) gc("+localsprefixaddr+");");
+        } else {
+          output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+        }
       }
     }
 
@@ -2064,70 +2064,70 @@ fldloop:
     tovisit.add(first);
     while(current_node!=null||!tovisit.isEmpty()) {
       if (current_node==null) {
-	current_node=(FlatNode)tovisit.iterator().next();
-	tovisit.remove(current_node);
+        current_node=(FlatNode)tovisit.iterator().next();
+        tovisit.remove(current_node);
       } else if (tovisit.contains(current_node)) {
-	tovisit.remove(current_node);
+        tovisit.remove(current_node);
       }
       visited.add(current_node);
       if (nodetolabel.containsKey(current_node)) {
-	output.println("L"+nodetolabel.get(current_node)+":");
+        output.println("L"+nodetolabel.get(current_node)+":");
       }
       if (state.INSTRUCTIONFAILURE) {
-	if (state.THREAD) {
-	  output.println("if ((++instructioncount)>failurecount) {instructioncount=0;injectinstructionfailure();}");
-	} else
-	  output.println("if ((--instructioncount)==0) injectinstructionfailure();");
+        if (state.THREAD) {
+          output.println("if ((++instructioncount)>failurecount) {instructioncount=0;injectinstructionfailure();}");
+        } else
+          output.println("if ((--instructioncount)==0) injectinstructionfailure();");
       }
       if (current_node.numNext()==0||stopset!=null&&stopset.contains(current_node)) {
-	output.print("   ");
-	generateFlatNode(fm, current_node, output);
+        output.print("   ");
+        generateFlatNode(fm, current_node, output);
 
-	if (state.OOOJAVA && stopset!=null) {
-	  assert first.getPrev(0) instanceof FlatSESEEnterNode;
-	  assert current_node       instanceof FlatSESEExitNode;
-	  FlatSESEEnterNode fsen = (FlatSESEEnterNode) first.getPrev(0);
-	  FlatSESEExitNode fsxn = (FlatSESEExitNode)  current_node;
-	  assert fsen.getFlatExit().equals(fsxn);
-	  assert fsxn.getFlatEnter().equals(fsen);
-	}
-	if (current_node.kind()!=FKind.FlatReturnNode) {
-	  if((fm.getMethod() != null) && (fm.getMethod().isStaticBlock())) {
-	    // a static block, check if it has been executed
-	    output.println("  global_defsprim_p->" + fm.getMethod().getClassDesc().getSafeSymbol()+"static_block_exe_flag = 1;");
-	    output.println("");
-	  }
-	  output.println("   return;");
-	}
-	current_node=null;
+        if (state.OOOJAVA && stopset!=null) {
+          assert first.getPrev(0) instanceof FlatSESEEnterNode;
+          assert current_node       instanceof FlatSESEExitNode;
+          FlatSESEEnterNode fsen = (FlatSESEEnterNode) first.getPrev(0);
+          FlatSESEExitNode fsxn = (FlatSESEExitNode)  current_node;
+          assert fsen.getFlatExit().equals(fsxn);
+          assert fsxn.getFlatEnter().equals(fsen);
+        }
+        if (current_node.kind()!=FKind.FlatReturnNode) {
+          if((fm.getMethod() != null) && (fm.getMethod().isStaticBlock())) {
+            // a static block, check if it has been executed
+            output.println("  global_defsprim_p->" + fm.getMethod().getClassDesc().getSafeSymbol()+"static_block_exe_flag = 1;");
+            output.println("");
+          }
+          output.println("   return;");
+        }
+        current_node=null;
       } else if(current_node.numNext()==1) {
-	FlatNode nextnode;
-	if (state.OOOJAVA &&
-	    current_node.kind()==FKind.FlatSESEEnterNode) {
-	  FlatSESEEnterNode fsen = (FlatSESEEnterNode)current_node;
-	  generateFlatNode(fm, current_node, output);
-	  nextnode=fsen.getFlatExit().getNext(0);
-	} else {
-	  output.print("   ");
-	  generateFlatNode(fm, current_node, output);
-	  nextnode=current_node.getNext(0);
-	}
-	if (visited.contains(nextnode)) {
-	  output.println("goto L"+nodetolabel.get(nextnode)+";");
-	  current_node=null;
-	} else
-	  current_node=nextnode;
+        FlatNode nextnode;
+        if (state.OOOJAVA &&
+            current_node.kind()==FKind.FlatSESEEnterNode) {
+          FlatSESEEnterNode fsen = (FlatSESEEnterNode)current_node;
+          generateFlatNode(fm, current_node, output);
+          nextnode=fsen.getFlatExit().getNext(0);
+        } else {
+          output.print("   ");
+          generateFlatNode(fm, current_node, output);
+          nextnode=current_node.getNext(0);
+        }
+        if (visited.contains(nextnode)) {
+          output.println("goto L"+nodetolabel.get(nextnode)+";");
+          current_node=null;
+        } else
+          current_node=nextnode;
       } else if (current_node.numNext()==2) {
-	/* Branch */
-	output.print("   ");
-	generateFlatCondBranch(fm, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
-	if (!visited.contains(current_node.getNext(1)))
-	  tovisit.add(current_node.getNext(1));
-	if (visited.contains(current_node.getNext(0))) {
-	  output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
-	  current_node=null;
-	} else
-	  current_node=current_node.getNext(0);
+        /* Branch */
+        output.print("   ");
+        generateFlatCondBranch(fm, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+        if (!visited.contains(current_node.getNext(1)))
+          tovisit.add(current_node.getNext(1));
+        if (visited.contains(current_node.getNext(0))) {
+          output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
+          current_node=null;
+        } else
+          current_node=current_node.getNext(0);
       } else throw new Error();
     }
   }
@@ -2149,24 +2149,24 @@ fldloop:
 
 
       if(lastset!=null&&lastset.contains(fn)) {
-	// if last is not null and matches, don't go
-	// any further for assigning labels
-	continue;
+        // if last is not null and matches, don't go
+        // any further for assigning labels
+        continue;
       }
 
       for(int i=0; i<fn.numNext(); i++) {
-	FlatNode nn=fn.getNext(i);
+        FlatNode nn=fn.getNext(i);
 
-	if(i>0) {
-	  //1) Edge >1 of node
-	  nodetolabel.put(nn,new Integer(labelindex++));
-	}
-	if (!visited.contains(nn)&&!tovisit.contains(nn)) {
-	  tovisit.add(nn);
-	} else {
-	  //2) Join point
-	  nodetolabel.put(nn,new Integer(labelindex++));
-	}
+        if(i>0) {
+          //1) Edge >1 of node
+          nodetolabel.put(nn,new Integer(labelindex++));
+        }
+        if (!visited.contains(nn)&&!tovisit.contains(nn)) {
+          tovisit.add(nn);
+        } else {
+          //2) Join point
+          nodetolabel.put(nn,new Integer(labelindex++));
+        }
       }
     }
     return nodetolabel;
@@ -2316,9 +2316,9 @@ fldloop:
     if (((state.OOOJAVA||state.THREAD)&&GENERATEPRECISEGC)
         || (this.state.MULTICOREGC)) {
       if(this.state.MULTICOREGC) {
-	output.println("if (gcflag) gc("+localsprefixaddr+");");
+        output.println("if (gcflag) gc("+localsprefixaddr+");");
       } else {
-	output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+        output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
       }
     } else
       output.println("/* nop */");
@@ -2401,7 +2401,7 @@ fldloop:
       TempDescriptor[] temps=fcn.getTemps();
       String[] vars=fcn.getVars();
       for(int i=0; i<temps.length; i++) {
-	output.println(varname+"->"+vars[i]+"=(unsigned int)"+generateTemp(fm, temps[i])+";");
+        output.println(varname+"->"+vars[i]+"=(unsigned int)"+generateTemp(fm, temps[i])+";");
       }
 
       output.println("if (doanalysis"+specname+"("+varname+")) {");
@@ -2430,50 +2430,50 @@ fldloop:
     if((md.isStatic() || md.isStaticBlock() || md.isConstructor()) &&
        ((fm.getMethod() != null) && ((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())))) {
       if(!md.isInvokedByStatic()) {
-	System.err.println("Error: a method that is invoked inside a static block is not tagged!");
+        System.err.println("Error: a method that is invoked inside a static block is not tagged!");
       }
       // is a static block or is invoked in some static block
       ClassDescriptor cd = fm.getMethod().getClassDesc();
       if(cd != cn && mgcstaticinit && callgraph.isInit(cn)) {
-	// generate static init check code if it has not done static init in main()
-	if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
-	  // need to check if the class' static fields have been initialized and/or
-	  // its static blocks have been executed
-	  output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
-	  if(cn.getNumStaticBlocks() != 0) {
-	    MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
-	    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	      output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-	      output.println("0, NULL};");
-	      output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-	    } else {
-	      output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
-	    }
-	  } else {
-	    output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
-	  }
-	  output.println("}");
-	}
+        // generate static init check code if it has not done static init in main()
+        if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
+          // need to check if the class' static fields have been initialized and/or
+          // its static blocks have been executed
+          output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
+          if(cn.getNumStaticBlocks() != 0) {
+            MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
+            if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+              output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+              output.println("0, NULL};");
+              output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+            } else {
+              output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+            }
+          } else {
+            output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
+          }
+          output.println("}");
+        }
       }
     }
     if((md.getSymbol().equals("MonitorEnter") || md.getSymbol().equals("MonitorExit")) && fc.getThis().getSymbol().equals("classobj")) {
       output.println("{");
       if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
-	output.println("int monitorenterline = __LINE__;");
+        output.println("int monitorenterline = __LINE__;");
       }
       // call MonitorEnter/MonitorExit on a class obj
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-	output.println("1," + localsprefixaddr + ", ((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[" + fc.getThis().getType().getClassDesc().getId() + "]};");
-	if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
-	  output.println("     "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__, monitorenterline);");
-	} else {
-	  output.println("     "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-	}
+        output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+        output.println("1," + localsprefixaddr + ", ((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[" + fc.getThis().getType().getClassDesc().getId() + "]};");
+        if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
+          output.println("     "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__, monitorenterline);");
+        } else {
+          output.println("     "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+        }
       } else {
-	output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
-	               + md.getSafeMethodDescriptor() + "((struct ___Object___*)(((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))["
-	               + fc.getThis().getType().getClassDesc().getId() + "]));");
+        output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
+                       + md.getSafeMethodDescriptor() + "((struct ___Object___*)(((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))["
+                       + fc.getThis().getType().getClassDesc().getId() + "]));");
       }
       output.println("}");
       return;
@@ -2488,26 +2488,26 @@ fldloop:
       output.print(objectparams.numPointers());
       output.print(", "+localsprefixaddr);
       if (md.getThis()!=null) {
-	output.print(", ");
-	output.print("(struct "+md.getThis().getType().getSafeSymbol() +" *)"+ generateTemp(fm,fc.getThis()));
+        output.print(", ");
+        output.print("(struct "+md.getThis().getType().getSafeSymbol() +" *)"+ generateTemp(fm,fc.getThis()));
       }
       if (fc.getThis()!=null&&md.getThis()==null) {
-	System.out.println("WARNING!!!!!!!!!!!!");
-	System.out.println("Source code calls static method "+md+" on an object in "+fm.getMethod()+"!");
+        System.out.println("WARNING!!!!!!!!!!!!");
+        System.out.println("Source code calls static method "+md+" on an object in "+fm.getMethod()+"!");
       }
 
       for(int i=0; i<fc.numArgs(); i++) {
-	Descriptor var=md.getParameter(i);
-	TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
-	if (objectparams.isParamPtr(paramtemp)) {
-	  TempDescriptor targ=fc.getArg(i);
-	  output.print(", ");
-	  TypeDescriptor td=md.getParamType(i);
-	  if (td.isTag())
-	    output.print("(struct "+(new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass))).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
-	  else
-	    output.print("(struct "+md.getParamType(i).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
-	}
+        Descriptor var=md.getParameter(i);
+        TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
+        if (objectparams.isParamPtr(paramtemp)) {
+          TempDescriptor targ=fc.getArg(i);
+          output.print(", ");
+          TypeDescriptor td=md.getParamType(i);
+          if (td.isTag())
+            output.print("(struct "+(new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass))).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
+          else
+            output.print("(struct "+md.getParamType(i).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
+        }
       }
       output.println("};");
     }
@@ -2526,34 +2526,34 @@ fldloop:
       //yes
       output.print("((");
       if (md.getReturnType().isClass() && md.getReturnType().getClassDesc().isEnum()) {
-	output.print("int ");
+        output.print("int ");
       } else if (md.getReturnType().isClass()||md.getReturnType().isArray())
-	output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
+        output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
       else
-	output.print(md.getReturnType().getSafeSymbol()+" ");
+        output.print(md.getReturnType().getSafeSymbol()+" ");
       output.print("(*)(");
 
       boolean printcomma=false;
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * ");
-	printcomma=true;
+        output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * ");
+        printcomma=true;
       }
 
       for(int i=0; i<objectparams.numPrimitives(); i++) {
-	TempDescriptor temp=objectparams.getPrimitive(i);
-	if (printcomma)
-	  output.print(", ");
-	printcomma=true;
-	if (temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	  output.print("int ");
-	} else if (temp.getType().isClass()||temp.getType().isArray())
-	  output.print("struct " + temp.getType().getSafeSymbol()+" * ");
-	else
-	  output.print(temp.getType().getSafeSymbol());
+        TempDescriptor temp=objectparams.getPrimitive(i);
+        if (printcomma)
+          output.print(", ");
+        printcomma=true;
+        if (temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+          output.print("int ");
+        } else if (temp.getType().isClass()||temp.getType().isArray())
+          output.print("struct " + temp.getType().getSafeSymbol()+" * ");
+        else
+          output.print(temp.getType().getSafeSymbol());
       }
 
       if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
-	output.print(", int");
+        output.print(", int");
       }
       output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getMethodNumber(md)+"])");
     }
@@ -2567,20 +2567,20 @@ fldloop:
 
     if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
       if (fc.getThis()!=null) {
-	TypeDescriptor ptd=null;
-	if(md.getThis() != null) {
-	  ptd = md.getThis().getType();
-	} else {
-	  ptd = fc.getThis().getType();
-	}
-	if (needcomma)
-	  output.print(",");
-	if(ptd.isClass() && ptd.getClassDesc().isEnum()) {
-	  // do nothing
-	} else if (ptd.isClass()&&!ptd.isArray())
-	  output.print("(struct "+ptd.getSafeSymbol()+" *) ");
-	output.print(generateTemp(fm,fc.getThis()));
-	needcomma=true;
+        TypeDescriptor ptd=null;
+        if(md.getThis() != null) {
+          ptd = md.getThis().getType();
+        } else {
+          ptd = fc.getThis().getType();
+        }
+        if (needcomma)
+          output.print(",");
+        if(ptd.isClass() && ptd.getClassDesc().isEnum()) {
+          // do nothing
+        } else if (ptd.isClass()&&!ptd.isArray())
+          output.print("(struct "+ptd.getSafeSymbol()+" *) ");
+        output.print(generateTemp(fm,fc.getThis()));
+        needcomma=true;
       }
     }
 
@@ -2588,17 +2588,17 @@ fldloop:
       Descriptor var=md.getParameter(i);
       TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
       if (objectparams.isParamPrim(paramtemp)) {
-	TempDescriptor targ=fc.getArg(i);
-	if (needcomma)
-	  output.print(", ");
+        TempDescriptor targ=fc.getArg(i);
+        if (needcomma)
+          output.print(", ");
 
-	TypeDescriptor ptd=md.getParamType(i);
-	if (ptd.isClass() && ptd.getClassDesc().isEnum()) {
-	  // do nothing
-	} else if (ptd.isClass()&&!ptd.isArray())
-	  output.print("(struct "+ptd.getSafeSymbol()+" *) ");
-	output.print(generateTemp(fm, targ));
-	needcomma=true;
+        TypeDescriptor ptd=md.getParamType(i);
+        if (ptd.isClass() && ptd.getClassDesc().isEnum()) {
+          // do nothing
+        } else if (ptd.isClass()&&!ptd.isArray())
+          output.print("(struct "+ptd.getSafeSymbol()+" *) ");
+        output.print(generateTemp(fm, targ));
+        needcomma=true;
       }
     }
     if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
@@ -2616,15 +2616,15 @@ fldloop:
     } else {
       Set subclasses=typeutil.getSubClasses(thiscd);
       if (subclasses==null)
-	return true;
+        return true;
       for(Iterator classit=subclasses.iterator(); classit.hasNext(); ) {
-	ClassDescriptor cd=(ClassDescriptor)classit.next();
-	Set possiblematches=cd.getMethodTable().getSetFromSameScope(md.getSymbol());
-	for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
-	  MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-	  if (md.matches(matchmd))
-	    return false;
-	}
+        ClassDescriptor cd=(ClassDescriptor)classit.next();
+        Set possiblematches=cd.getMethodTable().getSetFromSameScope(md.getSymbol());
+        for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
+          MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+          if (md.matches(matchmd))
+            return false;
+        }
       }
     }
     return true;
@@ -2635,36 +2635,36 @@ fldloop:
     if(ffn.getField().isStatic()) {
       // static field
       if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
-	// is a static block or is invoked in some static block
-	ClassDescriptor cd = fm.getMethod().getClassDesc();
-	ClassDescriptor cn = ffn.getSrc().getType().getClassDesc();
-	if(cd != cn && mgcstaticinit && callgraph.isInit(cn)) {
-	  // generate the static init check code if has not done the static init in main()
-	  if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
-	    // need to check if the class' static fields have been initialized and/or
-	    // its static blocks have been executed
-	    output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
-	    if(cn.getNumStaticBlocks() != 0) {
-	      MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
-	      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-		output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-		output.println("0, NULL};");
-		output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-	      } else {
-		output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
-	      }
-	    } else {
-	      output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
-	    }
-	    output.println("}");
-	  }
-	}
+        // is a static block or is invoked in some static block
+        ClassDescriptor cd = fm.getMethod().getClassDesc();
+        ClassDescriptor cn = ffn.getSrc().getType().getClassDesc();
+        if(cd != cn && mgcstaticinit && callgraph.isInit(cn)) {
+          // generate the static init check code if has not done the static init in main()
+          if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
+            // need to check if the class' static fields have been initialized and/or
+            // its static blocks have been executed
+            output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
+            if(cn.getNumStaticBlocks() != 0) {
+              MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
+              if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+                output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+                output.println("0, NULL};");
+                output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+              } else {
+                output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+              }
+            } else {
+              output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
+            }
+            output.println("}");
+          }
+        }
       }
       // redirect to the global_defs_p structure
       if (ffn.getField().getType().isPtr())
-	output.println(generateTemp(fm, ffn.getDst())+"=global_defs_p->"+ffn.getField().getSafeSymbol()+";");
+        output.println(generateTemp(fm, ffn.getDst())+"=global_defs_p->"+ffn.getField().getSafeSymbol()+";");
       else
-	output.println(generateTemp(fm, ffn.getDst())+"=global_defsprim_p->"+ffn.getField().getSafeSymbol()+";");
+        output.println(generateTemp(fm, ffn.getDst())+"=global_defsprim_p->"+ffn.getField().getSafeSymbol()+";");
     } else if (ffn.getField().isEnum()) {
       // an Enum value, directly replace the field access as int
       output.println(generateTemp(fm, ffn.getDst()) + "=" + ffn.getField().enumValue() + ";");
@@ -2673,9 +2673,9 @@ fldloop:
       output.println("if (" + generateTemp(fm,ffn.getSrc()) + " == NULL) {");
       output.println("printf(\" NULL ptr error: %s, %s, %d \\n\", __FILE__, __func__, __LINE__);");
       if(state.MULTICOREGC) {
-	output.println("failednullptr(&___locals___);");
+        output.println("failednullptr(&___locals___);");
       } else {
-	output.println("failednullptr(NULL);");
+        output.println("failednullptr(NULL);");
       }
       output.println("}");
       output.println("#endif //MULTICORE_DEBUG");
@@ -2692,9 +2692,9 @@ fldloop:
       output.println("if(!"+dst+"->"+localcopystr+") {");
       /* Link object into list */
       if (GENERATEPRECISEGC || this.state.MULTICOREGC)
-	output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
+        output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
       else
-	output.println("COPY_OBJ("+dst+");");
+        output.println("COPY_OBJ("+dst+");");
       output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
       output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
       output.println("}");
@@ -2703,59 +2703,59 @@ fldloop:
     if(fsfn.getField().isStatic()) {
       // static field
       if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
-	// is a static block or is invoked in some static block
-	ClassDescriptor cd = fm.getMethod().getClassDesc();
-	ClassDescriptor cn = fsfn.getDst().getType().getClassDesc();
-	if(cd != cn && mgcstaticinit && callgraph.isInit(cn)) {
-	  // generate static init check code if has not done the static init in main()
-	  if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
-	    // need to check if the class' static fields have been initialized and/or
-	    // its static blocks have been executed
-	    output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
-	    if(cn.getNumStaticBlocks() != 0) {
-	      MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
-	      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-		output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-		output.println("0, NULL};");
-		output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-	      } else {
-		output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
-	      }
-	    } else {
-	      output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
-	    }
-	    output.println("}");
-	  }
-	}
+        // is a static block or is invoked in some static block
+        ClassDescriptor cd = fm.getMethod().getClassDesc();
+        ClassDescriptor cn = fsfn.getDst().getType().getClassDesc();
+        if(cd != cn && mgcstaticinit && callgraph.isInit(cn)) {
+          // generate static init check code if has not done the static init in main()
+          if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
+            // need to check if the class' static fields have been initialized and/or
+            // its static blocks have been executed
+            output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
+            if(cn.getNumStaticBlocks() != 0) {
+              MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
+              if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+                output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+                output.println("0, NULL};");
+                output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+              } else {
+                output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+              }
+            } else {
+              output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
+            }
+            output.println("}");
+          }
+        }
       }
       // redirect to the global_defs_p structure
       if (fsfn.getField().getType().isPtr()) {
-	if (fsfn.getField().getType()!=fsfn.getSrc().getType())
-	  output.println("global_defs_p->" +
-	                 fsfn.getField().getSafeSymbol()+"=(struct "+ fsfn.getField().getType().getSafeSymbol()+" *)"+generateTemp(fm,fsfn.getSrc())+";");
-	else
-	  output.println("global_defs_p->" +
-	                 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+        if (fsfn.getField().getType()!=fsfn.getSrc().getType())
+          output.println("global_defs_p->" +
+                         fsfn.getField().getSafeSymbol()+"=(struct "+ fsfn.getField().getType().getSafeSymbol()+" *)"+generateTemp(fm,fsfn.getSrc())+";");
+        else
+          output.println("global_defs_p->" +
+                         fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
       } else
-	output.println("global_defsprim_p->" +
-	               fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+        output.println("global_defsprim_p->" +
+                       fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
     } else {
       output.println("#ifdef MULTICORE_DEBUG");
       output.println("if (" + generateTemp(fm,fsfn.getDst()) + " == NULL) {");
       output.println("printf(\" NULL ptr error: %s, %s, %d \\n\", __FILE__, __func__, __LINE__);");
       if(state.MULTICOREGC) {
-	output.println("failednullptr(&___locals___);");
+        output.println("failednullptr(&___locals___);");
       } else {
-	output.println("failednullptr(NULL);");
+        output.println("failednullptr(NULL);");
       }
       output.println("}");
       output.println("#endif //MULTICORE_DEBUG");
       if (fsfn.getSrc().getType().isPtr()&&fsfn.getSrc().getType()!=fsfn.getField().getType())
-	output.println(generateTemp(fm, fsfn.getDst())+"->"+
-	               fsfn.getField().getSafeSymbol()+"=(struct "+ fsfn.getField().getType().getSafeSymbol()+"*)"+generateTemp(fm,fsfn.getSrc())+";");
+        output.println(generateTemp(fm, fsfn.getDst())+"->"+
+                       fsfn.getField().getSafeSymbol()+"=(struct "+ fsfn.getField().getType().getSafeSymbol()+"*)"+generateTemp(fm,fsfn.getSrc())+";");
       else
-	output.println(generateTemp(fm, fsfn.getDst())+"->"+
-	               fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+        output.println(generateTemp(fm, fsfn.getDst())+"->"+
+                       fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
     }
   }
 
@@ -2801,9 +2801,9 @@ fldloop:
       output.println("if(!"+dst+"->"+localcopystr+") {");
       /* Link object into list */
       if (GENERATEPRECISEGC || this.state.MULTICOREGC)
-	output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
+        output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
       else
-	output.println("COPY_OBJ("+dst+");");
+        output.println("COPY_OBJ("+dst+");");
       output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
       output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
       output.println("}");
@@ -2816,15 +2816,15 @@ fldloop:
     if (fn.getType().isArray()) {
       int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize())+");");
+        output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize())+");");
       } else {
-	output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize())+");");
+        output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize())+");");
       }
     } else {
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
+        output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
       } else {
-	output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
+        output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
       }
     }
     if (state.FASTCHECK) {
@@ -2846,22 +2846,22 @@ fldloop:
   protected void generateFlatOpNode(FlatMethod fm, FlatOpNode fon, PrintWriter output) {
     if (fon.getRight()!=null) {
       if (fon.getOp().getOp()==Operation.URIGHTSHIFT) {
-	if (fon.getLeft().getType().isLong())
-	  output.println(generateTemp(fm, fon.getDest())+" = ((unsigned long long)"+generateTemp(fm, fon.getLeft())+")>>"+generateTemp(fm,fon.getRight())+";");
-	else
-	  output.println(generateTemp(fm, fon.getDest())+" = ((unsigned int)"+generateTemp(fm, fon.getLeft())+")>>"+generateTemp(fm,fon.getRight())+";");
+        if (fon.getLeft().getType().isLong())
+          output.println(generateTemp(fm, fon.getDest())+" = ((unsigned long long)"+generateTemp(fm, fon.getLeft())+")>>"+generateTemp(fm,fon.getRight())+";");
+        else
+          output.println(generateTemp(fm, fon.getDest())+" = ((unsigned int)"+generateTemp(fm, fon.getLeft())+")>>"+generateTemp(fm,fon.getRight())+";");
 
       } else {
-	if (fon.getLeft().getType().isPtr()&&fon.getLeft().getType()!=fon.getRight().getType()&&!fon.getRight().getType().isNull())
-	  output.println(generateTemp(fm, fon.getDest())+" = (struct "+fon.getRight().getType().getSafeSymbol()+"*)"+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
-	else
-	  output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
+        if (fon.getLeft().getType().isPtr()&&fon.getLeft().getType()!=fon.getRight().getType()&&!fon.getRight().getType().isNull())
+          output.println(generateTemp(fm, fon.getDest())+" = (struct "+fon.getRight().getType().getSafeSymbol()+"*)"+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
+        else
+          output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
       }
     } else if (fon.getOp().getOp()==Operation.ASSIGN)
       if (fon.getDest().getType().isPtr()&&fon.getDest().getType()!=fon.getLeft().getType())
-	output.println(generateTemp(fm, fon.getDest())+" = (struct "+fon.getDest().getType().getSafeSymbol()+"*)"+generateTemp(fm, fon.getLeft())+";");
+        output.println(generateTemp(fm, fon.getDest())+" = (struct "+fon.getDest().getType().getSafeSymbol()+"*)"+generateTemp(fm, fon.getLeft())+";");
       else
-	output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+";");
+        output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+";");
     else if (fon.getOp().getOp()==Operation.UNARYPLUS)
       output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+";");
     else if (fon.getOp().getOp()==Operation.UNARYMINUS)
@@ -2898,23 +2898,23 @@ fldloop:
       output.println("{");
       output.print("short str"+flncount+"[]={");
       for(int i=0; i<str.length(); i++) {
-	if (i!=0)
-	  output.print(", ");
-	output.print(((int)str.charAt(i)));
+        if (i!=0)
+          output.print(", ");
+        output.print(((int)str.charAt(i)));
       }
       output.println("};");
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(generateTemp(fm, fln.getDst())+"=NewStringShort("+localsprefixaddr+", str"+flncount+", "+((String)fln.getValue()).length()+");");
+        output.println(generateTemp(fm, fln.getDst())+"=NewStringShort("+localsprefixaddr+", str"+flncount+", "+((String)fln.getValue()).length()+");");
       } else {
-	output.println(generateTemp(fm, fln.getDst())+"=NewStringShort(str"+flncount+" ,"+((String)fln.getValue()).length()+");");
+        output.println(generateTemp(fm, fln.getDst())+"=NewStringShort(str"+flncount+" ,"+((String)fln.getValue()).length()+");");
       }
       output.println("}");
       flncount++;
     } else if (fln.getType().isBoolean()) {
       if (((Boolean)fln.getValue()).booleanValue())
-	output.println(generateTemp(fm, fln.getDst())+"=1;");
+        output.println(generateTemp(fm, fln.getDst())+"=1;");
       else
-	output.println(generateTemp(fm, fln.getDst())+"=0;");
+        output.println(generateTemp(fm, fln.getDst())+"=0;");
     } else if (fln.getType().isChar()) {
       int val=(int)(((Character)fln.getValue()).charValue());
       output.println(generateTemp(fm, fln.getDst())+"="+val+";");
@@ -2933,9 +2933,9 @@ fldloop:
 
     if (frn.getReturnTemp()!=null) {
       if (frn.getReturnTemp().getType().isPtr())
-	output.println("return (struct "+fm.getMethod().getReturnType().getSafeSymbol()+"*)"+generateTemp(fm, frn.getReturnTemp())+";");
+        output.println("return (struct "+fm.getMethod().getReturnType().getSafeSymbol()+"*)"+generateTemp(fm, frn.getReturnTemp())+";");
       else
-	output.println("return "+generateTemp(fm, frn.getReturnTemp())+";");
+        output.println("return "+generateTemp(fm, frn.getReturnTemp())+";");
     } else {
       output.println("return;");
     }
@@ -2966,17 +2966,17 @@ fldloop:
 
     if (md!=null&&md.getReturnType()!=null) {
       if (md.getReturnType().isClass() && md.getReturnType().getClassDesc().isEnum()) {
-	output.print("int ");
+        output.print("int ");
       } else if (md.getReturnType().isClass()||md.getReturnType().isArray())
-	output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
+        output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
       else
-	output.print(md.getReturnType().getSafeSymbol()+" ");
+        output.print(md.getReturnType().getSafeSymbol()+" ");
     } else
       //catch the constructor case
       output.print("void ");
     if (md!=null) {
       if(mgcstaticinit && !md.isStaticBlock() && !md.getModifiers().isNative()) {
-	mdstring += "staticinit";
+        mdstring += "staticinit";
       }
       output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"(");
     } else
@@ -2985,25 +2985,25 @@ fldloop:
     boolean printcomma=false;
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (md!=null) {
-	output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * "+paramsprefix);
+        output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * "+paramsprefix);
       } else
-	output.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
+        output.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
       printcomma=true;
     }
 
     if (md!=null) {
       /* Method */
       for(int i=0; i<objectparams.numPrimitives(); i++) {
-	TempDescriptor temp=objectparams.getPrimitive(i);
-	if (printcomma)
-	  output.print(", ");
-	printcomma=true;
-	if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	  output.print("int " + temp.getSafeSymbol());
-	} else if (temp.getType().isClass()||temp.getType().isArray())
-	  output.print("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
-	else
-	  output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+        TempDescriptor temp=objectparams.getPrimitive(i);
+        if (printcomma)
+          output.print(", ");
+        printcomma=true;
+        if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+          output.print("int " + temp.getSafeSymbol());
+        } else if (temp.getType().isClass()||temp.getType().isArray())
+          output.print("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+        else
+          output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
       }
       output.println(") {");
     } else if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
@@ -3011,21 +3011,21 @@ fldloop:
       output.println("void * parameterarray[]) {");
       /* Unpack variables */
       for(int i=0; i<objectparams.numPrimitives(); i++) {
-	TempDescriptor temp=objectparams.getPrimitive(i);
-	if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	  output.print("int " + temp.getSafeSymbol() + "=parameterarray["+i+"];");
-	} else {
-	  output.println("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+"=parameterarray["+i+"];");
-	}
+        TempDescriptor temp=objectparams.getPrimitive(i);
+        if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+          output.print("int " + temp.getSafeSymbol() + "=parameterarray["+i+"];");
+        } else {
+          output.println("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+"=parameterarray["+i+"];");
+        }
       }
       for(int i=0; i<fm.numTags(); i++) {
-	TempDescriptor temp=fm.getTag(i);
-	int offset=i+objectparams.numPrimitives();
-	output.println("struct ___TagDescriptor___ * "+temp.getSafeSymbol()+"=parameterarray["+offset+"];");
+        TempDescriptor temp=fm.getTag(i);
+        int offset=i+objectparams.numPrimitives();
+        output.println("struct ___TagDescriptor___ * "+temp.getSafeSymbol()+"=parameterarray["+offset+"];");
       }
 
       if ((objectparams.numPrimitives()+fm.numTags())>maxtaskparams)
-	maxtaskparams=objectparams.numPrimitives()+fm.numTags();
+        maxtaskparams=objectparams.numPrimitives()+fm.numTags();
     } else output.println(") {");
   }
 
@@ -3045,9 +3045,9 @@ fldloop:
       TempDescriptor tagtmp=ttp.getTagTemp();
       boolean tagstatus=ffan.getTagChange(ttp);
       if (tagstatus) {
-	tagsettable.put(objtmp, tagtmp);
+        tagsettable.put(objtmp, tagtmp);
       } else {
-	tagcleartable.put(objtmp, tagtmp);
+        tagcleartable.put(objtmp, tagtmp);
       }
     }
 
@@ -3063,30 +3063,30 @@ fldloop:
       Hashtable flagtable=(Hashtable)flagorder.get(temp.getType().getClassDesc());
       FlagDescriptor flag=tfp.getFlag();
       if (flag==null) {
-	//Newly allocate objects that don't set any flags case
-	if (flagortable.containsKey(temp)) {
-	  throw new Error();
-	}
-	int mask=0;
-	flagortable.put(temp,new Integer(mask));
+        //Newly allocate objects that don't set any flags case
+        if (flagortable.containsKey(temp)) {
+          throw new Error();
+        }
+        int mask=0;
+        flagortable.put(temp,new Integer(mask));
       } else {
-	int flagid=1<<((Integer)flagtable.get(flag)).intValue();
-	boolean flagstatus=ffan.getFlagChange(tfp);
-	if (flagstatus) {
-	  int mask=0;
-	  if (flagortable.containsKey(temp)) {
-	    mask=((Integer)flagortable.get(temp)).intValue();
-	  }
-	  mask|=flagid;
-	  flagortable.put(temp,new Integer(mask));
-	} else {
-	  int mask=0xFFFFFFFF;
-	  if (flagandtable.containsKey(temp)) {
-	    mask=((Integer)flagandtable.get(temp)).intValue();
-	  }
-	  mask&=(0xFFFFFFFF^flagid);
-	  flagandtable.put(temp,new Integer(mask));
-	}
+        int flagid=1<<((Integer)flagtable.get(flag)).intValue();
+        boolean flagstatus=ffan.getFlagChange(tfp);
+        if (flagstatus) {
+          int mask=0;
+          if (flagortable.containsKey(temp)) {
+            mask=((Integer)flagortable.get(temp)).intValue();
+          }
+          mask|=flagid;
+          flagortable.put(temp,new Integer(mask));
+        } else {
+          int mask=0xFFFFFFFF;
+          if (flagandtable.containsKey(temp)) {
+            mask=((Integer)flagandtable.get(temp)).intValue();
+          }
+          mask&=(0xFFFFFFFF^flagid);
+          flagandtable.put(temp,new Integer(mask));
+        }
       }
     }
 
@@ -3104,35 +3104,35 @@ fldloop:
 
       Set tagtmps=tagcleartable.get(temp);
       if (tagtmps!=null) {
-	Iterator tagit=tagtmps.iterator();
-	while(tagit.hasNext()) {
-	  TempDescriptor tagtmp=(TempDescriptor)tagit.next();
-	  if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
-	    output.println("tagclear("+localsprefixaddr+", (struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
-	  else
-	    output.println("tagclear((struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
-	}
+        Iterator tagit=tagtmps.iterator();
+        while(tagit.hasNext()) {
+          TempDescriptor tagtmp=(TempDescriptor)tagit.next();
+          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
+            output.println("tagclear("+localsprefixaddr+", (struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
+          else
+            output.println("tagclear((struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
+        }
       }
 
       tagtmps=tagsettable.get(temp);
       if (tagtmps!=null) {
-	Iterator tagit=tagtmps.iterator();
-	while(tagit.hasNext()) {
-	  TempDescriptor tagtmp=(TempDescriptor)tagit.next();
-	  if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
-	    output.println("tagset("+localsprefixaddr+", (struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
-	  else
-	    output.println("tagset((struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
-	}
+        Iterator tagit=tagtmps.iterator();
+        while(tagit.hasNext()) {
+          TempDescriptor tagtmp=(TempDescriptor)tagit.next();
+          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
+            output.println("tagset("+localsprefixaddr+", (struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
+          else
+            output.println("tagset((struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
+        }
       }
 
       int ormask=0;
       int andmask=0xFFFFFFF;
 
       if (flagortable.containsKey(temp))
-	ormask=((Integer)flagortable.get(temp)).intValue();
+        ormask=((Integer)flagortable.get(temp)).intValue();
       if (flagandtable.containsKey(temp))
-	andmask=((Integer)flagandtable.get(temp)).intValue();
+        andmask=((Integer)flagandtable.get(temp)).intValue();
       generateFlagOrAnd(ffan, fm, temp, output, ormask, andmask);
       generateObjectDistribute(ffan, fm, temp, output);
     }
@@ -3228,33 +3228,33 @@ fldloop:
       output.println("int predicateflags_"+predicateindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
       int numberterms=0;
       if (fen_hashset!=null) {
-	for (Iterator fen_it = fen_hashset.iterator(); fen_it.hasNext(); ) {
-	  FlagExpressionNode fen = (FlagExpressionNode)fen_it.next();
-	  if (fen!=null) {
-	    DNFFlag dflag=fen.getDNF();
-	    numberterms+=dflag.size();
+        for (Iterator fen_it = fen_hashset.iterator(); fen_it.hasNext(); ) {
+          FlagExpressionNode fen = (FlagExpressionNode)fen_it.next();
+          if (fen!=null) {
+            DNFFlag dflag=fen.getDNF();
+            numberterms+=dflag.size();
 
-	    Hashtable flags=(Hashtable)flagorder.get(typed.getClassDesc());
+            Hashtable flags=(Hashtable)flagorder.get(typed.getClassDesc());
 
-	    for(int j=0; j<dflag.size(); j++) {
-	      if (j!=0)
-		output.println(",");
-	      Vector term=dflag.get(j);
-	      int andmask=0;
-	      int checkmask=0;
-	      for(int k=0; k<term.size(); k++) {
-		DNFFlagAtom dfa=(DNFFlagAtom)term.get(k);
-		FlagDescriptor fd=dfa.getFlag();
-		boolean negated=dfa.getNegated();
-		int flagid=1<<((Integer)flags.get(fd)).intValue();
-		andmask|=flagid;
-		if (!negated)
-		  checkmask|=flagid;
-	      }
-	      output.print("/*andmask*/0x"+Integer.toHexString(andmask)+", /*checkmask*/0x"+Integer.toHexString(checkmask));
-	    }
-	  }
-	}
+            for(int j=0; j<dflag.size(); j++) {
+              if (j!=0)
+                output.println(",");
+              Vector term=dflag.get(j);
+              int andmask=0;
+              int checkmask=0;
+              for(int k=0; k<term.size(); k++) {
+                DNFFlagAtom dfa=(DNFFlagAtom)term.get(k);
+                FlagDescriptor fd=dfa.getFlag();
+                boolean negated=dfa.getNegated();
+                int flagid=1<<((Integer)flags.get(fd)).intValue();
+                andmask|=flagid;
+                if (!negated)
+                  checkmask|=flagid;
+              }
+              output.print("/*andmask*/0x"+Integer.toHexString(andmask)+", /*checkmask*/0x"+Integer.toHexString(checkmask));
+            }
+          }
+        }
       }
       output.println("};\n");
 
@@ -3263,18 +3263,18 @@ fldloop:
       output.println("int predicatetags_"+predicateindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
       int numtags = 0;
       if (tagel!=null) {
-	for(int j=0; j<tagel.numTags(); j++) {
-	  if (j!=0)
-	    output.println(",");
-	  TempDescriptor tmp=tagel.getTemp(j);
-	  if (!slotnumber.containsKey(tmp)) {
-	    Integer slotint=new Integer(current_slot++);
-	    slotnumber.put(tmp,slotint);
-	  }
-	  int slot=slotnumber.get(tmp).intValue();
-	  output.println("/* slot */"+ slot+", /*tagid*/"+state.getTagId(tmp.getTag()));
-	}
-	numtags = tagel.numTags();
+        for(int j=0; j<tagel.numTags(); j++) {
+          if (j!=0)
+            output.println(",");
+          TempDescriptor tmp=tagel.getTemp(j);
+          if (!slotnumber.containsKey(tmp)) {
+            Integer slotint=new Integer(current_slot++);
+            slotnumber.put(tmp,slotint);
+          }
+          int slot=slotnumber.get(tmp).intValue();
+          output.println("/* slot */"+ slot+", /*tagid*/"+state.getTagId(tmp.getTag()));
+        }
+        numtags = tagel.numTags();
       }
       output.println("};");
 
@@ -3321,67 +3321,67 @@ fldloop:
       numotd = c_otd.size();
       if(maxotd<numotd) maxotd = numotd;
       if( !c_otd.isEmpty() ) {
-	for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext(); ) {
-	  OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
+        for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext(); ) {
+          OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
 
-	  //generate the int arrays for the predicate
-	  Predicate predicate = otd.predicate;
-	  int predicateindex = generateOptionalPredicate(predicate, otd, cdtemp, output);
-	  TreeSet<Integer> fsset=new TreeSet<Integer>();
-	  //iterate through possible FSes corresponding to
-	  //the state when entering
+          //generate the int arrays for the predicate
+          Predicate predicate = otd.predicate;
+          int predicateindex = generateOptionalPredicate(predicate, otd, cdtemp, output);
+          TreeSet<Integer> fsset=new TreeSet<Integer>();
+          //iterate through possible FSes corresponding to
+          //the state when entering
 
-	  for(Iterator fses = otd.enterflagstates.iterator(); fses.hasNext(); ) {
-	    FlagState fs = (FlagState)fses.next();
-	    int flagid=0;
-	    for(Iterator flags = fs.getFlags(); flags.hasNext(); ) {
-	      FlagDescriptor flagd = (FlagDescriptor)flags.next();
-	      int id=1<<((Integer)flaginfo.get(flagd)).intValue();
-	      flagid|=id;
-	    }
-	    fsset.add(new Integer(flagid));
-	    //tag information not needed because tag
-	    //changes are not tolerated.
-	  }
+          for(Iterator fses = otd.enterflagstates.iterator(); fses.hasNext(); ) {
+            FlagState fs = (FlagState)fses.next();
+            int flagid=0;
+            for(Iterator flags = fs.getFlags(); flags.hasNext(); ) {
+              FlagDescriptor flagd = (FlagDescriptor)flags.next();
+              int id=1<<((Integer)flaginfo.get(flagd)).intValue();
+              flagid|=id;
+            }
+            fsset.add(new Integer(flagid));
+            //tag information not needed because tag
+            //changes are not tolerated.
+          }
 
-	  output.println("int enterflag_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
-	  boolean needcomma=false;
-	  for(Iterator<Integer> it=fsset.iterator(); it.hasNext(); ) {
-	    if(needcomma)
-	      output.print(", ");
-	    output.println(it.next());
-	  }
+          output.println("int enterflag_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
+          boolean needcomma=false;
+          for(Iterator<Integer> it=fsset.iterator(); it.hasNext(); ) {
+            if(needcomma)
+              output.print(", ");
+            output.println(it.next());
+          }
 
-	  output.println("};\n");
+          output.println("};\n");
 
 
-	  //generate optionaltaskdescriptor that actually
-	  //includes exit fses, predicate and the task
-	  //concerned
-	  output.println("struct optionaltaskdescriptor optionaltaskdescriptor_"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"={");
-	  output.println("&task_"+otd.td.getSafeSymbol()+",");
-	  output.println("/*index*/"+otd.getIndex()+",");
-	  output.println("/*number of enter flags*/"+fsset.size()+",");
-	  output.println("enterflag_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
-	  output.println("/*number of members */"+predicateindex+",");
-	  output.println("predicatememberarray_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
-	  output.println("};\n");
-	}
+          //generate optionaltaskdescriptor that actually
+          //includes exit fses, predicate and the task
+          //concerned
+          output.println("struct optionaltaskdescriptor optionaltaskdescriptor_"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"={");
+          output.println("&task_"+otd.td.getSafeSymbol()+",");
+          output.println("/*index*/"+otd.getIndex()+",");
+          output.println("/*number of enter flags*/"+fsset.size()+",");
+          output.println("enterflag_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
+          output.println("/*number of members */"+predicateindex+",");
+          output.println("predicatememberarray_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
+          output.println("};\n");
+        }
       } else
-	continue;
+        continue;
       // if there are no optionals, there is no need to build the rest of the struct
 
       output.println("struct optionaltaskdescriptor * otdarray"+cdtemp.getSafeSymbol()+"[]={");
       c_otd = ((Hashtable)optionaltaskdescriptors.get(cdtemp)).values();
       if( !c_otd.isEmpty() ) {
-	boolean needcomma=false;
-	for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext(); ) {
-	  OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
-	  if(needcomma)
-	    output.println(",");
-	  needcomma=true;
-	  output.println("&optionaltaskdescriptor_"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
-	}
+        boolean needcomma=false;
+        for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext(); ) {
+          OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
+          if(needcomma)
+            output.println(",");
+          needcomma=true;
+          output.println("&optionaltaskdescriptor_"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
+        }
       }
       output.println("};\n");
 
@@ -3391,107 +3391,107 @@ fldloop:
       TreeSet fsts=new TreeSet(new FlagComparator(flaginfo));
       fsts.addAll(hashtbtemp.keySet());
       for(Iterator fsit=fsts.iterator(); fsit.hasNext(); ) {
-	FlagState fs = (FlagState)fsit.next();
-	fscounter++;
+        FlagState fs = (FlagState)fsit.next();
+        fscounter++;
 
-	//get the set of OptionalTaskDescriptors corresponding
-	HashSet<OptionalTaskDescriptor> availabletasks = (HashSet<OptionalTaskDescriptor>)hashtbtemp.get(fs);
-	//iterate through the OptionalTaskDescriptors and
-	//store the pointers to the optionals struct (see on
-	//top) into an array
+        //get the set of OptionalTaskDescriptors corresponding
+        HashSet<OptionalTaskDescriptor> availabletasks = (HashSet<OptionalTaskDescriptor>)hashtbtemp.get(fs);
+        //iterate through the OptionalTaskDescriptors and
+        //store the pointers to the optionals struct (see on
+        //top) into an array
 
-	output.println("struct optionaltaskdescriptor * optionaltaskdescriptorarray_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"[] = {");
-	for(Iterator<OptionalTaskDescriptor> mos = ordertd(availabletasks).iterator(); mos.hasNext(); ) {
-	  OptionalTaskDescriptor mm = mos.next();
-	  if(!mos.hasNext())
-	    output.println("&optionaltaskdescriptor_"+mm.getuid()+"_"+cdtemp.getSafeSymbol());
-	  else
-	    output.println("&optionaltaskdescriptor_"+mm.getuid()+"_"+cdtemp.getSafeSymbol()+",");
-	}
+        output.println("struct optionaltaskdescriptor * optionaltaskdescriptorarray_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"[] = {");
+        for(Iterator<OptionalTaskDescriptor> mos = ordertd(availabletasks).iterator(); mos.hasNext(); ) {
+          OptionalTaskDescriptor mm = mos.next();
+          if(!mos.hasNext())
+            output.println("&optionaltaskdescriptor_"+mm.getuid()+"_"+cdtemp.getSafeSymbol());
+          else
+            output.println("&optionaltaskdescriptor_"+mm.getuid()+"_"+cdtemp.getSafeSymbol()+",");
+        }
 
-	output.println("};\n");
+        output.println("};\n");
 
-	//process flag information (what the flag after failure is) so we know what optionaltaskdescriptors to choose.
+        //process flag information (what the flag after failure is) so we know what optionaltaskdescriptors to choose.
 
-	int flagid=0;
-	for(Iterator flags = fs.getFlags(); flags.hasNext(); ) {
-	  FlagDescriptor flagd = (FlagDescriptor)flags.next();
-	  int id=1<<((Integer)flaginfo.get(flagd)).intValue();
-	  flagid|=id;
-	}
+        int flagid=0;
+        for(Iterator flags = fs.getFlags(); flags.hasNext(); ) {
+          FlagDescriptor flagd = (FlagDescriptor)flags.next();
+          int id=1<<((Integer)flaginfo.get(flagd)).intValue();
+          flagid|=id;
+        }
 
-	//process tag information
+        //process tag information
 
-	int tagcounter = 0;
-	boolean first = true;
-	Enumeration tag_enum = fs.getTags();
-	output.println("int tags_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"[]={");
-	while(tag_enum.hasMoreElements()) {
-	  tagcounter++;
-	  TagDescriptor tagd = (TagDescriptor)tag_enum.nextElement();
-	  if(first==true)
-	    first = false;
-	  else
-	    output.println(", ");
-	  output.println("/*tagid*/"+state.getTagId(tagd));
-	}
-	output.println("};");
+        int tagcounter = 0;
+        boolean first = true;
+        Enumeration tag_enum = fs.getTags();
+        output.println("int tags_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"[]={");
+        while(tag_enum.hasMoreElements()) {
+          tagcounter++;
+          TagDescriptor tagd = (TagDescriptor)tag_enum.nextElement();
+          if(first==true)
+            first = false;
+          else
+            output.println(", ");
+          output.println("/*tagid*/"+state.getTagId(tagd));
+        }
+        output.println("};");
 
-	Set<TaskIndex> tiset=sa.getTaskIndex(fs);
-	for(Iterator<TaskIndex> itti=tiset.iterator(); itti.hasNext(); ) {
-	  TaskIndex ti=itti.next();
-	  if (ti.isRuntime())
-	    continue;
+        Set<TaskIndex> tiset=sa.getTaskIndex(fs);
+        for(Iterator<TaskIndex> itti=tiset.iterator(); itti.hasNext(); ) {
+          TaskIndex ti=itti.next();
+          if (ti.isRuntime())
+            continue;
 
-	  Set<OptionalTaskDescriptor> otdset=sa.getOptions(fs, ti);
+          Set<OptionalTaskDescriptor> otdset=sa.getOptions(fs, ti);
 
-	  output.print("struct optionaltaskdescriptor * optionaltaskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+"_array[] = {");
-	  boolean needcomma=false;
-	  for(Iterator<OptionalTaskDescriptor> otdit=ordertd(otdset).iterator(); otdit.hasNext(); ) {
-	    OptionalTaskDescriptor otd=otdit.next();
-	    if(needcomma)
-	      output.print(", ");
-	    needcomma=true;
-	    output.println("&optionaltaskdescriptor_"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
-	  }
-	  output.println("};");
+          output.print("struct optionaltaskdescriptor * optionaltaskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+"_array[] = {");
+          boolean needcomma=false;
+          for(Iterator<OptionalTaskDescriptor> otdit=ordertd(otdset).iterator(); otdit.hasNext(); ) {
+            OptionalTaskDescriptor otd=otdit.next();
+            if(needcomma)
+              output.print(", ");
+            needcomma=true;
+            output.println("&optionaltaskdescriptor_"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
+          }
+          output.println("};");
 
-	  output.print("struct taskfailure taskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+" = {");
-	  output.print("&task_"+ti.getTask().getSafeSymbol()+", ");
-	  output.print(ti.getIndex()+", ");
-	  output.print(otdset.size()+", ");
-	  output.print("optionaltaskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+"_array");
-	  output.println("};");
-	}
+          output.print("struct taskfailure taskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+" = {");
+          output.print("&task_"+ti.getTask().getSafeSymbol()+", ");
+          output.print(ti.getIndex()+", ");
+          output.print(otdset.size()+", ");
+          output.print("optionaltaskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+"_array");
+          output.println("};");
+        }
 
-	tiset=sa.getTaskIndex(fs);
-	boolean needcomma=false;
-	int runtimeti=0;
-	output.println("struct taskfailure * taskfailurearray"+fscounter+"_"+cdtemp.getSafeSymbol()+"[]={");
-	for(Iterator<TaskIndex> itti=tiset.iterator(); itti.hasNext(); ) {
-	  TaskIndex ti=itti.next();
-	  if (ti.isRuntime()) {
-	    runtimeti++;
-	    continue;
-	  }
-	  if (needcomma)
-	    output.print(", ");
-	  needcomma=true;
-	  output.print("&taskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex());
-	}
-	output.println("};\n");
+        tiset=sa.getTaskIndex(fs);
+        boolean needcomma=false;
+        int runtimeti=0;
+        output.println("struct taskfailure * taskfailurearray"+fscounter+"_"+cdtemp.getSafeSymbol()+"[]={");
+        for(Iterator<TaskIndex> itti=tiset.iterator(); itti.hasNext(); ) {
+          TaskIndex ti=itti.next();
+          if (ti.isRuntime()) {
+            runtimeti++;
+            continue;
+          }
+          if (needcomma)
+            output.print(", ");
+          needcomma=true;
+          output.print("&taskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex());
+        }
+        output.println("};\n");
 
-	//Store the result in fsanalysiswrapper
+        //Store the result in fsanalysiswrapper
 
-	output.println("struct fsanalysiswrapper fsanalysiswrapper_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"={");
-	output.println("/*flag*/"+flagid+",");
-	output.println("/* number of tags*/"+tagcounter+",");
-	output.println("tags_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+",");
-	output.println("/* numtask failures */"+(tiset.size()-runtimeti)+",");
-	output.println("taskfailurearray"+fscounter+"_"+cdtemp.getSafeSymbol()+",");
-	output.println("/* number of optionaltaskdescriptors */"+availabletasks.size()+",");
-	output.println("optionaltaskdescriptorarray_FS"+fscounter+"_"+cdtemp.getSafeSymbol());
-	output.println("};\n");
+        output.println("struct fsanalysiswrapper fsanalysiswrapper_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"={");
+        output.println("/*flag*/"+flagid+",");
+        output.println("/* number of tags*/"+tagcounter+",");
+        output.println("tags_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+",");
+        output.println("/* numtask failures */"+(tiset.size()-runtimeti)+",");
+        output.println("taskfailurearray"+fscounter+"_"+cdtemp.getSafeSymbol()+",");
+        output.println("/* number of optionaltaskdescriptors */"+availabletasks.size()+",");
+        output.println("optionaltaskdescriptorarray_FS"+fscounter+"_"+cdtemp.getSafeSymbol());
+        output.println("};\n");
 
       }
 
@@ -3499,9 +3499,9 @@ fldloop:
       output.println("struct fsanalysiswrapper * fsanalysiswrapperarray_"+cdtemp.getSafeSymbol()+"[] = {");
       boolean needcomma=false;
       for(int i = 0; i<fscounter; i++) {
-	if (needcomma) output.print(",");
-	output.println("&fsanalysiswrapper_FS"+(i+1)+"_"+cdtemp.getSafeSymbol());
-	needcomma=true;
+        if (needcomma) output.print(",");
+        output.println("&fsanalysiswrapper_FS"+(i+1)+"_"+cdtemp.getSafeSymbol());
+        needcomma=true;
       }
       output.println("};");
 
@@ -3520,11 +3520,11 @@ fldloop:
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cn=cdarray[i];
       if (i>0)
-	output.print(", ");
+        output.print(", ");
       if ((cn != null) && (processedcd.contains(cn)))
-	output.print("&classanalysiswrapper_"+cn.getSafeSymbol());
+        output.print("&classanalysiswrapper_"+cn.getSafeSymbol());
       else
-	output.print("NULL");
+        output.print("NULL");
     }
     output.println("};");
 
@@ -3544,8 +3544,8 @@ fldloop:
     for(Iterator it=r.keySet().iterator(); it.hasNext(); ) {
       Set s=r.get(it.next());
       for(Iterator it2=s.iterator(); it2.hasNext(); ) {
-	OptionalTaskDescriptor otd=(OptionalTaskDescriptor)it2.next();
-	l.add(otd);
+        OptionalTaskDescriptor otd=(OptionalTaskDescriptor)it2.next();
+        l.add(otd);
       }
     }
 
@@ -3600,20 +3600,20 @@ fldloop:
       // do not generate the line number if it is same as the previous one
       boolean needtoprint;
       if(fn.prev.size()==0) {
-	needtoprint=true;
+        needtoprint=true;
       } else {
-	needtoprint=false;
+        needtoprint=false;
       }
 
       for(int i=0; i<fn.prev.size(); i++) {
-	int prevLineNum=((FlatNode)fn.prev.get(i)).getNumLine();
-	if(prevLineNum!=lineNum) {
-	  needtoprint=true;
-	  break;
-	}
+        int prevLineNum=((FlatNode)fn.prev.get(i)).getNumLine();
+        if(prevLineNum!=lineNum) {
+          needtoprint=true;
+          break;
+        }
       }
       if(needtoprint) {
-	output.println("// "+fm.getMethod().getClassDesc().getSourceFileName()+":"+fn.getNumLine());
+        output.println("// "+fm.getMethod().getClassDesc().getSourceFileName()+":"+fn.getNumLine());
       }
     }
   }

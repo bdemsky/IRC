@@ -200,8 +200,8 @@ public class Random
     if (max < bytes.length) {
       random = next(32);
       for (int j = max; j < bytes.length; j++) {
-	bytes[j] = (byte) random;
-	random >>= 8;
+        bytes[j] = (byte) random;
+        random >>= 8;
       }
     }
   }

@@ -34,7 +34,7 @@ public class ArrayInitializerNode extends ExpressionNode {
       ExpressionNode en=(ExpressionNode)varInitList.get(i);
       st+=en.printNode(indent);
       if ((i+1)!=varInitList.size()) {
-	st+=", ";
+        st+=", ";
       }
     }
     return st+"}";

@@ -49,11 +49,11 @@ public class JavaCallGraph extends BaseCallGraph {
       Iterator methodit=cn.getMethods();
       //Iterator through methods
       while(methodit.hasNext()) {
-	MethodDescriptor md=(MethodDescriptor)methodit.next();
-	if (md.isStaticBlock()) {
-	  tovisit.add(md);
-	  discovered.add(md);
-	}
+        MethodDescriptor md=(MethodDescriptor)methodit.next();
+        if (md.isStaticBlock()) {
+          tovisit.add(md);
+          discovered.add(md);
+        }
       }
     }
 
@@ -63,36 +63,36 @@ public class JavaCallGraph extends BaseCallGraph {
       tovisit.remove(md);
       FlatMethod fm=state.getMethodFlat(md);
       if (fm==null)
-	continue;
+        continue;
       analyzeMethod(md, fm);
       for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
-	FlatNode fn=fnit.next();
-	if (fn.kind()==FKind.FlatCall) {
-	  FlatCall fcall=(FlatCall)fn;
-	  Set callees=fcall.getThis()==null?getMethods(fcall.getMethod()):getMethods(fcall.getMethod(),fcall.getThis().getType());
+        FlatNode fn=fnit.next();
+        if (fn.kind()==FKind.FlatCall) {
+          FlatCall fcall=(FlatCall)fn;
+          Set callees=fcall.getThis()==null?getMethods(fcall.getMethod()):getMethods(fcall.getMethod(),fcall.getThis().getType());
 
-	  if (fcall.getThis()!=null) {
-	    MethodDescriptor methodd=fcall.getMethod();
+          if (fcall.getThis()!=null) {
+            MethodDescriptor methodd=fcall.getMethod();
 
-	    if (methodd.getClassDesc()==tu.getClass(TypeUtil.ThreadClass)&&
-	        methodd.getSymbol().equals("start")&&methodd.numParameters()==0&&!methodd.getModifiers().isStatic()) {
-	      //Have call to start
-	      HashSet ns=new HashSet();
-	      ns.addAll(callees);
-	      ns.addAll(getMethods(tu.getRun(), fcall.getThis().getType()));
-	      ns.addAll(getMethods(tu.getStaticStart(), fcall.getThis().getType()));
-	      callees=ns;
-	    }
-	  }
+            if (methodd.getClassDesc()==tu.getClass(TypeUtil.ThreadClass)&&
+                methodd.getSymbol().equals("start")&&methodd.numParameters()==0&&!methodd.getModifiers().isStatic()) {
+              //Have call to start
+              HashSet ns=new HashSet();
+              ns.addAll(callees);
+              ns.addAll(getMethods(tu.getRun(), fcall.getThis().getType()));
+              ns.addAll(getMethods(tu.getStaticStart(), fcall.getThis().getType()));
+              callees=ns;
+            }
+          }
 
-	  for(Iterator mdit=callees.iterator(); mdit.hasNext(); ) {
-	    MethodDescriptor callee=(MethodDescriptor)mdit.next();
-	    if (!discovered.contains(callee)) {
-	      discovered.add(callee);
-	      tovisit.add(callee);
-	    }
-	  }
-	}
+          for(Iterator mdit=callees.iterator(); mdit.hasNext(); ) {
+            MethodDescriptor callee=(MethodDescriptor)mdit.next();
+            if (!discovered.contains(callee)) {
+              discovered.add(callee);
+              tovisit.add(callee);
+            }
+          }
+        }
       }
     }
   }

@@ -27,38 +27,38 @@ void searchoojroots() {
       di=dq->head;
 
       do {
-	// check all the relevant indices of this
-	// node in the deque, noting if we are in
-	// the top/bottom node which can be partially
-	// full
+        // check all the relevant indices of this
+        // node in the deque, noting if we are in
+        // the top/bottom node which can be partially
+        // full
 
-	// WHAT?
-	//SESEcommon* common = (SESEcommon*) n->itsDataArr[j];
-	//if(common==seseCommon){
-	// skip the current running SESE
-	//  continue;
-	//}
-	di=(dequeItem *) EXTRACTPTR((INTPTR)di);
-	SESEcommon* seseRec = (SESEcommon*) di->work;
-	if (seseRec!=NULL) {
-	  struct garbagelist* gl     = (struct garbagelist*) &(seseRec[1]);
-	  struct garbagelist* glroot = gl;
+        // WHAT?
+        //SESEcommon* common = (SESEcommon*) n->itsDataArr[j];
+        //if(common==seseCommon){
+        // skip the current running SESE
+        //  continue;
+        //}
+        di=(dequeItem *) EXTRACTPTR((INTPTR)di);
+        SESEcommon* seseRec = (SESEcommon*) di->work;
+        if (seseRec!=NULL) {
+          struct garbagelist* gl     = (struct garbagelist*) &(seseRec[1]);
+          struct garbagelist* glroot = gl;
 
-	  updateAscendantSESE(seseRec);
+          updateAscendantSESE(seseRec);
 
-	  while( gl != NULL ) {
-	    int k;
-	    for( k = 0; k < gl->size; k++ ) {
-	      void* orig = gl->array[k];
-	      ENQUEUE(orig, gl->array[k]);
-	    }
-	    gl = gl->next;
-	  }
-	}
-	// we only have to move across the nodes
-	// of the deque if the top and bottom are
-	// not the same already
-	di=di->next;
+          while( gl != NULL ) {
+            int k;
+            for( k = 0; k < gl->size; k++ ) {
+              void* orig = gl->array[k];
+              ENQUEUE(orig, gl->array[k]);
+            }
+            gl = gl->next;
+          }
+        }
+        // we only have to move across the nodes
+        // of the deque if the top and bottom are
+        // not the same already
+        di=di->next;
       } while( di !=NULL);
     }
   }
@@ -88,48 +88,48 @@ void searchoojroots() {
 
       n = botNode;
       do {
-	// check all the relevant indices of this
-	// node in the deque, noting if we are in
-	// the top/bottom node which can be partially
-	// full
-	if( n == botNode ) {
-	  jLo = botIndx;
-	} else { jLo = 0; }
-	if( n == topNode ) {
-	  jHi = topIndx;
-	} else { jHi = DQNODE_ARRAYSIZE; }
+        // check all the relevant indices of this
+        // node in the deque, noting if we are in
+        // the top/bottom node which can be partially
+        // full
+        if( n == botNode ) {
+          jLo = botIndx;
+        } else { jLo = 0; }
+        if( n == topNode ) {
+          jHi = topIndx;
+        } else { jHi = DQNODE_ARRAYSIZE; }
 
-	for( j = jLo; j < jHi; ++j ) {
+        for( j = jLo; j < jHi; ++j ) {
 
-	  // WHAT?
-	  //SESEcommon* common = (SESEcommon*) n->itsDataArr[j];
-	  //if(common==seseCommon){
-	  //  continue;
-	  //}
+          // WHAT?
+          //SESEcommon* common = (SESEcommon*) n->itsDataArr[j];
+          //if(common==seseCommon){
+          //  continue;
+          //}
 
-	  SESEcommon* seseRec = (SESEcommon*) n->itsDataArr[j];
+          SESEcommon* seseRec = (SESEcommon*) n->itsDataArr[j];
 
-	  struct garbagelist* gl     = (struct garbagelist*) &(seseRec[1]);
-	  struct garbagelist* glroot = gl;
+          struct garbagelist* gl     = (struct garbagelist*) &(seseRec[1]);
+          struct garbagelist* glroot = gl;
 
-	  updateAscendantSESE(seseRec);
+          updateAscendantSESE(seseRec);
 
-	  while( gl != NULL ) {
-	    int k;
-	    for( k = 0; k < gl->size; k++ ) {
-	      void* orig = gl->array[k];
-	      ENQUEUE(orig, gl->array[k]);
-	    }
-	    gl = gl->next;
-	  }
-	}
+          while( gl != NULL ) {
+            int k;
+            for( k = 0; k < gl->size; k++ ) {
+              void* orig = gl->array[k];
+              ENQUEUE(orig, gl->array[k]);
+            }
+            gl = gl->next;
+          }
+        }
 
-	// we only have to move across the nodes
-	// of the deque if the top and bottom are
-	// not the same already
-	if( botNode != topNode ) {
-	  n = n->next;
-	}
+        // we only have to move across the nodes
+        // of the deque if the top and bottom are
+        // not the same already
+        if( botNode != topNode ) {
+          n = n->next;
+        }
       } while( n != topNode );
     }
   }
@@ -148,8 +148,8 @@ updateForwardList(struct Queue *forwardList, int prevUpdate) {
     while(gl!=NULL) {
       int i;
       for(i=0; i<gl->size; i++) {
-	void * orig=gl->array[i];
-	ENQUEUE(orig, gl->array[i]);
+        void * orig=gl->array[i];
+        ENQUEUE(orig, gl->array[i]);
       }
       gl=gl->next;
     }
@@ -169,80 +169,80 @@ updateMemoryQueue(SESEcommon* seseParent) {
     MemoryQueueItem *memoryItem=memoryQueue->head;
     while(memoryItem!=NULL) {
       if(memoryItem->type==HASHTABLE) {
-	Hashtable *ht=(Hashtable*)memoryItem;
-	for(binidx=0; binidx<NUMBINS; binidx++) {
-	  BinElement *bin=ht->array[binidx];
-	  BinItem *binItem=bin->head;
-	  while(binItem!=NULL) {
-	    if(binItem->type==READBIN) {
-	      ReadBinItem* readBinItem=(ReadBinItem*)binItem;
-	      int ridx;
-	      for(ridx=0; ridx<readBinItem->index; ridx++) {
-		REntry *rentry=readBinItem->array[ridx];
-		SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
-		struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
-		updateAscendantSESE(seseRec);
-		while(gl!=NULL) {
-		  int i;
-		  for(i=0; i<gl->size; i++) {
-		    void * orig=gl->array[i];
-		    ENQUEUE(orig, gl->array[i]);
-		  }
-		  gl=gl->next;
-		}
-	      }
-	    } else { //writebin
-	      REntry *rentry=((WriteBinItem*)binItem)->val;
-	      SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
-	      struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
-	      updateAscendantSESE(seseRec);
-	      while(gl!=NULL) {
-		int i;
-		for(i=0; i<gl->size; i++) {
-		  void * orig=gl->array[i];
-		  ENQUEUE(orig, gl->array[i]);
-		}
-		gl=gl->next;
-	      }
-	    }
-	    binItem=binItem->next;
-	  }
-	}
+        Hashtable *ht=(Hashtable*)memoryItem;
+        for(binidx=0; binidx<NUMBINS; binidx++) {
+          BinElement *bin=ht->array[binidx];
+          BinItem *binItem=bin->head;
+          while(binItem!=NULL) {
+            if(binItem->type==READBIN) {
+              ReadBinItem* readBinItem=(ReadBinItem*)binItem;
+              int ridx;
+              for(ridx=0; ridx<readBinItem->index; ridx++) {
+                REntry *rentry=readBinItem->array[ridx];
+                SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
+                struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
+                updateAscendantSESE(seseRec);
+                while(gl!=NULL) {
+                  int i;
+                  for(i=0; i<gl->size; i++) {
+                    void * orig=gl->array[i];
+                    ENQUEUE(orig, gl->array[i]);
+                  }
+                  gl=gl->next;
+                }
+              }
+            } else { //writebin
+              REntry *rentry=((WriteBinItem*)binItem)->val;
+              SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
+              struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
+              updateAscendantSESE(seseRec);
+              while(gl!=NULL) {
+                int i;
+                for(i=0; i<gl->size; i++) {
+                  void * orig=gl->array[i];
+                  ENQUEUE(orig, gl->array[i]);
+                }
+                gl=gl->next;
+              }
+            }
+            binItem=binItem->next;
+          }
+        }
       } else if(memoryItem->type==VECTOR) {
-	Vector *vt=(Vector*)memoryItem;
-	int idx;
-	for(idx=0; idx<vt->index; idx++) {
-	  REntry *rentry=vt->array[idx];
-	  if(rentry!=NULL) {
-	    SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
-	    struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
-	    updateAscendantSESE(seseRec);
-	    while(gl!=NULL) {
-	      int i;
-	      for(i=0; i<gl->size; i++) {
-		void * orig=gl->array[i];
-		ENQUEUE(orig, gl->array[i]);
-	      }
-	      gl=gl->next;
-	    }
-	  }
-	}
+        Vector *vt=(Vector*)memoryItem;
+        int idx;
+        for(idx=0; idx<vt->index; idx++) {
+          REntry *rentry=vt->array[idx];
+          if(rentry!=NULL) {
+            SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
+            struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
+            updateAscendantSESE(seseRec);
+            while(gl!=NULL) {
+              int i;
+              for(i=0; i<gl->size; i++) {
+                void * orig=gl->array[i];
+                ENQUEUE(orig, gl->array[i]);
+              }
+              gl=gl->next;
+            }
+          }
+        }
       } else if(memoryItem->type==SINGLEITEM) {
-	SCC *scc=(SCC*)memoryItem;
-	REntry *rentry=scc->val;
-	if(rentry!=NULL) {
-	  SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
-	  struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
-	  updateAscendantSESE(seseRec);
-	  while(gl!=NULL) {
-	    int i;
-	    for(i=0; i<gl->size; i++) {
-	      void * orig=gl->array[i];
-	      ENQUEUE(orig, gl->array[i]);
-	    }
-	    gl=gl->next;
-	  }
-	}
+        SCC *scc=(SCC*)memoryItem;
+        REntry *rentry=scc->val;
+        if(rentry!=NULL) {
+          SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
+          struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
+          updateAscendantSESE(seseRec);
+          while(gl!=NULL) {
+            int i;
+            for(i=0; i<gl->size; i++) {
+              void * orig=gl->array[i];
+              ENQUEUE(orig, gl->array[i]);
+            }
+            gl=gl->next;
+          }
+        }
       }
       memoryItem=memoryItem->next;
     }
@@ -262,12 +262,12 @@ updateAscendantSESE(SESEcommon* seseRec) {
     if(prevSESE!=NULL) {
       struct garbagelist * prevgl=(struct garbagelist *)&(((SESEcommon*)(prevSESE))[1]);
       while(prevgl!=NULL) {
-	int i;
-	for(i=0; i<prevgl->size; i++) {
-	  void * orig=prevgl->array[i];
-	  ENQUEUE(orig, prevgl->array[i]);
-	}
-	prevgl=prevgl->next;
+        int i;
+        for(i=0; i<prevgl->size; i++) {
+          void * orig=prevgl->array[i];
+          ENQUEUE(orig, prevgl->array[i]);
+        }
+        prevgl=prevgl->next;
       }
     }
   }

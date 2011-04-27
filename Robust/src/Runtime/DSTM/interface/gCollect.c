@@ -117,27 +117,27 @@ void clearBlock(objstr_t *block) {
     for(; next != NULL; curr=next, next = next->next) {
       unsigned int val=(unsigned int)next->val;
       if ((val>=tmpbegin)&(val<tmpend)) {
-	prehashlistnode_t *tmp=curr->next=next->next;
-	free(next);
-	next=curr;
-	//loop condition is broken now...need to check before incrementing
-	//	if (next==NULL)
-	// break;
+        prehashlistnode_t *tmp=curr->next=next->next;
+        free(next);
+        next=curr;
+        //loop condition is broken now...need to check before incrementing
+        //	if (next==NULL)
+        // break;
       }
     }
     {
       unsigned int val=(unsigned int)orig->val;
       if ((val>=tmpbegin)&(val<tmpend)) {
-	if (orig->next==NULL) {
-	  orig->key=0;
-	  orig->val=NULL;
-	} else {
-	  next=orig->next;
-	  orig->val=next->val;
-	  orig->key=next->key;
-	  orig->next=next->next;
-	  free(next);
-	}
+        if (orig->next==NULL) {
+          orig->key=0;
+          orig->val=NULL;
+        } else {
+          next=orig->next;
+          orig->val=next->val;
+          orig->key=next->key;
+          orig->next=next->next;
+          free(next);
+        }
       }
     }
 
@@ -146,7 +146,7 @@ void clearBlock(objstr_t *block) {
       lockindex++;
       volatile unsigned int * lockptr_new=&pflookup.larray[lockindex].lock;
       while(!write_trylock(lockptr_new)) {
-	sched_yield();
+        sched_yield();
       }
       write_unlock(lockptr_current);
       lockptr_current=lockptr_new;

@@ -66,44 +66,44 @@ public class BasicBlock {
       BBlock block=map.get(fn);
       block.nodes.add(fn);
       if (fn.kind()==FKind.FlatExit)
-	exit=block;
+        exit=block;
       do {
-	if (pm.numNext(fn)!=1) {
-	  for(int i=0; i<pm.numNext(fn); i++) {
-	    FlatNode fnext=pm.getNext(fn,i);
-	    if (!map.containsKey(fnext)) {
-	      BBlock newb=new BBlock();
-	      blockset.add(newb);
-	      map.put(fnext, newb);
-	      toprocess.add(fnext);
-	    }
-	    //link block in
-	    if (!block.nextb.contains(map.get(fnext))) {
-	      block.nextb.add(map.get(fnext));
-	      map.get(fnext).prevb.add(block);
-	    }
-	  }
-	  break;
-	}
-	fn=pm.getNext(fn,0);
-	if (pm.numPrev(fn)>1) {
-	  //new basic block
-	  if (!map.containsKey(fn)) {
-	    BBlock newb=new BBlock();
-	    blockset.add(newb);
-	    map.put(fn, newb);
-	    toprocess.add(fn);
-	  }
-	  //link block in
-	  if (!block.nextb.contains(map.get(fn))) {
-	    block.nextb.add(map.get(fn));
-	    map.get(fn).prevb.add(block);
-	  }
-	  break;
-	}
-	block.nodes.add(fn);
-	if (fn.kind()==FKind.FlatExit)
-	  exit=block;
+        if (pm.numNext(fn)!=1) {
+          for(int i=0; i<pm.numNext(fn); i++) {
+            FlatNode fnext=pm.getNext(fn,i);
+            if (!map.containsKey(fnext)) {
+              BBlock newb=new BBlock();
+              blockset.add(newb);
+              map.put(fnext, newb);
+              toprocess.add(fnext);
+            }
+            //link block in
+            if (!block.nextb.contains(map.get(fnext))) {
+              block.nextb.add(map.get(fnext));
+              map.get(fnext).prevb.add(block);
+            }
+          }
+          break;
+        }
+        fn=pm.getNext(fn,0);
+        if (pm.numPrev(fn)>1) {
+          //new basic block
+          if (!map.containsKey(fn)) {
+            BBlock newb=new BBlock();
+            blockset.add(newb);
+            map.put(fn, newb);
+            toprocess.add(fn);
+          }
+          //link block in
+          if (!block.nextb.contains(map.get(fn))) {
+            block.nextb.add(map.get(fn));
+            map.get(fn).prevb.add(block);
+          }
+          break;
+        }
+        block.nodes.add(fn);
+        if (fn.kind()==FKind.FlatExit)
+          exit=block;
       } while(true);
     }
     return new BasicBlock(map.get(fm), exit, blockset);

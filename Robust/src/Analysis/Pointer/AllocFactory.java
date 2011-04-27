@@ -54,8 +54,8 @@ public class AllocFactory {
 
     public boolean equals(Object o) {
       if (o instanceof AllocNode) {
-	AllocNode an=(AllocNode)o;
-	return (allocsite==an.allocsite)&&(summary==an.summary);
+        AllocNode an=(AllocNode)o;
+        return (allocsite==an.allocsite)&&(summary==an.summary);
       }
       return false;
     }
@@ -66,9 +66,9 @@ public class AllocFactory {
 
     public String getID() {
       if (summary)
-	return "SUM"+allocsite;
+        return "SUM"+allocsite;
       else
-	return "SING"+allocsite;
+        return "SING"+allocsite;
     }
   }
 
@@ -99,8 +99,8 @@ public class AllocFactory {
 
     public boolean equals(Object o) {
       if (o instanceof AllocSiteNode) {
-	AllocSiteNode an=(AllocSiteNode)o;
-	return (allocsite==an.allocsite);
+        AllocSiteNode an=(AllocSiteNode)o;
+        return (allocsite==an.allocsite);
       }
       return false;
     }

@@ -73,65 +73,65 @@ public class WriteBarrier {
       FlatNode fn=(FlatNode)toprocess.iterator().next();
       toprocess.remove(fn);
       for(int i=0; i<fn.numNext(); i++) {
-	FlatNode nnext=fn.getNext(i);
-	if (!discovered.contains(nnext)) {
-	  toprocess.add(nnext);
-	  discovered.add(nnext);
-	}
+        FlatNode nnext=fn.getNext(i);
+        if (!discovered.contains(nnext)) {
+          toprocess.add(nnext);
+          discovered.add(nnext);
+        }
       }
       HashSet<TempDescriptor> nb=computeIntersection(fn);
       TempDescriptor[] writes=fn.writesTemps();
       for(int i=0; i<writes.length; i++) {
-	nb.remove(writes[i]);
+        nb.remove(writes[i]);
       }
       switch(fn.kind()) {
       case FKind.FlatSetElementNode:
       {
-	FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	if (!state.STMARRAY)
-	  nb.add(fsen.getDst());
-	break;
+        FlatSetElementNode fsen=(FlatSetElementNode)fn;
+        if (!state.STMARRAY)
+          nb.add(fsen.getDst());
+        break;
       }
 
       case FKind.FlatSetFieldNode:
       {
-	FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
-	nb.add(fsfn.getDst());
-	break;
+        FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+        nb.add(fsfn.getDst());
+        break;
       }
 
       case FKind.FlatOpNode:
       {
-	FlatOpNode fon=(FlatOpNode)fn;
-	if (fon.getOp().getOp()==Operation.ASSIGN) {
-	  if (nb.contains(fon.getLeft())) {
-	    nb.add(fon.getDest());
-	  }
-	}
-	break;
+        FlatOpNode fon=(FlatOpNode)fn;
+        if (fon.getOp().getOp()==Operation.ASSIGN) {
+          if (nb.contains(fon.getLeft())) {
+            nb.add(fon.getDest());
+          }
+        }
+        break;
       }
 
       case FKind.FlatNew:
       {
-	FlatNew fnew=(FlatNew)fn;
-	nb.add(fnew.getDst());
-	break;
+        FlatNew fnew=(FlatNew)fn;
+        nb.add(fnew.getDst());
+        break;
       }
 
       default:
-	//If we enter a transaction toss everything
-	if (atomic.get(fn).intValue()>0&&
-	    atomic.get(fn.getPrev(0)).intValue()==0) {
-	  nb=new HashSet<TempDescriptor>();
-	}
+        //If we enter a transaction toss everything
+        if (atomic.get(fn).intValue()>0&&
+            atomic.get(fn.getPrev(0)).intValue()==0) {
+          nb=new HashSet<TempDescriptor>();
+        }
       }
       if (!needbarrier.containsKey(fn)||
           !needbarrier.get(fn).equals(nb)) {
-	for(int i=0; i<fn.numNext(); i++) {
-	  FlatNode nnext=fn.getNext(i);
-	  toprocess.add(nnext);
-	}
-	needbarrier.put(fn,nb);
+        for(int i=0; i<fn.numNext(); i++) {
+          FlatNode nnext=fn.getNext(i);
+          toprocess.add(nnext);
+        }
+        needbarrier.put(fn,nb);
       }
     }
   }
@@ -142,17 +142,17 @@ public class WriteBarrier {
       FlatNode fprev=fn.getPrev(i);
       HashSet<TempDescriptor> hs=needbarrier.get(fprev);
       if (hs!=null) {
-	if (first) {
-	  tab.addAll(hs);
-	  first=false;
-	} else {
-	  //Intersect sets
-	  for(Iterator<TempDescriptor> it=tab.iterator(); it.hasNext(); ) {
-	    TempDescriptor t=it.next();
-	    if (!hs.contains(t))
-	      it.remove();
-	  }
-	}
+        if (first) {
+          tab.addAll(hs);
+          first=false;
+        } else {
+          //Intersect sets
+          for(Iterator<TempDescriptor> it=tab.iterator(); it.hasNext(); ) {
+            TempDescriptor t=it.next();
+            if (!hs.contains(t))
+              it.remove();
+          }
+        }
       }
     }
     return tab;

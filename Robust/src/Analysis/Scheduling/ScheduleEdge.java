@@ -141,9 +141,9 @@ public class ScheduleEdge extends Edge {
     if (o instanceof ScheduleEdge) {
       ScheduleEdge e=(ScheduleEdge)o;
       if(e.gid == this.gid) {
-	if(e.uid != this.uid) {
-	  return false;
-	}
+        if(e.uid != this.uid) {
+          return false;
+        }
       }
       if ((e.label.equals(label))&&
           (e.target.equals(target))&&
@@ -156,17 +156,17 @@ public class ScheduleEdge extends Edge {
           (e.type == type) &&
           (e.transTime == transTime) &&
           (e.listExeTime == listExeTime))
-	if(e.targetFState != null) {
-	  if(!e.targetFState.equals(targetFState)) {
-	    return false;
-	  }
-	} else if(this.targetFState != null) {
-	  return false;
-	}
+        if(e.targetFState != null) {
+          if(!e.targetFState.equals(targetFState)) {
+            return false;
+          }
+        } else if(this.targetFState != null) {
+          return false;
+        }
       if(e.fedge != null) {
-	return e.fedge.equals(fedge);
+        return e.fedge.equals(fedge);
       } else if(this.fedge == null) {
-	return true;
+        return true;
       }
     }
     return false;
@@ -208,13 +208,13 @@ public class ScheduleEdge extends Edge {
       Iterator it_edges = this.getTarget().edges();
       long temp = 0;
       if(it_edges.hasNext()) {
-	temp = ((ScheduleEdge)it_edges.next()).getListExeTime();
+        temp = ((ScheduleEdge)it_edges.next()).getListExeTime();
       }
       while(it_edges.hasNext()) {
-	long tetime = ((ScheduleEdge)it_edges.next()).getListExeTime();
-	if(temp < tetime) {
-	  temp = tetime;
-	}
+        long tetime = ((ScheduleEdge)it_edges.next()).getListExeTime();
+        if(temp < tetime) {
+          temp = tetime;
+        }
       }
       listExeTime += temp;
     }

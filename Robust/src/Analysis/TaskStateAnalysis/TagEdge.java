@@ -32,7 +32,7 @@ public class TagEdge extends Edge {
       TagEdge e=(TagEdge)o;
       if (e.target.equals(target)&&
           e.td==td)
-	return true;
+        return true;
     }
     return false;
   }

@@ -50,35 +50,35 @@ public class BlockNode extends TreeNode {
     if (printStyle==NORMAL) {
       String st="{\n";
       for(int i=0; i<blockstatements.size(); i++) {
-	BlockStatementNode bsn=(BlockStatementNode)blockstatements.get(i);
-	st+=printSpace(indent+INDENT)+bsn.printNode(indent+INDENT);
-	if (!((bsn instanceof SubBlockNode)||
-	      (bsn instanceof LoopNode)||
-	      (bsn instanceof IfStatementNode)))
-	  st+=";\n";
-	if (bsn instanceof IfStatementNode)
-	  st+="\n";
+        BlockStatementNode bsn=(BlockStatementNode)blockstatements.get(i);
+        st+=printSpace(indent+INDENT)+bsn.printNode(indent+INDENT);
+        if (!((bsn instanceof SubBlockNode)||
+              (bsn instanceof LoopNode)||
+              (bsn instanceof IfStatementNode)))
+          st+=";\n";
+        if (bsn instanceof IfStatementNode)
+          st+="\n";
       }
       st+=printSpace(indent)+"}";
       return st;
     } else if (printStyle==NOBRACES) {
       String st="";
       for(int i=0; i<blockstatements.size(); i++) {
-	BlockStatementNode bsn=(BlockStatementNode)blockstatements.get(i);
-	st+=printSpace(indent)+bsn.printNode(indent);
-	if (!((bsn instanceof SubBlockNode)||
-	      (bsn instanceof LoopNode)||
-	      (bsn instanceof IfStatementNode)))
-	  st+=";";
+        BlockStatementNode bsn=(BlockStatementNode)blockstatements.get(i);
+        st+=printSpace(indent)+bsn.printNode(indent);
+        if (!((bsn instanceof SubBlockNode)||
+              (bsn instanceof LoopNode)||
+              (bsn instanceof IfStatementNode)))
+          st+=";";
       }
       return st;
     } else if (printStyle==EXPRLIST) {
       String st="";
       for(int i=0; i<blockstatements.size(); i++) {
-	BlockStatementNode bsn=(BlockStatementNode)blockstatements.get(i);
-	st+=bsn.printNode(0);
-	if ((i+1)!=blockstatements.size())
-	  st+=", ";
+        BlockStatementNode bsn=(BlockStatementNode)blockstatements.get(i);
+        st+=bsn.printNode(0);
+        if ((i+1)!=blockstatements.size())
+          st+=", ";
       }
       return st;
     } else throw new Error();

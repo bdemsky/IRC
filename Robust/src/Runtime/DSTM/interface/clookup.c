@@ -176,20 +176,20 @@ void * chashRemove2(chashtable_t *table, unsigned int key) {
     if (curr->key == key) {         // Find a match in the hash table
       table->numelements--;  // Decrement the number of elements in the global hashtable
       if ((curr == &ptr[index]) && (curr->next == NULL)) {  // Delete the first item inside the hashtable with no linked list of chashlistnode_t
-	curr->key = 0;
-	value=curr->val;
-	curr->val = NULL;
+        curr->key = 0;
+        value=curr->val;
+        curr->val = NULL;
       } else if ((curr == &ptr[index]) && (curr->next != NULL)) { //Delete the first item with a linked list of chashlistnode_t  connected
-	curr->key = curr->next->key;
-	value=curr->val;
-	curr->val = curr->next->val;
-	node = curr->next;
-	curr->next = curr->next->next;
-	free(node);
+        curr->key = curr->next->key;
+        value=curr->val;
+        curr->val = curr->next->val;
+        node = curr->next;
+        curr->next = curr->next->next;
+        free(node);
       } else {                                          // Regular delete from linked listed
-	prev->next = curr->next;
-	value=curr->val;
-	free(curr);
+        prev->next = curr->next;
+        value=curr->val;
+        free(curr);
       }
       return value;
     }
@@ -226,31 +226,31 @@ unsigned int chashResize(chashtable_t *table, unsigned int newsize) {
       chashlistnode_t *tmp,*next;
 
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
-	break;                  //key = val =0 for element if not present within the hash table
+        break;                  //key = val =0 for element if not present within the hash table
       }
       next = curr->next;
       index = (key & mask) >>1;
       tmp=&node[index];
       // Insert into the new table
       if(tmp->key == 0) {
-	tmp->key = curr->key;
-	tmp->val = curr->val;
-	if (!isfirst) {
-	  free(curr);
-	}
+        tmp->key = curr->key;
+        tmp->val = curr->val;
+        if (!isfirst) {
+          free(curr);
+        }
       } /*
-	   NOTE:  Add this case if you change this...
-	   This case currently never happens because of the way things rehash....
-	   else if (isfirst) {
-	   chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
-	   newnode->key = curr->key;
-	   newnode->val = curr->val;
-	   newnode->next = tmp->next;
-	   tmp->next=newnode;
-	   } */
+           NOTE:  Add this case if you change this...
+           This case currently never happens because of the way things rehash....
+           else if (isfirst) {
+           chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
+           newnode->key = curr->key;
+           newnode->val = curr->val;
+           newnode->next = tmp->next;
+           tmp->next=newnode;
+           } */
       else {
-	curr->next=tmp->next;
-	tmp->next=curr;
+        curr->next=tmp->next;
+        tmp->next=curr;
       }
 
       isfirst = 0;
@@ -290,28 +290,28 @@ unsigned int t_chashResize(unsigned int newsize) {
       chashlistnode_t *tmp,*next;
 
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
-	break;                  //key = val =0 for element if not present within the hash table
+        break;                  //key = val =0 for element if not present within the hash table
       }
       index = (key & mask) >>1;
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
       if(tmp->key == 0) {
-	tmp->key = key;
-	tmp->val = curr->val;
+        tmp->key = key;
+        tmp->val = curr->val;
       } /*
-	   NOTE:  Add this case if you change this...
-	   This case currently never happens because of the way things rehash....
-	   else if (isfirst) {
-	   chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
-	   newnode->key = curr->key;
-	   newnode->val = curr->val;
-	   newnode->next = tmp->next;
-	   tmp->next=newnode;
-	   } */
+           NOTE:  Add this case if you change this...
+           This case currently never happens because of the way things rehash....
+           else if (isfirst) {
+           chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
+           newnode->key = curr->key;
+           newnode->val = curr->val;
+           newnode->next = tmp->next;
+           tmp->next=newnode;
+           } */
       else {
-	curr->next=tmp->next;
-	tmp->next=curr;
+        curr->next=tmp->next;
+        tmp->next=curr;
       }
 
       isfirst = 0;

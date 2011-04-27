@@ -34,7 +34,7 @@ public class OptionalTaskDescriptor {
           otd.enterflagstates.equals(enterflagstates)&&
           otd.predicate.equals(predicate)&&
           otd.index==index)
-	return true;
+        return true;
     }
     return false;
   }

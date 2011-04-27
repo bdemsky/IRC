@@ -138,17 +138,17 @@ unsigned int lhashRemove(unsigned int oid) {
     if (curr->oid == oid) {                     // Find a match in the hash table
       llookup.numelements--;                    // Decrement the number of elements in the global hashtable
       if ((curr == &ptr[index]) && (curr->next == NULL)) {                    // Delete the first item inside the hashtable with no linked list of lhashlistnode_t
-	curr->oid = 0;
-	curr->mid = 0;
+        curr->oid = 0;
+        curr->mid = 0;
       } else if ((curr == &ptr[index]) && (curr->next != NULL)) {                   //Delete the first item with a linked list of lhashlistnode_t  connected
-	curr->oid = curr->next->oid;
-	curr->mid = curr->next->mid;
-	node = curr->next;
-	curr->next = curr->next->next;
-	free(node);
+        curr->oid = curr->next->oid;
+        curr->mid = curr->next->mid;
+        node = curr->next;
+        curr->next = curr->next->next;
+        free(node);
       } else {                                                                  // Regular delete from linked listed
-	prev->next = curr->next;
-	free(curr);
+        prev->next = curr->next;
+        free(curr);
       }
       pthread_mutex_unlock(&llookup.locktable);
       return 0;
@@ -184,30 +184,30 @@ unsigned int lhashResize(unsigned int newsize) {
     isfirst = 1;
     while (curr != NULL) {                              //Inner loop to go through linked lists
       if (curr->oid == 0) {                             //Exit inner loop if there the first element for a given bin/index is NULL
-	break;                                          //oid = mid =0 for element if not present within the hash table
+        break;                                          //oid = mid =0 for element if not present within the hash table
       }
       next = curr->next;
       index = lhashFunction(curr->oid);
       // Insert into the new table
       if(llookup.table[index].next == NULL && llookup.table[index].oid == 0) {
-	llookup.table[index].oid = curr->oid;
-	llookup.table[index].mid = curr->mid;
-	llookup.numelements++;
+        llookup.table[index].oid = curr->oid;
+        llookup.table[index].mid = curr->mid;
+        llookup.numelements++;
       } else {
-	if((newnode = calloc(1, sizeof(lhashlistnode_t))) == NULL) {
-	  printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-	  return 1;
-	}
-	newnode->oid = curr->oid;
-	newnode->mid = curr->mid;
-	newnode->next = llookup.table[index].next;
-	llookup.table[index].next = newnode;
-	llookup.numelements++;
+        if((newnode = calloc(1, sizeof(lhashlistnode_t))) == NULL) {
+          printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+          return 1;
+        }
+        newnode->oid = curr->oid;
+        newnode->mid = curr->mid;
+        newnode->next = llookup.table[index].next;
+        llookup.table[index].next = newnode;
+        llookup.numelements++;
       }
 
       //free the linked list of lhashlistnode_t if not the first element in the hash table
       if (isfirst != 1) {
-	free(curr);
+        free(curr);
       }
 
       isfirst = 0;

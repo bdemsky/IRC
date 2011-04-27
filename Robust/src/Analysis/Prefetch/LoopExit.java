@@ -42,19 +42,19 @@ public class LoopExit {
       FlatNode fn=nodeset.iterator().next();
       nodeset.remove(fn);
       if (fn.kind()==FKind.FlatCondBranch&&((FlatCondBranch)fn).isLoopBranch()) {
-	FlatCondBranch fcb=(FlatCondBranch)fn;
-	loopbranchset.add(fcb);
-	//True edge
-	propagateset(nodeset, table, fcb, fcb.getNext(0), fcb);
-	//False edge
-	propagateset(nodeset, table, fcb, fcb.getNext(1), null);
-	loopbranchset.add(fcb);
+        FlatCondBranch fcb=(FlatCondBranch)fn;
+        loopbranchset.add(fcb);
+        //True edge
+        propagateset(nodeset, table, fcb, fcb.getNext(0), fcb);
+        //False edge
+        propagateset(nodeset, table, fcb, fcb.getNext(1), null);
+        loopbranchset.add(fcb);
       } else if (fn.kind()==FKind.FlatReturnNode) {
-	if (table.containsKey(fn))
-	  exitset.addAll(table.get(fn));
+        if (table.containsKey(fn))
+          exitset.addAll(table.get(fn));
       } else {
-	for(int i=0; i<fn.numNext(); i++)
-	  propagateset(nodeset, table, fn, fn.getNext(i), null);
+        for(int i=0; i<fn.numNext(); i++)
+          propagateset(nodeset, table, fn, fn.getNext(i), null);
       }
     }
     loopbranchset.removeAll(exitset);
@@ -70,10 +70,10 @@ public class LoopExit {
       HashSet<FlatCondBranch> toadd=new HashSet<FlatCondBranch>();
       toadd.addAll(table.get(fn));
       if (toadd.contains(fnnext))       //can't propagate back to node
-	toadd.remove(fnnext);
+        toadd.remove(fnnext);
       if(!table.get(fnnext).containsAll(toadd)) {
-	table.get(fnnext).addAll(toadd);
-	enqueuechange=true;
+        table.get(fnnext).addAll(toadd);
+        enqueuechange=true;
       }
     }
     if (fcb!=null&&!table.get(fnnext).contains(fcb)) {

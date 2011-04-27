@@ -33,10 +33,10 @@ public class TempTagPair {
     TempTagPair ttp=(TempTagPair)o;
     if (ttp.tagt==tagt&&ttp.td==td) {
       if (ttp.tagd!=null) {
-	if (!ttp.tagd.equals(tagd))
-	  throw new Error();
+        if (!ttp.tagd.equals(tagd))
+          throw new Error();
       } else if (tagd!=null)
-	throw new Error();
+        throw new Error();
 
       return true;
     } else return false;

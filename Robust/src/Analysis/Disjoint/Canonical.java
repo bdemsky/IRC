@@ -105,7 +105,7 @@ abstract public class Canonical {
 
     if( hasHash ) {
       if( oldHash != hash ) {
-	throw new Error("A CANONICAL HASH CHANGED");
+        throw new Error("A CANONICAL HASH CHANGED");
       }
     } else {
       hasHash = true;
@@ -270,9 +270,9 @@ abstract public class Canonical {
                                          rt1.isOutOfContext()
                                          );
       if( rt2 != null ) {
-	out.reachTuples.add(unionUpArity(rt1, rt2) );
+        out.reachTuples.add(unionUpArity(rt1, rt2) );
       } else {
-	out.reachTuples.add(rt1);
+        out.reachTuples.add(rt1);
       }
     }
 
@@ -284,7 +284,7 @@ abstract public class Canonical {
                                          rt2.isOutOfContext()
                                          );
       if( rt1 == null ) {
-	out.reachTuples.add(rt2);
+        out.reachTuples.add(rt2);
       }
     }
 
@@ -388,30 +388,30 @@ abstract public class Canonical {
       if( age == AllocSite.AGE_notInThisSite ||
           rt.isOutOfContext()
           ) {
-	out.reachTuples.add(rt);
+        out.reachTuples.add(rt);
 
       } else if( age == AllocSite.AGE_summary ) {
-	// remember the summary tuple, but don't add it
-	// we may combine it with the oldest tuple
-	rtSummary = rt;
+        // remember the summary tuple, but don't add it
+        // we may combine it with the oldest tuple
+        rtSummary = rt;
 
       } else if( age == AllocSite.AGE_oldest ) {
-	// found an oldest hrnID, again just remember
-	// for later
-	rtOldest = rt;
+        // found an oldest hrnID, again just remember
+        // for later
+        rtOldest = rt;
 
       } else {
-	assert age == AllocSite.AGE_in_I;
+        assert age == AllocSite.AGE_in_I;
 
-	Integer I = as.getAge(hrnID);
-	assert I != null;
+        Integer I = as.getAge(hrnID);
+        assert I != null;
 
-	// otherwise, we change this hrnID to the
-	// next older hrnID
-	Integer hrnIDToChangeTo = as.getIthOldest(I + 1);
-	ReachTuple rtAged =
-	  Canonical.changeHrnIDTo(rt, hrnIDToChangeTo);
-	out.reachTuples.add(rtAged);
+        // otherwise, we change this hrnID to the
+        // next older hrnID
+        Integer hrnIDToChangeTo = as.getIthOldest(I + 1);
+        ReachTuple rtAged =
+          Canonical.changeHrnIDTo(rt, hrnIDToChangeTo);
+        out.reachTuples.add(rtAged);
       }
     }
 
@@ -482,13 +482,13 @@ abstract public class Canonical {
       ReachState state2 = rs2.containsIgnorePreds(state1);
 
       if( state2 != null ) {
-	out.reachStates.add(ReachState.factory(state1.reachTuples,
-	                                       Canonical.join(state1.preds,
-	                                                      state2.preds
-	                                                      )
-	                                       ) );
+        out.reachStates.add(ReachState.factory(state1.reachTuples,
+                                               Canonical.join(state1.preds,
+                                                              state2.preds
+                                                              )
+                                               ) );
       } else {
-	out.reachStates.add(state1);
+        out.reachStates.add(state1);
       }
     }
 
@@ -499,7 +499,7 @@ abstract public class Canonical {
       ReachState state1 = rs1.containsIgnorePreds(state2);
 
       if( state1 == null ) {
-	out.reachStates.add(state2);
+        out.reachStates.add(state2);
       }
     }
 
@@ -540,9 +540,9 @@ abstract public class Canonical {
       ReachState state1 = (ReachState) itr.next();
       ReachState state2 = rs2.containsIgnorePreds(state1);
       if( state2 != null ) {
-	// prefer the predicates on state1, an overapproximation
-	// of state1 preds AND state2 preds
-	out.reachStates.add(state1);
+        // prefer the predicates on state1, an overapproximation
+        // of state1 preds AND state2 preds
+        out.reachStates.add(state1);
       }
     }
 
@@ -626,21 +626,21 @@ abstract public class Canonical {
 
       Iterator<ChangeTuple> ctItr = cs.iterator();
       while( ctItr.hasNext() ) {
-	ChangeTuple ct = ctItr.next();
+        ChangeTuple ct = ctItr.next();
 
-	if( stateOrig.equalsIgnorePreds(ct.getStateToMatch() ) ) {
-	  // use the new state, but the original predicates
-	  ReachState stateNew =
-	    ReachState.factory(ct.getStateToAdd().reachTuples,
-	                       stateOrig.preds
-	                       );
-	  out.reachStates.add(stateNew);
-	  changeFound = true;
-	}
+        if( stateOrig.equalsIgnorePreds(ct.getStateToMatch() ) ) {
+          // use the new state, but the original predicates
+          ReachState stateNew =
+            ReachState.factory(ct.getStateToAdd().reachTuples,
+                               stateOrig.preds
+                               );
+          out.reachStates.add(stateNew);
+          changeFound = true;
+        }
       }
 
       if( keepSourceState || !changeFound ) {
-	out.reachStates.add(stateOrig);
+        out.reachStates.add(stateOrig);
       }
     }
 
@@ -676,50 +676,50 @@ abstract public class Canonical {
 
       Iterator<ReachState> itrR = rsR.iterator();
       while( itrR.hasNext() ) {
-	ReachState r = itrR.next();
+        ReachState r = itrR.next();
 
-	ReachState theUnion = ReachState.factory();
+        ReachState theUnion = ReachState.factory();
 
-	Iterator<ReachTuple> itrRelement = r.iterator();
-	while( itrRelement.hasNext() ) {
-	  ReachTuple rtR = itrRelement.next();
-	  ReachTuple rtO = o.containsHrnID(rtR.getHrnID(),
-	                                   rtR.isOutOfContext()
-	                                   );
-	  if( rtO != null ) {
-	    theUnion = Canonical.add(theUnion,
-	                             Canonical.unionUpArity(rtR,
-	                                                    rtO
-	                                                    )
-	                             );
-	  } else {
-	    theUnion = Canonical.add(theUnion,
-	                             rtR
-	                             );
-	  }
-	}
+        Iterator<ReachTuple> itrRelement = r.iterator();
+        while( itrRelement.hasNext() ) {
+          ReachTuple rtR = itrRelement.next();
+          ReachTuple rtO = o.containsHrnID(rtR.getHrnID(),
+                                           rtR.isOutOfContext()
+                                           );
+          if( rtO != null ) {
+            theUnion = Canonical.add(theUnion,
+                                     Canonical.unionUpArity(rtR,
+                                                            rtO
+                                                            )
+                                     );
+          } else {
+            theUnion = Canonical.add(theUnion,
+                                     rtR
+                                     );
+          }
+        }
 
-	Iterator<ReachTuple> itrOelement = o.iterator();
-	while( itrOelement.hasNext() ) {
-	  ReachTuple rtO = itrOelement.next();
-	  ReachTuple rtR = theUnion.containsHrnID(rtO.getHrnID(),
-	                                          rtO.isOutOfContext()
-	                                          );
-	  if( rtR == null ) {
-	    theUnion = Canonical.add(theUnion,
-	                             rtO
-	                             );
-	  }
-	}
+        Iterator<ReachTuple> itrOelement = o.iterator();
+        while( itrOelement.hasNext() ) {
+          ReachTuple rtO = itrOelement.next();
+          ReachTuple rtR = theUnion.containsHrnID(rtO.getHrnID(),
+                                                  rtO.isOutOfContext()
+                                                  );
+          if( rtR == null ) {
+            theUnion = Canonical.add(theUnion,
+                                     rtO
+                                     );
+          }
+        }
 
-	if( !theUnion.isEmpty() ) {
-	  out =
-	    Canonical.union(out,
-	                    ChangeSet.factory(
-	                      ChangeTuple.factory(o, theUnion)
-	                      )
-	                    );
-	}
+        if( !theUnion.isEmpty() ) {
+          out =
+            Canonical.union(out,
+                            ChangeSet.factory(
+                              ChangeTuple.factory(o, theUnion)
+                              )
+                            );
+        }
       }
     }
 
@@ -789,15 +789,15 @@ abstract public class Canonical {
 
       Iterator<ReachState> itrP = rsP.iterator();
       while( itrP.hasNext() && !subsetExists ) {
-	ReachState stateP = itrP.next();
+        ReachState stateP = itrP.next();
 
-	if( stateP.isSubset(stateO) ) {
-	  subsetExists = true;
-	}
+        if( stateP.isSubset(stateO) ) {
+          subsetExists = true;
+        }
       }
 
       if( subsetExists ) {
-	out.reachStates.add(stateO);
+        out.reachStates.add(stateO);
       }
     }
 
@@ -1004,76 +1004,76 @@ abstract public class Canonical {
       int age = as.getAgeCategory(rt.getHrnID() );
 
       if( age == AllocSite.AGE_notInThisSite ) {
-	// things not from the site just go back in
-	baseState = Canonical.addUpArity(baseState, rt);
+        // things not from the site just go back in
+        baseState = Canonical.addUpArity(baseState, rt);
 
       } else if( age == AllocSite.AGE_summary ) {
 
-	if( rt.isOutOfContext() ) {
-	  // if its out-of-context, we only deal here with the ZERO-OR-MORE
-	  // arity, if ARITY-ONE we'll branch the base state after the loop
-	  if( rt.getArity() == ReachTuple.ARITY_ZEROORMORE ) {
-	    // add two overly conservative symbols to reach state (PUNTING)
+        if( rt.isOutOfContext() ) {
+          // if its out-of-context, we only deal here with the ZERO-OR-MORE
+          // arity, if ARITY-ONE we'll branch the base state after the loop
+          if( rt.getArity() == ReachTuple.ARITY_ZEROORMORE ) {
+            // add two overly conservative symbols to reach state (PUNTING)
 
-	    baseState = Canonical.addUpArity(baseState,
-	                                     ReachTuple.factory(as.getSummary(),
-	                                                        true,   // multi
-	                                                        ReachTuple.ARITY_ZEROORMORE,
-	                                                        false   // out-of-context
-	                                                        )
-	                                     );
+            baseState = Canonical.addUpArity(baseState,
+                                             ReachTuple.factory(as.getSummary(),
+                                                                true,   // multi
+                                                                ReachTuple.ARITY_ZEROORMORE,
+                                                                false   // out-of-context
+                                                                )
+                                             );
 
-	    baseState = Canonical.addUpArity(baseState,
-	                                     ReachTuple.factory(as.getSummary(),
-	                                                        true,   // multi
-	                                                        ReachTuple.ARITY_ZEROORMORE,
-	                                                        true    // out-of-context
-	                                                        )
-	                                     );
-	  } else {
-	    assert rt.getArity() == ReachTuple.ARITY_ONE;
-	    found2Sooc = true;
-	  }
+            baseState = Canonical.addUpArity(baseState,
+                                             ReachTuple.factory(as.getSummary(),
+                                                                true,   // multi
+                                                                ReachTuple.ARITY_ZEROORMORE,
+                                                                true    // out-of-context
+                                                                )
+                                             );
+          } else {
+            assert rt.getArity() == ReachTuple.ARITY_ONE;
+            found2Sooc = true;
+          }
 
-	} else {
-	  // the in-context just becomes shadow
-	  baseState = Canonical.addUpArity(baseState,
-	                                   ReachTuple.factory(as.getSummaryShadow(),
-	                                                      true,   // multi
-	                                                      rt.getArity(),
-	                                                      false    // out-of-context
-	                                                      )
-	                                   );
-	}
+        } else {
+          // the in-context just becomes shadow
+          baseState = Canonical.addUpArity(baseState,
+                                           ReachTuple.factory(as.getSummaryShadow(),
+                                                              true,   // multi
+                                                              rt.getArity(),
+                                                              false    // out-of-context
+                                                              )
+                                           );
+        }
 
 
       } else {
-	// otherwise age is in range [0, k]
-	Integer I = as.getAge(rt.getHrnID() );
-	assert I != null;
-	assert !rt.isMultiObject();
-	assert rt.getArity() == ReachTuple.ARITY_ONE;
+        // otherwise age is in range [0, k]
+        Integer I = as.getAge(rt.getHrnID() );
+        assert I != null;
+        assert !rt.isMultiObject();
+        assert rt.getArity() == ReachTuple.ARITY_ONE;
 
-	if( rt.isOutOfContext() ) {
-	  // becomes the in-context version
-	  baseState = Canonical.addUpArity(baseState,
-	                                   ReachTuple.factory(rt.getHrnID(),
-	                                                      false,   // multi
-	                                                      ReachTuple.ARITY_ONE,
-	                                                      false    // out-of-context
-	                                                      )
-	                                   );
+        if( rt.isOutOfContext() ) {
+          // becomes the in-context version
+          baseState = Canonical.addUpArity(baseState,
+                                           ReachTuple.factory(rt.getHrnID(),
+                                                              false,   // multi
+                                                              ReachTuple.ARITY_ONE,
+                                                              false    // out-of-context
+                                                              )
+                                           );
 
-	} else {
-	  // otherwise the ith symbol becomes shadowed
-	  baseState = Canonical.addUpArity(baseState,
-	                                   ReachTuple.factory(-rt.getHrnID(),
-	                                                      false,   // multi
-	                                                      ReachTuple.ARITY_ONE,
-	                                                      false    // out-of-context
-	                                                      )
-	                                   );
-	}
+        } else {
+          // otherwise the ith symbol becomes shadowed
+          baseState = Canonical.addUpArity(baseState,
+                                           ReachTuple.factory(-rt.getHrnID(),
+                                                              false,   // multi
+                                                              ReachTuple.ARITY_ONE,
+                                                              false    // out-of-context
+                                                              )
+                                           );
+        }
       }
     }
 
@@ -1103,15 +1103,15 @@ abstract public class Canonical {
                           );
 
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
-	out = Canonical.add(out,
-	                    Canonical.addUpArity(baseState,
-	                                         ReachTuple.factory(as.getIthOldest(i),
-	                                                            false,    // multi
-	                                                            ReachTuple.ARITY_ONE,
-	                                                            true     // out-of-context
-	                                                            )
-	                                         )
-	                    );
+        out = Canonical.add(out,
+                            Canonical.addUpArity(baseState,
+                                                 ReachTuple.factory(as.getIthOldest(i),
+                                                                    false,    // multi
+                                                                    ReachTuple.ARITY_ONE,
+                                                                    true     // out-of-context
+                                                                    )
+                                                 )
+                            );
       }
 
     } else {
@@ -1193,20 +1193,20 @@ abstract public class Canonical {
       int age = as.getShadowAgeCategory(rt.getHrnID() );
 
       if( age == AllocSite.SHADOWAGE_notInThisSite ) {
-	// things not from the site just go back in
-	out = Canonical.addUpArity(out, rt);
+        // things not from the site just go back in
+        out = Canonical.addUpArity(out, rt);
 
       } else {
-	assert !rt.isOutOfContext();
+        assert !rt.isOutOfContext();
 
-	// otherwise unshadow it
-	out = Canonical.addUpArity(out,
-	                           ReachTuple.factory(-rt.getHrnID(),
-	                                              rt.isMultiObject(),
-	                                              rt.getArity(),
-	                                              false
-	                                              )
-	                           );
+        // otherwise unshadow it
+        out = Canonical.addUpArity(out,
+                                   ReachTuple.factory(-rt.getHrnID(),
+                                                      rt.isMultiObject(),
+                                                      rt.getArity(),
+                                                      false
+                                                      )
+                                   );
       }
     }
 
@@ -1370,14 +1370,14 @@ abstract public class Canonical {
       Taint t2 = ts2.containsIgnorePreds(t1);
 
       if( t2 != null ) {
-	Taint tNew = new Taint(t1);
-	tNew.preds = Canonical.join(t1.preds,
-	                            t2.preds
-	                            );
-	tNew = (Taint) makeCanonical(tNew);
-	out.taints.add(tNew);
+        Taint tNew = new Taint(t1);
+        tNew.preds = Canonical.join(t1.preds,
+                                    t2.preds
+                                    );
+        tNew = (Taint) makeCanonical(tNew);
+        out.taints.add(tNew);
       } else {
-	out.taints.add(t1);
+        out.taints.add(t1);
       }
     }
 
@@ -1388,7 +1388,7 @@ abstract public class Canonical {
       Taint t1 = ts1.containsIgnorePreds(t2);
 
       if( t1 == null ) {
-	out.taints.add(t2);
+        out.taints.add(t2);
       }
     }
 
@@ -1452,14 +1452,14 @@ abstract public class Canonical {
       Taint t2 = ts2.containsIgnorePreds(t1);
 
       if( t2 != null ) {
-	Taint tNew = new Taint(t1);
-	tNew.preds = Canonical.join(t1.preds,
-	                            t2.preds
-	                            );
-	tNew = (Taint) makeCanonical(tNew);
-	out.taints.add(tNew);
+        Taint tNew = new Taint(t1);
+        tNew.preds = Canonical.join(t1.preds,
+                                    t2.preds
+                                    );
+        tNew = (Taint) makeCanonical(tNew);
+        out.taints.add(tNew);
       } else {
-	out.taints.add(t1);
+        out.taints.add(t1);
       }
     }
 
@@ -1470,7 +1470,7 @@ abstract public class Canonical {
       Taint t1 = ts1.containsIgnorePreds(t2);
 
       if( t1 == null ) {
-	out.taints.add(t2);
+        out.taints.add(t2);
       }
     }
 
@@ -1504,7 +1504,7 @@ abstract public class Canonical {
           !t.getSESE().equals(sese) ||
           !t.getPreds().isEmpty()
           ) {
-	out.taints.add(t);
+        out.taints.add(t);
       }
     }
 
@@ -1534,7 +1534,7 @@ abstract public class Canonical {
       // it is out of context so it should go through, too
       if( t.getSESE() == null ||
           !seseSet.contains(t)) {
-	out.taints.add(t);
+        out.taints.add(t);
       }
     }
 
@@ -1560,7 +1560,7 @@ abstract public class Canonical {
       // unaffected, and if the taint has a non-empty predicate
       // it is out of context so it should go through, too
       if( t.getSESE()!=null && t.getSESE()!=sese) {
-	out.taints.add(t);
+        out.taints.add(t);
       }
     }
 
@@ -1591,7 +1591,7 @@ abstract public class Canonical {
 
       // only take non-stall site taints onward
       if( t.getStallSite() == null ) {
-	out.taints.add(t);
+        out.taints.add(t);
       }
     }
 

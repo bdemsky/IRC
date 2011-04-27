@@ -115,8 +115,8 @@ public class DiscoverConflicts {
       //need to translate write map set
       set=new HashSet<FlatNode>();
       for(Iterator<TempFlatPair> it=writemap.get(lb).iterator(); it.hasNext(); ) {
-	TempFlatPair tfp=it.next();
-	set.add(tfp.f);
+        TempFlatPair tfp=it.next();
+        set.add(tfp.f);
       }
       twritemap.put(lb, set);
     }
@@ -126,8 +126,8 @@ public class DiscoverConflicts {
     //    Set<FlatNode> gwriteset=(state.READSET&&gft!=null)?twritemap.get(lb):treadmap.get(lb);
     if (state.READSET&&gft!=null) {
       if (twritemap.get(lb).size()==0) {
-	getmap.put(lb, new HashSet<FlatNode>());
-	return;
+        getmap.put(lb, new HashSet<FlatNode>());
+        return;
       }
     }
 
@@ -138,17 +138,17 @@ public class DiscoverConflicts {
       FlatNode fn=fnit.next();
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
       if (atomictable.get(fn).intValue()>0&&fn.kind()==FKind.FlatElementNode) {
-	FlatElementNode fen=(FlatElementNode)fn;
-	Set<TempFlatPair> tfpset=fnmap.get(fen).get(fen.getSrc());
-	if (tfpset!=null) {
-	  for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
-	    TempFlatPair tfp=tfpit.next();
-	    if (gwriteset.contains(tfp.f)) {
-	      needsget.add(fen);
-	      break;
-	    }
-	  }
-	}
+        FlatElementNode fen=(FlatElementNode)fn;
+        Set<TempFlatPair> tfpset=fnmap.get(fen).get(fen.getSrc());
+        if (tfpset!=null) {
+          for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
+            TempFlatPair tfp=tfpit.next();
+            if (gwriteset.contains(tfp.f)) {
+              needsget.add(fen);
+              break;
+            }
+          }
+        }
       }
     }
     getmap.put(lb, needsget);
@@ -171,13 +171,13 @@ public class DiscoverConflicts {
       FlatNode fprev=fn.getPrev(i);
       Hashtable<TempDescriptor, Set<TempFlatPair>> tabset=tmptofnset.get(fprev);
       if (tabset!=null) {
-	for(Iterator<TempDescriptor> tmpit=tabset.keySet().iterator(); tmpit.hasNext(); ) {
-	  TempDescriptor td=tmpit.next();
-	  Set<TempFlatPair> fnset=tabset.get(td);
-	  if (!table.containsKey(td))
-	    table.put(td, new HashSet<TempFlatPair>());
-	  table.get(td).addAll(fnset);
-	}
+        for(Iterator<TempDescriptor> tmpit=tabset.keySet().iterator(); tmpit.hasNext(); ) {
+          TempDescriptor td=tmpit.next();
+          Set<TempFlatPair> fnset=tabset.get(td);
+          if (!table.containsKey(td))
+            table.put(td, new HashSet<TempFlatPair>());
+          table.get(td).addAll(fnset);
+        }
       }
     }
     return table;
@@ -248,113 +248,113 @@ public class DiscoverConflicts {
       FlatNode fn=fnit.next();
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
       if (atomictable.get(fn).intValue()>0) {
-	Hashtable<TempDescriptor, Set<TempFlatPair>> tmap=fnmap.get(fn);
-	switch(fn.kind()) {
-	//We might need to translate arguments to pointer comparison
+        Hashtable<TempDescriptor, Set<TempFlatPair>> tmap=fnmap.get(fn);
+        switch(fn.kind()) {
+        //We might need to translate arguments to pointer comparison
 
-	case FKind.FlatOpNode: {
-	  FlatOpNode fon=(FlatOpNode)fn;
-	  if (fon.getOp().getOp()==Operation.EQUAL||
-	      fon.getOp().getOp()==Operation.NOTEQUAL) {
-	    if (!fon.getLeft().getType().isPtr())
-	      break;
-	    Set<TempFlatPair> lefttfpset=tmap.get(fon.getLeft());
-	    Set<TempFlatPair> righttfpset=tmap.get(fon.getRight());
-	    //handle left operand
-	    if (lefttfpset!=null) {
-	      for(Iterator<TempFlatPair> tfpit=lefttfpset.iterator(); tfpit.hasNext(); ) {
-		TempFlatPair tfp=tfpit.next();
-		if (tfset.contains(tfp)||outofscope(tfp)) {
-		  leftsrctrans.add(fon);
-		  break;
-		}
-	      }
-	    }
-	    //handle right operand
-	    if (righttfpset!=null) {
-	      for(Iterator<TempFlatPair> tfpit=righttfpset.iterator(); tfpit.hasNext(); ) {
-		TempFlatPair tfp=tfpit.next();
-		if (tfset.contains(tfp)||outofscope(tfp)) {
-		  rightsrctrans.add(fon);
-		  break;
-		}
-	      }
-	    }
-	  }
-	  break;
-	}
+        case FKind.FlatOpNode: {
+          FlatOpNode fon=(FlatOpNode)fn;
+          if (fon.getOp().getOp()==Operation.EQUAL||
+              fon.getOp().getOp()==Operation.NOTEQUAL) {
+            if (!fon.getLeft().getType().isPtr())
+              break;
+            Set<TempFlatPair> lefttfpset=tmap.get(fon.getLeft());
+            Set<TempFlatPair> righttfpset=tmap.get(fon.getRight());
+            //handle left operand
+            if (lefttfpset!=null) {
+              for(Iterator<TempFlatPair> tfpit=lefttfpset.iterator(); tfpit.hasNext(); ) {
+                TempFlatPair tfp=tfpit.next();
+                if (tfset.contains(tfp)||outofscope(tfp)) {
+                  leftsrctrans.add(fon);
+                  break;
+                }
+              }
+            }
+            //handle right operand
+            if (righttfpset!=null) {
+              for(Iterator<TempFlatPair> tfpit=righttfpset.iterator(); tfpit.hasNext(); ) {
+                TempFlatPair tfp=tfpit.next();
+                if (tfset.contains(tfp)||outofscope(tfp)) {
+                  rightsrctrans.add(fon);
+                  break;
+                }
+              }
+            }
+          }
+          break;
+        }
 
-	case FKind.FlatGlobalConvNode: {
-	  //need to translate these if the value we read from may be a
-	  //shadow...  check this by seeing if any of the values we
-	  //may read are in the transread set or came from our caller
-	  //or a method we called
+        case FKind.FlatGlobalConvNode: {
+          //need to translate these if the value we read from may be a
+          //shadow...  check this by seeing if any of the values we
+          //may read are in the transread set or came from our caller
+          //or a method we called
 
-	  FlatGlobalConvNode fgcn=(FlatGlobalConvNode)fn;
-	  if (fgcn.getLocality()!=lb||
-	      fgcn.getMakePtr())
-	    break;
+          FlatGlobalConvNode fgcn=(FlatGlobalConvNode)fn;
+          if (fgcn.getLocality()!=lb||
+              fgcn.getMakePtr())
+            break;
 
-	  Set<TempFlatPair> tfpset=tmap.get(fgcn.getSrc());
+          Set<TempFlatPair> tfpset=tmap.get(fgcn.getSrc());
 
-	  if (tfpset!=null) {
-	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
-	      TempFlatPair tfp=tfpit.next();
-	      if (tfset.contains(tfp)||outofscope(tfp)) {
-		srctrans.add(fgcn);
-		break;
-	      }
-	    }
-	  }
-	  break;
-	}
+          if (tfpset!=null) {
+            for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
+              TempFlatPair tfp=tfpit.next();
+              if (tfset.contains(tfp)||outofscope(tfp)) {
+                srctrans.add(fgcn);
+                break;
+              }
+            }
+          }
+          break;
+        }
 
-	case FKind.FlatSetFieldNode: {
-	  //need to translate these if the value we read from may be a
-	  //shadow...  check this by seeing if any of the values we
-	  //may read are in the transread set or came from our caller
-	  //or a method we called
+        case FKind.FlatSetFieldNode: {
+          //need to translate these if the value we read from may be a
+          //shadow...  check this by seeing if any of the values we
+          //may read are in the transread set or came from our caller
+          //or a method we called
 
-	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
-	  if (!fsfn.getField().getType().isPtr())
-	    break;
-	  Set<TempFlatPair> tfpset=tmap.get(fsfn.getSrc());
-	  if (tfpset!=null) {
-	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
-	      TempFlatPair tfp=tfpit.next();
-	      if (tfset.contains(tfp)||outofscope(tfp)) {
-		srctrans.add(fsfn);
-		break;
-	      }
-	    }
-	  }
-	  break;
-	}
+          FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+          if (!fsfn.getField().getType().isPtr())
+            break;
+          Set<TempFlatPair> tfpset=tmap.get(fsfn.getSrc());
+          if (tfpset!=null) {
+            for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
+              TempFlatPair tfp=tfpit.next();
+              if (tfset.contains(tfp)||outofscope(tfp)) {
+                srctrans.add(fsfn);
+                break;
+              }
+            }
+          }
+          break;
+        }
 
-	case FKind.FlatSetElementNode: {
-	  //need to translate these if the value we read from may be a
-	  //shadow...  check this by seeing if any of the values we
-	  //may read are in the transread set or came from our caller
-	  //or a method we called
+        case FKind.FlatSetElementNode: {
+          //need to translate these if the value we read from may be a
+          //shadow...  check this by seeing if any of the values we
+          //may read are in the transread set or came from our caller
+          //or a method we called
 
-	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	  if (!fsen.getSrc().getType().isPtr())
-	    break;
-	  Set<TempFlatPair> tfpset=tmap.get(fsen.getSrc());
-	  if (tfpset!=null) {
-	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
-	      TempFlatPair tfp=tfpit.next();
-	      if (tfset.contains(tfp)||outofscope(tfp)) {
-		srctrans.add(fsen);
-		break;
-	      }
-	    }
-	  }
-	  break;
-	}
+          FlatSetElementNode fsen=(FlatSetElementNode)fn;
+          if (!fsen.getSrc().getType().isPtr())
+            break;
+          Set<TempFlatPair> tfpset=tmap.get(fsen.getSrc());
+          if (tfpset!=null) {
+            for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
+              TempFlatPair tfp=tfpit.next();
+              if (tfset.contains(tfp)||outofscope(tfp)) {
+                srctrans.add(fsen);
+                break;
+              }
+            }
+          }
+          break;
+        }
 
-	default:
-	}
+        default:
+        }
       }
     }
     //Update results
@@ -384,57 +384,57 @@ public class DiscoverConflicts {
 
       //Stop if we aren't in a transaction
       if (atomictable.get(fn).intValue()==0)
-	continue;
+        continue;
 
       //Do merge of all exits
       for(int i=0; i<fn.numNext(); i++) {
-	FlatNode fnnext=fn.getNext(i);
-	if (updatedtypemap.containsKey(fnnext)) {
-	  updatetypeset.addAll(updatedtypemap.get(fnnext));
-	}
-	if (updatedfieldmap.containsKey(fnnext)) {
-	  updatefieldset.addAll(updatedfieldmap.get(fnnext));
-	}
+        FlatNode fnnext=fn.getNext(i);
+        if (updatedtypemap.containsKey(fnnext)) {
+          updatetypeset.addAll(updatedtypemap.get(fnnext));
+        }
+        if (updatedfieldmap.containsKey(fnnext)) {
+          updatefieldset.addAll(updatedfieldmap.get(fnnext));
+        }
       }
 
       //process this node
       if (cannotdelaymap!=null&&cannotdelaymap.containsKey(lb)&&cannotdelaymap.get(lb).contains(fn)!=inclusive) {
-	switch(fn.kind()) {
-	case FKind.FlatSetFieldNode: {
-	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
-	  updatefieldset.add(fsfn.getField());
-	  break;
-	}
+        switch(fn.kind()) {
+        case FKind.FlatSetFieldNode: {
+          FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+          updatefieldset.add(fsfn.getField());
+          break;
+        }
 
-	case FKind.FlatSetElementNode: {
-	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	  updatetypeset.addAll(typeanalysis.expand(fsen.getDst().getType()));
-	  break;
-	}
+        case FKind.FlatSetElementNode: {
+          FlatSetElementNode fsen=(FlatSetElementNode)fn;
+          updatetypeset.addAll(typeanalysis.expand(fsen.getDst().getType()));
+          break;
+        }
 
-	case FKind.FlatCall: {
-	  FlatCall fcall=(FlatCall)fn;
-	  MethodDescriptor mdfc=fcall.getMethod();
+        case FKind.FlatCall: {
+          FlatCall fcall=(FlatCall)fn;
+          MethodDescriptor mdfc=fcall.getMethod();
 
-	  //get modified fields
-	  Set<FieldDescriptor> fields=gft.getFieldsAll(mdfc);
-	  updatefieldset.addAll(fields);
+          //get modified fields
+          Set<FieldDescriptor> fields=gft.getFieldsAll(mdfc);
+          updatefieldset.addAll(fields);
 
-	  //get modified arrays
-	  Set<TypeDescriptor> arrays=gft.getArraysAll(mdfc);
-	  updatetypeset.addAll(typeanalysis.expandSet(arrays));
-	  break;
-	}
-	}
+          //get modified arrays
+          Set<TypeDescriptor> arrays=gft.getArraysAll(mdfc);
+          updatetypeset.addAll(typeanalysis.expandSet(arrays));
+          break;
+        }
+        }
       }
 
       if (!updatedtypemap.containsKey(fn)||!updatedfieldmap.containsKey(fn)||
           !updatedtypemap.get(fn).equals(updatetypeset)||!updatedfieldmap.get(fn).equals(updatefieldset)) {
-	updatedtypemap.put(fn, updatetypeset);
-	updatedfieldmap.put(fn, updatefieldset);
-	for(int i=0; i<fn.numPrev(); i++) {
-	  toanalyze.add(fn.getPrev(i));
-	}
+        updatedtypemap.put(fn, updatetypeset);
+        updatedfieldmap.put(fn, updatefieldset);
+        for(int i=0; i<fn.numPrev(); i++) {
+          toanalyze.add(fn.getPrev(i));
+        }
       }
     }
   }
@@ -464,91 +464,91 @@ public class DiscoverConflicts {
       FlatNode fn=fnit.next();
       //Check whether this node matters for cannot delayed computation
       if (cannotdelaymap!=null&&cannotdelaymap.containsKey(lb)&&cannotdelaymap.get(lb).contains(fn)==inclusive)
-	continue;
+        continue;
 
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
       if (atomictable.get(fn).intValue()>0) {
-	Hashtable<TempDescriptor, Set<TempFlatPair>> tmap=fnmap.get(fn);
-	switch(fn.kind()) {
-	case FKind.FlatElementNode: {
-	  FlatElementNode fen=(FlatElementNode)fn;
-	  if (arrays.contains(fen.getSrc().getType())) {
-	    //this could cause conflict...figure out conflict set
-	    Set<TempFlatPair> tfpset=tmap.get(fen.getSrc());
-	    if (tfpset!=null)
-	      tfset.addAll(tfpset);
-	  }
-	  if (updatedtypemap!=null&&updatedtypemap.get(fen).contains(fen.getSrc().getType())) {
-	    //this could cause conflict...figure out conflict set
-	    Set<TempFlatPair> tfpset=tmap.get(fen.getSrc());
-	    if (tfpset!=null)
-	      tfset.addAll(tfpset);
-	  }
-	  break;
-	}
+        Hashtable<TempDescriptor, Set<TempFlatPair>> tmap=fnmap.get(fn);
+        switch(fn.kind()) {
+        case FKind.FlatElementNode: {
+          FlatElementNode fen=(FlatElementNode)fn;
+          if (arrays.contains(fen.getSrc().getType())) {
+            //this could cause conflict...figure out conflict set
+            Set<TempFlatPair> tfpset=tmap.get(fen.getSrc());
+            if (tfpset!=null)
+              tfset.addAll(tfpset);
+          }
+          if (updatedtypemap!=null&&updatedtypemap.get(fen).contains(fen.getSrc().getType())) {
+            //this could cause conflict...figure out conflict set
+            Set<TempFlatPair> tfpset=tmap.get(fen.getSrc());
+            if (tfpset!=null)
+              tfset.addAll(tfpset);
+          }
+          break;
+        }
 
-	case FKind.FlatFieldNode: {
-	  FlatFieldNode ffn=(FlatFieldNode)fn;
-	  if (fields.contains(ffn.getField())) {
-	    //this could cause conflict...figure out conflict set
-	    Set<TempFlatPair> tfpset=tmap.get(ffn.getSrc());
-	    if (tfpset!=null)
-	      tfset.addAll(tfpset);
-	  }
-	  if (updatedfieldmap!=null&&updatedfieldmap.get(ffn).contains(ffn.getField())) {
-	    //this could cause conflict...figure out conflict set
-	    Set<TempFlatPair> tfpset=tmap.get(ffn.getSrc());
-	    if (tfpset!=null)
-	      tfset.addAll(tfpset);
-	  }
-	  break;
-	}
+        case FKind.FlatFieldNode: {
+          FlatFieldNode ffn=(FlatFieldNode)fn;
+          if (fields.contains(ffn.getField())) {
+            //this could cause conflict...figure out conflict set
+            Set<TempFlatPair> tfpset=tmap.get(ffn.getSrc());
+            if (tfpset!=null)
+              tfset.addAll(tfpset);
+          }
+          if (updatedfieldmap!=null&&updatedfieldmap.get(ffn).contains(ffn.getField())) {
+            //this could cause conflict...figure out conflict set
+            Set<TempFlatPair> tfpset=tmap.get(ffn.getSrc());
+            if (tfpset!=null)
+              tfset.addAll(tfpset);
+          }
+          break;
+        }
 
-	case FKind.FlatSetFieldNode: {
-	  //definitely need to translate these
-	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
-	  Set<TempFlatPair> tfpset=tmap.get(fsfn.getDst());
-	  if (tfpset!=null)
-	    tfset.addAll(tfpset);
-	  if (writeset!=null) {
-	    if (tfpset!=null)
-	      writeset.addAll(tfpset);
-	  }
-	  break;
-	}
+        case FKind.FlatSetFieldNode: {
+          //definitely need to translate these
+          FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+          Set<TempFlatPair> tfpset=tmap.get(fsfn.getDst());
+          if (tfpset!=null)
+            tfset.addAll(tfpset);
+          if (writeset!=null) {
+            if (tfpset!=null)
+              writeset.addAll(tfpset);
+          }
+          break;
+        }
 
-	case FKind.FlatSetElementNode: {
-	  //definitely need to translate these
-	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	  Set<TempFlatPair> tfpset=tmap.get(fsen.getDst());
-	  if (tfpset!=null)
-	    tfset.addAll(tfpset);
-	  if (writeset!=null) {
-	    if (tfpset!=null)
-	      writeset.addAll(tfpset);
-	  }
-	  break;
-	}
+        case FKind.FlatSetElementNode: {
+          //definitely need to translate these
+          FlatSetElementNode fsen=(FlatSetElementNode)fn;
+          Set<TempFlatPair> tfpset=tmap.get(fsen.getDst());
+          if (tfpset!=null)
+            tfset.addAll(tfpset);
+          if (writeset!=null) {
+            if (tfpset!=null)
+              writeset.addAll(tfpset);
+          }
+          break;
+        }
 
-	case FKind.FlatCall: //assume pessimistically that calls do bad things
-	case FKind.FlatReturnNode: {
-	  TempDescriptor [] readarray=fn.readsTemps();
-	  for(int i=0; i<readarray.length; i++) {
-	    TempDescriptor rtmp=readarray[i];
-	    Set<TempFlatPair> tfpset=tmap.get(rtmp);
-	    if (tfpset!=null)
-	      tfset.addAll(tfpset);
-	    if (writeset!=null) {
-	      if (tfpset!=null)
-		writeset.addAll(tfpset);
-	    }
-	  }
-	  break;
-	}
+        case FKind.FlatCall: //assume pessimistically that calls do bad things
+        case FKind.FlatReturnNode: {
+          TempDescriptor [] readarray=fn.readsTemps();
+          for(int i=0; i<readarray.length; i++) {
+            TempDescriptor rtmp=readarray[i];
+            Set<TempFlatPair> tfpset=tmap.get(rtmp);
+            if (tfpset!=null)
+              tfset.addAll(tfpset);
+            if (writeset!=null) {
+              if (tfpset!=null)
+                writeset.addAll(tfpset);
+            }
+          }
+          break;
+        }
 
-	default:
-	  //do nothing
-	}
+        default:
+          //do nothing
+        }
       }
     }
     return tfset;
@@ -576,105 +576,105 @@ public class DiscoverConflicts {
       FlatNode fn=tovisit.iterator().next();
       tovisit.remove(fn);
       for(int i=0; i<fn.numNext(); i++) {
-	FlatNode fnext=fn.getNext(i);
-	if (!discovered.contains(fnext)) {
-	  discovered.add(fnext);
-	  tovisit.add(fnext);
-	}
+        FlatNode fnext=fn.getNext(i);
+        if (!discovered.contains(fnext)) {
+          discovered.add(fnext);
+          tovisit.add(fnext);
+        }
       }
       Hashtable<TempDescriptor, Set<TempFlatPair>> ttofn=null;
       if (atomictable.get(fn).intValue()!=0) {
-	if ((fn.numPrev()>0)&&atomictable.get(fn.getPrev(0)).intValue()==0) {
-	  //atomic node, start with new set
-	  ttofn=new Hashtable<TempDescriptor, Set<TempFlatPair>>();
-	} else {
-	  ttofn=doMerge(fn, tmptofnset);
-	  switch(fn.kind()) {
-	  case FKind.FlatGlobalConvNode: {
-	    FlatGlobalConvNode fgcn=(FlatGlobalConvNode)fn;
-	    if (lb==fgcn.getLocality()&&
-	        fgcn.getMakePtr()) {
-	      TempDescriptor[] writes=fn.writesTemps();
-	      for(int i=0; i<writes.length; i++) {
-		TempDescriptor wtmp=writes[i];
-		HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
-		set.add(new TempFlatPair(wtmp, fn));
-		ttofn.put(wtmp, set);
-	      }
-	    }
-	    break;
-	  }
+        if ((fn.numPrev()>0)&&atomictable.get(fn.getPrev(0)).intValue()==0) {
+          //atomic node, start with new set
+          ttofn=new Hashtable<TempDescriptor, Set<TempFlatPair>>();
+        } else {
+          ttofn=doMerge(fn, tmptofnset);
+          switch(fn.kind()) {
+          case FKind.FlatGlobalConvNode: {
+            FlatGlobalConvNode fgcn=(FlatGlobalConvNode)fn;
+            if (lb==fgcn.getLocality()&&
+                fgcn.getMakePtr()) {
+              TempDescriptor[] writes=fn.writesTemps();
+              for(int i=0; i<writes.length; i++) {
+                TempDescriptor wtmp=writes[i];
+                HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
+                set.add(new TempFlatPair(wtmp, fn));
+                ttofn.put(wtmp, set);
+              }
+            }
+            break;
+          }
 
-	  case FKind.FlatFieldNode:
-	  case FKind.FlatElementNode: {
-	    TempDescriptor[] writes=fn.writesTemps();
-	    for(int i=0; i<writes.length; i++) {
-	      TempDescriptor wtmp=writes[i];
-	      HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
-	      set.add(new TempFlatPair(wtmp, fn));
-	      ttofn.put(wtmp, set);
-	    }
-	    break;
-	  }
+          case FKind.FlatFieldNode:
+          case FKind.FlatElementNode: {
+            TempDescriptor[] writes=fn.writesTemps();
+            for(int i=0; i<writes.length; i++) {
+              TempDescriptor wtmp=writes[i];
+              HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
+              set.add(new TempFlatPair(wtmp, fn));
+              ttofn.put(wtmp, set);
+            }
+            break;
+          }
 
-	  case FKind.FlatCall:
-	  case FKind.FlatMethod: {
-	    TempDescriptor[] writes=fn.writesTemps();
-	    for(int i=0; i<writes.length; i++) {
-	      TempDescriptor wtmp=writes[i];
-	      HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
-	      set.add(new TempFlatPair(wtmp, fn));
-	      ttofn.put(wtmp, set);
-	    }
-	    break;
-	  }
+          case FKind.FlatCall:
+          case FKind.FlatMethod: {
+            TempDescriptor[] writes=fn.writesTemps();
+            for(int i=0; i<writes.length; i++) {
+              TempDescriptor wtmp=writes[i];
+              HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
+              set.add(new TempFlatPair(wtmp, fn));
+              ttofn.put(wtmp, set);
+            }
+            break;
+          }
 
-	  case FKind.FlatCastNode:
-	  case FKind.FlatOpNode:
-	    if (fn.kind()==FKind.FlatCastNode) {
-	      FlatCastNode fcn=(FlatCastNode)fn;
-	      if (fcn.getDst().getType().isPtr()) {
-		HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
-		if (ttofn.containsKey(fcn.getSrc()))
-		  set.addAll(ttofn.get(fcn.getSrc()));
-		if (normalassign)
-		  set.add(new TempFlatPair(fcn.getDst(), fn));
-		ttofn.put(fcn.getDst(), set);
-		break;
-	      }
-	    } else if (fn.kind()==FKind.FlatOpNode) {
-	      FlatOpNode fon=(FlatOpNode)fn;
-	      if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()) {
-		HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
-		if (ttofn.containsKey(fon.getLeft()))
-		  set.addAll(ttofn.get(fon.getLeft()));
-		if (normalassign)
-		  set.add(new TempFlatPair(fon.getDest(), fn));
-		ttofn.put(fon.getDest(), set);
-		break;
-	      }
-	    }
+          case FKind.FlatCastNode:
+          case FKind.FlatOpNode:
+            if (fn.kind()==FKind.FlatCastNode) {
+              FlatCastNode fcn=(FlatCastNode)fn;
+              if (fcn.getDst().getType().isPtr()) {
+                HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
+                if (ttofn.containsKey(fcn.getSrc()))
+                  set.addAll(ttofn.get(fcn.getSrc()));
+                if (normalassign)
+                  set.add(new TempFlatPair(fcn.getDst(), fn));
+                ttofn.put(fcn.getDst(), set);
+                break;
+              }
+            } else if (fn.kind()==FKind.FlatOpNode) {
+              FlatOpNode fon=(FlatOpNode)fn;
+              if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()) {
+                HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
+                if (ttofn.containsKey(fon.getLeft()))
+                  set.addAll(ttofn.get(fon.getLeft()));
+                if (normalassign)
+                  set.add(new TempFlatPair(fon.getDest(), fn));
+                ttofn.put(fon.getDest(), set);
+                break;
+              }
+            }
 
-	  default:
-	    //Do kill computation
-	    TempDescriptor[] writes=fn.writesTemps();
-	    for(int i=0; i<writes.length; i++) {
-	      TempDescriptor wtmp=writes[i];
-	      ttofn.remove(writes[i]);
-	    }
-	  }
-	}
-	if (ttofn!=null) {
-	  if (!tmptofnset.containsKey(fn)||
-	      !tmptofnset.get(fn).equals(ttofn)) {
-	    //enqueue nodes to process
-	    tmptofnset.put(fn, ttofn);
-	    for(int i=0; i<fn.numNext(); i++) {
-	      FlatNode fnext=fn.getNext(i);
-	      tovisit.add(fnext);
-	    }
-	  }
-	}
+          default:
+            //Do kill computation
+            TempDescriptor[] writes=fn.writesTemps();
+            for(int i=0; i<writes.length; i++) {
+              TempDescriptor wtmp=writes[i];
+              ttofn.remove(writes[i]);
+            }
+          }
+        }
+        if (ttofn!=null) {
+          if (!tmptofnset.containsKey(fn)||
+              !tmptofnset.get(fn).equals(ttofn)) {
+            //enqueue nodes to process
+            tmptofnset.put(fn, ttofn);
+            for(int i=0; i<fn.numNext(); i++) {
+              FlatNode fnext=fn.getNext(i);
+              tovisit.add(fnext);
+            }
+          }
+        }
       }
     }
     return tmptofnset;
@@ -694,22 +694,22 @@ public class DiscoverConflicts {
       FlatNode fn=fnit.next();
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
       if (atomictable.get(fn).intValue()>0) {
-	Set<TempDescriptor> oldtemp=oldtemps.get(fn);
-	switch (fn.kind()) {
-	case FKind.FlatSetFieldNode:
-	  FlatSetFieldNode fsfn=(FlatSetFieldNode) fn;
-	  if (oldtemp.contains(fsfn.getDst()))
-	    fields.add(fsfn.getField());
-	  break;
+        Set<TempDescriptor> oldtemp=oldtemps.get(fn);
+        switch (fn.kind()) {
+        case FKind.FlatSetFieldNode:
+          FlatSetFieldNode fsfn=(FlatSetFieldNode) fn;
+          if (oldtemp.contains(fsfn.getDst()))
+            fields.add(fsfn.getField());
+          break;
 
-	case FKind.FlatSetElementNode:
-	  FlatSetElementNode fsen=(FlatSetElementNode) fn;
-	  if (oldtemp.contains(fsen.getDst()))
-	    arrays.add(fsen.getDst().getType());
-	  break;
+        case FKind.FlatSetElementNode:
+          FlatSetElementNode fsen=(FlatSetElementNode) fn;
+          if (oldtemp.contains(fsen.getDst()))
+            arrays.add(fsen.getDst().getType());
+          break;
 
-	default:
-	}
+        default:
+        }
       }
     }
   }
@@ -734,82 +734,82 @@ public class DiscoverConflicts {
       FlatNode fn=tovisit.iterator().next();
       tovisit.remove(fn);
       for(int i=0; i<fn.numNext(); i++) {
-	FlatNode fnext=fn.getNext(i);
-	if (!discovered.contains(fnext)) {
-	  discovered.add(fnext);
-	  tovisit.add(fnext);
-	}
+        FlatNode fnext=fn.getNext(i);
+        if (!discovered.contains(fnext)) {
+          discovered.add(fnext);
+          tovisit.add(fnext);
+        }
       }
       HashSet<TempDescriptor> oldtemps=null;
       if (atomictable.get(fn).intValue()!=0) {
-	if ((fn.numPrev()>0)&&atomictable.get(fn.getPrev(0)).intValue()==0) {
-	  //Everything live is old
-	  Set<TempDescriptor> lives=livetemps.get(fn);
-	  oldtemps=new HashSet<TempDescriptor>();
+        if ((fn.numPrev()>0)&&atomictable.get(fn.getPrev(0)).intValue()==0) {
+          //Everything live is old
+          Set<TempDescriptor> lives=livetemps.get(fn);
+          oldtemps=new HashSet<TempDescriptor>();
 
-	  for(Iterator<TempDescriptor> it=lives.iterator(); it.hasNext(); ) {
-	    TempDescriptor tmp=it.next();
-	    if (tmp.getType().isPtr()) {
-	      oldtemps.add(tmp);
-	    }
-	  }
-	} else {
-	  oldtemps=new HashSet<TempDescriptor>();
-	  //Compute union of old temporaries
-	  for(int i=0; i<fn.numPrev(); i++) {
-	    Set<TempDescriptor> pset=fntooldtmp.get(fn.getPrev(i));
-	    if (pset!=null)
-	      oldtemps.addAll(pset);
-	  }
+          for(Iterator<TempDescriptor> it=lives.iterator(); it.hasNext(); ) {
+            TempDescriptor tmp=it.next();
+            if (tmp.getType().isPtr()) {
+              oldtemps.add(tmp);
+            }
+          }
+        } else {
+          oldtemps=new HashSet<TempDescriptor>();
+          //Compute union of old temporaries
+          for(int i=0; i<fn.numPrev(); i++) {
+            Set<TempDescriptor> pset=fntooldtmp.get(fn.getPrev(i));
+            if (pset!=null)
+              oldtemps.addAll(pset);
+          }
 
-	  switch (fn.kind()) {
-	  case FKind.FlatNew:
-	    oldtemps.removeAll(Arrays.asList(fn.readsTemps()));
-	    break;
+          switch (fn.kind()) {
+          case FKind.FlatNew:
+            oldtemps.removeAll(Arrays.asList(fn.readsTemps()));
+            break;
 
-	  case FKind.FlatOpNode:
-	  case FKind.FlatCastNode:
-	    if (fn.kind()==FKind.FlatCastNode) {
-	      FlatCastNode fcn=(FlatCastNode)fn;
-	      if (fcn.getDst().getType().isPtr()) {
-		if (oldtemps.contains(fcn.getSrc()))
-		  oldtemps.add(fcn.getDst());
-		else
-		  oldtemps.remove(fcn.getDst());
-		break;
-	      }
-	    } else if (fn.kind()==FKind.FlatOpNode) {
-	      FlatOpNode fon=(FlatOpNode)fn;
-	      if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()) {
-		if (oldtemps.contains(fon.getLeft()))
-		  oldtemps.add(fon.getDest());
-		else
-		  oldtemps.remove(fon.getDest());
-		break;
-	      }
-	    }
+          case FKind.FlatOpNode:
+          case FKind.FlatCastNode:
+            if (fn.kind()==FKind.FlatCastNode) {
+              FlatCastNode fcn=(FlatCastNode)fn;
+              if (fcn.getDst().getType().isPtr()) {
+                if (oldtemps.contains(fcn.getSrc()))
+                  oldtemps.add(fcn.getDst());
+                else
+                  oldtemps.remove(fcn.getDst());
+                break;
+              }
+            } else if (fn.kind()==FKind.FlatOpNode) {
+              FlatOpNode fon=(FlatOpNode)fn;
+              if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()) {
+                if (oldtemps.contains(fon.getLeft()))
+                  oldtemps.add(fon.getDest());
+                else
+                  oldtemps.remove(fon.getDest());
+                break;
+              }
+            }
 
-	  default: {
-	    TempDescriptor[] writes=fn.writesTemps();
-	    for(int i=0; i<writes.length; i++) {
-	      TempDescriptor wtemp=writes[i];
-	      if (wtemp.getType().isPtr())
-		oldtemps.add(wtemp);
-	    }
-	  }
-	  }
-	}
+          default: {
+            TempDescriptor[] writes=fn.writesTemps();
+            for(int i=0; i<writes.length; i++) {
+              TempDescriptor wtemp=writes[i];
+              if (wtemp.getType().isPtr())
+                oldtemps.add(wtemp);
+            }
+          }
+          }
+        }
       }
 
       if (oldtemps!=null) {
-	if (!fntooldtmp.containsKey(fn)||!fntooldtmp.get(fn).equals(oldtemps)) {
-	  fntooldtmp.put(fn, oldtemps);
-	  //propagate changes
-	  for(int i=0; i<fn.numNext(); i++) {
-	    FlatNode fnext=fn.getNext(i);
-	    tovisit.add(fnext);
-	  }
-	}
+        if (!fntooldtmp.containsKey(fn)||!fntooldtmp.get(fn).equals(oldtemps)) {
+          fntooldtmp.put(fn, oldtemps);
+          //propagate changes
+          for(int i=0; i<fn.numNext(); i++) {
+            FlatNode fnext=fn.getNext(i);
+            tovisit.add(fnext);
+          }
+        }
       }
     }
     return fntooldtmp;

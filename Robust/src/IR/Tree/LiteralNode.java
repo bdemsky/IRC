@@ -50,9 +50,9 @@ public class LiteralNode extends ExpressionNode {
     for(int i=0; i<st.length(); i++) {
       char x=st.charAt(i);
       if (x=='\n')
-	new_st+="\\n";
+        new_st+="\\n";
       else if (x=='"')
-	new_st+="'"+'"'+"'";
+        new_st+="'"+'"'+"'";
       else new_st+=x;
     }
     return new_st;

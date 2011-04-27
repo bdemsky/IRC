@@ -107,17 +107,17 @@ unsigned int mhashRemove(unsigned int key) {
     if (curr->key == key) {
       atomic_dec(&(mlookup.numelements));
       if ((curr == &ptr[index]) && (curr->next == NULL)) {
-	curr->key = 0;
-	curr->val = NULL;
+        curr->key = 0;
+        curr->val = NULL;
       } else if ((curr == &ptr[index]) && (curr->next != NULL)) {
-	curr->key = curr->next->key;
-	curr->val = curr->next->val;
-	node = curr->next;
-	curr->next = curr->next->next;
-	free(node);
+        curr->key = curr->next->key;
+        curr->val = curr->next->val;
+        node = curr->next;
+        curr->next = curr->next->next;
+        free(node);
       } else {
-	prev->next = curr->next;
-	free(curr);
+        prev->next = curr->next;
+        free(curr);
       }
       write_unlock(lockptr);
       return 0;
@@ -173,31 +173,31 @@ void mhashResize(unsigned int newsize) {
       mhashlistnode_t *tmp,*next;
 
       if ((key=curr->key) == 0) {
-	break;
+        break;
       }
       next = curr->next;
       index = (key >> 1) & mask;
       tmp=&mlookup.table[index];
 
       if(tmp->key ==0) {
-	tmp->key=curr->key;
-	tmp->val=curr->val;
-	if (!isfirst)
-	  free(curr);
+        tmp->key=curr->key;
+        tmp->val=curr->val;
+        if (!isfirst)
+          free(curr);
       } /*
 
-	   NOTE:  Add this case if you change this...
-	   This case currently never happens because of the way things rehash....
-	   else if (isfirst) {
-	   mhashlistnode_t *newnode = calloc(1, sizeof(mhashlistnode_t));
-	   newnode->key = curr->key;
-	   newnode->val = curr->val;
-	   newnode->next = tmp->next;
-	   tmp->next=newnode;
-	   } */
+           NOTE:  Add this case if you change this...
+           This case currently never happens because of the way things rehash....
+           else if (isfirst) {
+           mhashlistnode_t *newnode = calloc(1, sizeof(mhashlistnode_t));
+           newnode->key = curr->key;
+           newnode->val = curr->val;
+           newnode->next = tmp->next;
+           tmp->next=newnode;
+           } */
       else {
-	curr->next=tmp->next;
-	tmp->next=curr;
+        curr->next=tmp->next;
+        tmp->next=curr;
       }
       isfirst = 0;
       curr = next;

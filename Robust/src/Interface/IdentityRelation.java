@@ -20,7 +20,7 @@ class IdentityRelation {
       IdentityRelation ir=(IdentityRelation) obj;
       if (fieldname1.equals(ir.fieldname1)&&
           fieldname2.equals(ir.fieldname2))
-	return true;
+        return true;
     }
     return false;
   }

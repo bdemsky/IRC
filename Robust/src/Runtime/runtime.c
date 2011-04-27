@@ -101,7 +101,7 @@ int instanceof(struct ___Object___ *ptr, int type) {
   if (i>NUMCLASSES) {
     do {
       if (i==type)
-	return 1;
+        return 1;
       i=typearray2[i-NUMCLASSES];
     } while(i!=-1);
   }
@@ -132,7 +132,7 @@ void injectinstructionfailure() {
     instaccum+=failurecount;
     if ((((double)random())/RAND_MAX)<instfailurechance) {
       if (numfailures>0)
-	numfailures--;
+        numfailures--;
       printf("FAILURE!!! %d\n",numfailures);
       longjmp(error_handler,11);
     }
@@ -145,7 +145,7 @@ void injectinstructionfailure() {
     instaccum+=failurecount;
     if ((((double)random())/RAND_MAX)<instfailurechance) {
       if (numfailures>0)
-	numfailures--;
+        numfailures--;
       printf("FAILURE!!! %d\n",numfailures);
       threadexit();
     }
@@ -273,11 +273,11 @@ void deepArrayCopy(struct ___Object___ * dst, struct ___Object___ * src) {
       struct ___Object___ * ptr=((struct ___Object___**)(((char*) &aosrc->___length___)+sizeof(int)))[i];
       int ptrtype=((int *)ptr)[0];
       if (ptrtype>=NUMCLASSES) {
-	struct ___Object___ * dstptr=((struct ___Object___**)(((char*) &aodst->___length___)+sizeof(int)))[i];
-	deepArrayCopy(dstptr,ptr);
+        struct ___Object___ * dstptr=((struct ___Object___**)(((char*) &aodst->___length___)+sizeof(int)))[i];
+        deepArrayCopy(dstptr,ptr);
       } else {
-	//hit an object
-	((struct ___Object___ **)(((char*) &aodst->___length___)+sizeof(int)))[i]=ptr;
+        //hit an object
+        ((struct ___Object___ **)(((char*) &aodst->___length___)+sizeof(int)))[i]=ptr;
       }
     }
   }
@@ -487,8 +487,8 @@ void CALL00(___System______gc____) {
       free(to_heapbase);
       to_heapbase=malloc(curr_heapsize);
       if (to_heapbase==NULL) {
-	printf("Error Allocating enough memory\n");
-	exit(-1);
+        printf("Error Allocating enough memory\n");
+        exit(-1);
       }
       to_heaptop=to_heapbase+curr_heapsize;
       to_heapptr=to_heapbase;

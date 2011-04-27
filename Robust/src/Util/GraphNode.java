@@ -40,15 +40,15 @@ public class GraphNode {
     while(!tovisit.isEmpty()) {
       GraphNode gn=(GraphNode)tovisit.pop();
       for(Iterator it=gn.edges(); it.hasNext(); ) {
-	Edge edge=(Edge)it.next();
-	GraphNode target=edge.getTarget();
-	if (!nodes.contains(target)) {
-	  if ((removed==null)||
-	      (!removed.contains(target))) {
-	    nodes.add(target);
-	    tovisit.push(target);
-	  }
-	}
+        Edge edge=(Edge)it.next();
+        GraphNode target=edge.getTarget();
+        if (!nodes.contains(target)) {
+          if ((removed==null)||
+              (!removed.contains(target))) {
+            nodes.add(target);
+            tovisit.push(target);
+          }
+        }
       }
     }
   }
@@ -59,18 +59,18 @@ public class GraphNode {
     tovisit.addAll(nodes);
     for(int i=0; i<depth&&!tovisit.isEmpty(); i++) {
       while(!tovisit.isEmpty()) {
-	GraphNode gn=(GraphNode)tovisit.pop();
-	for(Iterator it=gn.edges(); it.hasNext(); ) {
-	  Edge edge=(Edge)it.next();
-	  GraphNode target=edge.getTarget();
-	  if (!nodes.contains(target)) {
-	    if ((removed==null)||
-	        (!removed.contains(target))) {
-	      nodes.add(target);
-	      newvisit.push(target);
-	    }
-	  }
-	}
+        GraphNode gn=(GraphNode)tovisit.pop();
+        for(Iterator it=gn.edges(); it.hasNext(); ) {
+          Edge edge=(Edge)it.next();
+          GraphNode target=edge.getTarget();
+          if (!nodes.contains(target)) {
+            if ((removed==null)||
+                (!removed.contains(target))) {
+              nodes.add(target);
+              newvisit.push(target);
+            }
+          }
+        }
       }
       tovisit=newvisit;
       newvisit=new Stack();
@@ -258,53 +258,53 @@ public class GraphNode {
 
       Iterator it = nodes.iterator();
       while (it.hasNext()) {
-	GraphNode gn = (GraphNode) it.next();
-	Iterator edges = gn.edges();
-	String label = "";
-	String dotnodeparams="";
+        GraphNode gn = (GraphNode) it.next();
+        Iterator edges = gn.edges();
+        String label = "";
+        String dotnodeparams="";
 
-	for(int i=0; i<namers.size(); i++) {
-	  Namer name=(Namer) namers.get(i);
-	  String newlabel=name.nodeLabel(gn);
-	  String newparams=name.nodeOption(gn);
+        for(int i=0; i<namers.size(); i++) {
+          Namer name=(Namer) namers.get(i);
+          String newlabel=name.nodeLabel(gn);
+          String newparams=name.nodeOption(gn);
 
-	  if (!newlabel.equals("") && !label.equals("")) {
-	    label+=", ";
-	  }
-	  if (!newparams.equals("")) {
-	    dotnodeparams+=", " + name.nodeOption(gn);
-	  }
-	  label+=name.nodeLabel(gn);
-	}
+          if (!newlabel.equals("") && !label.equals("")) {
+            label+=", ";
+          }
+          if (!newparams.equals("")) {
+            dotnodeparams+=", " + name.nodeOption(gn);
+          }
+          label+=name.nodeLabel(gn);
+        }
 
-	if (!gn.merge)
-	  output.println("\t" + gn.getLabel() + " [label=\"" + label + "\"" + dotnodeparams + "];");
+        if (!gn.merge)
+          output.println("\t" + gn.getLabel() + " [label=\"" + label + "\"" + dotnodeparams + "];");
 
-	if (!gn.merge)
-	  while (edges.hasNext()) {
-	    Edge edge = (Edge) edges.next();
-	    GraphNode node = edge.getTarget();
-	    if (nodes.contains(node)) {
-	      for(Iterator nodeit=nonmerge(node).iterator(); nodeit.hasNext(); ) {
-		GraphNode node2=(GraphNode)nodeit.next();
-		String edgelabel = "";
-		String edgedotnodeparams="";
+        if (!gn.merge)
+          while (edges.hasNext()) {
+            Edge edge = (Edge) edges.next();
+            GraphNode node = edge.getTarget();
+            if (nodes.contains(node)) {
+              for(Iterator nodeit=nonmerge(node).iterator(); nodeit.hasNext(); ) {
+                GraphNode node2=(GraphNode)nodeit.next();
+                String edgelabel = "";
+                String edgedotnodeparams="";
 
-		for(int i=0; i<namers.size(); i++) {
-		  Namer name=(Namer) namers.get(i);
-		  String newlabel=name.edgeLabel(edge);
-		  String newoption=name.edgeOption(edge);
-		  if (!newlabel.equals("")&& !edgelabel.equals(""))
-		    edgelabel+=", ";
-		  edgelabel+=newlabel;
-		  if (!newoption.equals(""))
-		    edgedotnodeparams+=", "+newoption;
-		}
+                for(int i=0; i<namers.size(); i++) {
+                  Namer name=(Namer) namers.get(i);
+                  String newlabel=name.edgeLabel(edge);
+                  String newoption=name.edgeOption(edge);
+                  if (!newlabel.equals("")&& !edgelabel.equals(""))
+                    edgelabel+=", ";
+                  edgelabel+=newlabel;
+                  if (!newoption.equals(""))
+                    edgedotnodeparams+=", "+newoption;
+                }
 
-		output.println("\t" + gn.getLabel() + " -> " + node2.getLabel() + " [" + "label=\"" + edgelabel + "\"" + edgedotnodeparams + "];");
-	      }
-	    }
-	  }
+                output.println("\t" + gn.getLabel() + " -> " + node2.getLabel() + " [" + "label=\"" + edgelabel + "\"" + edgedotnodeparams + "];");
+              }
+            }
+          }
       }
     }
 
@@ -313,19 +313,19 @@ public class GraphNode {
       HashSet toprocess=new HashSet();
       toprocess.add(gn);
       while(!toprocess.isEmpty()) {
-	GraphNode gn2=(GraphNode)toprocess.iterator().next();
-	toprocess.remove(gn2);
-	if (!gn2.merge)
-	  newset.add(gn2);
-	else {
-	  Iterator edges = gn2.edges();
-	  while (edges.hasNext()) {
-	    Edge edge = (Edge) edges.next();
-	    GraphNode node = edge.getTarget();
-	    if (!newset.contains(node)&&nodes.contains(node))
-	      toprocess.add(node);
-	  }
-	}
+        GraphNode gn2=(GraphNode)toprocess.iterator().next();
+        toprocess.remove(gn2);
+        if (!gn2.merge)
+          newset.add(gn2);
+        else {
+          Iterator edges = gn2.edges();
+          while (edges.hasNext()) {
+            Edge edge = (Edge) edges.next();
+            GraphNode node = edge.getTarget();
+            if (!newset.contains(node)&&nodes.contains(node))
+              toprocess.add(node);
+          }
+        }
       }
       return newset;
     }
@@ -342,7 +342,7 @@ public class GraphNode {
       return cycleset;
     for(int i=0; i<scc.numSCC(); i++) {
       if (scc.hasCycle(i))
-	cycleset.addAll(scc.getSCC(i));
+        cycleset.addAll(scc.getSCC(i));
     }
     return cycleset;
   }
@@ -384,13 +384,13 @@ public class GraphNode {
       Integer scc=new Integer(i);
       Set s=(Set)map.get(scc);
       if (s.size()>1)
-	return true;
+        return true;
       Object [] array=s.toArray();
       GraphNode gn=(GraphNode)array[0];
       for(Iterator it=gn.edges(); it.hasNext(); ) {
-	Edge e=(Edge)it.next();
-	if (e.getTarget()==gn)
-	  return true;           /* Self Cycle */
+        Edge e=(Edge)it.next();
+        if (e.getTarget()==gn)
+          return true;           /* Self Cycle */
       }
       return false;
     }
@@ -417,7 +417,7 @@ public class GraphNode {
      *  of the set of nodes 'nodes'*/
     public static SCC computeSCC(Collection nodes) {
       if (nodes==null) {
-	throw new NullPointerException();
+        throw new NullPointerException();
       }
       DFS dfs=new DFS(nodes);
       dfs.sccmap=new HashMap();
@@ -425,38 +425,38 @@ public class GraphNode {
       dfs.finishingorder=new Vector();
       boolean acyclic=dfs.go();
       for (Iterator it = nodes.iterator(); it.hasNext(); ) {
-	GraphNode gn = (GraphNode) it.next();
-	gn.resetscc();
+        GraphNode gn = (GraphNode) it.next();
+        gn.resetscc();
       }
       for(int i=dfs.finishingorder.size()-1; i>=0; i--) {
-	GraphNode gn=(GraphNode)dfs.finishingorder.get(i);
-	if (gn.getStatus() == UNVISITED) {
-	  dfs.dfsprev(gn);
-	  dfs.sccindex++;           /* Increment scc index */
-	}
+        GraphNode gn=(GraphNode)dfs.finishingorder.get(i);
+        if (gn.getStatus() == UNVISITED) {
+          dfs.dfsprev(gn);
+          dfs.sccindex++;           /* Increment scc index */
+        }
       }
       return new SCC(acyclic,dfs.sccmap,dfs.sccmaprev,dfs.sccindex);
     }
 
     void dfsprev(GraphNode gn) {
       if (gn.getStatus()==FINISHED||!nodes.contains(gn))
-	return;
+        return;
       gn.setStatus(FINISHED);
       Integer i=new Integer(sccindex);
       if (!sccmap.containsKey(i))
-	sccmap.put(i,new HashSet());
+        sccmap.put(i,new HashSet());
       ((Set)sccmap.get(i)).add(gn);
       sccmaprev.put(gn,i);
       for(Iterator edgeit=gn.inedges(); edgeit.hasNext(); ) {
-	Edge e=(Edge)edgeit.next();
-	GraphNode gn2=e.getSource();
-	dfsprev(gn2);
+        Edge e=(Edge)edgeit.next();
+        GraphNode gn2=e.getSource();
+        dfsprev(gn2);
       }
     }
 
     public static boolean depthFirstSearch(Collection nodes) {
       if (nodes == null) {
-	throw new NullPointerException();
+        throw new NullPointerException();
       }
 
       DFS dfs = new DFS(nodes);
@@ -470,18 +470,18 @@ public class GraphNode {
       boolean acyclic=true;
       i = nodes.iterator();
       while (i.hasNext()) {
-	GraphNode gn = (GraphNode) i.next();
-	gn.reset();
+        GraphNode gn = (GraphNode) i.next();
+        gn.reset();
       }
 
       i = nodes.iterator();
       while (i.hasNext()) {
-	GraphNode gn = (GraphNode) i.next();
-	assert gn.getStatus() != PROCESSING;
-	if (gn.getStatus() == UNVISITED) {
-	  if (!dfs(gn))
-	    acyclic=false;
-	}
+        GraphNode gn = (GraphNode) i.next();
+        assert gn.getStatus() != PROCESSING;
+        if (gn.getStatus() == UNVISITED) {
+          if (!dfs(gn))
+            acyclic=false;
+        }
       }
       return acyclic;
     }
@@ -492,51 +492,51 @@ public class GraphNode {
       Iterator edges = gn.edges();
 
       while (edges.hasNext()) {
-	Edge edge = (Edge) edges.next();
-	edge.discover(edgetime++);
-	GraphNode node = edge.getTarget();
-	if (!nodes.contains(node)) {                       /* Skip nodes which aren't in the set */
-	  if(finishingorder_edge != null)
-	    finishingorder_edge.add(edge);
-	  edge.finish(edgetime++);
-	  continue;
-	}
-	if (node.getStatus() == UNVISITED) {
-	  if (!dfs(node))
-	    acyclic=false;
-	} else if (node.getStatus()==PROCESSING) {
-	  acyclic=false;
-	}
-	if(finishingorder_edge != null)
-	  finishingorder_edge.add(edge);
-	edge.finish(edgetime++);
+        Edge edge = (Edge) edges.next();
+        edge.discover(edgetime++);
+        GraphNode node = edge.getTarget();
+        if (!nodes.contains(node)) {                       /* Skip nodes which aren't in the set */
+          if(finishingorder_edge != null)
+            finishingorder_edge.add(edge);
+          edge.finish(edgetime++);
+          continue;
+        }
+        if (node.getStatus() == UNVISITED) {
+          if (!dfs(node))
+            acyclic=false;
+        } else if (node.getStatus()==PROCESSING) {
+          acyclic=false;
+        }
+        if(finishingorder_edge != null)
+          finishingorder_edge.add(edge);
+        edge.finish(edgetime++);
       }
       if (finishingorder!=null)
-	finishingorder.add(gn);
+        finishingorder.add(gn);
       gn.finish(time++);
       return acyclic;
     }
 
     public static Vector topology(Collection nodes, Vector finishingorder_edge) {
       if (nodes==null) {
-	throw new NullPointerException();
+        throw new NullPointerException();
       }
       DFS dfs=new DFS(nodes);
       dfs.finishingorder=new Vector();
       if(finishingorder_edge != null) {
-	dfs.finishingorder_edge = new Vector();
+        dfs.finishingorder_edge = new Vector();
       }
       boolean acyclic=dfs.go();
       Vector topology = new Vector();
       for(int i=dfs.finishingorder.size()-1; i>=0; i--) {
-	GraphNode gn=(GraphNode)dfs.finishingorder.get(i);
-	topology.add(gn);
+        GraphNode gn=(GraphNode)dfs.finishingorder.get(i);
+        topology.add(gn);
       }
       if(finishingorder_edge != null) {
-	for(int i=dfs.finishingorder_edge.size()-1; i>=0; i--) {
-	  Edge gn=(Edge)dfs.finishingorder_edge.get(i);
-	  finishingorder_edge.add(gn);
-	}
+        for(int i=dfs.finishingorder_edge.size()-1; i>=0; i--) {
+          Edge gn=(Edge)dfs.finishingorder_edge.get(i);
+          finishingorder_edge.add(gn);
+        }
       }
       return topology;
     }

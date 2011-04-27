@@ -78,9 +78,9 @@ public class ParseNode implements Walkable {
       return line;
     } else {
       if (parent != null) {
-	return parent.getLine();
+        return parent.getLine();
       } else {
-	return 0;
+        return 0;
       }
     }
   }
@@ -145,7 +145,7 @@ public class ParseNode implements Walkable {
     for (i = 0; i < children.size(); i++) {
       p = children.elementAt(i);
       if (p.getLabel().equals(label)) {
-	return p;
+        return p;
       }
     }
 
@@ -176,7 +176,7 @@ public class ParseNode implements Walkable {
     for (i = 0; i < children.size(); i++) {
       ParseNode pn = children.elementAt(i);
       if (pn.getLabel().equals(label))
-	v.addElement(pn);
+        v.addElement(pn);
     }
 
     return v;
@@ -212,15 +212,15 @@ public class ParseNode implements Walkable {
       indent += 2;
 
       if (recursive) {
-	for (int i = 0; i < children.size(); i++) {
-	  Walkable w = (Walkable)children.elementAt(i);
-	  output += w.PPrint(indent, true);
-	}
+        for (int i = 0; i < children.size(); i++) {
+          Walkable w = (Walkable)children.elementAt(i);
+          output += w.PPrint(indent, true);
+        }
       } else {
-	for (int i = 0; i < children.size(); i++) {
-	  Walkable w = (Walkable)children.elementAt(i);
-	  output += doIndent(indent) + "<" + w.getNodeName() + "/>\n";
-	}
+        for (int i = 0; i < children.size(); i++) {
+          Walkable w = (Walkable)children.elementAt(i);
+          output += doIndent(indent) + "<" + w.getNodeName() + "/>\n";
+        }
       }
 
       indent -= 2;

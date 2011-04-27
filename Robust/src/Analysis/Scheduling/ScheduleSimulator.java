@@ -76,17 +76,17 @@ public class ScheduleSimulator {
       Iterator<FlagState> it_fStates = this.taskanalysis.getFlagStates(cd).iterator();
 
       while(it_fStates.hasNext()) {
-	FlagState fs = it_fStates.next();
-	if(!this.fstates.contains(fs)) {
-	  this.fstates.addElement(fs);
-	}
-	Iterator<FEdge> it_fe = (Iterator<FEdge>)fs.edges();
-	while(it_fe.hasNext()) {
-	  FEdge next = it_fe.next();
-	  if(!this.fedges.contains(next)) {
-	    this.fedges.addElement(next);
-	  }
-	}
+        FlagState fs = it_fStates.next();
+        if(!this.fstates.contains(fs)) {
+          this.fstates.addElement(fs);
+        }
+        Iterator<FEdge> it_fe = (Iterator<FEdge>)fs.edges();
+        while(it_fe.hasNext()) {
+          FEdge next = it_fe.next();
+          if(!this.fedges.contains(next)) {
+            this.fedges.addElement(next);
+          }
+        }
       }
     }
   }
@@ -131,23 +131,23 @@ public class ScheduleSimulator {
       Vector<Schedule> scheduling =
         (Vector<Schedule>)it_scheduling.next();
       if(!state.BAMBOOCOMPILETIME) {
-	System.out.println("Scheduling index:" + scheduling.elementAt(0).getGid());
+        System.out.println("Scheduling index:" + scheduling.elementAt(0).getGid());
       }
       this.setScheduling(scheduling);
       Vector<SimExecutionNode> simexegraph = new Vector<SimExecutionNode>();
       Vector<CheckPoint> checkpoints = new Vector<CheckPoint>();
       long tmpTime = process(checkpoints, simexegraph);
       if(tmpTime < processTime) {
-	selectedScheduling.clear();
-	selectedScheduling.add(index);
-	selectedSimExeGraphs.clear();
-	selectedSimExeGraphs.add(simexegraph.elementAt(0));
-	processTime = tmpTime;
+        selectedScheduling.clear();
+        selectedScheduling.add(index);
+        selectedSimExeGraphs.clear();
+        selectedSimExeGraphs.add(simexegraph.elementAt(0));
+        processTime = tmpTime;
       } else if(tmpTime == processTime) {
-	if(!selectedScheduling.contains(index)) {
-	  selectedScheduling.add(index);
-	  selectedSimExeGraphs.add(simexegraph.elementAt(0));
-	}
+        if(!selectedScheduling.contains(index)) {
+          selectedScheduling.add(index);
+          selectedSimExeGraphs.add(simexegraph.elementAt(0));
+        }
       }
       scheduling = null;
       checkpoints.clear();
@@ -161,8 +161,8 @@ public class ScheduleSimulator {
     if(!state.BAMBOOCOMPILETIME) {
       System.out.print("Selected schedulings with least exectution time " + processTime + ": \n\t");
       for(int i = 0; i < selectedScheduling.size(); i++) {
-	int gid = schedulings.elementAt(selectedScheduling.elementAt(i)).elementAt(0).getGid();
-	System.out.print(gid + ", ");
+        int gid = schedulings.elementAt(selectedScheduling.elementAt(i)).elementAt(0).getGid();
+        System.out.print(gid + ", ");
       }
       System.out.println();
     }
@@ -205,14 +205,14 @@ public class ScheduleSimulator {
     }
     if(this.cores != null) {
       for(int i = 0; i < this.coreNum; i++) {
-	CoreSimulator core = this.cores.elementAt(i);
-	core.reset();
-	core.setRSchedule(FIFORSchedule.getFIFORSchedule());
+        CoreSimulator core = this.cores.elementAt(i);
+        core.reset();
+        core.setRSchedule(FIFORSchedule.getFIFORSchedule());
       }
     } else {
       this.cores = new Vector<CoreSimulator>(this.coreNum);
       for(int i = 0; i < this.coreNum; i++) {
-	this.cores.add(new CoreSimulator(FIFORSchedule.getFIFORSchedule(), i));
+        this.cores.add(new CoreSimulator(FIFORSchedule.getFIFORSchedule(), i));
       }
     }
 
@@ -284,7 +284,7 @@ public class ScheduleSimulator {
       CoreSimulator cs = this.cores.elementAt(i);
       TaskSimulator task = cs.process();
       if(task != null) {
-	this.tasks.add(task);
+        this.tasks.add(task);
       }
       lastseNodes[i] = null;
     }
@@ -300,12 +300,12 @@ public class ScheduleSimulator {
                                  task);
       cp.addAction(action);
       if(!(task instanceof TransTaskSimulator)) {
-	cp.removeSpareCore(coreid);
-	SimExecutionNode seNode = new SimExecutionNode(coreid, this.processTime);
-	seNode.setSpareCores(cp.getSpareCores());
-	senode2action.put(seNode, action);
-	action2exetime.put(action, (long)-1);
-	lastseNodes[coreid] = seNode;
+        cp.removeSpareCore(coreid);
+        SimExecutionNode seNode = new SimExecutionNode(coreid, this.processTime);
+        seNode.setSpareCores(cp.getSpareCores());
+        senode2action.put(seNode, action);
+        action2exetime.put(action, (long)-1);
+        lastseNodes[coreid] = seNode;
       }
     }
     checkpoints.add(cp);
@@ -313,7 +313,7 @@ public class ScheduleSimulator {
     while(true) {
       // if no more tasks on each core, simulation finish
       if(this.tasks.size() == 0) {
-	break;
+        break;
       }
 
       // for each task in todo queue, decide the execution path of this time
@@ -321,16 +321,16 @@ public class ScheduleSimulator {
       long finishTime = Long.MAX_VALUE;
       Vector<TaskSimulator> finishTasks = new Vector<TaskSimulator>();
       for(i = 0; i < this.tasks.size(); i++) {
-	TaskSimulator task = this.tasks.elementAt(i);
-	task.process();
-	long tempTime = task.getCurrentRun().getFinishTime();
-	if(tempTime < finishTime) {
-	  finishTime = tempTime;
-	  finishTasks.clear();
-	  finishTasks.add(task);
-	} else if (tempTime == finishTime) {
-	  finishTasks.add(task);
-	}
+        TaskSimulator task = this.tasks.elementAt(i);
+        task.process();
+        long tempTime = task.getCurrentRun().getFinishTime();
+        if(tempTime < finishTime) {
+          finishTime = tempTime;
+          finishTasks.clear();
+          finishTasks.add(task);
+        } else if (tempTime == finishTime) {
+          finishTasks.add(task);
+        }
       }
 
       // advance to next finish point
@@ -338,74 +338,74 @@ public class ScheduleSimulator {
       cp = new CheckPoint(this.processTime,
                           this.coreNum);
       for(i = 0; i < this.tasks.size(); i++) {
-	TaskSimulator task = this.tasks.elementAt(i);
-	if(!finishTasks.contains(task)) {
-	  task.getCs().updateTask(finishTime);
-	  if(!(task instanceof TransTaskSimulator)) {
-	    cp.removeSpareCore(task.getCs().getCoreNum());
-	  }
-	}
+        TaskSimulator task = this.tasks.elementAt(i);
+        if(!finishTasks.contains(task)) {
+          task.getCs().updateTask(finishTime);
+          if(!(task instanceof TransTaskSimulator)) {
+            cp.removeSpareCore(task.getCs().getCoreNum());
+          }
+        }
       }
 
       Action action = null;
       for(i = 0; i < finishTasks.size(); i++) {
-	TaskSimulator task = finishTasks.elementAt(i);
-	this.tasks.removeElement(task);
-	if(task instanceof TransTaskSimulator) {
-	  // handle TransTaskSimulator task's completion
-	  finishTransTaskSimulator(task,
-	                           cp,
-	                           senode2action,
-	                           lastseNodes,
-	                           action2exetime,
-	                           tttask2senode,
-	                           obj2transtime);
-	} else {
-	  CoreSimulator cs = task.getCs();
-	  Vector<TransTaskSimulator> tttasks = new Vector<TransTaskSimulator>();
+        TaskSimulator task = finishTasks.elementAt(i);
+        this.tasks.removeElement(task);
+        if(task instanceof TransTaskSimulator) {
+          // handle TransTaskSimulator task's completion
+          finishTransTaskSimulator(task,
+                                   cp,
+                                   senode2action,
+                                   lastseNodes,
+                                   action2exetime,
+                                   tttask2senode,
+                                   obj2transtime);
+        } else {
+          CoreSimulator cs = task.getCs();
+          Vector<TransTaskSimulator> tttasks = new Vector<TransTaskSimulator>();
 
-	  Vector<ObjectSimulator> transObjs = null;
-	  if(task.getCurrentRun().getExetype() == 0) {
-	    // normal execution of a task
-	    transObjs = finishTaskNormal(task,
-	                                 cp,
-	                                 tttasks,
-	                                 senode2action,
-	                                 lastseNodes,
-	                                 action2exetime);
-	  } else if (task.getCurrentRun().getExetype() == 1) {
-	    // task abort
-	    finishTaskAbnormal(cs,
-	                       cp,
-	                       senode2action,
-	                       lastseNodes,
-	                       action2exetime,
-	                       Action.TASKABORT);
-	  } else if (task.getCurrentRun().getExetype() == 2) {
-	    // task remove
-	    finishTaskAbnormal(cs,
-	                       cp,
-	                       senode2action,
-	                       lastseNodes,
-	                       action2exetime,
-	                       Action.TASKREMOVE);
-	  }
+          Vector<ObjectSimulator> transObjs = null;
+          if(task.getCurrentRun().getExetype() == 0) {
+            // normal execution of a task
+            transObjs = finishTaskNormal(task,
+                                         cp,
+                                         tttasks,
+                                         senode2action,
+                                         lastseNodes,
+                                         action2exetime);
+          } else if (task.getCurrentRun().getExetype() == 1) {
+            // task abort
+            finishTaskAbnormal(cs,
+                               cp,
+                               senode2action,
+                               lastseNodes,
+                               action2exetime,
+                               Action.TASKABORT);
+          } else if (task.getCurrentRun().getExetype() == 2) {
+            // task remove
+            finishTaskAbnormal(cs,
+                               cp,
+                               senode2action,
+                               lastseNodes,
+                               action2exetime,
+                               Action.TASKREMOVE);
+          }
 
-	  // Choose a new task for this core
-	  generateNewTask(cs,
-	                  cp,
-	                  transObjs,
-	                  tttasks,
-	                  senode2action,
-	                  lastseNodes,
-	                  action2exetime,
-	                  tttask2senode,
-	                  obj2transtime,
-	                  obj2lastseedge);
-	  tttasks.clear();
-	  tttasks = null;
-	  transObjs = null;
-	} // end of if(task instanceof TransTaskSimulator) else
+          // Choose a new task for this core
+          generateNewTask(cs,
+                          cp,
+                          transObjs,
+                          tttasks,
+                          senode2action,
+                          lastseNodes,
+                          action2exetime,
+                          tttask2senode,
+                          obj2transtime,
+                          obj2lastseedge);
+          tttasks.clear();
+          tttasks = null;
+          transObjs = null;
+        } // end of if(task instanceof TransTaskSimulator) else
       }
       checkpoints.add(cp);
       finishTasks = null;
@@ -418,48 +418,48 @@ public class ScheduleSimulator {
       SimExecutionNode lastsenode = lastseNodes[j];
       // create edges between previous senode on this core to this node
       if(lastsenode != null) {
-	Action tmpaction = senode2action.get(lastsenode);
-	long weight = tmpaction != null?action2exetime.get(tmpaction):0;         // TODO ????
-	SimExecutionEdge seEdge = new SimExecutionEdge(seNode,
-	                                               lastsenode.getCoreNum(),
-	                                               tmpaction != null?tmpaction.getTd():null,
-	                                               weight,
-	                                               tmpaction != null?tmpaction.getTaskParams():null);
-	lastsenode.addEdge(seEdge);
+        Action tmpaction = senode2action.get(lastsenode);
+        long weight = tmpaction != null?action2exetime.get(tmpaction):0;         // TODO ????
+        SimExecutionEdge seEdge = new SimExecutionEdge(seNode,
+                                                       lastsenode.getCoreNum(),
+                                                       tmpaction != null?tmpaction.getTd():null,
+                                                       weight,
+                                                       tmpaction != null?tmpaction.getTaskParams():null);
+        lastsenode.addEdge(seEdge);
 
-	// setup data dependencies for the task
-	Vector<Integer> taskparams = seEdge.getTaskparams();
-	if(taskparams != null) {
-	  for(int k = 0; k < taskparams.size(); k++) {
-	    Integer tparam = taskparams.elementAt(k);
-	    SimExecutionEdge lastedge = obj2lastseedge.get(tparam);
-	    if(lastedge != null) {
-	      if(lastedge.getCoreNum() != seEdge.getCoreNum()) {
-		// the obj is transferred from another core
-		// create an seEdge for this transfer
-		long transweight = obj2transtime.get(tparam);
-		SimExecutionEdge transseEdge = new SimExecutionEdge((SimExecutionNode)seEdge.getSource(),
-		                                                    lastedge.getCoreNum(),
-		                                                    null,             // TODO: not sure if this is enough
-		                                                    transweight,
-		                                                    null);
-		if(((SimExecutionNode)seEdge.getSource()).getTimepoint() <
-		   ((SimExecutionNode)lastedge.getTarget()).getTimepoint()) {
-		  System.err.println("ScheduleSimulator:393");
-		  System.exit(-1);
-		}
-		lastedge.getTarget().addEdge(transseEdge);
-		transseEdge.addPredicate(lastedge);
-		seEdge.addPredicate(transseEdge);
-	      } else {
-		seEdge.addPredicate(lastedge);
-	      }
-	    }
-	    // update the last edge associated to the parameter obj
-	    obj2lastseedge.put(tparam, seEdge);
-	  }
-	}
-	taskparams = null;
+        // setup data dependencies for the task
+        Vector<Integer> taskparams = seEdge.getTaskparams();
+        if(taskparams != null) {
+          for(int k = 0; k < taskparams.size(); k++) {
+            Integer tparam = taskparams.elementAt(k);
+            SimExecutionEdge lastedge = obj2lastseedge.get(tparam);
+            if(lastedge != null) {
+              if(lastedge.getCoreNum() != seEdge.getCoreNum()) {
+                // the obj is transferred from another core
+                // create an seEdge for this transfer
+                long transweight = obj2transtime.get(tparam);
+                SimExecutionEdge transseEdge = new SimExecutionEdge((SimExecutionNode)seEdge.getSource(),
+                                                                    lastedge.getCoreNum(),
+                                                                    null,             // TODO: not sure if this is enough
+                                                                    transweight,
+                                                                    null);
+                if(((SimExecutionNode)seEdge.getSource()).getTimepoint() <
+                   ((SimExecutionNode)lastedge.getTarget()).getTimepoint()) {
+                  System.err.println("ScheduleSimulator:393");
+                  System.exit(-1);
+                }
+                lastedge.getTarget().addEdge(transseEdge);
+                transseEdge.addPredicate(lastedge);
+                seEdge.addPredicate(transseEdge);
+              } else {
+                seEdge.addPredicate(lastedge);
+              }
+            }
+            // update the last edge associated to the parameter obj
+            obj2lastseedge.put(tparam, seEdge);
+          }
+        }
+        taskparams = null;
       }
       lastseNodes[j] = null;
     }
@@ -488,7 +488,7 @@ public class ScheduleSimulator {
       System.out.println("\tTotal execution time is: " + this.processTime);
       System.out.println("\tUtility of cores: ");
       for(int j = 0; j < this.cores.size(); j++) {
-	System.out.println("\t\tcore" + j + ": " + getUtility(j) + "%");
+        System.out.println("\t\tcore" + j + ": " + getUtility(j) + "%");
       }
     }
 
@@ -524,42 +524,42 @@ public class ScheduleSimulator {
     if(this.cores.elementAt(targetCoreNum).getRtask() == null) {
       TaskSimulator newTask = this.cores.elementAt(targetCoreNum).process();
       if(newTask != null) {
-	this.tasks.add(newTask);
-	// add a TASKSTART action into this checkpoint
-	action = new Action(targetCoreNum,
-	                    Action.TASKSTART,
-	                    newTask);
-	cp.addAction(action);
-	if(!(newTask instanceof TransTaskSimulator)) {
-	  cp.removeSpareCore(targetCoreNum);
-	  SimExecutionNode seNode = new SimExecutionNode(targetCoreNum, this.processTime);
-	  seNode.setSpareCores(cp.getSpareCores());
-	  senode2action.put(seNode, action);
-	  action2exetime.put(action, (long)-1);
+        this.tasks.add(newTask);
+        // add a TASKSTART action into this checkpoint
+        action = new Action(targetCoreNum,
+                            Action.TASKSTART,
+                            newTask);
+        cp.addAction(action);
+        if(!(newTask instanceof TransTaskSimulator)) {
+          cp.removeSpareCore(targetCoreNum);
+          SimExecutionNode seNode = new SimExecutionNode(targetCoreNum, this.processTime);
+          seNode.setSpareCores(cp.getSpareCores());
+          senode2action.put(seNode, action);
+          action2exetime.put(action, (long)-1);
 
-	  SimExecutionNode lastsenode = lastseNodes[targetCoreNum];
-	  // create edges between previous senode on this core to this node
-	  if(lastsenode != null) {
-	    Action tmpaction = senode2action.get(lastsenode);
-	    SimExecutionEdge seEdge = null;
-	    if(tmpaction == null) {
-	      seEdge = new SimExecutionEdge(seNode,
-	                                    lastsenode.getCoreNum(),
-	                                    null,
-	                                    0,
-	                                    null);
-	    } else {
-	      long weight =  action2exetime.get(tmpaction);
-	      seEdge = new SimExecutionEdge(seNode,
-	                                    lastsenode.getCoreNum(),
-	                                    tmpaction.getTd(),
-	                                    weight,
-	                                    tmpaction.getTaskParams());
-	    }
-	    lastsenode.addEdge(seEdge);
-	  }
-	  lastseNodes[targetCoreNum] = seNode;
-	}
+          SimExecutionNode lastsenode = lastseNodes[targetCoreNum];
+          // create edges between previous senode on this core to this node
+          if(lastsenode != null) {
+            Action tmpaction = senode2action.get(lastsenode);
+            SimExecutionEdge seEdge = null;
+            if(tmpaction == null) {
+              seEdge = new SimExecutionEdge(seNode,
+                                            lastsenode.getCoreNum(),
+                                            null,
+                                            0,
+                                            null);
+            } else {
+              long weight =  action2exetime.get(tmpaction);
+              seEdge = new SimExecutionEdge(seNode,
+                                            lastsenode.getCoreNum(),
+                                            tmpaction.getTd(),
+                                            weight,
+                                            tmpaction.getTaskParams());
+            }
+            lastsenode.addEdge(seEdge);
+          }
+          lastseNodes[targetCoreNum] = seNode;
+        }
       }
     }
   }
@@ -599,56 +599,56 @@ public class ScheduleSimulator {
       // get the infomation of how to send new objects
       Vector<ObjectSimulator> nobjs = task.getCurrentRun().getNewObjs();
       for(int j = 0; j < nobjs.size(); j++) {
-	ObjectSimulator nobj = nobjs.elementAt(j);
-	totransObjs.add(nobj);
+        ObjectSimulator nobj = nobjs.elementAt(j);
+        totransObjs.add(nobj);
 
-	action.addNewObj(nobj.getCd(), Integer.valueOf(1));
-	// send the new object to target core according to pre-decide scheduling
-	Queue<Integer> cores = cs.getTargetCores(nobj.getCurrentFS());
-	if(cores == null) {
-	  // this obj will reside on this core
-	  cs.addObject(nobj);
-	} else {
-	  Integer targetCore = cores.poll();
-	  if(targetCore == corenum) {
-	    // this obj will reside on this core
-	    cs.addObject(nobj);
-	  } else {
-	    if(!transObjQueues.containsKey(targetCore)) {
-	      transObjQueues.put(targetCore, new LinkedList<ObjectInfo>());
-	    }
-	    Queue<ObjectInfo> tmpqueue = transObjQueues.get(targetCore);
-	    tmpqueue.add(new ObjectInfo(nobj));
-	    tmpqueue = null;
-	  }
-	  // enqueue this core again
-	  cores.add(targetCore);
-	}
-	cores = null;
-	// check if this object becoming shared or not
-	Vector<Integer> allycores = cs.getAllyCores(nobj.getCurrentFS());
-	if(allycores != null) {
-	  nobj.setShared(true);
-	  // TODO, temporarily send to at most 2 cores
-	  int numtosend = allycores.size() > 2?2:allycores.size();
-	  for(int k = 0; k < numtosend; ++k) {
-	    Integer allyCore = allycores.elementAt(k);
-	    if(allyCore == corenum) {
-	      cs.addObject(nobj);
-	    } else {
-	      if(!transObjQueues.containsKey(allyCore)) {
-		transObjQueues.put(allyCore, new LinkedList<ObjectInfo>());
-	      }
-	      Queue<ObjectInfo> tmpqueue = transObjQueues.get(allyCore);
-	      ObjectInfo nobjinfo = new ObjectInfo(nobj);
-	      if(!tmpqueue.contains(nobjinfo)) {
-		tmpqueue.add(nobjinfo);
-	      }
-	      tmpqueue = null;
-	    }
-	  }
-	  allycores = null;
-	}
+        action.addNewObj(nobj.getCd(), Integer.valueOf(1));
+        // send the new object to target core according to pre-decide scheduling
+        Queue<Integer> cores = cs.getTargetCores(nobj.getCurrentFS());
+        if(cores == null) {
+          // this obj will reside on this core
+          cs.addObject(nobj);
+        } else {
+          Integer targetCore = cores.poll();
+          if(targetCore == corenum) {
+            // this obj will reside on this core
+            cs.addObject(nobj);
+          } else {
+            if(!transObjQueues.containsKey(targetCore)) {
+              transObjQueues.put(targetCore, new LinkedList<ObjectInfo>());
+            }
+            Queue<ObjectInfo> tmpqueue = transObjQueues.get(targetCore);
+            tmpqueue.add(new ObjectInfo(nobj));
+            tmpqueue = null;
+          }
+          // enqueue this core again
+          cores.add(targetCore);
+        }
+        cores = null;
+        // check if this object becoming shared or not
+        Vector<Integer> allycores = cs.getAllyCores(nobj.getCurrentFS());
+        if(allycores != null) {
+          nobj.setShared(true);
+          // TODO, temporarily send to at most 2 cores
+          int numtosend = allycores.size() > 2?2:allycores.size();
+          for(int k = 0; k < numtosend; ++k) {
+            Integer allyCore = allycores.elementAt(k);
+            if(allyCore == corenum) {
+              cs.addObject(nobj);
+            } else {
+              if(!transObjQueues.containsKey(allyCore)) {
+                transObjQueues.put(allyCore, new LinkedList<ObjectInfo>());
+              }
+              Queue<ObjectInfo> tmpqueue = transObjQueues.get(allyCore);
+              ObjectInfo nobjinfo = new ObjectInfo(nobj);
+              if(!tmpqueue.contains(nobjinfo)) {
+                tmpqueue.add(nobjinfo);
+              }
+              tmpqueue = null;
+            }
+          }
+          allycores = null;
+        }
       }
       nobjs = null;
     }
@@ -659,53 +659,53 @@ public class ScheduleSimulator {
     if(transObjs != null) {
       totransObjs.addAll(transObjs);
       for(int j = 0; j < transObjs.size(); j++) {
-	ObjectSimulator tobj = transObjs.elementAt(j);
-	// send the object to target core according to pre-decide scheduling
-	Queue<Integer> cores = cs.getTargetCores(tobj.getCurrentFS());
-	tobj.setCurrentFS(cs.getTargetFState(tobj.getCurrentFS()));
-	if(cores == null) {
-	  // this obj will reside on this core
-	  cs.addObject(tobj);
-	} else {
-	  Integer targetCore = cores.poll();
-	  if(targetCore == corenum) {
-	    // this obj will reside on this core
-	    cs.addObject(tobj);
-	  } else {
-	    if(!transObjQueues.containsKey(targetCore)) {
-	      transObjQueues.put(targetCore, new LinkedList<ObjectInfo>());
-	    }
-	    Queue<ObjectInfo> tmpqueue = transObjQueues.get(targetCore);
-	    tmpqueue.add(new ObjectInfo(tobj));
-	    tmpqueue = null;
-	  }
-	  cores.add(targetCore);
-	}
-	cores = null;
-	// check if this object becoming shared or not
-	Vector<Integer> allycores = cs.getAllyCores(tobj.getCurrentFS());
-	if(allycores != null) {
-	  tobj.setShared(true);
-	  // TODO, temporarily send to at most 2 cores
-	  int numtosend = allycores.size() > 2?2:allycores.size();
-	  for(int k = 0; k < numtosend; ++k) {
-	    Integer allyCore = allycores.elementAt(k);
-	    if(allyCore == corenum) {
-	      cs.addObject(tobj);
-	    } else {
-	      if(!transObjQueues.containsKey(allyCore)) {
-		transObjQueues.put(allyCore, new LinkedList<ObjectInfo>());
-	      }
-	      Queue<ObjectInfo> tmpqueue = transObjQueues.get(allyCore);
-	      ObjectInfo nobjinfo = new ObjectInfo(tobj);
-	      if(!tmpqueue.contains(nobjinfo)) {
-		tmpqueue.add(nobjinfo);
-	      }
-	      tmpqueue = null;
-	    }
-	  }
-	  allycores = null;
-	}
+        ObjectSimulator tobj = transObjs.elementAt(j);
+        // send the object to target core according to pre-decide scheduling
+        Queue<Integer> cores = cs.getTargetCores(tobj.getCurrentFS());
+        tobj.setCurrentFS(cs.getTargetFState(tobj.getCurrentFS()));
+        if(cores == null) {
+          // this obj will reside on this core
+          cs.addObject(tobj);
+        } else {
+          Integer targetCore = cores.poll();
+          if(targetCore == corenum) {
+            // this obj will reside on this core
+            cs.addObject(tobj);
+          } else {
+            if(!transObjQueues.containsKey(targetCore)) {
+              transObjQueues.put(targetCore, new LinkedList<ObjectInfo>());
+            }
+            Queue<ObjectInfo> tmpqueue = transObjQueues.get(targetCore);
+            tmpqueue.add(new ObjectInfo(tobj));
+            tmpqueue = null;
+          }
+          cores.add(targetCore);
+        }
+        cores = null;
+        // check if this object becoming shared or not
+        Vector<Integer> allycores = cs.getAllyCores(tobj.getCurrentFS());
+        if(allycores != null) {
+          tobj.setShared(true);
+          // TODO, temporarily send to at most 2 cores
+          int numtosend = allycores.size() > 2?2:allycores.size();
+          for(int k = 0; k < numtosend; ++k) {
+            Integer allyCore = allycores.elementAt(k);
+            if(allyCore == corenum) {
+              cs.addObject(tobj);
+            } else {
+              if(!transObjQueues.containsKey(allyCore)) {
+                transObjQueues.put(allyCore, new LinkedList<ObjectInfo>());
+              }
+              Queue<ObjectInfo> tmpqueue = transObjQueues.get(allyCore);
+              ObjectInfo nobjinfo = new ObjectInfo(tobj);
+              if(!tmpqueue.contains(nobjinfo)) {
+                tmpqueue.add(nobjinfo);
+              }
+              tmpqueue = null;
+            }
+          }
+          allycores = null;
+        }
       }
     }
     transObjs = null;
@@ -749,27 +749,27 @@ public class ScheduleSimulator {
                                  newTask);
       cp.addAction(action);
       if(!(newTask instanceof TransTaskSimulator)) {
-	cp.removeSpareCore(cs.getCoreNum());
-	SimExecutionNode seNode = new SimExecutionNode(corenum, this.processTime);
-	seNode.setSpareCores(cp.getSpareCores());
-	senode2action.put(seNode, action);
-	action2exetime.put(action, (long)-1);
-	SimExecutionNode lastsenode = lastseNodes[corenum];
-	// create edges between previous senode on this core to this node
-	if(lastsenode != null) {
-	  Action tmpaction = senode2action.get(lastsenode);
-	  long weight = tmpaction != null?action2exetime.get(tmpaction):0;
-	  seEdge = new SimExecutionEdge(seNode,
-	                                lastsenode.getCoreNum(),
-	                                tmpaction!= null?tmpaction.getTd():null,
-	                                weight,
-	                                tmpaction!=null?tmpaction.getTaskParams():null);
-	  lastsenode.addEdge(seEdge);
-	}
-	lastseNodes[corenum] = seNode;
-	for(int tmpindex = 0; tmpindex < tttasks.size(); tmpindex++) {
-	  tttask2senode.put(tttasks.elementAt(tmpindex), seNode);
-	}
+        cp.removeSpareCore(cs.getCoreNum());
+        SimExecutionNode seNode = new SimExecutionNode(corenum, this.processTime);
+        seNode.setSpareCores(cp.getSpareCores());
+        senode2action.put(seNode, action);
+        action2exetime.put(action, (long)-1);
+        SimExecutionNode lastsenode = lastseNodes[corenum];
+        // create edges between previous senode on this core to this node
+        if(lastsenode != null) {
+          Action tmpaction = senode2action.get(lastsenode);
+          long weight = tmpaction != null?action2exetime.get(tmpaction):0;
+          seEdge = new SimExecutionEdge(seNode,
+                                        lastsenode.getCoreNum(),
+                                        tmpaction!= null?tmpaction.getTd():null,
+                                        weight,
+                                        tmpaction!=null?tmpaction.getTaskParams():null);
+          lastsenode.addEdge(seEdge);
+        }
+        lastseNodes[corenum] = seNode;
+        for(int tmpindex = 0; tmpindex < tttasks.size(); tmpindex++) {
+          tttask2senode.put(tttasks.elementAt(tmpindex), seNode);
+        }
       }
     } else if(tttasks.size() > 0) {
       SimExecutionNode seNode = new SimExecutionNode(corenum, this.processTime);
@@ -778,61 +778,61 @@ public class ScheduleSimulator {
       SimExecutionNode lastsenode = lastseNodes[corenum];
       // create edges between previous senode on this core to this node
       if(lastsenode != null) {
-	Action tmpaction = senode2action.get(lastsenode);
-	long weight = action2exetime.get(tmpaction);
-	seEdge = new SimExecutionEdge(seNode,
-	                              lastsenode.getCoreNum(),
-	                              tmpaction.getTd(),
-	                              weight,
-	                              tmpaction.getTaskParams());
-	lastsenode.addEdge(seEdge);
+        Action tmpaction = senode2action.get(lastsenode);
+        long weight = action2exetime.get(tmpaction);
+        seEdge = new SimExecutionEdge(seNode,
+                                      lastsenode.getCoreNum(),
+                                      tmpaction.getTd(),
+                                      weight,
+                                      tmpaction.getTaskParams());
+        lastsenode.addEdge(seEdge);
       }
       lastseNodes[corenum] = seNode;
       for(int tmpindex = 0; tmpindex < tttasks.size(); tmpindex++) {
-	tttask2senode.put(tttasks.elementAt(tmpindex), seNode);
+        tttask2senode.put(tttasks.elementAt(tmpindex), seNode);
       }
     }
     if(seEdge != null) {
       // setup data dependencies for the task
       Vector<Integer> taskparams = seEdge.getTaskparams();
       if(taskparams != null) {
-	for(int i = 0; i < taskparams.size(); i++) {
-	  Integer tparam = taskparams.elementAt(i);
-	  SimExecutionEdge lastedge = obj2lastseedge.get(tparam);
-	  if(lastedge != null) {
-	    if(lastedge.getCoreNum() != seEdge.getCoreNum()) {
-	      // the obj is transferred from another core
-	      // create an seEdge for this transfer
-	      long weight = obj2transtime.get(tparam);
-	      SimExecutionEdge transseEdge = new SimExecutionEdge((SimExecutionNode)seEdge.getSource(),
-	                                                          lastedge.getCoreNum(),
-	                                                          null,             // TODO: not sure if this is enough
-	                                                          weight,
-	                                                          null);
-	      if(((SimExecutionNode)seEdge.getSource()).getTimepoint() <
-	         ((SimExecutionNode)lastedge.getTarget()).getTimepoint()) {
-		System.err.println("ScheduleSimulator:757");
-		System.exit(-1);
-	      }
-	      lastedge.getTarget().addEdge(transseEdge);
-	      transseEdge.addPredicate(lastedge);
-	      seEdge.addPredicate(transseEdge);
-	    } else {
-	      seEdge.addPredicate(lastedge);
-	    }
-	  }
-	  // update the last edge associated to the parameter obj
-	  obj2lastseedge.put(tparam, seEdge);
-	}
+        for(int i = 0; i < taskparams.size(); i++) {
+          Integer tparam = taskparams.elementAt(i);
+          SimExecutionEdge lastedge = obj2lastseedge.get(tparam);
+          if(lastedge != null) {
+            if(lastedge.getCoreNum() != seEdge.getCoreNum()) {
+              // the obj is transferred from another core
+              // create an seEdge for this transfer
+              long weight = obj2transtime.get(tparam);
+              SimExecutionEdge transseEdge = new SimExecutionEdge((SimExecutionNode)seEdge.getSource(),
+                                                                  lastedge.getCoreNum(),
+                                                                  null,             // TODO: not sure if this is enough
+                                                                  weight,
+                                                                  null);
+              if(((SimExecutionNode)seEdge.getSource()).getTimepoint() <
+                 ((SimExecutionNode)lastedge.getTarget()).getTimepoint()) {
+                System.err.println("ScheduleSimulator:757");
+                System.exit(-1);
+              }
+              lastedge.getTarget().addEdge(transseEdge);
+              transseEdge.addPredicate(lastedge);
+              seEdge.addPredicate(transseEdge);
+            } else {
+              seEdge.addPredicate(lastedge);
+            }
+          }
+          // update the last edge associated to the parameter obj
+          obj2lastseedge.put(tparam, seEdge);
+        }
       }
       taskparams = null;
 
       // set seEdge as the last execution edge for all newly created objs
       if(nobjs != null) {
-	for(int i = 0; i < nobjs.size(); i++) {
-	  ObjectSimulator nobj = nobjs.elementAt(i);
-	  obj2lastseedge.put(nobj.getOid(), seEdge);
-	}
+        for(int i = 0; i < nobjs.size(); i++) {
+          ObjectSimulator nobj = nobjs.elementAt(i);
+          obj2lastseedge.put(nobj.getOid(), seEdge);
+        }
       }
     }
   }
@@ -873,7 +873,7 @@ public class ScheduleSimulator {
       this.actions = new Vector<Action>();
       this.spareCores = new Vector<Integer>();
       for(int i = 0; i < corenum; i++) {
-	this.spareCores.add(i);
+        this.spareCores.add(i);
       }
     }
 
@@ -887,13 +887,13 @@ public class ScheduleSimulator {
 
     public void removeSpareCore(int core) {
       for(int i = 0; i < this.spareCores.size(); i++) {
-	if(this.spareCores.elementAt(i) == core) {
-	  for(int j = i; j < this.spareCores.size() - 1; j++) {
-	    this.spareCores.setElementAt(this.spareCores.elementAt(j + 1), j);
-	  }
-	  this.spareCores.remove(this.spareCores.size() - 1);
-	  return;
-	}
+        if(this.spareCores.elementAt(i) == core) {
+          for(int j = i; j < this.spareCores.size() - 1; j++) {
+            this.spareCores.setElementAt(this.spareCores.elementAt(j + 1), j);
+          }
+          this.spareCores.remove(this.spareCores.size() - 1);
+          return;
+        }
       }
     }
 
@@ -929,9 +929,9 @@ public class ScheduleSimulator {
       this.td = null;
       this.taskparams = null;
       if(this.type == TFWITHOBJ) {
-	this.nObjs = new Hashtable<ClassDescriptor, Integer>();
+        this.nObjs = new Hashtable<ClassDescriptor, Integer>();
       } else {
-	this.nObjs = null;
+        this.nObjs = null;
       }
       this.nObjNum = -1;
       this.transObj = null;
@@ -947,19 +947,19 @@ public class ScheduleSimulator {
       this.td = ts.getTd();
       Vector<Queue<ObjectSimulator>> paraQueues = ts.getParaQueues();
       if(this.type == TASKSTART) {
-	this.taskparams = new Vector<Integer>();
-	for(int i = 0; i < paraQueues.size(); i++) {
-	  ObjectSimulator tpara = paraQueues.elementAt(i).peek();
-	  this.taskparams.add(tpara.getOid());
-	}
+        this.taskparams = new Vector<Integer>();
+        for(int i = 0; i < paraQueues.size(); i++) {
+          ObjectSimulator tpara = paraQueues.elementAt(i).peek();
+          this.taskparams.add(tpara.getOid());
+        }
       } else {
-	this.taskparams = null;
+        this.taskparams = null;
       }
       paraQueues = null;
       if(this.type == TFWITHOBJ) {
-	this.nObjs = new Hashtable<ClassDescriptor, Integer>();
+        this.nObjs = new Hashtable<ClassDescriptor, Integer>();
       } else {
-	this.nObjs = null;
+        this.nObjs = null;
       }
       this.nObjNum = -1;
       this.transObj = null;
@@ -983,10 +983,10 @@ public class ScheduleSimulator {
       assert(this.type == TFWITHOBJ);
 
       if(this.nObjs.containsKey(cd)) {
-	Integer sum = this.nObjs.get(cd) + num;
-	this.nObjs.put(cd, sum);
+        Integer sum = this.nObjs.get(cd) + num;
+        this.nObjs.put(cd, sum);
       } else {
-	this.nObjs.put(cd, num);
+        this.nObjs.put(cd, num);
       }
     }
 

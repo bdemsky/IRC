@@ -308,11 +308,11 @@ public class FlatSESEEnterNode extends FlatNode {
       visited.add(fn);
 
       if (fn!=exit) {
-	for(int i=0; i<fn.numNext(); i++) {
-	  FlatNode nn=fn.getNext(i);
-	  if (!visited.contains(nn))
-	    tovisit.add(nn);
-	}
+        for(int i=0; i<fn.numNext(); i++) {
+          FlatNode nn=fn.getNext(i);
+          if (!visited.contains(nn))
+            tovisit.add(nn);
+        }
       }
     }
     return visited;

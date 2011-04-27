@@ -26,12 +26,12 @@ public class MultiHash {
       int tupleKey    = generateTupleKey(o, views[i]);
       Hashtable tuplesTable = (Hashtable) viewTable.get(views[i]);
       if(tuplesTable.containsKey(tupleKey)) {
-	Set tupleSet = (Set) tuplesTable.get(tupleKey);
-	tupleSet.add(o);
+        Set tupleSet = (Set) tuplesTable.get(tupleKey);
+        tupleSet.add(o);
       } else {
-	Set tupleSet = new HashSet();
-	tupleSet.add(o);
-	tuplesTable.put(tupleKey, tupleSet);
+        Set tupleSet = new HashSet();
+        tupleSet.add(o);
+        tuplesTable.put(tupleKey, tupleSet);
       }
     }
   }
@@ -50,7 +50,7 @@ public class MultiHash {
     ArrayList<Integer> indices = new ArrayList<Integer>();
     for(int i = 0; i < 31; i++) {
       if((mask & viewIndex) != 0) {
-	indices.add(i);
+        indices.add(i);
       }
       mask = mask << 1;
     }
@@ -85,9 +85,9 @@ public class MultiHash {
       int tupleKey    = generateTupleKey(o, views[i]);
       Hashtable tuplesTable = (Hashtable) viewTable.get(views[i]);
       if(tuplesTable.containsKey(tupleKey)) {
-	tuplesTable.remove(tupleKey);
+        tuplesTable.remove(tupleKey);
       } else {
-	System.out.println("Cannot find such key");
+        System.out.println("Cannot find such key");
       }
     }
   }
@@ -105,7 +105,7 @@ public class MultiHash {
       System.out.println("Hashtable "+i+":\t"+tmp.keySet().toString());
       Object[] keySets = tmp.keySet().toArray();
       for(int j = 0; j < keySets.length; j++) {
-	System.out.println(tmp.get(keySets[j]));
+        System.out.println(tmp.get(keySets[j]));
       }
     }
   }

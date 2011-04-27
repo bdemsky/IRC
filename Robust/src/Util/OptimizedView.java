@@ -53,7 +53,7 @@ public class OptimizedView extends MultiHash
     ArrayList<Integer> indices = new ArrayList<Integer>();
     for(int i = 0; i < 31; i++) {
       if((mask & viewIndex) != 0) {
-	indices.add(i);
+        indices.add(i);
       }
       mask = mask << 1;
     }

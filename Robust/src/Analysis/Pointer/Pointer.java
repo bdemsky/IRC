@@ -78,16 +78,16 @@ public class Pointer implements HeapAnalysis {
       blockMap.put(fm, BasicBlock.getBBlock(fm));
       Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
       for(BBlock bblock : blockMap.get(fm).getBlocks()) {
-	FlatNode fn=bblock.nodes.get(0);
-	if (fn==fm) {
-	  HashSet<TempDescriptor> fmset=new HashSet<TempDescriptor>();
-	  fmset.addAll((List<TempDescriptor>)Arrays.asList(fm.writesTemps()));
-	  bblivetemps.put(bblock, fmset);
-	} else {
-	  Set<TempDescriptor> livetemps=livemap.get(fn);
-	  bblivetemps.put(bblock, livetemps);
-	  livetemps.add(returntmp);
-	}
+        FlatNode fn=bblock.nodes.get(0);
+        if (fn==fm) {
+          HashSet<TempDescriptor> fmset=new HashSet<TempDescriptor>();
+          fmset.addAll((List<TempDescriptor>)Arrays.asList(fm.writesTemps()));
+          bblivetemps.put(bblock, fmset);
+        } else {
+          Set<TempDescriptor> livetemps=livemap.get(fn);
+          bblivetemps.put(bblock, livetemps);
+          livetemps.add(returntmp);
+        }
       }
     }
     return blockMap.get(fm);
@@ -126,20 +126,20 @@ nextdelta:
       int startindex=0;
 
       if (ppoint.getIndex()==-1) {
-	//Build base graph for entrance to this basic block
-	//System.out.println("Processing "+bblock.nodes.get(0).toString().replace(' ','_'));
-	//delta.print();
-	delta=applyInitDelta(delta, bblock);
-	//System.out.println("Generating:");
-	//delta.print();
+        //Build base graph for entrance to this basic block
+        //System.out.println("Processing "+bblock.nodes.get(0).toString().replace(' ','_'));
+        //delta.print();
+        delta=applyInitDelta(delta, bblock);
+        //System.out.println("Generating:");
+        //delta.print();
       } else {
-	//System.out.println("Processing Call "+bblock.nodes.get(ppoint.getIndex()).toString().replace(' ','_'));
-	//delta.print();
+        //System.out.println("Processing Call "+bblock.nodes.get(ppoint.getIndex()).toString().replace(' ','_'));
+        //delta.print();
 
-	startindex=ppoint.getIndex()+1;
-	delta=applyCallDelta(delta, bblock);
-	//System.out.println("Generating:");
-	//delta.print();
+        startindex=ppoint.getIndex()+1;
+        delta=applyCallDelta(delta, bblock);
+        //System.out.println("Generating:");
+        //delta.print();
       }
       Graph graph=bbgraphMap.get(bblock);
       Graph nodeGraph=null;
@@ -147,49 +147,49 @@ nextdelta:
       int lasti=-1;
       //Compute delta at exit of each node
       for(int i=startindex; i<nodes.size(); i++) {
-	FlatNode currNode=nodes.get(i);
-	//System.out.println("Start Processing "+currNode);
-	boolean init=delta.getInit();
-	if (!init&&delta.isEmpty())
-	  continue nextdelta;
+        FlatNode currNode=nodes.get(i);
+        //System.out.println("Start Processing "+currNode);
+        boolean init=delta.getInit();
+        if (!init&&delta.isEmpty())
+          continue nextdelta;
 
 
-	if (!graphMap.containsKey(currNode)) {
-	  if (isNEEDED(currNode)) {
-	    graphMap.put(currNode, new Graph(graph));
-	  } else {
-	    boolean fallthru=true;
-	    if (isINACC(currNode)&&((lasti==-1)||(lasti==i))) {
-	      if (lasti==-1) {
-		for(lasti=nodes.size()-1; lasti>=i; lasti--) {
-		  FlatNode scurrNode=nodes.get(lasti);
-		  if (isNEEDED(scurrNode)||isINACC(scurrNode)) {
-		    break;
-		  }
-		}
-	      }
-	      if (i==lasti) {
-		mustProcess.add(currNode);
-		graphMap.put(currNode, new Graph(graph));
-		fallthru=false;
-	      }
-	    }
-	    if (fallthru) {
-	      if (i==0) {
-		//base graph works for us
-		graphMap.put(currNode, new Graph(graph));
-	      } else {
-		//just use previous graph
-		graphMap.put(currNode, graphMap.get(nodes.get(i-1)));
-	      }
-	    }
-	  }
-	}
+        if (!graphMap.containsKey(currNode)) {
+          if (isNEEDED(currNode)) {
+            graphMap.put(currNode, new Graph(graph));
+          } else {
+            boolean fallthru=true;
+            if (isINACC(currNode)&&((lasti==-1)||(lasti==i))) {
+              if (lasti==-1) {
+                for(lasti=nodes.size()-1; lasti>=i; lasti--) {
+                  FlatNode scurrNode=nodes.get(lasti);
+                  if (isNEEDED(scurrNode)||isINACC(scurrNode)) {
+                    break;
+                  }
+                }
+              }
+              if (i==lasti) {
+                mustProcess.add(currNode);
+                graphMap.put(currNode, new Graph(graph));
+                fallthru=false;
+              }
+            }
+            if (fallthru) {
+              if (i==0) {
+                //base graph works for us
+                graphMap.put(currNode, new Graph(graph));
+              } else {
+                //just use previous graph
+                graphMap.put(currNode, graphMap.get(nodes.get(i-1)));
+              }
+            }
+          }
+        }
 
-	nodeGraph=graphMap.get(currNode);
-	delta=processNode(bblock, i, currNode, delta, nodeGraph);
-	//System.out.println("Processing "+currNode+" and generating delta:");
-	//delta.print();
+        nodeGraph=graphMap.get(currNode);
+        delta=processNode(bblock, i, currNode, delta, nodeGraph);
+        //System.out.println("Processing "+currNode+" and generating delta:");
+        //delta.print();
       }
       generateFinalDelta(bblock, delta, nodeGraph);
     }
@@ -198,19 +198,19 @@ nextdelta:
     if (false) {
       int debugindex=0;
       for(Map.Entry<BBlock, Graph> e : bbgraphMap.entrySet()) {
-	Graph g=e.getValue();
-	plotGraph(g,"BB"+e.getKey().nodes.get(0).toString().replace(' ','_'));
-	debugindex++;
+        Graph g=e.getValue();
+        plotGraph(g,"BB"+e.getKey().nodes.get(0).toString().replace(' ','_'));
+        debugindex++;
       }
 
       for(FlatMethod fm : blockMap.keySet()) {
-	System.out.println(fm.printMethod());
+        System.out.println(fm.printMethod());
       }
       for(Map.Entry<FlatNode, Graph> e : graphMap.entrySet()) {
-	FlatNode fn=e.getKey();
-	Graph g=e.getValue();
-	plotGraph(g,"FN"+fn.toString()+debugindex);
-	debugindex++;
+        FlatNode fn=e.getKey();
+        Graph g=e.getValue();
+        plotGraph(g,"FN"+fn.toString()+debugindex);
+        debugindex++;
       }
     }
 
@@ -249,9 +249,9 @@ nextdelta:
       MySet<Edge> edgeSet=new MySet<Edge>();
       /* Get target set */
       if (graph.varMap.containsKey(tmp))
-	edgeSet.addAll(graph.varMap.get(tmp));
+        edgeSet.addAll(graph.varMap.get(tmp));
       else
-	edgeSet.addAll(graph.parent.varMap.get(tmp));
+        edgeSet.addAll(graph.parent.varMap.get(tmp));
       newDelta.varedgeadd.put(tmp, edgeSet);
     }
 
@@ -264,18 +264,18 @@ nextdelta:
       MySet<Edge> edgeSet=new MySet<Edge>();
       /* Get edge set */
       if (graph.nodeMap.containsKey(node))
-	edgeSet.addAll(graph.nodeMap.get(node));
+        edgeSet.addAll(graph.nodeMap.get(node));
       else
-	edgeSet.addAll(graph.parent.nodeMap.get(node));
+        edgeSet.addAll(graph.parent.nodeMap.get(node));
       newDelta.heapedgeadd.put(node, edgeSet);
 
       /* Compute ages */
       if (graph.oldNodes.containsKey(node)) {
-	if (graph.oldNodes.get(node).booleanValue())
-	  newDelta.addOldNodes.put(node, Boolean.TRUE);
+        if (graph.oldNodes.get(node).booleanValue())
+          newDelta.addOldNodes.put(node, Boolean.TRUE);
       } else if (graph.parent.oldNodes.containsKey(node)) {
-	//parent graphs only contain true...no need to check
-	newDelta.addOldNodes.put(node, Boolean.TRUE);
+        //parent graphs only contain true...no need to check
+        newDelta.addOldNodes.put(node, Boolean.TRUE);
       }
     }
 
@@ -296,16 +296,16 @@ nextdelta:
       tmpSet.addAll(delta.basevaredge.keySet());
       tmpSet.addAll(delta.varedgeadd.keySet());
       for(TempDescriptor tmp : tmpSet) {
-	/* Start with the new incoming edges */
-	MySet<Edge> newbaseedge=delta.basevaredge.get(tmp);
-	/* Remove the remove set */
-	if (newbaseedge==null)
-	  newbaseedge=new MySet<Edge>();
-	newbaseedge.removeAll(delta.varedgeremove.get(tmp));
-	/* Add in the new set*/
-	newbaseedge.addAll(delta.varedgeadd.get(tmp));
-	/* Store the results */
-	newDelta.varedgeadd.put(tmp, newbaseedge);
+        /* Start with the new incoming edges */
+        MySet<Edge> newbaseedge=delta.basevaredge.get(tmp);
+        /* Remove the remove set */
+        if (newbaseedge==null)
+          newbaseedge=new MySet<Edge>();
+        newbaseedge.removeAll(delta.varedgeremove.get(tmp));
+        /* Add in the new set*/
+        newbaseedge.addAll(delta.varedgeadd.get(tmp));
+        /* Store the results */
+        newDelta.varedgeadd.put(tmp, newbaseedge);
       }
       delta.basevaredge.clear();
 
@@ -315,25 +315,25 @@ nextdelta:
       nodeSet.addAll(delta.heapedgeadd.keySet());
       nodeSet.addAll(delta.heapedgeremove.keySet());
       for(AllocNode node : nodeSet) {
-	/* Start with the new incoming edges */
-	MySet<Edge> newheapedge=new MySet<Edge>(delta.baseheapedge.get(node));
-	/* Remove the remove set */
-	MySet<Edge> removeset=delta.heapedgeremove.get(node);
+        /* Start with the new incoming edges */
+        MySet<Edge> newheapedge=new MySet<Edge>(delta.baseheapedge.get(node));
+        /* Remove the remove set */
+        MySet<Edge> removeset=delta.heapedgeremove.get(node);
 
-	if (removeset!=null)
-	  newheapedge.removeAll(removeset);
+        if (removeset!=null)
+          newheapedge.removeAll(removeset);
 
-	/* Add in the add set */
-	MySet<Edge> settoadd=delta.heapedgeadd.get(node);
-	if (settoadd!=null)
-	  newheapedge.addAll(settoadd);
-	newDelta.heapedgeadd.put(node, newheapedge);
+        /* Add in the add set */
+        MySet<Edge> settoadd=delta.heapedgeadd.get(node);
+        if (settoadd!=null)
+          newheapedge.addAll(settoadd);
+        newDelta.heapedgeadd.put(node, newheapedge);
 
-	/* Remove the newly created edges..no need to propagate a diff for those */
-	if (removeset!=null) {
-	  removeset.removeAll(delta.baseheapedge.get(node));
-	  newDelta.heapedgeremove.put(node, removeset);
-	}
+        /* Remove the newly created edges..no need to propagate a diff for those */
+        if (removeset!=null) {
+          removeset.removeAll(delta.baseheapedge.get(node));
+          newDelta.heapedgeremove.put(node, removeset);
+        }
       }
 
       /* Compute new ages */
@@ -345,15 +345,15 @@ nextdelta:
       oldNodes.addAll(delta.baseOldNodes.keySet());
       oldNodes.addAll(delta.addOldNodes.keySet());
       for(AllocNode node : oldNodes) {
-	if (delta.addOldNodes.containsKey(node)) {
-	  if (delta.addOldNodes.get(node).booleanValue()) {
-	    newDelta.addOldNodes.put(node, Boolean.TRUE);
-	  }
-	} else {
-	  if (delta.baseOldNodes.get(node).booleanValue()) {
-	    newDelta.addOldNodes.put(node, Boolean.TRUE);
-	  }
-	}
+        if (delta.addOldNodes.containsKey(node)) {
+          if (delta.addOldNodes.get(node).booleanValue()) {
+            newDelta.addOldNodes.put(node, Boolean.TRUE);
+          }
+        } else {
+          if (delta.baseOldNodes.get(node).booleanValue()) {
+            newDelta.addOldNodes.put(node, Boolean.TRUE);
+          }
+        }
       }
     }
 
@@ -368,35 +368,35 @@ nextdelta:
     if (!newDelta.heapedgeadd.isEmpty()||!newDelta.heapedgeremove.isEmpty()||!newDelta.varedgeadd.isEmpty()||!newDelta.addNodeAges.isEmpty()||!newDelta.addOldNodes.isEmpty()) {
       /* We have a delta to propagate */
       if (returnMap.containsKey(bblock)) {
-	//exit of call block
-	boolean first=true;
+        //exit of call block
+        boolean first=true;
 
-	for(PPoint caller : returnMap.get(bblock)) {
-	  //System.out.println("Sending Return BBlock to "+caller.getBBlock().nodes.get(caller.getIndex()).toString().replace(' ','_'));
-	  //newDelta.print();
-	  if (first) {
-	    newDelta.setBlock(caller);
-	    toprocess.add(newDelta);
-	    first=false;
-	  } else {
-	    Delta d=newDelta.diffBlock(caller);
-	    toprocess.add(d);
-	  }
-	}
+        for(PPoint caller : returnMap.get(bblock)) {
+          //System.out.println("Sending Return BBlock to "+caller.getBBlock().nodes.get(caller.getIndex()).toString().replace(' ','_'));
+          //newDelta.print();
+          if (first) {
+            newDelta.setBlock(caller);
+            toprocess.add(newDelta);
+            first=false;
+          } else {
+            Delta d=newDelta.diffBlock(caller);
+            toprocess.add(d);
+          }
+        }
       } else {
-	//normal block
-	Vector<BBlock> blockvector=bblock.next();
-	for(int i=0; i<blockvector.size(); i++) {
-	  //System.out.println("Sending BBlock to "+blockvector.get(i).nodes.get(0).toString().replace(' ','_'));
-	  //newDelta.print();
-	  if (i==0) {
-	    newDelta.setBlock(new PPoint(blockvector.get(i)));
-	    toprocess.add(newDelta);
-	  } else {
-	    Delta d=newDelta.diffBlock(new PPoint(blockvector.get(i)));
-	    toprocess.add(d);
-	  }
-	}
+        //normal block
+        Vector<BBlock> blockvector=bblock.next();
+        for(int i=0; i<blockvector.size(); i++) {
+          //System.out.println("Sending BBlock to "+blockvector.get(i).nodes.get(0).toString().replace(' ','_'));
+          //newDelta.print();
+          if (i==0) {
+            newDelta.setBlock(new PPoint(blockvector.get(i)));
+            toprocess.add(newDelta);
+          } else {
+            Delta d=newDelta.diffBlock(new PPoint(blockvector.get(i)));
+            toprocess.add(d);
+          }
+        }
       }
     } else {
       //System.out.println("EMPTY DELTA");
@@ -476,22 +476,22 @@ nextdelta:
     if (delta.getInit()) {
       removeInitTaints(null, delta, graph);
       for (TempDescriptor tmp : sese.getInVarSet()) {
-	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
-	MySet<Edge> edges=GraphManip.getEdges(graph, delta, tmp);
-	for(Edge e : edges) {
-	  Edge newe=e.addTaint(taint);
-	  delta.addVarEdge(newe);
-	}
+        Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
+        MySet<Edge> edges=GraphManip.getEdges(graph, delta, tmp);
+        for(Edge e : edges) {
+          Edge newe=e.addTaint(taint);
+          delta.addVarEdge(newe);
+        }
       }
     } else {
       removeDiffTaints(null, delta);
       for (TempDescriptor tmp : sese.getInVarSet()) {
-	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
-	MySet<Edge> edges=GraphManip.getDiffEdges(delta, tmp);
-	for(Edge e : edges) {
-	  Edge newe=e.addTaint(taint);
-	  delta.addVarEdge(newe);
-	}
+        Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
+        MySet<Edge> edges=GraphManip.getDiffEdges(delta, tmp);
+        for(Edge e : edges) {
+          Edge newe=e.addTaint(taint);
+          delta.addVarEdge(newe);
+        }
       }
     }
 
@@ -531,10 +531,10 @@ nextdelta:
       //Process delta edges
       processEdgeMap(sese, delta.varedgeadd, null, null, edgestoremove, edgestoadd);
       for(Edge e : edgestoremove) {
-	delta.removeVarEdge(e);
+        delta.removeVarEdge(e);
       }
       for(Edge e : edgestoadd) {
-	delta.addVarEdge(e);
+        delta.addVarEdge(e);
       }
     }
 
@@ -548,10 +548,10 @@ nextdelta:
       //Process delta edges
       processEdgeMap(sese, delta.heapedgeadd, null, null, edgestoremove, edgestoadd);
       for(Edge e : edgestoremove) {
-	delta.removeHeapEdge(e);
+        delta.removeHeapEdge(e);
       }
       for(Edge e : edgestoadd) {
-	delta.addHeapEdge(e);
+        delta.addHeapEdge(e);
       }
     }
   }
@@ -569,10 +569,10 @@ nextdelta:
       //Process delta edges
       processEdgeMap(sese, delta.varedgeadd, null, null, edgestoremove, edgestoadd);
       for(Edge e : edgestoremove) {
-	delta.removeVarEdge(e);
+        delta.removeVarEdge(e);
       }
       for(Edge e : edgestoadd) {
-	delta.addVarEdge(e);
+        delta.addVarEdge(e);
       }
     }
 
@@ -588,10 +588,10 @@ nextdelta:
       //Process delta edges
       processEdgeMap(sese, delta.heapedgeadd, null, null, edgestoremove, edgestoadd);
       for(Edge e : edgestoremove) {
-	delta.removeHeapEdge(e);
+        delta.removeHeapEdge(e);
       }
       for(Edge e : edgestoadd) {
-	delta.addHeapEdge(e);
+        delta.addHeapEdge(e);
       }
     }
   }
@@ -600,22 +600,22 @@ nextdelta:
     for(Map.Entry<?, MySet<Edge>> entry:edgemap.entrySet()) {
       //If the parent map exists and overrides this entry, skip it
       if (childmap!=null&&childmap.containsKey(entry.getKey()))
-	continue;
+        continue;
       for(Edge e:entry.getValue()) {
-	//check whether this edge has been removed
-	if (removemap!=null&&removemap.containsKey(entry.getKey())&&
-	    removemap.get(entry.getKey()).contains(e))
-	  continue;
-	//have real edge
-	TaintSet ts=e.getTaints();
-	TaintSet newts=null;
-	//update non-null taint set
-	if (ts!=null)
-	  newts=Canonical.removeInContextTaintsNP(ts, sese);
-	if (newts!=null&&newts!=ts) {
-	  edgestoremove.add(e);
-	  edgestoadd.add(e.changeTaintSet(newts));
-	}
+        //check whether this edge has been removed
+        if (removemap!=null&&removemap.containsKey(entry.getKey())&&
+            removemap.get(entry.getKey()).contains(e))
+          continue;
+        //have real edge
+        TaintSet ts=e.getTaints();
+        TaintSet newts=null;
+        //update non-null taint set
+        if (ts!=null)
+          newts=Canonical.removeInContextTaintsNP(ts, sese);
+        if (newts!=null&&newts!=ts) {
+          edgestoremove.add(e);
+          edgestoadd.add(e.changeTaintSet(newts));
+        }
       }
     }
   }
@@ -630,18 +630,18 @@ nextdelta:
       newDelta.varedgeadd.put(tmpthis, (MySet<Edge>)edges.clone());
       edgeset.addAll(edges);
       for(Edge e:edges) {
-	AllocNode dstnode=e.dst;
-	if (!nodeset.contains(dstnode)&&(oldnodeset==null||!oldnodeset.contains(dstnode))) {
-	  TypeDescriptor type=dstnode.getType();
-	  if (!type.isArray()) {
-	    targetSet.add(type.getClassDesc());
-	  } else {
-	    //arrays don't have code
-	    targetSet.add(typeUtil.getClass(TypeUtil.ObjectClass));
-	  }
-	  nodeset.add(dstnode);
-	  tovisit.add(dstnode);
-	}
+        AllocNode dstnode=e.dst;
+        if (!nodeset.contains(dstnode)&&(oldnodeset==null||!oldnodeset.contains(dstnode))) {
+          TypeDescriptor type=dstnode.getType();
+          if (!type.isArray()) {
+            targetSet.add(type.getClassDesc());
+          } else {
+            //arrays don't have code
+            targetSet.add(typeUtil.getClass(TypeUtil.ObjectClass));
+          }
+          nodeset.add(dstnode);
+          tovisit.add(dstnode);
+        }
       }
     }
   }
@@ -656,10 +656,10 @@ nextdelta:
       newDelta.varedgeadd.put(tmp, (MySet<Edge>)edges.clone());
       edgeset.addAll(edges);
       for(Edge e:edges) {
-	if (!nodeset.contains(e.dst)) {
-	  nodeset.add(e.dst);
-	  tovisit.add(e.dst);
-	}
+        if (!nodeset.contains(e.dst)) {
+          nodeset.add(e.dst);
+          tovisit.add(e.dst);
+        }
       }
     }
   }
@@ -671,14 +671,14 @@ nextdelta:
       AllocNode node=tovisit.pop();
       MySet<Edge> edges=GraphManip.getEdges(graph, delta, node);
       if (!edges.isEmpty()) {
-	newDelta.heapedgeadd.put(node, Edge.makeOld(edges));
-	edgeset.addAll(edges);
-	for(Edge e : edges) {
-	  if (!nodeset.contains(e.dst)&&(oldnodeset==null||!oldnodeset.contains(e.dst))) {
-	    nodeset.add(e.dst);
-	    tovisit.add(e.dst);
-	  }
-	}
+        newDelta.heapedgeadd.put(node, Edge.makeOld(edges));
+        edgeset.addAll(edges);
+        for(Edge e : edges) {
+          if (!nodeset.contains(e.dst)&&(oldnodeset==null||!oldnodeset.contains(e.dst))) {
+            nodeset.add(e.dst);
+            tovisit.add(e.dst);
+          }
+        }
       }
     }
   }
@@ -692,11 +692,11 @@ nextdelta:
     } else {
       //Compute Edges
       for(Edge e : newDelta.varedgeadd.get(tmpthis)) {
-	AllocNode node=e.dst;
-	ClassDescriptor cd=node.getType().getClassDesc();
-	//Figure out exact method called and add to set
-	MethodDescriptor calledmd=cd.getCalledMethod(md);
-	targets.add(calledmd);
+        AllocNode node=e.dst;
+        ClassDescriptor cd=node.getType().getClassDesc();
+        //Figure out exact method called and add to set
+        MethodDescriptor calledmd=cd.getCalledMethod(md);
+        targets.add(calledmd);
       }
     }
     return targets;
@@ -714,11 +714,11 @@ nextdelta:
       HashMap<TempDescriptor, TempDescriptor> tmpMap=new HashMap<TempDescriptor, TempDescriptor>();
       int offset=0;
       if(tmpthis!=null) {
-	tmpMap.put(tmpthis, fm.getParameter(offset++));
+        tmpMap.put(tmpthis, fm.getParameter(offset++));
       }
       for(int i=0; i<fcall.numArgs(); i++) {
-	TempDescriptor tmp=fcall.getArg(i);
-	tmpMap.put(tmp,fm.getParameter(i+offset));
+        TempDescriptor tmp=fcall.getArg(i);
+        tmpMap.put(tmp,fm.getParameter(i+offset));
       }
 
       //Get basicblock for the method
@@ -726,61 +726,61 @@ nextdelta:
 
       //Hook up exits
       if (!callMap.containsKey(fcall)) {
-	callMap.put(fcall, new HashSet<BBlock>());
+        callMap.put(fcall, new HashSet<BBlock>());
       }
 
       Delta returnDelta=null;
       if (!callMap.get(fcall).contains(block.getStart())) {
-	callMap.get(fcall).add(block.getStart());
-	newmethod=true;
+        callMap.get(fcall).add(block.getStart());
+        newmethod=true;
 
-	//Hook up return
-	if (!returnMap.containsKey(block.getExit())) {
-	  returnMap.put(block.getExit(), new HashSet<PPoint>());
-	}
-	returnMap.get(block.getExit()).add(new PPoint(callblock, callindex));
+        //Hook up return
+        if (!returnMap.containsKey(block.getExit())) {
+          returnMap.put(block.getExit(), new HashSet<PPoint>());
+        }
+        returnMap.get(block.getExit()).add(new PPoint(callblock, callindex));
 
-	if (bbgraphMap.containsKey(block.getExit())) {
-	  //Need to push existing results to current node
-	  if (returnDelta==null) {
-	    returnDelta=new Delta(null, false);
-	    Vector<FlatNode> exitblocknodes=block.getExit().nodes();
-	    FlatExit fexit=(FlatExit)exitblocknodes.get(exitblocknodes.size()-1);
-	    buildInitDelta(graphMap.get(fexit), returnDelta);
-	    if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
-	      returnDelta.setBlock(new PPoint(callblock, callindex));
-	      toprocess.add(returnDelta);
-	    }
-	  } else {
-	    if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
-	      toprocess.add(returnDelta.diffBlock(new PPoint(callblock, callindex)));
-	    }
-	  }
-	}
+        if (bbgraphMap.containsKey(block.getExit())) {
+          //Need to push existing results to current node
+          if (returnDelta==null) {
+            returnDelta=new Delta(null, false);
+            Vector<FlatNode> exitblocknodes=block.getExit().nodes();
+            FlatExit fexit=(FlatExit)exitblocknodes.get(exitblocknodes.size()-1);
+            buildInitDelta(graphMap.get(fexit), returnDelta);
+            if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
+              returnDelta.setBlock(new PPoint(callblock, callindex));
+              toprocess.add(returnDelta);
+            }
+          } else {
+            if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
+              toprocess.add(returnDelta.diffBlock(new PPoint(callblock, callindex)));
+            }
+          }
+        }
       }
 
       if (oldedgeset==null) {
-	//First build of this graph
-	//Build and enqueue delta...safe to just use existing delta
-	Delta d=newDelta.changeParams(tmpMap, new PPoint(block.getStart()));
-	//System.out.println("AProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
-	//d.print();
-	toprocess.add(d);
+        //First build of this graph
+        //Build and enqueue delta...safe to just use existing delta
+        Delta d=newDelta.changeParams(tmpMap, new PPoint(block.getStart()));
+        //System.out.println("AProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
+        //d.print();
+        toprocess.add(d);
       } else if (newmethod) {
-	if (basedelta==null) {
-	  basedelta=newDelta.buildBase(oldedgeset);
-	}
-	//Build and enqueue delta
-	Delta d=basedelta.changeParams(tmpMap, new PPoint(block.getStart()));
-	//System.out.println("BProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
-	//d.print();
-	toprocess.add(d);
+        if (basedelta==null) {
+          basedelta=newDelta.buildBase(oldedgeset);
+        }
+        //Build and enqueue delta
+        Delta d=basedelta.changeParams(tmpMap, new PPoint(block.getStart()));
+        //System.out.println("BProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
+        //d.print();
+        toprocess.add(d);
       } else  {
-	//Build and enqueue delta
-	Delta d=newDelta.changeParams(tmpMap, new PPoint(block.getStart()));
-	//System.out.println("CProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
-	//d.print();
-	toprocess.add(d);
+        //Build and enqueue delta
+        Delta d=newDelta.changeParams(tmpMap, new PPoint(block.getStart()));
+        //System.out.println("CProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
+        //d.print();
+        toprocess.add(d);
       }
     }
   }
@@ -804,8 +804,8 @@ nextdelta:
       edges.addAll(delta.heapedgeadd.get(extNode));
 
       for(Edge e : edges) {
-	if (nodeset.contains(e.dst))
-	  externaledgeset.add(e);
+        if (nodeset.contains(e.dst))
+          externaledgeset.add(e);
       }
     }
 
@@ -825,8 +825,8 @@ nextdelta:
       edges.addAll(delta.varedgeadd.get(tmp));
 
       for(Edge e : edges) {
-	if (nodeset.contains(e.dst))
-	  externaledgeset.add(e);
+        if (nodeset.contains(e.dst))
+          externaledgeset.add(e);
       }
     }
   }
@@ -838,7 +838,7 @@ nextdelta:
     //Want to remove the set of internal edges
     for(Edge e : edgeset) {
       if (e.src!=null&&!graph.callerEdges.contains(e)) {
-	delta.removeHeapEdge(e);
+        delta.removeHeapEdge(e);
       }
     }
 
@@ -846,7 +846,7 @@ nextdelta:
     for(Edge e : externaledgeset) {
       //want to remove the set of internal edges
       if (!graph.callerEdges.contains(e))
-	delta.removeEdge(e);
+        delta.removeEdge(e);
     }
   }
 
@@ -908,20 +908,20 @@ nextdelta:
       TempDescriptor tmpthis=fcall.getThis();
       //Fix up delta to get rid of unnecessary heap edge removals
       for(Map.Entry<AllocNode, MySet<Edge>> entry : delta.heapedgeremove.entrySet()) {
-	for(Iterator<Edge> eit=entry.getValue().iterator(); eit.hasNext(); ) {
-	  Edge e=eit.next();
-	  if (graph.callerEdges.contains(e))
-	    eit.remove();
-	}
+        for(Iterator<Edge> eit=entry.getValue().iterator(); eit.hasNext(); ) {
+          Edge e=eit.next();
+          if (graph.callerEdges.contains(e))
+            eit.remove();
+        }
       }
 
       //Fix up delta to get rid of unnecessary var edge removals
       for(Map.Entry<TempDescriptor, MySet<Edge>> entry : delta.varedgeremove.entrySet()) {
-	for(Iterator<Edge> eit=entry.getValue().iterator(); eit.hasNext(); ) {
-	  Edge e=eit.next();
-	  if (graph.callerEdges.contains(e))
-	    eit.remove();
-	}
+        for(Iterator<Edge> eit=entry.getValue().iterator(); eit.hasNext(); ) {
+          Edge e=eit.next();
+          if (graph.callerEdges.contains(e))
+            eit.remove();
+        }
       }
 
       //Handle the this temp
@@ -933,16 +933,16 @@ nextdelta:
       MySet<Edge> newedges=GraphManip.getDiffEdges(delta, oldnodeset);
       edgeset.addAll(newedges);
       for(Edge e : newedges) {
-	//Add new edges that start from old node to newDelta
-	AllocNode src=e.src;
-	if (!newDelta.heapedgeadd.containsKey(src)) {
-	  newDelta.heapedgeadd.put(src, new MySet<Edge>());
-	}
-	newDelta.heapedgeadd.get(src).add(e.makeOld());
-	if (!nodeset.contains(e.dst)&&!oldnodeset.contains(e.dst)) {
-	  nodeset.add(e.dst);
-	  tovisit.add(e.dst);
-	}
+        //Add new edges that start from old node to newDelta
+        AllocNode src=e.src;
+        if (!newDelta.heapedgeadd.containsKey(src)) {
+          newDelta.heapedgeadd.put(src, new MySet<Edge>());
+        }
+        newDelta.heapedgeadd.get(src).add(e.makeOld());
+        if (!nodeset.contains(e.dst)&&!oldnodeset.contains(e.dst)) {
+          nodeset.add(e.dst);
+          tovisit.add(e.dst);
+        }
       }
 
       //Traverse all reachable nodes
@@ -971,30 +971,30 @@ nextdelta:
       Set<FlatSESEEnterNode> seseCallers=OoOJava?taskAnalysis.getTransitiveExecutingRBlocks(fcall):null;
       //Check if the new nodes allow us to insert a new edge
       for(AllocNode node : nodeset) {
-	if (graph.callNewEdges.containsKey(node)) {
-	  for(Iterator<Edge> eit=graph.callNewEdges.get(node).iterator(); eit.hasNext(); ) {
-	    Edge e=eit.next();
-	    if ((graph.callNodeAges.contains(e.src)||graph.reachNode.contains(e.src))&&
-	        (graph.callNodeAges.contains(e.dst)||graph.reachNode.contains(e.dst))) {
-	      Edge edgetoadd=e.copy(); //we need our own copy to modify below
-	      eit.remove();
-	      if (seseCallers!=null)
-		edgetoadd.taintModify(seseCallers);
-	      mergeCallEdge(graph, delta, edgetoadd);
-	    }
-	  }
-	}
+        if (graph.callNewEdges.containsKey(node)) {
+          for(Iterator<Edge> eit=graph.callNewEdges.get(node).iterator(); eit.hasNext(); ) {
+            Edge e=eit.next();
+            if ((graph.callNodeAges.contains(e.src)||graph.reachNode.contains(e.src))&&
+                (graph.callNodeAges.contains(e.dst)||graph.reachNode.contains(e.dst))) {
+              Edge edgetoadd=e.copy(); //we need our own copy to modify below
+              eit.remove();
+              if (seseCallers!=null)
+                edgetoadd.taintModify(seseCallers);
+              mergeCallEdge(graph, delta, edgetoadd);
+            }
+          }
+        }
       }
 
       for(Edge e : edgeset) {
-	//See if these edges would allow an old edge to be added
-	if (graph.callOldEdges.containsKey(e)) {
-	  for(Edge adde : graph.callOldEdges.get(e)) {
-	    Edge ecopy=adde.copy();
-	    ecopy.statuspredicate=e.statuspredicate;
-	    mergeCallEdge(graph, delta, ecopy);
-	  }
-	}
+        //See if these edges would allow an old edge to be added
+        if (graph.callOldEdges.containsKey(e)) {
+          for(Edge adde : graph.callOldEdges.get(e)) {
+            Edge ecopy=adde.copy();
+            ecopy.statuspredicate=e.statuspredicate;
+            mergeCallEdge(graph, delta, ecopy);
+          }
+        }
       }
 
       //Add in new external edges
@@ -1020,21 +1020,21 @@ nextdelta:
       MySet<Edge> edgeset=entry.getValue();
 
       for(Edge e : edgeset) {
-	Edge copy=e.copy();
-	boolean rewrite=false;
-	if (copy.dst!=null&&graph.callNodeAges.contains(copy.dst)) {
-	  copy.dst=allocFactory.getAllocNode(copy.dst, true);
-	  rewrite=true;
-	}
-	if (rewrite) {
-	  edgestoremove.add(e);
-	  edgestoadd.add(copy);
-	}
+        Edge copy=e.copy();
+        boolean rewrite=false;
+        if (copy.dst!=null&&graph.callNodeAges.contains(copy.dst)) {
+          copy.dst=allocFactory.getAllocNode(copy.dst, true);
+          rewrite=true;
+        }
+        if (rewrite) {
+          edgestoremove.add(e);
+          edgestoadd.add(copy);
+        }
       }
     }
     for(Edge e : edgestoremove) {
       if (!graph.callerEdges.contains(e))
-	delta.removeVarEdge(e);
+        delta.removeVarEdge(e);
     }
     for(Edge e : edgestoadd) {
       delta.addVarEdge(e);
@@ -1054,25 +1054,25 @@ nextdelta:
       MySet<Edge> edgeset=entry.getValue();
 
       for(Edge e : edgeset) {
-	Edge copy=e.copy();
-	boolean rewrite=false;
-	if (copy.src!=null&&graph.callNodeAges.contains(copy.src)) {
-	  copy.src=allocFactory.getAllocNode(copy.src, true);
-	  rewrite=true;
-	}
-	if (copy.dst!=null&&graph.callNodeAges.contains(copy.dst)) {
-	  copy.dst=allocFactory.getAllocNode(copy.dst, true);
-	  rewrite=true;
-	}
-	if (rewrite) {
-	  edgestoremove.add(e);
-	  edgestoadd.add(copy);
-	}
+        Edge copy=e.copy();
+        boolean rewrite=false;
+        if (copy.src!=null&&graph.callNodeAges.contains(copy.src)) {
+          copy.src=allocFactory.getAllocNode(copy.src, true);
+          rewrite=true;
+        }
+        if (copy.dst!=null&&graph.callNodeAges.contains(copy.dst)) {
+          copy.dst=allocFactory.getAllocNode(copy.dst, true);
+          rewrite=true;
+        }
+        if (rewrite) {
+          edgestoremove.add(e);
+          edgestoadd.add(copy);
+        }
       }
     }
     for(Edge e : edgestoremove) {
       if (!graph.callerEdges.contains(e))
-	delta.removeHeapEdge(e);
+        delta.removeHeapEdge(e);
     }
     for(Edge e : edgestoadd) {
       delta.addHeapEdge(e);
@@ -1086,22 +1086,22 @@ nextdelta:
       //First did we age the source
       Edge newedge=e.copy();
       if (newedge.src!=null&&!e.src.isSummary()&&graph.callNodeAges.contains(e.src)) {
-	AllocNode summaryNode=allocFactory.getAllocNode(newedge.src, true);
-	newedge.src=summaryNode;
+        AllocNode summaryNode=allocFactory.getAllocNode(newedge.src, true);
+        newedge.src=summaryNode;
       }
       //Compute target
       if (graph.callNodeAges.contains(e.dst)&&!e.dst.isSummary()) {
-	if (graph.callOldNodes.contains(e.dst)) {
-	  //Need two edges
-	  Edge copy=newedge.copy();
-	  mergeEdge(graph, newDelta, copy);
-	}
-	//Now add summarized node
-	newedge.dst=allocFactory.getAllocNode(newedge.dst, true);
-	mergeCallEdge(graph, newDelta, newedge);
+        if (graph.callOldNodes.contains(e.dst)) {
+          //Need two edges
+          Edge copy=newedge.copy();
+          mergeEdge(graph, newDelta, copy);
+        }
+        //Now add summarized node
+        newedge.dst=allocFactory.getAllocNode(newedge.dst, true);
+        mergeCallEdge(graph, newDelta, newedge);
       } else {
-	//Add edge to single node
-	mergeEdge(graph, newDelta, newedge);
+        //Add edge to single node
+        mergeEdge(graph, newDelta, newedge);
       }
     }
   }
@@ -1123,84 +1123,84 @@ nextdelta:
     for(Iterator<AllocNode> nodeit=delta.addNodeAges.iterator(); nodeit.hasNext(); ) {
       AllocNode node=nodeit.next();
       if (!graph.callNodeAges.contains(node)) {
-	graph.callNodeAges.add(node);
-	newDelta.addNodeAges.add(node);
+        graph.callNodeAges.add(node);
+        newDelta.addNodeAges.add(node);
       }
       AllocNode summaryAdd=null;
       if (!graph.reachNode.contains(node)&&!node.isSummary()) {
-	/* Need to age node in existing graph*/
+        /* Need to age node in existing graph*/
 
-	AllocNode summaryNode=allocFactory.getAllocNode(node, true);
+        AllocNode summaryNode=allocFactory.getAllocNode(node, true);
 
-	if (!graph.callNodeAges.contains(summaryNode)) {
-	  graph.callNodeAges.add(summaryNode);
-	  newDelta.addNodeAges.add(summaryNode);
-	  summaryAdd=summaryNode;
-	}
-	summarizeInGraph(graph, newDelta, node);
+        if (!graph.callNodeAges.contains(summaryNode)) {
+          graph.callNodeAges.add(summaryNode);
+          newDelta.addNodeAges.add(summaryNode);
+          summaryAdd=summaryNode;
+        }
+        summarizeInGraph(graph, newDelta, node);
       }
       do {
-	if (graph.callNewEdges.containsKey(node)) {
-	  for(Iterator<Edge> eit=graph.callNewEdges.get(node).iterator(); eit.hasNext(); ) {
-	    Edge e=eit.next();
-	    if ((graph.callNodeAges.contains(e.src)||graph.reachNode.contains(e.src))&&
-	        (graph.callNodeAges.contains(e.dst)||graph.reachNode.contains(e.dst))) {
-	      Edge edgetoadd=e.copy(); //we need our own copy to modify below
-	      eit.remove();
-	      if (seseCallers!=null)
-		edgetoadd.taintModify(seseCallers);
-	      mergeCallEdge(graph, newDelta, edgetoadd);
-	    }
-	  }
-	}
-	//do the summary node if we added that also...
-	node=summaryAdd;
-	summaryAdd=null;
+        if (graph.callNewEdges.containsKey(node)) {
+          for(Iterator<Edge> eit=graph.callNewEdges.get(node).iterator(); eit.hasNext(); ) {
+            Edge e=eit.next();
+            if ((graph.callNodeAges.contains(e.src)||graph.reachNode.contains(e.src))&&
+                (graph.callNodeAges.contains(e.dst)||graph.reachNode.contains(e.dst))) {
+              Edge edgetoadd=e.copy(); //we need our own copy to modify below
+              eit.remove();
+              if (seseCallers!=null)
+                edgetoadd.taintModify(seseCallers);
+              mergeCallEdge(graph, newDelta, edgetoadd);
+            }
+          }
+        }
+        //do the summary node if we added that also...
+        node=summaryAdd;
+        summaryAdd=null;
       } while(node!=null);
     }
 
     //Add heap edges in
     for(Map.Entry<AllocNode, MySet<Edge>> entry : delta.heapedgeadd.entrySet()) {
       for(Edge e : entry.getValue()) {
-	boolean addedge=false;
-	Edge edgetoadd=null;
-	if (e.statuspredicate==Edge.NEW) {
-	  if ((graph.callNodeAges.contains(e.src)||graph.reachNode.contains(e.src))&&
-	      (graph.callNodeAges.contains(e.dst)||graph.reachNode.contains(e.dst))) {
-	    edgetoadd=e.copy(); //we need our own copy to modify below
-	  } else {
-	    graph.addCallEdge(e);
-	  }
-	} else {
-	  Edge[] edgeArray=e.makeStatus(allocFactory);
+        boolean addedge=false;
+        Edge edgetoadd=null;
+        if (e.statuspredicate==Edge.NEW) {
+          if ((graph.callNodeAges.contains(e.src)||graph.reachNode.contains(e.src))&&
+              (graph.callNodeAges.contains(e.dst)||graph.reachNode.contains(e.dst))) {
+            edgetoadd=e.copy(); //we need our own copy to modify below
+          } else {
+            graph.addCallEdge(e);
+          }
+        } else {
+          Edge[] edgeArray=e.makeStatus(allocFactory);
 
-	  int statuspredicate=0;
-	  for(int i=0; i<edgeArray.length; i++) {
-	    Edge origEdgeKey=edgeArray[i];
-	    if (graph.reachEdge.contains(origEdgeKey)) {
-	      Edge origEdge=graph.reachEdge.get(origEdgeKey);
-	      //copy the predicate
-	      statuspredicate=statuspredicate|origEdge.statuspredicate;
-	    }
-	    if (!graph.callOldEdges.containsKey(origEdgeKey)) {
-	      graph.callOldEdges.put(origEdgeKey, new MySet<Edge>());
-	    }
-	    if (graph.callOldEdges.get(origEdgeKey).contains(e)) {
-	      Edge olde=graph.callOldEdges.get(origEdgeKey).get(e);
-	      graph.callOldEdges.get(origEdgeKey).add(olde.merge(e));
-	    } else {
-	      graph.callOldEdges.get(origEdgeKey).add(e);
-	    }
-	  }
-	  if (statuspredicate!=0) {
-	    Edge newe=e.copy();
-	    newe.statuspredicate=statuspredicate;
-	    edgetoadd=newe;
-	  }
-	}
-	if (seseCallers!=null&&edgetoadd!=null)
-	  edgetoadd.taintModify(seseCallers);
-	mergeCallEdge(graph, newDelta, edgetoadd);
+          int statuspredicate=0;
+          for(int i=0; i<edgeArray.length; i++) {
+            Edge origEdgeKey=edgeArray[i];
+            if (graph.reachEdge.contains(origEdgeKey)) {
+              Edge origEdge=graph.reachEdge.get(origEdgeKey);
+              //copy the predicate
+              statuspredicate=statuspredicate|origEdge.statuspredicate;
+            }
+            if (!graph.callOldEdges.containsKey(origEdgeKey)) {
+              graph.callOldEdges.put(origEdgeKey, new MySet<Edge>());
+            }
+            if (graph.callOldEdges.get(origEdgeKey).contains(e)) {
+              Edge olde=graph.callOldEdges.get(origEdgeKey).get(e);
+              graph.callOldEdges.get(origEdgeKey).add(olde.merge(e));
+            } else {
+              graph.callOldEdges.get(origEdgeKey).add(e);
+            }
+          }
+          if (statuspredicate!=0) {
+            Edge newe=e.copy();
+            newe.statuspredicate=statuspredicate;
+            edgetoadd=newe;
+          }
+        }
+        if (seseCallers!=null&&edgetoadd!=null)
+          edgetoadd.taintModify(seseCallers);
+        mergeCallEdge(graph, newDelta, edgetoadd);
       }
     }
 
@@ -1210,16 +1210,16 @@ nextdelta:
     if (fcall.getReturnTemp()!=null) {
       MySet<Edge> returnedge=delta.varedgeadd.get(returntmp);
       if (returnedge!=null)
-	for(Edge e : returnedge) {
-	  //skip the edge if types don't allow it...
-	  if (!typeUtil.isSuperorType(fcall.getReturnTemp().getType(), e.dst.getType()))
-	    continue;
-	  Edge newedge=e.copy();
-	  newedge.srcvar=fcall.getReturnTemp();
-	  if (seseCallers!=null)
-	    newedge.taintModify(seseCallers);
-	  mergeEdge(graph, newDelta, newedge);
-	}
+        for(Edge e : returnedge) {
+          //skip the edge if types don't allow it...
+          if (!typeUtil.isSuperorType(fcall.getReturnTemp().getType(), e.dst.getType()))
+            continue;
+          Edge newedge=e.copy();
+          newedge.srcvar=fcall.getReturnTemp();
+          if (seseCallers!=null)
+            newedge.taintModify(seseCallers);
+          mergeEdge(graph, newDelta, newedge);
+        }
     }
     applyDiffs(graph, newDelta);
     return newDelta;
@@ -1230,8 +1230,8 @@ nextdelta:
       Edge match=graph.getMatch(edgetoadd);
 
       if (match==null||!match.subsumes(edgetoadd)) {
-	Edge mergededge=edgetoadd.merge(match);
-	newDelta.addEdge(mergededge);
+        Edge mergededge=edgetoadd.merge(match);
+        newDelta.addEdge(mergededge);
       }
     }
   }
@@ -1245,9 +1245,9 @@ nextdelta:
       Edge match=graph.getMatch(edgetoadd);
 
       if (match==null||!match.subsumes(edgetoadd)) {
-	Edge mergededge=edgetoadd.merge(match);
-	newDelta.addEdge(mergededge);
-	graph.callerEdges.add(mergededge);
+        Edge mergededge=edgetoadd.merge(match);
+        newDelta.addEdge(mergededge);
+        graph.callerEdges.add(mergededge);
       }
     }
   }
@@ -1271,13 +1271,13 @@ nextdelta:
     MySet<Edge> backedges=graph.getBackEdges(singleNode);
     for(Edge e : backedges) {
       if (e.dst==singleNode) {
-	//Need to get original edge so that predicate will be correct
-	Edge match=graph.getMatch(e);
-	if (match!=null) {
-	  Edge rewrite=match.rewrite(singleNode, summaryNode);
-	  newDelta.removeEdge(match);
-	  mergeCallEdge(graph, newDelta, rewrite);
-	}
+        //Need to get original edge so that predicate will be correct
+        Edge match=graph.getMatch(e);
+        if (match!=null) {
+          Edge rewrite=match.rewrite(singleNode, summaryNode);
+          newDelta.removeEdge(match);
+          mergeCallEdge(graph, newDelta, rewrite);
+        }
       }
     }
   }
@@ -1291,21 +1291,21 @@ nextdelta:
     if (genbackwards&&graph.backMap==null) {
       graph.backMap=new HashMap<AllocNode, MySet<Edge>>();
       if (graph.parent.backMap==null) {
-	graph.parent.backMap=new HashMap<AllocNode, MySet<Edge>>();
-	for(Map.Entry<AllocNode, MySet<Edge>> entry : graph.nodeMap.entrySet()) {
-	  for(Edge e : entry.getValue()) {
-	    if (!graph.parent.backMap.containsKey(e.dst))
-	      graph.parent.backMap.put(e.dst, new MySet<Edge>());
-	    graph.parent.backMap.get(e.dst).add(e);
-	  }
-	}
-	for(Map.Entry<TempDescriptor, MySet<Edge>> entry : graph.varMap.entrySet()) {
-	  for(Edge e : entry.getValue()) {
-	    if (!graph.parent.backMap.containsKey(e.dst))
-	      graph.parent.backMap.put(e.dst, new MySet<Edge>());
-	    graph.parent.backMap.get(e.dst).add(e);
-	  }
-	}
+        graph.parent.backMap=new HashMap<AllocNode, MySet<Edge>>();
+        for(Map.Entry<AllocNode, MySet<Edge>> entry : graph.nodeMap.entrySet()) {
+          for(Edge e : entry.getValue()) {
+            if (!graph.parent.backMap.containsKey(e.dst))
+              graph.parent.backMap.put(e.dst, new MySet<Edge>());
+            graph.parent.backMap.get(e.dst).add(e);
+          }
+        }
+        for(Map.Entry<TempDescriptor, MySet<Edge>> entry : graph.varMap.entrySet()) {
+          for(Edge e : entry.getValue()) {
+            if (!graph.parent.backMap.containsKey(e.dst))
+              graph.parent.backMap.put(e.dst, new MySet<Edge>());
+            graph.parent.backMap.get(e.dst).add(e);
+          }
+        }
       }
     }
 
@@ -1314,8 +1314,8 @@ nextdelta:
       AllocNode node=e.getKey();
       MySet<Edge> edges=e.getValue();
       if (graph.nodeMap.containsKey(node)) {
-	MySet<Edge> nodeEdges=graph.nodeMap.get(node);
-	nodeEdges.addAll(edges);
+        MySet<Edge> nodeEdges=graph.nodeMap.get(node);
+        nodeEdges.addAll(edges);
       }
     }
 
@@ -1324,15 +1324,15 @@ nextdelta:
       AllocNode node=e.getKey();
       MySet<Edge> edgestoremove=e.getValue();
       if (graph.nodeMap.containsKey(node)) {
-	//Just apply diff to current map
-	graph.nodeMap.get(node).removeAll(edgestoremove);
+        //Just apply diff to current map
+        graph.nodeMap.get(node).removeAll(edgestoremove);
       } else {
-	//Generate diff from parent graph
-	MySet<Edge> parentedges=graph.parent.nodeMap.get(node);
-	if (parentedges!=null) {
-	  MySet<Edge> newedgeset=Util.setSubtract(parentedges, edgestoremove);
-	  graph.nodeMap.put(node, newedgeset);
-	}
+        //Generate diff from parent graph
+        MySet<Edge> parentedges=graph.parent.nodeMap.get(node);
+        if (parentedges!=null) {
+          MySet<Edge> newedgeset=Util.setSubtract(parentedges, edgestoremove);
+          graph.nodeMap.put(node, newedgeset);
+        }
       }
     }
 
@@ -1342,19 +1342,19 @@ nextdelta:
       MySet<Edge> edgestoadd=e.getValue();
       //If we have not done a subtract, then
       if (!graph.nodeMap.containsKey(node)) {
-	//Copy the parent entry
-	if (graph.parent.nodeMap.containsKey(node))
-	  graph.nodeMap.put(node, (MySet<Edge>)graph.parent.nodeMap.get(node).clone());
-	else
-	  graph.nodeMap.put(node, new MySet<Edge>());
+        //Copy the parent entry
+        if (graph.parent.nodeMap.containsKey(node))
+          graph.nodeMap.put(node, (MySet<Edge>)graph.parent.nodeMap.get(node).clone());
+        else
+          graph.nodeMap.put(node, new MySet<Edge>());
       }
       Edge.mergeEdgesInto(graph.nodeMap.get(node),edgestoadd);
       if (genbackwards) {
-	for(Edge eadd : edgestoadd) {
-	  if (!graph.backMap.containsKey(eadd.dst))
-	    graph.backMap.put(eadd.dst, new MySet<Edge>());
-	  graph.backMap.get(eadd.dst).add(eadd);
-	}
+        for(Edge eadd : edgestoadd) {
+          if (!graph.backMap.containsKey(eadd.dst))
+            graph.backMap.put(eadd.dst, new MySet<Edge>());
+          graph.backMap.get(eadd.dst).add(eadd);
+        }
       }
     }
 
@@ -1364,13 +1364,13 @@ nextdelta:
       MySet<Edge> edgestoremove=e.getValue();
 
       if (graph.varMap.containsKey(tmp)) {
-	//Just apply diff to current map
-	graph.varMap.get(tmp).removeAll(edgestoremove);
+        //Just apply diff to current map
+        graph.varMap.get(tmp).removeAll(edgestoremove);
       } else if (graph.parent.varMap.containsKey(tmp)) {
-	//Generate diff from parent graph
-	MySet<Edge> parentedges=graph.parent.varMap.get(tmp);
-	MySet<Edge> newedgeset=Util.setSubtract(parentedges, edgestoremove);
-	graph.varMap.put(tmp, newedgeset);
+        //Generate diff from parent graph
+        MySet<Edge> parentedges=graph.parent.varMap.get(tmp);
+        MySet<Edge> newedgeset=Util.setSubtract(parentedges, edgestoremove);
+        graph.varMap.put(tmp, newedgeset);
       }
     }
 
@@ -1379,18 +1379,18 @@ nextdelta:
       TempDescriptor tmp=e.getKey();
       MySet<Edge> edgestoadd=e.getValue();
       if (graph.varMap.containsKey(tmp)) {
-	Edge.mergeEdgesInto(graph.varMap.get(tmp), edgestoadd);
+        Edge.mergeEdgesInto(graph.varMap.get(tmp), edgestoadd);
       } else if (graph.parent.varMap.containsKey(tmp)) {
-	graph.varMap.put(tmp, new MySet<Edge>(graph.parent.varMap.get(tmp)));
-	Edge.mergeEdgesInto(graph.varMap.get(tmp), edgestoadd);
+        graph.varMap.put(tmp, new MySet<Edge>(graph.parent.varMap.get(tmp)));
+        Edge.mergeEdgesInto(graph.varMap.get(tmp), edgestoadd);
       } else
-	graph.varMap.put(tmp, (MySet<Edge>)edgestoadd.clone());
+        graph.varMap.put(tmp, (MySet<Edge>)edgestoadd.clone());
       if (genbackwards) {
-	for(Edge eadd : edgestoadd) {
-	  if (!graph.backMap.containsKey(eadd.dst))
-	    graph.backMap.put(eadd.dst, new MySet<Edge>());
-	  graph.backMap.get(eadd.dst).add(eadd);
-	}
+        for(Edge eadd : edgestoadd) {
+          if (!graph.backMap.containsKey(eadd.dst))
+            graph.backMap.put(eadd.dst, new MySet<Edge>());
+          graph.backMap.get(eadd.dst).add(eadd);
+        }
       }
     }
 
@@ -1453,37 +1453,37 @@ nextdelta:
       MySet<Edge> dstEdges=GraphManip.getEdges(graph, delta, dst);
 
       if (OoOJava&&!accessible.isAccessible(node, dst)) {
-	Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
-	dstEdges=Edge.taintAll(dstEdges, dstStallTaint);
-	updateVarDelta(graph, delta, dst, dstEdges, null);
+        Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
+        dstEdges=Edge.taintAll(dstEdges, dstStallTaint);
+        updateVarDelta(graph, delta, dst, dstEdges, null);
       }
       if (OoOJava) {
-	effectsAnalysis.analyzeFlatSetFieldNode(dstEdges, fd, node);
+        effectsAnalysis.analyzeFlatSetFieldNode(dstEdges, fd, node);
       }
 
       //Do nothing for non pointers
       if (!src.getType().isPtr()) {
-	if (mustProcess.contains(node)) {
-	  applyDiffs(graph, delta);
-	}
-	return delta;
+        if (mustProcess.contains(node)) {
+          applyDiffs(graph, delta);
+        }
+        return delta;
       }
 
       MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
       if (OoOJava&&!accessible.isAccessible(node, src)) {
-	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
-	srcEdges=Edge.taintAll(srcEdges, srcStallTaint);
-	updateVarDelta(graph, delta, src, srcEdges, null);
+        Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
+        srcEdges=Edge.taintAll(srcEdges, srcStallTaint);
+        updateVarDelta(graph, delta, src, srcEdges, null);
       }
 
       MySet<Edge> edgesToAdd=GraphManip.genEdges(dstEdges, fd, srcEdges);
       MySet<Edge> edgesToRemove=null;
       if (dstEdges.size()==1&&!dstEdges.iterator().next().dst.isSummary()&&fd!=null) {
-	/* Can do a strong update */
-	edgesToRemove=GraphManip.getEdges(graph, delta, dstEdges, fd);
-	graph.strongUpdateSet=edgesToRemove;
+        /* Can do a strong update */
+        edgesToRemove=GraphManip.getEdges(graph, delta, dstEdges, fd);
+        graph.strongUpdateSet=edgesToRemove;
       } else
-	graph.strongUpdateSet=new MySet<Edge>();
+        graph.strongUpdateSet=new MySet<Edge>();
 
       /* Update diff */
       updateHeapDelta(graph, delta, edgesToAdd, edgesToRemove);
@@ -1492,20 +1492,20 @@ nextdelta:
       MySet<Edge> newDstEdges=GraphManip.getDiffEdges(delta, dst);
 
       if (OoOJava&&!accessible.isAccessible(node, dst)) {
-	Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
-	newDstEdges=Edge.taintAll(newDstEdges, dstStallTaint);
-	updateVarDelta(graph, delta, dst, newDstEdges, null);
+        Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
+        newDstEdges=Edge.taintAll(newDstEdges, dstStallTaint);
+        updateVarDelta(graph, delta, dst, newDstEdges, null);
       }
 
       if (OoOJava) {
-	effectsAnalysis.analyzeFlatSetFieldNode(newDstEdges, fd, node);
+        effectsAnalysis.analyzeFlatSetFieldNode(newDstEdges, fd, node);
       }
 
       if (!src.getType().isPtr()) {
-	if (mustProcess.contains(node)) {
-	  applyDiffs(graph, delta);
-	}
-	return delta;
+        if (mustProcess.contains(node)) {
+          applyDiffs(graph, delta);
+        }
+        return delta;
       }
 
       /* Next look at new sources */
@@ -1516,34 +1516,34 @@ nextdelta:
       HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
 
       if (OoOJava&&!accessible.isAccessible(node, src)) {
-	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
-	newSrcEdges=Edge.taintAll(newSrcEdges, srcStallTaint);
-	updateVarDelta(graph, delta, src, newSrcEdges, null);
+        Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
+        newSrcEdges=Edge.taintAll(newSrcEdges, srcStallTaint);
+        updateVarDelta(graph, delta, src, newSrcEdges, null);
       }
 
       MySet<Edge> edgesToRemove=null;
       if (newDstEdges.size()!=0) {
-	if (dstNodes.size()>1&&!dstNodes.iterator().next().isSummary()&&fd!=null) {
-	  /* Need to undo strong update */
-	  if (graph.strongUpdateSet!=null) {
-	    edgesToAdd.addAll(graph.strongUpdateSet);
-	    graph.strongUpdateSet=null; //Prevent future strong updates
-	  }
-	} else if (dstNodes.size()==1&&newDstEdges.size()==1&&!newDstEdges.iterator().next().dst.isSummary()&&graph.strongUpdateSet!=null&&fd!=null) {
-	  edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
-	  graph.strongUpdateSet.addAll(edgesToRemove);
-	}
-	Edge.mergeEdgesInto(edgesToAdd, GraphManip.genEdges(newDstEdges, fd, srcEdges));
+        if (dstNodes.size()>1&&!dstNodes.iterator().next().isSummary()&&fd!=null) {
+          /* Need to undo strong update */
+          if (graph.strongUpdateSet!=null) {
+            edgesToAdd.addAll(graph.strongUpdateSet);
+            graph.strongUpdateSet=null; //Prevent future strong updates
+          }
+        } else if (dstNodes.size()==1&&newDstEdges.size()==1&&!newDstEdges.iterator().next().dst.isSummary()&&graph.strongUpdateSet!=null&&fd!=null) {
+          edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
+          graph.strongUpdateSet.addAll(edgesToRemove);
+        }
+        Edge.mergeEdgesInto(edgesToAdd, GraphManip.genEdges(newDstEdges, fd, srcEdges));
       }
 
       //Kill new edges
       if (graph.strongUpdateSet!=null&&fd!=null) {
-	MySet<Edge> otherEdgesToRemove=GraphManip.getDiffEdges(delta, dstNodes, fd);
-	if (edgesToRemove!=null)
-	  edgesToRemove.addAll(otherEdgesToRemove);
-	else
-	  edgesToRemove=otherEdgesToRemove;
-	graph.strongUpdateSet.addAll(otherEdgesToRemove);
+        MySet<Edge> otherEdgesToRemove=GraphManip.getDiffEdges(delta, dstNodes, fd);
+        if (edgesToRemove!=null)
+          edgesToRemove.addAll(otherEdgesToRemove);
+        else
+          edgesToRemove=otherEdgesToRemove;
+        graph.strongUpdateSet.addAll(otherEdgesToRemove);
       }
 
       //Next look at new destinations
@@ -1569,9 +1569,9 @@ nextdelta:
       src=frn.getReturnTemp();
       dst=returntmp;
       if (src==null||!src.getType().isPtr()) {
-	//This is a NOP
-	applyDiffs(graph, delta);
-	return delta;
+        //This is a NOP
+        applyDiffs(graph, delta);
+        return delta;
       }
     } else {
       FlatCastNode fcn=(FlatCastNode) node;
@@ -1626,17 +1626,17 @@ nextdelta:
     if (delta.getInit()) {
       MySet<Edge> srcedges=GraphManip.getEdges(graph, delta, src);
       if (OoOJava) {
-	if (taint!=null) {
-	  srcedges=Edge.taintAll(srcedges, taint);
-	  updateVarDelta(graph, delta, src, srcedges, null);
-	}
-	effectsAnalysis.analyzeFlatFieldNode(srcedges, fd, node);
+        if (taint!=null) {
+          srcedges=Edge.taintAll(srcedges, taint);
+          updateVarDelta(graph, delta, src, srcedges, null);
+        }
+        effectsAnalysis.analyzeFlatFieldNode(srcedges, fd, node);
       }
       if (!dst.getType().isPtr()) {
-	if (mustProcess.contains(node)) {
-	  applyDiffs(graph, delta);
-	}
-	return delta;
+        if (mustProcess.contains(node)) {
+          applyDiffs(graph, delta);
+        }
+        return delta;
       }
 
       MySet<Edge> edgesToAdd=GraphManip.dereference(graph, delta, dst, srcedges, fd, node);
@@ -1647,17 +1647,17 @@ nextdelta:
     } else {
       MySet<Edge> newsrcedges=GraphManip.getDiffEdges(delta, src);
       if (OoOJava) {
-	if (taint!=null) {
-	  newsrcedges=Edge.taintAll(newsrcedges, taint);
-	  updateVarDelta(graph, delta, src, newsrcedges, null);
-	}
-	effectsAnalysis.analyzeFlatFieldNode(newsrcedges, fd, node);
+        if (taint!=null) {
+          newsrcedges=Edge.taintAll(newsrcedges, taint);
+          updateVarDelta(graph, delta, src, newsrcedges, null);
+        }
+        effectsAnalysis.analyzeFlatFieldNode(newsrcedges, fd, node);
       }
       if (!dst.getType().isPtr()) {
-	if (mustProcess.contains(node)) {
-	  applyDiffs(graph, delta);
-	}
-	return delta;
+        if (mustProcess.contains(node)) {
+          applyDiffs(graph, delta);
+        }
+        return delta;
       }
       /* First compute new objects we read fields of */
       MySet<Edge> allsrcedges=GraphManip.getEdges(graph, delta, src);
@@ -1686,28 +1686,28 @@ nextdelta:
     MySet<Edge> existingEdges=graph.getEdges(tmp);
     if (edgestoRemove!=null)
       for(Edge e : edgestoRemove) {
-	//remove edge from delta
-	if (edgeAdd!=null)
-	  edgeAdd.remove(e);
-	//if the edge is already in the graph, add an explicit remove to the delta
-	if (existingEdges.contains(e))
-	  delta.removeVarEdge(e);
+        //remove edge from delta
+        if (edgeAdd!=null)
+          edgeAdd.remove(e);
+        //if the edge is already in the graph, add an explicit remove to the delta
+        if (existingEdges.contains(e))
+          delta.removeVarEdge(e);
       }
     for(Edge e : edgestoAdd) {
       //Remove the edge from the remove set
       if (edgeRemove!=null)
-	edgeRemove.remove(e);
+        edgeRemove.remove(e);
       //Explicitly add it to the add set unless it is already in the graph
       if (typeUtil.isSuperorType(tmp.getType(), e.dst.getType())) {
-	if (!existingEdges.contains(e)) {
-	  delta.addVarEdge(e);
-	} else {
-	  //See if the old edge subsumes the new one
-	  Edge olde=existingEdges.get(e);
-	  if (!olde.subsumes(e)) {
-	    delta.addVarEdge(olde.merge(e));
-	  }
-	}
+        if (!existingEdges.contains(e)) {
+          delta.addVarEdge(e);
+        } else {
+          //See if the old edge subsumes the new one
+          Edge olde=existingEdges.get(e);
+          if (!olde.subsumes(e)) {
+            delta.addVarEdge(olde.merge(e));
+          }
+        }
       }
     }
   }
@@ -1715,35 +1715,35 @@ nextdelta:
   void updateHeapDelta(Graph graph, Delta delta, MySet<Edge> edgestoAdd, MySet<Edge> edgestoRemove) {
     if (edgestoRemove!=null)
       for(Edge e : edgestoRemove) {
-	AllocNode src=e.src;
-	MySet<Edge> edgeAdd=delta.heapedgeadd.get(src);
-	MySet<Edge> existingEdges=graph.getEdges(src);
-	//remove edge from delta
-	if (edgeAdd!=null)
-	  edgeAdd.remove(e);
-	//if the edge is already in the graph, add an explicit remove to the delta
-	if (existingEdges.contains(e)) {
-	  delta.removeHeapEdge(e);
-	}
+        AllocNode src=e.src;
+        MySet<Edge> edgeAdd=delta.heapedgeadd.get(src);
+        MySet<Edge> existingEdges=graph.getEdges(src);
+        //remove edge from delta
+        if (edgeAdd!=null)
+          edgeAdd.remove(e);
+        //if the edge is already in the graph, add an explicit remove to the delta
+        if (existingEdges.contains(e)) {
+          delta.removeHeapEdge(e);
+        }
       }
     if (edgestoAdd!=null)
       for(Edge e : edgestoAdd) {
-	AllocNode src=e.src;
-	MySet<Edge> edgeRemove=delta.heapedgeremove.get(src);
-	MySet<Edge> existingEdges=graph.getEdges(src);
-	//Remove the edge from the remove set
-	if (edgeRemove!=null)
-	  edgeRemove.remove(e);
-	//Explicitly add it to the add set unless it is already in the graph
-	if (!existingEdges.contains(e)) {
-	  delta.addHeapEdge(e);
-	} else {
-	  //See if the old edge subsumes the new one
-	  Edge olde=existingEdges.get(e);
-	  if (!olde.subsumes(e)) {
-	    delta.addHeapEdge(olde.merge(e));
-	  }
-	}
+        AllocNode src=e.src;
+        MySet<Edge> edgeRemove=delta.heapedgeremove.get(src);
+        MySet<Edge> existingEdges=graph.getEdges(src);
+        //Remove the edge from the remove set
+        if (edgeRemove!=null)
+          edgeRemove.remove(e);
+        //Explicitly add it to the add set unless it is already in the graph
+        if (!existingEdges.contains(e)) {
+          delta.addHeapEdge(e);
+        } else {
+          //See if the old edge subsumes the new one
+          Edge olde=existingEdges.get(e);
+          if (!olde.subsumes(e)) {
+            delta.addHeapEdge(olde.merge(e));
+          }
+        }
       }
   }
 
@@ -1773,48 +1773,48 @@ nextdelta:
       //Remove the old edges
       MySet<Edge> oldedges=graph.getEdges(tmp);
       if (!oldedges.isEmpty())
-	delta.varedgeremove.put(tmp, (MySet<Edge>)oldedges);
+        delta.varedgeremove.put(tmp, (MySet<Edge>)oldedges);
       //Note that we create a single node
       delta.addNodeAges.add(single);
       //Kill the old node
       if (delta.addOldNodes.containsKey(single)||delta.baseOldNodes.containsKey(single)) {
-	delta.addOldNodes.put(single, Boolean.FALSE);
+        delta.addOldNodes.put(single, Boolean.FALSE);
       }
     } else {
       /* 1. Fix up the variable edge additions */
       for(Iterator<Map.Entry<TempDescriptor, MySet<Edge>>> entryIt=delta.varedgeadd.entrySet().iterator(); entryIt.hasNext(); ) {
-	Map.Entry<TempDescriptor, MySet<Edge>> entry=entryIt.next();
+        Map.Entry<TempDescriptor, MySet<Edge>> entry=entryIt.next();
 
-	if (entry.getKey()==tmp) {
-	  /* Check if this is the tmp we overwrite */
-	  entryIt.remove();
-	} else {
-	  /* Otherwise, check if the target of the edge is changed... */
-	  summarizeSet(entry.getValue(), graph.varMap.get(entry.getKey()), single, summary);
-	}
+        if (entry.getKey()==tmp) {
+          /* Check if this is the tmp we overwrite */
+          entryIt.remove();
+        } else {
+          /* Otherwise, check if the target of the edge is changed... */
+          summarizeSet(entry.getValue(), graph.varMap.get(entry.getKey()), single, summary);
+        }
       }
 
       /* 2. Fix up the base variable edges */
 
       for(Iterator<Map.Entry<TempDescriptor, MySet<Edge>>> entryIt=delta.basevaredge.entrySet().iterator(); entryIt.hasNext(); ) {
-	Map.Entry<TempDescriptor, MySet<Edge>> entry=entryIt.next();
-	TempDescriptor entrytmp=entry.getKey();
-	if (entrytmp==tmp) {
-	  /* Check is this is the tmp we overwrite, if so add to remove set */
-	  Util.relationUpdate(delta.varedgeremove, tmp, null, entry.getValue());
-	} else if (graph.varMap.containsKey(entrytmp)) {
-	  /* Check if the target of the edge is changed */
-	  MySet<Edge> newset=(MySet<Edge>)entry.getValue().clone();
-	  MySet<Edge> removeset=shrinkSet(newset, graph.varMap.get(entrytmp), single, summary);
-	  Util.relationUpdate(delta.varedgeremove, entrytmp, newset, removeset);
-	  Util.relationUpdate(delta.varedgeadd, entrytmp, null, newset);
-	} else {
-	  /* Check if the target of the edge is changed */
-	  MySet<Edge> newset=(MySet<Edge>)entry.getValue().clone();
-	  MySet<Edge> removeset=shrinkSet(newset, graph.parent.varMap.get(entrytmp), single, summary);
-	  Util.relationUpdate(delta.varedgeremove, entrytmp, newset, removeset);
-	  Util.relationUpdate(delta.varedgeadd, entrytmp, null, newset);
-	}
+        Map.Entry<TempDescriptor, MySet<Edge>> entry=entryIt.next();
+        TempDescriptor entrytmp=entry.getKey();
+        if (entrytmp==tmp) {
+          /* Check is this is the tmp we overwrite, if so add to remove set */
+          Util.relationUpdate(delta.varedgeremove, tmp, null, entry.getValue());
+        } else if (graph.varMap.containsKey(entrytmp)) {
+          /* Check if the target of the edge is changed */
+          MySet<Edge> newset=(MySet<Edge>)entry.getValue().clone();
+          MySet<Edge> removeset=shrinkSet(newset, graph.varMap.get(entrytmp), single, summary);
+          Util.relationUpdate(delta.varedgeremove, entrytmp, newset, removeset);
+          Util.relationUpdate(delta.varedgeadd, entrytmp, null, newset);
+        } else {
+          /* Check if the target of the edge is changed */
+          MySet<Edge> newset=(MySet<Edge>)entry.getValue().clone();
+          MySet<Edge> removeset=shrinkSet(newset, graph.parent.varMap.get(entrytmp), single, summary);
+          Util.relationUpdate(delta.varedgeremove, entrytmp, newset, removeset);
+          Util.relationUpdate(delta.varedgeadd, entrytmp, null, newset);
+        }
       }
 
 
@@ -1822,40 +1822,40 @@ nextdelta:
 
       HashMap<AllocNode, MySet<Edge>> addheapedge=new HashMap<AllocNode, MySet<Edge>>();
       for(Iterator<Map.Entry<AllocNode, MySet<Edge>>> entryIt=delta.heapedgeadd.entrySet().iterator(); entryIt.hasNext(); ) {
-	Map.Entry<AllocNode, MySet<Edge>> entry=entryIt.next();
-	MySet<Edge> edgeset=entry.getValue();
-	AllocNode allocnode=entry.getKey();
-	if (allocnode==single) {
-	  entryIt.remove();
-	  summarizeSet(edgeset, graph.nodeMap.get(summary), single, summary);
-	  addheapedge.put(summary, edgeset);
-	} else {
-	  summarizeSet(edgeset, graph.nodeMap.get(allocnode), single, summary);
-	}
+        Map.Entry<AllocNode, MySet<Edge>> entry=entryIt.next();
+        MySet<Edge> edgeset=entry.getValue();
+        AllocNode allocnode=entry.getKey();
+        if (allocnode==single) {
+          entryIt.remove();
+          summarizeSet(edgeset, graph.nodeMap.get(summary), single, summary);
+          addheapedge.put(summary, edgeset);
+        } else {
+          summarizeSet(edgeset, graph.nodeMap.get(allocnode), single, summary);
+        }
       }
 
       /* Merge in diffs */
 
       for(Map.Entry<AllocNode, MySet<Edge>> entry : addheapedge.entrySet()) {
-	AllocNode allocnode=entry.getKey();
-	Util.relationUpdate(delta.heapedgeadd, allocnode, null, entry.getValue());
+        AllocNode allocnode=entry.getKey();
+        Util.relationUpdate(delta.heapedgeadd, allocnode, null, entry.getValue());
       }
 
       /* 4. Fix up the base heap edges */
 
       for(Iterator<Map.Entry<AllocNode, MySet<Edge>>> entryIt=delta.baseheapedge.entrySet().iterator(); entryIt.hasNext(); ) {
-	Map.Entry<AllocNode, MySet<Edge>> entry=entryIt.next();
-	MySet<Edge> edgeset=entry.getValue();
-	AllocNode allocnode=entry.getKey();
-	if (allocnode==single) {
-	  entryIt.remove();
-	}
-	AllocNode addnode=(allocnode==single)?summary:allocnode;
+        Map.Entry<AllocNode, MySet<Edge>> entry=entryIt.next();
+        MySet<Edge> edgeset=entry.getValue();
+        AllocNode allocnode=entry.getKey();
+        if (allocnode==single) {
+          entryIt.remove();
+        }
+        AllocNode addnode=(allocnode==single)?summary:allocnode;
 
-	MySet<Edge> newset=(MySet<Edge>)edgeset.clone();
-	MySet<Edge> removeset=shrinkSet(newset, graph.nodeMap.get(addnode), single, summary);
-	Util.relationUpdate(delta.heapedgeadd, addnode, null, newset);
-	Util.relationUpdate(delta.heapedgeremove, allocnode, null, removeset);
+        MySet<Edge> newset=(MySet<Edge>)edgeset.clone();
+        MySet<Edge> removeset=shrinkSet(newset, graph.nodeMap.get(addnode), single, summary);
+        Util.relationUpdate(delta.heapedgeadd, addnode, null, newset);
+        Util.relationUpdate(delta.heapedgeremove, allocnode, null, removeset);
       }
 
       /* Update Node Ages...If the base or addNodeAges set contains a
@@ -1863,12 +1863,12 @@ nextdelta:
        * need to generate a single node as that has already been
        * done. */
       if (delta.baseNodeAges.contains(single)||delta.addNodeAges.contains(single)) {
-	delta.addNodeAges.add(summary);
+        delta.addNodeAges.add(summary);
       }
 
       //Kill the old node if someone tries to add it
       if (delta.addOldNodes.containsKey(single)||delta.baseOldNodes.containsKey(single)) {
-	delta.addOldNodes.put(single, Boolean.FALSE);
+        delta.addOldNodes.put(single, Boolean.FALSE);
       }
 
     }
@@ -1885,20 +1885,20 @@ nextdelta:
     for(Iterator<Edge> edgeit=edgeset.iterator(); edgeit.hasNext(); ) {
       Edge e=edgeit.next();
       if (e.dst==oldnode||e.src==oldnode) {
-	if (newSet==null) {
-	  newSet=new MySet<Edge>();
-	}
-	edgeit.remove();
-	e=e.copy();
+        if (newSet==null) {
+          newSet=new MySet<Edge>();
+        }
+        edgeit.remove();
+        e=e.copy();
 
-	if (e.dst==oldnode) {
-	  e.dst=sumnode;
-	}
-	if (e.src==oldnode) {
-	  e.src=sumnode;
-	}
-	if (oldedgeset==null||!oldedgeset.contains(e))
-	  newSet.add(e);
+        if (e.dst==oldnode) {
+          e.dst=sumnode;
+        }
+        if (e.src==oldnode) {
+          e.src=sumnode;
+        }
+        if (oldedgeset==null||!oldedgeset.contains(e))
+          newSet.add(e);
       }
     }
     if (newSet!=null)
@@ -1915,19 +1915,19 @@ nextdelta:
       Edge e=edgeit.next();
       edgeit.remove();
       if (e.dst==oldnode||e.src==oldnode) {
-	if (newSet==null) {
-	  newSet=new MySet<Edge>();
-	  removeSet=new MySet<Edge>();
-	}
+        if (newSet==null) {
+          newSet=new MySet<Edge>();
+          removeSet=new MySet<Edge>();
+        }
 
-	removeSet.add(e);
-	e=e.copy();
-	if (e.dst==oldnode)
-	  e.dst=newnode;
-	if (e.src==oldnode)
-	  e.src=newnode;
-	if (oldedgeset==null||!oldedgeset.contains(e))
-	  newSet.add(e);
+        removeSet.add(e);
+        e=e.copy();
+        if (e.dst==oldnode)
+          e.dst=newnode;
+        if (e.src==oldnode)
+          e.src=newnode;
+        if (oldedgeset==null||!oldedgeset.contains(e))
+          newSet.add(e);
       }
     }
     if (newSet!=null)
@@ -1952,22 +1952,22 @@ nextdelta:
       //Add in heap edges and throw away original diff
 
       for(Map.Entry<AllocNode, MySet<Edge>> entry : delta.heapedgeadd.entrySet()) {
-	graph.nodeMap.put(entry.getKey(), new MySet<Edge>(entry.getValue()));
+        graph.nodeMap.put(entry.getKey(), new MySet<Edge>(entry.getValue()));
       }
       //Add in var edges and throw away original diff
       Set<TempDescriptor> livetemps=bblivetemps.get(block);
 
       for(Map.Entry<TempDescriptor, MySet<Edge>> entry : delta.varedgeadd.entrySet()) {
-	if (livetemps.contains(entry.getKey()))
-	  graph.varMap.put(entry.getKey(), new MySet<Edge>(entry.getValue()));
+        if (livetemps.contains(entry.getKey()))
+          graph.varMap.put(entry.getKey(), new MySet<Edge>(entry.getValue()));
       }
       //Record that this is initial set...
       graph.nodeAges.addAll(delta.addNodeAges);
       //Add old nodes
       for(Map.Entry<AllocNode, Boolean> oldentry : delta.addOldNodes.entrySet()) {
-	if (oldentry.getValue().booleanValue()) {
-	  graph.oldNodes.put(oldentry.getKey(), Boolean.TRUE);
-	}
+        if (oldentry.getValue().booleanValue()) {
+          graph.oldNodes.put(oldentry.getKey(), Boolean.TRUE);
+        }
       }
       return newdelta;
     } else {
@@ -1990,36 +1990,36 @@ nextdelta:
       MySet<Edge> edges=heapedge.getValue();
 
       if (graph.backMap!=null) {
-	for(Edge e : edges) {
-	  if (!graph.backMap.containsKey(e.dst))
-	    graph.backMap.put(e.dst, new MySet<Edge>());
-	  graph.backMap.get(e.dst).add(e);
-	}
+        for(Edge e : edges) {
+          if (!graph.backMap.containsKey(e.dst))
+            graph.backMap.put(e.dst, new MySet<Edge>());
+          graph.backMap.get(e.dst).add(e);
+        }
       }
 
       if (!graph.nodeMap.containsKey(nsrc)) {
-	graph.nodeMap.put(nsrc, new MySet<Edge>());
+        graph.nodeMap.put(nsrc, new MySet<Edge>());
       }
       MySet<Edge> dstedges=graph.nodeMap.get(nsrc);
       MySet<Edge> diffedges=new MySet<Edge>();
       for(Edge e : edges) {
-	if (!dstedges.contains(e)) {
-	  //We have a new edge
-	  diffedges.add(e);
-	  dstedges.add(e);
-	} else {
-	  Edge origedge=dstedges.get(e);
-	  if (!origedge.subsumes(e)) {
-	    Edge mergededge=origedge.merge(e);
-	    diffedges.add(mergededge);
-	    dstedges.add(mergededge);
-	  }
-	}
+        if (!dstedges.contains(e)) {
+          //We have a new edge
+          diffedges.add(e);
+          dstedges.add(e);
+        } else {
+          Edge origedge=dstedges.get(e);
+          if (!origedge.subsumes(e)) {
+            Edge mergededge=origedge.merge(e);
+            diffedges.add(mergededge);
+            dstedges.add(mergededge);
+          }
+        }
       }
       //Done with edge set...
       if (diffedges.size()>0) {
-	//completely new
-	newdelta.baseheapedge.put(nsrc, diffedges);
+        //completely new
+        newdelta.baseheapedge.put(nsrc, diffedges);
       }
     }
   }
@@ -2034,39 +2034,39 @@ nextdelta:
     for(Map.Entry<TempDescriptor, MySet<Edge>> varedge : delta.varedgeadd.entrySet()) {
       TempDescriptor tmpsrc=varedge.getKey();
       if (livetemps.contains(tmpsrc)) {
-	MySet<Edge> edges=varedge.getValue();
-	if (graph.backMap!=null) {
-	  for(Edge e : edges) {
-	    if (!graph.backMap.containsKey(e.dst))
-	      graph.backMap.put(e.dst, new MySet<Edge>());
-	    graph.backMap.get(e.dst).add(e);
-	  }
-	}
+        MySet<Edge> edges=varedge.getValue();
+        if (graph.backMap!=null) {
+          for(Edge e : edges) {
+            if (!graph.backMap.containsKey(e.dst))
+              graph.backMap.put(e.dst, new MySet<Edge>());
+            graph.backMap.get(e.dst).add(e);
+          }
+        }
 
-	if (!graph.varMap.containsKey(tmpsrc)) {
-	  graph.varMap.put(tmpsrc, new MySet<Edge>());
-	}
-	MySet<Edge> dstedges=graph.varMap.get(tmpsrc);
-	MySet<Edge> diffedges=new MySet<Edge>();
-	for(Edge e : edges) {
-	  if (!dstedges.contains(e)) {
-	    //We have a new edge
-	    diffedges.add(e);
-	    dstedges.add(e);
-	  } else {
-	    Edge origedge=dstedges.get(e);
-	    if (!origedge.subsumes(e)) {
-	      Edge mergededge=origedge.merge(e);
-	      diffedges.add(mergededge);
-	      dstedges.add(mergededge);
-	    }
-	  }
-	}
-	//Done with edge set...
-	if (diffedges.size()>0) {
-	  //completely new
-	  newdelta.basevaredge.put(tmpsrc,diffedges);
-	}
+        if (!graph.varMap.containsKey(tmpsrc)) {
+          graph.varMap.put(tmpsrc, new MySet<Edge>());
+        }
+        MySet<Edge> dstedges=graph.varMap.get(tmpsrc);
+        MySet<Edge> diffedges=new MySet<Edge>();
+        for(Edge e : edges) {
+          if (!dstedges.contains(e)) {
+            //We have a new edge
+            diffedges.add(e);
+            dstedges.add(e);
+          } else {
+            Edge origedge=dstedges.get(e);
+            if (!origedge.subsumes(e)) {
+              Edge mergededge=origedge.merge(e);
+              diffedges.add(mergededge);
+              dstedges.add(mergededge);
+            }
+          }
+        }
+        //Done with edge set...
+        if (diffedges.size()>0) {
+          //completely new
+          newdelta.basevaredge.put(tmpsrc,diffedges);
+        }
       }
     }
   }
@@ -2075,16 +2075,16 @@ nextdelta:
     //Merge in edges
     for(AllocNode node : delta.addNodeAges) {
       if (!graph.nodeAges.contains(node)) {
-	graph.nodeAges.add(node);
-	newDelta.baseNodeAges.add(node);
+        graph.nodeAges.add(node);
+        newDelta.baseNodeAges.add(node);
       }
     }
     for(Map.Entry<AllocNode, Boolean> oldentry : delta.addOldNodes.entrySet()) {
       AllocNode node=oldentry.getKey();
       boolean ispresent=oldentry.getValue().booleanValue();
       if (ispresent&&!graph.oldNodes.containsKey(node)) {
-	graph.oldNodes.put(node, Boolean.TRUE);
-	newDelta.baseOldNodes.put(node, Boolean.TRUE);
+        graph.oldNodes.put(node, Boolean.TRUE);
+        newDelta.baseOldNodes.put(node, Boolean.TRUE);
       }
     }
   }

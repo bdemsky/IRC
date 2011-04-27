@@ -93,8 +93,8 @@ void *udpListenBroadcast(void *sockfd) {
     switch (status) {
     case INVALIDATE_OBJS:
       if((retval = invalidateFromPrefetchCache(readBuffer))!= 0) {
-	printf("Error: In invalidateFromPrefetchCache() at %s, %d\n", __FILE__, __LINE__);
-	break;
+        printf("Error: In invalidateFromPrefetchCache() at %s, %d\n", __FILE__, __LINE__);
+        break;
       }
       break;
 
@@ -157,12 +157,12 @@ int sendUdpMsg(trans_req_data_t *tdata, int pilecount, int nummod, struct sockad
 
     for(; j < pilecount; j++) {
       for(; i < tdata[j].f.nummod; i++) {
-	*((unsigned int *) (writeBuffer+localoffset)) = tdata[j].oidmod[i];  //copy objects
-	localoffset += sizeof(unsigned int);
-	if ((++sentmsgs)==numtosend) {
-	  i++;
-	  goto send;
-	}
+        *((unsigned int *) (writeBuffer+localoffset)) = tdata[j].oidmod[i];  //copy objects
+        localoffset += sizeof(unsigned int);
+        if ((++sentmsgs)==numtosend) {
+          i++;
+          goto send;
+        }
       }
       i=0;
     }
@@ -199,9 +199,9 @@ int invalidateFromPrefetchCache(char *buffer) {
       objheader_t *header;
       /* Lookup Objects in prefetch cache and remove them */
       if(((header = prehashSearch(oid)) != NULL)) {
-	//Keep invalid objects
-	STATUS(header)=DIRTY;
-	//prehashRemove(oid);
+        //Keep invalid objects
+        STATUS(header)=DIRTY;
+        //prehashRemove(oid);
       }
       offset += sizeof(unsigned int);
     }

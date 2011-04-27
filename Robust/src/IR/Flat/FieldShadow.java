@@ -20,7 +20,7 @@ public class FieldShadow {
     while(it_sifs.hasNext()) {
       ClassDescriptor sif = (ClassDescriptor)it_sifs.next();
       if (!namemap.containsKey(sif))
-	handleClass(sif, state, namemap);
+        handleClass(sif, state, namemap);
     }
 
     HashMap<String, Integer> supermap=cd.getSuperDesc()!=null?namemap.get(cd.getSuperDesc()):new HashMap<String, Integer>();
@@ -38,14 +38,14 @@ public class FieldShadow {
     for(Iterator fieldit=cd.getFields(); fieldit.hasNext(); ) {
       FieldDescriptor fd=(FieldDescriptor)fieldit.next();
       if (supermap.containsKey(fd.getSymbol())) {
-	Integer oldint=supermap.get(fd.getSymbol());
-	int newint=oldint.intValue()+1;
-	fieldmap.put(fd.getSymbol(), new Integer(newint));
-	fd.changeSafeSymbol(newint);
+        Integer oldint=supermap.get(fd.getSymbol());
+        int newint=oldint.intValue()+1;
+        fieldmap.put(fd.getSymbol(), new Integer(newint));
+        fd.changeSafeSymbol(newint);
       } else {
-	// the fields in interfaces are defaultely static & final, so do not need to
-	// check them, they will always have the interface name as prefix
-	fieldmap.put(fd.getSymbol(), new Integer(0));
+        // the fields in interfaces are defaultely static & final, so do not need to
+        // check them, they will always have the interface name as prefix
+        fieldmap.put(fd.getSymbol(), new Integer(0));
       }
     }
   }

@@ -58,38 +58,38 @@ public class JhttpWorker extends Thread {
       switch(method(in)) {
 
       case 0:
-	if (webinterface.specialRequest(fileName)) {
-	  String newfile=webinterface.handleresponse(fileName, out, resp);
-	  if (newfile!=null) {
-	    HTTPServices.GET_handler(newfile, out, resp);
-	  }
-	} else
-	  HTTPServices.GET_handler(fileName, out, resp);
-	break;
+        if (webinterface.specialRequest(fileName)) {
+          String newfile=webinterface.handleresponse(fileName, out, resp);
+          if (newfile!=null) {
+            HTTPServices.GET_handler(newfile, out, resp);
+          }
+        } else
+          HTTPServices.GET_handler(fileName, out, resp);
+        break;
 
       case 1:
-	HTTPServices.HEAD_handler(fileName, out, resp);
-	break;
+        HTTPServices.HEAD_handler(fileName, out, resp);
+        break;
 
       case 2:
-	HTTPServices.POST_handler(fileName, out, resp);
-	break;
+        HTTPServices.POST_handler(fileName, out, resp);
+        break;
 
       default:
-	resp.returnCode = 501;         //error
+        resp.returnCode = 501;         //error
       }
 
       try {
-	out.flush();
-	if (logging)
-	  LogFile.write_log(client,methodType,fileName,httpVersion,
-	                    resp.returnCode,resp.sentBytes);
+        out.flush();
+        if (logging)
+          LogFile.write_log(client,methodType,fileName,httpVersion,
+                            resp.returnCode,resp.sentBytes);
 
-	out.close();
-	in.close();
-	client.close();
+        out.close();
+        in.close();
+        client.close();
       } catch(IOException e) {
-	;         // do nothing
+        ;         // do nothing
       }
     }
 
@@ -116,58 +116,58 @@ public class JhttpWorker extends Thread {
       // only spaces used
       StringTokenizer tok = new StringTokenizer(line, " ");
       if (tok.hasMoreTokens()) {    // make sure there is a request
-	String str = tok.nextToken();
+        String str = tok.nextToken();
 
-	if ( str.equals("GET") ) {
-	  ret = 0;
-	  methodType = "GET";
-	} else if ( str.equals("HEAD") ) {
-	  ret = 1;
-	  methodType = "HEAD";
-	} else if ( str.equals("POST") ) {
-	  ret = 2;
-	  methodType = "POST";
-	} else {
-	  System.out.println("501 - unsupported request:" +str);
-	  return -1;
-	}
+        if ( str.equals("GET") ) {
+          ret = 0;
+          methodType = "GET";
+        } else if ( str.equals("HEAD") ) {
+          ret = 1;
+          methodType = "HEAD";
+        } else if ( str.equals("POST") ) {
+          ret = 2;
+          methodType = "POST";
+        } else {
+          System.out.println("501 - unsupported request:" +str);
+          return -1;
+        }
       } else {
-	// System.out.println("Request from browser was empty!");
-	return -1;
+        // System.out.println("Request from browser was empty!");
+        return -1;
       }
 
       // get the filename
       if (tok.hasMoreTokens()) {
-	fileName = tok.nextToken();
-	if(fileName.equals("/")) {
-	  fileName = "/index.html";
-	}
+        fileName = tok.nextToken();
+        if(fileName.equals("/")) {
+          fileName = "/index.html";
+        }
       } else
       {
-	// this is weird... why am i taking the first character of
-	// the filename if there are no more tokens?
-	// - catch should take care of this
-	fileName = fileName.substring(1);
+        // this is weird... why am i taking the first character of
+        // the filename if there are no more tokens?
+        // - catch should take care of this
+        fileName = fileName.substring(1);
       }
 
       // read the http version number
       // - right now nothing is done with this information
       if (tok.hasMoreTokens()) {
-	httpVersion = tok.nextToken();
+        httpVersion = tok.nextToken();
       } else
       {
-	httpVersion = "http/1.0";                       // default
+        httpVersion = "http/1.0";                       // default
       }
 
       // read remainder of the browser's header
       // - nothing done right now with this info... placeholder
       while((line = in.readLine()) != null) {
-	StringTokenizer token = new StringTokenizer(line," ");
+        StringTokenizer token = new StringTokenizer(line," ");
 
-	// do processing here
-	if(!token.hasMoreTokens()) {
-	  break;
-	}
+        // do processing here
+        if(!token.hasMoreTokens()) {
+          break;
+        }
       }
     } catch(Exception e) {
       System.err.println(e);

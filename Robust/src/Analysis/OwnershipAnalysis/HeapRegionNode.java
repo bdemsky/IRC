@@ -162,7 +162,7 @@ public class HeapRegionNode extends OwnershipNode {
       if( edge.getSrc().equals(on) &&
           edge.typeEquals(type) &&
           edge.fieldEquals(field) ) {
-	return edge;
+        return edge;
       }
     }
 

@@ -27,11 +27,11 @@ public class TaskQueue {
       this.parameterset[i]=new HashSet<FlagTagState>();
       TagExpressionList tel=td.getTag(td.getParameter(i));
       if (tel!=null)
-	for(int j=0; j<tel.numTags(); j++) {
-	  TempDescriptor tagtmp=tel.getTemp(j);
-	  if (!tags.contains(tagtmp))
-	    tags.add(tagtmp);
-	}
+        for(int j=0; j<tel.numTags(); j++) {
+          TempDescriptor tagtmp=tel.getTemp(j);
+          if (!tags.contains(tagtmp))
+            tags.add(tagtmp);
+        }
     }
   }
 

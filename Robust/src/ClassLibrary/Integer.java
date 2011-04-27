@@ -69,18 +69,18 @@ public class Integer {
       byte b=chars[i];
       int val;
       if (b>='0'&&b<='9')
-	val=b-'0';
+        val=b-'0';
       else if (b>='a'&&b<='z')
-	val=10+b-'a';
+        val=10+b-'a';
       else if (b>='A'&&b<='Z')
-	val=10+b-'A';
+        val=10+b-'A';
       else {
-	cont=false;
+        cont=false;
       }
       if (cont) {
-	if (val>=radix)
-	  System.error();
-	value=value*radix+val;
+        if (val>=radix)
+          System.error();
+        value=value*radix+val;
       }
     }
     if (isNeg)

@@ -46,11 +46,11 @@ public class HashMap {
     for(int i=0; i<oldtable.length; i++) {
       HashEntry e=oldtable[i];
       while(e!=null) {
-	HashEntry next=e.next;
-	int bin=hash(e.key, newCapacity);
-	e.next=table[bin];
-	table[bin]=e;
-	e=next;
+        HashEntry next=e.next;
+        int bin=hash(e.key, newCapacity);
+        e.next=table[bin];
+        table[bin]=e;
+        e=next;
       }
     }
   }
@@ -79,18 +79,18 @@ public class HashMap {
     HashEntry ptr=table[bin];
     if (ptr!=null) {
       if (ptr.key.equals(key)) {
-	table[bin]=ptr.next;
-	numItems--;
-	return ptr.value;
+        table[bin]=ptr.next;
+        numItems--;
+        return ptr.value;
       }
       while(ptr.next!=null) {
-	if (ptr.next.key.equals(key)) {
-	  Object oldvalue=ptr.value;
-	  ptr.next=ptr.next.next;
-	  numItems--;
-	  return oldvalue;
-	}
-	ptr=ptr.next;
+        if (ptr.next.key.equals(key)) {
+          Object oldvalue=ptr.value;
+          ptr.next=ptr.next.next;
+          numItems--;
+          return oldvalue;
+        }
+        ptr=ptr.next;
       }
     }
     return null;
@@ -101,7 +101,7 @@ public class HashMap {
     HashEntry ptr=table[bin];
     while(ptr!=null) {
       if (ptr.key.equals(key)) {
-	return ptr.value;
+        return ptr.value;
       }
       ptr=ptr.next;
     }
@@ -113,7 +113,7 @@ public class HashMap {
     HashEntry ptr=table[bin];
     while(ptr!=null) {
       if (ptr.key.equals(key)) {
-	return true;
+        return true;
       }
       ptr=ptr.next;
     }
@@ -130,9 +130,9 @@ public class HashMap {
     HashEntry ptr=table[bin];
     while(ptr!=null) {
       if (ptr.key.equals(key)) {
-	Object oldvalue=ptr.value;
-	ptr.value=value;
-	return oldvalue;
+        Object oldvalue=ptr.value;
+        ptr.value=value;
+        return oldvalue;
       }
       ptr=ptr.next;
     }

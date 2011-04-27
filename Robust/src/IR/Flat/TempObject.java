@@ -65,7 +65,7 @@ public class TempObject {
     if (!params.containsTemp(t)) {
       Position p=(Position)temptostore.get(t);
       if (p==null)
-	System.out.println(t);
+        System.out.println(t);
       return !p.inStruct;
     }
     return false;

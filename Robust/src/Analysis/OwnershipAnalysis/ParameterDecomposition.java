@@ -120,7 +120,7 @@ public class ParameterDecomposition {
     if( as != null ) {
       Set<AllocationSite> asSet = pi2a_as.get(paramIndex);
       if( asSet == null ) {
-	asSet = new HashSet<AllocationSite>();
+        asSet = new HashSet<AllocationSite>();
       }
       asSet.add(as);
       pi2a_as.put(paramIndex, asSet);
@@ -128,7 +128,7 @@ public class ParameterDecomposition {
       // and if there is an allocation site, grab type
       Set<TypeDescriptor> tdSet = pi2a_td.get(paramIndex);
       if( tdSet == null ) {
-	tdSet = new HashSet<TypeDescriptor>();
+        tdSet = new HashSet<TypeDescriptor>();
       }
       tdSet.add(as.getType() );
       pi2a_td.put(paramIndex, tdSet);
@@ -150,7 +150,7 @@ public class ParameterDecomposition {
     if( as != null ) {
       Set<AllocationSite> asSet = pi2r_as.get(paramIndex);
       if( asSet == null ) {
-	asSet = new HashSet<AllocationSite>();
+        asSet = new HashSet<AllocationSite>();
       }
       asSet.add(as);
       pi2r_as.put(paramIndex, asSet);
@@ -158,7 +158,7 @@ public class ParameterDecomposition {
       // and if there is an allocation site, grab type
       Set<TypeDescriptor> tdSet = pi2r_td.get(paramIndex);
       if( tdSet == null ) {
-	tdSet = new HashSet<TypeDescriptor>();
+        tdSet = new HashSet<TypeDescriptor>();
       }
       tdSet.add(as.getType() );
       pi2r_td.put(paramIndex, tdSet);

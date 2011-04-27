@@ -20,30 +20,30 @@ public class EscapedUnicodeReader extends FilterReader {
       return r;
     } else { // found a backslash;
       if (!isEvenSlash) { // Only even slashes are eligible unicode escapes.
-	isEvenSlash=true;
-	return r;
+        isEvenSlash=true;
+        return r;
       }
 
       // Check for the trailing u.
       pushback=in.read();
       if (pushback!='u') {
-	isEvenSlash=false;
-	return '\\';
+        isEvenSlash=false;
+        return '\\';
       }
 
       // OK, we've found backslash-u.
       // Reset pushback and snarf up all trailing u's.
       pushback=-1;
       while((r=in.read())=='u')
-	;
+        ;
       // Now we should find 4 hex digits.
       // If we don't, we can raise bloody hell.
       int val=0;
       for (int i=0; i<4; i++, r=in.read()) {
-	int d=Character.digit((char)r, 16);
-	if (r<0 || d<0)
-	  throw new Error("Invalid unicode escape character.");
-	val = (val*16) + d;
+        int d=Character.digit((char)r, 16);
+        if (r<0 || d<0)
+          throw new Error("Invalid unicode escape character.");
+        val = (val*16) + d;
       }
       // yeah, we made it.
       pushback = r;

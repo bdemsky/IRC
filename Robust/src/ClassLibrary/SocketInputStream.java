@@ -25,9 +25,9 @@ public class SocketInputStream extends InputStream {
       byte[] t=new byte[toread];
       int rd=read(t);
       if (rd<0)
-	return rd;
+        return rd;
       for(int i=0; i<rd; i++)
-	b[i+offset]=t[i];
+        b[i+offset]=t[i];
       offset+=rd;
       toread-=rd;
     }

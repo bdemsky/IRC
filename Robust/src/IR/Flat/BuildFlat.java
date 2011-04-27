@@ -72,19 +72,19 @@ public class BuildFlat {
       TagExpressionList tel=td.getTag(paramvd);
       //BUG added next line to fix...to test feed in any task program
       if (tel!=null)
-	for(int j=0; j<tel.numTags(); j++) {
-	  TagVarDescriptor tvd=(TagVarDescriptor) td.getParameterTable().getFromSameScope(tel.getName(j));
-	  TempDescriptor tagtmp=getTempforVar(tvd);
-	  if (!visitedset.containsKey(tvd.getName())) {
-	    visitedset.put(tvd.getName(),tvd.getTag());
-	    fm.addTagTemp(tagtmp);
-	  } else {
-	    TagDescriptor tmptd=(TagDescriptor) visitedset.get(tvd.getName());
-	    if (!tmptd.equals(tvd.getTag()))
-	      throw new Error("Two different tag types with same name as parameters to:"+td);
-	  }
-	  tel.setTemp(j, tagtmp);
-	}
+        for(int j=0; j<tel.numTags(); j++) {
+          TagVarDescriptor tvd=(TagVarDescriptor) td.getParameterTable().getFromSameScope(tel.getName(j));
+          TempDescriptor tagtmp=getTempforVar(tvd);
+          if (!visitedset.containsKey(tvd.getName())) {
+            visitedset.put(tvd.getName(),tvd.getTag());
+            fm.addTagTemp(tagtmp);
+          } else {
+            TagDescriptor tmptd=(TagDescriptor) visitedset.get(tvd.getName());
+            if (!tmptd.equals(tvd.getTag()))
+              throw new Error("Two different tag types with same name as parameters to:"+td);
+          }
+          tel.setTemp(j, tagtmp);
+        }
     }
 
     /* Flatten Vector of Flag Effects */
@@ -105,15 +105,15 @@ public class BuildFlat {
       TempDescriptor flagtemp=getTempforVar(fes.getVar());
       // Process the flags
       for(int j=0; j<fes.numEffects(); j++) {
-	FlagEffect fe=fes.getEffect(j);
-	ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
+        FlagEffect fe=fes.getEffect(j);
+        ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
       }
       // Process the tags
       for(int j=0; j<fes.numTagEffects(); j++) {
-	TagEffect te=fes.getTagEffect(j);
-	TempDescriptor tagtemp=getTempforVar(te.getTag());
+        TagEffect te=fes.getTagEffect(j);
+        TempDescriptor tagtemp=getTempforVar(te.getTag());
 
-	ffan.addTagAction(flagtemp, te.getTag().getTag(), tagtemp, te.getStatus());
+        ffan.addTagAction(flagtemp, te.getTag().getTag(), tagtemp, te.getStatus());
       }
     }
   }
@@ -129,23 +129,23 @@ public class BuildFlat {
       TempDescriptor tmp=TempDescriptor.tempFactory("rettmp",currmd.getReturnType());
       Object o=null;
       if (currmd.getReturnType().isPtr()) {
-	o=null;
+        o=null;
       } else if (currmd.getReturnType().isByte()) {
-	o=new Byte((byte)0);
+        o=new Byte((byte)0);
       } else if (currmd.getReturnType().isShort()) {
-	o=new Short((short)0);
+        o=new Short((short)0);
       } else if (currmd.getReturnType().isChar()) {
-	o=new Character('\0');
+        o=new Character('\0');
       } else if (currmd.getReturnType().isInt()) {
-	o=new Integer(0);
+        o=new Integer(0);
       } else if (currmd.getReturnType().isLong()) {
-	o=new Long(0);
+        o=new Long(0);
       } else if (currmd.getReturnType().isBoolean()) {
-	o=new Boolean(false);
+        o=new Boolean(false);
       } else if (currmd.getReturnType().isFloat()) {
-	o=new Float(0.0);
+        o=new Float(0.0);
       } else if (currmd.getReturnType().isDouble()) {
-	o=new Double(0.0);
+        o=new Double(0.0);
       }
 
 
@@ -168,9 +168,9 @@ public class BuildFlat {
     if (state.getMethodFlat(md)==null) {
       FlatMethod fm=new FlatMethod(md, fe);
       if (!md.isStatic())
-	fm.addParameterTemp(getTempforParam(md.getThis()));
+        fm.addParameterTemp(getTempforParam(md.getThis()));
       for(int i=0; i<md.numParameters(); i++) {
-	fm.addParameterTemp(getTempforParam(md.getParameter(i)));
+        fm.addParameterTemp(getTempforParam(md.getParameter(i)));
       }
       state.addFlatCode(md,fm);
     }
@@ -206,14 +206,14 @@ public class BuildFlat {
     if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
       TempDescriptor thistd = null;
       if(currmd.getModifiers().isStatic()) {
-	// need to lock the Class object
-	thistd=new TempDescriptor("classobj", cn);
+        // need to lock the Class object
+        thistd=new TempDescriptor("classobj", cn);
       } else {
-	// lock this object
-	thistd=getTempforVar(currmd.getThis());
+        // lock this object
+        thistd=getTempforVar(currmd.getThis());
       }
       if(!this.lockStack.isEmpty()) {
-	throw new Error("The lock stack for synchronized blocks/methods is not empty!");
+        throw new Error("The lock stack for synchronized blocks/methods is not empty!");
       }
       this.lockStack.push(thistd);
     }
@@ -225,55 +225,55 @@ public class BuildFlat {
       FlatNode end = null;
 
       {
-	if (lockStack.size()!=1) {
-	  throw new Error("TOO MANY THINGS ON LOCKSTACK");
-	}
-	TempDescriptor thistd = this.lockStack.elementAt(0);
-	FlatCall fc = new FlatCall(memd, null, thistd, new TempDescriptor[0]);
-	fc.setNumLine(bn.getNumLine());
-	first = end = fc;
+        if (lockStack.size()!=1) {
+          throw new Error("TOO MANY THINGS ON LOCKSTACK");
+        }
+        TempDescriptor thistd = this.lockStack.elementAt(0);
+        FlatCall fc = new FlatCall(memd, null, thistd, new TempDescriptor[0]);
+        fc.setNumLine(bn.getNumLine());
+        first = end = fc;
       }
 
       end.addNext(fn);
       fn=first;
       end = np.getEnd();
       if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
-	MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
-	while(!this.lockStack.isEmpty()) {
-	  TempDescriptor thistd = this.lockStack.pop();
-	  FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
-	  fcunlock.setNumLine(bn.getNumLine());
-	  end.addNext(fcunlock);
-	  end = fcunlock;
-	}
-	FlatNode rnflat=spliceReturn(end);
-	rnflat.addNext(fe);
+        MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
+        while(!this.lockStack.isEmpty()) {
+          TempDescriptor thistd = this.lockStack.pop();
+          FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
+          fcunlock.setNumLine(bn.getNumLine());
+          end.addNext(fcunlock);
+          end = fcunlock;
+        }
+        FlatNode rnflat=spliceReturn(end);
+        rnflat.addNext(fe);
       } else {
-	this.lockStack.clear();
+        this.lockStack.clear();
       }
     } else if (state.DSM&&currmd.getModifiers().isAtomic()) {
       curran.addNext(fn);
       fn=curran;
       if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
-	FlatAtomicExitNode aen=new FlatAtomicExitNode(curran);
-	np.getEnd().addNext(aen);
-	FlatNode rnflat=spliceReturn(aen);
-	rnflat.addNext(fe);
+        FlatAtomicExitNode aen=new FlatAtomicExitNode(curran);
+        np.getEnd().addNext(aen);
+        FlatNode rnflat=spliceReturn(aen);
+        rnflat.addNext(fe);
       }
     } else if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
       FlatNode rnflat=null;
       if( spliceInImplicitMain ) {
-	np.getEnd().addNext(spliceExit);
-	rnflat=spliceReturn(spliceExit);
+        np.getEnd().addNext(spliceExit);
+        rnflat=spliceReturn(spliceExit);
       } else {
-	rnflat=spliceReturn(np.getEnd());
+        rnflat=spliceReturn(np.getEnd());
       }
       rnflat.addNext(fe);
     } else if (np.getEnd()!=null) {
       if( spliceInImplicitMain ) {
-	FlatReturnNode rnflat=(FlatReturnNode)np.getEnd();
-	np.getEnd().addNext(spliceExit);
-	spliceExit.addNext(fe);
+        FlatReturnNode rnflat=(FlatReturnNode)np.getEnd();
+        np.getEnd().addNext(spliceExit);
+        spliceExit.addNext(fe);
       }
     }
     if( spliceInImplicitMain ) {
@@ -300,20 +300,20 @@ public class BuildFlat {
       FlatNode np_begin=np.getBegin();
       FlatNode np_end=np.getEnd();
       if(bn.getLabel()!=null) {
-	// interim implementation to have the labeled statement
-	state.fn2labelMap.put(np_begin, bn.getLabel());
+        // interim implementation to have the labeled statement
+        state.fn2labelMap.put(np_begin, bn.getLabel());
       }
       if (begin==null) {
-	begin=np_begin;
+        begin=np_begin;
       }
       if (end==null) {
-	end=np_end;
+        end=np_end;
       } else {
-	end.addNext(np_begin);
-	if (np_end==null) {
-	  return new NodePair(begin, null);
-	} else
-	  end=np_end;
+        end.addNext(np_begin);
+        if (np_end==null) {
+          return new NodePair(begin, null);
+        } else
+          end=np_end;
       }
     }
     if (begin==null) {
@@ -357,29 +357,29 @@ public class BuildFlat {
       //handle wrapper fields
       ClassDescriptor cd=td.getClassDesc();
       for(Iterator fieldit=cd.getFields(); fieldit.hasNext(); ) {
-	FieldDescriptor fd=(FieldDescriptor)fieldit.next();
-	if (fd.getType().iswrapper()) {
-	  TempDescriptor wrap_tmp=TempDescriptor.tempFactory("wrapper_obj",fd.getType());
-	  FlatNode fnwrapper=new FlatNew(fd.getType(), wrap_tmp, con.isGlobal());
-	  fnwrapper.setNumLine(con.getNumLine());
-	  FlatSetFieldNode fsfn=new FlatSetFieldNode(out_temp, fd, wrap_tmp);
-	  fsfn.setNumLine(con.getNumLine());
-	  last.addNext(fnwrapper);
-	  fnwrapper.addNext(fsfn);
-	  last=fsfn;
-	}
+        FieldDescriptor fd=(FieldDescriptor)fieldit.next();
+        if (fd.getType().iswrapper()) {
+          TempDescriptor wrap_tmp=TempDescriptor.tempFactory("wrapper_obj",fd.getType());
+          FlatNode fnwrapper=new FlatNew(fd.getType(), wrap_tmp, con.isGlobal());
+          fnwrapper.setNumLine(con.getNumLine());
+          FlatSetFieldNode fsfn=new FlatSetFieldNode(out_temp, fd, wrap_tmp);
+          fsfn.setNumLine(con.getNumLine());
+          last.addNext(fnwrapper);
+          fnwrapper.addNext(fsfn);
+          last=fsfn;
+        }
       }
 
       TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
 
       // Build arguments
       for(int i=0; i<con.numArgs(); i++) {
-	ExpressionNode en=con.getArg(i);
-	TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
-	temps[i]=tmp;
-	NodePair np=flattenExpressionNode(en, tmp);
-	last.addNext(np.getBegin());
-	last=np.getEnd();
+        ExpressionNode en=con.getArg(i);
+        TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
+        temps[i]=tmp;
+        NodePair np=flattenExpressionNode(en, tmp);
+        last.addNext(np.getBegin());
+        last=np.getEnd();
       }
       MethodDescriptor md=con.getConstructor();
       //Call to constructor
@@ -388,64 +388,64 @@ public class BuildFlat {
       last.addNext(fc);
       last=fc;
       if (td.getClassDesc().hasFlags()) {
-	//	    if (con.getFlagEffects()!=null) {
-	FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.NEWOBJECT);
-	ffan.setNumLine(con.getNumLine());
-	FlagEffects fes=con.getFlagEffects();
-	TempDescriptor flagtemp=out_temp;
-	if (fes!=null) {
-	  for(int j=0; j<fes.numEffects(); j++) {
-	    FlagEffect fe=fes.getEffect(j);
-	    ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
-	  }
-	  for(int j=0; j<fes.numTagEffects(); j++) {
-	    TagEffect te=fes.getTagEffect(j);
-	    TempDescriptor tagtemp=getTempforVar(te.getTag());
+        //	    if (con.getFlagEffects()!=null) {
+        FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.NEWOBJECT);
+        ffan.setNumLine(con.getNumLine());
+        FlagEffects fes=con.getFlagEffects();
+        TempDescriptor flagtemp=out_temp;
+        if (fes!=null) {
+          for(int j=0; j<fes.numEffects(); j++) {
+            FlagEffect fe=fes.getEffect(j);
+            ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
+          }
+          for(int j=0; j<fes.numTagEffects(); j++) {
+            TagEffect te=fes.getTagEffect(j);
+            TempDescriptor tagtemp=getTempforVar(te.getTag());
 
-	    ffan.addTagAction(flagtemp, te.getTag().getTag(), tagtemp, te.getStatus());
-	  }
-	} else {
-	  ffan.addFlagAction(flagtemp, null, false);
-	}
-	last.addNext(ffan);
-	last=ffan;
+            ffan.addTagAction(flagtemp, te.getTag().getTag(), tagtemp, te.getStatus());
+          }
+        } else {
+          ffan.addFlagAction(flagtemp, null, false);
+        }
+        last.addNext(ffan);
+        last=ffan;
       }
       return new NodePair(fn,last);
     } else {
       if(con.getArrayInitializer() == null) {
-	FlatNode first=null;
-	FlatNode last=null;
-	TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
-	for (int i=0; i<con.numArgs(); i++) {
-	  ExpressionNode en=con.getArg(i);
-	  TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
-	  temps[i]=tmp;
-	  NodePair np=flattenExpressionNode(en, tmp);
-	  if (first==null)
-	    first=np.getBegin();
-	  else
-	    last.addNext(np.getBegin());
-	  last=np.getEnd();
+        FlatNode first=null;
+        FlatNode last=null;
+        TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
+        for (int i=0; i<con.numArgs(); i++) {
+          ExpressionNode en=con.getArg(i);
+          TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
+          temps[i]=tmp;
+          NodePair np=flattenExpressionNode(en, tmp);
+          if (first==null)
+            first=np.getBegin();
+          else
+            last.addNext(np.getBegin());
+          last=np.getEnd();
 
-	  TempDescriptor tmp2=(i==0)?
-	                       out_temp:
-	                       TempDescriptor.tempFactory("arg",en.getType());
-	}
-	FlatNew fn=new FlatNew(td, out_temp, temps[0], con.isGlobal(), con.getDisjointId());
-	last.addNext(fn);
-	if (temps.length>1) {
-	  NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0, con.isGlobal());
-	  fn.addNext(np.getBegin());
-	  return new NodePair(first,np.getEnd());
-	} else if (td.isArray()&&td.dereference().iswrapper()) {
-	  NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0, con.isGlobal());
-	  fn.addNext(np.getBegin());
-	  return new NodePair(first,np.getEnd());
-	} else
-	  return new NodePair(first, fn);
+          TempDescriptor tmp2=(i==0)?
+                               out_temp:
+                               TempDescriptor.tempFactory("arg",en.getType());
+        }
+        FlatNew fn=new FlatNew(td, out_temp, temps[0], con.isGlobal(), con.getDisjointId());
+        last.addNext(fn);
+        if (temps.length>1) {
+          NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0, con.isGlobal());
+          fn.addNext(np.getBegin());
+          return new NodePair(first,np.getEnd());
+        } else if (td.isArray()&&td.dereference().iswrapper()) {
+          NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0, con.isGlobal());
+          fn.addNext(np.getBegin());
+          return new NodePair(first,np.getEnd());
+        } else
+          return new NodePair(first, fn);
       } else {
-	// array creation with initializers
-	return flattenArrayInitializerNode(con.getArrayInitializer(), out_temp);
+        // array creation with initializers
+        return flattenArrayInitializerNode(con.getArrayInitializer(), out_temp);
       }
     }
   }
@@ -504,7 +504,7 @@ public class BuildFlat {
     if (min.getExpression()!=null) {
       TypeDescriptor mtd = min.getExpression().getType();
       if(mtd.isClass() && mtd.getClassDesc().isEnum()) {
-	mtd = new TypeDescriptor(TypeDescriptor.INT);
+        mtd = new TypeDescriptor(TypeDescriptor.INT);
       }
       thisarg=TempDescriptor.tempFactory("thisarg", mtd);
       NodePair np=flattenExpressionNode(min.getExpression(),thisarg);
@@ -517,15 +517,15 @@ public class BuildFlat {
       ExpressionNode en=min.getArg(i);
       TypeDescriptor etd = en.getType();
       if(etd.isClass() && etd.getClassDesc().isEnum()) {
-	etd = new TypeDescriptor(TypeDescriptor.INT);
+        etd = new TypeDescriptor(TypeDescriptor.INT);
       }
       TempDescriptor td=TempDescriptor.tempFactory("arg", etd);
       temps[i]=td;
       NodePair np=flattenExpressionNode(en, td);
       if (first==null)
-	first=np.getBegin();
+        first=np.getBegin();
       else
-	last.addNext(np.getBegin());
+        last.addNext(np.getBegin());
       last=np.getEnd();
     }
 
@@ -609,13 +609,13 @@ public class BuildFlat {
     //Get src value
     if (an.getSrc()!=null) {
       if(an.getSrc().getEval() != null) {
-	FlatLiteralNode fln=new FlatLiteralNode(an.getSrc().getType(), an.getSrc().getEval().longValue(), src_tmp);
-	fln.setNumLine(an.getSrc().getNumLine());
-	first = last =fln;
+        FlatLiteralNode fln=new FlatLiteralNode(an.getSrc().getType(), an.getSrc().getEval().longValue(), src_tmp);
+        fln.setNumLine(an.getSrc().getNumLine());
+        first = last =fln;
       } else {
-	NodePair np_src=flattenExpressionNode(an.getSrc(),src_tmp);
-	first=np_src.getBegin();
-	last=np_src.getEnd();
+        NodePair np_src=flattenExpressionNode(an.getSrc(),src_tmp);
+        first=np_src.getBegin();
+        last=np_src.getEnd();
       }
     } else if (!pre) {
       FlatLiteralNode fln=new FlatLiteralNode(new TypeDescriptor(TypeDescriptor.INT),new Integer(1),src_tmp);
@@ -632,45 +632,45 @@ public class BuildFlat {
       TempDescriptor dst_tmp=null;
       NodePair np_baseexp=null;
       if(en.getType().isClassNameRef()) {
-	// static field dereference with class name
-	dst_tmp = new TempDescriptor(en.getType().getClassDesc().getSymbol(), en.getType());
-	FlatNop nop=new FlatNop();
-	np_baseexp = new NodePair(nop,nop);
+        // static field dereference with class name
+        dst_tmp = new TempDescriptor(en.getType().getClassDesc().getSymbol(), en.getType());
+        FlatNop nop=new FlatNop();
+        np_baseexp = new NodePair(nop,nop);
       } else {
-	dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
-	np_baseexp=flattenExpressionNode(en, dst_tmp);
+        dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
+        np_baseexp=flattenExpressionNode(en, dst_tmp);
       }
       if (first==null)
-	first=np_baseexp.getBegin();
+        first=np_baseexp.getBegin();
       else
-	last.addNext(np_baseexp.getBegin());
+        last.addNext(np_baseexp.getBegin());
       last=np_baseexp.getEnd();
 
       //See if we need to perform an operation
       if (base!=null) {
-	//If it is a preinc we need to store the initial value
-	TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
-	TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
-	FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
-	ffn.setNumLine(an.getNumLine());
-	last.addNext(ffn);
-	last=ffn;
+        //If it is a preinc we need to store the initial value
+        TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
+        TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
+        FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
+        ffn.setNumLine(an.getNumLine());
+        last.addNext(ffn);
+        last=ffn;
 
-	if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
-	  ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
-	  MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
-	  FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
-	  fc.setNumLine(an.getNumLine());
-	  src_tmp=tmp;
-	  last.addNext(fc);
-	  last=fc;
-	} else {
-	  FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
-	  fon.setNumLine(an.getNumLine());
-	  src_tmp=tmp;
-	  last.addNext(fon);
-	  last=fon;
-	}
+        if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
+          ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
+          MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
+          FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+          fc.setNumLine(an.getNumLine());
+          src_tmp=tmp;
+          last.addNext(fc);
+          last=fc;
+        } else {
+          FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+          fon.setNumLine(an.getNumLine());
+          src_tmp=tmp;
+          last.addNext(fon);
+          last=fon;
+        }
       }
 
       FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
@@ -678,10 +678,10 @@ public class BuildFlat {
       last.addNext(fsfn);
       last=fsfn;
       if (pre) {
-	FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
-	fon2.setNumLine(an.getNumLine());
-	fsfn.addNext(fon2);
-	last=fon2;
+        FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+        fon2.setNumLine(an.getNumLine());
+        fsfn.addNext(fon2);
+        last=fon2;
       }
       return new NodePair(first, last);
     } else if (an.getDest().kind()==Kind.ArrayAccessNode) {
@@ -695,72 +695,72 @@ public class BuildFlat {
       NodePair np_baseexp=flattenExpressionNode(en, dst_tmp);
       NodePair np_indexexp=flattenExpressionNode(enindex, index_tmp);
       if (first==null)
-	first=np_baseexp.getBegin();
+        first=np_baseexp.getBegin();
       else
-	last.addNext(np_baseexp.getBegin());
+        last.addNext(np_baseexp.getBegin());
       np_baseexp.getEnd().addNext(np_indexexp.getBegin());
       last=np_indexexp.getEnd();
 
       //See if we need to perform an operation
       if (base!=null) {
-	//If it is a preinc we need to store the initial value
-	TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
-	TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
+        //If it is a preinc we need to store the initial value
+        TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
+        TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 
-	if (aan.iswrapper()) {
-	  TypeDescriptor arrayeltype=aan.getExpression().getType().dereference();
-	  TempDescriptor src_tmp3=TempDescriptor.tempFactory("src3",arrayeltype);
-	  FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp3);
-	  fen.setNumLine(aan.getNumLine());
-	  FlatFieldNode ffn=new FlatFieldNode((FieldDescriptor)arrayeltype.getClassDesc().getFieldTable().get("value"),src_tmp3,src_tmp2);
-	  ffn.setNumLine(aan.getNumLine());
-	  last.addNext(fen);
-	  fen.addNext(ffn);
-	  last=ffn;
-	} else {
-	  FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp2);
-	  fen.setNumLine(aan.getNumLine());
-	  last.addNext(fen);
-	  last=fen;
-	}
-	if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
-	  ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
-	  MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
-	  FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
-	  fc.setNumLine(an.getNumLine());
-	  src_tmp=tmp;
-	  last.addNext(fc);
-	  last=fc;
-	} else {
-	  FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
-	  fon.setNumLine(an.getNumLine());
-	  src_tmp=tmp;
-	  last.addNext(fon);
-	  last=fon;
-	}
+        if (aan.iswrapper()) {
+          TypeDescriptor arrayeltype=aan.getExpression().getType().dereference();
+          TempDescriptor src_tmp3=TempDescriptor.tempFactory("src3",arrayeltype);
+          FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp3);
+          fen.setNumLine(aan.getNumLine());
+          FlatFieldNode ffn=new FlatFieldNode((FieldDescriptor)arrayeltype.getClassDesc().getFieldTable().get("value"),src_tmp3,src_tmp2);
+          ffn.setNumLine(aan.getNumLine());
+          last.addNext(fen);
+          fen.addNext(ffn);
+          last=ffn;
+        } else {
+          FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp2);
+          fen.setNumLine(aan.getNumLine());
+          last.addNext(fen);
+          last=fen;
+        }
+        if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
+          ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
+          MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
+          FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+          fc.setNumLine(an.getNumLine());
+          src_tmp=tmp;
+          last.addNext(fc);
+          last=fc;
+        } else {
+          FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+          fon.setNumLine(an.getNumLine());
+          src_tmp=tmp;
+          last.addNext(fon);
+          last=fon;
+        }
       }
 
       if (aan.iswrapper()) {
-	TypeDescriptor arrayeltype=aan.getExpression().getType().dereference();
-	TempDescriptor src_tmp3=TempDescriptor.tempFactory("src3",arrayeltype);
-	FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp3);
-	fen.setNumLine(aan.getNumLine());
-	FlatSetFieldNode fsfn=new FlatSetFieldNode(src_tmp3,(FieldDescriptor)arrayeltype.getClassDesc().getFieldTable().get("value"),src_tmp);
-	fsfn.setNumLine(aan.getExpression().getNumLine());
-	last.addNext(fen);
-	fen.addNext(fsfn);
-	last=fsfn;
+        TypeDescriptor arrayeltype=aan.getExpression().getType().dereference();
+        TempDescriptor src_tmp3=TempDescriptor.tempFactory("src3",arrayeltype);
+        FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp3);
+        fen.setNumLine(aan.getNumLine());
+        FlatSetFieldNode fsfn=new FlatSetFieldNode(src_tmp3,(FieldDescriptor)arrayeltype.getClassDesc().getFieldTable().get("value"),src_tmp);
+        fsfn.setNumLine(aan.getExpression().getNumLine());
+        last.addNext(fen);
+        fen.addNext(fsfn);
+        last=fsfn;
       } else {
-	FlatSetElementNode fsen=new FlatSetElementNode(dst_tmp, index_tmp, src_tmp);
-	fsen.setNumLine(aan.getNumLine());
-	last.addNext(fsen);
-	last=fsen;
+        FlatSetElementNode fsen=new FlatSetElementNode(dst_tmp, index_tmp, src_tmp);
+        fsen.setNumLine(aan.getNumLine());
+        last.addNext(fsen);
+        last=fsen;
       }
       if (pre) {
-	FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
-	fon2.setNumLine(an.getNumLine());
-	last.addNext(fon2);
-	last=fon2;
+        FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+        fon2.setNumLine(an.getNumLine());
+        last.addNext(fon2);
+        last=fon2;
       }
       return new NodePair(first, last);
     } else if (an.getDest().kind()==Kind.NameNode) {
@@ -769,191 +769,191 @@ public class BuildFlat {
 
 
       if (nn.getExpression()!=null) {
-	//It is a field
-	FieldAccessNode fan=(FieldAccessNode)nn.getExpression();
-	ExpressionNode en=fan.getExpression();
-	TempDescriptor dst_tmp=null;
-	NodePair np_baseexp=null;
-	if(en.getType().isClassNameRef()) {
-	  // static field dereference with class name
-	  dst_tmp = new TempDescriptor(en.getType().getClassDesc().getSymbol(), en.getType());
-	  FlatNop nop=new FlatNop();
-	  np_baseexp = new NodePair(nop,nop);
-	} else {
-	  dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
-	  np_baseexp=flattenExpressionNode(en, dst_tmp);
-	}
-	if (first==null)
-	  first=np_baseexp.getBegin();
-	else
-	  last.addNext(np_baseexp.getBegin());
-	last=np_baseexp.getEnd();
+        //It is a field
+        FieldAccessNode fan=(FieldAccessNode)nn.getExpression();
+        ExpressionNode en=fan.getExpression();
+        TempDescriptor dst_tmp=null;
+        NodePair np_baseexp=null;
+        if(en.getType().isClassNameRef()) {
+          // static field dereference with class name
+          dst_tmp = new TempDescriptor(en.getType().getClassDesc().getSymbol(), en.getType());
+          FlatNop nop=new FlatNop();
+          np_baseexp = new NodePair(nop,nop);
+        } else {
+          dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
+          np_baseexp=flattenExpressionNode(en, dst_tmp);
+        }
+        if (first==null)
+          first=np_baseexp.getBegin();
+        else
+          last.addNext(np_baseexp.getBegin());
+        last=np_baseexp.getEnd();
 
-	//See if we need to perform an operation
-	if (base!=null) {
-	  //If it is a preinc we need to store the initial value
-	  TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
-	  TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
+        //See if we need to perform an operation
+        if (base!=null) {
+          //If it is a preinc we need to store the initial value
+          TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
+          TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 
-	  FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
-	  ffn.setNumLine(an.getNumLine());
-	  last.addNext(ffn);
-	  last=ffn;
-
-
-	  if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
-	    ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
-	    MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
-	    FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
-	    fc.setNumLine(an.getNumLine());
-	    src_tmp=tmp;
-	    last.addNext(fc);
-	    last=fc;
-	  } else {
-	    FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
-	    fon.setNumLine(an.getNumLine());
-	    src_tmp=tmp;
-	    last.addNext(fon);
-	    last=fon;
-	  }
-	}
+          FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
+          ffn.setNumLine(an.getNumLine());
+          last.addNext(ffn);
+          last=ffn;
 
 
-	FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
-	fsfn.setNumLine(en.getNumLine());
-	last.addNext(fsfn);
-	last=fsfn;
-	if (pre) {
-	  FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
-	  fon2.setNumLine(an.getNumLine());
-	  fsfn.addNext(fon2);
-	  last=fon2;
-	}
-	return new NodePair(first, last);
+          if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
+            ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
+            MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
+            FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+            fc.setNumLine(an.getNumLine());
+            src_tmp=tmp;
+            last.addNext(fc);
+            last=fc;
+          } else {
+            FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+            fon.setNumLine(an.getNumLine());
+            src_tmp=tmp;
+            last.addNext(fon);
+            last=fon;
+          }
+        }
+
+
+        FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
+        fsfn.setNumLine(en.getNumLine());
+        last.addNext(fsfn);
+        last=fsfn;
+        if (pre) {
+          FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+          fon2.setNumLine(an.getNumLine());
+          fsfn.addNext(fon2);
+          last=fon2;
+        }
+        return new NodePair(first, last);
       } else {
-	if (nn.getField()!=null) {
-	  //It is a field
-	  //Get src value
+        if (nn.getField()!=null) {
+          //It is a field
+          //Get src value
 
-	  //See if we need to perform an operation
-	  if (base!=null) {
-	    //If it is a preinc we need to store the initial value
-	    TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
-	    TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
+          //See if we need to perform an operation
+          if (base!=null) {
+            //If it is a preinc we need to store the initial value
+            TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
+            TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 
-	    TempDescriptor ftmp= null;
-	    if((nn.getClassDesc() != null)) {
-	      // this is a static field
-	      ftmp = new TempDescriptor(nn.getClassDesc().getSymbol(), nn.getClassType());
+            TempDescriptor ftmp= null;
+            if((nn.getClassDesc() != null)) {
+              // this is a static field
+              ftmp = new TempDescriptor(nn.getClassDesc().getSymbol(), nn.getClassType());
 
-	    } else {
-	      ftmp=getTempforVar(nn.getVar());
-	    }
-	    FlatFieldNode ffn=new FlatFieldNode(nn.getField(), ftmp, src_tmp2);
-	    ffn.setNumLine(an.getNumLine());
+            } else {
+              ftmp=getTempforVar(nn.getVar());
+            }
+            FlatFieldNode ffn=new FlatFieldNode(nn.getField(), ftmp, src_tmp2);
+            ffn.setNumLine(an.getNumLine());
 
-	    if (first==null)
-	      first=ffn;
-	    else {
-	      last.addNext(ffn);
-	    }
-	    last=ffn;
-
-
-	    if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
-	      ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
-	      MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
-	      FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
-	      fc.setNumLine(an.getNumLine());
-	      src_tmp=tmp;
-	      last.addNext(fc);
-	      last=fc;
-	    } else {
-	      FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
-	      fon.setNumLine(an.getNumLine());
-	      src_tmp=tmp;
-	      last.addNext(fon);
-	      last=fon;
-	    }
-	  }
-
-	  FlatSetFieldNode fsfn=null;
-	  if(nn.getClassDesc()!=null) {
-	    // this is a static field access inside of a static block
-	    fsfn=new FlatSetFieldNode(new TempDescriptor("sfsb", nn.getClassType()), nn.getField(), src_tmp);
-	    fsfn.setNumLine(nn.getNumLine());
-	  } else {
-	    fsfn=new FlatSetFieldNode(getTempforVar(nn.getVar()), nn.getField(), src_tmp);
-	    fsfn.setNumLine(nn.getNumLine());
-	  }
-	  if (first==null) {
-	    first=fsfn;
-	  } else {
-	    last.addNext(fsfn);
-	  }
-	  last=fsfn;
-	  if (pre) {
-	    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
-	    fon2.setNumLine(an.getNumLine());
-	    fsfn.addNext(fon2);
-	    last=fon2;
-	  }
-	  return new NodePair(first, last);
-	} else {
-	  //It is a variable
-	  //See if we need to perform an operation
-
-	  if (base!=null) {
-	    //If it is a preinc we need to store the initial value
-	    TempDescriptor src_tmp2=getTempforVar(nn.getVar());
-	    TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
-	    if (!pre) {
-	      FlatOpNode fon=new FlatOpNode(out_temp, src_tmp2, null, new Operation(Operation.ASSIGN));
-	      fon.setNumLine(an.getNumLine());
-	      if (first==null)
-		first=fon;
-	      else
-		last.addNext(fon);
-	      last=fon;
-	    }
+            if (first==null)
+              first=ffn;
+            else {
+              last.addNext(ffn);
+            }
+            last=ffn;
 
 
-	    if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
-	      ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
-	      MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
-	      FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
-	      fc.setNumLine(an.getNumLine());
-	      if (first==null)
-		first=fc;
-	      else
-		last.addNext(fc);
-	      src_tmp=tmp;
-	      last=fc;
-	    } else {
-	      FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
-	      fon.setNumLine(an.getNumLine());
-	      if (first==null)
-		first=fon;
-	      else
-		last.addNext(fon);
-	      src_tmp=tmp;
-	      last=fon;
-	    }
-	  }
+            if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
+              ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
+              MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
+              FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+              fc.setNumLine(an.getNumLine());
+              src_tmp=tmp;
+              last.addNext(fc);
+              last=fc;
+            } else {
+              FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+              fon.setNumLine(an.getNumLine());
+              src_tmp=tmp;
+              last.addNext(fon);
+              last=fon;
+            }
+          }
 
-	  FlatOpNode fon=new FlatOpNode(getTempforVar(nn.getVar()), src_tmp, null, new Operation(Operation.ASSIGN));
-	  fon.setNumLine(an.getNumLine());
+          FlatSetFieldNode fsfn=null;
+          if(nn.getClassDesc()!=null) {
+            // this is a static field access inside of a static block
+            fsfn=new FlatSetFieldNode(new TempDescriptor("sfsb", nn.getClassType()), nn.getField(), src_tmp);
+            fsfn.setNumLine(nn.getNumLine());
+          } else {
+            fsfn=new FlatSetFieldNode(getTempforVar(nn.getVar()), nn.getField(), src_tmp);
+            fsfn.setNumLine(nn.getNumLine());
+          }
+          if (first==null) {
+            first=fsfn;
+          } else {
+            last.addNext(fsfn);
+          }
+          last=fsfn;
+          if (pre) {
+            FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+            fon2.setNumLine(an.getNumLine());
+            fsfn.addNext(fon2);
+            last=fon2;
+          }
+          return new NodePair(first, last);
+        } else {
+          //It is a variable
+          //See if we need to perform an operation
 
-	  last.addNext(fon);
-	  last=fon;
-	  if (pre) {
-	    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
-	    fon2.setNumLine(an.getNumLine());
-	    fon.addNext(fon2);
-	    last=fon2;
-	  }
-	  return new NodePair(first, last);
-	} //end of else
+          if (base!=null) {
+            //If it is a preinc we need to store the initial value
+            TempDescriptor src_tmp2=getTempforVar(nn.getVar());
+            TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
+            if (!pre) {
+              FlatOpNode fon=new FlatOpNode(out_temp, src_tmp2, null, new Operation(Operation.ASSIGN));
+              fon.setNumLine(an.getNumLine());
+              if (first==null)
+                first=fon;
+              else
+                last.addNext(fon);
+              last=fon;
+            }
+
+
+            if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
+              ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
+              MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
+              FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+              fc.setNumLine(an.getNumLine());
+              if (first==null)
+                first=fc;
+              else
+                last.addNext(fc);
+              src_tmp=tmp;
+              last=fc;
+            } else {
+              FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+              fon.setNumLine(an.getNumLine());
+              if (first==null)
+                first=fon;
+              else
+                last.addNext(fon);
+              src_tmp=tmp;
+              last=fon;
+            }
+          }
+
+          FlatOpNode fon=new FlatOpNode(getTempforVar(nn.getVar()), src_tmp, null, new Operation(Operation.ASSIGN));
+          fon.setNumLine(an.getNumLine());
+
+          last.addNext(fon);
+          last=fon;
+          if (pre) {
+            FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+            fon2.setNumLine(an.getNumLine());
+            fon.addNext(fon2);
+            last=fon2;
+          }
+          return new NodePair(first, last);
+        } //end of else
       }
     }
 
@@ -967,11 +967,11 @@ public class BuildFlat {
     } else if (nn.getField()!=null) {
       TempDescriptor tmp= null;
       if((nn.getClassDesc() != null)) {
-	// this is a static field
-	tmp = new TempDescriptor(nn.getClassDesc().getSymbol(), nn.getClassType());
+        // this is a static field
+        tmp = new TempDescriptor(nn.getClassDesc().getSymbol(), nn.getClassType());
 
       } else {
-	tmp=getTempforVar(nn.getVar());
+        tmp=getTempforVar(nn.getVar());
       }
       FlatFieldNode ffn=new FlatFieldNode(nn.getField(), tmp, out_temp);
       ffn.setNumLine(nn.getNumLine());
@@ -979,8 +979,8 @@ public class BuildFlat {
     } else {
       TempDescriptor tmp=getTempforVar(nn.isTag()?nn.getTagVar():nn.getVar());
       if (nn.isTag()) {
-	//propagate tag
-	out_temp.setTag(tmp.getTag());
+        //propagate tag
+        out_temp.setTag(tmp.getTag());
       }
       FlatOpNode fon=new FlatOpNode(out_temp, tmp, null, new Operation(Operation.ASSIGN));
       fon.setNumLine(nn.getNumLine());
@@ -1123,16 +1123,16 @@ public class BuildFlat {
       return (TempDescriptor)temptovar.get(d);
     else {
       if (d instanceof VarDescriptor) {
-	VarDescriptor vd=(VarDescriptor)d;
-	TempDescriptor td=TempDescriptor.paramtempFactory(vd.getName(),vd.getType());
-	temptovar.put(vd,td);
-	return td;
+        VarDescriptor vd=(VarDescriptor)d;
+        TempDescriptor td=TempDescriptor.paramtempFactory(vd.getName(),vd.getType());
+        temptovar.put(vd,td);
+        return td;
       } else if (d instanceof TagVarDescriptor) {
-	TagVarDescriptor tvd=(TagVarDescriptor)d;
-	TypeDescriptor tagtype=new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass));
-	TempDescriptor td=TempDescriptor.paramtempFactory(tvd.getName(), tagtype, tvd.getTag());
-	temptovar.put(tvd,td);
-	return td;
+        TagVarDescriptor tvd=(TagVarDescriptor)d;
+        TypeDescriptor tagtype=new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass));
+        TempDescriptor td=TempDescriptor.paramtempFactory(tvd.getName(), tagtype, tvd.getTag());
+        temptovar.put(tvd,td);
+        return td;
       } else throw new Error("Unreconized Descriptor");
     }
   }
@@ -1142,20 +1142,20 @@ public class BuildFlat {
       return (TempDescriptor)temptovar.get(d);
     else {
       if (d instanceof VarDescriptor) {
-	VarDescriptor vd=(VarDescriptor)d;
-	TempDescriptor td=TempDescriptor.tempFactory(vd.getName(), vd.getType());
-	temptovar.put(vd,td);
-	return td;
+        VarDescriptor vd=(VarDescriptor)d;
+        TempDescriptor td=TempDescriptor.tempFactory(vd.getName(), vd.getType());
+        temptovar.put(vd,td);
+        return td;
       } else if (d instanceof TagVarDescriptor) {
-	TagVarDescriptor tvd=(TagVarDescriptor)d;
-	//BUGFIX TAGTYPE - add next line, modify following
-	//line to tag this new type descriptor, modify
-	//TempDescriptor constructor & factory to set type
-	//using this Type To test, use any program with tags
-	TypeDescriptor tagtype=new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass));
-	TempDescriptor td=TempDescriptor.tempFactory(tvd.getName(),tagtype, tvd.getTag());
-	temptovar.put(tvd,td);
-	return td;
+        TagVarDescriptor tvd=(TagVarDescriptor)d;
+        //BUGFIX TAGTYPE - add next line, modify following
+        //line to tag this new type descriptor, modify
+        //TempDescriptor constructor & factory to set type
+        //using this Type To test, use any program with tags
+        TypeDescriptor tagtype=new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass));
+        TempDescriptor td=TempDescriptor.tempFactory(tvd.getName(),tagtype, tvd.getTag());
+        temptovar.put(tvd,td);
+        return td;
       } else throw new Error("Unrecognized Descriptor");
     }
   }
@@ -1214,68 +1214,68 @@ public class BuildFlat {
       FlatNode cond_begin = null;
       NodePair prev_fnp = null;
       for(int j = 0; j < slnv.size(); j++) {
-	SwitchLabelNode sln = slnv.elementAt(j);
-	NodePair left = null;
-	NodePair false_np = null;
-	if(sln.isDefault()) {
-	  left = body;
-	} else {
-	  TempDescriptor cond_tmp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
-	  TempDescriptor temp_left=TempDescriptor.tempFactory("leftop", sln.getCondition().getType());
-	  Operation op=new Operation(Operation.EQUAL);
-	  left=flattenExpressionNode(sln.getCondition(), temp_left);
-	  FlatOpNode fon=new FlatOpNode(cond_tmp, temp_left, cond_temp, op);
-	  fon.setNumLine(sln.getNumLine());
-	  left.getEnd().addNext(fon);
+        SwitchLabelNode sln = slnv.elementAt(j);
+        NodePair left = null;
+        NodePair false_np = null;
+        if(sln.isDefault()) {
+          left = body;
+        } else {
+          TempDescriptor cond_tmp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
+          TempDescriptor temp_left=TempDescriptor.tempFactory("leftop", sln.getCondition().getType());
+          Operation op=new Operation(Operation.EQUAL);
+          left=flattenExpressionNode(sln.getCondition(), temp_left);
+          FlatOpNode fon=new FlatOpNode(cond_tmp, temp_left, cond_temp, op);
+          fon.setNumLine(sln.getNumLine());
+          left.getEnd().addNext(fon);
 
-	  FlatCondBranch fcb=new FlatCondBranch(cond_tmp);
-	  fcb.setNumLine(bn.getNumLine());
-	  fcb.setTrueProb(State.TRUEPROB);
+          FlatCondBranch fcb=new FlatCondBranch(cond_tmp);
+          fcb.setNumLine(bn.getNumLine());
+          fcb.setTrueProb(State.TRUEPROB);
 
-	  FlatNop nop=new FlatNop();
-	  false_np=new NodePair(nop,nop);
+          FlatNop nop=new FlatNop();
+          false_np=new NodePair(nop,nop);
 
-	  fon.addNext(fcb);
-	  fcb.addTrueNext(body.getBegin());
-	  fcb.addFalseNext(false_np.getBegin());
-	}
-	if((prev_fnp != null) && (prev_fnp.getEnd() != null)) {
-	  prev_fnp.getEnd().addNext(left.getBegin());
-	}
-	prev_fnp = false_np;
+          fon.addNext(fcb);
+          fcb.addTrueNext(body.getBegin());
+          fcb.addFalseNext(false_np.getBegin());
+        }
+        if((prev_fnp != null) && (prev_fnp.getEnd() != null)) {
+          prev_fnp.getEnd().addNext(left.getBegin());
+        }
+        prev_fnp = false_np;
 
-	if (begin==null) {
-	  begin = left.getBegin();
-	}
-	if(cond_begin == null) {
-	  cond_begin = left.getBegin();
-	}
+        if (begin==null) {
+          begin = left.getBegin();
+        }
+        if(cond_begin == null) {
+          cond_begin = left.getBegin();
+        }
       }
       if((prev_false_branch != null) && (prev_false_branch.getEnd() != null)) {
-	prev_false_branch.getEnd().addNext(cond_begin);
+        prev_false_branch.getEnd().addNext(cond_begin);
       }
       prev_false_branch = prev_fnp;
       if((prev_true_branch != null) && (prev_true_branch.getEnd() != null)) {
-	prev_true_branch.getEnd().addNext(body.getBegin());
+        prev_true_branch.getEnd().addNext(body.getBegin());
       }
       prev_true_branch = body;
       for(Iterator breakit=breakset.iterator(); breakit.hasNext(); ) {
-	FlatNode fn=(FlatNode)breakit.next();
-	breakit.remove();
-	if (end==null)
-	  end=new FlatNop();
-	fn.addNext(end);
+        FlatNode fn=(FlatNode)breakit.next();
+        breakit.remove();
+        if (end==null)
+          end=new FlatNop();
+        fn.addNext(end);
       }
       breakset=oldbs;
     }
     if((prev_true_branch != null) && (prev_true_branch.getEnd() != null)) {
       if (end==null)
-	end=new FlatNop();
+        end=new FlatNop();
       prev_true_branch.getEnd().addNext(end);
     }
     if((prev_false_branch != null) && (prev_false_branch.getEnd() != null)) {
       if (end==null)
-	end=new FlatNop();
+        end=new FlatNop();
       prev_false_branch.getEnd().addNext(end);
     }
     if(begin == null) {
@@ -1308,21 +1308,21 @@ public class BuildFlat {
       initializer.getEnd().addNext(nop2);
       nop2.addNext(condition.getBegin());
       if (body.getEnd()!=null)
-	body.getEnd().addNext(update.getBegin());
+        body.getEnd().addNext(update.getBegin());
       update.getEnd().addNext(backedge);
       backedge.addNext(condition.getBegin());
       condition.getEnd().addNext(fcb);
       fcb.addFalseNext(nopend);
       fcb.addTrueNext(body.getBegin());
       for(Iterator contit=continueset.iterator(); contit.hasNext(); ) {
-	FlatNode fn=(FlatNode)contit.next();
-	contit.remove();
-	fn.addNext(update.getBegin());
+        FlatNode fn=(FlatNode)contit.next();
+        contit.remove();
+        fn.addNext(update.getBegin());
       }
       for(Iterator breakit=breakset.iterator(); breakit.hasNext(); ) {
-	FlatNode fn=(FlatNode)breakit.next();
-	breakit.remove();
-	fn.addNext(nopend);
+        FlatNode fn=(FlatNode)breakit.next();
+        breakit.remove();
+        fn.addNext(nopend);
       }
       breakset=oldbs;
       continueset=oldcs;
@@ -1340,7 +1340,7 @@ public class BuildFlat {
       FlatBackEdge backedge=new FlatBackEdge();
 
       if (body.getEnd()!=null)
-	body.getEnd().addNext(backedge);
+        body.getEnd().addNext(backedge);
       backedge.addNext(condition.getBegin());
 
       condition.getEnd().addNext(fcb);
@@ -1348,14 +1348,14 @@ public class BuildFlat {
       fcb.addTrueNext(body.getBegin());
 
       for(Iterator contit=continueset.iterator(); contit.hasNext(); ) {
-	FlatNode fn=(FlatNode)contit.next();
-	contit.remove();
-	fn.addNext(backedge);
+        FlatNode fn=(FlatNode)contit.next();
+        contit.remove();
+        fn.addNext(backedge);
       }
       for(Iterator breakit=breakset.iterator(); breakit.hasNext(); ) {
-	FlatNode fn=(FlatNode)breakit.next();
-	breakit.remove();
-	fn.addNext(nopend);
+        FlatNode fn=(FlatNode)breakit.next();
+        breakit.remove();
+        fn.addNext(nopend);
       }
       breakset=oldbs;
       continueset=oldcs;
@@ -1373,21 +1373,21 @@ public class BuildFlat {
       FlatBackEdge backedge=new FlatBackEdge();
 
       if (body.getEnd()!=null)
-	body.getEnd().addNext(condition.getBegin());
+        body.getEnd().addNext(condition.getBegin());
       condition.getEnd().addNext(fcb);
       fcb.addFalseNext(nopend);
       fcb.addTrueNext(backedge);
       backedge.addNext(body.getBegin());
 
       for(Iterator contit=continueset.iterator(); contit.hasNext(); ) {
-	FlatNode fn=(FlatNode)contit.next();
-	contit.remove();
-	fn.addNext(condition.getBegin());
+        FlatNode fn=(FlatNode)contit.next();
+        contit.remove();
+        fn.addNext(condition.getBegin());
       }
       for(Iterator breakit=breakset.iterator(); breakit.hasNext(); ) {
-	FlatNode fn=(FlatNode)breakit.next();
-	breakit.remove();
-	fn.addNext(nopend);
+        FlatNode fn=(FlatNode)breakit.next();
+        breakit.remove();
+        fn.addNext(nopend);
       }
       breakset=oldbs;
       continueset=oldcs;
@@ -1411,13 +1411,13 @@ public class BuildFlat {
       FlatNode end = null;
       MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
       for(int j = this.lockStack.size(); j > 0; j--) {
-	TempDescriptor thistd = this.lockStack.elementAt(j-1);
-	FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
-	fcunlock.setNumLine(rntree.getNumLine());
-	if(end != null) {
-	  end.addNext(fcunlock);
-	}
-	end = fcunlock;
+        TempDescriptor thistd = this.lockStack.elementAt(j-1);
+        FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
+        fcunlock.setNumLine(rntree.getNumLine());
+        if(end != null) {
+          end.addNext(fcunlock);
+        }
+        end = fcunlock;
       }
       end.addNext(ln);
       ln=end;
@@ -1459,13 +1459,13 @@ public class BuildFlat {
       TempDescriptor[] temps=new TempDescriptor[cc.numArgs()];
       String[] vars=new String[cc.numArgs()];
       for(int j=0; j<cc.numArgs(); j++) {
-	ExpressionNode en=cc.getArg(j);
-	TempDescriptor td=TempDescriptor.tempFactory("arg",en.getType());
-	temps[j]=td;
-	vars[j]=cc.getVar(j);
-	NodePair np=flattenExpressionNode(en, td);
-	last.addNext(np.getBegin());
-	last=np.getEnd();
+        ExpressionNode en=cc.getArg(j);
+        TempDescriptor td=TempDescriptor.tempFactory("arg",en.getType());
+        temps[j]=td;
+        vars[j]=cc.getVar(j);
+        NodePair np=flattenExpressionNode(en, td);
+        last.addNext(np.getBegin());
+        last=np.getEnd();
       }
 
       FlatCheckNode fcn=new FlatCheckNode(cc.getSpec(), vars, temps);

@@ -139,33 +139,33 @@ public class DCWrapper {
       FlatNode fn=fnit.next();
       if (fn.kind()==FKind.FlatAtomicEnterNode&&
           locality.getAtomic(lb).get(fn.getPrev(0)).intValue()==0) {
-	Set<FlatNode> transSet=computeTrans(lb, fn);
-	Set<FlatNode> tCheckSet=intersect(checkset, transSet);
-	Set<FlatNode> tRecordSet=intersect(recordset, transSet);
-	Set<FlatNode> tOtherSet=intersect(otherset, transSet);
-	Set<FlatNode> tNotReadySet=intersect(notreadyset, transSet);
-	HashSet<FlatNode> tCannotDelay=intersect(cannotdelay, transSet);
-	Set<FlatNode> tderef=(state.STMARRAY&&!state.DUALVIEW)?intersect(derefset, transSet):null;
+        Set<FlatNode> transSet=computeTrans(lb, fn);
+        Set<FlatNode> tCheckSet=intersect(checkset, transSet);
+        Set<FlatNode> tRecordSet=intersect(recordset, transSet);
+        Set<FlatNode> tOtherSet=intersect(otherset, transSet);
+        Set<FlatNode> tNotReadySet=intersect(notreadyset, transSet);
+        HashSet<FlatNode> tCannotDelay=intersect(cannotdelay, transSet);
+        Set<FlatNode> tderef=(state.STMARRAY&&!state.DUALVIEW)?intersect(derefset, transSet):null;
 
-	if (checkSet(fn, tCheckSet, tRecordSet, lb)) {
-	  //We will convert this one
-	  nrecordset.addAll(tRecordSet);
-	  notherset.addAll(tOtherSet);
-	  nnotready.addAll(tNotReadySet);
-	  ncannotdelay.addAll(tCannotDelay);
-	  if (state.STMARRAY&&!state.DUALVIEW)
-	    nderef.addAll(tderef);
-	  transmap.get(lb).add(fn);
-	  convset.addAll(transSet);
-	} else {
-	  ncannotdelay.addAll(transSet);
-	}
-	if (!lwmap.containsKey(lb))
-	  lwmap.put(lb, new HashSet<FlatNode>());
-	lwmap.get(lb).add(fn);
+        if (checkSet(fn, tCheckSet, tRecordSet, lb)) {
+          //We will convert this one
+          nrecordset.addAll(tRecordSet);
+          notherset.addAll(tOtherSet);
+          nnotready.addAll(tNotReadySet);
+          ncannotdelay.addAll(tCannotDelay);
+          if (state.STMARRAY&&!state.DUALVIEW)
+            nderef.addAll(tderef);
+          transmap.get(lb).add(fn);
+          convset.addAll(transSet);
+        } else {
+          ncannotdelay.addAll(transSet);
+        }
+        if (!lwmap.containsKey(lb))
+          lwmap.put(lb, new HashSet<FlatNode>());
+        lwmap.get(lb).add(fn);
       } else {
-	if (locality.getAtomic(lb).get(fn).intValue()==0)
-	  ncannotdelay.add(fn);
+        if (locality.getAtomic(lb).get(fn).intValue()==0)
+          ncannotdelay.add(fn);
       }
     }
   }
@@ -194,10 +194,10 @@ public class DCWrapper {
       FlatNode fn=fnit.next();
       //needs transread
       if (!state.READSET&&dc.getNeedTrans(lb, fn)||state.READSET&&dc.getNeedWriteTrans(lb, fn)||fn.kind()==FKind.FlatCall) {
-	System.out.println("False because"+fn);
-	if (!state.HYBRID)
-	  return true;
-	return false;
+        System.out.println("False because"+fn);
+        if (!state.HYBRID)
+          return true;
+        return false;
       }
     }
     optmap.get(lb).add(faen);
@@ -213,10 +213,10 @@ public class DCWrapper {
       toProcess.remove(fn);
       transSet.add(fn);
       if (locality.getAtomic(lb).get(fn).intValue()==0)
-	continue;
+        continue;
       for(int i=0; i<fn.numNext(); i++) {
-	if (!transSet.contains(fn.getNext(i)))
-	  toProcess.add(fn.getNext(i));
+        if (!transSet.contains(fn.getNext(i)))
+          toProcess.add(fn.getNext(i));
       }
     }
     return transSet;

@@ -39,9 +39,9 @@ public class FlatIRGraph {
     for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext(); ) {
       ClassDescriptor cd = (ClassDescriptor)it_classes.next();
       for(Iterator it_methods=cd.getMethods(); it_methods.hasNext(); ) {
-	MethodDescriptor md = (MethodDescriptor)it_methods.next();
-	FlatMethod fm = state.getMethodFlat(md);
-	writeFlatIRGraph(fm,cd.getSymbol()+"."+md.getSymbol());
+        MethodDescriptor md = (MethodDescriptor)it_methods.next();
+        FlatMethod fm = state.getMethodFlat(md);
+        writeFlatIRGraph(fm,cd.getSymbol()+"."+md.getSymbol());
       }
     }
   }
@@ -71,19 +71,19 @@ public class FlatIRGraph {
       visited.add(fn);
 
       if( fn.kind() == FKind.FlatMethod ) {
-	// FlatMethod does not have toString
-	flatbw.write(makeDotNodeDec(graphname, flatnodetolabel.get(fn), fn.getClass().getName(), "FlatMethod") );
+        // FlatMethod does not have toString
+        flatbw.write(makeDotNodeDec(graphname, flatnodetolabel.get(fn), fn.getClass().getName(), "FlatMethod") );
       } else {
-	flatbw.write(makeDotNodeDec(graphname, flatnodetolabel.get(fn), fn.getClass().getName(), fn.toString() ) );
+        flatbw.write(makeDotNodeDec(graphname, flatnodetolabel.get(fn), fn.getClass().getName(), fn.toString() ) );
       }
 
       for(int i=0; i<fn.numNext(); i++) {
-	FlatNode nn=fn.getNext(i);
-	flatbw.write("  node"+flatnodetolabel.get(fn)+" -> node"+flatnodetolabel.get(nn)+";\n");
+        FlatNode nn=fn.getNext(i);
+        flatbw.write("  node"+flatnodetolabel.get(fn)+" -> node"+flatnodetolabel.get(nn)+";\n");
 
-	if( !visited.contains(nn) ) {
-	  toVisit.add(nn);
-	}
+        if( !visited.contains(nn) ) {
+          toVisit.add(nn);
+        }
       }
     }
 
@@ -97,7 +97,7 @@ public class FlatIRGraph {
     for(int i=0; i<fn.numNext(); i++) {
       FlatNode nn=fn.getNext(i);
       if(!visited.contains(nn)) {
-	labelFlatNodes(nn);
+        labelFlatNodes(nn);
       }
     }
   }

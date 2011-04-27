@@ -58,7 +58,7 @@ public class SESELock {
       ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
 
       if (conflictEdge.isCoarseEdge() && conflictEdge.getVertexU() == conflictEdge.getVertexV()) {
-	return true;
+        return true;
       }
     }
     return false;
@@ -71,7 +71,7 @@ public class SESELock {
       ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
 
       if ((!conflictEdge.isCoarseEdge()) && conflictEdge.getVertexU() == conflictEdge.getVertexV()) {
-	return true;
+        return true;
       }
     }
     return false;
@@ -85,13 +85,13 @@ public class SESELock {
 
       ConflictNode cNode;
       if (conflictEdge.getVertexU() == node) {
-	cNode = conflictEdge.getVertexV();
+        cNode = conflictEdge.getVertexV();
       } else {
-	cNode = conflictEdge.getVertexU();
+        cNode = conflictEdge.getVertexU();
       }
       Integer cNodeTypeIn = nodeTypeMap.get(cNode);
       if (cNodeTypeIn != null && cNodeTypeIn.intValue() == ConflictNode.PARENT_COARSE) {
-	return true;
+        return true;
       }
     }
     return false;
@@ -118,10 +118,10 @@ public class SESELock {
       ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
       if (!conflictEdge.getVertexU().equals(newNode)
           && conflictNodeSet.contains(conflictEdge.getVertexU())) {
-	count++;
+        count++;
       } else if (!conflictEdge.getVertexV().equals(newNode)
                  && conflictNodeSet.contains(conflictEdge.getVertexV())) {
-	count++;
+        count++;
       }
     }
 
@@ -131,21 +131,21 @@ public class SESELock {
 
     if(isWriteNode(newNode)) {
       if (count == conflictNodeSet.size()) {
-	// connected to all current nodes in group
-	return newNode;
+        // connected to all current nodes in group
+        return newNode;
       }
     } else {
       // it is read node
       int writeNodeCount=0;
       for (Iterator iterator = conflictNodeSet.iterator(); iterator.hasNext(); ) {
-	ConflictNode node = (ConflictNode) iterator.next();
-	if(isWriteNode(node)) {
-	  writeNodeCount++;
-	}
+        ConflictNode node = (ConflictNode) iterator.next();
+        if(isWriteNode(node)) {
+          writeNodeCount++;
+        }
       }
       if (count == writeNodeCount) {
-	// connected to all current write nodes in group
-	return newNode;
+        // connected to all current write nodes in group
+        return newNode;
       }
     }
 
@@ -180,16 +180,16 @@ public class SESELock {
     }
 
     ConflictNode nodeToAdd = conflictNodeSet.contains(newEdge.getVertexU())?newEdge.getVertexV()
-			     :newEdge.getVertexU();
+                             :newEdge.getVertexU();
 
     HashSet<ConflictNode> nodeSet = new HashSet<ConflictNode>(conflictNodeSet);
 
     for (Iterator edgeIter = nodeToAdd.getEdgeSet().iterator(); edgeIter.hasNext(); ) {
       ConflictEdge edge = (ConflictEdge) edgeIter.next();
       if (nodeSet.contains(edge.getVertexU())) {
-	nodeSet.remove(edge.getVertexU());
+        nodeSet.remove(edge.getVertexU());
       } else if (nodeSet.contains(edge.getVertexV())) {
-	nodeSet.remove(edge.getVertexV());
+        nodeSet.remove(edge.getVertexV());
       }
     }
 

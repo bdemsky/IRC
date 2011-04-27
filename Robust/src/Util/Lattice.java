@@ -53,9 +53,9 @@ public class Lattice<T> {
       s.add(value);
 
       if (!table.containsKey(value)) {
-	Set<T> lowerNeighbor = new HashSet<T>();
-	lowerNeighbor.add(bottom);
-	table.put(value, lowerNeighbor);
+        Set<T> lowerNeighbor = new HashSet<T>();
+        lowerNeighbor.add(bottom);
+        table.put(value, lowerNeighbor);
       }
 
       // if value is already connected with top, it is no longer to be
@@ -85,17 +85,17 @@ public class Lattice<T> {
       oldReachableSize = reachableSet.size();
       Set<T> nextLevelNeighbors = new HashSet<T>();
       for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext(); ) {
-	T element = iterator.next();
-	Set<T> neighbors = get(element);
-	if (neighbors != null) {
-	  nextLevelNeighbors.addAll(neighbors);
-	  reachableSet.addAll(neighbors);
-	}
+        T element = iterator.next();
+        Set<T> neighbors = get(element);
+        if (neighbors != null) {
+          nextLevelNeighbors.addAll(neighbors);
+          reachableSet.addAll(neighbors);
+        }
 
-	if (reachableSet.contains(key)) {
-	  // found cycle
-	  return true;
-	}
+        if (reachableSet.contains(key)) {
+          // found cycle
+          return true;
+        }
       }
       neighborSet = nextLevelNeighbors;
     } while (oldReachableSize != reachableSet.size());
@@ -115,7 +115,7 @@ public class Lattice<T> {
 
     if (a.equals(top)) {
       if (b.equals(top)) {
-	return false;
+        return false;
       }
       return true;
     }
@@ -138,8 +138,8 @@ public class Lattice<T> {
     } else {
       boolean reachable = false;
       for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext(); ) {
-	T neighbor = iterator.next();
-	reachable = reachable || isGreaterThan(neighbor, b);
+        T neighbor = iterator.next();
+        reachable = reachable || isGreaterThan(neighbor, b);
       }
       return reachable;
     }
@@ -162,12 +162,12 @@ public class Lattice<T> {
       T inputElement = inputIterator.next();
 
       for (Iterator iterator = lowerSet.iterator(); iterator.hasNext(); ) {
-	T lowerElement = (T) iterator.next();
-	if (!inputElement.equals(lowerElement)) {
-	  if (!isGreaterThan(inputElement, lowerElement)) {
-	    toberemoved.add(lowerElement);
-	  }
-	}
+        T lowerElement = (T) iterator.next();
+        if (!inputElement.equals(lowerElement)) {
+          if (!isGreaterThan(inputElement, lowerElement)) {
+            toberemoved.add(lowerElement);
+          }
+        }
       }
     }
     lowerSet.removeAll(toberemoved);
@@ -178,16 +178,16 @@ public class Lattice<T> {
       T lowerElement = iterator.next();
       boolean isGreaterThanAll = true;
       for (Iterator<T> iterator2 = lowerSet.iterator(); iterator2.hasNext(); ) {
-	T e = iterator2.next();
-	if (!lowerElement.equals(e)) {
-	  if (!isGreaterThan(lowerElement, e)) {
-	    isGreaterThanAll = false;
-	    break;
-	  }
-	}
+        T e = iterator2.next();
+        if (!lowerElement.equals(e)) {
+          if (!isGreaterThan(lowerElement, e)) {
+            isGreaterThanAll = false;
+            break;
+          }
+        }
       }
       if (isGreaterThanAll) {
-	return lowerElement;
+        return lowerElement;
       }
     }
     return null;
@@ -199,8 +199,8 @@ public class Lattice<T> {
     if (neighborSet != null) {
       lowerSet.addAll(neighborSet);
       for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext(); ) {
-	T neighbor = iterator.next();
-	lowerSet = getLowerSet(neighbor, lowerSet);
+        T neighbor = iterator.next();
+        lowerSet = getLowerSet(neighbor, lowerSet);
       }
     }
     return lowerSet;

@@ -62,10 +62,10 @@ void *transPrefetchNew() {
       /* Send  Prefetch Request */
       perMcPrefetchList_t *ptr = pilehead;
       while(ptr != NULL) {
-	// Get sock from shared pool
-	int sd = getSock2(transPrefetchSockPool, ptr->mid);
-	sendRangePrefetchReq(ptr, sd, myIpAddr);
-	ptr = ptr->next;
+        // Get sock from shared pool
+        int sd = getSock2(transPrefetchSockPool, ptr->mid);
+        sendRangePrefetchReq(ptr, sd, myIpAddr);
+        ptr = ptr->next;
       }
 
       /* Deallocated pilehead */
@@ -101,10 +101,10 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
       LOGTIME('b',oid,0,0,countInvalidObj);
       //forward prefetch
       if(oid!=0) {
-	int machinenum = lhashSearch(oid);
-	if(machinenum != myIpAddr) {
-	  insertPrefetch(machinenum, oid, numoffset, offsetarray, &head);
-	}
+        int machinenum = lhashSearch(oid);
+        if(machinenum != myIpAddr) {
+          insertPrefetch(machinenum, oid, numoffset, offsetarray, &head);
+        }
       }
       //update ptr
       ptr=((char *)&offsetarray[numoffset])+sizeof(int);
@@ -118,59 +118,59 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
     //Start searching the dfsList
     for(top=0; top>=0; ) {
       if(top == offstop) {
-	isLastOffset=1;
+        isLastOffset=1;
       }
       oid=getNextOid(header, offsetarray, dfsList, top, &countInvalidObj, &isLastOffset);
       LOGTIME('O',oid,0,0,countInvalidObj);
       if (oid&1) {
-	int oldisField=TYPE(header) < NUMCLASSES;
-	top+=2;
-	dfsList[top]=oid;
-	dfsList[top+1]=0;
-	header=searchObjInv(oid, top, &countInvalidObj, &isLastOffset);
-	if (header==NULL) {
-	  LOGTIME('c',oid,top,0,countInvalidObj);
-	  //forward prefetch
-	  int machinenum = lhashSearch(oid);
-	  if(machinenum != myIpAddr) {
-	    if (oldisField&&(dfsList[top-1]!=GET_RANGE(offsetarray[top+1]))) {
-	      insertPrefetch(machinenum, oid, 2+numoffset-top, &offsetarray[top-2], &head);
-	    } else {
-	      insertPrefetch(machinenum, oid, numoffset-top, &offsetarray[top], &head);
-	    }
-	  }
-	} else if (top<offstop) {
-	  LOGTIME('C',oid,TYPE(header),0,top);
-	  //okay to continue going down
-	  continue;
-	}
+        int oldisField=TYPE(header) < NUMCLASSES;
+        top+=2;
+        dfsList[top]=oid;
+        dfsList[top+1]=0;
+        header=searchObjInv(oid, top, &countInvalidObj, &isLastOffset);
+        if (header==NULL) {
+          LOGTIME('c',oid,top,0,countInvalidObj);
+          //forward prefetch
+          int machinenum = lhashSearch(oid);
+          if(machinenum != myIpAddr) {
+            if (oldisField&&(dfsList[top-1]!=GET_RANGE(offsetarray[top+1]))) {
+              insertPrefetch(machinenum, oid, 2+numoffset-top, &offsetarray[top-2], &head);
+            } else {
+              insertPrefetch(machinenum, oid, numoffset-top, &offsetarray[top], &head);
+            }
+          }
+        } else if (top<offstop) {
+          LOGTIME('C',oid,TYPE(header),0,top);
+          //okay to continue going down
+          continue;
+        }
       } else if (oid==2) {
-	LOGTIME('D',oid,0,0,top);
-	//send prefetch first
-	int objindex=top+2;
-	int machinenum = lhashSearch(dfsList[objindex]);
-	if(machinenum != myIpAddr) {
-	  insertPrefetch(machinenum, dfsList[objindex], numoffset-top, &offsetarray[top], &head);
-	}
+        LOGTIME('D',oid,0,0,top);
+        //send prefetch first
+        int objindex=top+2;
+        int machinenum = lhashSearch(dfsList[objindex]);
+        if(machinenum != myIpAddr) {
+          insertPrefetch(machinenum, dfsList[objindex], numoffset-top, &offsetarray[top], &head);
+        }
       }
       //oid is 0
       //go backwards until we can increment
       do {
-	do {
-	  top-=2;
-	  if (top<0) {
-	    goto tuple;
-	    //return head;
-	  }
-	} while(dfsList[top+1] == GET_RANGE(offsetarray[top + 3]));
+        do {
+          top-=2;
+          if (top<0) {
+            goto tuple;
+            //return head;
+          }
+        } while(dfsList[top+1] == GET_RANGE(offsetarray[top + 3]));
 
-	//we backtracked past the invalid obj...set out countInvalidObj=-1
-	if (top<countInvalidObj)
-	  countInvalidObj=-1;
+        //we backtracked past the invalid obj...set out countInvalidObj=-1
+        if (top<countInvalidObj)
+          countInvalidObj=-1;
 
-	header=searchObjInv(dfsList[top], top, &countInvalidObj, NULL);
-	//header shouldn't be null unless the object moves away, but allow
-	//ourselves the option to just continue on if we lose the object
+        header=searchObjInv(dfsList[top], top, &countInvalidObj, NULL);
+        //header shouldn't be null unless the object moves away, but allow
+        //ourselves the option to just continue on if we lose the object
       } while(header==NULL);
       LOGTIME('F',OID(header),TYPE(header),0,top);
       //increment
@@ -223,22 +223,22 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
       dfsList[top+1]=0;
       header=searchObj(oid);
       if (header==NULL) {
-	LOGTIME('h',oid,top,0,0);
-	//forward prefetch
-	/*
-	   int machinenum = lhashSearch(oid);
-	   if (oldisField&&(dfsList[top-1]!=GET_RANGE(offsetarray[top+1]))) {
-	    insertPrefetch(machinenum, oid, 2+numoffset-top, &offsetarray[top-2], &head);
-	   } else {
-	    insertPrefetch(machinenum, oid, numoffset-top, &offsetarray[top], &head);
-	   }
-	 */
+        LOGTIME('h',oid,top,0,0);
+        //forward prefetch
+        /*
+           int machinenum = lhashSearch(oid);
+           if (oldisField&&(dfsList[top-1]!=GET_RANGE(offsetarray[top+1]))) {
+            insertPrefetch(machinenum, oid, 2+numoffset-top, &offsetarray[top-2], &head);
+           } else {
+            insertPrefetch(machinenum, oid, numoffset-top, &offsetarray[top], &head);
+           }
+         */
       } else {
-	sendOidFound(header, oid, sd,writebuffer);
-	LOGTIME('H',oid,TYPE(header),0,top);
-	if (top<offstop)
-	  //okay to continue going down
-	  continue;
+        sendOidFound(header, oid, sd,writebuffer);
+        LOGTIME('H',oid,TYPE(header),0,top);
+        if (top<offstop)
+          //okay to continue going down
+          continue;
       }
     } else if (oid==2) {
       LOGTIME('I',oid,top,0,0);
@@ -254,11 +254,11 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
     //go backwards until we can increment
     do {
       do {
-	top-=2;
-	if (top<0) {
-	  flushResponses(sd, writebuffer);
-	  return head;
-	}
+        top-=2;
+        if (top<0) {
+          flushResponses(sd, writebuffer);
+          return head;
+        }
       } while(dfsList[top+1] == GET_RANGE(offsetarray[top + 3]));
 
       header=searchObj(dfsList[top]);
@@ -297,14 +297,14 @@ INLINE objheader_t *searchObjInv(unsigned int oid, int top, int *countInvalidObj
     header = prehashSearch(oid);
     if(header != NULL) {
       if((STATUS(header) & DIRTY) && (countInvalidObj!= NULL)) {
-	if ((*countInvalidObj)==-1) {
-	  *countInvalidObj=top;
-	} else {
-	  return NULL;
-	}
+        if ((*countInvalidObj)==-1) {
+          *countInvalidObj=top;
+        } else {
+          return NULL;
+        }
       }
       if((STATUS(header) & DIRTY) && isLastOffset)
-	return NULL;
+        return NULL;
     }
     return header;
   }
@@ -359,16 +359,16 @@ void insertPrefetch(int mid, unsigned int oid, short numoffset, short *offsets, 
       int matchstatus;
 
       if ((*tmp)==NULL||((toid=(*tmp)->oid)>oid)) {
-	objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
-	objnode->offsets = offsets;
-	objnode->oid = oid;
-	objnode->numoffset = numoffset;
-	objnode->next = *tmp;
-	*tmp = objnode;
-	return;
+        objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
+        objnode->offsets = offsets;
+        objnode->oid = oid;
+        objnode->numoffset = numoffset;
+        objnode->next = *tmp;
+        *tmp = objnode;
+        return;
       }
       if (toid < oid)
-	continue;
+        continue;
 
       /* Fill list DS */
       int i;
@@ -376,24 +376,24 @@ void insertPrefetch(int mid, unsigned int oid, short numoffset, short *offsets, 
       short * ooffset=(*tmp)->offsets;
 
       for(i=0; i<numoffset; i++) {
-	if (i>onumoffset) {
-	  //We've matched, let's just extend the current prefetch
-	  (*tmp)->numoffset=numoffset;
-	  (*tmp)->offsets=offsets;
-	  return;
-	}
-	if (ooffset[i]<offsets[i]) {
-	  goto oidloop;
-	} else if (ooffset[i]>offsets[i]) {
-	  //Place item before the current one
-	  objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
-	  objnode->offsets = offsets;
-	  objnode->oid = oid;
-	  objnode->numoffset = numoffset;
-	  objnode->next = *tmp;
-	  *tmp = objnode;
-	  return;
-	}
+        if (i>onumoffset) {
+          //We've matched, let's just extend the current prefetch
+          (*tmp)->numoffset=numoffset;
+          (*tmp)->offsets=offsets;
+          return;
+        }
+        if (ooffset[i]<offsets[i]) {
+          goto oidloop;
+        } else if (ooffset[i]>offsets[i]) {
+          //Place item before the current one
+          objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
+          objnode->offsets = offsets;
+          objnode->oid = oid;
+          objnode->numoffset = numoffset;
+          objnode->next = *tmp;
+          *tmp = objnode;
+          return;
+        }
       }
       //if we get to the end, we're already covered by this prefetch
       return;
@@ -496,11 +496,11 @@ int getRangePrefetchResponse(int sd, struct readstruct * readbuffer) {
       /* Insert into prefetch hash lookup table */
       void * oldptr;
       if((oldptr = prehashSearch(oid)) != NULL) {
-	if(((objheader_t *)oldptr)->version < ((objheader_t *)ptr)->version) {
-	  prehashInsert(oid, ptr);
-	}
+        if(((objheader_t *)oldptr)->version < ((objheader_t *)ptr)->version) {
+          prehashInsert(oid, ptr);
+        }
       } else {
-	prehashInsert(oid, ptr);
+        prehashInsert(oid, ptr);
       }
       ptr=(void *)(((unsigned int)ptr)+objsize);
       size-=objsize;
@@ -528,8 +528,8 @@ int rangePrefetchReq(int acceptfd, struct readstruct * readbuffer) {
     baseoid = oidmid.oid;
     if(mid != oidmid.mid) {
       if(mid!= -1) {
-	forcesend_buf(sd, &writebuffer, NULL, 0);
-	freeSockWithLock(transPResponseSocketPool, mid, sd);
+        forcesend_buf(sd, &writebuffer, NULL, 0);
+        freeSockWithLock(transPResponseSocketPool, mid, sd);
       }
       mid = oidmid.mid;
       sd = getSockWithLock(transPResponseSocketPool, mid);
@@ -543,10 +543,10 @@ int rangePrefetchReq(int acceptfd, struct readstruct * readbuffer) {
     if (pilehead!= NULL) {
       perMcPrefetchList_t *ptr = pilehead;
       while(ptr != NULL) {
-	// Get sock from shared pool
-	int sd = getSock2(transPrefetchSockPool, ptr->mid);
-	sendRangePrefetchReq(ptr, sd, mid);
-	ptr = ptr->next;
+        // Get sock from shared pool
+        int sd = getSock2(transPrefetchSockPool, ptr->mid);
+        sendRangePrefetchReq(ptr, sd, mid);
+        ptr = ptr->next;
       }
 
       proPrefetchQDealloc(pilehead);
@@ -577,21 +577,21 @@ unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int 
       //Negative
       currindex=startindex-stride*currcount;
       if (currindex<0)
-	return 0;
+        return 0;
 
       //Also have to check whether we will eventually index into array
       if (currindex>=length) {
-	//Skip to the point that we will index into array
-	int delta=(currindex-length-1)/stride+1; //-1, +1 is to make sure that it rounds up
-	if ((delta+currcount)>range)
-	  return 0;
-	currindex-=delta*stride;
+        //Skip to the point that we will index into array
+        int delta=(currindex-length-1)/stride+1; //-1, +1 is to make sure that it rounds up
+        if ((delta+currcount)>range)
+          return 0;
+        currindex-=delta*stride;
       }
     } else {
       //Going positive, compute current index
       currindex=startindex+stride*currcount;
       if(currindex >= length)
-	return 0;
+        return 0;
     }
 
     int elementsize = classsize[TYPE(header)];
@@ -603,7 +603,7 @@ unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int 
       //go to the next offset
       header=searchObjInv(dfsList[top+2], top, countInvalidObj, isLastOffset);
       if (header==NULL)
-	return 2;
+        return 2;
     }
 
     return *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startindex));

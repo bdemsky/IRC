@@ -55,7 +55,7 @@ public class MethodDescriptor extends Descriptor {
       TypeDescriptor td1=(d1 instanceof TagVarDescriptor)?((TagVarDescriptor)d1).getType():((VarDescriptor)d1).getType();
       TypeDescriptor td2=(d2 instanceof TagVarDescriptor)?((TagVarDescriptor)d2).getType():((VarDescriptor)d2).getType();
       if (!td1.equals(td2))
-	return false;
+        return false;
     }
     return true;
   }
@@ -117,7 +117,7 @@ public class MethodDescriptor extends Descriptor {
     for(int i=0; i<numParameters(); i++) {
       st+=getParamType(i).getSafeDescriptor();
       if ((i+1)<numParameters())
-	st+="_";
+        st+="_";
     }
     return st;
   }
@@ -207,7 +207,7 @@ public class MethodDescriptor extends Descriptor {
     for(int i=0; i<params.size(); i++) {
       st+=getParamType(i)+" "+getParamName(i);
       if ((i+1)!=params.size())
-	st+=", ";
+        st+=", ";
     }
     st+=")";
     return st;

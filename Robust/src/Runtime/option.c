@@ -32,7 +32,7 @@ void processOptions() {
       options=strchr(options,' ');
       if (options!=NULL) options++;
       if (options==NULL)
-	break;
+        break;
       sscanf(options, "%f", &failurechance);
       injectfailures=1;
       printf("Injecting errors with chance=%f\n",failurechance);
@@ -42,18 +42,18 @@ void processOptions() {
       options=strchr(options,' ');
       if (options!=NULL) options++;
       if (options==NULL)
-	break;
+        break;
       sscanf(options, "%d", &failurecount);
       options=strchr(options,' ');
       if (options!=NULL) options++;
       if (options==NULL)
-	break;
+        break;
 
       sscanf(options, "%f", &instfailurechance);
       options=strchr(options,' ');
       if (options!=NULL) options++;
       if (options==NULL)
-	break;
+        break;
 
       sscanf(options, "%d", &numfailures);
       options=strchr(options,' ');

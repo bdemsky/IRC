@@ -27,7 +27,7 @@ memalloc:
     if(hasgc < 5) {
       // start gc
       while(gcflag) {
-	gc(stackptr);
+        gc(stackptr);
       }
       hasgc++;
     } else {

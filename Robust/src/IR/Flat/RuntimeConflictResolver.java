@@ -116,7 +116,7 @@ public class RuntimeConflictResolver {
 
       //if the task is the main task, there's no traverser
       if(task.isMainSESE)
-	return;
+        return;
 
       blockName = task.getPrettyIdentifier();
     }
@@ -180,15 +180,15 @@ public class RuntimeConflictResolver {
     for(SMFEState state : smfe.getStates()) {
 
       if(state.getRefCount() != 1 || initialState == state) {
-	if (needswitch) {
-	  cFile.println("    case "+state.getID()+":");
-	} else {
-	  cFile.println("  if(traverserState=="+state.getID()+") {");
-	}
+        if (needswitch) {
+          cFile.println("    case "+state.getID()+":");
+        } else {
+          cFile.println("  if(traverserState=="+state.getID()+") {");
+        }
 
-	printAllocChecksInsideState(smfe, state, taskOrStallSite, var, "ptr", 0, weakID);
+        printAllocChecksInsideState(smfe, state, taskOrStallSite, var, "ptr", 0, weakID);
 
-	cFile.println("      break;");
+        cFile.println("      break;");
       }
     }
 
@@ -235,14 +235,14 @@ public class RuntimeConflictResolver {
     //we assume that all allocs given in the effects are starting locs.
     for(Alloc a : et.getAllAllocs()) {
       if (needswitch) {
-	cFile.println("    case "+a.getUniqueAllocSiteID()+": {");
+        cFile.println("    case "+a.getUniqueAllocSiteID()+": {");
       } else {
-	cFile.println("     if("+prefix+"->"+allocSite+"=="+a.getUniqueAllocSiteID()+") {");
+        cFile.println("     if("+prefix+"->"+allocSite+"=="+a.getUniqueAllocSiteID()+") {");
       }
       addChecker(smfe, a, fn, tmp, state, et, prefix, depth, weakID);
       if (needswitch) {
-	cFile.println("       }");
-	cFile.println("       break;");
+        cFile.println("       }");
+        cFile.println("       break;");
       }
     }
     if (needswitch) {
@@ -268,50 +268,50 @@ public class RuntimeConflictResolver {
       boolean first=true;
 
       for(Effect e : et.getEffects(a)) {
-	if (!state.transitionsTo(e).isEmpty()) {
-	  if (first) {
-	    cFile.println("  int i;");
-	    cFile.println("  struct ___Object___ * "+currPtr+";");
-	    cFile.println("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {");
-	    first=false;
-	  }
-	  printRefSwitch(smfe, fn, tmp, pdepth, childPtr, currPtr, state.transitionsTo(e), weakID);
+        if (!state.transitionsTo(e).isEmpty()) {
+          if (first) {
+            cFile.println("  int i;");
+            cFile.println("  struct ___Object___ * "+currPtr+";");
+            cFile.println("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {");
+            first=false;
+          }
+          printRefSwitch(smfe, fn, tmp, pdepth, childPtr, currPtr, state.transitionsTo(e), weakID);
 
-	  // only if we are traversing for a new task, not a stall site
-	  if( (fn instanceof FlatSESEEnterNode) &&
-	      smfe.getPossiblyEvilEffects().contains(e) ) {
+          // only if we are traversing for a new task, not a stall site
+          if( (fn instanceof FlatSESEEnterNode) &&
+              smfe.getPossiblyEvilEffects().contains(e) ) {
 
-	    FlatSESEEnterNode evilTask = (FlatSESEEnterNode)fn;
+            FlatSESEEnterNode evilTask = (FlatSESEEnterNode)fn;
 
-	    detectPossiblyEvilExecution(evilTask,
-	                                evilTask.getInVarsForDynamicCoarseConflictResolution().indexOf(tmp)
-	                                );
-	  }
-	}
+            detectPossiblyEvilExecution(evilTask,
+                                        evilTask.getInVarsForDynamicCoarseConflictResolution().indexOf(tmp)
+                                        );
+          }
+        }
       }
       if (!first)
-	cFile.println("}");
+        cFile.println("}");
     }  else {
       //All other cases
       String currPtr = "myPtr" + pdepth;
       cFile.println("    struct ___Object___ * "+currPtr+";");
 
       for(Effect e : et.getEffects(a)) {
-	if (!state.transitionsTo(e).isEmpty()) {
-	  String childPtr = "((struct "+a.getType().getSafeSymbol()+" *)"+prefix +")->" + e.getField().getSafeSymbol();
-	  printRefSwitch(smfe, fn, tmp, pdepth, childPtr, currPtr, state.transitionsTo(e), weakID);
+        if (!state.transitionsTo(e).isEmpty()) {
+          String childPtr = "((struct "+a.getType().getSafeSymbol()+" *)"+prefix +")->" + e.getField().getSafeSymbol();
+          printRefSwitch(smfe, fn, tmp, pdepth, childPtr, currPtr, state.transitionsTo(e), weakID);
 
-	  // only if we are traversing for a new task, not a stall site
-	  if( (fn instanceof FlatSESEEnterNode) &&
-	      smfe.getPossiblyEvilEffects().contains(e) ) {
+          // only if we are traversing for a new task, not a stall site
+          if( (fn instanceof FlatSESEEnterNode) &&
+              smfe.getPossiblyEvilEffects().contains(e) ) {
 
-	    FlatSESEEnterNode evilTask = (FlatSESEEnterNode)fn;
+            FlatSESEEnterNode evilTask = (FlatSESEEnterNode)fn;
 
-	    detectPossiblyEvilExecution(evilTask,
-	                                evilTask.getInVarsForDynamicCoarseConflictResolution().indexOf(tmp)
-	                                );
-	  }
-	}
+            detectPossiblyEvilExecution(evilTask,
+                                        evilTask.getInVarsForDynamicCoarseConflictResolution().indexOf(tmp)
+                                        );
+          }
+        }
       }
     }
   }
@@ -320,17 +320,17 @@ public class RuntimeConflictResolver {
 
     for(SMFEState tr : transitions) {
       if(tr.getRefCount() == 1) {       //in-lineable case
-	//Don't need to update state counter since we don't care really if it's inlined...
-	cFile.println("    "+currPtr+"= (struct ___Object___ * ) " + childPtr + ";");
-	cFile.println("    if (" + currPtr + " != NULL) { ");
+        //Don't need to update state counter since we don't care really if it's inlined...
+        cFile.println("    "+currPtr+"= (struct ___Object___ * ) " + childPtr + ";");
+        cFile.println("    if (" + currPtr + " != NULL) { ");
 
-	printAllocChecksInsideState(smfe, tr, fn, tmp, currPtr, pdepth+1, weakID);
+        printAllocChecksInsideState(smfe, tr, fn, tmp, currPtr, pdepth+1, weakID);
 
-	cFile.println("    }"); //break for internal switch and if
+        cFile.println("    }"); //break for internal switch and if
       } else {                          //non-inlineable cases
-	cFile.println("    "+currPtr+"= (struct ___Object___ * ) " + childPtr + ";");
-	cFile.println("    if("+queryAndAddToVisitedHashtable+"("+currPtr+","+tr.getID()+"))");
-	cFile.println("    " + enqueueInC +"("+ currPtr + ", "+tr.getID()+");");
+        cFile.println("    "+currPtr+"= (struct ___Object___ * ) " + childPtr + ";");
+        cFile.println("    if("+queryAndAddToVisitedHashtable+"("+currPtr+","+tr.getID()+"))");
+        cFile.println("    " + enqueueInC +"("+ currPtr + ", "+tr.getID()+");");
       }
     }
   }
@@ -351,15 +351,15 @@ public class RuntimeConflictResolver {
     if(et.hasWriteConflict(a)) {
       cFile.append("    int tmpkey" + depth + " = rcr_generateKey(" + prefix + ");\n");
       if (et.conflictDereference(a))
-	cFile.append("    int tmpvar" + depth + " = rcr_WTWRITEBINCASE(allHashStructures[" + weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
+        cFile.append("    int tmpvar" + depth + " = rcr_WTWRITEBINCASE(allHashStructures[" + weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
       else
-	cFile.append("    int tmpvar" + depth + " = rcr_WRITEBINCASE(allHashStructures["+ weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
+        cFile.append("    int tmpvar" + depth + " = rcr_WRITEBINCASE(allHashStructures["+ weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
     } else if(et.hasReadConflict(a)) {
       cFile.append("    int tmpkey" + depth + " = rcr_generateKey(" + prefix + ");\n");
       if (et.conflictDereference(a))
-	cFile.append("    int tmpvar" + depth + " = rcr_WTREADBINCASE(allHashStructures[" + weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
+        cFile.append("    int tmpvar" + depth + " = rcr_WTREADBINCASE(allHashStructures[" + weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
       else
-	cFile.append("    int tmpvar" + depth + " = rcr_READBINCASE(allHashStructures["+ weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
+        cFile.append("    int tmpvar" + depth + " = rcr_READBINCASE(allHashStructures["+ weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
     }
 
     if (et.hasReadConflict(a) || et.hasWriteConflict(a)) {
@@ -436,8 +436,8 @@ public class RuntimeConflictResolver {
          s.charAt(i) == '[' ||
          s.charAt(i) == ']'    ) {
 
-	s.deleteCharAt(i);
-	i--;
+        s.deleteCharAt(i);
+        i--;
       }
     }
     return s.toString();
@@ -491,54 +491,54 @@ public class RuntimeConflictResolver {
       cFile.println("      "+fsen.getSESErecordName()+" * rec=("+fsen.getSESErecordName()+" *) record;");
       Vector<TempDescriptor> invars=fsen.getInVarsForDynamicCoarseConflictResolution();
       for(int i=0; i<invars.size(); i++) {
-	TempDescriptor tmp=invars.get(i);
+        TempDescriptor tmp=invars.get(i);
 
-	/* In some cases we don't want to a dynamic traversal if it is
-	 * unlikely to increase parallelism...these are cases where we
-	 * are just enabling a stall site to possible clear faster*/
+        /* In some cases we don't want to a dynamic traversal if it is
+         * unlikely to increase parallelism...these are cases where we
+         * are just enabling a stall site to possible clear faster*/
 
-	boolean isValidToPrune=true;
-	for( FlatSESEEnterNode parentSESE : fsen.getParents() ) {
-	  ConflictGraph graph      = oooa.getConflictGraph(parentSESE);
-	  if(graph!=null) {
-	    String id         = tmp + "_sese" + fsen.getPrettyIdentifier();
-	    ConflictNode node       = graph.getId2cn().get(id);
-	    isValidToPrune &= node.IsValidToPrune();
-	  }
-	}
+        boolean isValidToPrune=true;
+        for( FlatSESEEnterNode parentSESE : fsen.getParents() ) {
+          ConflictGraph graph      = oooa.getConflictGraph(parentSESE);
+          if(graph!=null) {
+            String id         = tmp + "_sese" + fsen.getPrettyIdentifier();
+            ConflictNode node       = graph.getId2cn().get(id);
+            isValidToPrune &= node.IsValidToPrune();
+          }
+        }
 
-	if(isValidToPrune) {
-	  // if node is valid to prune examiner,
-	  // also needs to turn off stall site examiners connected to this node
-	  for( FlatSESEEnterNode parentSESE : fsen.getParents() ) {
-	    ConflictGraph graph      = oooa.getConflictGraph(parentSESE);
-	    String id         = tmp + "_sese" + fsen.getPrettyIdentifier();
-	    ConflictNode node       = graph.getId2cn().get(id);
+        if(isValidToPrune) {
+          // if node is valid to prune examiner,
+          // also needs to turn off stall site examiners connected to this node
+          for( FlatSESEEnterNode parentSESE : fsen.getParents() ) {
+            ConflictGraph graph      = oooa.getConflictGraph(parentSESE);
+            String id         = tmp + "_sese" + fsen.getPrettyIdentifier();
+            ConflictNode node       = graph.getId2cn().get(id);
 
-	    for (Iterator iterator = node.getEdgeSet().iterator(); iterator.hasNext(); ) {
-	      ConflictEdge edge = (ConflictEdge) iterator.next();
-	      if (edge.getVertexU() == node) {
-		if (edge.getVertexV().isStallSiteNode()) {
-		  edge.getVertexV().setToBePruned(true);
-		}
-	      } else {
-		if (edge.getVertexU().isStallSiteNode()) {
-		  edge.getVertexU().setToBePruned(true);
-		}
-	      }
-	    }
-	  }
-	}
+            for (Iterator iterator = node.getEdgeSet().iterator(); iterator.hasNext(); ) {
+              ConflictEdge edge = (ConflictEdge) iterator.next();
+              if (edge.getVertexU() == node) {
+                if (edge.getVertexV().isStallSiteNode()) {
+                  edge.getVertexV().setToBePruned(true);
+                }
+              } else {
+                if (edge.getVertexU().isStallSiteNode()) {
+                  edge.getVertexU().setToBePruned(true);
+                }
+              }
+            }
+          }
+        }
 
-	if (i!=0) {
-	  cFile.println("      if (record->rcrstatus!=0)");
-	}
+        if (i!=0) {
+          cFile.println("      if (record->rcrstatus!=0)");
+        }
 
-	if(globalState.NOSTALLTR && isValidToPrune) {
-	  cFile.println("    /*  " + getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen)+"*/");
-	} else {
-	  cFile.println("      " + getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen));
-	}
+        if(globalState.NOSTALLTR && isValidToPrune) {
+          cFile.println("    /*  " + getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen)+"*/");
+        } else {
+          cFile.println("      " + getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen));
+        }
       }
       //release traverser reference...traversal finished...
       //executing thread will clean bins for us
@@ -556,21 +556,21 @@ public class RuntimeConflictResolver {
       Set<FlatSESEEnterNode> seseSet=oooa.getPossibleExecutingRBlocks(stallsite);
       boolean isValidToPrune=true;
       for (Iterator iterator = seseSet.iterator(); iterator.hasNext(); ) {
-	FlatSESEEnterNode sese = (FlatSESEEnterNode) iterator.next();
-	ConflictGraph graph      = oooa.getConflictGraph(sese);
-	if(graph!=null) {
-	  String id = var + "_fn" + stallsite.hashCode();
-	  ConflictNode node       = graph.getId2cn().get(id);
-	  isValidToPrune &= node.isTobePruned();
-	}
+        FlatSESEEnterNode sese = (FlatSESEEnterNode) iterator.next();
+        ConflictGraph graph      = oooa.getConflictGraph(sese);
+        if(graph!=null) {
+          String id = var + "_fn" + stallsite.hashCode();
+          ConflictNode node       = graph.getId2cn().get(id);
+          isValidToPrune &= node.isTobePruned();
+        }
       }
 
       cFile.println("    case -" + getTraverserID(var, stallsite)+ ": {");
       cFile.println("      SESEstall * rec=(SESEstall*) record;");
       if(globalState.NOSTALLTR && isValidToPrune) {
-	cFile.println("     /*" + getTraverserInvocation(var, "rec->___obj___, rec", stallsite)+";*/");
+        cFile.println("     /*" + getTraverserInvocation(var, "rec->___obj___, rec", stallsite)+";*/");
       } else {
-	cFile.println("      " + getTraverserInvocation(var, "rec->___obj___, rec", stallsite)+";");
+        cFile.println("      " + getTraverserInvocation(var, "rec->___obj___, rec", stallsite)+";");
       }
       cFile.println("     record->rcrstatus=0;");
       cFile.println("    }");
@@ -624,35 +624,35 @@ public class RuntimeConflictResolver {
       table = new Hashtable<Alloc, Set<Effect>>();
       this.state=state;
       for(Effect e : state.getEffectsAllowed()) {
-	Set<Effect> eg;
-	if((eg = table.get(e.getAffectedAllocSite())) == null) {
-	  eg = new HashSet<Effect>();
-	  table.put(e.getAffectedAllocSite(), eg);
-	}
-	eg.add(e);
+        Set<Effect> eg;
+        if((eg = table.get(e.getAffectedAllocSite())) == null) {
+          eg = new HashSet<Effect>();
+          table.put(e.getAffectedAllocSite(), eg);
+        }
+        eg.add(e);
       }
     }
 
     public boolean conflictDereference(Alloc a) {
       for(Effect e : getEffects(a)) {
-	if (!state.transitionsTo(e).isEmpty()&&state.getConflicts().contains(e))
-	  return true;
+        if (!state.transitionsTo(e).isEmpty()&&state.getConflicts().contains(e))
+          return true;
       }
       return false;
     }
 
     public boolean hasWriteConflict(Alloc a) {
       for(Effect e : getEffects(a)) {
-	if (e.isWrite() && state.getConflicts().contains(e))
-	  return true;
+        if (e.isWrite() && state.getConflicts().contains(e))
+          return true;
       }
       return false;
     }
 
     public boolean hasReadConflict(Alloc a) {
       for(Effect e : getEffects(a)) {
-	if (e.isRead() && state.getConflicts().contains(e))
-	  return true;
+        if (e.isRead() && state.getConflicts().contains(e))
+          return true;
       }
       return false;
     }

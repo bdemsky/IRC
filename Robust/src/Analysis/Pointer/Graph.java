@@ -43,18 +43,18 @@ public class Graph {
     for(Map.Entry<AllocNode, MySet<Edge>> entry : nodeMap.entrySet()) {
       AllocNode node=entry.getKey();
       if (node==null)
-	throw new Error("Null node key");
+        throw new Error("Null node key");
       for(Edge e : entry.getValue())
-	if (e.src!=node)
-	  throw new Error();
+        if (e.src!=node)
+          throw new Error();
     }
     for(Map.Entry<TempDescriptor, MySet<Edge>> entry : varMap.entrySet()) {
       TempDescriptor tmp=entry.getKey();
       if (tmp==null)
-	throw new Error("Null tmp key");
+        throw new Error("Null tmp key");
       for(Edge e : entry.getValue())
-	if (e.srcvar!=tmp)
-	  throw new Error();
+        if (e.srcvar!=tmp)
+          throw new Error();
     }
   }
 
@@ -97,16 +97,16 @@ public class Graph {
     if (old.srcvar!=null) {
       MySet<Edge> edges=varMap.get(old.srcvar);
       if (edges==null)
-	edges=parent.varMap.get(old.srcvar);
+        edges=parent.varMap.get(old.srcvar);
       if (edges==null)
-	return null;
+        return null;
       return edges.get(old);
     } else {
       MySet<Edge> edges=nodeMap.get(old.src);
       if (edges==null)
-	edges=parent.nodeMap.get(old.src);
+        edges=parent.nodeMap.get(old.src);
       if (edges==null)
-	return null;
+        return null;
       return edges.get(old);
     }
   }
@@ -147,13 +147,13 @@ public class Graph {
     for(Map.Entry<TempDescriptor, MySet<Edge>> entry : varMap.entrySet()) {
       TempDescriptor tmp=entry.getKey();
       if (childvarMap!=null&&childvarMap.containsKey(tmp))
-	continue;
+        continue;
       output.println(tmp.getSymbol()+"[shape=rectangle];");
       for(Edge e : entry.getValue()) {
-	if (e.srcvar!=tmp)
-	  throw new Error(e.srcvar +" is not equal to "+tmp);
-	AllocNode n=e.dst;
-	output.println("\t"+tmp.getSymbol()+"->"+n.getID()+"[label=\""+e.taintString()+"\"];");
+        if (e.srcvar!=tmp)
+          throw new Error(e.srcvar +" is not equal to "+tmp);
+        AllocNode n=e.dst;
+        output.println("\t"+tmp.getSymbol()+"->"+n.getID()+"[label=\""+e.taintString()+"\"];");
       }
     }
   }
@@ -163,16 +163,16 @@ public class Graph {
     for(Map.Entry<AllocNode, MySet<Edge>> entry : nodeMap.entrySet()) {
       AllocNode node=entry.getKey();
       if (childNodeMap!=null&&childNodeMap.containsKey(node))
-	continue;
+        continue;
       for(Edge e : entry.getValue()) {
-	if (e.src!=node)
-	  throw new Error(e.src+" is not equal to "+node);
-	AllocNode n=e.dst;
-	String src=node.getID();
-	String dst=n.getID();
-	String field=e.fd!=null?e.fd.getSymbol():"[]";
-	String taint=e.taints!=null?":"+e.taintString():"";
-	output.println("\t"+src+"->"+dst+"[label=\""+field+" "+taint+"\"];");
+        if (e.src!=node)
+          throw new Error(e.src+" is not equal to "+node);
+        AllocNode n=e.dst;
+        String src=node.getID();
+        String dst=n.getID();
+        String field=e.fd!=null?e.fd.getSymbol():"[]";
+        String taint=e.taints!=null?":"+e.taintString():"";
+        output.println("\t"+src+"->"+dst+"[label=\""+field+" "+taint+"\"];");
       }
     }
   }

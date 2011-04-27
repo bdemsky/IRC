@@ -32,16 +32,16 @@ public class TaskQueueIterator {
   private void init() {
     for(int i=ftsarray.length-1; i>=0; i--) {
       if (i!=index)
-	itarray[i]=tq.parameterset[i].iterator();
+        itarray[i]=tq.parameterset[i].iterator();
       VarDescriptor vd=tq.task.getParameter(i);
       TagExpressionList tel=tq.task.getTag(vd);
       if (tel!=null)
-	for(int j=0; j<tel.numTags(); j++) {
-	  TempDescriptor tmp=tel.getTemp(j);
-	  if (!tsindexarray.containsKey(tmp)) {
-	    tsindexarray.put(tmp, new Integer(i));
-	  }
-	}
+        for(int j=0; j<tel.numTags(); j++) {
+          TempDescriptor tmp=tel.getTemp(j);
+          if (!tsindexarray.containsKey(tmp)) {
+            tsindexarray.put(tmp, new Integer(i));
+          }
+        }
     }
   }
 
@@ -51,7 +51,7 @@ public class TaskQueueIterator {
     if (needinit) {
       i=ftsarray.length-1;
       if (i!=index)
-	ftsarray[i]=itarray[i].next();
+        ftsarray[i]=itarray[i].next();
     } else {
       i=0;
     }
@@ -68,73 +68,73 @@ objloop:
       TagExpressionList tel=td.getTag(vd);
       int j;
       if (needinit) {
-	j=(tel!=null)&&tel.numTags()>0?tel.numTags()-1:0;
-	needinit=false;
+        j=(tel!=null)&&tel.numTags()>0?tel.numTags()-1:0;
+        needinit=false;
       } else
-	j=0;
+        j=0;
 tagloop:
       for(; tel!=null&&j<tel.numTags(); j++) {
-	TempDescriptor tmp=tel.getTemp(j);
-	TagState currtag=tsarray.get(tmp);
-	String type=tel.getType(j);
+        TempDescriptor tmp=tel.getTemp(j);
+        TagState currtag=tsarray.get(tmp);
+        String type=tel.getType(j);
 
-	if (tsindexarray.get(tmp).intValue()==i) {
-	  //doing the assignment right here!!!
-	  Vector<FlagTagState> possts=tq.map.get(currfs);
-	  int index=0;
-	  if (currtag!=null)
-	    index=possts.indexOf(new FlagTagState(currtag,currfs));
-	  if (needit) {
-	    index++;
-	    needit=false;
-	  }
-	  for(int k=index; k<possts.size(); k++) {
-	    FlagTagState posstag=possts.get(k);
-	    if (posstag.ts.getTag().getSymbol().equals(type)) {
-	      tsarray.put(tmp, posstag.ts);
-	      if (j==0) {
-		if (i==0) {
-		  //We are done!
-		  return true;
-		} else {
-		  //Backtrack on objects
-		  i-=2;
-		  continue objloop;
-		}
-	      } else {
-		//Backtrack on tags
-		j-=2;
-		continue tagloop;
-	      }
-	    }
-	  }
-	  //couldn't find a tag
-	  tsarray.put(tmp, null);
-	  needit=true;
-	} else {
-	  //check tag compatibility
-	  if (!currtag.containsFS(currfs)) {
-	    //incompatible tag set by previous level
-	    //need to increment object state
-	    needit=true;
-	    break;
-	  }
-	}
+        if (tsindexarray.get(tmp).intValue()==i) {
+          //doing the assignment right here!!!
+          Vector<FlagTagState> possts=tq.map.get(currfs);
+          int index=0;
+          if (currtag!=null)
+            index=possts.indexOf(new FlagTagState(currtag,currfs));
+          if (needit) {
+            index++;
+            needit=false;
+          }
+          for(int k=index; k<possts.size(); k++) {
+            FlagTagState posstag=possts.get(k);
+            if (posstag.ts.getTag().getSymbol().equals(type)) {
+              tsarray.put(tmp, posstag.ts);
+              if (j==0) {
+                if (i==0) {
+                  //We are done!
+                  return true;
+                } else {
+                  //Backtrack on objects
+                  i-=2;
+                  continue objloop;
+                }
+              } else {
+                //Backtrack on tags
+                j-=2;
+                continue tagloop;
+              }
+            }
+          }
+          //couldn't find a tag
+          tsarray.put(tmp, null);
+          needit=true;
+        } else {
+          //check tag compatibility
+          if (!currtag.containsFS(currfs)) {
+            //incompatible tag set by previous level
+            //need to increment object state
+            needit=true;
+            break;
+          }
+        }
       }
       if (index==i) {
-	continue;
+        continue;
       }
       if (needit) {
-	if (itarray[i].hasNext()) {
-	  ftsarray[i]=itarray[i].next();
-	  needit=false;
-	  i-=1;
-	  continue objloop;           //backtrack and fix up everything
-	} else {
-	  itarray[i]=tq.parameterset[i].iterator();          //keep going backwards
-	}
+        if (itarray[i].hasNext()) {
+          ftsarray[i]=itarray[i].next();
+          needit=false;
+          i-=1;
+          continue objloop;           //backtrack and fix up everything
+        } else {
+          itarray[i]=tq.parameterset[i].iterator();          //keep going backwards
+        }
       } else {
-	throw new Error();
+        throw new Error();
       }
     }
     return false;

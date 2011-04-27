@@ -103,7 +103,7 @@ public class TagState extends GraphNode {
       TagState t=(TagState)o;
       if ((tag==null&&t.tag==null)||
           (tag!=null&&t.tag!=null&&tag.equals(t.tag))) {
-	return flags.equals(t.flags);
+        return flags.equals(t.flags);
       }
     }
     return false;

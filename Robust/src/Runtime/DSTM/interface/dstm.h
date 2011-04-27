@@ -271,15 +271,15 @@ void transStart();
 //#define TRANSREAD(x,y,z) /* Use "z" which is program point at which TRANSREAD is generated, use this as transRead2(inputvalue,z) */
 #define TRANSREAD(x,y) { \
     unsigned int inputvalue; \
-    if ((inputvalue=(unsigned int)y)==0) x=NULL;                                                                                              \
+    if ((inputvalue=(unsigned int)y)==0) x=NULL;                                                                                                                                                                                                                                                 \
          else { \
            chashlistnode_t * cnodetmp=&c_table[(inputvalue&c_mask)>>1];    \
            do { \
              if (cnodetmp->key==inputvalue) {x=(void *)& ((objheader_t*)cnodetmp->val)[1]; break; } \
              cnodetmp=cnodetmp->next; \
              if (cnodetmp==NULL) {x=(void *)transRead2(inputvalue); asm volatile ("" : "=m" (c_table),"=m" (c_mask)); break; } \
-	   } while(1); \
-	 }}
+           } while(1); \
+         }}
 
 __attribute__((pure)) objheader_t *transRead(unsigned int);
 __attribute__((pure)) objheader_t *transRead2(unsigned int);

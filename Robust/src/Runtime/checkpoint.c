@@ -152,64 +152,64 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct ctable * forwar
       pointer=pointerarray[type];
 #ifdef TASK
       if (type==TAGTYPE) {
-	void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;
-	if (objptr!=NULL) {
-	  void *dst;
-	  if ((dst=cSearch(forward, objptr))==NULL) {
-	    void *copy=createcopy(objptr);
-	    cInsert(forward, objptr, copy);
-	    cInsert(reverse, copy,  objptr);
-	    addNewItem(todo, objptr);
-	    ((struct ___TagDescriptor___*)cpy)->flagptr=copy;
-	  } else {
-	    ((struct ___TagDescriptor___*) cpy)->flagptr=dst;
-	  }
-	}
+        void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;
+        if (objptr!=NULL) {
+          void *dst;
+          if ((dst=cSearch(forward, objptr))==NULL) {
+            void *copy=createcopy(objptr);
+            cInsert(forward, objptr, copy);
+            cInsert(reverse, copy,  objptr);
+            addNewItem(todo, objptr);
+            ((struct ___TagDescriptor___*)cpy)->flagptr=copy;
+          } else {
+            ((struct ___TagDescriptor___*) cpy)->flagptr=dst;
+          }
+        }
       } else
 #endif
       if (pointer==0) {
-	/* Array of primitives */
-	/* Do nothing */
+        /* Array of primitives */
+        /* Do nothing */
       } else if (((int)pointer)==1) {
-	/* Array of pointers */
-	struct ArrayObject *ao=(struct ArrayObject *) ptr;
-	struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
-	int length=ao->___length___;
-	int i;
-	for(i=0; i<length; i++) {
-	  void *dst;
-	  void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
-	  if (objptr==NULL) {
-	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=NULL;
-	  } else if ((dst=cSearch(forward,objptr))!=NULL)
-	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=dst;
-	  else {
-	    void * copy=createcopy(objptr);
-	    cInsert(forward, objptr, copy);
-	    cInsert(reverse, copy, objptr);
-	    addNewItem(todo, objptr);
-	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=copy;
-	  }
-	}
+        /* Array of pointers */
+        struct ArrayObject *ao=(struct ArrayObject *) ptr;
+        struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
+        int length=ao->___length___;
+        int i;
+        for(i=0; i<length; i++) {
+          void *dst;
+          void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
+          if (objptr==NULL) {
+            ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=NULL;
+          } else if ((dst=cSearch(forward,objptr))!=NULL)
+            ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=dst;
+          else {
+            void * copy=createcopy(objptr);
+            cInsert(forward, objptr, copy);
+            cInsert(reverse, copy, objptr);
+            addNewItem(todo, objptr);
+            ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=copy;
+          }
+        }
       } else {
-	int size=pointer[0];
-	int i;
-	for(i=1; i<=size; i++) {
-	  int offset=pointer[i];
-	  void * objptr=*((void **)(((int)ptr)+offset));
-	  void *dst;
-	  if (objptr==NULL) {
-	    *((void **)(((int)cpy)+offset))=NULL;
-	  } else if ((dst=cSearch(forward, objptr))!=NULL)
-	    *((void **) &(((char *)cpy)[offset]))=dst;
-	  else {
-	    void * copy=createcopy(objptr);
-	    cInsert(forward, objptr, copy);
-	    cInsert(reverse, copy, objptr);
-	    addNewItem(todo, objptr);
-	    *((void **)(((int)cpy)+offset))=copy;
-	  }
-	}
+        int size=pointer[0];
+        int i;
+        for(i=1; i<=size; i++) {
+          int offset=pointer[i];
+          void * objptr=*((void **)(((int)ptr)+offset));
+          void *dst;
+          if (objptr==NULL) {
+            *((void **)(((int)cpy)+offset))=NULL;
+          } else if ((dst=cSearch(forward, objptr))!=NULL)
+            *((void **) &(((char *)cpy)[offset]))=dst;
+          else {
+            void * copy=createcopy(objptr);
+            cInsert(forward, objptr, copy);
+            cInsert(reverse, copy, objptr);
+            addNewItem(todo, objptr);
+            *((void **)(((int)cpy)+offset))=copy;
+          }
+        }
       }
     }
   }
@@ -274,80 +274,80 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
       size=classsize[type];
 #ifdef TASK
       if (type==TAGTYPE) {
-	void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;
-	memcpy(cpy, ptr, size);
-	if (objptr!=NULL) {
-	  if (cSearch(visited, objptr)==NULL) {
-	    cInsert(visited,  objptr, objptr);
-	    addNewItem(todo, objptr);
-	  }
-	  *((void **) &(((struct ___TagDescriptor___ *)cpy)->flagptr))=cSearch(reverse, objptr);
-	}
+        void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;
+        memcpy(cpy, ptr, size);
+        if (objptr!=NULL) {
+          if (cSearch(visited, objptr)==NULL) {
+            cInsert(visited,  objptr, objptr);
+            addNewItem(todo, objptr);
+          }
+          *((void **) &(((struct ___TagDescriptor___ *)cpy)->flagptr))=cSearch(reverse, objptr);
+        }
       } else
 #endif
       if (pointer==0) {
-	/* Array of primitives */
-	struct ArrayObject *ao=(struct ArrayObject *) ptr;
-	int length=ao->___length___;
-	int cpysize=sizeof(struct ArrayObject)+length*size;
-	memcpy(cpy, ptr, cpysize);
+        /* Array of primitives */
+        struct ArrayObject *ao=(struct ArrayObject *) ptr;
+        int length=ao->___length___;
+        int cpysize=sizeof(struct ArrayObject)+length*size;
+        memcpy(cpy, ptr, cpysize);
       } else if ((int)pointer==1) {
-	/* Array of pointers */
-	struct ArrayObject *ao=(struct ArrayObject *) ptr;
-	struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
-	int length=ao->___length___;
-	int i;
-	int cpysize=sizeof(struct ArrayObject)+length*size;
-	memcpy(ao_cpy, ao, cpysize);
+        /* Array of pointers */
+        struct ArrayObject *ao=(struct ArrayObject *) ptr;
+        struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
+        int length=ao->___length___;
+        int i;
+        int cpysize=sizeof(struct ArrayObject)+length*size;
+        memcpy(ao_cpy, ao, cpysize);
 
-	for(i=0; i<length; i++) {
-	  void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
-	  if (objptr==NULL)
-	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=NULL;
-	  else {
-	    if (cSearch(visited, objptr)==NULL) {
-	      cInsert(visited,  objptr, objptr);
-	      addNewItem(todo, objptr);
-	    }
-	    *((void **) &((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i])=cSearch(reverse, objptr);
-	  }
-	}
+        for(i=0; i<length; i++) {
+          void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
+          if (objptr==NULL)
+            ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=NULL;
+          else {
+            if (cSearch(visited, objptr)==NULL) {
+              cInsert(visited,  objptr, objptr);
+              addNewItem(todo, objptr);
+            }
+            *((void **) &((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i])=cSearch(reverse, objptr);
+          }
+        }
       } else {
-	int numptr=pointer[0];
-	int i;
-	void *flagptr;
-	int oldflag;
-	int currflag;
-	if (hasflags[type]) {
-	  flagptr=(void *)(((int *)cpy)[2]);
-	  oldflag=(((int *)cpy)[1]);
-	  currflag=(((int *)ptr)[1]);
-	}
-	memcpy(cpy, ptr, size);
-	for(i=1; i<=numptr; i++) {
-	  int offset=pointer[i];
-	  void * objptr=*((void **)(((int)ptr)+offset));
-	  if (objptr==NULL)
-	    *((void **)(((int)cpy)+offset))=NULL;
-	  else {
-	    if (cSearch(visited, objptr)==NULL) {
-	      cInsert(visited, objptr, objptr);
-	      addNewItem(todo, objptr);
-	    }
-	    *((void **) &(((char *)cpy)[offset]))=cSearch(reverse, objptr);
-	  }
-	}
-	if (hasflags[type]) {
-	  (((void **)cpy)[2])=flagptr;
-	  if (currflag!=oldflag) {
-	    flagorandinit(cpy, 0, 0xFFFFFFFF);
+        int numptr=pointer[0];
+        int i;
+        void *flagptr;
+        int oldflag;
+        int currflag;
+        if (hasflags[type]) {
+          flagptr=(void *)(((int *)cpy)[2]);
+          oldflag=(((int *)cpy)[1]);
+          currflag=(((int *)ptr)[1]);
+        }
+        memcpy(cpy, ptr, size);
+        for(i=1; i<=numptr; i++) {
+          int offset=pointer[i];
+          void * objptr=*((void **)(((int)ptr)+offset));
+          if (objptr==NULL)
+            *((void **)(((int)cpy)+offset))=NULL;
+          else {
+            if (cSearch(visited, objptr)==NULL) {
+              cInsert(visited, objptr, objptr);
+              addNewItem(todo, objptr);
+            }
+            *((void **) &(((char *)cpy)[offset]))=cSearch(reverse, objptr);
+          }
+        }
+        if (hasflags[type]) {
+          (((void **)cpy)[2])=flagptr;
+          if (currflag!=oldflag) {
+            flagorandinit(cpy, 0, 0xFFFFFFFF);
 #ifdef MULTICORE
-	    enqueueObject(cpy, NULL,0); //TODO
+            enqueueObject(cpy, NULL,0); //TODO
 #else
-	    enqueueObject(cpy);
+            enqueueObject(cpy);
 #endif
-	  }
-	}
+          }
+        }
       }
     }
   }

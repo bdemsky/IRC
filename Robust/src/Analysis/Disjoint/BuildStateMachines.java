@@ -109,11 +109,11 @@ public class BuildStateMachines {
 
       Iterator<TempDescriptor> varItr = var2smfe.keySet().iterator();
       while( varItr.hasNext() ) {
-	TempDescriptor var = varItr.next();
+        TempDescriptor var = varItr.next();
 
-	StateMachineForEffects smfe = var2smfe.get(var);
+        StateMachineForEffects smfe = var2smfe.get(var);
 
-	smfe.writeAsDOT(prefix+"statemachine_"+fn.toString()+var.toString() );
+        smfe.writeAsDOT(prefix+"statemachine_"+fn.toString()+var.toString() );
       }
     }
   }

@@ -24,7 +24,7 @@ public class GarbageAnalysis extends Namer {
     for(Iterator it=state.getClassSymbolTable().getDescriptorsIterator(); it.hasNext(); ) {
       ClassDescriptor cd=(ClassDescriptor) it.next();
       if (taskanalysis.getFlagStates(cd)==null)
-	continue;
+        continue;
       analyzeClass(cd);
     }
   }
@@ -37,7 +37,7 @@ public class GarbageAnalysis extends Namer {
     for(Iterator fsit=flagstatenodes.iterator(); fsit.hasNext(); ) {
       FlagState fs=(FlagState)fsit.next();
       if (fs.numedges()==0)
-	garbage.add(fs);
+        garbage.add(fs);
     }
 
     Stack tovisit=new Stack();
@@ -46,12 +46,12 @@ public class GarbageAnalysis extends Namer {
     while(!tovisit.isEmpty()) {
       FlagState fs=(FlagState)tovisit.pop();
       for(int i=0; i<fs.numinedges(); i++) {
-	Edge e=fs.getinedge(i);
-	FlagState fsnew=(FlagState) e.getSource();
-	if (!possiblegarbage.contains(fsnew)) {
-	  possiblegarbage.add(fsnew);
-	  tovisit.push(fsnew);
-	}
+        Edge e=fs.getinedge(i);
+        FlagState fsnew=(FlagState) e.getSource();
+        if (!possiblegarbage.contains(fsnew)) {
+          possiblegarbage.add(fsnew);
+          tovisit.push(fsnew);
+        }
       }
     }
     garbagestates.addAll(garbage);

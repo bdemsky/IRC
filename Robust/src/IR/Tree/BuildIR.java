@@ -24,7 +24,7 @@ public class BuildIR {
     while(it_classes.hasNext()) {
       ClassDescriptor cd = (ClassDescriptor)it_classes.next();
       if(cd.isInterface()) {
-	cd.setInterfaceId(if_num++);
+        cd.setInterfaceId(if_num++);
       }
     }
   }
@@ -51,20 +51,20 @@ public class BuildIR {
     if (ipn != null) {
       ParseNodeVector pnv = ipn.getChildren();
       for (int i = 0; i < pnv.size(); i++) {
-	ParseNode pnimport = pnv.elementAt(i);
-	NameDescriptor nd = parseName(pnimport.getChild("name"));
-	if (isNode(pnimport, "import_single")) {
-	  if (!mandatoryImports.containsKey(nd.getIdentifier())) {
-	    // map name to full name (includes package/directory
-	    mandatoryImports.put(nd.getIdentifier(), nd.getPathFromRootToHere());
-	  } else {
-	    throw new Error("An ambiguous class "+ nd.getIdentifier() +" has been found. It is included for " +
-	                    ((String)mandatoryImports.get(nd.getIdentifier())) + " and " +
-	                    nd.getPathFromRootToHere());
-	  }
-	} else {
-	  addMultiImport(sourcefile, nd.getPathFromRootToHere(), false);
-	}
+        ParseNode pnimport = pnv.elementAt(i);
+        NameDescriptor nd = parseName(pnimport.getChild("name"));
+        if (isNode(pnimport, "import_single")) {
+          if (!mandatoryImports.containsKey(nd.getIdentifier())) {
+            // map name to full name (includes package/directory
+            mandatoryImports.put(nd.getIdentifier(), nd.getPathFromRootToHere());
+          } else {
+            throw new Error("An ambiguous class "+ nd.getIdentifier() +" has been found. It is included for " +
+                            ((String)mandatoryImports.get(nd.getIdentifier())) + " and " +
+                            nd.getPathFromRootToHere());
+          }
+        } else {
+          addMultiImport(sourcefile, nd.getPathFromRootToHere(), false);
+        }
       }
     }
 
@@ -82,97 +82,97 @@ public class BuildIR {
     if (tpn != null) {
       ParseNodeVector pnv = tpn.getChildren();
       for (int i = 0; i < pnv.size(); i++) {
-	ParseNode type_pn = pnv.elementAt(i);
-	if (isEmpty(type_pn)) /* Skip the semicolon */
-	  continue;
-	if (isNode(type_pn, "class_declaration")) {
-	  ClassDescriptor cn = parseTypeDecl(type_pn, packageName);
-	  cn.setSourceFileName(sourcefile);
-	  parseInitializers(cn);
-	  if (toanalyze != null)
-	    toanalyze.add(cn);
-	  state.addClass(cn);
-	  // for inner classes/enum
-	  HashSet tovisit = new HashSet();
-	  Iterator it_icds = cn.getInnerClasses();
-	  while (it_icds.hasNext()) {
-	    tovisit.add(it_icds.next());
-	  }
+        ParseNode type_pn = pnv.elementAt(i);
+        if (isEmpty(type_pn)) /* Skip the semicolon */
+          continue;
+        if (isNode(type_pn, "class_declaration")) {
+          ClassDescriptor cn = parseTypeDecl(type_pn, packageName);
+          cn.setSourceFileName(sourcefile);
+          parseInitializers(cn);
+          if (toanalyze != null)
+            toanalyze.add(cn);
+          state.addClass(cn);
+          // for inner classes/enum
+          HashSet tovisit = new HashSet();
+          Iterator it_icds = cn.getInnerClasses();
+          while (it_icds.hasNext()) {
+            tovisit.add(it_icds.next());
+          }
 
-	  while (!tovisit.isEmpty()) {
-	    ClassDescriptor cd = (ClassDescriptor) tovisit.iterator().next();
-	    tovisit.remove(cd);
-	    parseInitializers(cd);
-	    if (toanalyze != null) {
-	      toanalyze.add(cd);
-	    }
-	    cd.setSourceFileName(sourcefile);
-	    state.addClass(cd);
+          while (!tovisit.isEmpty()) {
+            ClassDescriptor cd = (ClassDescriptor) tovisit.iterator().next();
+            tovisit.remove(cd);
+            parseInitializers(cd);
+            if (toanalyze != null) {
+              toanalyze.add(cd);
+            }
+            cd.setSourceFileName(sourcefile);
+            state.addClass(cd);
 
-	    Iterator it_ics = cd.getInnerClasses();
-	    while (it_ics.hasNext()) {
-	      tovisit.add(it_ics.next());
-	    }
+            Iterator it_ics = cd.getInnerClasses();
+            while (it_ics.hasNext()) {
+              tovisit.add(it_ics.next());
+            }
 
-	    Iterator it_ienums = cd.getEnum();
-	    while (it_ienums.hasNext()) {
-	      ClassDescriptor iecd = (ClassDescriptor) it_ienums.next();
-	      if (toanalyze != null) {
-		toanalyze.add(iecd);
-	      }
-	      iecd.setSourceFileName(sourcefile);
-	      state.addClass(iecd);
-	    }
-	  }
+            Iterator it_ienums = cd.getEnum();
+            while (it_ienums.hasNext()) {
+              ClassDescriptor iecd = (ClassDescriptor) it_ienums.next();
+              if (toanalyze != null) {
+                toanalyze.add(iecd);
+              }
+              iecd.setSourceFileName(sourcefile);
+              state.addClass(iecd);
+            }
+          }
 
-	  Iterator it_enums = cn.getEnum();
-	  while (it_enums.hasNext()) {
-	    ClassDescriptor ecd = (ClassDescriptor) it_enums.next();
-	    if (toanalyze != null) {
-	      toanalyze.add(ecd);
-	    }
-	    ecd.setSourceFileName(sourcefile);
-	    state.addClass(ecd);
-	  }
-	} else if (isNode(type_pn, "task_declaration")) {
-	  TaskDescriptor td = parseTaskDecl(type_pn);
-	  if (toanalyze != null)
-	    toanalyze.add(td);
-	  state.addTask(td);
-	} else if (isNode(type_pn, "interface_declaration")) {
-	  // TODO add version for normal Java later
-	  ClassDescriptor cn = parseInterfaceDecl(type_pn, packageName);
-	  if (toanalyze != null)
-	    toanalyze.add(cn);
-	  cn.setSourceFileName(sourcefile);
-	  state.addClass(cn);
+          Iterator it_enums = cn.getEnum();
+          while (it_enums.hasNext()) {
+            ClassDescriptor ecd = (ClassDescriptor) it_enums.next();
+            if (toanalyze != null) {
+              toanalyze.add(ecd);
+            }
+            ecd.setSourceFileName(sourcefile);
+            state.addClass(ecd);
+          }
+        } else if (isNode(type_pn, "task_declaration")) {
+          TaskDescriptor td = parseTaskDecl(type_pn);
+          if (toanalyze != null)
+            toanalyze.add(td);
+          state.addTask(td);
+        } else if (isNode(type_pn, "interface_declaration")) {
+          // TODO add version for normal Java later
+          ClassDescriptor cn = parseInterfaceDecl(type_pn, packageName);
+          if (toanalyze != null)
+            toanalyze.add(cn);
+          cn.setSourceFileName(sourcefile);
+          state.addClass(cn);
 
-	  // for enum
-	  Iterator it_enums = cn.getEnum();
-	  while (it_enums.hasNext()) {
-	    ClassDescriptor ecd = (ClassDescriptor) it_enums.next();
-	    if (toanalyze != null) {
-	      toanalyze.add(ecd);
-	    }
-	    ecd.setSourceFileName(sourcefile);
-	    state.addClass(ecd);
-	  }
-	} else if (isNode(type_pn, "enum_declaration")) {
-	  // TODO add version for normal Java later
-	  ClassDescriptor cn = parseEnumDecl(null, type_pn);
-	  if (toanalyze != null)
-	    toanalyze.add(cn);
-	  cn.setSourceFileName(sourcefile);
-	  state.addClass(cn);
-	} else if(isNode(type_pn,"annotation_type_declaration")) {
-	  ClassDescriptor cn=parseAnnotationTypeDecl(type_pn);
-	  if (toanalyze != null)
-	    toanalyze.add(cn);
-	  cn.setSourceFileName(sourcefile);
-	  state.addClass(cn);
-	} else {
-	  throw new Error(type_pn.getLabel());
-	}
+          // for enum
+          Iterator it_enums = cn.getEnum();
+          while (it_enums.hasNext()) {
+            ClassDescriptor ecd = (ClassDescriptor) it_enums.next();
+            if (toanalyze != null) {
+              toanalyze.add(ecd);
+            }
+            ecd.setSourceFileName(sourcefile);
+            state.addClass(ecd);
+          }
+        } else if (isNode(type_pn, "enum_declaration")) {
+          // TODO add version for normal Java later
+          ClassDescriptor cn = parseEnumDecl(null, type_pn);
+          if (toanalyze != null)
+            toanalyze.add(cn);
+          cn.setSourceFileName(sourcefile);
+          state.addClass(cn);
+        } else if(isNode(type_pn,"annotation_type_declaration")) {
+          ClassDescriptor cn=parseAnnotationTypeDecl(type_pn);
+          if (toanalyze != null)
+            toanalyze.add(cn);
+          cn.setSourceFileName(sourcefile);
+          state.addClass(cn);
+        } else {
+          throw new Error(type_pn.getLabel());
+        }
       }
     }
   }
@@ -189,23 +189,23 @@ public class BuildIR {
       String path = (String) state.classpath.get(j);
       File folder = new File(path, importPath.replace('.', '/'));
       if (folder.exists()) {
-	found = true;
-	for (String file : folder.list()) {
-	  // if the file is of type *.java add to multiImport list.
-	  if (file.lastIndexOf('.') != -1 && file.substring(file.lastIndexOf('.')).equalsIgnoreCase(".java")) {
-	    String classname = file.substring(0, file.length() - 5);
-	    // single imports have precedence over multi-imports
-	    if (!mandatoryImports.containsKey(classname)) {
-	      //package files have precedence over multi-imports.
-	      if (multiimports.containsKey(classname)  && !isPackageDirectory) {
-		// put error in for later, in case we try to import
-		multiimports.put(classname, new Error("Error: class " + classname + " is defined more than once in a multi-import in " + currentSource));
-	      } else {
-		multiimports.put(classname, importPath + "." + classname);
-	      }
-	    }
-	  }
-	}
+        found = true;
+        for (String file : folder.list()) {
+          // if the file is of type *.java add to multiImport list.
+          if (file.lastIndexOf('.') != -1 && file.substring(file.lastIndexOf('.')).equalsIgnoreCase(".java")) {
+            String classname = file.substring(0, file.length() - 5);
+            // single imports have precedence over multi-imports
+            if (!mandatoryImports.containsKey(classname)) {
+              //package files have precedence over multi-imports.
+              if (multiimports.containsKey(classname)  && !isPackageDirectory) {
+                // put error in for later, in case we try to import
+                multiimports.put(classname, new Error("Error: class " + classname + " is defined more than once in a multi-import in " + currentSource));
+              } else {
+                multiimports.put(classname, importPath + "." + classname);
+              }
+            }
+          }
+        }
       }
     }
 
@@ -222,17 +222,17 @@ public class BuildIR {
     for(int i=0; i<fv.size(); i++) {
       FieldDescriptor fd=(FieldDescriptor)fv.get(i);
       if(fd.getExpressionNode()!=null) {
-	Iterator methodit = cn.getMethods();
-	while(methodit.hasNext()) {
-	  MethodDescriptor currmd=(MethodDescriptor)methodit.next();
-	  if(currmd.isConstructor()) {
-	    BlockNode bn=state.getMethodBody(currmd);
-	    NameNode nn=new NameNode(new NameDescriptor(fd.getSymbol()));
-	    AssignmentNode an=new AssignmentNode(nn,fd.getExpressionNode(),new AssignOperation(1));
-	    bn.addBlockStatementAt(new BlockExpressionNode(an), pos);
-	  }
-	}
-	pos++;
+        Iterator methodit = cn.getMethods();
+        while(methodit.hasNext()) {
+          MethodDescriptor currmd=(MethodDescriptor)methodit.next();
+          if(currmd.isConstructor()) {
+            BlockNode bn=state.getMethodBody(currmd);
+            NameNode nn=new NameNode(new NameDescriptor(fd.getSymbol()));
+            AssignmentNode an=new AssignmentNode(nn,fd.getExpressionNode(),new AssignOperation(1));
+            bn.addBlockStatementAt(new BlockExpressionNode(an), pos);
+          }
+        }
+        pos++;
       }
     }
   }
@@ -260,10 +260,10 @@ public class BuildIR {
     if (decls!=null) {
       ParseNodeVector pnv=decls.getChildren();
       for(int i=0; i<pnv.size(); i++) {
-	ParseNode decl=pnv.elementAt(i);
-	if (isNode(decl,"enum_constant")) {
-	  parseEnumConstant(cn,decl);
-	} else throw new Error();
+        ParseNode decl=pnv.elementAt(i);
+        if (isNode(decl,"enum_constant")) {
+          parseEnumConstant(cn,decl);
+        } else throw new Error();
       }
     }
   }
@@ -288,24 +288,24 @@ public class BuildIR {
     if(list_node!=null) {
       ParseNodeVector pnv = list_node.getChildren();
       for (int i = 0; i < pnv.size(); i++) {
-	ParseNode element_node = pnv.elementAt(i);
-	if (isNode(element_node, "annotation_type_element_declaration")) {
-	  ParseNodeVector elementProps = element_node.getChildren();
-	  String identifier=null;
-	  TypeDescriptor type=null;
-	  Modifiers modifiers=new Modifiers();
-	  for(int eidx=0; eidx<elementProps.size(); eidx++) {
-	    ParseNode prop_node=elementProps.elementAt(eidx);
-	    if(isNode(prop_node,"name")) {
-	      identifier=prop_node.getTerminal();
-	    } else if(isNode(prop_node,"type")) {
-	      type=parseTypeDescriptor(prop_node);
-	    } else if(isNode(prop_node,"modifier")) {
-	      modifiers=parseModifiersList(prop_node);
-	    }
-	  }
-	  cn.addField(new FieldDescriptor(modifiers, type, identifier, null, false));
-	}
+        ParseNode element_node = pnv.elementAt(i);
+        if (isNode(element_node, "annotation_type_element_declaration")) {
+          ParseNodeVector elementProps = element_node.getChildren();
+          String identifier=null;
+          TypeDescriptor type=null;
+          Modifiers modifiers=new Modifiers();
+          for(int eidx=0; eidx<elementProps.size(); eidx++) {
+            ParseNode prop_node=elementProps.elementAt(eidx);
+            if(isNode(prop_node,"name")) {
+              identifier=prop_node.getTerminal();
+            } else if(isNode(prop_node,"type")) {
+              type=parseTypeDescriptor(prop_node);
+            } else if(isNode(prop_node,"modifier")) {
+              modifiers=parseModifiersList(prop_node);
+            }
+          }
+          cn.addField(new FieldDescriptor(modifiers, type, identifier, null, false));
+        }
       }
     }
   }
@@ -326,11 +326,11 @@ public class BuildIR {
       ParseNode snlist=pn.getChild("superIF").getChild("extend_interface_list");
       ParseNodeVector pnv=snlist.getChildren();
       for(int i=0; i<pnv.size(); i++) {
-	ParseNode decl=pnv.elementAt(i);
-	if (isNode(decl,"type")) {
-	  NameDescriptor nd=parseClassName(decl.getChild("class").getChild("name"));
-	  cn.addSuperInterface(nd.toString());
-	}
+        ParseNode decl=pnv.elementAt(i);
+        if (isNode(decl,"type")) {
+          NameDescriptor nd=parseClassName(decl.getChild("class").getChild("name"));
+          cn.addSuperInterface(nd.toString());
+        }
       }
     }
     cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
@@ -344,12 +344,12 @@ public class BuildIR {
     if (decls!=null) {
       ParseNodeVector pnv=decls.getChildren();
       for(int i=0; i<pnv.size(); i++) {
-	ParseNode decl=pnv.elementAt(i);
-	if (isNode(decl,"constant")) {
-	  parseInterfaceConstant(cn,decl);
-	} else if (isNode(decl,"method")) {
-	  parseInterfaceMethod(cn,decl.getChild("method_declaration"));
-	} else throw new Error();
+        ParseNode decl=pnv.elementAt(i);
+        if (isNode(decl,"constant")) {
+          parseInterfaceConstant(cn,decl);
+        } else if (isNode(decl,"method")) {
+          parseInterfaceMethod(cn,decl.getChild("method_declaration"));
+        } else throw new Error();
       }
     }
   }
@@ -423,9 +423,9 @@ public class BuildIR {
       String flagname=pn.getChild("name").getTerminal();
       FlagEffects fe=new FlagEffects(flagname);
       if (pn.getChild("flag_list")!=null)
-	parseFlagEffect(fe, pn.getChild("flag_list"));
+        parseFlagEffect(fe, pn.getChild("flag_list"));
       if (pn.getChild("tag_list")!=null)
-	parseTagEffect(fe, pn.getChild("tag_list"));
+        parseTagEffect(fe, pn.getChild("tag_list"));
       return fe;
     } else throw new Error();
   }
@@ -436,8 +436,8 @@ public class BuildIR {
       ParseNode pn2=pnv.elementAt(i);
       boolean status=true;
       if (isNode(pn2,"not")) {
-	status=false;
-	pn2=pn2.getChild("name");
+        status=false;
+        pn2=pn2.getChild("name");
       }
       String name=pn2.getTerminal();
       fes.addTagEffect(new TagEffect(name,status));
@@ -450,8 +450,8 @@ public class BuildIR {
       ParseNode pn2=pnv.elementAt(i);
       boolean status=true;
       if (isNode(pn2,"not")) {
-	status=false;
-	pn2=pn2.getChild("name");
+        status=false;
+        pn2=pn2.getChild("name");
       }
       String name=pn2.getTerminal();
       fes.addEffect(new FlagEffect(name,status));
@@ -498,8 +498,8 @@ public class BuildIR {
       Vector[] args=parseConsArgumentList(pn);
       ConstraintCheck cc=new ConstraintCheck(specname);
       for(int i=0; i<args[0].size(); i++) {
-	cc.addVariable((String)args[0].get(i));
-	cc.addArgument((ExpressionNode)args[1].get(i));
+        cc.addVariable((String)args[0].get(i));
+        cc.addArgument((ExpressionNode)args[1].get(i));
       }
       return cc;
     } else throw new Error();
@@ -515,24 +515,24 @@ public class BuildIR {
     for(int i=0; i<pnv.size(); i++) {
       ParseNode paramn=pnv.elementAt(i);
       if(paramn.getChild("optional")!=null) {
-	optional = true;
-	paramn = paramn.getChild("optional").getFirstChild();
-	System.out.println("OPTIONAL FOUND!!!!!!!");
+        optional = true;
+        paramn = paramn.getChild("optional").getFirstChild();
+        System.out.println("OPTIONAL FOUND!!!!!!!");
       } else { optional = false;
-	       System.out.println("NOT OPTIONAL"); }
+               System.out.println("NOT OPTIONAL"); }
 
       TypeDescriptor type=parseTypeDescriptor(paramn);
 
       String paramname=paramn.getChild("single").getTerminal();
       FlagExpressionNode fen=null;
       if (paramn.getChild("flag")!=null)
-	fen=parseFlagExpression(paramn.getChild("flag").getFirstChild());
+        fen=parseFlagExpression(paramn.getChild("flag").getFirstChild());
 
       ParseNode tagnode=paramn.getChild("tag");
 
       TagExpressionList tel=null;
       if (tagnode!=null) {
-	tel=parseTagExpressionList(tagnode);
+        tel=parseTagExpressionList(tagnode);
       }
 
       td.addParameter(type,paramname,fen, tel, optional);
@@ -572,7 +572,7 @@ public class BuildIR {
     } else {
       if (!(cn.getSymbol().equals(TypeUtil.ObjectClass)||
             cn.getSymbol().equals(TypeUtil.TagClass)))
-	cn.setSuper(TypeUtil.ObjectClass);
+        cn.setSuper(TypeUtil.ObjectClass);
     }
     // check inherited interfaces
     if (!isEmpty(pn.getChild("superIF").getTerminal())) {
@@ -580,11 +580,11 @@ public class BuildIR {
       ParseNode snlist=pn.getChild("superIF").getChild("interface_type_list");
       ParseNodeVector pnv=snlist.getChildren();
       for(int i=0; i<pnv.size(); i++) {
-	ParseNode decl=pnv.elementAt(i);
-	if (isNode(decl,"type")) {
-	  NameDescriptor nd=parseClassName(decl.getChild("class").getChild("name"));
-	  cn.addSuperInterface(nd.toString());
-	}
+        ParseNode decl=pnv.elementAt(i);
+        if (isNode(decl,"type")) {
+          NameDescriptor nd=parseClassName(decl.getChild("class").getChild("name"));
+          cn.addSuperInterface(nd.toString());
+        }
       }
     }
     cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
@@ -612,17 +612,17 @@ public class BuildIR {
     if (decls!=null) {
       ParseNodeVector pnv=decls.getChildren();
       for(int i=0; i<pnv.size(); i++) {
-	ParseNode decl=pnv.elementAt(i);
-	if (isNode(decl,"member")) {
-	  parseClassMember(cn,decl);
-	} else if (isNode(decl,"constructor")) {
-	  parseConstructorDecl(cn,decl.getChild("constructor_declaration"));
-	} else if (isNode(decl, "static_block")) {
-	  parseStaticBlockDecl(cn, decl.getChild("static_block_declaration"));
-	} else if (isNode(decl,"block")) {
-	} else if (isNode(decl,"location_order_declaration")) {
-	  parseLocationOrder(cn,decl.getChild("location_order_list"));
-	} else throw new Error();
+        ParseNode decl=pnv.elementAt(i);
+        if (isNode(decl,"member")) {
+          parseClassMember(cn,decl);
+        } else if (isNode(decl,"constructor")) {
+          parseConstructorDecl(cn,decl.getChild("constructor_declaration"));
+        } else if (isNode(decl, "static_block")) {
+          parseStaticBlockDecl(cn, decl.getChild("static_block_declaration"));
+        } else if (isNode(decl,"block")) {
+        } else if (isNode(decl,"location_order_declaration")) {
+          parseLocationOrder(cn,decl.getChild("location_order_list"));
+        } else throw new Error();
       }
     }
   }
@@ -635,26 +635,26 @@ public class BuildIR {
     for (int i = 0; i < pnv.size(); i++) {
       ParseNode loc = pnv.elementAt(i);
       if(isNode(loc,"location_property")) {
-	String spinLoc=loc.getChildren().elementAt(0).getLabel();
-	spinLocSet.add(spinLoc);
+        String spinLoc=loc.getChildren().elementAt(0).getLabel();
+        spinLocSet.add(spinLoc);
       } else {
-	String lowerLoc=loc.getChildren().elementAt(0).getLabel();
-	String higherLoc= loc.getChildren().elementAt(1).getLabel();
-	locOrder.put(higherLoc, lowerLoc);
-	if (locOrder.isIntroducingCycle(higherLoc)) {
-	  throw new Error("Error: the order relation " + lowerLoc + " < " + higherLoc
-	                  + " introduces a cycle.");
-	}
+        String lowerLoc=loc.getChildren().elementAt(0).getLabel();
+        String higherLoc= loc.getChildren().elementAt(1).getLabel();
+        locOrder.put(higherLoc, lowerLoc);
+        if (locOrder.isIntroducingCycle(higherLoc)) {
+          throw new Error("Error: the order relation " + lowerLoc + " < " + higherLoc
+                          + " introduces a cycle.");
+        }
       }
     }
     if(spinLocSet.size()>0) {
       //checking if location is actually defined in the hierarchy
       for (Iterator iterator = spinLocSet.iterator(); iterator.hasNext(); ) {
-	String locID = (String) iterator.next();
-	if(!locOrder.containsKey(locID)) {
-	  throw new Error("Error: The spinning location '"+
-	                  locID + "' is not defined in the hierarchy of the class '"+cd +"'.");
-	}
+        String locID = (String) iterator.next();
+        if(!locOrder.containsKey(locID)) {
+          throw new Error("Error: The spinning location '"+
+                          locID + "' is not defined in the hierarchy of the class '"+cd +"'.");
+        }
       }
       state.addLocationPropertySet(cd, spinLocSet);
     }
@@ -710,7 +710,7 @@ public class BuildIR {
     } else {
       if (!(icn.getSymbol().equals(TypeUtil.ObjectClass)||
             icn.getSymbol().equals(TypeUtil.TagClass)))
-	icn.setSuper(TypeUtil.ObjectClass);
+        icn.setSuper(TypeUtil.ObjectClass);
     }
     // check inherited interfaces
     if (!isEmpty(pn.getChild("superIF").getTerminal())) {
@@ -718,11 +718,11 @@ public class BuildIR {
       ParseNode snlist=pn.getChild("superIF").getChild("interface_type_list");
       ParseNodeVector pnv=snlist.getChildren();
       for(int i=0; i<pnv.size(); i++) {
-	ParseNode decl=pnv.elementAt(i);
-	if (isNode(decl,"type")) {
-	  NameDescriptor nd=parseClassName(decl.getChild("class").getChild("name"));
-	  icn.addSuperInterface(nd.toString());
-	}
+        ParseNode decl=pnv.elementAt(i);
+        if (isNode(decl,"type")) {
+          NameDescriptor nd=parseClassName(decl.getChild("class").getChild("name"));
+          icn.addSuperInterface(nd.toString());
+        }
       }
     }
     icn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
@@ -761,7 +761,7 @@ public class BuildIR {
       TypeDescriptor td=parseTypeDescriptor(nn.getChild("basetype"));
       Integer numdims=(Integer)nn.getChild("dims").getLiteral();
       for(int i=0; i<numdims.intValue(); i++)
-	td=td.makeArray(state);
+        td=td.makeArray(state);
       return td;
     } else {
       System.out.println(pn.PPrint(2, true));
@@ -799,16 +799,16 @@ public class BuildIR {
       return (String) mandatoryImports.get(terminal);
     } else {
       if(multiimports.containsKey(terminal)) {
-	//Test for error
-	Object o = multiimports.get(terminal);
-	if(o instanceof Error) {
-	  throw new Error("Class " + terminal + " is ambiguous. Cause: more than 1 package import contain the same class.");
-	} else {
-	  //At this point, if we found a unique class
-	  //we can treat it as a single, mandatory import.
-	  mandatoryImports.put(terminal, o);
-	  return (String) o;
-	}
+        //Test for error
+        Object o = multiimports.get(terminal);
+        if(o instanceof Error) {
+          throw new Error("Class " + terminal + " is ambiguous. Cause: more than 1 package import contain the same class.");
+        } else {
+          //At this point, if we found a unique class
+          //we can treat it as a single, mandatory import.
+          mandatoryImports.put(terminal, o);
+          return (String) o;
+        }
       }
     }
 
@@ -842,7 +842,7 @@ public class BuildIR {
       // Can only be PUBLIC or STATIC or FINAL
       if((m.isAbstract()) || (m.isAtomic()) || (m.isNative())
          || (m.isSynchronized())) {
-	throw new Error("Error: field in Interface " + cn.getSymbol() + "can only be PUBLIC or STATIC or FINAL");
+        throw new Error("Error: field in Interface " + cn.getSymbol() + "can only be PUBLIC or STATIC or FINAL");
       }
       m.addModifier(Modifiers.PUBLIC);
       m.addModifier(Modifiers.STATIC);
@@ -861,52 +861,52 @@ public class BuildIR {
       ParseNode tmp=vardecl;
       TypeDescriptor arrayt=t;
       while (tmp.getChild("single")==null) {
-	arrayt=arrayt.makeArray(state);
-	tmp=tmp.getChild("array");
+        arrayt=arrayt.makeArray(state);
+        tmp=tmp.getChild("array");
       }
       String identifier=tmp.getChild("single").getTerminal();
       ParseNode epn=vardecl.getChild("initializer");
 
       ExpressionNode en=null;
       if (epn!=null) {
-	en=parseExpression(epn.getFirstChild());
-	en.setNumLine(epn.getFirstChild().getLine());
-	if(m.isStatic()) {
-	  // for static field, the initializer should be considered as a
-	  // static block
-	  boolean isfirst = false;
-	  MethodDescriptor md = (MethodDescriptor)cn.getMethodTable().getFromSameScope("staticblocks");
-	  if(md == null) {
-	    // the first static block for this class
-	    Modifiers m_i=new Modifiers();
-	    m_i.addModifier(Modifiers.STATIC);
-	    md = new MethodDescriptor(m_i, "staticblocks", false);
-	    md.setAsStaticBlock();
-	    isfirst = true;
-	  }
-	  if(isfirst) {
-	    cn.addMethod(md);
-	  }
-	  cn.incStaticBlocks();
-	  BlockNode bn=new BlockNode();
-	  NameNode nn=new NameNode(new NameDescriptor(identifier));
-	  nn.setNumLine(en.getNumLine());
-	  AssignmentNode an=new AssignmentNode(nn,en,new AssignOperation(1));
-	  an.setNumLine(pn.getLine());
-	  bn.addBlockStatement(new BlockExpressionNode(an));
-	  if(isfirst) {
-	    state.addTreeCode(md,bn);
-	  } else {
-	    BlockNode obn = state.getMethodBody(md);
-	    for(int ii = 0; ii < bn.size(); ii++) {
-	      BlockStatementNode bsn = bn.get(ii);
-	      obn.addBlockStatement(bsn);
-	    }
-	    state.addTreeCode(md, obn);
-	    bn = null;
-	  }
-	  en = null;
-	}
+        en=parseExpression(epn.getFirstChild());
+        en.setNumLine(epn.getFirstChild().getLine());
+        if(m.isStatic()) {
+          // for static field, the initializer should be considered as a
+          // static block
+          boolean isfirst = false;
+          MethodDescriptor md = (MethodDescriptor)cn.getMethodTable().getFromSameScope("staticblocks");
+          if(md == null) {
+            // the first static block for this class
+            Modifiers m_i=new Modifiers();
+            m_i.addModifier(Modifiers.STATIC);
+            md = new MethodDescriptor(m_i, "staticblocks", false);
+            md.setAsStaticBlock();
+            isfirst = true;
+          }
+          if(isfirst) {
+            cn.addMethod(md);
+          }
+          cn.incStaticBlocks();
+          BlockNode bn=new BlockNode();
+          NameNode nn=new NameNode(new NameDescriptor(identifier));
+          nn.setNumLine(en.getNumLine());
+          AssignmentNode an=new AssignmentNode(nn,en,new AssignOperation(1));
+          an.setNumLine(pn.getLine());
+          bn.addBlockStatement(new BlockExpressionNode(an));
+          if(isfirst) {
+            state.addTreeCode(md,bn);
+          } else {
+            BlockNode obn = state.getMethodBody(md);
+            for(int ii = 0; ii < bn.size(); ii++) {
+              BlockStatementNode bsn = bn.get(ii);
+              obn.addBlockStatement(bsn);
+            }
+            state.addTreeCode(md, obn);
+            bn = null;
+          }
+          en = null;
+        }
       }
 
       cn.addField(new FieldDescriptor(m, arrayt, identifier, en, isglobal));
@@ -983,22 +983,22 @@ public class BuildIR {
       boolean isglobal = pn.getChild("global") != null || pn.getChild("scratch") != null;
       String disjointId = null;
       if (pn.getChild("disjoint") != null) {
-	disjointId = pn.getChild("disjoint").getTerminal();
+        disjointId = pn.getChild("disjoint").getTerminal();
       }
       CreateObjectNode con = new CreateObjectNode(td, isglobal, disjointId);
       con.setNumLine(pn.getLine());
       for (int i = 0; i < args.size(); i++) {
-	con.addArgument((ExpressionNode) args.get(i));
+        con.addArgument((ExpressionNode) args.get(i));
       }
       /* Could have flag set or tag added here */
       if (pn.getChild("flag_list") != null || pn.getChild("tag_list") != null) {
-	FlagEffects fe = new FlagEffects(null);
-	if (pn.getChild("flag_list") != null)
-	  parseFlagEffect(fe, pn.getChild("flag_list"));
+        FlagEffects fe = new FlagEffects(null);
+        if (pn.getChild("flag_list") != null)
+          parseFlagEffect(fe, pn.getChild("flag_list"));
 
-	if (pn.getChild("tag_list") != null)
-	  parseTagEffect(fe, pn.getChild("tag_list"));
-	con.addFlagEffects(fe);
+        if (pn.getChild("tag_list") != null)
+          parseTagEffect(fe, pn.getChild("tag_list"));
+        con.addFlagEffects(fe);
       }
 
       return con;
@@ -1015,7 +1015,7 @@ public class BuildIR {
       CreateObjectNode con=new CreateObjectNode(td, false, null);
       con.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
-	con.addArgument((ExpressionNode)args.get(i));
+        con.addArgument((ExpressionNode)args.get(i));
       }
 
       return con;
@@ -1025,19 +1025,19 @@ public class BuildIR {
                         pn.getChild("scratch")!=null;
       String disjointId=null;
       if( pn.getChild("disjoint") != null) {
-	disjointId = pn.getChild("disjoint").getTerminal();
+        disjointId = pn.getChild("disjoint").getTerminal();
       }
       TypeDescriptor td=parseTypeDescriptor(pn);
       Vector args=parseDimExprs(pn);
       int num=0;
       if (pn.getChild("dims_opt").getLiteral()!=null)
-	num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
+        num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
       for(int i=0; i<(args.size()+num); i++)
-	td=td.makeArray(state);
+        td=td.makeArray(state);
       CreateObjectNode con=new CreateObjectNode(td, isglobal, disjointId);
       con.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
-	con.addArgument((ExpressionNode)args.get(i));
+        con.addArgument((ExpressionNode)args.get(i));
       }
       return con;
     }
@@ -1045,9 +1045,9 @@ public class BuildIR {
       TypeDescriptor td=parseTypeDescriptor(pn);
       int num=0;
       if (pn.getChild("dims_opt").getLiteral()!=null)
-	num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
+        num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
       for(int i=0; i<num; i++)
-	td=td.makeArray(state);
+        td=td.makeArray(state);
       CreateObjectNode con=new CreateObjectNode(td, false, null);
       con.setNumLine(pn.getLine());
       ParseNode ipn = pn.getChild("initializer");
@@ -1077,7 +1077,7 @@ public class BuildIR {
       MethodInvokeNode min=new MethodInvokeNode(nd);
       min.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
-	min.addArgument((ExpressionNode)args.get(i));
+        min.addArgument((ExpressionNode)args.get(i));
       }
       return min;
     } else if (isNode(pn,"methodinvoke2")) {
@@ -1087,7 +1087,7 @@ public class BuildIR {
       MethodInvokeNode min=new MethodInvokeNode(methodid,exp);
       min.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
-	min.addArgument((ExpressionNode)args.get(i));
+        min.addArgument((ExpressionNode)args.get(i));
       }
       return min;
     } else if (isNode(pn,"fieldaccess")) {
@@ -1105,13 +1105,13 @@ public class BuildIR {
       return aan;
     } else if (isNode(pn,"cast1")) {
       try {
-	CastNode cn=new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));
-	cn.setNumLine(pn.getLine());
-	return cn;
+        CastNode cn=new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));
+        cn.setNumLine(pn.getLine());
+        return cn;
       } catch (Exception e) {
-	System.out.println(pn.PPrint(1,true));
-	e.printStackTrace();
-	throw new Error();
+        System.out.println(pn.PPrint(1,true));
+        e.printStackTrace();
+        throw new Error();
       }
     } else if (isNode(pn,"cast2")) {
       CastNode cn=new CastNode(parseExpression(pn.getChild("type").getFirstChild()),parseExpression(pn.getChild("exp").getFirstChild()));
@@ -1271,7 +1271,7 @@ public class BuildIR {
       MethodInvokeNode min=new MethodInvokeNode(nd);
       min.setNumLine(sin.getLine());
       for(int i=0; i<args.size(); i++) {
-	min.addArgument((ExpressionNode)args.get(i));
+        min.addArgument((ExpressionNode)args.get(i));
       }
       BlockExpressionNode ben=new BlockExpressionNode(min);
       bn.addFirstBlockStatement(ben);
@@ -1283,7 +1283,7 @@ public class BuildIR {
       MethodInvokeNode min=new MethodInvokeNode(nd);
       min.setNumLine(eci.getLine());
       for(int i=0; i<args.size(); i++) {
-	min.addArgument((ExpressionNode)args.get(i));
+        min.addArgument((ExpressionNode)args.get(i));
       }
       BlockExpressionNode ben=new BlockExpressionNode(min);
       ben.setNumLine(eci.getLine());
@@ -1320,8 +1320,8 @@ public class BuildIR {
     } else {
       BlockNode obn = state.getMethodBody(md);
       for(int i = 0; i < bn.size(); i++) {
-	BlockStatementNode bsn = bn.get(i);
-	obn.addBlockStatement(bsn);
+        BlockStatementNode bsn = bn.get(i);
+        obn.addBlockStatement(bsn);
       }
       state.addTreeCode(md, obn);
       bn = null;
@@ -1342,7 +1342,7 @@ public class BuildIR {
     for(int i=0; i<pnv.size(); i++) {
       Vector bsv=parseBlockStatement(pnv.elementAt(i));
       for(int j=0; j<bsv.size(); j++) {
-	bn.addBlockStatement((BlockStatementNode)bsv.get(j));
+        bn.addBlockStatement((BlockStatementNode)bsv.get(j));
       }
     }
     return bn;
@@ -1382,35 +1382,35 @@ public class BuildIR {
       ParseNode mn=pn.getChild("modifiers");
       TypeDescriptor t=parseTypeDescriptor(pn);
       if(mn!=null) {
-	Modifiers m=parseModifiersList(mn);
-	assignAnnotationsToType(m, t);
+        Modifiers m=parseModifiersList(mn);
+        assignAnnotationsToType(m, t);
       }
       ParseNode vn=pn.getChild("variable_declarators_list");
       ParseNodeVector pnv=vn.getChildren();
       for(int i=0; i<pnv.size(); i++) {
-	ParseNode vardecl=pnv.elementAt(i);
+        ParseNode vardecl=pnv.elementAt(i);
 
 
-	ParseNode tmp=vardecl;
-	TypeDescriptor arrayt=t;
+        ParseNode tmp=vardecl;
+        TypeDescriptor arrayt=t;
 
-	while (tmp.getChild("single")==null) {
-	  arrayt=arrayt.makeArray(state);
-	  tmp=tmp.getChild("array");
-	}
-	String identifier=tmp.getChild("single").getTerminal();
+        while (tmp.getChild("single")==null) {
+          arrayt=arrayt.makeArray(state);
+          tmp=tmp.getChild("array");
+        }
+        String identifier=tmp.getChild("single").getTerminal();
 
-	ParseNode epn=vardecl.getChild("initializer");
+        ParseNode epn=vardecl.getChild("initializer");
 
 
-	ExpressionNode en=null;
-	if (epn!=null)
-	  en=parseExpression(epn.getFirstChild());
+        ExpressionNode en=null;
+        if (epn!=null)
+          en=parseExpression(epn.getFirstChild());
 
-	DeclarationNode dn=new DeclarationNode(new VarDescriptor(arrayt, identifier),en);
-	dn.setNumLine(tmp.getLine());
+        DeclarationNode dn=new DeclarationNode(new VarDescriptor(arrayt, identifier),en);
+        dn.setNumLine(tmp.getLine());
 
-	blockstatements.add(dn);
+        blockstatements.add(dn);
       }
     } else if (isNode(pn,"nop")) {
       /* Do Nothing */
@@ -1435,32 +1435,32 @@ public class BuildIR {
       // TODO add version for normal Java later
       ParseNodeVector pnv=pn.getChildren();
       for(int i=0; i<pnv.size(); i++) {
-	ParseNode sblockdecl=pnv.elementAt(i);
+        ParseNode sblockdecl=pnv.elementAt(i);
 
-	if(isNode(sblockdecl, "switch_block")) {
-	  ParseNode lpn=sblockdecl.getChild("switch_labels").getChild("switch_label_list");
-	  ParseNodeVector labelv=lpn.getChildren();
-	  Vector<SwitchLabelNode> slv = new Vector<SwitchLabelNode>();
-	  for(int j=0; j<labelv.size(); j++) {
-	    ParseNode labeldecl=labelv.elementAt(j);
-	    if(isNode(labeldecl, "switch_label")) {
-	      SwitchLabelNode sln=new SwitchLabelNode(parseExpression(labeldecl.getChild("constant_expression").getFirstChild()), false);
-	      sln.setNumLine(labeldecl.getLine());
-	      slv.addElement(sln);
-	    } else if(isNode(labeldecl, "default_switch_label")) {
-	      SwitchLabelNode sln=new SwitchLabelNode(null, true);
-	      sln.setNumLine(labeldecl.getLine());
-	      slv.addElement(sln);
-	    }
-	  }
+        if(isNode(sblockdecl, "switch_block")) {
+          ParseNode lpn=sblockdecl.getChild("switch_labels").getChild("switch_label_list");
+          ParseNodeVector labelv=lpn.getChildren();
+          Vector<SwitchLabelNode> slv = new Vector<SwitchLabelNode>();
+          for(int j=0; j<labelv.size(); j++) {
+            ParseNode labeldecl=labelv.elementAt(j);
+            if(isNode(labeldecl, "switch_label")) {
+              SwitchLabelNode sln=new SwitchLabelNode(parseExpression(labeldecl.getChild("constant_expression").getFirstChild()), false);
+              sln.setNumLine(labeldecl.getLine());
+              slv.addElement(sln);
+            } else if(isNode(labeldecl, "default_switch_label")) {
+              SwitchLabelNode sln=new SwitchLabelNode(null, true);
+              sln.setNumLine(labeldecl.getLine());
+              slv.addElement(sln);
+            }
+          }
 
-	  SwitchBlockNode sbn=new SwitchBlockNode(slv,
-	                                          parseSingleBlock(sblockdecl.getChild("switch_statements").getFirstChild()));
-	  sbn.setNumLine(sblockdecl.getLine());
+          SwitchBlockNode sbn=new SwitchBlockNode(slv,
+                                                  parseSingleBlock(sblockdecl.getChild("switch_statements").getFirstChild()));
+          sbn.setNumLine(sblockdecl.getLine());
 
-	  blockstatements.add(sbn);
+          blockstatements.add(sbn);
 
-	}
+        }
       }
     } else if (isNode(pn, "trycatchstatement")) {
       // TODO add version for normal Java later
@@ -1472,9 +1472,9 @@ public class BuildIR {
 
       ParseNode fbk = pn.getChild("finallyblock");
       if(fbk != null) {
-	ParseNode fpn = fbk.getFirstChild();
-	BlockNode fbn=parseBlockHelper(fpn);
-	blockstatements.add(new SubBlockNode(fbn));
+        ParseNode fpn = fbk.getFirstChild();
+        BlockNode fbn=parseBlockHelper(fpn);
+        blockstatements.add(new SubBlockNode(fbn));
       }
     } else if (isNode(pn, "throwstatement")) {
       // TODO Simply return here
@@ -1482,10 +1482,10 @@ public class BuildIR {
     } else if (isNode(pn,"taskexit")) {
       Vector vfe=null;
       if (pn.getChild("flag_effects_list")!=null)
-	vfe=parseFlags(pn.getChild("flag_effects_list"));
+        vfe=parseFlags(pn.getChild("flag_effects_list"));
       Vector ccs=null;
       if (pn.getChild("cons_checks")!=null)
-	ccs=parseChecks(pn.getChild("cons_checks"));
+        ccs=parseChecks(pn.getChild("cons_checks"));
       TaskExitNode ten=new TaskExitNode(vfe, ccs, this.m_taskexitnum++);
       ten.setNumLine(pn.getLine());
       blockstatements.add(ten);
@@ -1502,12 +1502,12 @@ public class BuildIR {
       blockstatements.add(sn);
     } else if (isNode(pn,"return")) {
       if (isEmpty(pn.getTerminal()))
-	blockstatements.add(new ReturnNode());
+        blockstatements.add(new ReturnNode());
       else {
-	ExpressionNode en=parseExpression(pn.getFirstChild());
-	ReturnNode rn=new ReturnNode(en);
-	rn.setNumLine(pn.getLine());
-	blockstatements.add(rn);
+        ExpressionNode en=parseExpression(pn.getFirstChild());
+        ReturnNode rn=new ReturnNode(en);
+        rn.setNumLine(pn.getLine());
+        blockstatements.add(rn);
       }
     } else if (isNode(pn,"block_statement_list")) {
       BlockNode bn=parseBlockHelper(pn);
@@ -1518,8 +1518,8 @@ public class BuildIR {
       ParseNodeVector pnv=pn.getChildren();
       BlockNode bn=new BlockNode();
       for(int i=0; i<pnv.size(); i++) {
-	ExpressionNode en=parseExpression(pnv.elementAt(i));
-	blockstatements.add(new BlockExpressionNode(en));
+        ExpressionNode en=parseExpression(pnv.elementAt(i));
+        blockstatements.add(new BlockExpressionNode(en));
       }
       bn.setStyle(BlockNode.EXPRLIST);
     } else if (isNode(pn,"forstatement")) {
@@ -1528,8 +1528,8 @@ public class BuildIR {
       ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
       BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
       if(condition == null) {
-	// no condition clause, make a 'true' expression as the condition
-	condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
+        // no condition clause, make a 'true' expression as the condition
+        condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
       }
       LoopNode ln=new LoopNode(init,condition,update,body);
       ln.setNumLine(pn.getLine());
@@ -1538,23 +1538,23 @@ public class BuildIR {
       ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
       BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
       if(condition == null) {
-	// no condition clause, make a 'true' expression as the condition
-	condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
+        // no condition clause, make a 'true' expression as the condition
+        condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
       }
       blockstatements.add(new LoopNode(condition,body,LoopNode.WHILELOOP));
     } else if (isNode(pn,"dowhilestatement")) {
       ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
       BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
       if(condition == null) {
-	// no condition clause, make a 'true' expression as the condition
-	condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
+        // no condition clause, make a 'true' expression as the condition
+        condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
       }
       blockstatements.add(new LoopNode(condition,body,LoopNode.DOWHILELOOP));
     } else if (isNode(pn,"sese")) {
       ParseNode pnID=pn.getChild("identifier");
       String stID=null;
       if( pnID != null ) {
-	stID=pnID.getFirstChild().getTerminal();
+        stID=pnID.getFirstChild().getTerminal();
       }
       SESENode start=new SESENode(stID);
       start.setNumLine(pn.getLine());
@@ -1621,25 +1621,25 @@ public class BuildIR {
       ParseNode paramn=pnv.elementAt(i);
 
       if (isNode(paramn, "tag_parameter")) {
-	String paramname=paramn.getChild("single").getTerminal();
-	TypeDescriptor type=new TypeDescriptor(TypeDescriptor.TAG);
-	md.addTagParameter(type, paramname);
+        String paramname=paramn.getChild("single").getTerminal();
+        TypeDescriptor type=new TypeDescriptor(TypeDescriptor.TAG);
+        md.addTagParameter(type, paramname);
       } else  {
 
-	TypeDescriptor type=parseTypeDescriptor(paramn);
+        TypeDescriptor type=parseTypeDescriptor(paramn);
 
-	ParseNode tmp=paramn;
-	while (tmp.getChild("single")==null) {
-	  type=type.makeArray(state);
-	  tmp=tmp.getChild("array");
-	}
-	String paramname=tmp.getChild("single").getTerminal();
+        ParseNode tmp=paramn;
+        while (tmp.getChild("single")==null) {
+          type=type.makeArray(state);
+          tmp=tmp.getChild("array");
+        }
+        String paramname=tmp.getChild("single").getTerminal();
 
-	md.addParameter(type, paramname);
-	if(isNode(paramn, "annotation_parameter")) {
-	  ParseNode bodynode=paramn.getChild("annotation_body");
-	  parseParameterAnnotation(bodynode,type);
-	}
+        md.addParameter(type, paramname);
+        if(isNode(paramn, "annotation_parameter")) {
+          ParseNode bodynode=paramn.getChild("annotation_body");
+          parseParameterAnnotation(bodynode,type);
+        }
 
       }
     }
@@ -1651,34 +1651,34 @@ public class BuildIR {
     if (modlist!=null) {
       ParseNodeVector pnv=modlist.getChildren();
       for(int i=0; i<pnv.size(); i++) {
-	ParseNode modn=pnv.elementAt(i);
-	if (isNode(modn,"public"))
-	  m.addModifier(Modifiers.PUBLIC);
-	else if (isNode(modn,"protected"))
-	  m.addModifier(Modifiers.PROTECTED);
-	else if (isNode(modn,"private"))
-	  m.addModifier(Modifiers.PRIVATE);
-	else if (isNode(modn,"static"))
-	  m.addModifier(Modifiers.STATIC);
-	else if (isNode(modn,"final"))
-	  m.addModifier(Modifiers.FINAL);
-	else if (isNode(modn,"native"))
-	  m.addModifier(Modifiers.NATIVE);
-	else if (isNode(modn,"synchronized"))
-	  m.addModifier(Modifiers.SYNCHRONIZED);
-	else if (isNode(modn,"atomic"))
-	  m.addModifier(Modifiers.ATOMIC);
-	else if (isNode(modn,"abstract"))
-	  m.addModifier(Modifiers.ABSTRACT);
-	else if (isNode(modn,"volatile"))
-	  m.addModifier(Modifiers.VOLATILE);
-	else if (isNode(modn,"transient"))
-	  m.addModifier(Modifiers.TRANSIENT);
-	else if(isNode(modn,"annotation_list"))
-	  parseAnnotationList(modn,m);
-	else {
-	  throw new Error("Unrecognized Modifier:"+modn.getLabel());
-	}
+        ParseNode modn=pnv.elementAt(i);
+        if (isNode(modn,"public"))
+          m.addModifier(Modifiers.PUBLIC);
+        else if (isNode(modn,"protected"))
+          m.addModifier(Modifiers.PROTECTED);
+        else if (isNode(modn,"private"))
+          m.addModifier(Modifiers.PRIVATE);
+        else if (isNode(modn,"static"))
+          m.addModifier(Modifiers.STATIC);
+        else if (isNode(modn,"final"))
+          m.addModifier(Modifiers.FINAL);
+        else if (isNode(modn,"native"))
+          m.addModifier(Modifiers.NATIVE);
+        else if (isNode(modn,"synchronized"))
+          m.addModifier(Modifiers.SYNCHRONIZED);
+        else if (isNode(modn,"atomic"))
+          m.addModifier(Modifiers.ATOMIC);
+        else if (isNode(modn,"abstract"))
+          m.addModifier(Modifiers.ABSTRACT);
+        else if (isNode(modn,"volatile"))
+          m.addModifier(Modifiers.VOLATILE);
+        else if (isNode(modn,"transient"))
+          m.addModifier(Modifiers.TRANSIENT);
+        else if(isNode(modn,"annotation_list"))
+          parseAnnotationList(modn,m);
+        else {
+          throw new Error("Unrecognized Modifier:"+modn.getLabel());
+        }
       }
     }
     return m;
@@ -1689,15 +1689,15 @@ public class BuildIR {
     for (int i = 0; i < pnv.size(); i++) {
       ParseNode body_list = pnv.elementAt(i);
       if (isNode(body_list, "annotation_body")) {
-	ParseNode body_node = body_list.getFirstChild();
-	if (isNode(body_node, "marker_annotation")) {
-	  m.addAnnotation(new AnnotationDescriptor(body_node.getChild("name").getTerminal()));
-	} else if (isNode(body_node, "single_annotation")) {
-	  m.addAnnotation(new AnnotationDescriptor(body_node.getChild("name").getTerminal(),
-	                                           body_node.getChild("element_value").getTerminal()));
-	} else if (isNode(body_node, "normal_annotation")) {
-	  throw new Error("Annotation with multiple data members is not supported yet.");
-	}
+        ParseNode body_node = body_list.getFirstChild();
+        if (isNode(body_node, "marker_annotation")) {
+          m.addAnnotation(new AnnotationDescriptor(body_node.getChild("name").getTerminal()));
+        } else if (isNode(body_node, "single_annotation")) {
+          m.addAnnotation(new AnnotationDescriptor(body_node.getChild("name").getTerminal(),
+                                                   body_node.getChild("element_value").getTerminal()));
+        } else if (isNode(body_node, "normal_annotation")) {
+          throw new Error("Annotation with multiple data members is not supported yet.");
+        }
       }
     }
   }

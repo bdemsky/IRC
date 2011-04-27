@@ -72,18 +72,18 @@ public class LinkedList {
     LinkedListElement e = head;
     if (o==null) {
       while(e!=null) {
-	if (e.element==null) {
-	  return true;
-	}
-	e=e.next;
+        if (e.element==null) {
+          return true;
+        }
+        e=e.next;
       }
       return false;
     } else {
       while( e != null ) {
-	if (o.equals(e.element)) {
-	  return true;
-	}
-	e = e.next;
+        if (o.equals(e.element)) {
+          return true;
+        }
+        e = e.next;
       }
     }
     return false;
@@ -160,14 +160,14 @@ public class LinkedList {
     LinkedListElement e = head;
     while (e != null) {
       if (e.element == o) {
-	if (e.prev != null) {
-	  e.prev.next = e.next;
-	}
-	if (e.next != null) {
-	  e.next.prev = e.prev;
-	}
-	size--;
-	return true;
+        if (e.prev != null) {
+          e.prev.next = e.next;
+        }
+        if (e.next != null) {
+          e.next.prev = e.prev;
+        }
+        size--;
+        return true;
       }
       e = e.next;
     }

@@ -51,7 +51,7 @@ public class CompositeLocation extends Location {
     for (Iterator iterator = locSet.iterator(); iterator.hasNext(); ) {
       Location location = (Location) iterator.next();
       if (location.getClassDescriptor().equals(cd)) {
-	return location;
+        return location;
       }
     }
 
@@ -81,11 +81,11 @@ public class CompositeLocation extends Location {
       Location locElement = locTuple.at(i);
 
       if (locElement instanceof DeltaLocation) {
-	// baseLocationSet.addAll(((DeltaLocation)
-	// locElement).getDeltaOperandLocationVec());
-	baseLocationTuple.addAll(((DeltaLocation) locElement).getBaseLocationTuple());
+        // baseLocationSet.addAll(((DeltaLocation)
+        // locElement).getDeltaOperandLocationVec());
+        baseLocationTuple.addAll(((DeltaLocation) locElement).getBaseLocationTuple());
       } else {
-	baseLocationTuple.addElement(locElement);
+        baseLocationTuple.addElement(locElement);
       }
     }
     return baseLocationTuple;
@@ -100,11 +100,11 @@ public class CompositeLocation extends Location {
       Location locElement = locTuple.at(i);
 
       if (locElement instanceof DeltaLocation) {
-	// baseLocationSet.addAll(((DeltaLocation)
-	// locElement).getDeltaOperandLocationVec());
-	baseLocationSet.addAll(((DeltaLocation) locElement).getBaseLocationSet());
+        // baseLocationSet.addAll(((DeltaLocation)
+        // locElement).getDeltaOperandLocationVec());
+        baseLocationSet.addAll(((DeltaLocation) locElement).getBaseLocationSet());
       } else {
-	baseLocationSet.add(locElement);
+        baseLocationSet.add(locElement);
       }
     }
     return baseLocationSet;
@@ -117,8 +117,8 @@ public class CompositeLocation extends Location {
     if (locTuple.size() == 1) {
       Location locElement = locTuple.at(0);
       if (locElement instanceof DeltaLocation) {
-	result++;
-	result += getNumofDelta((DeltaLocation) locElement);
+        result++;
+        result += getNumofDelta((DeltaLocation) locElement);
       }
     }
     return result;
@@ -130,8 +130,8 @@ public class CompositeLocation extends Location {
     if (delta.getDeltaOperandLocationVec().size() == 1) {
       Location locElement = delta.getDeltaOperandLocationVec().at(0);
       if (locElement instanceof DeltaLocation) {
-	result++;
-	result += getNumofDelta((DeltaLocation) locElement);
+        result++;
+        result += getNumofDelta((DeltaLocation) locElement);
       }
     }
 
@@ -156,7 +156,7 @@ public class CompositeLocation extends Location {
     for (int i = 0; i < tupleSize; i++) {
       Location locElement = locTuple.at(i);
       if (i != 0) {
-	rtr += ",";
+        rtr += ",";
       }
       rtr += locElement;
     }

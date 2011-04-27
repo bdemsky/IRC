@@ -88,7 +88,7 @@ public class BuildCodeTran extends BuildCode {
   protected void buildCodeSetup() {
     try {
       if (state.SANDBOX) {
-	outsandbox=new CodePrinter(new FileOutputStream(PREFIX+"sandboxdefs.c"), true);
+        outsandbox=new CodePrinter(new FileOutputStream(PREFIX+"sandboxdefs.c"), true);
       }
     } catch (Exception e) {
       e.printStackTrace();
@@ -133,13 +133,13 @@ public class BuildCodeTran extends BuildCode {
 
     if (state.DSM) {
       if (state.DSMRECOVERYSTATS) {
-	outmethod.println("#ifdef RECOVERYSTATS \n");
-	outmethod.println("handle();\n");
-	outmethod.println("#endif\n");
+        outmethod.println("#ifdef RECOVERYSTATS \n");
+        outmethod.println("handle();\n");
+        outmethod.println("#endif\n");
       } else {
-	outmethod.println("#if defined(TRANSSTATS) || defined(RECOVERYSTATS) \n");
-	outmethod.println("handle();\n");
-	outmethod.println("#endif\n");
+        outmethod.println("#if defined(TRANSSTATS) || defined(RECOVERYSTATS) \n");
+        outmethod.println("handle();\n");
+        outmethod.println("#endif\n");
       }
     }
     outmethod.println("initializethreads();");
@@ -147,15 +147,15 @@ public class BuildCodeTran extends BuildCode {
     if (state.DSM) {
       outmethod.println("if (dstmStartup(argv[1])) {");
       if (GENERATEPRECISEGC) {
-	outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-2);");
+        outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-2);");
       } else {
-	outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-2);");
+        outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-2);");
       }
     } else {
       if (GENERATEPRECISEGC) {
-	outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
+        outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
       } else {
-	outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
+        outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
       }
     }
     if (state.DSM) {
@@ -252,7 +252,7 @@ public class BuildCodeTran extends BuildCode {
       FlatMethod fm=state.getMethodFlat(md);
       wb.analyze(lb);
       if (!md.getModifiers().isNative()) {
-	generateFlatMethod(fm, lb, outmethod);
+        generateFlatMethod(fm, lb, outmethod);
       }
     }
   }
@@ -269,9 +269,9 @@ public class BuildCodeTran extends BuildCode {
     if (state.DSMTASK) {
       LocalityBinding lbexecute = new LocalityBinding(typeutil.getExecute(), false);
       if(state.DSM)
-	lbexecute.setGlobalThis(LocalityAnalysis.GLOBAL);
+        lbexecute.setGlobalThis(LocalityAnalysis.GLOBAL);
       else if( state.SINGLETM)
-	lbexecute.setGlobalThis(LocalityAnalysis.NORMAL);
+        lbexecute.setGlobalThis(LocalityAnalysis.NORMAL);
       outstructs.println("#define EXECUTEMETHOD " + virtualcalls.getLocalityNumber(lbexecute));
     }
   }
@@ -294,7 +294,7 @@ public class BuildCodeTran extends BuildCode {
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
       if (virtualcalls.getMethodCount(cd)>maxcount)
-	maxcount=virtualcalls.getMethodCount(cd);
+        maxcount=virtualcalls.getMethodCount(cd);
     }
 
     LocalityBinding[][] lbvirtualtable=null;
@@ -305,7 +305,7 @@ public class BuildCodeTran extends BuildCode {
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
       if(cd.isInterface()) {
-	continue;
+        continue;
       }
       fillinRow(cd, lbvirtualtable, cd.getId());
     }
@@ -322,16 +322,16 @@ public class BuildCodeTran extends BuildCode {
     boolean needcomma=false;
     for(int i=0; i<state.numClasses()+state.numArrays(); i++) {
       for(int j=0; j<maxcount; j++) {
-	if (needcomma)
-	  outvirtual.print(", ");
-	if (lbvirtualtable[i][j]!=null) {
-	  LocalityBinding lb=lbvirtualtable[i][j];
-	  MethodDescriptor md=lb.getMethod();
-	  outvirtual.print("& "+md.getClassDesc().getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
-	} else {
-	  outvirtual.print("0");
-	}
-	needcomma=true;
+        if (needcomma)
+          outvirtual.print(", ");
+        if (lbvirtualtable[i][j]!=null) {
+          LocalityBinding lb=lbvirtualtable[i][j];
+          MethodDescriptor md=lb.getMethod();
+          outvirtual.print("& "+md.getClassDesc().getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
+        } else {
+          outvirtual.print("0");
+        }
+        needcomma=true;
       }
       outvirtual.println("");
     }
@@ -346,13 +346,13 @@ public class BuildCodeTran extends BuildCode {
     /* Override them with our methods */
     if (locality.getClassBindings(cd)!=null)
       for(Iterator<LocalityBinding> lbit=locality.getClassBindings(cd).iterator(); lbit.hasNext(); ) {
-	LocalityBinding lb=lbit.next();
-	MethodDescriptor md=lb.getMethod();
-	//Is the method static or a constructor
-	if (md.isStatic()||md.getReturnType()==null)
-	  continue;
-	int methodnum=virtualcalls.getLocalityNumber(lb);
-	virtualtable[rownum][methodnum]=lb;
+        LocalityBinding lb=lbit.next();
+        MethodDescriptor md=lb.getMethod();
+        //Is the method static or a constructor
+        if (md.isStatic()||md.getReturnType()==null)
+          continue;
+        int methodnum=virtualcalls.getLocalityNumber(lb);
+        virtualtable[rownum][methodnum]=lb;
       }
   }
 
@@ -410,20 +410,20 @@ public class BuildCodeTran extends BuildCode {
       TempDescriptor temp=fm.getParameter(i);
       TypeDescriptor type=temp.getType();
       if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
-	objectparams.addPtr(temp);
+        objectparams.addPtr(temp);
       else
-	objectparams.addPrim(temp);
+        objectparams.addPrim(temp);
       if(lb!=null&&saveset.contains(temp)) {
-	backuptable.get(lb).put(temp, temp.createNew());
+        backuptable.get(lb).put(temp, temp.createNew());
       }
     }
 
     for(int i=0; i<fm.numTags(); i++) {
       TempDescriptor temp=fm.getTag(i);
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
-	objectparams.addPtr(temp);
+        objectparams.addPtr(temp);
       else
-	objectparams.addPrim(temp);
+        objectparams.addPrim(temp);
     }
 
     TempObject objecttemps=md!=null?new TempObject(objectparams,md,tag++):new TempObject(objectparams, task, tag++);
@@ -438,36 +438,36 @@ public class BuildCodeTran extends BuildCode {
       FlatNode fn=(FlatNode)nodeit.next();
       TempDescriptor[] writes=fn.writesTemps();
       for(int i=0; i<writes.length; i++) {
-	TempDescriptor temp=writes[i];
-	TypeDescriptor type=temp.getType();
-	if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
-	  objecttemps.addPtr(temp);
-	else
-	  objecttemps.addPrim(temp);
-	if(lb!=null&&saveset.contains(temp)&&
-	   !backuptable.get(lb).containsKey(temp))
-	  backuptable.get(lb).put(temp, temp.createNew());
+        TempDescriptor temp=writes[i];
+        TypeDescriptor type=temp.getType();
+        if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
+          objecttemps.addPtr(temp);
+        else
+          objecttemps.addPrim(temp);
+        if(lb!=null&&saveset.contains(temp)&&
+           !backuptable.get(lb).containsKey(temp))
+          backuptable.get(lb).put(temp, temp.createNew());
       }
     }
 
     /* Create backup temps */
     if (lb!=null) {
       for(Iterator<TempDescriptor> tmpit=backuptable.get(lb).values().iterator(); tmpit.hasNext(); ) {
-	TempDescriptor tmp=tmpit.next();
-	TypeDescriptor type=tmp.getType();
-	if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
-	  objecttemps.addPtr(tmp);
-	else
-	  objecttemps.addPrim(tmp);
+        TempDescriptor tmp=tmpit.next();
+        TypeDescriptor type=tmp.getType();
+        if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
+          objecttemps.addPtr(tmp);
+        else
+          objecttemps.addPrim(tmp);
       }
       /* Create temp to hold revert table */
       if (state.DSM&&(lb.getHasAtomic()||lb.isAtomic())) {
-	TempDescriptor reverttmp=new TempDescriptor("revertlist", typeutil.getClass(TypeUtil.ObjectClass));
-	if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
-	  objecttemps.addPtr(reverttmp);
-	else
-	  objecttemps.addPrim(reverttmp);
-	reverttable.put(lb, reverttmp);
+        TempDescriptor reverttmp=new TempDescriptor("revertlist", typeutil.getClass(TypeUtil.ObjectClass));
+        if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
+          objecttemps.addPtr(reverttmp);
+        else
+          objecttemps.addPrim(reverttmp);
+        reverttable.put(lb, reverttmp);
       }
     }
   }
@@ -487,25 +487,25 @@ public class BuildCodeTran extends BuildCode {
       Iterator allit=cn.getFieldTable().getAllDescriptorsIterator();
       int count=0;
       while(allit.hasNext()) {
-	FieldDescriptor fd=(FieldDescriptor)allit.next();
-	TypeDescriptor type=fd.getType();
-	if (state.DSM&&fd.isGlobal())         //Don't GC the global objects for now
-	  continue;
-	if (type.isPtr())
-	  count++;
+        FieldDescriptor fd=(FieldDescriptor)allit.next();
+        TypeDescriptor type=fd.getType();
+        if (state.DSM&&fd.isGlobal())         //Don't GC the global objects for now
+          continue;
+        if (type.isPtr())
+          count++;
       }
       output.print(count);
       allit=cn.getFieldTable().getAllDescriptorsIterator();
       while(allit.hasNext()) {
-	FieldDescriptor fd=(FieldDescriptor)allit.next();
-	TypeDescriptor type=fd.getType();
-	if (state.DSM&&fd.isGlobal())         //Don't GC the global objects for now
-	  continue;
-	if (type.isPtr()) {
-	  output.println(",");
-	  output.print("((unsigned INTPTR)&(((struct "+cn.getSafeSymbol() +" *)0)->"+
-	               fd.getSafeSymbol()+"))");
-	}
+        FieldDescriptor fd=(FieldDescriptor)allit.next();
+        TypeDescriptor type=fd.getType();
+        if (state.DSM&&fd.isGlobal())         //Don't GC the global objects for now
+          continue;
+        if (type.isPtr()) {
+          output.println(",");
+          output.print("((unsigned INTPTR)&(((struct "+cn.getSafeSymbol() +" *)0)->"+
+                       fd.getSafeSymbol()+"))");
+        }
       }
       output.println("};");
     }
@@ -514,23 +514,23 @@ public class BuildCodeTran extends BuildCode {
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cn=cdarray[i];
       if (needcomma)
-	output.println(",");
+        output.println(",");
       needcomma=true;
       if(cn != null) {
-	output.print(cn.getSafeSymbol()+"_pointers");
+        output.print(cn.getSafeSymbol()+"_pointers");
       } else {
-	output.print("NULL");
+        output.print("NULL");
       }
     }
 
     for(int i=0; i<state.numArrays(); i++) {
       if (needcomma)
-	output.println(", ");
+        output.println(", ");
       TypeDescriptor tdelement=arraytable[i].dereference();
       if (tdelement.isArray()||tdelement.isClass())
-	output.print("((unsigned INTPTR *)1)");
+        output.print("((unsigned INTPTR *)1)");
       else
-	output.print("0");
+        output.print("0");
       needcomma=true;
     }
 
@@ -540,12 +540,12 @@ public class BuildCodeTran extends BuildCode {
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cn=cdarray[i];
       if (needcomma)
-	output.println(", ");
+        output.println(", ");
       needcomma=true;
       if ((cn != null) && (cn.hasFlags()))
-	output.print("1");
+        output.print("1");
       else
-	output.print("0");
+        output.print("0");
     }
     output.println("};");
   }
@@ -557,27 +557,27 @@ public class BuildCodeTran extends BuildCode {
     Set<LocalityBinding> lbset=locality.getClassBindings(cn);
     if (lbset!=null) {
       for(Iterator<LocalityBinding> lbit=lbset.iterator(); lbit.hasNext(); ) {
-	LocalityBinding lb=lbit.next();
-	MethodDescriptor md=lb.getMethod();
-	if (md.getModifiers().isNative()) {
-	  //make sure we only print a native method once
-	  if (nativemethods.contains(md)) {
-	    FlatMethod fm=state.getMethodFlat(md);
-	    generateTempStructs(fm, lb);
-	    continue;
-	  } else
-	    nativemethods.add(md);
-	}
-	generateMethod(cn, md, lb, headersout, output);
+        LocalityBinding lb=lbit.next();
+        MethodDescriptor md=lb.getMethod();
+        if (md.getModifiers().isNative()) {
+          //make sure we only print a native method once
+          if (nativemethods.contains(md)) {
+            FlatMethod fm=state.getMethodFlat(md);
+            generateTempStructs(fm, lb);
+            continue;
+          } else
+            nativemethods.add(md);
+        }
+        generateMethod(cn, md, lb, headersout, output);
       }
     }
     for(Iterator methodit=cn.getMethods(); methodit.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor)methodit.next();
       if (md.getModifiers().isNative()&&!nativemethods.contains(md)) {
-	//Need to build param structure for library code
-	FlatMethod fm=state.getMethodFlat(md);
-	generateTempStructs(fm, null);
-	generateMethodParam(cn, md, null, output);
+        //Need to build param structure for library code
+        FlatMethod fm=state.getMethodFlat(md);
+        generateTempStructs(fm, null);
+        generateMethodParam(cn, md, null, output);
       }
     }
   }
@@ -588,18 +588,18 @@ public class BuildCodeTran extends BuildCode {
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       ParamsObject objectparams=(ParamsObject) paramstable.get(lb!=null?lb:md);
       if ((state.DSM||state.SINGLETM)&&lb!=null)
-	output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
+        output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
       else
-	output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
+        output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
       output.println("  int size;");
       output.println("  void * next;");
       for(int i=0; i<objectparams.numPointers(); i++) {
-	TempDescriptor temp=objectparams.getPointer(i);
-	if(state.MGC && temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	  output.println("  int " + temp.getSafeSymbol() + ";");
-	} else {
-	  output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-	}
+        TempDescriptor temp=objectparams.getPointer(i);
+        if(state.MGC && temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+          output.println("  int " + temp.getSafeSymbol() + ";");
+        } else {
+          output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+        }
       }
       output.println("};\n");
     }
@@ -620,11 +620,11 @@ public class BuildCodeTran extends BuildCode {
       output.println("  int size;");
       output.println("  void * next;");
       for(int i=0; i<objecttemps.numPointers(); i++) {
-	TempDescriptor temp=objecttemps.getPointer(i);
-	if (temp.getType().isNull())
-	  output.println("  void * "+temp.getSafeSymbol()+";");
-	else
-	  output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+        TempDescriptor temp=objecttemps.getPointer(i);
+        if (temp.getType().isNull())
+          output.println("  void * "+temp.getSafeSymbol()+";");
+        else
+          output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
       }
       output.println("};\n");
     }
@@ -635,11 +635,11 @@ public class BuildCodeTran extends BuildCode {
     /* First the return type */
     if (md.getReturnType()!=null) {
       if(state.MGC && md.getReturnType().isClass() && md.getReturnType().getClassDesc().isEnum()) {
-	headersout.println("  int ");
+        headersout.println("  int ");
       } else if (md.getReturnType().isClass()||md.getReturnType().isArray())
-	headersout.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
+        headersout.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
       else
-	headersout.print(md.getReturnType().getSafeSymbol()+" ");
+        headersout.print(md.getReturnType().getSafeSymbol()+" ");
     } else
       //catch the constructor case
       headersout.print("void ");
@@ -657,14 +657,14 @@ public class BuildCodeTran extends BuildCode {
     for(int i=0; i<objectparams.numPrimitives(); i++) {
       TempDescriptor temp=objectparams.getPrimitive(i);
       if (printcomma)
-	headersout.print(", ");
+        headersout.print(", ");
       printcomma=true;
       if(state.MGC && temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	headersout.print("int " + temp.getSafeSymbol());
+        headersout.print("int " + temp.getSafeSymbol());
       } else if (temp.getType().isClass()||temp.getType().isArray())
-	headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+        headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
       else
-	headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+        headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
     }
     headersout.println(");\n");
   }
@@ -690,7 +690,7 @@ public class BuildCodeTran extends BuildCode {
     if (state.DELAYCOMP&&!lb.isAtomic()&&lb.getHasAtomic()) {
       //create map
       if (atomicmethodmap==null)
-	atomicmethodmap=new Hashtable<FlatAtomicEnterNode, AtomicRecord>();
+        atomicmethodmap=new Hashtable<FlatAtomicEnterNode, AtomicRecord>();
 
       //fix these so we get right strings for local variables
       localsprefixaddr=localsprefix;
@@ -702,83 +702,83 @@ public class BuildCodeTran extends BuildCode {
 
       //Generate commit methods here
       for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
-	FlatNode fn=fnit.next();
-	if (fn.kind()==FKind.FlatAtomicEnterNode&&
-	    locality.getAtomic(lb).get(fn.getPrev(0)).intValue()==0&&
-	    delaycomp.needsFission(lb, (FlatAtomicEnterNode) fn)) {
-	  //We have an atomic enter
-	  FlatAtomicEnterNode faen=(FlatAtomicEnterNode) fn;
-	  Set<FlatNode> exitset=faen.getExits();
-	  //generate header
-	  String methodname=md.getSymbol()+(atomicmethodcount++);
-	  AtomicRecord ar=new AtomicRecord();
-	  ar.name=methodname;
-	  arset.add(ar);
+        FlatNode fn=fnit.next();
+        if (fn.kind()==FKind.FlatAtomicEnterNode&&
+            locality.getAtomic(lb).get(fn.getPrev(0)).intValue()==0&&
+            delaycomp.needsFission(lb, (FlatAtomicEnterNode) fn)) {
+          //We have an atomic enter
+          FlatAtomicEnterNode faen=(FlatAtomicEnterNode) fn;
+          Set<FlatNode> exitset=faen.getExits();
+          //generate header
+          String methodname=md.getSymbol()+(atomicmethodcount++);
+          AtomicRecord ar=new AtomicRecord();
+          ar.name=methodname;
+          arset.add(ar);
 
-	  atomicmethodmap.put(faen, ar);
+          atomicmethodmap.put(faen, ar);
 
-	  //build data structure declaration
-	  output.println("struct atomicprimitives_"+methodname+" {");
+          //build data structure declaration
+          output.println("struct atomicprimitives_"+methodname+" {");
 
-	  Set<FlatNode> recordset=delaycomp.livecode(lb);
-	  Set<TempDescriptor> liveinto=delaycomp.liveinto(lb, faen, recordset);
-	  Set<TempDescriptor> liveout=delaycomp.liveout(lb, faen);
-	  Set<TempDescriptor> liveoutvirtualread=delaycomp.liveoutvirtualread(lb, faen);
-	  ar.livein=liveinto;
-	  ar.reallivein=new HashSet(liveinto);
-	  ar.liveout=liveout;
-	  ar.liveoutvirtualread=liveoutvirtualread;
+          Set<FlatNode> recordset=delaycomp.livecode(lb);
+          Set<TempDescriptor> liveinto=delaycomp.liveinto(lb, faen, recordset);
+          Set<TempDescriptor> liveout=delaycomp.liveout(lb, faen);
+          Set<TempDescriptor> liveoutvirtualread=delaycomp.liveoutvirtualread(lb, faen);
+          ar.livein=liveinto;
+          ar.reallivein=new HashSet(liveinto);
+          ar.liveout=liveout;
+          ar.liveoutvirtualread=liveoutvirtualread;
 
 
-	  for(Iterator<TempDescriptor> it=liveinto.iterator(); it.hasNext(); ) {
-	    TempDescriptor tmp=it.next();
-	    //remove the pointers
-	    if (tmp.getType().isPtr()) {
-	      it.remove();
-	    } else {
-	      //let's print it here
-	      output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+";");
-	    }
-	  }
-	  for(Iterator<TempDescriptor> it=liveout.iterator(); it.hasNext(); ) {
-	    TempDescriptor tmp=it.next();
-	    //remove the pointers
-	    if (tmp.getType().isPtr()) {
-	      it.remove();
-	    } else if (!liveinto.contains(tmp)) {
-	      //let's print it here
-	      output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+";");
-	    }
-	  }
-	  output.println("};");
+          for(Iterator<TempDescriptor> it=liveinto.iterator(); it.hasNext(); ) {
+            TempDescriptor tmp=it.next();
+            //remove the pointers
+            if (tmp.getType().isPtr()) {
+              it.remove();
+            } else {
+              //let's print it here
+              output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+";");
+            }
+          }
+          for(Iterator<TempDescriptor> it=liveout.iterator(); it.hasNext(); ) {
+            TempDescriptor tmp=it.next();
+            //remove the pointers
+            if (tmp.getType().isPtr()) {
+              it.remove();
+            } else if (!liveinto.contains(tmp)) {
+              //let's print it here
+              output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+";");
+            }
+          }
+          output.println("};");
 
-	  //print out method name
-	  output.println("void "+methodname+"(struct "+ cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix+", struct "+ cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals *"+localsprefix+", struct atomicprimitives_"+methodname+" * primitives) {");
-	  //build code for commit method
+          //print out method name
+          output.println("void "+methodname+"(struct "+ cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix+", struct "+ cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals *"+localsprefix+", struct atomicprimitives_"+methodname+" * primitives) {");
+          //build code for commit method
 
-	  //first define local primitives
-	  Set<TempDescriptor> alltemps=delaycomp.alltemps(lb, faen, recordset);
-	  for(Iterator<TempDescriptor> tmpit=alltemps.iterator(); tmpit.hasNext(); ) {
-	    TempDescriptor tmp=tmpit.next();
-	    if (!tmp.getType().isPtr()) {
-	      if (liveinto.contains(tmp)||liveoutvirtualread.contains(tmp)) {
-		//read from live into set
-		output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+"=primitives->"+tmp.getSafeSymbol()+";");
-	      } else {
-		//just define
-		output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+";");
-	      }
-	    }
-	  }
-	  //turn off write barrier generation
-	  wb.turnoff();
-	  state.SINGLETM=false;
-	  generateCode(faen, fm, lb, exitset, output, false);
-	  state.SINGLETM=true;
-	  //turn on write barrier generation
-	  wb.turnon();
-	  output.println("}\n\n");
-	}
+          //first define local primitives
+          Set<TempDescriptor> alltemps=delaycomp.alltemps(lb, faen, recordset);
+          for(Iterator<TempDescriptor> tmpit=alltemps.iterator(); tmpit.hasNext(); ) {
+            TempDescriptor tmp=tmpit.next();
+            if (!tmp.getType().isPtr()) {
+              if (liveinto.contains(tmp)||liveoutvirtualread.contains(tmp)) {
+                //read from live into set
+                output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+"=primitives->"+tmp.getSafeSymbol()+";");
+              } else {
+                //just define
+                output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+";");
+              }
+            }
+          }
+          //turn off write barrier generation
+          wb.turnoff();
+          state.SINGLETM=false;
+          generateCode(faen, fm, lb, exitset, output, false);
+          state.SINGLETM=true;
+          //turn on write barrier generation
+          wb.turnon();
+          output.println("}\n\n");
+        }
       }
     }
     //redefine these back to normal
@@ -791,22 +791,22 @@ public class BuildCodeTran extends BuildCode {
 
     if (state.DELAYCOMP&&!lb.isAtomic()&&lb.getHasAtomic()) {
       for(Iterator<AtomicRecord> arit=arset.iterator(); arit.hasNext(); ) {
-	AtomicRecord ar=arit.next();
-	output.println("struct atomicprimitives_"+ar.name+" primitives_"+ar.name+";");
+        AtomicRecord ar=arit.next();
+        output.println("struct atomicprimitives_"+ar.name+" primitives_"+ar.name+";");
       }
     }
 
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (md!=null&&(state.DSM||state.SINGLETM))
-	output.print("   struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
+        output.print("   struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
       else if (md!=null&&!(state.DSM||state.SINGLETM))
-	output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
+        output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
       else
-	output.print("   struct "+task.getSafeSymbol()+"_locals "+localsprefix+"={");
+        output.print("   struct "+task.getSafeSymbol()+"_locals "+localsprefix+"={");
       output.print(objecttemp.numPointers()+",");
       output.print(paramsprefix);
       for(int j=0; j<objecttemp.numPointers(); j++)
-	output.print(", NULL");
+        output.print(", NULL");
       output.println("};");
     }
 
@@ -814,13 +814,13 @@ public class BuildCodeTran extends BuildCode {
       TempDescriptor td=objecttemp.getPrimitive(i);
       TypeDescriptor type=td.getType();
       if (type.isNull() && !type.isArray())
-	output.println("   void * "+td.getSafeSymbol()+";");
+        output.println("   void * "+td.getSafeSymbol()+";");
       else if (state.MGC && type.isClass() && type.getClassDesc().isEnum()) {
-	output.println("   int " + td.getSafeSymbol() + ";");
+        output.println("   int " + td.getSafeSymbol() + ";");
       } else if (type.isClass()||type.isArray())
-	output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
+        output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
       else
-	output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
+        output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
     }
 
 
@@ -835,11 +835,11 @@ public class BuildCodeTran extends BuildCode {
     if (((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC)) {
       //Don't bother if we aren't in recursive methods...The loops case will catch it
       if (callgraph.getAllMethods(md).contains(md)) {
-	if (state.DSM&&lb.isAtomic())
-	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
-	else {
-	  output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
-	}
+        if (state.DSM&&lb.isAtomic())
+          output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
+        else {
+          output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+        }
       }
     }
     generateCode(fm.getNext(0), fm, lb, null, output, true);
@@ -873,25 +873,25 @@ public class BuildCodeTran extends BuildCode {
       storeset=delaycomp.livecode(lb);
       genset=new HashSet<FlatNode>();
       if (state.STMARRAY&&!state.DUALVIEW) {
-	refset=new HashSet<FlatNode>();
-	refset.addAll(delaycomp.getDeref(lb));
-	refset.removeAll(delaycomp.getCannotDelay(lb));
-	refset.removeAll(delaycomp.getOther(lb));
+        refset=new HashSet<FlatNode>();
+        refset.addAll(delaycomp.getDeref(lb));
+        refset.removeAll(delaycomp.getCannotDelay(lb));
+        refset.removeAll(delaycomp.getOther(lb));
       }
       if (firstpass) {
-	genset.addAll(delaycomp.getCannotDelay(lb));
-	genset.addAll(delaycomp.getOther(lb));
+        genset.addAll(delaycomp.getCannotDelay(lb));
+        genset.addAll(delaycomp.getOther(lb));
       } else {
-	genset.addAll(delaycomp.getNotReady(lb));
-	if (state.STMARRAY&&!state.DUALVIEW) {
-	  genset.removeAll(refset);
-	}
+        genset.addAll(delaycomp.getNotReady(lb));
+        if (state.STMARRAY&&!state.DUALVIEW) {
+          genset.removeAll(refset);
+        }
       }
       unionset=new HashSet<FlatNode>();
       unionset.addAll(storeset);
       unionset.addAll(genset);
       if (state.STMARRAY&&!state.DUALVIEW)
-	unionset.addAll(refset);
+        unionset.addAll(refset);
     }
 
     /* Do the actual code generation */
@@ -904,161 +904,161 @@ public class BuildCodeTran extends BuildCode {
       tovisit.add(first);
     while(current_node!=null||!tovisit.isEmpty()) {
       if (current_node==null) {
-	current_node=(FlatNode)tovisit.iterator().next();
-	tovisit.remove(current_node);
+        current_node=(FlatNode)tovisit.iterator().next();
+        tovisit.remove(current_node);
       } else if (tovisit.contains(current_node)) {
-	tovisit.remove(current_node);
+        tovisit.remove(current_node);
       }
       visited.add(current_node);
       if (nodetolabel.containsKey(current_node)) {
-	output.println("L"+nodetolabel.get(current_node)+":");
+        output.println("L"+nodetolabel.get(current_node)+":");
       }
       if (state.INSTRUCTIONFAILURE) {
-	if (state.THREAD||state.DSM||state.SINGLETM) {
-	  output.println("if ((++instructioncount)>failurecount) {instructioncount=0;injectinstructionfailure();}");
-	} else
-	  output.println("if ((--instructioncount)==0) injectinstructionfailure();");
+        if (state.THREAD||state.DSM||state.SINGLETM) {
+          output.println("if ((++instructioncount)>failurecount) {instructioncount=0;injectinstructionfailure();}");
+        } else
+          output.println("if ((--instructioncount)==0) injectinstructionfailure();");
       }
       if (current_node.numNext()==0||stopset!=null&&stopset.contains(current_node)) {
-	output.print("   ");
-	if (!state.DELAYCOMP||firstpass) {
-	  generateFlatNode(fm, current_node, output);
-	} else {
-	  //store primitive variables in out set
-	  AtomicRecord ar=atomicmethodmap.get((FlatAtomicEnterNode)first);
-	  Set<TempDescriptor> liveout=ar.liveout;
-	  for(Iterator<TempDescriptor> tmpit=liveout.iterator(); tmpit.hasNext(); ) {
-	    TempDescriptor tmp=tmpit.next();
-	    output.println("primitives->"+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
-	  }
-	}
+        output.print("   ");
+        if (!state.DELAYCOMP||firstpass) {
+          generateFlatNode(fm, current_node, output);
+        } else {
+          //store primitive variables in out set
+          AtomicRecord ar=atomicmethodmap.get((FlatAtomicEnterNode)first);
+          Set<TempDescriptor> liveout=ar.liveout;
+          for(Iterator<TempDescriptor> tmpit=liveout.iterator(); tmpit.hasNext(); ) {
+            TempDescriptor tmp=tmpit.next();
+            output.println("primitives->"+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
+          }
+        }
 
-	if (current_node.kind()!=FKind.FlatReturnNode) {
-	  if(state.MGC) {
-	    // TODO add version for normal Java later
-	    if((fm.getMethod() != null) && (fm.getMethod().isStaticBlock())) {
-	      // a static block, check if it has been executed
-	      output.println("  global_defsprim_p->" + fm.getMethod().getClassDesc().getSafeSymbol()+"static_block_exe_flag = 1;");
-	      output.println("");
-	    }
-	  }
-	  output.println("   return;");
-	}
-	current_node=null;
+        if (current_node.kind()!=FKind.FlatReturnNode) {
+          if(state.MGC) {
+            // TODO add version for normal Java later
+            if((fm.getMethod() != null) && (fm.getMethod().isStaticBlock())) {
+              // a static block, check if it has been executed
+              output.println("  global_defsprim_p->" + fm.getMethod().getClassDesc().getSafeSymbol()+"static_block_exe_flag = 1;");
+              output.println("");
+            }
+          }
+          output.println("   return;");
+        }
+        current_node=null;
       } else if(current_node.numNext()==1) {
-	FlatNode nextnode;
-	if (state.DELAYCOMP) {
-	  boolean specialprimitive=false;
-	  //skip literals...no need to add extra overhead
-	  if (storeset!=null&&storeset.contains(current_node)&&current_node.kind()==FKind.FlatLiteralNode) {
-	    TypeDescriptor typedesc=((FlatLiteralNode)current_node).getType();
-	    if (!typedesc.isClass()&&!typedesc.isArray()) {
-	      specialprimitive=true;
-	    }
-	  }
+        FlatNode nextnode;
+        if (state.DELAYCOMP) {
+          boolean specialprimitive=false;
+          //skip literals...no need to add extra overhead
+          if (storeset!=null&&storeset.contains(current_node)&&current_node.kind()==FKind.FlatLiteralNode) {
+            TypeDescriptor typedesc=((FlatLiteralNode)current_node).getType();
+            if (!typedesc.isClass()&&!typedesc.isArray()) {
+              specialprimitive=true;
+            }
+          }
 
-	  if (genset==null||genset.contains(current_node)||specialprimitive) {
-	    generateFlatNode(fm, current_node, output);
-	  }
-	  if (state.STMARRAY&&!state.DUALVIEW&&refset!=null&&refset.contains(current_node)) {
-	    //need to acquire lock
-	    handleArrayDeref(fm, lb, current_node, output, firstpass);
-	  }
-	  if (storeset!=null&&storeset.contains(current_node)&&!specialprimitive) {
-	    TempDescriptor wrtmp=current_node.writesTemps()[0];
-	    if (firstpass) {
-	      //need to store value written by previous node
-	      if (wrtmp.getType().isPtr()) {
-		//only lock the objects that may actually need locking
-		if (recorddc.getNeedTrans(lb, current_node)&&
-		    (!state.STMARRAY||state.DUALVIEW||!wrtmp.getType().isArray()||
-		     wrtmp.getType().getSymbol().equals(TypeUtil.ObjectClass))) {
-		  output.println("STOREPTR("+generateTemp(fm, wrtmp)+");/* "+current_node.nodeid+" */");
-		} else {
-		  output.println("STOREPTRNOLOCK("+generateTemp(fm, wrtmp)+");/* "+current_node.nodeid+" */");
-		}
-	      } else {
-		output.println("STORE"+wrtmp.getType().getSafeDescriptor()+"("+generateTemp(fm, wrtmp)+");/* "+current_node.nodeid+" */");
-	      }
-	    } else {
-	      //need to read value read by previous node
-	      if (wrtmp.getType().isPtr()) {
-		output.println("RESTOREPTR("+generateTemp(fm, wrtmp)+");/* "+current_node.nodeid+" */");
-	      } else {
-		output.println("RESTORE"+wrtmp.getType().getSafeDescriptor()+"("+generateTemp(fm, wrtmp)+"); /* "+current_node.nodeid+" */");
-	      }
-	    }
-	  }
-	  nextnode=current_node.getNext(0);
-	} else {
-	  output.print("   ");
-	  generateFlatNode(fm, current_node, output);
-	  nextnode=current_node.getNext(0);
-	}
-	if (visited.contains(nextnode)) {
-	  output.println("goto L"+nodetolabel.get(nextnode)+";");
-	  current_node=null;
-	} else
-	  current_node=nextnode;
+          if (genset==null||genset.contains(current_node)||specialprimitive) {
+            generateFlatNode(fm, current_node, output);
+          }
+          if (state.STMARRAY&&!state.DUALVIEW&&refset!=null&&refset.contains(current_node)) {
+            //need to acquire lock
+            handleArrayDeref(fm, lb, current_node, output, firstpass);
+          }
+          if (storeset!=null&&storeset.contains(current_node)&&!specialprimitive) {
+            TempDescriptor wrtmp=current_node.writesTemps()[0];
+            if (firstpass) {
+              //need to store value written by previous node
+              if (wrtmp.getType().isPtr()) {
+                //only lock the objects that may actually need locking
+                if (recorddc.getNeedTrans(lb, current_node)&&
+                    (!state.STMARRAY||state.DUALVIEW||!wrtmp.getType().isArray()||
+                     wrtmp.getType().getSymbol().equals(TypeUtil.ObjectClass))) {
+                  output.println("STOREPTR("+generateTemp(fm, wrtmp)+");/* "+current_node.nodeid+" */");
+                } else {
+                  output.println("STOREPTRNOLOCK("+generateTemp(fm, wrtmp)+");/* "+current_node.nodeid+" */");
+                }
+              } else {
+                output.println("STORE"+wrtmp.getType().getSafeDescriptor()+"("+generateTemp(fm, wrtmp)+");/* "+current_node.nodeid+" */");
+              }
+            } else {
+              //need to read value read by previous node
+              if (wrtmp.getType().isPtr()) {
+                output.println("RESTOREPTR("+generateTemp(fm, wrtmp)+");/* "+current_node.nodeid+" */");
+              } else {
+                output.println("RESTORE"+wrtmp.getType().getSafeDescriptor()+"("+generateTemp(fm, wrtmp)+"); /* "+current_node.nodeid+" */");
+              }
+            }
+          }
+          nextnode=current_node.getNext(0);
+        } else {
+          output.print("   ");
+          generateFlatNode(fm, current_node, output);
+          nextnode=current_node.getNext(0);
+        }
+        if (visited.contains(nextnode)) {
+          output.println("goto L"+nodetolabel.get(nextnode)+";");
+          current_node=null;
+        } else
+          current_node=nextnode;
       } else if (current_node.numNext()==2) {
-	/* Branch */
-	if (state.DELAYCOMP) {
-	  boolean computeside=false;
-	  if (firstpass) {
-	    //need to record which way it should go
-	    if (genset==null||genset.contains(current_node)) {
-	      if (storeset!=null&&storeset.contains(current_node)) {
-		//need to store which way branch goes
-		generateStoreFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
-	      } else
-		generateFlatCondBranch(fm, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
-	    } else {
-	      //which side to execute
-	      computeside=true;
-	    }
-	  } else {
-	    if (genset.contains(current_node)) {
-	      generateFlatCondBranch(fm, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
-	    } else if (storeset.contains(current_node)) {
-	      //need to do branch
-	      branchanalysis.generateGroupCode(current_node, output, nodetolabel);
-	    } else {
-	      //which side to execute
-	      computeside=true;
-	    }
-	  }
-	  if (computeside) {
-	    Set<FlatNode> leftset=DelayComputation.getNext(current_node, 0, unionset, lb,locality, true);
-	    int branch=0;
-	    if (leftset.size()==0)
-	      branch=1;
-	    if (visited.contains(current_node.getNext(branch))) {
-	      //already visited -- build jump
-	      output.println("goto L"+nodetolabel.get(current_node.getNext(branch))+";");
-	      current_node=null;
-	    } else {
-	      current_node=current_node.getNext(branch);
-	    }
-	  } else {
-	    if (!visited.contains(current_node.getNext(1)))
-	      tovisit.add(current_node.getNext(1));
-	    if (visited.contains(current_node.getNext(0))) {
-	      output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
-	      current_node=null;
-	    } else
-	      current_node=current_node.getNext(0);
-	  }
-	} else {
-	  output.print("   ");
-	  generateFlatCondBranch(fm, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
-	  if (!visited.contains(current_node.getNext(1)))
-	    tovisit.add(current_node.getNext(1));
-	  if (visited.contains(current_node.getNext(0))) {
-	    output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
-	    current_node=null;
-	  } else
-	    current_node=current_node.getNext(0);
-	}
+        /* Branch */
+        if (state.DELAYCOMP) {
+          boolean computeside=false;
+          if (firstpass) {
+            //need to record which way it should go
+            if (genset==null||genset.contains(current_node)) {
+              if (storeset!=null&&storeset.contains(current_node)) {
+                //need to store which way branch goes
+                generateStoreFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+              } else
+                generateFlatCondBranch(fm, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+            } else {
+              //which side to execute
+              computeside=true;
+            }
+          } else {
+            if (genset.contains(current_node)) {
+              generateFlatCondBranch(fm, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+            } else if (storeset.contains(current_node)) {
+              //need to do branch
+              branchanalysis.generateGroupCode(current_node, output, nodetolabel);
+            } else {
+              //which side to execute
+              computeside=true;
+            }
+          }
+          if (computeside) {
+            Set<FlatNode> leftset=DelayComputation.getNext(current_node, 0, unionset, lb,locality, true);
+            int branch=0;
+            if (leftset.size()==0)
+              branch=1;
+            if (visited.contains(current_node.getNext(branch))) {
+              //already visited -- build jump
+              output.println("goto L"+nodetolabel.get(current_node.getNext(branch))+";");
+              current_node=null;
+            } else {
+              current_node=current_node.getNext(branch);
+            }
+          } else {
+            if (!visited.contains(current_node.getNext(1)))
+              tovisit.add(current_node.getNext(1));
+            if (visited.contains(current_node.getNext(0))) {
+              output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
+              current_node=null;
+            } else
+              current_node=current_node.getNext(0);
+          }
+        } else {
+          output.print("   ");
+          generateFlatCondBranch(fm, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+          if (!visited.contains(current_node.getNext(1)))
+            tovisit.add(current_node.getNext(1));
+          if (visited.contains(current_node.getNext(0))) {
+            output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
+            current_node=null;
+          } else
+            current_node=current_node.getNext(0);
+        }
       } else throw new Error();
     }
   }
@@ -1072,18 +1072,18 @@ public class BuildCodeTran extends BuildCode {
       TypeDescriptor elementtype=fsen.getDst().getType().dereference();
       String type="";
       if (elementtype.isArray()||elementtype.isClass())
-	type="void *";
+        type="void *";
       else
-	type=elementtype.getSafeSymbol()+" ";
+        type=elementtype.getSafeSymbol()+" ";
       if (firstpass) {
-	output.println("STOREARRAY("+dst+","+index+","+type+")");
+        output.println("STOREARRAY("+dst+","+index+","+type+")");
       } else {
-	output.println("{");
-	output.println("  struct ArrayObject *array;");
-	output.println("  int index;");
-	output.println("  RESTOREARRAY(array,index);");
-	output.println("  (("+type+"*)(((char *)&array->___length___)+sizeof(int)))[index]="+src+";");
-	output.println("}");
+        output.println("{");
+        output.println("  struct ArrayObject *array;");
+        output.println("  int index;");
+        output.println("  RESTOREARRAY(array,index);");
+        output.println("  (("+type+"*)(((char *)&array->___length___)+sizeof(int)))[index]="+src+";");
+        output.println("}");
       }
     } else if (fn.kind()==FKind.FlatElementNode) {
       FlatElementNode fen=(FlatElementNode) fn;
@@ -1093,18 +1093,18 @@ public class BuildCodeTran extends BuildCode {
       String dst=generateTemp(fm, fen.getDst());
       String type="";
       if (elementtype.isArray()||elementtype.isClass())
-	type="void *";
+        type="void *";
       else
-	type=elementtype.getSafeSymbol()+" ";
+        type=elementtype.getSafeSymbol()+" ";
       if (firstpass) {
-	output.println("STOREARRAY("+src+","+index+","+type+")");
+        output.println("STOREARRAY("+src+","+index+","+type+")");
       } else {
-	output.println("{");
-	output.println("  struct ArrayObject *array;");
-	output.println("  int index;");
-	output.println("  RESTOREARRAY(array,index);");
-	output.println("  "+dst+"=(("+type+"*)(((char *)&array->___length___)+sizeof(int)))[index];");
-	output.println("}");
+        output.println("{");
+        output.println("  struct ArrayObject *array;");
+        output.println("  int index;");
+        output.println("  RESTOREARRAY(array,index);");
+        output.println("  "+dst+"=(("+type+"*)(((char *)&array->___length___)+sizeof(int)))[index];");
+        output.println("}");
       }
     }
   }
@@ -1133,24 +1133,24 @@ public class BuildCodeTran extends BuildCode {
 
 
       if(lastset!=null&&lastset.contains(fn)) {
-	// if last is not null and matches, don't go
-	// any further for assigning labels
-	continue;
+        // if last is not null and matches, don't go
+        // any further for assigning labels
+        continue;
       }
 
       for(int i=0; i<fn.numNext(); i++) {
-	FlatNode nn=fn.getNext(i);
+        FlatNode nn=fn.getNext(i);
 
-	if(i>0) {
-	  //1) Edge >1 of node
-	  nodetolabel.put(nn,new Integer(labelindex++));
-	}
-	if (!visited.contains(nn)&&!tovisit.contains(nn)) {
-	  tovisit.add(nn);
-	} else {
-	  //2) Join point
-	  nodetolabel.put(nn,new Integer(labelindex++));
-	}
+        if(i>0) {
+          //1) Edge >1 of node
+          nodetolabel.put(nn,new Integer(labelindex++));
+        }
+        if (!visited.contains(nn)&&!tovisit.contains(nn)) {
+          tovisit.add(nn);
+        } else {
+          //2) Join point
+          nodetolabel.put(nn,new Integer(labelindex++));
+        }
       }
     }
     return nodetolabel;
@@ -1187,9 +1187,9 @@ public class BuildCodeTran extends BuildCode {
     }
     if (((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC)) {
       if(state.DSM&&locality.getAtomic(currlb).get(fn).intValue()>0) {
-	output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
+        output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
       } else {
-	output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+        output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
       }
     } else
       output.println("/* nop */");
@@ -1203,20 +1203,20 @@ public class BuildCodeTran extends BuildCode {
       Vector endoffset = new Vector();
       int tuplecount = 0;        //Keeps track of number of prefetch tuples that need to be generated
       for(Iterator it = fpn.hspp.iterator(); it.hasNext(); ) {
-	PrefetchPair pp = (PrefetchPair) it.next();
-	Integer statusbase = locality.getNodePreTempInfo(currlb,fpn).get(pp.base);
-	/* Find prefetches that can generate oid */
-	if(statusbase == LocalityAnalysis.GLOBAL) {
-	  generateTransCode(fm, currlb, pp, oids, fieldoffset, endoffset, tuplecount, locality.getAtomic(currlb).get(fpn).intValue()>0, false);
-	  tuplecount++;
-	} else if (statusbase == LocalityAnalysis.LOCAL) {
-	  generateTransCode(fm,currlb,pp,oids,fieldoffset,endoffset,tuplecount,false,true);
-	} else {
-	  continue;
-	}
+        PrefetchPair pp = (PrefetchPair) it.next();
+        Integer statusbase = locality.getNodePreTempInfo(currlb,fpn).get(pp.base);
+        /* Find prefetches that can generate oid */
+        if(statusbase == LocalityAnalysis.GLOBAL) {
+          generateTransCode(fm, currlb, pp, oids, fieldoffset, endoffset, tuplecount, locality.getAtomic(currlb).get(fpn).intValue()>0, false);
+          tuplecount++;
+        } else if (statusbase == LocalityAnalysis.LOCAL) {
+          generateTransCode(fm,currlb,pp,oids,fieldoffset,endoffset,tuplecount,false,true);
+        } else {
+          continue;
+        }
       }
       if (tuplecount==0)
-	return;
+        return;
       System.out.println("Adding prefetch "+fpn+ " to method:" +fm);
       output.println("{");
       output.println("/* prefetch */");
@@ -1229,10 +1229,10 @@ public class BuildCodeTran extends BuildCode {
       output.print("   unsigned int oidarray_[] = {");
       boolean needcomma=false;
       for (Iterator it = oids.iterator(); it.hasNext(); ) {
-	if (needcomma)
-	  output.print(", ");
-	output.print(it.next());
-	needcomma=true;
+        if (needcomma)
+          output.print(", ");
+        output.print(it.next());
+        needcomma=true;
       }
       output.println("};");
 
@@ -1240,10 +1240,10 @@ public class BuildCodeTran extends BuildCode {
       output.print("   unsigned short endoffsetarry_[] = {");
       needcomma=false;
       for (Iterator it = endoffset.iterator(); it.hasNext(); ) {
-	if (needcomma)
-	  output.print(", ");
-	output.print(it.next());
-	needcomma=true;
+        if (needcomma)
+          output.print(", ");
+        output.print(it.next());
+        needcomma=true;
       }
       output.println("};");
 
@@ -1251,10 +1251,10 @@ public class BuildCodeTran extends BuildCode {
       output.print("   short fieldarry_[] = {");
       needcomma=false;
       for (Iterator it = fieldoffset.iterator(); it.hasNext(); ) {
-	if (needcomma)
-	  output.print(", ");
-	output.print(it.next());
-	needcomma=true;
+        if (needcomma)
+          output.print(", ");
+        output.print(it.next());
+        needcomma=true;
       }
       output.println("};");
       /* make the prefetch call to Runtime */
@@ -1276,13 +1276,13 @@ public class BuildCodeTran extends BuildCode {
       breakindex=1;
     } else if (localbase) {
       for(; breakindex<pp.desc.size(); breakindex++) {
-	Descriptor desc=pp.getDescAt(breakindex);
-	if (desc instanceof FieldDescriptor) {
-	  FieldDescriptor fd=(FieldDescriptor)desc;
-	  if (fd.isGlobal()) {
-	    break;
-	  }
-	}
+        Descriptor desc=pp.getDescAt(breakindex);
+        if (desc instanceof FieldDescriptor) {
+          FieldDescriptor fd=(FieldDescriptor)desc;
+          if (fd.isGlobal()) {
+            break;
+          }
+        }
       }
       breakindex++;
     }
@@ -1301,33 +1301,33 @@ public class BuildCodeTran extends BuildCode {
 
       Descriptor desc=pp.getDescAt(i);
       if (desc instanceof FieldDescriptor) {
-	FieldDescriptor fd=(FieldDescriptor)desc;
-	if (maybenull) {
-	  if (!teststr.equals(""))
-	    teststr+="&&";
-	  teststr+="((prefptr="+basestr+")!=NULL)";
-	  basestr="((struct "+lasttype.getSafeSymbol()+" *)prefptr)->"+
-	           fd.getSafeSymbol();
-	} else {
-	  basestr=basestr+"->"+
-	           fd.getSafeSymbol();
-	  maybenull=true;
-	}
-	lasttype=fd.getType();
+        FieldDescriptor fd=(FieldDescriptor)desc;
+        if (maybenull) {
+          if (!teststr.equals(""))
+            teststr+="&&";
+          teststr+="((prefptr="+basestr+")!=NULL)";
+          basestr="((struct "+lasttype.getSafeSymbol()+" *)prefptr)->"+
+                   fd.getSafeSymbol();
+        } else {
+          basestr=basestr+"->"+
+                   fd.getSafeSymbol();
+          maybenull=true;
+        }
+        lasttype=fd.getType();
       } else {
-	IndexDescriptor id=(IndexDescriptor)desc;
-	indexcheck="((tmpindex=";
-	for(int j=0; j<id.tddesc.size(); j++) {
-	  indexcheck+=generateTemp(fm, id.getTempDescAt(j))+"+";
-	}
-	indexcheck+=id.offset+")>=0)&(tmpindex<((struct ArrayObject *)prefptr)->___length___)";
+        IndexDescriptor id=(IndexDescriptor)desc;
+        indexcheck="((tmpindex=";
+        for(int j=0; j<id.tddesc.size(); j++) {
+          indexcheck+=generateTemp(fm, id.getTempDescAt(j))+"+";
+        }
+        indexcheck+=id.offset+")>=0)&(tmpindex<((struct ArrayObject *)prefptr)->___length___)";
 
-	if (!teststr.equals(""))
-	  teststr+="&&";
-	teststr+="((prefptr="+basestr+")!= NULL) &&"+indexcheck;
-	basestr="((void **)(((char *) &(((struct ArrayObject *)prefptr)->___length___))+sizeof(int)))[tmpindex]";
-	maybenull=true;
-	lasttype=lasttype.dereference();
+        if (!teststr.equals(""))
+          teststr+="&&";
+        teststr+="((prefptr="+basestr+")!= NULL) &&"+indexcheck;
+        basestr="((void **)(((char *) &(((struct ArrayObject *)prefptr)->___length___))+sizeof(int)))[tmpindex]";
+        maybenull=true;
+        lasttype=lasttype.dereference();
       }
     }
 
@@ -1343,17 +1343,17 @@ public class BuildCodeTran extends BuildCode {
       String newfieldoffset;
       Object desc = pp.getDescAt(i);
       if(desc instanceof FieldDescriptor) {
-	FieldDescriptor fd=(FieldDescriptor)desc;
-	newfieldoffset = new String("(unsigned int)(&(((struct "+ lasttype.getSafeSymbol()+" *)0)->"+ fd.getSafeSymbol()+ "))");
-	lasttype=fd.getType();
+        FieldDescriptor fd=(FieldDescriptor)desc;
+        newfieldoffset = new String("(unsigned int)(&(((struct "+ lasttype.getSafeSymbol()+" *)0)->"+ fd.getSafeSymbol()+ "))");
+        lasttype=fd.getType();
       } else {
-	newfieldoffset = "";
-	IndexDescriptor id=(IndexDescriptor)desc;
-	for(int j = 0; j < id.tddesc.size(); j++) {
-	  newfieldoffset += generateTemp(fm, id.getTempDescAt(j)) + "+";
-	}
-	newfieldoffset += id.offset.toString();
-	lasttype=lasttype.dereference();
+        newfieldoffset = "";
+        IndexDescriptor id=(IndexDescriptor)desc;
+        for(int j = 0; j < id.tddesc.size(); j++) {
+          newfieldoffset += generateTemp(fm, id.getTempDescAt(j)) + "+";
+        }
+        newfieldoffset += id.offset.toString();
+        lasttype=lasttype.dereference();
       }
       fieldoffset.add(newfieldoffset);
     }
@@ -1371,26 +1371,26 @@ public class BuildCodeTran extends BuildCode {
     /* Have to generate flat globalconv */
     if (fgcn.getMakePtr()) {
       if (state.DSM) {
-	output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc())+", (unsigned int) "+generateTemp(fm, fgcn.getSrc())+");");
+        output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc())+", (unsigned int) "+generateTemp(fm, fgcn.getSrc())+");");
       } else {
-	if ((dc==null)||!state.READSET&&dc.getNeedTrans(currlb, fgcn)||state.READSET&&dc.getNeedWriteTrans(currlb, fgcn)) {
-	  //need to do translation
-	  output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc())+", "+generateTemp(fm, fgcn.getSrc())+", (void *)("+localsprefixaddr+"));");
-	} else if (state.READSET&&dc.getNeedTrans(currlb, fgcn)) {
-	  if (state.HYBRID&&delaycomp.getConv(currlb).contains(fgcn)) {
-	    output.println("TRANSREADRDFISSION("+generateTemp(fm, fgcn.getSrc())+", "+generateTemp(fm, fgcn.getSrc())+");");
-	  } else
-	    output.println("TRANSREADRD("+generateTemp(fm, fgcn.getSrc())+", "+generateTemp(fm, fgcn.getSrc())+");");
-	}
+        if ((dc==null)||!state.READSET&&dc.getNeedTrans(currlb, fgcn)||state.READSET&&dc.getNeedWriteTrans(currlb, fgcn)) {
+          //need to do translation
+          output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc())+", "+generateTemp(fm, fgcn.getSrc())+", (void *)("+localsprefixaddr+"));");
+        } else if (state.READSET&&dc.getNeedTrans(currlb, fgcn)) {
+          if (state.HYBRID&&delaycomp.getConv(currlb).contains(fgcn)) {
+            output.println("TRANSREADRDFISSION("+generateTemp(fm, fgcn.getSrc())+", "+generateTemp(fm, fgcn.getSrc())+");");
+          } else
+            output.println("TRANSREADRD("+generateTemp(fm, fgcn.getSrc())+", "+generateTemp(fm, fgcn.getSrc())+");");
+        }
       }
     } else {
       /* Need to convert to OID */
       if ((dc==null)||dc.getNeedSrcTrans(currlb,fgcn)) {
-	if (fgcn.doConvert()||(delaycomp!=null&&delaycomp.needsFission(currlb, fgcn.getAtomicEnter())&&atomicmethodmap.get(fgcn.getAtomicEnter()).reallivein.contains(fgcn.getSrc()))) {
-	  output.println(generateTemp(fm, fgcn.getSrc())+"=(void *)COMPOID("+generateTemp(fm, fgcn.getSrc())+");");
-	} else {
-	  output.println(generateTemp(fm, fgcn.getSrc())+"=NULL;");
-	}
+        if (fgcn.doConvert()||(delaycomp!=null&&delaycomp.needsFission(currlb, fgcn.getAtomicEnter())&&atomicmethodmap.get(fgcn.getAtomicEnter()).reallivein.contains(fgcn.getSrc()))) {
+          output.println(generateTemp(fm, fgcn.getSrc())+"=(void *)COMPOID("+generateTemp(fm, fgcn.getSrc())+");");
+        } else {
+          output.println(generateTemp(fm, fgcn.getSrc())+"=NULL;");
+        }
       }
     }
   }
@@ -1400,13 +1400,13 @@ public class BuildCodeTran extends BuildCode {
     /* Check to see if we need to generate code for this atomic */
     if (locality==null) {
       if (GENERATEPRECISEGC) {
-	output.println("if (pthread_mutex_trylock(&atomiclock)!=0) {");
-	output.println("stopforgc((struct garbagelist *) &___locals___);");
-	output.println("pthread_mutex_lock(&atomiclock);");
-	output.println("restartaftergc();");
-	output.println("}");
+        output.println("if (pthread_mutex_trylock(&atomiclock)!=0) {");
+        output.println("stopforgc((struct garbagelist *) &___locals___);");
+        output.println("pthread_mutex_lock(&atomiclock);");
+        output.println("restartaftergc();");
+        output.println("}");
       } else {
-	output.println("pthread_mutex_lock(&atomiclock);");
+        output.println("pthread_mutex_lock(&atomiclock);");
       }
       return;
     }
@@ -1424,15 +1424,15 @@ public class BuildCodeTran extends BuildCode {
       AtomicRecord ar=atomicmethodmap.get(faen);
       //copy in
       for(Iterator<TempDescriptor> tmpit=ar.livein.iterator(); tmpit.hasNext(); ) {
-	TempDescriptor tmp=tmpit.next();
-	output.println("primitives_"+ar.name+"."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
+        TempDescriptor tmp=tmpit.next();
+        output.println("primitives_"+ar.name+"."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
       }
 
       //copy outs that depend on path
       for(Iterator<TempDescriptor> tmpit=ar.liveoutvirtualread.iterator(); tmpit.hasNext(); ) {
-	TempDescriptor tmp=tmpit.next();
-	if (!ar.livein.contains(tmp))
-	  output.println("primitives_"+ar.name+"."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
+        TempDescriptor tmp=tmpit.next();
+        if (!ar.livein.contains(tmp))
+          output.println("primitives_"+ar.name+"."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
       }
     }
 
@@ -1475,7 +1475,7 @@ public class BuildCodeTran extends BuildCode {
 
     if (state.ABORTREADERS||state.SANDBOX) {
       if (state.SANDBOX)
-	output.println("abortenabled=1;");
+        output.println("abortenabled=1;");
       output.println("if (_setjmp(aborttrans)) {");
       output.println("  goto transretry"+faen.getIdentifier()+"; }");
     }
@@ -1518,32 +1518,32 @@ public class BuildCodeTran extends BuildCode {
       output.println("}");
     } else {
       if (delaycomp.optimizeTrans(currlb, faen.getAtomicEnter())&&(!state.STMARRAY||state.DUALVIEW)) {
-	AtomicRecord ar=atomicmethodmap.get(faen.getAtomicEnter());
-	output.println("LIGHTWEIGHTCOMMIT("+ar.name+", &primitives_"+ar.name+", &"+localsprefix+", "+paramsprefix+", transretry"+faen.getAtomicEnter().getIdentifier()+");");
-	//copy out
-	for(Iterator<TempDescriptor> tmpit=ar.liveout.iterator(); tmpit.hasNext(); ) {
-	  TempDescriptor tmp=tmpit.next();
-	  output.println(tmp.getSafeSymbol()+"=primitives_"+ar.name+"."+tmp.getSafeSymbol()+";");
-	}
+        AtomicRecord ar=atomicmethodmap.get(faen.getAtomicEnter());
+        output.println("LIGHTWEIGHTCOMMIT("+ar.name+", &primitives_"+ar.name+", &"+localsprefix+", "+paramsprefix+", transretry"+faen.getAtomicEnter().getIdentifier()+");");
+        //copy out
+        for(Iterator<TempDescriptor> tmpit=ar.liveout.iterator(); tmpit.hasNext(); ) {
+          TempDescriptor tmp=tmpit.next();
+          output.println(tmp.getSafeSymbol()+"=primitives_"+ar.name+"."+tmp.getSafeSymbol()+";");
+        }
       } else if (delaycomp.needsFission(currlb, faen.getAtomicEnter())) {
-	AtomicRecord ar=atomicmethodmap.get(faen.getAtomicEnter());
-	//do call
-	output.println("if (transCommit((void (*)(void *, void *, void *))&"+ar.name+", &primitives_"+ar.name+", &"+localsprefix+", "+paramsprefix+")) {");
-	output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
-	output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
-	output.println("}");
-	//copy out
-	output.println("else {");
-	for(Iterator<TempDescriptor> tmpit=ar.liveout.iterator(); tmpit.hasNext(); ) {
-	  TempDescriptor tmp=tmpit.next();
-	  output.println(tmp.getSafeSymbol()+"=primitives_"+ar.name+"."+tmp.getSafeSymbol()+";");
-	}
-	output.println("}");
+        AtomicRecord ar=atomicmethodmap.get(faen.getAtomicEnter());
+        //do call
+        output.println("if (transCommit((void (*)(void *, void *, void *))&"+ar.name+", &primitives_"+ar.name+", &"+localsprefix+", "+paramsprefix+")) {");
+        output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+        output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
+        output.println("}");
+        //copy out
+        output.println("else {");
+        for(Iterator<TempDescriptor> tmpit=ar.liveout.iterator(); tmpit.hasNext(); ) {
+          TempDescriptor tmp=tmpit.next();
+          output.println(tmp.getSafeSymbol()+"=primitives_"+ar.name+"."+tmp.getSafeSymbol()+";");
+        }
+        output.println("}");
       } else {
-	output.println("if (transCommit(NULL, NULL, NULL, NULL)) {");
-	output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
-	output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
-	output.println("}");
+        output.println("if (transCommit(NULL, NULL, NULL, NULL)) {");
+        output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+        output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
+        output.println("}");
       }
     }
   }
@@ -1559,71 +1559,71 @@ public class BuildCodeTran extends BuildCode {
       // TODO add version for normal Java later
       if((md.isStatic() || md.isStaticBlock() || md.isConstructor()) &&
          ((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic()))) {
-	if(!md.isInvokedByStatic()) {
-	  System.err.println("Error: a method that is invoked inside a static block is not tagged!");
-	}
-	// is a static block or is invoked in some static block
-	ClassDescriptor cd = fm.getMethod().getClassDesc();
-	if(cd == cn) {
-	  // the same class, do nothing
-	  // TODO may want to invoke static field initialization here
-	} else {
-	  if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
-	    // need to check if the class' static fields have been initialized and/or
-	    // its static blocks have been executed
-	    output.println("#ifdef MGC_STATIC_INIT_CHECK");
-	    output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
-	    if(cn.getNumStaticBlocks() != 0) {
-	      MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
-	      output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
-	    } else {
-	      output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
-	    }
-	    output.println("}");
-	    output.println("#endif // MGC_STATIC_INIT_CHECK");
-	  }
-	}
+        if(!md.isInvokedByStatic()) {
+          System.err.println("Error: a method that is invoked inside a static block is not tagged!");
+        }
+        // is a static block or is invoked in some static block
+        ClassDescriptor cd = fm.getMethod().getClassDesc();
+        if(cd == cn) {
+          // the same class, do nothing
+          // TODO may want to invoke static field initialization here
+        } else {
+          if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
+            // need to check if the class' static fields have been initialized and/or
+            // its static blocks have been executed
+            output.println("#ifdef MGC_STATIC_INIT_CHECK");
+            output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
+            if(cn.getNumStaticBlocks() != 0) {
+              MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
+              output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+            } else {
+              output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
+            }
+            output.println("}");
+            output.println("#endif // MGC_STATIC_INIT_CHECK");
+          }
+        }
       }
       if((md.getSymbol().equals("MonitorEnter") || md.getSymbol().equals("MonitorExit")) && fc.getThis().getSymbol().equals("classobj")) {
-	// call MonitorEnter/MonitorExit on a class obj
-	output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
-	               + md.getSafeMethodDescriptor() + "((struct ___Object___*)(((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))["
-	               + fc.getThis().getType().getClassDesc().getId() + "]));");
-	return;
+        // call MonitorEnter/MonitorExit on a class obj
+        output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
+                       + md.getSafeMethodDescriptor() + "((struct ___Object___*)(((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))["
+                       + fc.getThis().getType().getClassDesc().getId() + "]));");
+        return;
       }
     }
 
     output.println("{");
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (currlb!=null) {
-	LocalityBinding fclb=locality.getBinding(currlb, fc);
-	output.print("       struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+        LocalityBinding fclb=locality.getBinding(currlb, fc);
+        output.print("       struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
       } else
-	output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+        output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
       output.print(objectparams.numPointers());
       output.print(", "+localsprefixaddr);
       if (md.getThis()!=null) {
-	output.print(", ");
-	output.print("(struct "+md.getThis().getType().getSafeSymbol() +" *)"+ generateTemp(fm,fc.getThis()));
+        output.print(", ");
+        output.print("(struct "+md.getThis().getType().getSafeSymbol() +" *)"+ generateTemp(fm,fc.getThis()));
       }
       if (fc.getThis()!=null&&md.getThis()==null) {
-	System.out.println("WARNING!!!!!!!!!!!!");
-	System.out.println("Source code calls static method "+md+" on an object in "+fm.getMethod()+"!");
+        System.out.println("WARNING!!!!!!!!!!!!");
+        System.out.println("Source code calls static method "+md+" on an object in "+fm.getMethod()+"!");
       }
 
 
       for(int i=0; i<fc.numArgs(); i++) {
-	Descriptor var=md.getParameter(i);
-	TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
-	if (objectparams.isParamPtr(paramtemp)) {
-	  TempDescriptor targ=fc.getArg(i);
-	  output.print(", ");
-	  TypeDescriptor td=md.getParamType(i);
-	  if (td.isTag())
-	    output.print("(struct "+(new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass))).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
-	  else
-	    output.print("(struct "+md.getParamType(i).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
-	}
+        Descriptor var=md.getParameter(i);
+        TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
+        if (objectparams.isParamPtr(paramtemp)) {
+          TempDescriptor targ=fc.getArg(i);
+          output.print(", ");
+          TypeDescriptor td=md.getParamType(i);
+          if (td.isTag())
+            output.print("(struct "+(new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass))).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
+          else
+            output.print("(struct "+md.getParamType(i).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
+        }
       }
       output.println("};");
     }
@@ -1637,51 +1637,51 @@ public class BuildCodeTran extends BuildCode {
     if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)) {
       //no
       if (currlb!=null) {
-	LocalityBinding fclb=locality.getBinding(currlb, fc);
-	output.print(cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
+        LocalityBinding fclb=locality.getBinding(currlb, fc);
+        output.print(cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
       } else {
-	output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
+        output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
       }
     } else {
       //yes
       output.print("((");
       if (state.MGC && md.getReturnType().isClass() && md.getReturnType().getClassDesc().isEnum()) {
-	output.print("int ");
+        output.print("int ");
       } else if (md.getReturnType().isClass()||md.getReturnType().isArray())
-	output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
+        output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
       else
-	output.print(md.getReturnType().getSafeSymbol()+" ");
+        output.print(md.getReturnType().getSafeSymbol()+" ");
       output.print("(*)(");
 
       boolean printcomma=false;
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	if (currlb!=null) {
-	  LocalityBinding fclb=locality.getBinding(currlb, fc);
-	  output.print("struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
-	} else
-	  output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
-	printcomma=true;
+        if (currlb!=null) {
+          LocalityBinding fclb=locality.getBinding(currlb, fc);
+          output.print("struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
+        } else
+          output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
+        printcomma=true;
       }
 
       for(int i=0; i<objectparams.numPrimitives(); i++) {
-	TempDescriptor temp=objectparams.getPrimitive(i);
-	if (printcomma)
-	  output.print(", ");
-	printcomma=true;
-	if (state.MGC && temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	  output.print("int ");
-	} else if (temp.getType().isClass()||temp.getType().isArray())
-	  output.print("struct " + temp.getType().getSafeSymbol()+" * ");
-	else
-	  output.print(temp.getType().getSafeSymbol());
+        TempDescriptor temp=objectparams.getPrimitive(i);
+        if (printcomma)
+          output.print(", ");
+        printcomma=true;
+        if (state.MGC && temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+          output.print("int ");
+        } else if (temp.getType().isClass()||temp.getType().isArray())
+          output.print("struct " + temp.getType().getSafeSymbol()+" * ");
+        else
+          output.print(temp.getType().getSafeSymbol());
       }
 
 
       if (currlb!=null) {
-	LocalityBinding fclb=locality.getBinding(currlb, fc);
-	output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getLocalityNumber(fclb)+"])");
+        LocalityBinding fclb=locality.getBinding(currlb, fc);
+        output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getLocalityNumber(fclb)+"])");
       } else
-	output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getMethodNumber(md)+"])");
+        output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getMethodNumber(md)+"])");
     }
 
     output.print("(");
@@ -1693,20 +1693,20 @@ public class BuildCodeTran extends BuildCode {
 
     if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
       if (fc.getThis()!=null) {
-	TypeDescriptor ptd=null;
-	if(md.getThis() != null) {
-	  ptd = md.getThis().getType();
-	} else {
-	  ptd = fc.getThis().getType();
-	}
-	if (needcomma)
-	  output.print(",");
-	if(state.MGC && ptd.isClass() && ptd.getClassDesc().isEnum()) {
-	  // do nothing
-	} else if (ptd.isClass()&&!ptd.isArray())
-	  output.print("(struct "+ptd.getSafeSymbol()+" *) ");
-	output.print(generateTemp(fm,fc.getThis()));
-	needcomma=true;
+        TypeDescriptor ptd=null;
+        if(md.getThis() != null) {
+          ptd = md.getThis().getType();
+        } else {
+          ptd = fc.getThis().getType();
+        }
+        if (needcomma)
+          output.print(",");
+        if(state.MGC && ptd.isClass() && ptd.getClassDesc().isEnum()) {
+          // do nothing
+        } else if (ptd.isClass()&&!ptd.isArray())
+          output.print("(struct "+ptd.getSafeSymbol()+" *) ");
+        output.print(generateTemp(fm,fc.getThis()));
+        needcomma=true;
       }
     }
 
@@ -1714,17 +1714,17 @@ public class BuildCodeTran extends BuildCode {
       Descriptor var=md.getParameter(i);
       TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
       if (objectparams.isParamPrim(paramtemp)) {
-	TempDescriptor targ=fc.getArg(i);
-	if (needcomma)
-	  output.print(", ");
+        TempDescriptor targ=fc.getArg(i);
+        if (needcomma)
+          output.print(", ");
 
-	TypeDescriptor ptd=md.getParamType(i);
-	if (state.MGC && ptd.isClass() && ptd.getClassDesc().isEnum()) {
-	  // do nothing
-	} else if (ptd.isClass()&&!ptd.isArray())
-	  output.print("(struct "+ptd.getSafeSymbol()+" *) ");
-	output.print(generateTemp(fm, targ));
-	needcomma=true;
+        TypeDescriptor ptd=md.getParamType(i);
+        if (state.MGC && ptd.isClass() && ptd.getClassDesc().isEnum()) {
+          // do nothing
+        } else if (ptd.isClass()&&!ptd.isArray())
+          output.print("(struct "+ptd.getSafeSymbol()+" *) ");
+        output.print(generateTemp(fm, targ));
+        needcomma=true;
       }
     }
     output.println(");");
@@ -1742,50 +1742,50 @@ public class BuildCodeTran extends BuildCode {
       output.println(dst+"="+ src +"->"+field+ ";");
       if (ffn.getField().getType().isPtr()&&locality.getAtomic(currlb).get(ffn).intValue()>0&&
           locality.getNodePreTempInfo(currlb, ffn).get(ffn.getSrc())!=LocalityAnalysis.SCRATCH) {
-	if ((dc==null)||(!state.READSET&&dc.getNeedTrans(currlb, ffn))||
-	    (state.READSET&&dc.getNeedWriteTrans(currlb, ffn))) {
-	  output.println("TRANSREAD("+dst+", "+dst+", (void *) (" + localsprefixaddr + "));");
-	} else if (state.READSET&&dc.getNeedTrans(currlb, ffn)) {
-	  if (state.HYBRID&&delaycomp.getConv(currlb).contains(ffn)) {
-	    output.println("TRANSREADRDFISSION("+dst+", "+dst+");");
-	  } else
-	    output.println("TRANSREADRD("+dst+", "+dst+");");
-	}
+        if ((dc==null)||(!state.READSET&&dc.getNeedTrans(currlb, ffn))||
+            (state.READSET&&dc.getNeedWriteTrans(currlb, ffn))) {
+          output.println("TRANSREAD("+dst+", "+dst+", (void *) (" + localsprefixaddr + "));");
+        } else if (state.READSET&&dc.getNeedTrans(currlb, ffn)) {
+          if (state.HYBRID&&delaycomp.getConv(currlb).contains(ffn)) {
+            output.println("TRANSREADRDFISSION("+dst+", "+dst+");");
+          } else
+            output.println("TRANSREADRD("+dst+", "+dst+");");
+        }
       }
     } else if (state.DSM) {
       Integer status=locality.getNodePreTempInfo(currlb,ffn).get(ffn.getSrc());
       if (status==LocalityAnalysis.GLOBAL) {
-	String field=ffn.getField().getSafeSymbol();
-	String src=generateTemp(fm, ffn.getSrc());
-	String dst=generateTemp(fm, ffn.getDst());
+        String field=ffn.getField().getSafeSymbol();
+        String src=generateTemp(fm, ffn.getSrc());
+        String dst=generateTemp(fm, ffn.getDst());
 
-	if (ffn.getField().getType().isPtr()) {
-	  output.println(dst+"="+ src +"->"+field+ ";");
-	  output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
-	} else {
-	  output.println(dst+"="+ src+"->"+field+";");
-	}
+        if (ffn.getField().getType().isPtr()) {
+          output.println(dst+"="+ src +"->"+field+ ";");
+          output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
+        } else {
+          output.println(dst+"="+ src+"->"+field+";");
+        }
       } else if (status==LocalityAnalysis.LOCAL) {
-	if (ffn.getField().getType().isPtr()&&
-	    ffn.getField().isGlobal()) {
-	  String field=ffn.getField().getSafeSymbol();
-	  String src=generateTemp(fm, ffn.getSrc());
-	  String dst=generateTemp(fm, ffn.getDst());
-	  output.println(dst+"="+ src +"->"+field+ ";");
-	  if (locality.getAtomic(currlb).get(ffn).intValue()>0)
-	    output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
-	} else
-	  output.println(generateTemp(fm, ffn.getDst())+"="+ generateTemp(fm,ffn.getSrc())+"->"+ ffn.getField().getSafeSymbol()+";");
+        if (ffn.getField().getType().isPtr()&&
+            ffn.getField().isGlobal()) {
+          String field=ffn.getField().getSafeSymbol();
+          String src=generateTemp(fm, ffn.getSrc());
+          String dst=generateTemp(fm, ffn.getDst());
+          output.println(dst+"="+ src +"->"+field+ ";");
+          if (locality.getAtomic(currlb).get(ffn).intValue()>0)
+            output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
+        } else
+          output.println(generateTemp(fm, ffn.getDst())+"="+ generateTemp(fm,ffn.getSrc())+"->"+ ffn.getField().getSafeSymbol()+";");
       } else if (status==LocalityAnalysis.EITHER) {
-	//Code is reading from a null pointer
-	output.println("if ("+generateTemp(fm, ffn.getSrc())+") {");
-	output.println("#ifndef RAW");
-	output.println("printf(\"BIG ERROR\\n\");exit(-1);}");
-	output.println("#endif");
-	//This should throw a suitable null pointer error
-	output.println(generateTemp(fm, ffn.getDst())+"="+ generateTemp(fm,ffn.getSrc())+"->"+ ffn.getField().getSafeSymbol()+";");
+        //Code is reading from a null pointer
+        output.println("if ("+generateTemp(fm, ffn.getSrc())+") {");
+        output.println("#ifndef RAW");
+        output.println("printf(\"BIG ERROR\\n\");exit(-1);}");
+        output.println("#endif");
+        //This should throw a suitable null pointer error
+        output.println(generateTemp(fm, ffn.getDst())+"="+ generateTemp(fm,ffn.getSrc())+"->"+ ffn.getField().getSafeSymbol()+";");
       } else
-	throw new Error("Read from non-global/non-local in:"+currlb.getExplanation());
+        throw new Error("Read from non-global/non-local in:"+currlb.getExplanation());
     }
   }
 
@@ -1799,28 +1799,28 @@ public class BuildCodeTran extends BuildCode {
       String dst=generateTemp(fm,fsfn.getDst());
       output.println("//"+srcptr+" "+fsfn.getSrc().getType().isNull());
       if (srcptr&&!fsfn.getSrc().getType().isNull()) {
-	output.println("{");
-	if ((dc==null)||dc.getNeedSrcTrans(currlb, fsfn)&&
-	    locality.getNodePreTempInfo(currlb, fsfn).get(fsfn.getSrc())!=LocalityAnalysis.SCRATCH) {
-	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
-	} else {
-	  output.println("INTPTR srcoid=(INTPTR)"+src+";");
-	}
+        output.println("{");
+        if ((dc==null)||dc.getNeedSrcTrans(currlb, fsfn)&&
+            locality.getNodePreTempInfo(currlb, fsfn).get(fsfn.getSrc())!=LocalityAnalysis.SCRATCH) {
+          output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+        } else {
+          output.println("INTPTR srcoid=(INTPTR)"+src+";");
+        }
       }
       if (wb.needBarrier(fsfn)&&
           locality.getNodePreTempInfo(currlb, fsfn).get(fsfn.getDst())!=LocalityAnalysis.SCRATCH) {
-	if (state.EVENTMONITOR) {
-	  output.println("if ("+dst+"->___objstatus___&DIRTY) EVLOGEVENTOBJ(EV_WRITE,"+dst+"->objuid)");
-	}
-	output.println("*((unsigned int *)&("+dst+"->___objstatus___))|=DIRTY;");
+        if (state.EVENTMONITOR) {
+          output.println("if ("+dst+"->___objstatus___&DIRTY) EVLOGEVENTOBJ(EV_WRITE,"+dst+"->objuid)");
+        }
+        output.println("*((unsigned int *)&("+dst+"->___objstatus___))|=DIRTY;");
       }
       if (srcptr&!fsfn.getSrc().getType().isNull()) {
-	output.println("*((unsigned INTPTR *)&("+dst+"->"+
-	               fsfn.getField().getSafeSymbol()+"))=srcoid;");
-	output.println("}");
+        output.println("*((unsigned INTPTR *)&("+dst+"->"+
+                       fsfn.getField().getSafeSymbol()+"))=srcoid;");
+        output.println("}");
       } else {
-	output.println(dst+"->"+
-	               fsfn.getField().getSafeSymbol()+"="+ src+";");
+        output.println(dst+"->"+
+                       fsfn.getField().getSafeSymbol()+"="+ src+";");
       }
     } else if (state.DSM && locality.getAtomic(currlb).get(fsfn).intValue()>0) {
       Integer statussrc=locality.getNodePreTempInfo(currlb,fsfn).get(fsfn.getSrc());
@@ -1830,52 +1830,52 @@ public class BuildCodeTran extends BuildCode {
       String src=generateTemp(fm,fsfn.getSrc());
       String dst=generateTemp(fm,fsfn.getDst());
       if (srcglobal) {
-	output.println("{");
-	output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+        output.println("{");
+        output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
       }
       if (statusdst.equals(LocalityAnalysis.GLOBAL)) {
-	String glbdst=dst;
-	//mark it dirty
-	if (wb.needBarrier(fsfn))
-	  output.println("*((unsigned int *)&("+dst+"->___localcopy___))|=DIRTY;");
-	if (srcglobal) {
-	  output.println("*((unsigned INTPTR *)&("+glbdst+"->"+
-	                 fsfn.getField().getSafeSymbol()+"))=srcoid;");
-	} else
-	  output.println(glbdst+"->"+
-	                 fsfn.getField().getSafeSymbol()+"="+ src+";");
+        String glbdst=dst;
+        //mark it dirty
+        if (wb.needBarrier(fsfn))
+          output.println("*((unsigned int *)&("+dst+"->___localcopy___))|=DIRTY;");
+        if (srcglobal) {
+          output.println("*((unsigned INTPTR *)&("+glbdst+"->"+
+                         fsfn.getField().getSafeSymbol()+"))=srcoid;");
+        } else
+          output.println(glbdst+"->"+
+                         fsfn.getField().getSafeSymbol()+"="+ src+";");
       } else if (statusdst.equals(LocalityAnalysis.LOCAL)) {
-	/** Check if we need to copy */
-	output.println("if(!"+dst+"->"+localcopystr+") {");
-	/* Link object into list */
-	String revertptr=generateTemp(fm, reverttable.get(currlb));
-	output.println(revertptr+"=revertlist;");
-	if (GENERATEPRECISEGC || this.state.MULTICOREGC)
-	  output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
-	else
-	  output.println("COPY_OBJ("+dst+");");
-	output.println(dst+"->"+nextobjstr+"="+revertptr+";");
-	output.println("revertlist=(struct ___Object___ *)"+dst+";");
-	output.println("}");
-	if (srcglobal)
-	  output.println(dst+"->"+
-	                 fsfn.getField().getSafeSymbol()+"=(void *) srcoid;");
-	else
-	  output.println(dst+"->"+
-	                 fsfn.getField().getSafeSymbol()+"="+ src+";");
+        /** Check if we need to copy */
+        output.println("if(!"+dst+"->"+localcopystr+") {");
+        /* Link object into list */
+        String revertptr=generateTemp(fm, reverttable.get(currlb));
+        output.println(revertptr+"=revertlist;");
+        if (GENERATEPRECISEGC || this.state.MULTICOREGC)
+          output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
+        else
+          output.println("COPY_OBJ("+dst+");");
+        output.println(dst+"->"+nextobjstr+"="+revertptr+";");
+        output.println("revertlist=(struct ___Object___ *)"+dst+";");
+        output.println("}");
+        if (srcglobal)
+          output.println(dst+"->"+
+                         fsfn.getField().getSafeSymbol()+"=(void *) srcoid;");
+        else
+          output.println(dst+"->"+
+                         fsfn.getField().getSafeSymbol()+"="+ src+";");
       } else if (statusdst.equals(LocalityAnalysis.EITHER)) {
-	//writing to a null...bad
-	output.println("if ("+dst+") {");
-	output.println("printf(\"BIG ERROR 2\\n\");exit(-1);}");
-	if (srcglobal)
-	  output.println(dst+"->"+
-	                 fsfn.getField().getSafeSymbol()+"=(void *) srcoid;");
-	else
-	  output.println(dst+"->"+
-	                 fsfn.getField().getSafeSymbol()+"="+ src+";");
+        //writing to a null...bad
+        output.println("if ("+dst+") {");
+        output.println("printf(\"BIG ERROR 2\\n\");exit(-1);}");
+        if (srcglobal)
+          output.println(dst+"->"+
+                         fsfn.getField().getSafeSymbol()+"=(void *) srcoid;");
+        else
+          output.println(dst+"->"+
+                         fsfn.getField().getSafeSymbol()+"="+ src+";");
       }
       if (srcglobal) {
-	output.println("}");
+        output.println("}");
       }
     }
   }
@@ -1899,44 +1899,44 @@ public class BuildCodeTran extends BuildCode {
       //Single machine transaction case
       String dst=generateTemp(fm, fen.getDst());
       if ((!state.STMARRAY)||(!wb.needBarrier(fen))||locality.getNodePreTempInfo(currlb, fen).get(fen.getSrc())==LocalityAnalysis.SCRATCH||locality.getAtomic(currlb).get(fen).intValue()==0||(state.READSET&&!dc.getNeedGet(currlb, fen))) {
-	output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
+        output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
       } else {
-	output.println("STMGETARRAY("+dst+", "+ generateTemp(fm,fen.getSrc())+", "+generateTemp(fm, fen.getIndex())+", "+type+");");
+        output.println("STMGETARRAY("+dst+", "+ generateTemp(fm,fen.getSrc())+", "+generateTemp(fm, fen.getIndex())+", "+type+");");
       }
 
       if (elementtype.isPtr()&&locality.getAtomic(currlb).get(fen).intValue()>0&&
           locality.getNodePreTempInfo(currlb, fen).get(fen.getSrc())!=LocalityAnalysis.SCRATCH) {
-	if ((dc==null)||!state.READSET&&dc.getNeedTrans(currlb, fen)||state.READSET&&dc.getNeedWriteTrans(currlb, fen)) {
-	  output.println("TRANSREAD("+dst+", "+dst+", (void *)(" + localsprefixaddr+"));");
-	} else if (state.READSET&&dc.getNeedTrans(currlb, fen)) {
-	  if (state.HYBRID&&delaycomp.getConv(currlb).contains(fen)) {
-	    output.println("TRANSREADRDFISSION("+dst+", "+dst+");");
-	  } else
-	    output.println("TRANSREADRD("+dst+", "+dst+");");
-	}
+        if ((dc==null)||!state.READSET&&dc.getNeedTrans(currlb, fen)||state.READSET&&dc.getNeedWriteTrans(currlb, fen)) {
+          output.println("TRANSREAD("+dst+", "+dst+", (void *)(" + localsprefixaddr+"));");
+        } else if (state.READSET&&dc.getNeedTrans(currlb, fen)) {
+          if (state.HYBRID&&delaycomp.getConv(currlb).contains(fen)) {
+            output.println("TRANSREADRDFISSION("+dst+", "+dst+");");
+          } else
+            output.println("TRANSREADRD("+dst+", "+dst+");");
+        }
       }
     } else if (state.DSM) {
       Integer status=locality.getNodePreTempInfo(currlb,fen).get(fen.getSrc());
       if (status==LocalityAnalysis.GLOBAL) {
-	String dst=generateTemp(fm, fen.getDst());
-	if (elementtype.isPtr()) {
-	  output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
-	  output.println("TRANSREAD("+dst+", "+dst+");");
-	} else {
-	  output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
-	}
+        String dst=generateTemp(fm, fen.getDst());
+        if (elementtype.isPtr()) {
+          output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
+          output.println("TRANSREAD("+dst+", "+dst+");");
+        } else {
+          output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
+        }
       } else if (status==LocalityAnalysis.LOCAL) {
-	output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
+        output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
       } else if (status==LocalityAnalysis.EITHER) {
-	//Code is reading from a null pointer
-	output.println("if ("+generateTemp(fm, fen.getSrc())+") {");
-	output.println("#ifndef RAW");
-	output.println("printf(\"BIG ERROR\\n\");exit(-1);}");
-	output.println("#endif");
-	//This should throw a suitable null pointer error
-	output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
+        //Code is reading from a null pointer
+        output.println("if ("+generateTemp(fm, fen.getSrc())+") {");
+        output.println("#ifndef RAW");
+        output.println("printf(\"BIG ERROR\\n\");exit(-1);}");
+        output.println("#endif");
+        //This should throw a suitable null pointer error
+        output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
       } else
-	throw new Error("Read from non-global/non-local in:"+currlb.getExplanation());
+        throw new Error("Read from non-global/non-local in:"+currlb.getExplanation());
     }
   }
 
@@ -1963,29 +1963,29 @@ public class BuildCodeTran extends BuildCode {
       //Transaction set element case
       if (wb.needBarrier(fsen)&&
           locality.getNodePreTempInfo(currlb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH) {
-	output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst())+"->___objstatus___))|=DIRTY;");
+        output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst())+"->___objstatus___))|=DIRTY;");
       }
       if (fsen.getSrc().getType().isPtr()&&!fsen.getSrc().getType().isNull()) {
-	output.println("{");
-	String src=generateTemp(fm, fsen.getSrc());
-	if ((dc==null)||dc.getNeedSrcTrans(currlb, fsen)&&
-	    locality.getNodePreTempInfo(currlb, fsen).get(fsen.getSrc())!=LocalityAnalysis.SCRATCH) {
-	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
-	} else {
-	  output.println("INTPTR srcoid=(INTPTR)"+src+";");
-	}
-	if (state.STMARRAY&&locality.getNodePreTempInfo(currlb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH&&wb.needBarrier(fsen)&&locality.getAtomic(currlb).get(fsen).intValue()>0) {
-	  output.println("STMSETARRAY("+generateTemp(fm, fsen.getDst())+", "+generateTemp(fm, fsen.getIndex())+", srcoid, INTPTR);");
-	} else {
-	  output.println("((INTPTR*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]=srcoid;");
-	}
-	output.println("}");
+        output.println("{");
+        String src=generateTemp(fm, fsen.getSrc());
+        if ((dc==null)||dc.getNeedSrcTrans(currlb, fsen)&&
+            locality.getNodePreTempInfo(currlb, fsen).get(fsen.getSrc())!=LocalityAnalysis.SCRATCH) {
+          output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+        } else {
+          output.println("INTPTR srcoid=(INTPTR)"+src+";");
+        }
+        if (state.STMARRAY&&locality.getNodePreTempInfo(currlb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH&&wb.needBarrier(fsen)&&locality.getAtomic(currlb).get(fsen).intValue()>0) {
+          output.println("STMSETARRAY("+generateTemp(fm, fsen.getDst())+", "+generateTemp(fm, fsen.getIndex())+", srcoid, INTPTR);");
+        } else {
+          output.println("((INTPTR*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]=srcoid;");
+        }
+        output.println("}");
       } else {
-	if (state.STMARRAY&&locality.getNodePreTempInfo(currlb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH&&wb.needBarrier(fsen)&&locality.getAtomic(currlb).get(fsen).intValue()>0) {
-	  output.println("STMSETARRAY("+generateTemp(fm, fsen.getDst())+", "+generateTemp(fm, fsen.getIndex())+", "+ generateTemp(fm, fsen.getSrc()) +", "+type+");");
-	} else {
-	  output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
-	}
+        if (state.STMARRAY&&locality.getNodePreTempInfo(currlb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH&&wb.needBarrier(fsen)&&locality.getAtomic(currlb).get(fsen).intValue()>0) {
+          output.println("STMSETARRAY("+generateTemp(fm, fsen.getDst())+", "+generateTemp(fm, fsen.getIndex())+", "+ generateTemp(fm, fsen.getSrc()) +", "+type+");");
+        } else {
+          output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
+        }
       }
     } else if (state.DSM && locality.getAtomic(currlb).get(fsen).intValue()>0) {
       Integer statussrc=locality.getNodePreTempInfo(currlb,fsen).get(fsen.getSrc());
@@ -1995,50 +1995,50 @@ public class BuildCodeTran extends BuildCode {
       boolean dstlocal=(statusdst==LocalityAnalysis.LOCAL)||(statusdst==LocalityAnalysis.EITHER);
 
       if (dstglobal) {
-	if (wb.needBarrier(fsen))
-	  output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst())+"->___localcopy___))|=DIRTY;");
+        if (wb.needBarrier(fsen))
+          output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst())+"->___localcopy___))|=DIRTY;");
       } else if (dstlocal) {
-	/** Check if we need to copy */
-	String dst=generateTemp(fm, fsen.getDst());
-	output.println("if(!"+dst+"->"+localcopystr+") {");
-	/* Link object into list */
-	String revertptr=generateTemp(fm, reverttable.get(currlb));
-	output.println(revertptr+"=revertlist;");
-	if ((GENERATEPRECISEGC) || this.state.MULTICOREGC)
-	  output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
-	else
-	  output.println("COPY_OBJ("+dst+");");
-	output.println(dst+"->"+nextobjstr+"="+revertptr+";");
-	output.println("revertlist=(struct ___Object___ *)"+dst+";");
-	output.println("}");
+        /** Check if we need to copy */
+        String dst=generateTemp(fm, fsen.getDst());
+        output.println("if(!"+dst+"->"+localcopystr+") {");
+        /* Link object into list */
+        String revertptr=generateTemp(fm, reverttable.get(currlb));
+        output.println(revertptr+"=revertlist;");
+        if ((GENERATEPRECISEGC) || this.state.MULTICOREGC)
+          output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
+        else
+          output.println("COPY_OBJ("+dst+");");
+        output.println(dst+"->"+nextobjstr+"="+revertptr+";");
+        output.println("revertlist=(struct ___Object___ *)"+dst+";");
+        output.println("}");
       } else {
-	System.out.println("Node: "+fsen);
-	System.out.println(currlb);
-	System.out.println("statusdst="+statusdst);
-	System.out.println(fm.printMethod());
-	throw new Error("Unknown array type");
+        System.out.println("Node: "+fsen);
+        System.out.println(currlb);
+        System.out.println("statusdst="+statusdst);
+        System.out.println(fm.printMethod());
+        throw new Error("Unknown array type");
       }
       if (srcglobal) {
-	output.println("{");
-	String src=generateTemp(fm, fsen.getSrc());
-	output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
-	output.println("((INTPTR*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]=srcoid;");
-	output.println("}");
+        output.println("{");
+        String src=generateTemp(fm, fsen.getSrc());
+        output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+        output.println("((INTPTR*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]=srcoid;");
+        output.println("}");
       } else {
-	output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
+        output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
       }
     } else {
       if (state.FASTCHECK) {
-	String dst=generateTemp(fm, fsen.getDst());
-	output.println("if(!"+dst+"->"+localcopystr+") {");
-	/* Link object into list */
-	if (GENERATEPRECISEGC || this.state.MULTICOREGC)
-	  output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
-	else
-	  output.println("COPY_OBJ("+dst+");");
-	output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
-	output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
-	output.println("}");
+        String dst=generateTemp(fm, fsen.getDst());
+        output.println("if(!"+dst+"->"+localcopystr+") {");
+        /* Link object into list */
+        if (GENERATEPRECISEGC || this.state.MULTICOREGC)
+          output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
+        else
+          output.println("COPY_OBJ("+dst+");");
+        output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
+        output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
+        output.println("}");
       }
       output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
     }
@@ -2053,39 +2053,39 @@ public class BuildCodeTran extends BuildCode {
     }
     if (state.SINGLETM) {
       if (fn.getType().isArray()) {
-	int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
-	if (locality.getAtomic(currlb).get(fn).intValue()>0) {
-	  //inside transaction
-	  output.println(generateTemp(fm,fn.getDst())+"=allocate_newarraytrans("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize())+");");
-	} else {
-	  //outside transaction
-	  output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize())+");");
-	}
+        int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
+        if (locality.getAtomic(currlb).get(fn).intValue()>0) {
+          //inside transaction
+          output.println(generateTemp(fm,fn.getDst())+"=allocate_newarraytrans("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize())+");");
+        } else {
+          //outside transaction
+          output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize())+");");
+        }
       } else {
-	if (locality.getAtomic(currlb).get(fn).intValue()>0) {
-	  //inside transaction
-	  output.println(generateTemp(fm,fn.getDst())+"=allocate_newtrans("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
-	} else {
-	  //outside transaction
-	  output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
-	}
+        if (locality.getAtomic(currlb).get(fn).intValue()>0) {
+          //inside transaction
+          output.println(generateTemp(fm,fn.getDst())+"=allocate_newtrans("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
+        } else {
+          //outside transaction
+          output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
+        }
       }
     } else if (fn.getType().isArray()) {
       int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
       if (fn.isGlobal()) {
-	output.println(generateTemp(fm,fn.getDst())+"=allocate_newarrayglobal("+arrayid+", "+generateTemp(fm, fn.getSize())+");");
+        output.println(generateTemp(fm,fn.getDst())+"=allocate_newarrayglobal("+arrayid+", "+generateTemp(fm, fn.getSize())+");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize())+");");
+        output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize())+");");
       } else {
-	output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize())+");");
+        output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize())+");");
       }
     } else {
       if (fn.isGlobal()) {
-	output.println(generateTemp(fm,fn.getDst())+"=allocate_newglobal("+fn.getType().getClassDesc().getId()+");");
+        output.println(generateTemp(fm,fn.getDst())+"=allocate_newglobal("+fn.getType().getClassDesc().getId()+");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
+        output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
       } else {
-	output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
+        output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
       }
     }
     if (state.DSM && locality.getAtomic(currlb).get(fn).intValue()>0&&!fn.isGlobal()) {
@@ -2106,28 +2106,28 @@ public class BuildCodeTran extends BuildCode {
   protected void generateFlatOpNode(FlatMethod fm, FlatOpNode fon, PrintWriter output) {
     if (fon.getRight()!=null) {
       if (fon.getOp().getOp()==Operation.URIGHTSHIFT) {
-	if (fon.getLeft().getType().isLong())
-	  output.println(generateTemp(fm, fon.getDest())+" = ((unsigned long long)"+generateTemp(fm, fon.getLeft())+")>>"+generateTemp(fm,fon.getRight())+";");
-	else
-	  output.println(generateTemp(fm, fon.getDest())+" = ((unsigned int)"+generateTemp(fm, fon.getLeft())+")>>"+generateTemp(fm,fon.getRight())+";");
+        if (fon.getLeft().getType().isLong())
+          output.println(generateTemp(fm, fon.getDest())+" = ((unsigned long long)"+generateTemp(fm, fon.getLeft())+")>>"+generateTemp(fm,fon.getRight())+";");
+        else
+          output.println(generateTemp(fm, fon.getDest())+" = ((unsigned int)"+generateTemp(fm, fon.getLeft())+")>>"+generateTemp(fm,fon.getRight())+";");
 
       } else if (dc!=null) {
-	output.print(generateTemp(fm, fon.getDest())+" = (");
-	if (fon.getLeft().getType().isPtr()&&(fon.getOp().getOp()==Operation.EQUAL||fon.getOp().getOp()==Operation.NOTEQUAL))
-	  output.print("(void *)");
-	if (dc.getNeedLeftSrcTrans(currlb, fon))
-	  output.print("("+generateTemp(fm, fon.getLeft())+"!=NULL?"+generateTemp(fm, fon.getLeft())+"->"+oidstr+":NULL)");
-	else
-	  output.print(generateTemp(fm, fon.getLeft()));
-	output.print(")"+fon.getOp().toString()+"(");
-	if (fon.getRight().getType().isPtr()&&(fon.getOp().getOp()==Operation.EQUAL||fon.getOp().getOp()==Operation.NOTEQUAL))
-	  output.print("(void *)");
-	if (dc.getNeedRightSrcTrans(currlb, fon))
-	  output.println("("+generateTemp(fm, fon.getRight())+"!=NULL?"+generateTemp(fm, fon.getRight())+"->"+oidstr+":NULL));");
-	else
-	  output.println(generateTemp(fm,fon.getRight())+");");
+        output.print(generateTemp(fm, fon.getDest())+" = (");
+        if (fon.getLeft().getType().isPtr()&&(fon.getOp().getOp()==Operation.EQUAL||fon.getOp().getOp()==Operation.NOTEQUAL))
+          output.print("(void *)");
+        if (dc.getNeedLeftSrcTrans(currlb, fon))
+          output.print("("+generateTemp(fm, fon.getLeft())+"!=NULL?"+generateTemp(fm, fon.getLeft())+"->"+oidstr+":NULL)");
+        else
+          output.print(generateTemp(fm, fon.getLeft()));
+        output.print(")"+fon.getOp().toString()+"(");
+        if (fon.getRight().getType().isPtr()&&(fon.getOp().getOp()==Operation.EQUAL||fon.getOp().getOp()==Operation.NOTEQUAL))
+          output.print("(void *)");
+        if (dc.getNeedRightSrcTrans(currlb, fon))
+          output.println("("+generateTemp(fm, fon.getRight())+"!=NULL?"+generateTemp(fm, fon.getRight())+"->"+oidstr+":NULL));");
+        else
+          output.println(generateTemp(fm,fon.getRight())+");");
       } else
-	output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
+        output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
     } else if (fon.getOp().getOp()==Operation.ASSIGN)
       output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+";");
     else if (fon.getOp().getOp()==Operation.UNARYPLUS)
@@ -2149,25 +2149,25 @@ public class BuildCodeTran extends BuildCode {
       output.println(generateTemp(fm, fln.getDst())+"=0;");
     else if (fln.getType().getSymbol().equals(TypeUtil.StringClass)) {
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	if (state.DSM && locality.getAtomic(currlb).get(fln).intValue()>0) {
-	  //Stash pointer in case of GC
-	  String revertptr=generateTemp(fm, reverttable.get(currlb));
-	  output.println(revertptr+"=revertlist;");
-	}
-	output.println(generateTemp(fm, fln.getDst())+"=NewString("+localsprefixaddr+", \""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
-	if (state.DSM && locality.getAtomic(currlb).get(fln).intValue()>0) {
-	  //Stash pointer in case of GC
-	  String revertptr=generateTemp(fm, reverttable.get(currlb));
-	  output.println("revertlist="+revertptr+";");
-	}
+        if (state.DSM && locality.getAtomic(currlb).get(fln).intValue()>0) {
+          //Stash pointer in case of GC
+          String revertptr=generateTemp(fm, reverttable.get(currlb));
+          output.println(revertptr+"=revertlist;");
+        }
+        output.println(generateTemp(fm, fln.getDst())+"=NewString("+localsprefixaddr+", \""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
+        if (state.DSM && locality.getAtomic(currlb).get(fln).intValue()>0) {
+          //Stash pointer in case of GC
+          String revertptr=generateTemp(fm, reverttable.get(currlb));
+          output.println("revertlist="+revertptr+";");
+        }
       } else {
-	output.println(generateTemp(fm, fln.getDst())+"=NewString(\""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
+        output.println(generateTemp(fm, fln.getDst())+"=NewString(\""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
       }
     } else if (fln.getType().isBoolean()) {
       if (((Boolean)fln.getValue()).booleanValue())
-	output.println(generateTemp(fm, fln.getDst())+"=1;");
+        output.println(generateTemp(fm, fln.getDst())+"=1;");
       else
-	output.println(generateTemp(fm, fln.getDst())+"=0;");
+        output.println(generateTemp(fm, fln.getDst())+"=0;");
     } else if (fln.getType().isChar()) {
       String st=FlatLiteralNode.escapeString(fln.getValue().toString());
       output.println(generateTemp(fm, fln.getDst())+"='"+st+"';");
@@ -2210,11 +2210,11 @@ public class BuildCodeTran extends BuildCode {
 
     if (md!=null&&md.getReturnType()!=null) {
       if (state.MGC && md.getReturnType().isClass() && md.getReturnType().getClassDesc().isEnum()) {
-	output.print("int ");
+        output.print("int ");
       } else if (md.getReturnType().isClass()||md.getReturnType().isArray())
-	output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
+        output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
       else
-	output.print(md.getReturnType().getSafeSymbol()+" ");
+        output.print(md.getReturnType().getSafeSymbol()+" ");
     } else
       //catch the constructor case
       output.print("void ");
@@ -2226,25 +2226,25 @@ public class BuildCodeTran extends BuildCode {
     boolean printcomma=false;
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (md!=null) {
-	output.print("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
+        output.print("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
       } else
-	output.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
+        output.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
       printcomma=true;
     }
 
     if (md!=null) {
       /* Method */
       for(int i=0; i<objectparams.numPrimitives(); i++) {
-	TempDescriptor temp=objectparams.getPrimitive(i);
-	if (printcomma)
-	  output.print(", ");
-	printcomma=true;
-	if(state.MGC && temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	  output.print("int " + temp.getSafeSymbol());
-	} else if (temp.getType().isClass()||temp.getType().isArray())
-	  output.print("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
-	else
-	  output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+        TempDescriptor temp=objectparams.getPrimitive(i);
+        if (printcomma)
+          output.print(", ");
+        printcomma=true;
+        if(state.MGC && temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+          output.print("int " + temp.getSafeSymbol());
+        } else if (temp.getType().isClass()||temp.getType().isArray())
+          output.print("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+        else
+          output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
       }
       output.println(") {");
     } else if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
@@ -2252,21 +2252,21 @@ public class BuildCodeTran extends BuildCode {
       output.println("void * parameterarray[]) {");
       /* Unpack variables */
       for(int i=0; i<objectparams.numPrimitives(); i++) {
-	TempDescriptor temp=objectparams.getPrimitive(i);
-	if(state.MGC && temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
-	  output.print("int " + temp.getSafeSymbol() + "=parameterarray["+i+"];");
-	} else {
-	  output.println("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+"=parameterarray["+i+"];");
-	}
+        TempDescriptor temp=objectparams.getPrimitive(i);
+        if(state.MGC && temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+          output.print("int " + temp.getSafeSymbol() + "=parameterarray["+i+"];");
+        } else {
+          output.println("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+"=parameterarray["+i+"];");
+        }
       }
       for(int i=0; i<fm.numTags(); i++) {
-	TempDescriptor temp=fm.getTag(i);
-	int offset=i+objectparams.numPrimitives();
-	output.println("struct ___TagDescriptor___ * "+temp.getSafeSymbol()+"=parameterarray["+offset+"];");
+        TempDescriptor temp=fm.getTag(i);
+        int offset=i+objectparams.numPrimitives();
+        output.println("struct ___TagDescriptor___ * "+temp.getSafeSymbol()+"=parameterarray["+offset+"];");
       }
 
       if ((objectparams.numPrimitives()+fm.numTags())>maxtaskparams)
-	maxtaskparams=objectparams.numPrimitives()+fm.numTags();
+        maxtaskparams=objectparams.numPrimitives()+fm.numTags();
     } else output.println(") {");
   }
 }

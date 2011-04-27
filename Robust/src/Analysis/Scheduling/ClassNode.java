@@ -126,7 +126,7 @@ public class ClassNode extends GraphNode implements Cloneable {
           (fs.isSorted() != sorted) ||
           (fs.clone != this.clone) ||
           (fs.transTime != this.transTime)) {
-	return false;
+        return false;
       }
       return (fs.getFlagStates().equals(flagStates));
     }

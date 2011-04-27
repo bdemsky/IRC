@@ -64,30 +64,30 @@ public class LoopInvariant {
     } else {
       /* Check whether it is safe to reuse values. */
       for(Iterator elit=elements.iterator(); elit.hasNext(); ) {
-	FlatNode fn=(FlatNode)elit.next();
-	if (fn.kind()==FKind.FlatAtomicEnterNode||
-	    fn.kind()==FKind.FlatAtomicExitNode) {
-	  unsafe=true;
-	  break;
-	} else if (fn.kind()==FKind.FlatCall) {
-	  FlatCall fcall=(FlatCall)fn;
-	  MethodDescriptor md=fcall.getMethod();
-	  Set<FieldDescriptor> f=gft.getFieldsAll(md);
-	  Set<TypeDescriptor> t=gft.getArraysAll(md);
-	  if (f!=null)
-	    fields.addAll(f);
-	  if (t!=null)
-	    types.addAll(t);
-	  if (gft.containsAtomicAll(md)||gft.containsBarrierAll(md)) {
-	    unsafe=true;
-	  }
-	} else if (fn.kind()==FKind.FlatSetFieldNode) {
-	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
-	  fields.add(fsfn.getField());
-	} else if (fn.kind()==FKind.FlatSetElementNode) {
-	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	  types.add(fsen.getDst().getType());
-	}
+        FlatNode fn=(FlatNode)elit.next();
+        if (fn.kind()==FKind.FlatAtomicEnterNode||
+            fn.kind()==FKind.FlatAtomicExitNode) {
+          unsafe=true;
+          break;
+        } else if (fn.kind()==FKind.FlatCall) {
+          FlatCall fcall=(FlatCall)fn;
+          MethodDescriptor md=fcall.getMethod();
+          Set<FieldDescriptor> f=gft.getFieldsAll(md);
+          Set<TypeDescriptor> t=gft.getArraysAll(md);
+          if (f!=null)
+            fields.addAll(f);
+          if (t!=null)
+            types.addAll(t);
+          if (gft.containsAtomicAll(md)||gft.containsBarrierAll(md)) {
+            unsafe=true;
+          }
+        } else if (fn.kind()==FKind.FlatSetFieldNode) {
+          FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+          fields.add(fsfn.getField());
+        } else if (fn.kind()==FKind.FlatSetElementNode) {
+          FlatSetElementNode fsen=(FlatSetElementNode)fn;
+          types.add(fsen.getDst().getType());
+        }
       }
     }
 
@@ -99,59 +99,59 @@ public class LoopInvariant {
       changed=false;
 nextfn:
       for(Iterator tpit=toprocess.iterator(); tpit.hasNext(); ) {
-	FlatNode fn=(FlatNode)tpit.next();
-	switch(fn.kind()) {
-	case FKind.FlatOpNode:
-	  int op=((FlatOpNode)fn).getOp().getOp();
-	  if (op==Operation.DIV||op==Operation.MOD||
-	      checkNode(fn,elements)||
-	      !unsafe&&!dominatorset.contains(fn)) {
-	    continue nextfn;
-	  }
-	  break;
+        FlatNode fn=(FlatNode)tpit.next();
+        switch(fn.kind()) {
+        case FKind.FlatOpNode:
+          int op=((FlatOpNode)fn).getOp().getOp();
+          if (op==Operation.DIV||op==Operation.MOD||
+              checkNode(fn,elements)||
+              !unsafe&&!dominatorset.contains(fn)) {
+            continue nextfn;
+          }
+          break;
 
-	case FKind.FlatInstanceOfNode:
-	  if (checkNode(fn,elements)||
-	      !unsafe&&!dominatorset.contains(fn)) {
-	    continue nextfn;
-	  }
-	  break;
+        case FKind.FlatInstanceOfNode:
+          if (checkNode(fn,elements)||
+              !unsafe&&!dominatorset.contains(fn)) {
+            continue nextfn;
+          }
+          break;
 
-	case FKind.FlatElementNode:
-	  if (unsafe||dominatorset==null||
-	      !dominatorset.contains(fn)||
-	      checkNode(fn,elements))
-	    continue nextfn;
-	  TypeDescriptor td=((FlatElementNode)fn).getSrc().getType();
-	  for(Iterator<TypeDescriptor> tdit=types.iterator(); tdit.hasNext(); ) {
-	    TypeDescriptor td2=tdit.next();
-	    if (typeutil.isSuperorType(td,td2)||
-	        typeutil.isSuperorType(td2,td)) {
-	      continue nextfn;
-	    }
-	  }
-	  if (isLeaf)
-	    tounroll.add(entrance);
-	  break;
+        case FKind.FlatElementNode:
+          if (unsafe||dominatorset==null||
+              !dominatorset.contains(fn)||
+              checkNode(fn,elements))
+            continue nextfn;
+          TypeDescriptor td=((FlatElementNode)fn).getSrc().getType();
+          for(Iterator<TypeDescriptor> tdit=types.iterator(); tdit.hasNext(); ) {
+            TypeDescriptor td2=tdit.next();
+            if (typeutil.isSuperorType(td,td2)||
+                typeutil.isSuperorType(td2,td)) {
+              continue nextfn;
+            }
+          }
+          if (isLeaf)
+            tounroll.add(entrance);
+          break;
 
-	case FKind.FlatFieldNode:
-	  if (unsafe||dominatorset==null||
-	      !dominatorset.contains(fn)||
-	      fields.contains(((FlatFieldNode)fn).getField())||
-	      checkNode(fn,elements)) {
-	    continue nextfn;
-	  }
-	  if (isLeaf)
-	    tounroll.add(entrance);
-	  break;
+        case FKind.FlatFieldNode:
+          if (unsafe||dominatorset==null||
+              !dominatorset.contains(fn)||
+              fields.contains(((FlatFieldNode)fn).getField())||
+              checkNode(fn,elements)) {
+            continue nextfn;
+          }
+          if (isLeaf)
+            tounroll.add(entrance);
+          break;
 
-	default:
-	  continue nextfn;
-	}
-	//mark to hoist
-	if (hoisted.add(fn))
-	  changed=true;
-	table.get(entrance).add(fn);
+        default:
+          continue nextfn;
+        }
+        //mark to hoist
+        if (hoisted.add(fn))
+          changed=true;
+        table.get(entrance).add(fn);
       }
     }
   }
@@ -168,23 +168,23 @@ nextfn:
     for (int i=0; i<entrance.numPrev(); i++) {
       FlatNode incoming=entrance.getPrev(i);
       if (elements.contains(incoming)) {
-	HashSet domset=new HashSet();
-	domset.add(incoming);
-	FlatNode tmp=incoming;
-	while(tmp!=entrance) {
-	  tmp=domtree.idom(tmp);
-	  domset.add(tmp);
-	}
-	if (first) {
-	  dominatorset=domset;
-	  first=false;
-	} else {
-	  for(Iterator it=dominatorset.iterator(); it.hasNext(); ) {
-	    FlatNode fn=(FlatNode)it.next();
-	    if (!domset.contains(fn))
-	      it.remove();
-	  }
-	}
+        HashSet domset=new HashSet();
+        domset.add(incoming);
+        FlatNode tmp=incoming;
+        while(tmp!=entrance) {
+          tmp=domtree.idom(tmp);
+          domset.add(tmp);
+        }
+        if (first) {
+          dominatorset=domset;
+          first=false;
+        } else {
+          for(Iterator it=dominatorset.iterator(); it.hasNext(); ) {
+            FlatNode fn=(FlatNode)it.next();
+            if (!domset.contains(fn))
+              it.remove();
+          }
+        }
       }
     }
     return dominatorset;
@@ -197,11 +197,11 @@ nextfn:
       TempDescriptor t=uses[i];
       Set<FlatNode> defset=usedef.defMap(fn, t);
       for(Iterator<FlatNode> defit=defset.iterator(); defit.hasNext(); ) {
-	FlatNode def=defit.next();
-	if (elements.contains(def)&&defset.size()>1)
-	  return true;
-	if (elements.contains(def)&&!hoisted.contains(def))
-	  return true;
+        FlatNode def=defit.next();
+        if (elements.contains(def)&&defset.size()>1)
+          return true;
+        if (elements.contains(def)&&!hoisted.contains(def))
+          return true;
       }
     }
     return false;

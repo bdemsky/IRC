@@ -60,11 +60,11 @@ public class PrefetchPair {
     for(; it.hasNext(); ) {
       Object o = it.next();
       if(o instanceof FieldDescriptor) {
-	FieldDescriptor fd = (FieldDescriptor) o;
-	label+="."+ fd.toString();
+        FieldDescriptor fd = (FieldDescriptor) o;
+        label+="."+ fd.toString();
       } else {
-	IndexDescriptor id = (IndexDescriptor) o;
-	label+= id.toString();
+        IndexDescriptor id = (IndexDescriptor) o;
+        label+= id.toString();
       }
     }
     return label;
@@ -84,16 +84,16 @@ public class PrefetchPair {
     for(int i = 0; i < this.desc.size(); i++) {
       Object o = desc.get(i);
       if(o instanceof FieldDescriptor) {
-	newpp.desc.add((FieldDescriptor) o);
+        newpp.desc.add((FieldDescriptor) o);
       } else {
-	ArrayList<TempDescriptor> td = new ArrayList<TempDescriptor>();
-	for(int j = 0; j < ((IndexDescriptor)o).tddesc.size(); j++) {
-	  td.add(((IndexDescriptor)o).getTempDescAt(j));
-	}
-	IndexDescriptor idesc = new IndexDescriptor();
-	idesc.tddesc = td;
-	idesc.offset = ((IndexDescriptor)o).offset;
-	newpp.desc.add(idesc);
+        ArrayList<TempDescriptor> td = new ArrayList<TempDescriptor>();
+        for(int j = 0; j < ((IndexDescriptor)o).tddesc.size(); j++) {
+          td.add(((IndexDescriptor)o).getTempDescAt(j));
+        }
+        IndexDescriptor idesc = new IndexDescriptor();
+        idesc.tddesc = td;
+        idesc.offset = ((IndexDescriptor)o).offset;
+        newpp.desc.add(idesc);
       }
     }
     return newpp;
@@ -106,10 +106,10 @@ public class PrefetchPair {
     for(ListIterator it = desc.listIterator(); it.hasNext(); ) {
       Object o = it.next();
       if(o instanceof IndexDescriptor) {
-	ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)o).tddesc;
-	if(tdarray.contains(td)) {
-	  return true;
-	}
+        ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)o).tddesc;
+        if(tdarray.contains(td)) {
+          return true;
+        }
       }
     }
     return false;
@@ -123,14 +123,14 @@ public class PrefetchPair {
     for(ListIterator it = desc.listIterator(); it.hasNext(); ) {
       Object currdesc = it.next();
       if(currdesc instanceof IndexDescriptor) {
-	ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)currdesc).tddesc;
-	if (tdarray.contains(td)) {
-	  int index = tdarray.indexOf(td);
-	  tdarray.set(index, newtd[0]);
-	  for(int i=1; i<newtd.length; i++) {
-	    tdarray.add(newtd[i]);
-	  }
-	}
+        ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)currdesc).tddesc;
+        if (tdarray.contains(td)) {
+          int index = tdarray.indexOf(td);
+          tdarray.set(index, newtd[0]);
+          for(int i=1; i<newtd.length; i++) {
+            tdarray.add(newtd[i]);
+          }
+        }
       }
     }
     return npp;

@@ -243,30 +243,30 @@ public class ExistPred extends Canonical {
       // first find node
       HeapRegionNode hrn = rg.id2hrn.get(n_hrnID);
       if( hrn == null ) {
-	return null;
+        return null;
       }
 
       if( !calleeReachableNodes.contains(n_hrnID) ) {
-	return null;
+        return null;
       }
 
       // when the state is null we're done!
       if( ne_state == null ) {
-	return hrn.getPreds();
+        return hrn.getPreds();
 
       } else {
-	// otherwise look for state too
+        // otherwise look for state too
 
-	// TODO: contains OR containsSuperSet OR containsWithZeroes??
-	ReachState stateCaller = hrn.getAlpha().containsIgnorePreds(ne_state);
+        // TODO: contains OR containsSuperSet OR containsWithZeroes??
+        ReachState stateCaller = hrn.getAlpha().containsIgnorePreds(ne_state);
 
-	if( stateCaller == null ) {
-	  return null;
+        if( stateCaller == null ) {
+          return null;
 
-	} else {
-	  // it was here, return the predicates on the state!!
-	  return stateCaller.getPreds();
-	}
+        } else {
+          // it was here, return the predicates on the state!!
+          return stateCaller.getPreds();
+        }
       }
 
       // unreachable program point!
@@ -278,61 +278,61 @@ public class ExistPred extends Canonical {
       // reference edge exists
       VariableNode vnSrc = null;
       if( e_tdSrc != null ) {
-	vnSrc = rg.td2vn.get(e_tdSrc);
+        vnSrc = rg.td2vn.get(e_tdSrc);
       }
       HeapRegionNode hrnSrc = null;
       if( e_hrnSrcID != null ) {
-	hrnSrc = rg.id2hrn.get(e_hrnSrcID);
+        hrnSrc = rg.id2hrn.get(e_hrnSrcID);
       }
       assert(vnSrc == null) || (hrnSrc == null);
 
       // the source is not present in graph
       if( vnSrc == null && hrnSrc == null ) {
-	return null;
+        return null;
       }
 
       RefSrcNode rsn;
       if( vnSrc != null ) {
-	rsn = vnSrc;
-	assert e_srcOutCalleeContext;
-	assert !e_srcOutCallerContext;
+        rsn = vnSrc;
+        assert e_srcOutCalleeContext;
+        assert !e_srcOutCallerContext;
 
       } else {
 
-	assert !(e_srcOutCalleeContext && e_srcOutCallerContext);
+        assert !(e_srcOutCalleeContext && e_srcOutCallerContext);
 
-	if( e_srcOutCalleeContext ) {
-	  if( calleeReachableNodes.contains(e_hrnSrcID) ) {
-	    return null;
-	  }
+        if( e_srcOutCalleeContext ) {
+          if( calleeReachableNodes.contains(e_hrnSrcID) ) {
+            return null;
+          }
 
-	} else if( e_srcOutCallerContext ) {
-	  if( !hrnSrc.isOutOfContext() ) {
-	    return null;
-	  }
+        } else if( e_srcOutCallerContext ) {
+          if( !hrnSrc.isOutOfContext() ) {
+            return null;
+          }
 
-	} else {
+        } else {
 
-	  if( !calleeReachableNodes.contains(e_hrnSrcID) ) {
-	    return null;
-	  }
-	  if( hrnSrc.isOutOfContext() ) {
-	    return null;
-	  }
+          if( !calleeReachableNodes.contains(e_hrnSrcID) ) {
+            return null;
+          }
+          if( hrnSrc.isOutOfContext() ) {
+            return null;
+          }
 
-	}
+        }
 
-	rsn = hrnSrc;
+        rsn = hrnSrc;
       }
 
       // is the destination present?
       HeapRegionNode hrnDst = rg.id2hrn.get(e_hrnDstID);
       if( hrnDst == null ) {
-	return null;
+        return null;
       }
 
       if( !calleeReachableNodes.contains(e_hrnDstID) ) {
-	return null;
+        return null;
       }
 
       // is there an edge between them with the given
@@ -342,40 +342,40 @@ public class ExistPred extends Canonical {
                                         e_type,
                                         e_field);
       if( edge == null ) {
-	return null;
+        return null;
       }
 
       // when the state and taint are null we're done!
       if( ne_state == null &&
           e_taint  == null ) {
-	return edge.getPreds();
+        return edge.getPreds();
 
       } else if( ne_state != null ) {
-	// otherwise look for state too
+        // otherwise look for state too
 
-	// TODO: contains OR containsSuperSet OR containsWithZeroes??
-	ReachState stateCaller = edge.getBeta().containsIgnorePreds(ne_state);
+        // TODO: contains OR containsSuperSet OR containsWithZeroes??
+        ReachState stateCaller = edge.getBeta().containsIgnorePreds(ne_state);
 
-	if( stateCaller == null ) {
-	  return null;
+        if( stateCaller == null ) {
+          return null;
 
-	} else {
-	  // it was here, return the predicates on the state!!
-	  return stateCaller.getPreds();
-	}
+        } else {
+          // it was here, return the predicates on the state!!
+          return stateCaller.getPreds();
+        }
 
       } else {
-	// otherwise look for taint
+        // otherwise look for taint
 
-	Taint tCaller = edge.getTaints().containsIgnorePreds(e_taint);
+        Taint tCaller = edge.getTaints().containsIgnorePreds(e_taint);
 
-	if( tCaller == null ) {
-	  return null;
+        if( tCaller == null ) {
+          return null;
 
-	} else {
-	  // it was here, return the predicates on the taint!!
-	  return tCaller.getPreds();
-	}
+        } else {
+          // it was here, return the predicates on the taint!!
+          return tCaller.getPreds();
+        }
       }
 
       // unreachable program point!
@@ -403,7 +403,7 @@ public class ExistPred extends Canonical {
 
     if( ne_state == null ) {
       if( pred.ne_state != null ) {
-	return false;
+        return false;
       }
     } else if( !ne_state.equals(pred.ne_state) ) {
       return false;
@@ -411,7 +411,7 @@ public class ExistPred extends Canonical {
 
     if( n_hrnID == null ) {
       if( pred.n_hrnID != null ) {
-	return false;
+        return false;
       }
     } else if( !n_hrnID.equals(pred.n_hrnID) ) {
       return false;
@@ -419,7 +419,7 @@ public class ExistPred extends Canonical {
 
     if( e_tdSrc == null ) {
       if( pred.e_tdSrc != null ) {
-	return false;
+        return false;
       }
     } else if( !e_tdSrc.equals(pred.e_tdSrc) ) {
       return false;
@@ -427,23 +427,23 @@ public class ExistPred extends Canonical {
 
     if( e_hrnSrcID == null ) {
       if( pred.e_hrnSrcID != null ) {
-	return false;
+        return false;
       }
     } else {
       if( !e_hrnSrcID.equals(pred.e_hrnSrcID) ) {
-	return false;
+        return false;
       }
       if( e_srcOutCalleeContext != pred.e_srcOutCalleeContext ) {
-	return false;
+        return false;
       }
       if( e_srcOutCallerContext != pred.e_srcOutCallerContext ) {
-	return false;
+        return false;
       }
     }
 
     if( e_hrnDstID == null ) {
       if( pred.e_hrnDstID != null ) {
-	return false;
+        return false;
       }
     } else if( !e_hrnDstID.equals(pred.e_hrnDstID) ) {
       return false;
@@ -451,7 +451,7 @@ public class ExistPred extends Canonical {
 
     if( e_type == null ) {
       if( pred.e_type != null ) {
-	return false;
+        return false;
       }
     } else if( !e_type.equals(pred.e_type) ) {
       return false;
@@ -459,7 +459,7 @@ public class ExistPred extends Canonical {
 
     if( e_field == null ) {
       if( pred.e_field != null ) {
-	return false;
+        return false;
       }
     } else if( !e_field.equals(pred.e_field) ) {
       return false;
@@ -467,7 +467,7 @@ public class ExistPred extends Canonical {
 
     if( e_taint == null ) {
       if( pred.e_taint != null ) {
-	return false;
+        return false;
       }
     } else if( !e_taint.equals(pred.e_taint) ) {
       return false;
@@ -486,7 +486,7 @@ public class ExistPred extends Canonical {
       int hash = n_hrnID.intValue()*17;
 
       if( ne_state != null ) {
-	hash ^= ne_state.hashCode();
+        hash ^= ne_state.hashCode();
       }
 
       return hash;
@@ -498,29 +498,29 @@ public class ExistPred extends Canonical {
       hash += e_type.hashCode()*17;
 
       if( e_field != null ) {
-	hash += e_field.hashCode()*7;
+        hash += e_field.hashCode()*7;
       }
 
       if( e_tdSrc != null ) {
-	hash ^= e_tdSrc.hashCode()*11;
+        hash ^= e_tdSrc.hashCode()*11;
       } else {
-	hash ^= e_hrnSrcID.hashCode()*11;
-	if( e_srcOutCalleeContext ) {
-	  hash ^= 0xf1aeb;
-	}
-	if( e_srcOutCallerContext ) {
-	  hash ^= 0x875d;
-	}
+        hash ^= e_hrnSrcID.hashCode()*11;
+        if( e_srcOutCalleeContext ) {
+          hash ^= 0xf1aeb;
+        }
+        if( e_srcOutCallerContext ) {
+          hash ^= 0x875d;
+        }
       }
 
       hash += e_hrnDstID.hashCode();
 
       if( ne_state != null ) {
-	hash ^= ne_state.hashCode();
+        hash ^= ne_state.hashCode();
       }
 
       if( e_taint != null ) {
-	hash ^= e_taint.hashCode();
+        hash ^= e_taint.hashCode();
       }
 
       return hash;
@@ -538,7 +538,7 @@ public class ExistPred extends Canonical {
     if( predType == TYPE_NODE ) {
       String s = n_hrnID.toString();
       if( ne_state != null ) {
-	s += "w"+ne_state;
+        s += "w"+ne_state;
       }
       return s;
     }
@@ -547,27 +547,27 @@ public class ExistPred extends Canonical {
       String s = "(";
 
       if( e_tdSrc != null ) {
-	s += e_tdSrc.toString();
+        s += e_tdSrc.toString();
       } else {
-	s += e_hrnSrcID.toString();
+        s += e_hrnSrcID.toString();
       }
 
       if( e_srcOutCalleeContext ) {
-	s += "(ooCLEEc)";
+        s += "(ooCLEEc)";
       }
 
       if( e_srcOutCallerContext ) {
-	s += "(ooCLERc)";
+        s += "(ooCLERc)";
       }
 
       s += "-->"+e_hrnDstID+")";
 
       if( ne_state != null ) {
-	s += "w"+ne_state;
+        s += "w"+ne_state;
       }
 
       if( e_taint != null ) {
-	s += "w"+e_taint;
+        s += "w"+e_taint;
       }
 
       return s;

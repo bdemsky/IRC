@@ -25,9 +25,9 @@ class HashMapIterator extends Iterator {
       he=he.next;
       Object o;
       if (type==0)
-	o=he.key;
+        o=he.key;
       else
-	o=he.value;
+        o=he.value;
       return o;
     }
     while((bin<map.table.length)&&
@@ -37,9 +37,9 @@ class HashMapIterator extends Iterator {
       he=map.table[bin++];
       Object o;
       if (type==0)
-	o=he.key;
+        o=he.key;
       else
-	o=he.value;
+        o=he.value;
       return o;
     } else System.error();
   }

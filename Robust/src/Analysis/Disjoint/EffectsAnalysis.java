@@ -83,12 +83,12 @@ public class EffectsAnalysis {
 
       Hashtable<Taint, Set<Effect>> te = sese2te.get(sese);
       if( te == null ) {
-	te = new Hashtable<Taint, Set<Effect>>();
+        te = new Hashtable<Taint, Set<Effect>>();
       }
 
       Set<Effect> effects = te.get(tNoPreds);
       if (effects == null) {
-	effects = new HashSet<Effect>();
+        effects = new HashSet<Effect>();
       }
       effects.add(e);
       te.put(tNoPreds, effects);
@@ -101,12 +101,12 @@ public class EffectsAnalysis {
 
       Hashtable<Taint, Set<Effect>> te = stallSite2te.get(stallSite);
       if( te == null ) {
-	te = new Hashtable<Taint, Set<Effect>>();
+        te = new Hashtable<Taint, Set<Effect>>();
       }
 
       Set<Effect> effects = te.get(tNoPreds);
       if (effects == null) {
-	effects = new HashSet<Effect>();
+        effects = new HashSet<Effect>();
       }
       effects.add(e);
       te.put(tNoPreds, effects);
@@ -139,8 +139,8 @@ public class EffectsAnalysis {
       Effect effect        = new Effect(affectedAlloc, Effect.read, fld);
 
       for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext(); ) {
-	Taint taint = taintSetIter.next();
-	add(taint, effect, currentProgramPoint);
+        Taint taint = taintSetIter.next();
+        add(taint, effect, currentProgramPoint);
       }
     }
   }
@@ -152,9 +152,9 @@ public class EffectsAnalysis {
       Effect effect        = new Effect(affectedAlloc, Effect.read, fld);
 
       if (taintSet!=null)
-	for (Taint taint : taintSet.getTaints()) {
-	  add(taint, effect, currentProgramPoint);
-	}
+        for (Taint taint : taintSet.getTaints()) {
+          add(taint, effect, currentProgramPoint);
+        }
     }
   }
 
@@ -173,16 +173,16 @@ public class EffectsAnalysis {
       Effect effectSU      = null;
 
       if (strongUpdate) {
-	effectSU = new Effect(affectedAlloc, Effect.strongupdate, fld);
+        effectSU = new Effect(affectedAlloc, Effect.strongupdate, fld);
       }
 
       for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext(); ) {
-	Taint taint = taintSetIter.next();
-	add(taint, effect, currentProgramPoint);
+        Taint taint = taintSetIter.next();
+        add(taint, effect, currentProgramPoint);
 
-	if (strongUpdate) {
-	  add(taint, effectSU, currentProgramPoint);
-	}
+        if (strongUpdate) {
+          add(taint, effectSU, currentProgramPoint);
+        }
       }
     }
   }
@@ -194,9 +194,9 @@ public class EffectsAnalysis {
       Alloc affectedAlloc = edge.getDst().getAllocSite();
       Effect effect = new Effect(affectedAlloc, Effect.write, fld);
       if (taintSet!=null)
-	for (Taint taint : taintSet.getTaints()) {
-	  add(taint, effect, currentProgramPoint);
-	}
+        for (Taint taint : taintSet.getTaints()) {
+          add(taint, effect, currentProgramPoint);
+        }
     }
   }
 
@@ -213,16 +213,16 @@ public class EffectsAnalysis {
 
       Iterator meItr = taint2effects.entrySet().iterator();
       while( meItr.hasNext() ) {
-	Map.Entry me      = (Map.Entry)meItr.next();
-	Taint taint   = (Taint)       me.getKey();
-	Set<Effect> effects = (Set<Effect>)me.getValue();
+        Map.Entry me      = (Map.Entry)meItr.next();
+        Taint taint   = (Taint)       me.getKey();
+        Set<Effect> effects = (Set<Effect>)me.getValue();
 
-	Iterator<Effect> eItr = effects.iterator();
-	while( eItr.hasNext() ) {
-	  Effect e = eItr.next();
+        Iterator<Effect> eItr = effects.iterator();
+        while( eItr.hasNext() ) {
+          Effect e = eItr.next();
 
-	  bw.write(taint+"-->"+e+"\n");
-	}
+          bw.write(taint+"-->"+e+"\n");
+        }
       }
 
       bw.close();

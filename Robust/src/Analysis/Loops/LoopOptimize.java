@@ -81,12 +81,12 @@ public class LoopOptimize {
 
       //deal with the possiblity we already hoisted this node
       if (clonemap.containsKey(fn)) {
-	FlatNode fnnew=clonemap.get(fn);
-	TempDescriptor writenew[]=fnnew.writesTemps();
-	t.addPair(writes[0],writenew[0]);
-	if (fn==entrance)
-	  entrance=map.get(fn);
-	continue;
+        FlatNode fnnew=clonemap.get(fn);
+        TempDescriptor writenew[]=fnnew.writesTemps();
+        t.addPair(writes[0],writenew[0]);
+        if (fn==entrance)
+          entrance=map.get(fn);
+        continue;
       }
 
       //build hoisted version
@@ -94,10 +94,10 @@ public class LoopOptimize {
       fnnew.rewriteUse(t);
 
       for(int j=0; j<writes.length; j++) {
-	if (writes[j]!=null) {
-	  TempDescriptor cp=writes[j].createNew();
-	  t.addPair(writes[j],cp);
-	}
+        if (writes[j]!=null) {
+          TempDescriptor cp=writes[j].createNew();
+          t.addPair(writes[j],cp);
+        }
       }
       fnnew.rewriteDef(t);
 
@@ -106,21 +106,21 @@ public class LoopOptimize {
 
       //add hoisted version to chain
       if (first==null)
-	first=fnnew;
+        first=fnnew;
       else
-	last.addNext(fnnew);
+        last.addNext(fnnew);
       last=fnnew;
 
       /* Splice out old node */
       if (writes.length==1) {
-	FlatOpNode fon=new FlatOpNode(writes[0], t.tempMap(writes[0]), null, new Operation(Operation.ASSIGN));
-	fn.replace(fon);
-	ntoomap.put(fon, fn);
-	map.put(fn, fon);
-	if (fn==entrance)
-	  entrance=fon;
+        FlatOpNode fon=new FlatOpNode(writes[0], t.tempMap(writes[0]), null, new Operation(Operation.ASSIGN));
+        fn.replace(fon);
+        ntoomap.put(fon, fn);
+        map.put(fn, fon);
+        if (fn==entrance)
+          entrance=fon;
       } else if (writes.length>1) {
-	throw new Error();
+        throw new Error();
       }
     }
     /* If the chain is empty, we can exit now */
@@ -136,11 +136,11 @@ public class LoopOptimize {
       FlatNode prev=prevarray[i];
 
       if (!lelements.contains(ntooremap(prev))) {
-	//need to fix this edge
-	for(int j=0; j<prev.numNext(); j++) {
-	  if (prev.getNext(j)==entrance)
-	    prev.setNext(j, first);
-	}
+        //need to fix this edge
+        for(int j=0; j<prev.numNext(); j++) {
+          if (prev.getNext(j)==entrance)
+            prev.setNext(j, first);
+        }
       }
     }
     last.addNext(entrance);
@@ -168,19 +168,19 @@ public class LoopOptimize {
       FlatNode copy=nfn.clone(t);
       FlatNode copyend=copy;
       if (tohoist.contains(fn)) {
-	//deal with the possiblity we already hoisted this node
-	if (clonemap.containsKey(fn)) {
-	  FlatNode fnnew=clonemap.get(fn);
-	  TempDescriptor writenew[]=fnnew.writesTemps();
-	  temptable.put(nfn, writenew[0]);
-	} else {
-	  TempDescriptor[] writes=nfn.writesTemps();
-	  TempDescriptor tmp=writes[0];
-	  TempDescriptor ntmp=tmp.createNew();
-	  temptable.put(nfn, ntmp);
-	  copyend=new FlatOpNode(ntmp, tmp, null, new Operation(Operation.ASSIGN));
-	  copy.addNext(copyend);
-	}
+        //deal with the possiblity we already hoisted this node
+        if (clonemap.containsKey(fn)) {
+          FlatNode fnnew=clonemap.get(fn);
+          TempDescriptor writenew[]=fnnew.writesTemps();
+          temptable.put(nfn, writenew[0]);
+        } else {
+          TempDescriptor[] writes=nfn.writesTemps();
+          TempDescriptor tmp=writes[0];
+          TempDescriptor ntmp=tmp.createNew();
+          temptable.put(nfn, ntmp);
+          copyend=new FlatOpNode(ntmp, tmp, null, new Operation(Operation.ASSIGN));
+          copy.addNext(copyend);
+        }
       }
       copytable.put(nfn, copy);
       copyendtable.put(nfn, copyend);
@@ -199,18 +199,18 @@ public class LoopOptimize {
       fn=otonremap(fn);
       FlatNode copyend=copyendtable.get(fn);
       for(int i=0; i<fn.numNext(); i++) {
-	FlatNode nnext=fn.getNext(i);
-	if (nnext==entrance) {
-	  /* Back to loop header...point to old graph */
-	  copyend.setNewNext(i,nnext);
-	} else if (lelements.contains(ntooremap(nnext))) {
-	  /* In graph...point to first graph */
-	  copyend.setNewNext(i,copytable.get(nnext));
-	} else {
-	  /* Outside loop */
-	  /* Just goto same place as before */
-	  copyend.setNewNext(i,nnext);
-	}
+        FlatNode nnext=fn.getNext(i);
+        if (nnext==entrance) {
+          /* Back to loop header...point to old graph */
+          copyend.setNewNext(i,nnext);
+        } else if (lelements.contains(ntooremap(nnext))) {
+          /* In graph...point to first graph */
+          copyend.setNewNext(i,copytable.get(nnext));
+        } else {
+          /* Outside loop */
+          /* Just goto same place as before */
+          copyend.setNewNext(i,nnext);
+        }
       }
     }
 
@@ -219,12 +219,12 @@ public class LoopOptimize {
       FlatNode prev=prevarray[i];
 
       if (!lelements.contains(ntooremap(prev))) {
-	//need to fix this edge
-	for(int j=0; j<prev.numNext(); j++) {
-	  if (prev.getNext(j)==entrance) {
-	    prev.setNext(j, first);
-	  }
-	}
+        //need to fix this edge
+        for(int j=0; j<prev.numNext(); j++) {
+          if (prev.getNext(j)==entrance) {
+            prev.setNext(j, first);
+          }
+        }
       }
     }
 
@@ -233,10 +233,10 @@ public class LoopOptimize {
       FlatNode fn=(FlatNode)it.next();
       FlatNode nfn=otonremap(fn);
       if (tohoist.contains(fn)) {
-	TempDescriptor[] writes=nfn.writesTemps();
-	TempDescriptor tmp=writes[0];
-	FlatOpNode fon=new FlatOpNode(tmp, temptable.get(nfn), null, new Operation(Operation.ASSIGN));
-	nfn.replace(fon);
+        TempDescriptor[] writes=nfn.writesTemps();
+        TempDescriptor tmp=writes[0];
+        FlatOpNode fon=new FlatOpNode(tmp, temptable.get(nfn), null, new Operation(Operation.ASSIGN));
+        nfn.replace(fon);
       }
     }
   }

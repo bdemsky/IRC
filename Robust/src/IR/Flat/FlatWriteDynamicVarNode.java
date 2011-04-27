@@ -36,11 +36,11 @@ public class FlatWriteDynamicVarNode extends FlatNode {
       headNode.removePrev(tailNode);
 
       if(tailNode.next.elementAt(0).equals(headNode)) {
-	tailNode.removeNext(headNode);
-	((FlatCondBranch)tailNode).addTrueNext(this);
+        tailNode.removeNext(headNode);
+        ((FlatCondBranch)tailNode).addTrueNext(this);
       } else {
-	tailNode.removeNext(headNode);
-	((FlatCondBranch)tailNode).addFalseNext(this);
+        tailNode.removeNext(headNode);
+        ((FlatCondBranch)tailNode).addFalseNext(this);
       }
 
       this.addNext(headNode);

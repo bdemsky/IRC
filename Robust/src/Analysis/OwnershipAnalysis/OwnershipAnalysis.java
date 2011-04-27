@@ -107,9 +107,9 @@ public class OwnershipAnalysis {
 
       AllocationSite as = n.getAllocationSite();
       if( as == null ) {
-	out += "  "+n.toString()+",\n";
+        out += "  "+n.toString()+",\n";
       } else {
-	out += "  "+n.toString()+": "+as.toStringVerbose()+",\n";
+        out += "  "+n.toString()+": "+as.toStringVerbose()+",\n";
       }
     }
 
@@ -144,7 +144,7 @@ public class OwnershipAnalysis {
       TaskDescriptor td = (TaskDescriptor) taskItr.next();
 
       if( !tabularOutput ) {
-	bw.write("\n---------"+td+"--------\n");
+        bw.write("\n---------"+td+"--------\n");
       }
 
       HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask(td);
@@ -159,38 +159,38 @@ public class OwnershipAnalysis {
       FlatMethod fm = state.getMethodFlat(td);
       for( int i = 0; i < fm.numParameters(); ++i ) {
 
-	// for the ith parameter check for aliases to all
-	// higher numbered parameters
-	for( int j = i + 1; j < fm.numParameters(); ++j ) {
-	  common = createsPotentialAliases(td, i, j);
-	  if( !common.isEmpty() ) {
-	    foundSomeAlias = true;
-	    if( !tabularOutput ) {
-	      bw.write("Potential alias between parameters "+i+" and "+j+".\n");
-	      bw.write(prettyPrintNodeSet(common)+"\n");
-	    } else {
-	      ++numAlias;
-	    }
-	  }
-	}
+        // for the ith parameter check for aliases to all
+        // higher numbered parameters
+        for( int j = i + 1; j < fm.numParameters(); ++j ) {
+          common = createsPotentialAliases(td, i, j);
+          if( !common.isEmpty() ) {
+            foundSomeAlias = true;
+            if( !tabularOutput ) {
+              bw.write("Potential alias between parameters "+i+" and "+j+".\n");
+              bw.write(prettyPrintNodeSet(common)+"\n");
+            } else {
+              ++numAlias;
+            }
+          }
+        }
 
-	// for the ith parameter, check for aliases against
-	// the set of allocation sites reachable from this
-	// task context
-	Iterator allocItr = allocSites.iterator();
-	while( allocItr.hasNext() ) {
-	  AllocationSite as = (AllocationSite) allocItr.next();
-	  common = createsPotentialAliases(td, i, as);
-	  if( !common.isEmpty() ) {
-	    foundSomeAlias = true;
-	    if( !tabularOutput ) {
-	      bw.write("Potential alias between parameter "+i+" and "+as.getFlatNew()+".\n");
-	      bw.write(prettyPrintNodeSet(common)+"\n");
-	    } else {
-	      ++numAlias;
-	    }
-	  }
-	}
+        // for the ith parameter, check for aliases against
+        // the set of allocation sites reachable from this
+        // task context
+        Iterator allocItr = allocSites.iterator();
+        while( allocItr.hasNext() ) {
+          AllocationSite as = (AllocationSite) allocItr.next();
+          common = createsPotentialAliases(td, i, as);
+          if( !common.isEmpty() ) {
+            foundSomeAlias = true;
+            if( !tabularOutput ) {
+              bw.write("Potential alias between parameter "+i+" and "+as.getFlatNew()+".\n");
+              bw.write(prettyPrintNodeSet(common)+"\n");
+            } else {
+              ++numAlias;
+            }
+          }
+        }
       }
 
       // for each allocation site check for aliases with
@@ -199,34 +199,34 @@ public class OwnershipAnalysis {
       HashSet<AllocationSite> outerChecked = new HashSet<AllocationSite>();
       Iterator allocItr1 = allocSites.iterator();
       while( allocItr1.hasNext() ) {
-	AllocationSite as1 = (AllocationSite) allocItr1.next();
+        AllocationSite as1 = (AllocationSite) allocItr1.next();
 
-	Iterator allocItr2 = allocSites.iterator();
-	while( allocItr2.hasNext() ) {
-	  AllocationSite as2 = (AllocationSite) allocItr2.next();
+        Iterator allocItr2 = allocSites.iterator();
+        while( allocItr2.hasNext() ) {
+          AllocationSite as2 = (AllocationSite) allocItr2.next();
 
-	  if( !outerChecked.contains(as2) ) {
-	    common = createsPotentialAliases(td, as1, as2);
+          if( !outerChecked.contains(as2) ) {
+            common = createsPotentialAliases(td, as1, as2);
 
-	    if( !common.isEmpty() ) {
-	      foundSomeAlias = true;
-	      if( !tabularOutput ) {
-		bw.write("Potential alias between "+as1.getFlatNew()+" and "+as2.getFlatNew()+".\n");
-		bw.write(prettyPrintNodeSet(common)+"\n");
-	      } else {
-		++numAlias;
-	      }
-	    }
-	  }
-	}
+            if( !common.isEmpty() ) {
+              foundSomeAlias = true;
+              if( !tabularOutput ) {
+                bw.write("Potential alias between "+as1.getFlatNew()+" and "+as2.getFlatNew()+".\n");
+                bw.write(prettyPrintNodeSet(common)+"\n");
+              } else {
+                ++numAlias;
+              }
+            }
+          }
+        }
 
-	outerChecked.add(as1);
+        outerChecked.add(as1);
       }
 
       if( !foundSomeAlias ) {
-	if( !tabularOutput ) {
-	  bw.write("No aliases between flagged objects in Task "+td+".\n");
-	}
+        if( !tabularOutput ) {
+          bw.write("No aliases between flagged objects in Task "+td+".\n");
+        }
       }
     }
 
@@ -275,17 +275,17 @@ public class OwnershipAnalysis {
 
       Iterator allocItr2 = allocSites.iterator();
       while( allocItr2.hasNext() ) {
-	AllocationSite as2 = (AllocationSite) allocItr2.next();
+        AllocationSite as2 = (AllocationSite) allocItr2.next();
 
-	if( !outerChecked.contains(as2) ) {
-	  Set<HeapRegionNode> common = createsPotentialAliases(d, as1, as2);
+        if( !outerChecked.contains(as2) ) {
+          Set<HeapRegionNode> common = createsPotentialAliases(d, as1, as2);
 
-	  if( !common.isEmpty() ) {
-	    foundSomeAlias = true;
-	    bw.write("Potential alias between "+as1.getDisjointId()+" and "+as2.getDisjointId()+".\n");
-	    bw.write(prettyPrintNodeSet(common)+"\n");
-	  }
-	}
+          if( !common.isEmpty() ) {
+            foundSomeAlias = true;
+            bw.write("Potential alias between "+as1.getDisjointId()+" and "+as2.getDisjointId()+".\n");
+            bw.write(prettyPrintNodeSet(common)+"\n");
+          }
+        }
       }
 
       outerChecked.add(as1);
@@ -526,8 +526,8 @@ public class OwnershipAnalysis {
       // from those tasks
       Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
       while( taskItr.hasNext() ) {
-	Descriptor d = (Descriptor) taskItr.next();
-	scheduleAllCallees(d);
+        Descriptor d = (Descriptor) taskItr.next();
+        scheduleAllCallees(d);
       }
 
     } else {
@@ -548,10 +548,10 @@ public class OwnershipAnalysis {
 
       FlatMethod fm;
       if( d instanceof MethodDescriptor ) {
-	fm = state.getMethodFlat( (MethodDescriptor) d);
+        fm = state.getMethodFlat( (MethodDescriptor) d);
       } else {
-	assert d instanceof TaskDescriptor;
-	fm = state.getMethodFlat( (TaskDescriptor) d);
+        assert d instanceof TaskDescriptor;
+        fm = state.getMethodFlat( (TaskDescriptor) d);
       }
 
       MethodContext mc = new MethodContext(d);
@@ -590,9 +590,9 @@ public class OwnershipAnalysis {
 
     if( aliasFile != null ) {
       if( state.TASK ) {
-	writeAllAliases(aliasFile, treport, justtime, state.OWNERSHIPALIASTAB, state.lines);
+        writeAllAliases(aliasFile, treport, justtime, state.OWNERSHIPALIASTAB, state.lines);
       } else {
-	writeAllAliasesJava(aliasFile, treport, justtime, state.OWNERSHIPALIASTAB, state.lines);
+        writeAllAliasesJava(aliasFile, treport, justtime, state.OWNERSHIPALIASTAB, state.lines);
       }
     }
 
@@ -639,7 +639,7 @@ public class OwnershipAnalysis {
 
       Iterator<MethodContext> itrmc = mcs.iterator();
       while( itrmc.hasNext() ) {
-	allContexts.add(itrmc.next() );
+        allContexts.add(itrmc.next() );
       }
     }
 
@@ -679,27 +679,27 @@ public class OwnershipAnalysis {
       Descriptor d = mc.getDescriptor();
       FlatMethod fm;
       if( d instanceof MethodDescriptor ) {
-	fm = state.getMethodFlat( (MethodDescriptor) d);
+        fm = state.getMethodFlat( (MethodDescriptor) d);
       } else {
-	assert d instanceof TaskDescriptor;
-	fm = state.getMethodFlat( (TaskDescriptor) d);
+        assert d instanceof TaskDescriptor;
+        fm = state.getMethodFlat( (TaskDescriptor) d);
       }
 
       OwnershipGraph og = analyzeFlatMethod(mc, fm);
       OwnershipGraph ogPrev = mapMethodContextToCompleteOwnershipGraph.get(mc);
       if( !og.equals(ogPrev) ) {
-	setGraphForMethodContext(mc, og);
+        setGraphForMethodContext(mc, og);
 
-	Iterator<MethodContext> depsItr = iteratorDependents(mc);
-	while( depsItr.hasNext() ) {
-	  MethodContext mcNext = depsItr.next();
+        Iterator<MethodContext> depsItr = iteratorDependents(mc);
+        while( depsItr.hasNext() ) {
+          MethodContext mcNext = depsItr.next();
 
-	  if( !methodContextsToVisitSet.contains(mcNext) ) {
-	    methodContextsToVisitQ.add(new MethodContextQWrapper(mapDescriptorToPriority.get(mcNext.getDescriptor() ),
-	                                                         mcNext) );
-	    methodContextsToVisitSet.add(mcNext);
-	  }
-	}
+          if( !methodContextsToVisitSet.contains(mcNext) ) {
+            methodContextsToVisitQ.add(new MethodContextQWrapper(mapDescriptorToPriority.get(mcNext.getDescriptor() ),
+                                                                 mcNext) );
+            methodContextsToVisitSet.add(mcNext);
+          }
+        }
       }
     }
 
@@ -740,11 +740,11 @@ public class OwnershipAnalysis {
 
       // start by merging all node's parents' graphs
       for( int i = 0; i < fn.numPrev(); ++i ) {
-	FlatNode pn = fn.getPrev(i);
-	if( mapFlatNodeToOwnershipGraph.containsKey(pn) ) {
-	  OwnershipGraph ogParent = mapFlatNodeToOwnershipGraph.get(pn);
-	  og.merge(ogParent);
-	}
+        FlatNode pn = fn.getPrev(i);
+        if( mapFlatNodeToOwnershipGraph.containsKey(pn) ) {
+          OwnershipGraph ogParent = mapFlatNodeToOwnershipGraph.get(pn);
+          og.merge(ogParent);
+        }
       }
 
       // apply the analysis of the flat node to the
@@ -761,7 +761,7 @@ public class OwnershipAnalysis {
 
       if( takeDebugSnapshots &&
           mc.getDescriptor().getSymbol().equals(mcDescSymbolDebug) ) {
-	debugSnapshot(og,fn);
+        debugSnapshot(og,fn);
       }
 
 
@@ -771,12 +771,12 @@ public class OwnershipAnalysis {
       // processing
       OwnershipGraph ogPrev = mapFlatNodeToOwnershipGraph.get(fn);
       if( !og.equals(ogPrev) ) {
-	mapFlatNodeToOwnershipGraph.put(fn, og);
+        mapFlatNodeToOwnershipGraph.put(fn, og);
 
-	for( int i = 0; i < fn.numNext(); i++ ) {
-	  FlatNode nn = fn.getNext(i);
-	  flatNodesToVisit.add(nn);
-	}
+        for( int i = 0; i < fn.numNext(); i++ ) {
+          FlatNode nn = fn.getNext(i);
+          flatNodesToVisit.add(nn);
+        }
       }
     }
 
@@ -834,69 +834,69 @@ public class OwnershipAnalysis {
       OwnershipGraph ogInitParamAlloc = mapMethodContextToInitialParamAllocGraph.get(mc);
       if( ogInitParamAlloc == null ) {
 
-	// if the method context has aliased parameters, make sure
-	// there is a blob region for all those param to reference
-	Set<Integer> aliasedParamIndices = mc.getAliasedParamIndices();
+        // if the method context has aliased parameters, make sure
+        // there is a blob region for all those param to reference
+        Set<Integer> aliasedParamIndices = mc.getAliasedParamIndices();
 
-	if( !aliasedParamIndices.isEmpty() ) {
-	  og.makeAliasedParamHeapRegionNode(fm);
-	}
+        if( !aliasedParamIndices.isEmpty() ) {
+          og.makeAliasedParamHeapRegionNode(fm);
+        }
 
-	// set up each parameter
-	for( int i = 0; i < fm.numParameters(); ++i ) {
-	  TempDescriptor tdParam    = fm.getParameter(i);
-	  TypeDescriptor typeParam  = tdParam.getType();
-	  Integer paramIndex = new Integer(i);
+        // set up each parameter
+        for( int i = 0; i < fm.numParameters(); ++i ) {
+          TempDescriptor tdParam    = fm.getParameter(i);
+          TypeDescriptor typeParam  = tdParam.getType();
+          Integer paramIndex = new Integer(i);
 
-	  if( typeParam.isImmutable() && !typeParam.isArray() ) {
-	    // don't bother with this primitive parameter, it
-	    // cannot affect reachability
-	    continue;
-	  }
+          if( typeParam.isImmutable() && !typeParam.isArray() ) {
+            // don't bother with this primitive parameter, it
+            // cannot affect reachability
+            continue;
+          }
 
-	  if( aliasedParamIndices.contains(paramIndex) ) {
-	    // use the alias blob but give parameters their
-	    // own primary obj region
-	    og.assignTempEqualToAliasedParam(tdParam,
-	                                     paramIndex, fm);
-	  } else {
-	    // this parameter is not aliased to others, give it
-	    // a fresh primary obj and secondary object
-	    og.assignTempEqualToParamAlloc(tdParam,
-	                                   mc.getDescriptor() instanceof TaskDescriptor,
-	                                   paramIndex, fm);
-	  }
-	}
+          if( aliasedParamIndices.contains(paramIndex) ) {
+            // use the alias blob but give parameters their
+            // own primary obj region
+            og.assignTempEqualToAliasedParam(tdParam,
+                                             paramIndex, fm);
+          } else {
+            // this parameter is not aliased to others, give it
+            // a fresh primary obj and secondary object
+            og.assignTempEqualToParamAlloc(tdParam,
+                                           mc.getDescriptor() instanceof TaskDescriptor,
+                                           paramIndex, fm);
+          }
+        }
 
-	// add additional edges for aliased regions if necessary
-	if( !aliasedParamIndices.isEmpty() ) {
-	  og.addParam2ParamAliasEdges(fm, aliasedParamIndices);
-	}
+        // add additional edges for aliased regions if necessary
+        if( !aliasedParamIndices.isEmpty() ) {
+          og.addParam2ParamAliasEdges(fm, aliasedParamIndices);
+        }
 
-	// clean up reachability on initial parameter shapes
-	og.globalSweep();
+        // clean up reachability on initial parameter shapes
+        og.globalSweep();
 
-	// this maps tokens to parameter indices and vice versa
-	// for when this method is a callee
-	og.prepareParamTokenMaps(fm);
+        // this maps tokens to parameter indices and vice versa
+        // for when this method is a callee
+        og.prepareParamTokenMaps(fm);
 
-	// cache the graph
-	OwnershipGraph ogResult = new OwnershipGraph();
-	ogResult.merge(og);
-	mapMethodContextToInitialParamAllocGraph.put(mc, ogResult);
+        // cache the graph
+        OwnershipGraph ogResult = new OwnershipGraph();
+        ogResult.merge(og);
+        mapMethodContextToInitialParamAllocGraph.put(mc, ogResult);
 
       } else {
-	// or just leverage the cached copy
-	og.merge(ogInitParamAlloc);
+        // or just leverage the cached copy
+        og.merge(ogInitParamAlloc);
       }
       break;
 
     case FKind.FlatOpNode:
       FlatOpNode fon = (FlatOpNode) fn;
       if( fon.getOp().getOp() == Operation.ASSIGN ) {
-	lhs = fon.getDest();
-	rhs = fon.getLeft();
-	og.assignTempXEqualToTempY(lhs, rhs);
+        lhs = fon.getDest();
+        rhs = fon.getLeft();
+        og.assignTempXEqualToTempY(lhs, rhs);
       }
       break;
 
@@ -917,7 +917,7 @@ public class OwnershipAnalysis {
       rhs = ffn.getSrc();
       fld = ffn.getField();
       if( !fld.getType().isImmutable() || fld.getType().isArray() ) {
-	og.assignTempXEqualToTempYFieldF(lhs, rhs, fld);
+        og.assignTempXEqualToTempYFieldF(lhs, rhs, fld);
       }
 
       meAnalysis.analyzeFlatFieldNode(mc, og, rhs, fld);
@@ -930,7 +930,7 @@ public class OwnershipAnalysis {
       fld = fsfn.getField();
       rhs = fsfn.getSrc();
       if( !fld.getType().isImmutable() || fld.getType().isArray() ) {
-	og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
+        og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
       }
 
       meAnalysis.analyzeFlatSetFieldNode(mc, og, lhs, fld);
@@ -944,13 +944,13 @@ public class OwnershipAnalysis {
       rhs = fen.getSrc();
       if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
 
-	assert rhs.getType() != null;
-	assert rhs.getType().isArray();
+        assert rhs.getType() != null;
+        assert rhs.getType().isArray();
 
-	TypeDescriptor tdElement = rhs.getType().dereference();
-	FieldDescriptor fdElement = getArrayField(tdElement);
-	og.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement);
-	meAnalysis.analyzeFlatElementNode(mc, og, lhs, fdElement);
+        TypeDescriptor tdElement = rhs.getType().dereference();
+        FieldDescriptor fdElement = getArrayField(tdElement);
+        og.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement);
+        meAnalysis.analyzeFlatElementNode(mc, og, lhs, fdElement);
 
       }
       break;
@@ -961,28 +961,28 @@ public class OwnershipAnalysis {
       lhs = fsen.getDst();
       rhs = fsen.getSrc();
       if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
-	TypeDescriptor tdElement = lhs.getType().dereference();
-	FieldDescriptor fdElement = getArrayField(tdElement);
-	meAnalysis.analyzeFlatSetElementNode(mc, og, lhs, fdElement);
+        TypeDescriptor tdElement = lhs.getType().dereference();
+        FieldDescriptor fdElement = getArrayField(tdElement);
+        meAnalysis.analyzeFlatSetElementNode(mc, og, lhs, fdElement);
       }
 
       if( arrayReferencees.doesNotCreateNewReaching(fsen) ) {
-	// skip this node if it cannot create new reachability paths
-	break;
+        // skip this node if it cannot create new reachability paths
+        break;
       }
 
       lhs = fsen.getDst();
       rhs = fsen.getSrc();
       if( !rhs.getType().isImmutable() || rhs.getType().isArray() ) {
 
-	assert lhs.getType() != null;
-	assert lhs.getType().isArray();
+        assert lhs.getType() != null;
+        assert lhs.getType().isArray();
 
-	TypeDescriptor tdElement = lhs.getType().dereference();
-	FieldDescriptor fdElement = getArrayField(tdElement);
+        TypeDescriptor tdElement = lhs.getType().dereference();
+        FieldDescriptor fdElement = getArrayField(tdElement);
 
-	og.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs);
-	meAnalysis.analyzeFlatSetElementNode(mc, og, lhs, fdElement);
+        og.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs);
+        meAnalysis.analyzeFlatSetElementNode(mc, og, lhs, fdElement);
 
       }
       break;
@@ -991,23 +991,23 @@ public class OwnershipAnalysis {
       FlatNew fnn = (FlatNew) fn;
       lhs = fnn.getDst();
       if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
-	AllocationSite as = getAllocationSiteFromFlatNewPRIVATE(fnn);
+        AllocationSite as = getAllocationSiteFromFlatNewPRIVATE(fnn);
 
-	if (mapMethodContextToLiveInAllocationSiteSet != null) {
-	  HashSet<AllocationSite> alllocSet=mapMethodContextToLiveInAllocationSiteSet.get(mc);
-	  if(alllocSet!=null) {
-	    for (Iterator iterator = alllocSet.iterator(); iterator
-	         .hasNext(); ) {
-	      AllocationSite allocationSite = (AllocationSite) iterator
-	                                      .next();
-	      if(allocationSite.flatNew.equals(as.flatNew)) {
-		as.setFlag(true);
-	      }
-	    }
-	  }
-	}
+        if (mapMethodContextToLiveInAllocationSiteSet != null) {
+          HashSet<AllocationSite> alllocSet=mapMethodContextToLiveInAllocationSiteSet.get(mc);
+          if(alllocSet!=null) {
+            for (Iterator iterator = alllocSet.iterator(); iterator
+                 .hasNext(); ) {
+              AllocationSite allocationSite = (AllocationSite) iterator
+                                              .next();
+              if(allocationSite.flatNew.equals(as.flatNew)) {
+                as.setFlag(true);
+              }
+            }
+          }
+        }
 
-	og.assignTempEqualToNewAlloc(lhs, as);
+        og.assignTempEqualToNewAlloc(lhs, as);
       }
       break;
 
@@ -1018,88 +1018,88 @@ public class OwnershipAnalysis {
       OwnershipGraph ogMergeOfAllPossibleCalleeResults = new OwnershipGraph();
 
       if( md.isStatic() ) {
-	// a static method is simply always the same, makes life easy
-	ogMergeOfAllPossibleCalleeResults = og;
+        // a static method is simply always the same, makes life easy
+        ogMergeOfAllPossibleCalleeResults = og;
 
-	Set<Integer> aliasedParamIndices =
-	  ogMergeOfAllPossibleCalleeResults.calculateAliasedParamSet(fc, md.isStatic(), flatm);
+        Set<Integer> aliasedParamIndices =
+          ogMergeOfAllPossibleCalleeResults.calculateAliasedParamSet(fc, md.isStatic(), flatm);
 
-	MethodContext mcNew = new MethodContext(md, aliasedParamIndices);
-	Set contexts = mapDescriptorToAllMethodContexts.get(md);
-	assert contexts != null;
-	contexts.add(mcNew);
+        MethodContext mcNew = new MethodContext(md, aliasedParamIndices);
+        Set contexts = mapDescriptorToAllMethodContexts.get(md);
+        assert contexts != null;
+        contexts.add(mcNew);
 
-	addDependent(mc, mcNew);
+        addDependent(mc, mcNew);
 
-	OwnershipGraph onlyPossibleCallee = mapMethodContextToCompleteOwnershipGraph.get(mcNew);
+        OwnershipGraph onlyPossibleCallee = mapMethodContextToCompleteOwnershipGraph.get(mcNew);
 
-	if( onlyPossibleCallee == null ) {
-	  // if this method context has never been analyzed just schedule it for analysis
-	  // and skip over this call site for now
-	  if( !methodContextsToVisitSet.contains(mcNew) ) {
-	    methodContextsToVisitQ.add(new MethodContextQWrapper(mapDescriptorToPriority.get(md),
-	                                                         mcNew) );
-	    methodContextsToVisitSet.add(mcNew);
-	  }
+        if( onlyPossibleCallee == null ) {
+          // if this method context has never been analyzed just schedule it for analysis
+          // and skip over this call site for now
+          if( !methodContextsToVisitSet.contains(mcNew) ) {
+            methodContextsToVisitQ.add(new MethodContextQWrapper(mapDescriptorToPriority.get(md),
+                                                                 mcNew) );
+            methodContextsToVisitSet.add(mcNew);
+          }
 
-	} else {
-	  ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee, mc, null);
-	}
+        } else {
+          ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee, mc, null);
+        }
 
-	meAnalysis.createNewMapping(mcNew);
-	meAnalysis.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults, mcNew, mc, fc);
+        meAnalysis.createNewMapping(mcNew);
+        meAnalysis.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults, mcNew, mc, fc);
 
 
       } else {
-	// if the method descriptor is virtual, then there could be a
-	// set of possible methods that will actually be invoked, so
-	// find all of them and merge all of their results together
-	TypeDescriptor typeDesc = fc.getThis().getType();
-	Set possibleCallees = callGraph.getMethods(md, typeDesc);
+        // if the method descriptor is virtual, then there could be a
+        // set of possible methods that will actually be invoked, so
+        // find all of them and merge all of their results together
+        TypeDescriptor typeDesc = fc.getThis().getType();
+        Set possibleCallees = callGraph.getMethods(md, typeDesc);
 
-	Iterator i = possibleCallees.iterator();
-	while( i.hasNext() ) {
-	  MethodDescriptor possibleMd = (MethodDescriptor) i.next();
-	  FlatMethod pflatm = state.getMethodFlat(possibleMd);
+        Iterator i = possibleCallees.iterator();
+        while( i.hasNext() ) {
+          MethodDescriptor possibleMd = (MethodDescriptor) i.next();
+          FlatMethod pflatm = state.getMethodFlat(possibleMd);
 
-	  // don't alter the working graph (og) until we compute a result for every
-	  // possible callee, merge them all together, then set og to that
-	  OwnershipGraph ogCopy = new OwnershipGraph();
-	  ogCopy.merge(og);
+          // don't alter the working graph (og) until we compute a result for every
+          // possible callee, merge them all together, then set og to that
+          OwnershipGraph ogCopy = new OwnershipGraph();
+          ogCopy.merge(og);
 
-	  Set<Integer> aliasedParamIndices =
-	    ogCopy.calculateAliasedParamSet(fc, possibleMd.isStatic(), pflatm);
+          Set<Integer> aliasedParamIndices =
+            ogCopy.calculateAliasedParamSet(fc, possibleMd.isStatic(), pflatm);
 
-	  MethodContext mcNew = new MethodContext(possibleMd, aliasedParamIndices);
-	  Set contexts = mapDescriptorToAllMethodContexts.get(md);
-	  assert contexts != null;
-	  contexts.add(mcNew);
-
-
-	  meAnalysis.createNewMapping(mcNew);
+          MethodContext mcNew = new MethodContext(possibleMd, aliasedParamIndices);
+          Set contexts = mapDescriptorToAllMethodContexts.get(md);
+          assert contexts != null;
+          contexts.add(mcNew);
 
 
-	  addDependent(mc, mcNew);
+          meAnalysis.createNewMapping(mcNew);
 
-	  OwnershipGraph ogPotentialCallee = mapMethodContextToCompleteOwnershipGraph.get(mcNew);
 
-	  if( ogPotentialCallee == null ) {
-	    // if this method context has never been analyzed just schedule it for analysis
-	    // and skip over this call site for now
-	    if( !methodContextsToVisitSet.contains(mcNew) ) {
-	      methodContextsToVisitQ.add(new MethodContextQWrapper(mapDescriptorToPriority.get(md),
-	                                                           mcNew) );
-	      methodContextsToVisitSet.add(mcNew);
-	    }
+          addDependent(mc, mcNew);
 
-	  } else {
-	    ogCopy.resolveMethodCall(fc, possibleMd.isStatic(), pflatm, ogPotentialCallee, mc, null);
-	  }
+          OwnershipGraph ogPotentialCallee = mapMethodContextToCompleteOwnershipGraph.get(mcNew);
 
-	  ogMergeOfAllPossibleCalleeResults.merge(ogCopy);
+          if( ogPotentialCallee == null ) {
+            // if this method context has never been analyzed just schedule it for analysis
+            // and skip over this call site for now
+            if( !methodContextsToVisitSet.contains(mcNew) ) {
+              methodContextsToVisitQ.add(new MethodContextQWrapper(mapDescriptorToPriority.get(md),
+                                                                   mcNew) );
+              methodContextsToVisitSet.add(mcNew);
+            }
 
-	  meAnalysis.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults, mcNew, mc, fc);
-	}
+          } else {
+            ogCopy.resolveMethodCall(fc, possibleMd.isStatic(), pflatm, ogPotentialCallee, mc, null);
+          }
+
+          ogMergeOfAllPossibleCalleeResults.merge(ogCopy);
+
+          meAnalysis.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults, mcNew, mc, fc);
+        }
 
       }
 
@@ -1110,7 +1110,7 @@ public class OwnershipAnalysis {
       FlatReturnNode frn = (FlatReturnNode) fn;
       rhs = frn.getReturnTemp();
       if( rhs != null && !rhs.getType().isImmutable() ) {
-	og.assignReturnEqualToTemp(rhs);
+        og.assignReturnEqualToTemp(rhs);
       }
       setRetNodes.add(frn);
       break;
@@ -1120,7 +1120,7 @@ public class OwnershipAnalysis {
     if( methodEffects ) {
       Hashtable<FlatNode, OwnershipGraph> table=mapMethodContextToFlatNodeOwnershipGraph.get(mc);
       if(table==null) {
-	table=new     Hashtable<FlatNode, OwnershipGraph>();
+        table=new     Hashtable<FlatNode, OwnershipGraph>();
       }
       table.put(fn, og);
       mapMethodContextToFlatNodeOwnershipGraph.put(mc, table);
@@ -1159,18 +1159,18 @@ public class OwnershipAnalysis {
 
     if( writeDOTs && writeAllDOTs ) {
       if( !mapMethodContextToNumUpdates.containsKey(mc) ) {
-	mapMethodContextToNumUpdates.put(mc, new Integer(0) );
+        mapMethodContextToNumUpdates.put(mc, new Integer(0) );
       }
       Integer n = mapMethodContextToNumUpdates.get(mc);
       try {
-	og.writeGraph(mc+"COMPLETE"+String.format("%05d", n),
-	              true,  // write labels (variables)
-	              true,  // selectively hide intermediate temp vars
-	              true,  // prune unreachable heap regions
-	              false, // show back edges to confirm graph validity
-	              false, // show parameter indices (unmaintained!)
-	              true,  // hide subset reachability states
-	              true); // hide edge taints
+        og.writeGraph(mc+"COMPLETE"+String.format("%05d", n),
+                      true,  // write labels (variables)
+                      true,  // selectively hide intermediate temp vars
+                      true,  // prune unreachable heap regions
+                      false, // show back edges to confirm graph validity
+                      false, // show parameter indices (unmaintained!)
+                      true,  // hide subset reachability states
+                      true); // hide edge taints
       } catch( IOException e ) {
       }
       mapMethodContextToNumUpdates.put(mc, n + 1);
@@ -1206,14 +1206,14 @@ public class OwnershipAnalysis {
       OwnershipGraph og = (OwnershipGraph) me.getValue();
 
       try {
-	og.writeGraph(mc+"COMPLETE",
-	              true,  // write labels (variables)
-	              true,  // selectively hide intermediate temp vars
-	              true,  // prune unreachable heap regions
-	              false, // show back edges to confirm graph validity
-	              false, // show parameter indices (unmaintained!)
-	              true,  // hide subset reachability states
-	              true); // hide edge taints
+        og.writeGraph(mc+"COMPLETE",
+                      true,  // write labels (variables)
+                      true,  // selectively hide intermediate temp vars
+                      true,  // prune unreachable heap regions
+                      false, // show back edges to confirm graph validity
+                      false, // show parameter indices (unmaintained!)
+                      true,  // hide subset reachability states
+                      true); // hide edge taints
       } catch( IOException e ) {
       }
     }
@@ -1229,9 +1229,9 @@ public class OwnershipAnalysis {
 
       // the newest nodes are single objects
       for( int i = 0; i < allocationDepth; ++i ) {
-	Integer id = generateUniqueHeapRegionNodeID();
-	as.setIthOldest(i, id);
-	mapHrnIdToAllocationSite.put(id, as);
+        Integer id = generateUniqueHeapRegionNodeID();
+        as.setIthOldest(i, id);
+        mapHrnIdToAllocationSite.put(id, as);
       }
 
       // the oldest node is a summary node
@@ -1278,17 +1278,17 @@ public class OwnershipAnalysis {
       FlatNode n = toVisit.iterator().next();
 
       if( n instanceof FlatNew ) {
-	s.add(getAllocationSiteFromFlatNewPRIVATE( (FlatNew) n) );
+        s.add(getAllocationSiteFromFlatNewPRIVATE( (FlatNew) n) );
       }
 
       toVisit.remove(n);
       visited.add(n);
 
       for( int i = 0; i < n.numNext(); ++i ) {
-	FlatNode child = n.getNext(i);
-	if( !visited.contains(child) ) {
-	  toVisit.add(child);
-	}
+        FlatNode child = n.getNext(i);
+        if( !visited.contains(child) ) {
+          toVisit.add(child);
+        }
       }
     }
 
@@ -1312,24 +1312,24 @@ public class OwnershipAnalysis {
       HashSet<AllocationSite> asSet = getAllocationSiteSet(d);
       Iterator asItr = asSet.iterator();
       while( asItr.hasNext() ) {
-	AllocationSite as = (AllocationSite) asItr.next();
-	if( as.getDisjointId() != null ) {
-	  out.add(as);
-	}
+        AllocationSite as = (AllocationSite) asItr.next();
+        if( as.getDisjointId() != null ) {
+          out.add(as);
+        }
       }
 
       // enqueue callees of this method to be searched for
       // allocation sites also
       Set callees = callGraph.getCalleeSet(d);
       if( callees != null ) {
-	Iterator methItr = callees.iterator();
-	while( methItr.hasNext() ) {
-	  MethodDescriptor md = (MethodDescriptor) methItr.next();
+        Iterator methItr = callees.iterator();
+        while( methItr.hasNext() ) {
+          MethodDescriptor md = (MethodDescriptor) methItr.next();
 
-	  if( !visited.contains(md) ) {
-	    toVisit.add(md);
-	  }
-	}
+          if( !visited.contains(md) ) {
+            toVisit.add(md);
+          }
+        }
       }
     }
 
@@ -1355,28 +1355,28 @@ public class OwnershipAnalysis {
       HashSet<AllocationSite> asSet = getAllocationSiteSet(d);
       Iterator asItr = asSet.iterator();
       while( asItr.hasNext() ) {
-	AllocationSite as = (AllocationSite) asItr.next();
-	TypeDescriptor typed = as.getType();
-	if( typed != null ) {
-	  ClassDescriptor cd = typed.getClassDesc();
-	  if( cd != null && cd.hasFlags() ) {
-	    asSetTotal.add(as);
-	  }
-	}
+        AllocationSite as = (AllocationSite) asItr.next();
+        TypeDescriptor typed = as.getType();
+        if( typed != null ) {
+          ClassDescriptor cd = typed.getClassDesc();
+          if( cd != null && cd.hasFlags() ) {
+            asSetTotal.add(as);
+          }
+        }
       }
 
       // enqueue callees of this method to be searched for
       // allocation sites also
       Set callees = callGraph.getCalleeSet(d);
       if( callees != null ) {
-	Iterator methItr = callees.iterator();
-	while( methItr.hasNext() ) {
-	  MethodDescriptor md = (MethodDescriptor) methItr.next();
+        Iterator methItr = callees.iterator();
+        while( methItr.hasNext() ) {
+          MethodDescriptor md = (MethodDescriptor) methItr.next();
 
-	  if( !visited.contains(md) ) {
-	    toVisit.add(md);
-	  }
-	}
+          if( !visited.contains(md) ) {
+            toVisit.add(md);
+          }
+        }
       }
     }
 
@@ -1394,7 +1394,7 @@ public class OwnershipAnalysis {
       MethodContext mc = itr.next();
 
       if( !discovered.contains(mc) ) {
-	dfsVisit(set, mc, sorted, discovered);
+        dfsVisit(set, mc, sorted, discovered);
       }
     }
 
@@ -1412,22 +1412,22 @@ public class OwnershipAnalysis {
       MethodDescriptor md = (MethodDescriptor) d;
       Iterator itr = callGraph.getCallerSet(md).iterator();
       while( itr.hasNext() ) {
-	Descriptor dCaller = (Descriptor) itr.next();
+        Descriptor dCaller = (Descriptor) itr.next();
 
-	// only consider the callers in the original set to analyze
-	Set<MethodContext> callerContexts = mapDescriptorToAllMethodContexts.get(dCaller);
-	if( callerContexts == null )
-	  continue;
+        // only consider the callers in the original set to analyze
+        Set<MethodContext> callerContexts = mapDescriptorToAllMethodContexts.get(dCaller);
+        if( callerContexts == null )
+          continue;
 
-	// since the analysis hasn't started, there should be exactly one
-	// context if there are any at all
-	assert callerContexts.size() == 1;
-	MethodContext mcCaller = callerContexts.iterator().next();
-	assert set.contains(mcCaller);
+        // since the analysis hasn't started, there should be exactly one
+        // context if there are any at all
+        assert callerContexts.size() == 1;
+        MethodContext mcCaller = callerContexts.iterator().next();
+        assert set.contains(mcCaller);
 
-	if( !discovered.contains(mcCaller) ) {
-	  dfsVisit(set, mcCaller, sorted, discovered);
-	}
+        if( !discovered.contains(mcCaller) ) {
+          dfsVisit(set, mcCaller, sorted, discovered);
+        }
       }
     }
 
@@ -1448,7 +1448,7 @@ public class OwnershipAnalysis {
 
       Integer i = mapNumContexts2NumDesc.get(s.size() );
       if( i == null ) {
-	i = new Integer(0);
+        i = new Integer(0);
       }
       mapNumContexts2NumDesc.put(s.size(), i + 1);
     }
@@ -1518,20 +1518,20 @@ public class OwnershipAnalysis {
       System.out.println("    @@@ capturing debug "+(debugCounter-iterStartCapture)+" @@@");
       String graphName = String.format("snap%04d",debugCounter-iterStartCapture);
       if( fn != null ) {
-	graphName = graphName+fn;
+        graphName = graphName+fn;
       }
       try {
-	og.writeGraph(graphName,
-	              true,  // write labels (variables)
-	              true,  // selectively hide intermediate temp vars
-	              true,  // prune unreachable heap regions
-	              false, // show back edges to confirm graph validity
-	              false, // show parameter indices (unmaintained!)
-	              true,  // hide subset reachability states
-	              true); // hide edge taints
+        og.writeGraph(graphName,
+                      true,  // write labels (variables)
+                      true,  // selectively hide intermediate temp vars
+                      true,  // prune unreachable heap regions
+                      false, // show back edges to confirm graph validity
+                      false, // show parameter indices (unmaintained!)
+                      true,  // hide subset reachability states
+                      true); // hide edge taints
       } catch( Exception e ) {
-	System.out.println("Error writing debug capture.");
-	System.exit(0);
+        System.out.println("Error writing debug capture.");
+        System.exit(0);
       }
     }
 
@@ -1563,8 +1563,8 @@ public class OwnershipAnalysis {
     for(int i=0; i<fc.numPrev(); i++) {
       FlatNode prevNode=fc.getPrev(i);
       if(prevNode!=null) {
-	OwnershipGraph prevOG=table.get(prevNode);
-	mergeOG.merge(prevOG);
+        OwnershipGraph prevOG=table.get(prevNode);
+        mergeOG.merge(prevOG);
       }
     }
 

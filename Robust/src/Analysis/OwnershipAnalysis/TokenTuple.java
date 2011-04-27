@@ -48,7 +48,7 @@ public class TokenTuple extends Canonical {
       arity=ARITY_ONE;
     } else {
       if (arity==ARITY_ONEORMORE)
-	arity=ARITY_ZEROORMORE;
+        arity=ARITY_ZEROORMORE;
     }
   }
 
@@ -81,17 +81,17 @@ public class TokenTuple extends Canonical {
       // when two tokens are present (absence of a token is arity=zero and is
       // handled outside of this method)
       if( arity == ARITY_ZEROORMORE && tt.arity == ARITY_ZEROORMORE ) {
-	return new TokenTuple(token, true, ARITY_ZEROORMORE).makeCanonical();
+        return new TokenTuple(token, true, ARITY_ZEROORMORE).makeCanonical();
       } else {
-	return new TokenTuple(token, true, ARITY_ONEORMORE).makeCanonical();
+        return new TokenTuple(token, true, ARITY_ONEORMORE).makeCanonical();
       }
 
     } else {
       // a single object region's token can only have ZEROORMORE or ONE
       if( arity == ARITY_ZEROORMORE && tt.arity == ARITY_ZEROORMORE ) {
-	return new TokenTuple(token, false, ARITY_ZEROORMORE).makeCanonical();
+        return new TokenTuple(token, false, ARITY_ZEROORMORE).makeCanonical();
       } else {
-	return new TokenTuple(token, false, ARITY_ONE).makeCanonical();
+        return new TokenTuple(token, false, ARITY_ONE).makeCanonical();
       }
     }
   }

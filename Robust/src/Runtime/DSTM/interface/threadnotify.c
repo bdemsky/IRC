@@ -83,18 +83,18 @@ unsigned int notifyhashInsert(unsigned int tid, notifydata_t *ndata) {
     tmp = &ptr[index];
     while(tmp != NULL) {
       if(tmp->threadid == tid) {
-	isFound = 1;
-	tmp->ndata = ndata;
-	pthread_mutex_unlock(&nlookup.locktable);
-	return 0;
+        isFound = 1;
+        tmp->ndata = ndata;
+        pthread_mutex_unlock(&nlookup.locktable);
+        return 0;
       }
       tmp = tmp->next;
     }
     if(!isFound) {
       if ((node = calloc(1, sizeof(notifylistnode_t))) == NULL) {
-	printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-	pthread_mutex_unlock(&nlookup.locktable);
-	return 1;
+        printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+        pthread_mutex_unlock(&nlookup.locktable);
+        return 1;
       }
       node->threadid = tid;
       node->ndata = ndata;
@@ -138,17 +138,17 @@ unsigned int notifyhashRemove(unsigned int tid) {
     if (curr->threadid == tid) {         // Find a match in the hash table
       nlookup.numelements--;  // Decrement the number of elements in the global hashtable
       if ((curr == &ptr[index]) && (curr->next == NULL)) {  // Delete the first item inside the hashtable with no linked list of notifylistnode_t
-	curr->threadid = 0;
-	curr->ndata = NULL;
+        curr->threadid = 0;
+        curr->ndata = NULL;
       } else if ((curr == &ptr[index]) && (curr->next != NULL)) { //Delete the first bin item with a linked list of notifylistnode_t  connected
-	curr->threadid = curr->next->threadid;
-	curr->ndata = curr->next->ndata;
-	node = curr->next;
-	curr->next = curr->next->next;
-	free(node);
+        curr->threadid = curr->next->threadid;
+        curr->ndata = curr->next->ndata;
+        node = curr->next;
+        curr->next = curr->next->next;
+        free(node);
       } else {                                          // Regular delete from linked listed
-	prev->next = curr->next;
-	free(curr);
+        prev->next = curr->next;
+        free(curr);
       }
       pthread_mutex_unlock(&nlookup.locktable);
       return 0;
@@ -184,7 +184,7 @@ unsigned int notifyhashResize(unsigned int newsize) {
     isfirst = 1;
     while (curr != NULL) {                      //Inner loop to go through linked lists
       if (curr->threadid == 0) {                //Exit inner loop if there the first element for a given bin/index is NULL
-	break;                  //threadid = threadcond =0 for element if not present within the hash table
+        break;                  //threadid = threadcond =0 for element if not present within the hash table
       }
       next = curr->next;
       index = notifyhashFunction(curr->threadid);
@@ -193,24 +193,24 @@ unsigned int notifyhashResize(unsigned int newsize) {
 #endif
       // Insert into the new table
       if(nlookup.table[index].next == NULL && nlookup.table[index].threadid == 0) {
-	nlookup.table[index].threadid = curr->threadid;
-	nlookup.table[index].ndata = curr->ndata;
-	nlookup.numelements++;
+        nlookup.table[index].threadid = curr->threadid;
+        nlookup.table[index].ndata = curr->ndata;
+        nlookup.numelements++;
       } else {
-	if((newnode = calloc(1, sizeof(notifylistnode_t))) == NULL) {
-	  printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-	  return 1;
-	}
-	newnode->threadid = curr->threadid;
-	newnode->ndata = curr->ndata;
-	newnode->next = nlookup.table[index].next;
-	nlookup.table[index].next = newnode;
-	nlookup.numelements++;
+        if((newnode = calloc(1, sizeof(notifylistnode_t))) == NULL) {
+          printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+          return 1;
+        }
+        newnode->threadid = curr->threadid;
+        newnode->ndata = curr->ndata;
+        newnode->next = nlookup.table[index].next;
+        nlookup.table[index].next = newnode;
+        nlookup.numelements++;
       }
 
       //free the linked list of notifylistnode_t if not the first element in the hash table
       if (isfirst != 1) {
-	free(curr);
+        free(curr);
       }
 
       isfirst = 0;

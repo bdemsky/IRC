@@ -162,15 +162,15 @@ public class SMFEState {
 
       Iterator<Effect> eItr = effects.iterator();
       while( eItr.hasNext() ) {
-	Effect e = eItr.next();
-	if (conflicts.contains(e)) {
-	  s += "["+e.toString()+"]";
-	} else {
-	  s += e.toString();
-	}
-	if( eItr.hasNext() ) {
-	  s += "\\n";
-	}
+        Effect e = eItr.next();
+        if (conflicts.contains(e)) {
+          s += "["+e.toString()+"]";
+        } else {
+          s += e.toString();
+        }
+        if( eItr.hasNext() ) {
+          s += "\\n";
+        }
       }
     }
 
@@ -184,14 +184,14 @@ public class SMFEState {
 
       Iterator<SMFEState> sItr = states.iterator();
       while( sItr.hasNext() ) {
-	SMFEState state = sItr.next();
+        SMFEState state = sItr.next();
 
-	s += "\n  "+
-	     id+" -> "+state.id+
-	     "[label=\""+e+", RC="+refCount+"\"";
-	if (conflicts.contains(e))
-	  s+=",style=dashed";
-	s+="];";
+        s += "\n  "+
+             id+" -> "+state.id+
+             "[label=\""+e+", RC="+refCount+"\"";
+        if (conflicts.contains(e))
+          s+=",style=dashed";
+        s+="];";
       }
     }
 

@@ -114,18 +114,18 @@ void chashResize(chashtable_t *table, unsigned int newsize) {
     if (key != 0) {
       newnode= &table->table[(key&mask)>>1];
       if (newnode->key==0) {
-	newnode->key=key;
-	newnode->ptr=curr->ptr;
-	continue;
+        newnode->key=key;
+        newnode->ptr=curr->ptr;
+        continue;
       }
 
       for(bin=1; 1; bin++) {
-	newnode = &table->table[((key+bin*331) & mask)>>1];
-	if (newnode->key==0) {
-	  newnode->key=key;
-	  newnode->ptr=curr->ptr;
-	  break;
-	}
+        newnode = &table->table[((key+bin*331) & mask)>>1];
+        if (newnode->key==0) {
+          newnode->key=key;
+          newnode->ptr=curr->ptr;
+          break;
+        }
       }
     }
   }

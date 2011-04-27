@@ -38,7 +38,7 @@ public class localCSE {
     for(Iterator it=g.set.iterator(); it.hasNext(); ) {
       LocalExpression e=(LocalExpression)it.next();
       if (e.t!=null)
-	return e.t;
+        return e.t;
     }
     return null;
   }
@@ -49,129 +49,129 @@ public class localCSE {
     for(Iterator it=nodes.iterator(); it.hasNext(); ) {
       FlatNode fn=(FlatNode)it.next();
       if (fn.numPrev()>1)
-	toanalyze.add(fn);
+        toanalyze.add(fn);
     }
     for(Iterator<FlatNode> it=toanalyze.iterator(); it.hasNext(); ) {
       FlatNode fn=it.next();
       Hashtable<LocalExpression, Group> table=new Hashtable<LocalExpression,Group>();
       do {
-	index=0;
-	switch(fn.kind()) {
-	case FKind.FlatOpNode: {
-	  FlatOpNode fon=(FlatOpNode)fn;
-	  Group left=getGroup(table, fon.getLeft());
-	  Group right=getGroup(table, fon.getRight());
-	  LocalExpression dst=new LocalExpression(fon.getDest());
-	  if (fon.getOp().getOp()==Operation.ASSIGN) {
-	    left.set.add(dst);
-	    kill(table, fon.getDest());
-	    table.put(dst, left);
-	  } else {
-	    LocalExpression e=new LocalExpression(left, right, fon.getOp());
-	    Group g=getGroup(table,e);
-	    TempDescriptor td=getTemp(g);
-	    if (td!=null) {
-	      FlatNode nfon=new FlatOpNode(fon.getDest(),td,null,new Operation(Operation.ASSIGN));
-	      fn.replace(nfon);
-	    }
-	    g.set.add(dst);
-	    kill(table, fon.getDest());
-	    table.put(dst,g);
-	  }
-	  break;
-	}
+        index=0;
+        switch(fn.kind()) {
+        case FKind.FlatOpNode: {
+          FlatOpNode fon=(FlatOpNode)fn;
+          Group left=getGroup(table, fon.getLeft());
+          Group right=getGroup(table, fon.getRight());
+          LocalExpression dst=new LocalExpression(fon.getDest());
+          if (fon.getOp().getOp()==Operation.ASSIGN) {
+            left.set.add(dst);
+            kill(table, fon.getDest());
+            table.put(dst, left);
+          } else {
+            LocalExpression e=new LocalExpression(left, right, fon.getOp());
+            Group g=getGroup(table,e);
+            TempDescriptor td=getTemp(g);
+            if (td!=null) {
+              FlatNode nfon=new FlatOpNode(fon.getDest(),td,null,new Operation(Operation.ASSIGN));
+              fn.replace(nfon);
+            }
+            g.set.add(dst);
+            kill(table, fon.getDest());
+            table.put(dst,g);
+          }
+          break;
+        }
 
-	case FKind.FlatLiteralNode: {
-	  FlatLiteralNode fln=(FlatLiteralNode)fn;
-	  LocalExpression e=new LocalExpression(fln.getValue());
-	  Group src=getGroup(table, e);
-	  LocalExpression dst=new LocalExpression(fln.getDst());
-	  src.set.add(dst);
-	  kill(table, fln.getDst());
-	  table.put(dst, src);
-	  break;
-	}
+        case FKind.FlatLiteralNode: {
+          FlatLiteralNode fln=(FlatLiteralNode)fn;
+          LocalExpression e=new LocalExpression(fln.getValue());
+          Group src=getGroup(table, e);
+          LocalExpression dst=new LocalExpression(fln.getDst());
+          src.set.add(dst);
+          kill(table, fln.getDst());
+          table.put(dst, src);
+          break;
+        }
 
-	case FKind.FlatFieldNode: {
-	  FlatFieldNode ffn=(FlatFieldNode) fn;
-	  Group src=getGroup(table, ffn.getSrc());
-	  LocalExpression e=new LocalExpression(src, ffn.getField());
-	  Group srcf=getGroup(table, e);
-	  LocalExpression dst=new LocalExpression(ffn.getDst());
-	  TempDescriptor td=getTemp(srcf);
-	  if (td!=null) {
-	    FlatOpNode fon=new FlatOpNode(ffn.getDst(),td,null,new Operation(Operation.ASSIGN));
-	    fn.replace(fon);
-	  }
-	  srcf.set.add(dst);
-	  kill(table, ffn.getDst());
-	  table.put(dst, srcf);
-	  break;
-	}
+        case FKind.FlatFieldNode: {
+          FlatFieldNode ffn=(FlatFieldNode) fn;
+          Group src=getGroup(table, ffn.getSrc());
+          LocalExpression e=new LocalExpression(src, ffn.getField());
+          Group srcf=getGroup(table, e);
+          LocalExpression dst=new LocalExpression(ffn.getDst());
+          TempDescriptor td=getTemp(srcf);
+          if (td!=null) {
+            FlatOpNode fon=new FlatOpNode(ffn.getDst(),td,null,new Operation(Operation.ASSIGN));
+            fn.replace(fon);
+          }
+          srcf.set.add(dst);
+          kill(table, ffn.getDst());
+          table.put(dst, srcf);
+          break;
+        }
 
-	case FKind.FlatElementNode: {
-	  FlatElementNode fen=(FlatElementNode) fn;
-	  Group src=getGroup(table, fen.getSrc());
-	  Group index=getGroup(table, fen.getIndex());
-	  LocalExpression e=new LocalExpression(src, fen.getSrc().getType(), index);
-	  Group srcf=getGroup(table, e);
-	  LocalExpression dst=new LocalExpression(fen.getDst());
-	  TempDescriptor td=getTemp(srcf);
-	  if (td!=null) {
-	    FlatOpNode fon=new FlatOpNode(fen.getDst(),td,null,new Operation(Operation.ASSIGN));
-	    fn.replace(fon);
-	  }
-	  srcf.set.add(dst);
-	  kill(table, fen.getDst());
-	  table.put(dst, srcf);
-	  break;
-	}
+        case FKind.FlatElementNode: {
+          FlatElementNode fen=(FlatElementNode) fn;
+          Group src=getGroup(table, fen.getSrc());
+          Group index=getGroup(table, fen.getIndex());
+          LocalExpression e=new LocalExpression(src, fen.getSrc().getType(), index);
+          Group srcf=getGroup(table, e);
+          LocalExpression dst=new LocalExpression(fen.getDst());
+          TempDescriptor td=getTemp(srcf);
+          if (td!=null) {
+            FlatOpNode fon=new FlatOpNode(fen.getDst(),td,null,new Operation(Operation.ASSIGN));
+            fn.replace(fon);
+          }
+          srcf.set.add(dst);
+          kill(table, fen.getDst());
+          table.put(dst, srcf);
+          break;
+        }
 
-	case FKind.FlatSetFieldNode: {
-	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
-	  Group dst=getGroup(table, fsfn.getDst());
-	  LocalExpression e=new LocalExpression(dst, fsfn.getField());
-	  Group dstf=getGroup(table, e);
-	  LocalExpression src=new LocalExpression(fsfn.getSrc());
-	  dstf.set.add(src);
-	  HashSet<FieldDescriptor> fields=new HashSet<FieldDescriptor>();
-	  fields.add(fsfn.getField());
-	  kill(table, fields, null, false, false);
-	  table.put(src, dstf);
-	  break;
-	}
+        case FKind.FlatSetFieldNode: {
+          FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+          Group dst=getGroup(table, fsfn.getDst());
+          LocalExpression e=new LocalExpression(dst, fsfn.getField());
+          Group dstf=getGroup(table, e);
+          LocalExpression src=new LocalExpression(fsfn.getSrc());
+          dstf.set.add(src);
+          HashSet<FieldDescriptor> fields=new HashSet<FieldDescriptor>();
+          fields.add(fsfn.getField());
+          kill(table, fields, null, false, false);
+          table.put(src, dstf);
+          break;
+        }
 
-	case FKind.FlatSetElementNode: {
-	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	  Group dst=getGroup(table, fsen.getDst());
-	  Group index=getGroup(table, fsen.getIndex());
-	  LocalExpression e=new LocalExpression(dst, fsen.getDst().getType(), index);
-	  Group dstf=getGroup(table, e);
-	  LocalExpression src=new LocalExpression(fsen.getSrc());
-	  dstf.set.add(src);
-	  HashSet<TypeDescriptor> arrays=new HashSet<TypeDescriptor>();
-	  arrays.add(fsen.getDst().getType());
-	  kill(table, null, arrays, false, false);
-	  table.put(src, dstf);
-	  break;
-	}
+        case FKind.FlatSetElementNode: {
+          FlatSetElementNode fsen=(FlatSetElementNode)fn;
+          Group dst=getGroup(table, fsen.getDst());
+          Group index=getGroup(table, fsen.getIndex());
+          LocalExpression e=new LocalExpression(dst, fsen.getDst().getType(), index);
+          Group dstf=getGroup(table, e);
+          LocalExpression src=new LocalExpression(fsen.getSrc());
+          dstf.set.add(src);
+          HashSet<TypeDescriptor> arrays=new HashSet<TypeDescriptor>();
+          arrays.add(fsen.getDst().getType());
+          kill(table, null, arrays, false, false);
+          table.put(src, dstf);
+          break;
+        }
 
-	case FKind.FlatCall: {
-	  //do side effects
-	  FlatCall fc=(FlatCall)fn;
-	  MethodDescriptor md=fc.getMethod();
-	  Set<FieldDescriptor> fields=gft.getFieldsAll(md);
-	  Set<TypeDescriptor> arrays=gft.getArraysAll(md);
-	  kill(table, fields, arrays, gft.containsAtomicAll(md), gft.containsBarrierAll(md));
-	}
+        case FKind.FlatCall: {
+          //do side effects
+          FlatCall fc=(FlatCall)fn;
+          MethodDescriptor md=fc.getMethod();
+          Set<FieldDescriptor> fields=gft.getFieldsAll(md);
+          Set<TypeDescriptor> arrays=gft.getArraysAll(md);
+          kill(table, fields, arrays, gft.containsAtomicAll(md), gft.containsBarrierAll(md));
+        }
 
-	default: {
-	  TempDescriptor[] writes=fn.writesTemps();
-	  for(int i=0; i<writes.length; i++) {
-	    kill(table,writes[i]);
-	  }
-	}
-	}
+        default: {
+          TempDescriptor[] writes=fn.writesTemps();
+          for(int i=0; i<writes.length; i++) {
+            kill(table,writes[i]);
+          }
+        }
+        }
       } while(fn.numPrev()==1);
     }
   }
@@ -180,31 +180,31 @@ public class localCSE {
     for(Iterator<LocalExpression> it=eset.iterator(); it.hasNext(); ) {
       LocalExpression e=it.next();
       if (isBarrier) {
-	//make Barriers kill everything
-	it.remove();
+        //make Barriers kill everything
+        it.remove();
       } else if (isAtomic&&(e.td!=null||e.f!=null)) {
-	Group g=tab.get(e);
-	g.set.remove(e);
-	it.remove();
+        Group g=tab.get(e);
+        g.set.remove(e);
+        it.remove();
       } else if (e.td!=null) {
-	//have array
-	TypeDescriptor artd=e.td;
-	for(Iterator<TypeDescriptor> arit=arrays.iterator(); arit.hasNext(); ) {
-	  TypeDescriptor td=arit.next();
-	  if (typeutil.isSuperorType(artd,td)||
-	      typeutil.isSuperorType(td,artd)) {
-	    Group g=tab.get(e);
-	    g.set.remove(e);
-	    it.remove();
-	    break;
-	  }
-	}
+        //have array
+        TypeDescriptor artd=e.td;
+        for(Iterator<TypeDescriptor> arit=arrays.iterator(); arit.hasNext(); ) {
+          TypeDescriptor td=arit.next();
+          if (typeutil.isSuperorType(artd,td)||
+              typeutil.isSuperorType(td,artd)) {
+            Group g=tab.get(e);
+            g.set.remove(e);
+            it.remove();
+            break;
+          }
+        }
       } else if (e.f!=null) {
-	if (fields.contains(e.f)) {
-	  Group g=tab.get(e);
-	  g.set.remove(e);
-	  it.remove();
-	}
+        if (fields.contains(e.f)) {
+          Group g=tab.get(e);
+          g.set.remove(e);
+          it.remove();
+        }
       }
     }
   }

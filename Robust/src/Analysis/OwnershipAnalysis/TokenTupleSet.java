@@ -65,7 +65,7 @@ public class TokenTupleSet extends Canonical {
       TokenTuple ttThis = this.containsToken(ttIn.getToken() );
 
       if( ttThis == null ) {
-	return false;
+        return false;
       }
     }
 
@@ -78,7 +78,7 @@ public class TokenTupleSet extends Canonical {
 
       if( ttIn == null &&
           ttThis.getArity() != TokenTuple.ARITY_ZEROORMORE ) {
-	return false;
+        return false;
       }
     }
 
@@ -125,9 +125,9 @@ public class TokenTupleSet extends Canonical {
       TokenTuple ttIn   = ttsIn.containsToken(ttThis.getToken() );
 
       if( ttIn != null ) {
-	ttsOut.tokenTuples.add(ttThis.unionArity(ttIn) );
+        ttsOut.tokenTuples.add(ttThis.unionArity(ttIn) );
       } else {
-	ttsOut.tokenTuples.add(ttThis);
+        ttsOut.tokenTuples.add(ttThis);
       }
     }
 
@@ -137,7 +137,7 @@ public class TokenTupleSet extends Canonical {
       TokenTuple ttThis = ttsOut.containsToken(ttIn.getToken() );
 
       if( ttThis == null ) {
-	ttsOut.tokenTuples.add(ttIn);
+        ttsOut.tokenTuples.add(ttIn);
       }
     }
 
@@ -195,7 +195,7 @@ public class TokenTupleSet extends Canonical {
     while( itr.hasNext() ) {
       TokenTuple tt = (TokenTuple) itr.next();
       if( token.equals(tt.getToken() ) ) {
-	return tt;
+        return tt;
       }
     }
     return null;
@@ -220,29 +220,29 @@ public class TokenTupleSet extends Canonical {
       // tokens not associated with
       // the site should be left alone
       if( age == AllocationSite.AGE_notInThisSite ) {
-	ttsOut.tokenTuples.add(tt);
+        ttsOut.tokenTuples.add(tt);
 
       } else if( age == AllocationSite.AGE_summary ) {
-	// remember the summary tuple, but don't add it
-	// we may combine it with the oldest tuple
-	ttSummary = tt;
+        // remember the summary tuple, but don't add it
+        // we may combine it with the oldest tuple
+        ttSummary = tt;
 
       } else if( age == AllocationSite.AGE_oldest ) {
-	// found an oldest token, again just remember
-	// for later
-	ttOldest = tt;
+        // found an oldest token, again just remember
+        // for later
+        ttOldest = tt;
 
       } else {
-	assert age == AllocationSite.AGE_in_I;
+        assert age == AllocationSite.AGE_in_I;
 
-	Integer I = as.getAge(token);
-	assert I != null;
+        Integer I = as.getAge(token);
+        assert I != null;
 
-	// otherwise, we change this token to the
-	// next older token
-	Integer tokenToChangeTo = as.getIthOldest(I + 1);
-	TokenTuple ttAged       = tt.changeTokenTo(tokenToChangeTo);
-	ttsOut.tokenTuples.add(ttAged);
+        // otherwise, we change this token to the
+        // next older token
+        Integer tokenToChangeTo = as.getIthOldest(I + 1);
+        TokenTuple ttAged       = tt.changeTokenTo(tokenToChangeTo);
+        ttsOut.tokenTuples.add(ttAged);
       }
     }
 
@@ -293,32 +293,32 @@ public class TokenTupleSet extends Canonical {
       int shadowAge = as.getShadowAgeCategory(token);
 
       if( shadowAge == AllocationSite.AGE_summary ) {
-	// remember the summary tuple, but don't add it
-	// we may combine it with the oldest tuple
-	ttSummary = tt;
+        // remember the summary tuple, but don't add it
+        // we may combine it with the oldest tuple
+        ttSummary = tt;
 
       } else if( shadowAge == AllocationSite.SHADOWAGE_notInThisSite ) {
-	ttsOut.tokenTuples.add(tt);
+        ttsOut.tokenTuples.add(tt);
 
       } else if( shadowAge == AllocationSite.SHADOWAGE_summary ) {
-	// found the shadow summary token, again just remember
-	// for later
-	ttShadowSummary = tt;
+        // found the shadow summary token, again just remember
+        // for later
+        ttShadowSummary = tt;
 
       } else if( shadowAge == AllocationSite.SHADOWAGE_oldest ) {
-	Integer tokenToChangeTo = as.getOldest();
-	TokenTuple ttNormal = tt.changeTokenTo(tokenToChangeTo);
-	ttsOut.tokenTuples.add(ttNormal);
+        Integer tokenToChangeTo = as.getOldest();
+        TokenTuple ttNormal = tt.changeTokenTo(tokenToChangeTo);
+        ttsOut.tokenTuples.add(ttNormal);
 
       } else {
-	assert shadowAge == AllocationSite.SHADOWAGE_in_I;
+        assert shadowAge == AllocationSite.SHADOWAGE_in_I;
 
-	Integer I = as.getShadowAge(token);
-	assert I != null;
+        Integer I = as.getShadowAge(token);
+        assert I != null;
 
-	Integer tokenToChangeTo = as.getIthOldest(-I);
-	TokenTuple ttNormal = tt.changeTokenTo(tokenToChangeTo);
-	ttsOut.tokenTuples.add(ttNormal);
+        Integer tokenToChangeTo = as.getIthOldest(-I);
+        TokenTuple ttNormal = tt.changeTokenTo(tokenToChangeTo);
+        ttsOut.tokenTuples.add(ttNormal);
       }
     }
 
@@ -360,21 +360,21 @@ public class TokenTupleSet extends Canonical {
       // summary tokens and tokens not associated with
       // the site should be left alone
       if( age == AllocationSite.AGE_notInThisSite ) {
-	ttsOut = ttsOut.union(tt);
+        ttsOut = ttsOut.union(tt);
 
       } else if( age == AllocationSite.AGE_summary ) {
-	ttsOut = ttsOut.union(tt.changeTokenTo(as.getSummaryShadow() ));
+        ttsOut = ttsOut.union(tt.changeTokenTo(as.getSummaryShadow() ));
 
       } else if( age == AllocationSite.AGE_oldest ) {
-	ttsOut = ttsOut.union(tt.changeTokenTo(as.getOldestShadow() ));
+        ttsOut = ttsOut.union(tt.changeTokenTo(as.getOldestShadow() ));
 
       } else {
-	assert age == AllocationSite.AGE_in_I;
+        assert age == AllocationSite.AGE_in_I;
 
-	Integer I = as.getAge(token);
-	assert I != null;
+        Integer I = as.getAge(token);
+        assert I != null;
 
-	ttsOut = ttsOut.union(tt.changeTokenTo(as.getIthOldestShadow(I) ));
+        ttsOut = ttsOut.union(tt.changeTokenTo(as.getIthOldestShadow(I) ));
       }
     }
 
@@ -398,20 +398,20 @@ public class TokenTupleSet extends Canonical {
 
       Iterator<TokenTupleSet> replaceItr = replacements.iterator();
       while( replaceItr.hasNext() ) {
-	TokenTupleSet replacement = replaceItr.next();
-	TokenTupleSet replaced = new TokenTupleSet(ttsMinusToken).makeCanonical();
-	replaced = replaced.unionUpArity(replacement);
-	rsOut = rsOut.add(replaced);
+        TokenTupleSet replacement = replaceItr.next();
+        TokenTupleSet replaced = new TokenTupleSet(ttsMinusToken).makeCanonical();
+        replaced = replaced.unionUpArity(replacement);
+        rsOut = rsOut.add(replaced);
 
-	if( makeChangeSet ) {
-	  assert forChangeSet != null;
+        if( makeChangeSet ) {
+          assert forChangeSet != null;
 
-	  if( forChangeSet.get(this) == null ) {
-	    forChangeSet.put(this, new HashSet<TokenTupleSet>() );
-	  }
+          if( forChangeSet.get(this) == null ) {
+            forChangeSet.put(this, new HashSet<TokenTupleSet>() );
+          }
 
-	  forChangeSet.get(this).add(replaced);
-	}
+          forChangeSet.get(this).add(replaced);
+        }
       }
     }
 

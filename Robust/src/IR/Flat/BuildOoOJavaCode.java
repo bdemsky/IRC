@@ -75,12 +75,12 @@ public class BuildOoOJavaCode extends BuildCode {
     //TODO signal the object that will report errors
     if( state.RCR ) {
       try {
-	rcr = new RuntimeConflictResolver(PREFIX,
-	                                  oooa,
-	                                  state);
-	System.out.println("Runtime Conflict Resolver started.");
+        rcr = new RuntimeConflictResolver(PREFIX,
+                                          oooa,
+                                          state);
+        System.out.println("Runtime Conflict Resolver started.");
       } catch (FileNotFoundException e) {
-	System.out.println("Runtime Conflict Resolver could not create output file.");
+        System.out.println("Runtime Conflict Resolver could not create output file.");
       }
     }
   }
@@ -118,9 +118,9 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor temp = itr.next();
       TypeDescriptor type = temp.getType();
       if( type.isPtr() ) {
-	objectparams.addPtr(temp);
+        objectparams.addPtr(temp);
       } else {
-	objectparams.addPrim(temp);
+        objectparams.addPrim(temp);
       }
     }
 
@@ -133,14 +133,14 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor[] writes = fn.writesTemps();
 
       for( int i = 0; i < writes.length; i++ ) {
-	TempDescriptor temp = writes[i];
-	TypeDescriptor type = temp.getType();
+        TempDescriptor temp = writes[i];
+        TypeDescriptor type = temp.getType();
 
-	if( type.isPtr() ) {
-	  objecttemps.addPtr(temp);
-	} else {
-	  objecttemps.addPrim(temp);
-	}
+        if( type.isPtr() ) {
+          objecttemps.addPtr(temp);
+        } else {
+          objecttemps.addPrim(temp);
+        }
       }
     }
   }
@@ -322,11 +322,11 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor temp=objecttemps.getPointer(i);
 
       if (temp.getType().isNull())
-	outputStructs.println("  void * "+temp.getSafeSymbol()+";");
+        outputStructs.println("  void * "+temp.getSafeSymbol()+";");
       else
-	outputStructs.println("  struct "+
-	                      temp.getType().getSafeSymbol()+" * "+
-	                      temp.getSafeSymbol()+";");
+        outputStructs.println("  struct "+
+                              temp.getType().getSafeSymbol()+" * "+
+                              temp.getSafeSymbol()+";");
     }
     outputStructs.println("};\n");
 
@@ -345,9 +345,9 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor temp = itr.next();
       TypeDescriptor type = temp.getType();
       if( type.isPtr() ) {
-	inSetAndOutSetObjs.add(temp);
+        inSetAndOutSetObjs.add(temp);
       } else {
-	inSetAndOutSetPrims.add(temp);
+        inSetAndOutSetPrims.add(temp);
       }
     }
 
@@ -374,22 +374,22 @@ public class BuildOoOJavaCode extends BuildCode {
     for(int i=0; i<inset.size(); i++) {
       TempDescriptor temp=inset.get(i);
       if (temp.getType().isNull())
-	outputStructs.println("  void * "+temp.getSafeSymbol()+
-	                      ";  /* in-or-out-set obj in gl */");
+        outputStructs.println("  void * "+temp.getSafeSymbol()+
+                              ";  /* in-or-out-set obj in gl */");
       else
-	outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+
-	                      temp.getSafeSymbol()+"; /* in-or-out-set obj in gl */");
+        outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+
+                              temp.getSafeSymbol()+"; /* in-or-out-set obj in gl */");
     }
 
     for(int i=0; i<objectparams.numPointers(); i++) {
       TempDescriptor temp=objectparams.getPointer(i);
       if (!inset.contains(temp)) {
-	if (temp.getType().isNull())
-	  outputStructs.println("  void * "+temp.getSafeSymbol()+
-	                        ";  /* in-or-out-set obj in gl */");
-	else
-	  outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+
-	                        temp.getSafeSymbol()+"; /* in-or-out-set obj in gl */");
+        if (temp.getType().isNull())
+          outputStructs.println("  void * "+temp.getSafeSymbol()+
+                                ";  /* in-or-out-set obj in gl */");
+        else
+          outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+
+                                temp.getSafeSymbol()+"; /* in-or-out-set obj in gl */");
       }
     }
 
@@ -400,8 +400,8 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor temp = itrPrims.next();
       TypeDescriptor type = temp.getType();
       if(type.isPrimitive()) {
-	outputStructs.println("  "+temp.getType().getSafeSymbol()+" "+
-	                      temp.getSafeSymbol()+"; /* in-set or out-set primitive */");
+        outputStructs.println("  "+temp.getType().getSafeSymbol()+" "+
+                              temp.getSafeSymbol()+"; /* in-set or out-set primitive */");
       }
     }
 
@@ -434,7 +434,7 @@ public class BuildOoOJavaCode extends BuildCode {
 
     if (state.RCR) {
       if (inset.size()!=0) {
-	outputStructs.println("struct rcrRecord rcrRecords["+inset.size()+"];");
+        outputStructs.println("struct rcrRecord rcrRecords["+inset.size()+"];");
       }
     }
 
@@ -498,7 +498,7 @@ public class BuildOoOJavaCode extends BuildCode {
       output.print(objecttemp.numPointers()+",");
       output.print("&(((SESEcommon*)(___params___))[1])");
       for(int j=0; j<objecttemp.numPointers(); j++)
-	output.print(", NULL");
+        output.print(", NULL");
       output.println("};");
     }
 
@@ -507,11 +507,11 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor td=objecttemp.getPrimitive(i);
       TypeDescriptor type=td.getType();
       if (type.isNull())
-	output.println("   void * "+td.getSafeSymbol()+";");
+        output.println("   void * "+td.getSafeSymbol()+";");
       else if (type.isClass()||type.isArray())
-	output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
+        output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
       else
-	output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
+        output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
     }
 
 
@@ -543,11 +543,11 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor temp = itrInSet.next();
       TypeDescriptor type = temp.getType();
       if( !type.isPtr() ) {
-	if( fsen.getReadyInVarSet().contains(temp) ) {
-	  output.println("   "+type+" "+temp+" = "+paramsprefix+"->"+temp+";");
-	} else {
-	  output.println("   "+type+" "+temp+";");
-	}
+        if( fsen.getReadyInVarSet().contains(temp) ) {
+          output.println("   "+type+" "+temp+" = "+paramsprefix+"->"+temp+";");
+        } else {
+          output.println("   "+type+" "+temp+";");
+        }
       }
     }
 
@@ -559,7 +559,7 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor temp = itrOutSet.next();
       TypeDescriptor type = temp.getType();
       if( !type.isPtr() && !fsen.getInVarSet().contains(temp) ) {
-	output.println("   "+type+" "+temp+";");
+        output.println("   "+type+" "+temp+";");
       }
     }
 
@@ -583,10 +583,10 @@ public class BuildOoOJavaCode extends BuildCode {
       Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
       System.out.println("#lockSet="+lockSet);
       if( lockSet.size() > 0 ) {
-	output.println("   numMemoryQueue=" + lockSet.size() + ";");
-	output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
-	output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
-	output.println();
+        output.println("   numMemoryQueue=" + lockSet.size() + ";");
+        output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
+        output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+        output.println();
       }
       output.println("   }");
     }
@@ -605,8 +605,8 @@ public class BuildOoOJavaCode extends BuildCode {
       output.println("   runningSESE->taskRecordMemPool = poolcreate( "+
                      maxTaskRecSizeStr+", freshTaskRecordInitializer );");
       if (state.RCR && !rcr.hasEmptyTraversers(fsen)) {
-	output.println("   createTR();");
-	output.println("   runningSESE->allHashStructures=TRqueue->allHashStructures;");
+        output.println("   createTR();");
+        output.println("   runningSESE->allHashStructures=TRqueue->allHashStructures;");
       }
     } else {
       // make it clear we purposefully did not initialize this
@@ -654,11 +654,11 @@ public class BuildOoOJavaCode extends BuildCode {
 
       String typeStr;
       if( type.isNull() ) {
-	typeStr = "void*";
+        typeStr = "void*";
       } else if( type.isClass() || type.isArray() ) {
-	typeStr = "struct "+type.getSafeSymbol()+"*";
+        typeStr = "struct "+type.getSafeSymbol()+"*";
       } else {
-	typeStr = type.getSafeSymbol();
+        typeStr = type.getSafeSymbol();
       }
 
       output.println("     "+generateTemp(fsen.getfmBogus(), temp)+
@@ -734,7 +734,7 @@ public class BuildOoOJavaCode extends BuildCode {
       outmethod.println("      "+fsen.getSESEmethodName()+"( seseRecord );");
 
       if( fsen.getIsMainSESE() ) {
-	outmethod.println("      workScheduleExit();");
+        outmethod.println("      workScheduleExit();");
       }
 
       outmethod.println("      break;");
@@ -780,11 +780,11 @@ public class BuildOoOJavaCode extends BuildCode {
     for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext(); ) {
       WaitingElement waitingElement =(WaitingElement) iterator.next();
       if (waitingElement.getStatus() >= ConflictNode.COARSE) {
-	output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
-	               + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
-	               + ", (SESEcommon *) stallrecord, 1LL);");
+        output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
+                       + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
+                       + ", (SESEcommon *) stallrecord, 1LL);");
       } else {
-	throw new Error("Fine-grained conflict: This should not happen in RCR");
+        throw new Error("Fine-grained conflict: This should not happen in RCR");
       }
       output.println("     rentry->queue=runningSESE->memoryQueueArray["
                      + waitingElement.getQueueID() + "];");
@@ -798,9 +798,9 @@ public class BuildOoOJavaCode extends BuildCode {
                      "]->rentrypool, rentry);");
       output.println("#endif");
       if (stalltd==null) {
-	stalltd=waitingElement.getTempDesc();
+        stalltd=waitingElement.getTempDesc();
       } else if (stalltd!=waitingElement.getTempDesc()) {
-	throw new Error("Multiple temp descriptors at stall site"+stalltd+"!="+waitingElement.getTempDesc());
+        throw new Error("Multiple temp descriptors at stall site"+stalltd+"!="+waitingElement.getTempDesc());
       }
     }
 
@@ -861,16 +861,16 @@ public class BuildOoOJavaCode extends BuildCode {
 
       FlatMethod fmContext;
       if( currentSESE.getIsCallerProxySESE() ) {
-	fmContext = oooa.getContainingFlatMethod(fn);
+        fmContext = oooa.getContainingFlatMethod(fn);
       } else {
-	fmContext = currentSESE.getfmBogus();
+        fmContext = currentSESE.getfmBogus();
       }
 
       ContextTaskNames contextTaskNames;
       if( currentSESE.getIsCallerProxySESE() ) {
-	contextTaskNames = oooa.getContextTaskNames(oooa.getContainingFlatMethod(fn) );
+        contextTaskNames = oooa.getContextTaskNames(oooa.getContainingFlatMethod(fn) );
       } else {
-	contextTaskNames = oooa.getContextTaskNames(currentSESE);
+        contextTaskNames = oooa.getContextTaskNames(currentSESE);
       }
 
       // for each sese and age pair that this parent statement
@@ -878,147 +878,147 @@ public class BuildOoOJavaCode extends BuildCode {
       // copying of values comes after the statement
       Iterator<VariableSourceToken> vstItr = cp.getStallTokens().iterator();
       while( vstItr.hasNext() ) {
-	VariableSourceToken vst = vstItr.next();
+        VariableSourceToken vst = vstItr.next();
 
-	SESEandAgePair pair = new SESEandAgePair(vst.getSESE(), vst.getAge() );
+        SESEandAgePair pair = new SESEandAgePair(vst.getSESE(), vst.getAge() );
 
-	output.println("   {");
-	output.println("     "+
-	               pair.getSESE().getSESErecordName()+"* child = ("+
-	               pair.getSESE().getSESErecordName()+"*) "+pair+";");
+        output.println("   {");
+        output.println("     "+
+                       pair.getSESE().getSESErecordName()+"* child = ("+
+                       pair.getSESE().getSESErecordName()+"*) "+pair+";");
 
-	output.println("     SESEcommon* childCom = (SESEcommon*) "+pair+";");
+        output.println("     SESEcommon* childCom = (SESEcommon*) "+pair+";");
 
-	if( state.COREPROF ) {
-	  output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
-	  output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
-	  output.println("#endif");
-	}
+        if( state.COREPROF ) {
+          output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
+          output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
+          output.println("#endif");
+        }
 
-	output.println("     pthread_mutex_lock( &(childCom->lock) );");
-	output.println("     if( childCom->doneExecuting == FALSE ) {");
-	output.println("       psem_reset( &runningSESEstallSem );");
-	output.println("       childCom->parentsStallSem = &runningSESEstallSem;");
-	output.println("       pthread_mutex_unlock( &(childCom->lock) );");
-	output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
-	output.println("     } else {");
-	output.println("       pthread_mutex_unlock( &(childCom->lock) );");
-	output.println("     }");
+        output.println("     pthread_mutex_lock( &(childCom->lock) );");
+        output.println("     if( childCom->doneExecuting == FALSE ) {");
+        output.println("       psem_reset( &runningSESEstallSem );");
+        output.println("       childCom->parentsStallSem = &runningSESEstallSem;");
+        output.println("       pthread_mutex_unlock( &(childCom->lock) );");
+        output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
+        output.println("     } else {");
+        output.println("       pthread_mutex_unlock( &(childCom->lock) );");
+        output.println("     }");
 
-	// copy things we might have stalled for
-	Iterator<TempDescriptor> tdItr = cp.getCopySet(vst).iterator();
-	while( tdItr.hasNext() ) {
-	  TempDescriptor td = tdItr.next();
-	  output.println("       "+generateTemp(fmContext, td)+
-	                 " = child->"+vst.getAddrVar().getSafeSymbol()+";");
-	}
+        // copy things we might have stalled for
+        Iterator<TempDescriptor> tdItr = cp.getCopySet(vst).iterator();
+        while( tdItr.hasNext() ) {
+          TempDescriptor td = tdItr.next();
+          output.println("       "+generateTemp(fmContext, td)+
+                         " = child->"+vst.getAddrVar().getSafeSymbol()+";");
+        }
 
-	if( state.COREPROF ) {
-	  output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
-	  output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
-	  output.println("#endif");
-	}
+        if( state.COREPROF ) {
+          output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
+          output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
+          output.println("#endif");
+        }
 
-	output.println("   }");
+        output.println("   }");
       }
 
       // for each variable with a dynamic source, stall just for that variable
       Iterator<TempDescriptor> dynItr = cp.getDynamicStallSet().iterator();
       while( dynItr.hasNext() ) {
-	TempDescriptor dynVar = dynItr.next();
+        TempDescriptor dynVar = dynItr.next();
 
-	// only stall if the dynamic source is not yourself, denoted by src==NULL
-	// otherwise the dynamic write nodes will have the local var up-to-date
-	output.println("   {");
-	output.println("     if( "+dynVar+"_srcSESE != NULL ) {");
+        // only stall if the dynamic source is not yourself, denoted by src==NULL
+        // otherwise the dynamic write nodes will have the local var up-to-date
+        output.println("   {");
+        output.println("     if( "+dynVar+"_srcSESE != NULL ) {");
 
-	output.println("       SESEcommon* childCom = (SESEcommon*) "+dynVar+"_srcSESE;");
+        output.println("       SESEcommon* childCom = (SESEcommon*) "+dynVar+"_srcSESE;");
 
-	if( state.COREPROF ) {
-	  output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
-	  output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
-	  output.println("#endif");
-	}
+        if( state.COREPROF ) {
+          output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
+          output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
+          output.println("#endif");
+        }
 
-	output.println("     pthread_mutex_lock( &(childCom->lock) );");
-	output.println("     if( childCom->doneExecuting == FALSE ) {");
-	output.println("       psem_reset( &runningSESEstallSem );");
-	output.println("       childCom->parentsStallSem = &runningSESEstallSem;");
-	output.println("       pthread_mutex_unlock( &(childCom->lock) );");
-	output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
-	output.println("     } else {");
-	output.println("       pthread_mutex_unlock( &(childCom->lock) );");
-	output.println("     }");
+        output.println("     pthread_mutex_lock( &(childCom->lock) );");
+        output.println("     if( childCom->doneExecuting == FALSE ) {");
+        output.println("       psem_reset( &runningSESEstallSem );");
+        output.println("       childCom->parentsStallSem = &runningSESEstallSem;");
+        output.println("       pthread_mutex_unlock( &(childCom->lock) );");
+        output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
+        output.println("     } else {");
+        output.println("       pthread_mutex_unlock( &(childCom->lock) );");
+        output.println("     }");
 
-	TypeDescriptor type = dynVar.getType();
-	String typeStr;
-	if( type.isNull() ) {
-	  typeStr = "void*";
-	} else if( type.isClass() || type.isArray() ) {
-	  typeStr = "struct "+type.getSafeSymbol()+"*";
-	} else {
-	  typeStr = type.getSafeSymbol();
-	}
+        TypeDescriptor type = dynVar.getType();
+        String typeStr;
+        if( type.isNull() ) {
+          typeStr = "void*";
+        } else if( type.isClass() || type.isArray() ) {
+          typeStr = "struct "+type.getSafeSymbol()+"*";
+        } else {
+          typeStr = type.getSafeSymbol();
+        }
 
-	output.println("       "+generateTemp(fmContext, dynVar)+
-	               " = *(("+typeStr+"*) ((void*)"+
-	               dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
+        output.println("       "+generateTemp(fmContext, dynVar)+
+                       " = *(("+typeStr+"*) ((void*)"+
+                       dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
 
-	if( state.COREPROF ) {
-	  output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
-	  output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
-	  output.println("#endif");
-	}
+        if( state.COREPROF ) {
+          output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
+          output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
+          output.println("#endif");
+        }
 
-	output.println("     }");
-	output.println("   }");
+        output.println("     }");
+        output.println("   }");
       }
 
       // for each assignment of a variable to rhs that has a dynamic source,
       // copy the dynamic sources
       Iterator dynAssignItr = cp.getDynAssigns().entrySet().iterator();
       while( dynAssignItr.hasNext() ) {
-	Map.Entry me  = (Map.Entry)dynAssignItr.next();
-	TempDescriptor lhs = (TempDescriptor) me.getKey();
-	TempDescriptor rhs = (TempDescriptor) me.getValue();
+        Map.Entry me  = (Map.Entry)dynAssignItr.next();
+        TempDescriptor lhs = (TempDescriptor) me.getKey();
+        TempDescriptor rhs = (TempDescriptor) me.getValue();
 
-	output.println("   {");
-	output.println("   SESEcommon* oldSrc = "+lhs+"_srcSESE;");
+        output.println("   {");
+        output.println("   SESEcommon* oldSrc = "+lhs+"_srcSESE;");
 
-	output.println("   "+lhs+"_srcSESE   = "+rhs+"_srcSESE;");
-	output.println("   "+lhs+"_srcOffset = "+rhs+"_srcOffset;");
+        output.println("   "+lhs+"_srcSESE   = "+rhs+"_srcSESE;");
+        output.println("   "+lhs+"_srcOffset = "+rhs+"_srcOffset;");
 
-	// no matter what we did above, track reference count of whatever
-	// this variable pointed to, do release last in case we're just
-	// copying the same value in because 1->2->1 is safe but ref count
-	// 1->0->1 has a window where it looks like it should be free'd
-	output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
-	output.println("     if( "+rhs+"_srcSESE != NULL ) {");
-	output.println("       ADD_REFERENCE_TO( "+rhs+"_srcSESE );");
-	output.println("     }");
-	output.println("     if( oldSrc != NULL ) {");
-	output.println("       RELEASE_REFERENCE_TO( oldSrc );");
-	output.println("     }");
-	output.println("   }");
-	output.println("#endif // OOO_DISABLE_TASKMEMPOOL");
+        // no matter what we did above, track reference count of whatever
+        // this variable pointed to, do release last in case we're just
+        // copying the same value in because 1->2->1 is safe but ref count
+        // 1->0->1 has a window where it looks like it should be free'd
+        output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+        output.println("     if( "+rhs+"_srcSESE != NULL ) {");
+        output.println("       ADD_REFERENCE_TO( "+rhs+"_srcSESE );");
+        output.println("     }");
+        output.println("     if( oldSrc != NULL ) {");
+        output.println("       RELEASE_REFERENCE_TO( oldSrc );");
+        output.println("     }");
+        output.println("   }");
+        output.println("#endif // OOO_DISABLE_TASKMEMPOOL");
       }
 
       // for each lhs that is dynamic from a non-dynamic source, set the
       // dynamic source vars to the current SESE
       dynItr = cp.getDynAssignCurr().iterator();
       while( dynItr.hasNext() ) {
-	TempDescriptor dynVar = dynItr.next();
+        TempDescriptor dynVar = dynItr.next();
 
-	assert contextTaskNames.getDynamicVarSet().contains(dynVar);
+        assert contextTaskNames.getDynamicVarSet().contains(dynVar);
 
-	// first release a reference to current record
-	output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
-	output.println("   if( "+dynVar+"_srcSESE != NULL ) {");
-	output.println("     RELEASE_REFERENCE_TO( oldSrc );");
-	output.println("   }");
-	output.println("#endif // OOO_DISABLE_TASKMEMPOOL");
+        // first release a reference to current record
+        output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+        output.println("   if( "+dynVar+"_srcSESE != NULL ) {");
+        output.println("     RELEASE_REFERENCE_TO( oldSrc );");
+        output.println("   }");
+        output.println("#endif // OOO_DISABLE_TASKMEMPOOL");
 
-	output.println("   "+dynVar+"_srcSESE = NULL;");
+        output.println("   "+dynVar+"_srcSESE = NULL;");
       }
 
 
@@ -1033,78 +1033,78 @@ public class BuildOoOJavaCode extends BuildCode {
       // create a case for each class of task that might be executing
       Iterator<FlatSESEEnterNode> taskItr = oooa.getPossibleExecutingRBlocks(fn).iterator();
       while( taskItr.hasNext() ) {
-	FlatSESEEnterNode parent = taskItr.next();
-	ConflictGraph graph  = oooa.getConflictGraph(parent);
+        FlatSESEEnterNode parent = taskItr.next();
+        ConflictGraph graph  = oooa.getConflictGraph(parent);
 
-	if( graph == null ) {
-	  continue;
-	}
+        if( graph == null ) {
+          continue;
+        }
 
-	Set<SESELock>       seseLockSet       = oooa.getLockMappings(graph);
-	Set<WaitingElement> waitingElementSet = graph.getStallSiteWaitingElementSet(fn, seseLockSet);
+        Set<SESELock>       seseLockSet       = oooa.getLockMappings(graph);
+        Set<WaitingElement> waitingElementSet = graph.getStallSiteWaitingElementSet(fn, seseLockSet);
 
-	if( waitingElementSet.size() == 0 ) {
-	  continue;
-	}
+        if( waitingElementSet.size() == 0 ) {
+          continue;
+        }
 
-	// TODO: THIS STRATEGY CAN BE OPTIMIZED EVEN FURTHER, IF THERE
-	// IS EXACTLY ONE CASE, DON'T GENERATE A SWITCH AT ALL
-	if( atLeastOneCase == false ) {
-	  atLeastOneCase = true;
-	  output.println("   // potential stall site ");
-	  output.println("   switch( runningSESE->classID ) {");
-	}
+        // TODO: THIS STRATEGY CAN BE OPTIMIZED EVEN FURTHER, IF THERE
+        // IS EXACTLY ONE CASE, DON'T GENERATE A SWITCH AT ALL
+        if( atLeastOneCase == false ) {
+          atLeastOneCase = true;
+          output.println("   // potential stall site ");
+          output.println("   switch( runningSESE->classID ) {");
+        }
 
-	output.println("     case "+parent.getIdentifier()+": {");
+        output.println("     case "+parent.getIdentifier()+": {");
 
-	if( state.RCR ) {
-	  stallMEMRCR(fm, fn, waitingElementSet, output);
-	} else {
+        if( state.RCR ) {
+          stallMEMRCR(fm, fn, waitingElementSet, output);
+        } else {
 
-	  output.println("       REntry* rentry;");
+          output.println("       REntry* rentry;");
 
-	  for( Iterator iterator = waitingElementSet.iterator(); iterator.hasNext(); ) {
-	    WaitingElement waitingElement = (WaitingElement) iterator.next();
+          for( Iterator iterator = waitingElementSet.iterator(); iterator.hasNext(); ) {
+            WaitingElement waitingElement = (WaitingElement) iterator.next();
 
-	    if (waitingElement.getStatus() >= ConflictNode.COARSE) {
-	      output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
-	                     + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
-	                     + ", runningSESE);");
-	    } else {
-	      output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["
-	                     + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
-	                     + ", runningSESE,  (void*)&"
-	                     + generateTemp(fm, waitingElement.getTempDesc()) + ");");
-	    }
-	    output.println("       rentry->parentStallSem=&runningSESEstallSem;");
-	    output.println("       psem_reset( &runningSESEstallSem);");
-	    output.println("       rentry->tag=runningSESEstallSem.tag;");
-	    output.println("       rentry->queue=runningSESE->memoryQueueArray["
-	                   + waitingElement.getQueueID() + "];");
-	    output.println("       if(ADDRENTRY(runningSESE->memoryQueueArray["
-	                   + waitingElement.getQueueID() + "],rentry)==NOTREADY){");
-	    if (state.COREPROF) {
-	      output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
-	      output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
-	      output.println("#endif");
-	    }
+            if (waitingElement.getStatus() >= ConflictNode.COARSE) {
+              output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
+                             + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
+                             + ", runningSESE);");
+            } else {
+              output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["
+                             + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
+                             + ", runningSESE,  (void*)&"
+                             + generateTemp(fm, waitingElement.getTempDesc()) + ");");
+            }
+            output.println("       rentry->parentStallSem=&runningSESEstallSem;");
+            output.println("       psem_reset( &runningSESEstallSem);");
+            output.println("       rentry->tag=runningSESEstallSem.tag;");
+            output.println("       rentry->queue=runningSESE->memoryQueueArray["
+                           + waitingElement.getQueueID() + "];");
+            output.println("       if(ADDRENTRY(runningSESE->memoryQueueArray["
+                           + waitingElement.getQueueID() + "],rentry)==NOTREADY){");
+            if (state.COREPROF) {
+              output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+              output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+              output.println("#endif");
+            }
 
-	    output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
+            output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
 
-	    if (state.COREPROF) {
-	      output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
-	      output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
-	      output.println("#endif");
-	    }
-	    output.println("     }  ");
-	  }
+            if (state.COREPROF) {
+              output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+              output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+              output.println("#endif");
+            }
+            output.println("     }  ");
+          }
 
-	}
-	output.println("     } break; // end case "+parent.getIdentifier());
+        }
+        output.println("     } break; // end case "+parent.getIdentifier());
       }
 
       if( atLeastOneCase ) {
-	output.println("   } // end stall site switch");
+        output.println("   } // end stall site switch");
       }
     }
   }
@@ -1230,9 +1230,9 @@ public class BuildOoOJavaCode extends BuildCode {
       // if we're using RCR, ref count is 3 because the traverser has
       // a reference, too
       if( !fsen.getIsMainSESE() && fsen.getInVarsForDynamicCoarseConflictResolution().size()>0) {
-	output.println("     seseToIssue->common.refCount = 10003;");
+        output.println("     seseToIssue->common.refCount = 10003;");
       } else {
-	output.println("     seseToIssue->common.refCount = 10002;");
+        output.println("     seseToIssue->common.refCount = 10002;");
       }
       output.println("     int refCount=10000;");
     } else {
@@ -1249,11 +1249,11 @@ public class BuildOoOJavaCode extends BuildCode {
       assert !fsen.getIsCallerProxySESE();
       FlatSESEEnterNode parent = fsen.getLocalParent();
       if( parent != null && !parent.getIsCallerProxySESE() ) {
-	output.println("     seseToIssue->"+temp+" = "+
-	               generateTemp(parent.getfmBogus(), temp)+";");
+        output.println("     seseToIssue->"+temp+" = "+
+                       generateTemp(parent.getfmBogus(), temp)+";");
       } else {
-	output.println("     seseToIssue->"+temp+" = "+
-	               generateTemp(fsen.getfmEnclosing(), temp)+";");
+        output.println("     seseToIssue->"+temp+" = "+
+                       generateTemp(fsen.getfmEnclosing(), temp)+";");
       }
     }
 
@@ -1267,77 +1267,77 @@ public class BuildOoOJavaCode extends BuildCode {
       // count up outstanding dependencies, static first, then dynamic
       Iterator<SESEandAgePair> staticSrcsItr = fsen.getStaticInVarSrcs().iterator();
       while( staticSrcsItr.hasNext() ) {
-	SESEandAgePair srcPair = staticSrcsItr.next();
-	output.println("     {");
-	output.println("       SESEcommon* src = (SESEcommon*)"+srcPair+";");
-	output.println("       pthread_mutex_lock( &(src->lock) );");
-	// FORWARD TODO - ...what? make it a chain of arrays instead of true linked-list?
-	output.println("       if( !src->doneExecuting ) {");
-	output.println("         addNewItem( &src->forwardList, seseToIssue );");
-	output.println("         ++(localCount);");
-	output.println("       }");
-	output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
-	output.println("       ADD_REFERENCE_TO( src );");
-	output.println("#endif");
-	output.println("       pthread_mutex_unlock( &(src->lock) );");
-	output.println("     }");
+        SESEandAgePair srcPair = staticSrcsItr.next();
+        output.println("     {");
+        output.println("       SESEcommon* src = (SESEcommon*)"+srcPair+";");
+        output.println("       pthread_mutex_lock( &(src->lock) );");
+        // FORWARD TODO - ...what? make it a chain of arrays instead of true linked-list?
+        output.println("       if( !src->doneExecuting ) {");
+        output.println("         addNewItem( &src->forwardList, seseToIssue );");
+        output.println("         ++(localCount);");
+        output.println("       }");
+        output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+        output.println("       ADD_REFERENCE_TO( src );");
+        output.println("#endif");
+        output.println("       pthread_mutex_unlock( &(src->lock) );");
+        output.println("     }");
 
-	// whether or not it is an outstanding dependency, make sure
-	// to pass the static name to the child's record
-	output.println("     seseToIssue->"+srcPair+" = "+
-	               "("+srcPair.getSESE().getSESErecordName()+"*)"+
-	               srcPair+";");
+        // whether or not it is an outstanding dependency, make sure
+        // to pass the static name to the child's record
+        output.println("     seseToIssue->"+srcPair+" = "+
+                       "("+srcPair.getSESE().getSESErecordName()+"*)"+
+                       srcPair+";");
       }
 
       // dynamic sources might already be accounted for in the static list,
       // so only add them to forwarding lists if they're not already there
       Iterator<TempDescriptor> dynVarsItr = fsen.getDynamicInVarSet().iterator();
       while( dynVarsItr.hasNext() ) {
-	TempDescriptor dynInVar = dynVarsItr.next();
-	output.println("     {");
-	output.println("       SESEcommon* src = (SESEcommon*)"+dynInVar+"_srcSESE;");
+        TempDescriptor dynInVar = dynVarsItr.next();
+        output.println("     {");
+        output.println("       SESEcommon* src = (SESEcommon*)"+dynInVar+"_srcSESE;");
 
-	// the dynamic source is NULL if it comes from your own space--you can't pass
-	// the address off to the new child, because you're not done executing and
-	// might change the variable, so copy it right now
-	output.println("       if( src != NULL ) {");
-	output.println("         pthread_mutex_lock( &(src->lock) );");
+        // the dynamic source is NULL if it comes from your own space--you can't pass
+        // the address off to the new child, because you're not done executing and
+        // might change the variable, so copy it right now
+        output.println("       if( src != NULL ) {");
+        output.println("         pthread_mutex_lock( &(src->lock) );");
 
-	// FORWARD TODO
+        // FORWARD TODO
 
-	output.println("         if( isEmpty( &src->forwardList ) ||");
-	output.println("             seseToIssue != peekItem( &src->forwardList ) ) {");
-	output.println("           if( !src->doneExecuting ) {");
-	output.println("             addNewItem( &src->forwardList, seseToIssue );");
-	output.println("             ++(localCount);");
-	output.println("           }");
-	output.println("         }");
-	output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
-	output.println("         ADD_REFERENCE_TO( src );");
-	output.println("#endif");
-	output.println("         pthread_mutex_unlock( &(src->lock) );");
-	output.println("         seseToIssue->"+dynInVar+"_srcOffset = "+dynInVar+"_srcOffset;");
-	output.println("       } else {");
+        output.println("         if( isEmpty( &src->forwardList ) ||");
+        output.println("             seseToIssue != peekItem( &src->forwardList ) ) {");
+        output.println("           if( !src->doneExecuting ) {");
+        output.println("             addNewItem( &src->forwardList, seseToIssue );");
+        output.println("             ++(localCount);");
+        output.println("           }");
+        output.println("         }");
+        output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+        output.println("         ADD_REFERENCE_TO( src );");
+        output.println("#endif");
+        output.println("         pthread_mutex_unlock( &(src->lock) );");
+        output.println("         seseToIssue->"+dynInVar+"_srcOffset = "+dynInVar+"_srcOffset;");
+        output.println("       } else {");
 
 
-	// determine whether this new task instance is in a method context,
-	// or within the body of another task
-	assert !fsen.getIsCallerProxySESE();
-	FlatSESEEnterNode parent = fsen.getLocalParent();
-	if( parent != null && !parent.getIsCallerProxySESE() ) {
-	  output.println("         seseToIssue->"+dynInVar+" = "+
-	                 generateTemp(parent.getfmBogus(), dynInVar)+";");
-	} else {
-	  output.println("         seseToIssue->"+dynInVar+" = "+
-	                 generateTemp(fsen.getfmEnclosing(), dynInVar)+";");
-	}
+        // determine whether this new task instance is in a method context,
+        // or within the body of another task
+        assert !fsen.getIsCallerProxySESE();
+        FlatSESEEnterNode parent = fsen.getLocalParent();
+        if( parent != null && !parent.getIsCallerProxySESE() ) {
+          output.println("         seseToIssue->"+dynInVar+" = "+
+                         generateTemp(parent.getfmBogus(), dynInVar)+";");
+        } else {
+          output.println("         seseToIssue->"+dynInVar+" = "+
+                         generateTemp(fsen.getfmEnclosing(), dynInVar)+";");
+        }
 
-	output.println("       }");
-	output.println("     }");
+        output.println("       }");
+        output.println("     }");
 
-	// even if the value is already copied, make sure your NULL source
-	// gets passed so child knows it already has the dynamic value
-	output.println("     seseToIssue->"+dynInVar+"_srcSESE = "+dynInVar+"_srcSESE;");
+        // even if the value is already copied, make sure your NULL source
+        // gets passed so child knows it already has the dynamic value
+        output.println("     seseToIssue->"+dynInVar+"_srcSESE = "+dynInVar+"_srcSESE;");
       }
 
 
@@ -1346,40 +1346,40 @@ public class BuildOoOJavaCode extends BuildCode {
       // and also release references that have become too old
       if( !fsen.getIsMainSESE() ) {
 
-	FlatSESEEnterNode currentSESE = fsen.getLocalParent();
+        FlatSESEEnterNode currentSESE = fsen.getLocalParent();
 
-	ContextTaskNames contextTaskNames;
-	if( currentSESE == null ) {
-	  contextTaskNames = oooa.getContextTaskNames(oooa.getContainingFlatMethod(fsen) );
-	} else {
-	  contextTaskNames = oooa.getContextTaskNames(currentSESE);
-	}
+        ContextTaskNames contextTaskNames;
+        if( currentSESE == null ) {
+          contextTaskNames = oooa.getContextTaskNames(oooa.getContainingFlatMethod(fsen) );
+        } else {
+          contextTaskNames = oooa.getContextTaskNames(currentSESE);
+        }
 
-	SESEandAgePair pairNewest = new SESEandAgePair(fsen, 0);
-	SESEandAgePair pairOldest = new SESEandAgePair(fsen, fsen.getOldestAgeToTrack() );
-	if( contextTaskNames.getNeededStaticNames().contains(pairNewest) ) {
-	  output.println("     {");
-	  output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
-	  output.println("       SESEcommon* oldest = "+pairOldest+";");
-	  output.println("#endif // OOO_DISABLE_TASKMEMPOOL");
+        SESEandAgePair pairNewest = new SESEandAgePair(fsen, 0);
+        SESEandAgePair pairOldest = new SESEandAgePair(fsen, fsen.getOldestAgeToTrack() );
+        if( contextTaskNames.getNeededStaticNames().contains(pairNewest) ) {
+          output.println("     {");
+          output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+          output.println("       SESEcommon* oldest = "+pairOldest+";");
+          output.println("#endif // OOO_DISABLE_TASKMEMPOOL");
 
-	  for( int i = fsen.getOldestAgeToTrack(); i > 0; --i ) {
-	    SESEandAgePair pair1 = new SESEandAgePair(fsen, i);
-	    SESEandAgePair pair2 = new SESEandAgePair(fsen, i-1);
-	    output.println("       "+pair1+" = "+pair2+";");
-	  }
-	  output.println("       "+pairNewest+" = &(seseToIssue->common);");
+          for( int i = fsen.getOldestAgeToTrack(); i > 0; --i ) {
+            SESEandAgePair pair1 = new SESEandAgePair(fsen, i);
+            SESEandAgePair pair2 = new SESEandAgePair(fsen, i-1);
+            output.println("       "+pair1+" = "+pair2+";");
+          }
+          output.println("       "+pairNewest+" = &(seseToIssue->common);");
 
-	  // no need to add a reference to whatever is the newest record, because
-	  // we initialized seseToIssue->refCount to *2*
-	  // but release a reference to whatever was the oldest BEFORE the shift
-	  output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
-	  output.println("       if( oldest != NULL ) {");
-	  output.println("         RELEASE_REFERENCE_TO( oldest );");
-	  output.println("       }");
-	  output.println("#endif // OOO_DISABLE_TASKMEMPOOL");
-	  output.println("     }");
-	}
+          // no need to add a reference to whatever is the newest record, because
+          // we initialized seseToIssue->refCount to *2*
+          // but release a reference to whatever was the oldest BEFORE the shift
+          output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+          output.println("       if( oldest != NULL ) {");
+          output.println("         RELEASE_REFERENCE_TO( oldest );");
+          output.println("       }");
+          output.println("#endif // OOO_DISABLE_TASKMEMPOOL");
+          output.println("     }");
+        }
       }
     }
 
@@ -1390,148 +1390,148 @@ public class BuildOoOJavaCode extends BuildCode {
     if( !fsen.getIsMainSESE() ) {
 
       if( state.COREPROF ) {
-	output.println("#ifdef CP_EVENTID_PREPAREMEMQ");
-	output.println("     CP_LOGEVENT( CP_EVENTID_PREPAREMEMQ, CP_EVENTTYPE_BEGIN );");
-	output.println("#endif");
+        output.println("#ifdef CP_EVENTID_PREPAREMEMQ");
+        output.println("     CP_LOGEVENT( CP_EVENTID_PREPAREMEMQ, CP_EVENTTYPE_BEGIN );");
+        output.println("#endif");
       }
 
       if(state.RCR) {
-	dispatchMEMRC(fm, fsen, output);
+        dispatchMEMRC(fm, fsen, output);
       } else {
 
-	// there may be several task types that can get to this
-	// program point (issue this new task) so create a switch
-	// based on task ID, each type of task has a different index
-	// scheme for its memory queue's, and the cases here drop the
-	// new task instance in the right bucket
-	boolean atLeastOneCase = false;
+        // there may be several task types that can get to this
+        // program point (issue this new task) so create a switch
+        // based on task ID, each type of task has a different index
+        // scheme for its memory queue's, and the cases here drop the
+        // new task instance in the right bucket
+        boolean atLeastOneCase = false;
 
-	// create a case for each class of task that might be executing
-	Iterator<FlatSESEEnterNode> taskItr = oooa.getPossibleExecutingRBlocks(fsen).iterator();
-	while( taskItr.hasNext() ) {
-	  FlatSESEEnterNode parent = taskItr.next();
-	  ConflictGraph graph  = oooa.getConflictGraph(parent);
+        // create a case for each class of task that might be executing
+        Iterator<FlatSESEEnterNode> taskItr = oooa.getPossibleExecutingRBlocks(fsen).iterator();
+        while( taskItr.hasNext() ) {
+          FlatSESEEnterNode parent = taskItr.next();
+          ConflictGraph graph  = oooa.getConflictGraph(parent);
 
-	  if( graph == null || !graph.hasConflictEdge() ) {
-	    continue;
-	  }
+          if( graph == null || !graph.hasConflictEdge() ) {
+            continue;
+          }
 
-	  Set<SESELock> seseLockSet = oooa.getLockMappings(graph);
+          Set<SESELock> seseLockSet = oooa.getLockMappings(graph);
 
-	  SESEWaitingQueue seseWaitingQueue =
-	    graph.getWaitingElementSetBySESEID(fsen.getIdentifier(), seseLockSet);
+          SESEWaitingQueue seseWaitingQueue =
+            graph.getWaitingElementSetBySESEID(fsen.getIdentifier(), seseLockSet);
 
-	  if( seseWaitingQueue.getWaitingElementSize() == 0 ) {
-	    continue;
-	  }
+          if( seseWaitingQueue.getWaitingElementSize() == 0 ) {
+            continue;
+          }
 
-	  if( atLeastOneCase == false ) {
-	    atLeastOneCase = true;
-	    output.println("   // add new task instance to current task's memory queues if needed ");
-	    output.println("   switch( runningSESE->classID ) {");
-	  }
+          if( atLeastOneCase == false ) {
+            atLeastOneCase = true;
+            output.println("   // add new task instance to current task's memory queues if needed ");
+            output.println("   switch( runningSESE->classID ) {");
+          }
 
-	  output.println("     case "+parent.getIdentifier()+": {");
-	  output.println("       REntry* rentry=NULL;");
-	  output.println("       INTPTR* pointer=NULL;");
-	  output.println("       seseToIssue->common.rentryIdx=0;");
+          output.println("     case "+parent.getIdentifier()+": {");
+          output.println("       REntry* rentry=NULL;");
+          output.println("       INTPTR* pointer=NULL;");
+          output.println("       seseToIssue->common.rentryIdx=0;");
 
-	  Set<Integer> queueIDSet=seseWaitingQueue.getQueueIDSet();
-	  for (Iterator iterator = queueIDSet.iterator(); iterator.hasNext(); ) {
-	    Integer key = (Integer) iterator.next();
-	    int queueID=key.intValue();
-	    Set<WaitingElement> waitingQueueSet =
-	      seseWaitingQueue.getWaitingElementSet(queueID);
-	    int enqueueType=seseWaitingQueue.getType(queueID);
-	    if(enqueueType==SESEWaitingQueue.EXCEPTION) {
-	      output.println("       INITIALIZEBUF(runningSESE->memoryQueueArray[" + queueID+ "]);");
-	    }
-	    for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2.hasNext(); ) {
-	      WaitingElement waitingElement
-	        = (WaitingElement) iterator2.next();
-	      if (waitingElement.getStatus() >= ConflictNode.COARSE) {
-		output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
-		               + waitingElement.getStatus()
-		               + ", &(seseToIssue->common));");
-	      } else {
-		TempDescriptor td = waitingElement.getTempDesc();
-		// decide whether waiting element is dynamic or static
-		if (fsen.getDynamicInVarSet().contains(td)) {
-		  // dynamic in-var case
-		  output.println("       pointer=seseToIssue->"
-		                 + waitingElement.getDynID()
-		                 + "_srcSESE+seseToIssue->"
-		                 + waitingElement.getDynID()
-		                 + "_srcOffset;");
-		  output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
-		                 + waitingElement.getStatus()
-		                 + ", &(seseToIssue->common),  pointer );");
-		} else if (fsen.getStaticInVarSet().contains(td)) {
-		  // static in-var case
-		  VariableSourceToken vst = fsen.getStaticInVarSrc(td);
-		  if (vst != null) {
+          Set<Integer> queueIDSet=seseWaitingQueue.getQueueIDSet();
+          for (Iterator iterator = queueIDSet.iterator(); iterator.hasNext(); ) {
+            Integer key = (Integer) iterator.next();
+            int queueID=key.intValue();
+            Set<WaitingElement> waitingQueueSet =
+              seseWaitingQueue.getWaitingElementSet(queueID);
+            int enqueueType=seseWaitingQueue.getType(queueID);
+            if(enqueueType==SESEWaitingQueue.EXCEPTION) {
+              output.println("       INITIALIZEBUF(runningSESE->memoryQueueArray[" + queueID+ "]);");
+            }
+            for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2.hasNext(); ) {
+              WaitingElement waitingElement
+                = (WaitingElement) iterator2.next();
+              if (waitingElement.getStatus() >= ConflictNode.COARSE) {
+                output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
+                               + waitingElement.getStatus()
+                               + ", &(seseToIssue->common));");
+              } else {
+                TempDescriptor td = waitingElement.getTempDesc();
+                // decide whether waiting element is dynamic or static
+                if (fsen.getDynamicInVarSet().contains(td)) {
+                  // dynamic in-var case
+                  output.println("       pointer=seseToIssue->"
+                                 + waitingElement.getDynID()
+                                 + "_srcSESE+seseToIssue->"
+                                 + waitingElement.getDynID()
+                                 + "_srcOffset;");
+                  output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
+                                 + waitingElement.getStatus()
+                                 + ", &(seseToIssue->common),  pointer );");
+                } else if (fsen.getStaticInVarSet().contains(td)) {
+                  // static in-var case
+                  VariableSourceToken vst = fsen.getStaticInVarSrc(td);
+                  if (vst != null) {
 
-		    String srcId = "SESE_" + vst.getSESE().getPrettyIdentifier()
-		                   + vst.getSESE().getIdentifier()
-		                   + "_" + vst.getAge();
-		    output.println("       pointer=(void*)&seseToIssue->"
-		                   + srcId
-		                   + "->"
-		                   + waitingElement
-		                   .getDynID()
-		                   + ";");
-		    output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
-		                   + waitingElement.getStatus()
-		                   + ", &(seseToIssue->common),  pointer );");
-		  }
-		} else {
-		  output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
-		                 + waitingElement.getStatus()
-		                 + ", &(seseToIssue->common), (void*)&seseToIssue->"
-		                 + waitingElement.getDynID()
-		                 + ");");
-		}
-	      }
-	      output.println("       rentry->queue=runningSESE->memoryQueueArray["
-	                     + waitingElement.getQueueID()
-	                     + "];");
+                    String srcId = "SESE_" + vst.getSESE().getPrettyIdentifier()
+                                   + vst.getSESE().getIdentifier()
+                                   + "_" + vst.getAge();
+                    output.println("       pointer=(void*)&seseToIssue->"
+                                   + srcId
+                                   + "->"
+                                   + waitingElement
+                                   .getDynID()
+                                   + ";");
+                    output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
+                                   + waitingElement.getStatus()
+                                   + ", &(seseToIssue->common),  pointer );");
+                  }
+                } else {
+                  output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
+                                 + waitingElement.getStatus()
+                                 + ", &(seseToIssue->common), (void*)&seseToIssue->"
+                                 + waitingElement.getDynID()
+                                 + ");");
+                }
+              }
+              output.println("       rentry->queue=runningSESE->memoryQueueArray["
+                             + waitingElement.getQueueID()
+                             + "];");
 
-	      if(enqueueType==SESEWaitingQueue.NORMAL) {
-		output.println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
-		output.println("       if(ADDRENTRY(runningSESE->memoryQueueArray["
-		               + waitingElement.getQueueID()
-		               + "],rentry)==NOTREADY) {");
-		output.println("          localCount++;");
-		output.println("       }");
-	      } else {
-		output.println("       ADDRENTRYTOBUF(runningSESE->memoryQueueArray[" + waitingElement.getQueueID() + "],rentry);");
-	      }
-	    }
-	    if(enqueueType!=SESEWaitingQueue.NORMAL) {
-	      output.println("       localCount+=RESOLVEBUF(runningSESE->memoryQueueArray["
-	                     + queueID+ "],&seseToIssue->common);");
-	    }
-	  }
-	  output.println("     } break; // end case "+parent.getIdentifier());
-	  output.println();
-	}
+              if(enqueueType==SESEWaitingQueue.NORMAL) {
+                output.println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
+                output.println("       if(ADDRENTRY(runningSESE->memoryQueueArray["
+                               + waitingElement.getQueueID()
+                               + "],rentry)==NOTREADY) {");
+                output.println("          localCount++;");
+                output.println("       }");
+              } else {
+                output.println("       ADDRENTRYTOBUF(runningSESE->memoryQueueArray[" + waitingElement.getQueueID() + "],rentry);");
+              }
+            }
+            if(enqueueType!=SESEWaitingQueue.NORMAL) {
+              output.println("       localCount+=RESOLVEBUF(runningSESE->memoryQueueArray["
+                             + queueID+ "],&seseToIssue->common);");
+            }
+          }
+          output.println("     } break; // end case "+parent.getIdentifier());
+          output.println();
+        }
 
-	if( atLeastOneCase ) {
-	  output.println("   } // end stall site switch");
-	}
+        if( atLeastOneCase ) {
+          output.println("   } // end stall site switch");
+        }
       }
 
       if( state.COREPROF ) {
-	output.println("#ifdef CP_EVENTID_PREPAREMEMQ");
-	output.println("     CP_LOGEVENT( CP_EVENTID_PREPAREMEMQ, CP_EVENTTYPE_END );");
-	output.println("#endif");
+        output.println("#ifdef CP_EVENTID_PREPAREMEMQ");
+        output.println("     CP_LOGEVENT( CP_EVENTID_PREPAREMEMQ, CP_EVENTTYPE_END );");
+        output.println("#endif");
       }
     }
 
     // Enqueue Task Record
     if (state.RCR) {
       if( fsen != oooa.getMainSESE() && fsen.getInVarsForDynamicCoarseConflictResolution().size()>0) {
-	output.println("    enqueueTR(TRqueue, (void *)seseToIssue);");
+        output.println("    enqueueTR(TRqueue, (void *)seseToIssue);");
       }
     }
 
@@ -1569,127 +1569,127 @@ public class BuildOoOJavaCode extends BuildCode {
       ConflictGraph graph  = oooa.getConflictGraph(parent);
 
       if( graph != null && graph.hasConflictEdge() ) {
-	Set<SESELock> seseLockSet = oooa.getLockMappings(graph);
-	SESEWaitingQueue seseWaitingQueue=graph.getWaitingElementSetBySESEID(newChild.getIdentifier(), seseLockSet);
-	if(seseWaitingQueue.getWaitingElementSize()>0) {
+        Set<SESELock> seseLockSet = oooa.getLockMappings(graph);
+        SESEWaitingQueue seseWaitingQueue=graph.getWaitingElementSetBySESEID(newChild.getIdentifier(), seseLockSet);
+        if(seseWaitingQueue.getWaitingElementSize()>0) {
 
-	  output.println("       /* "+parent.getPrettyIdentifier()+" */");
-	  output.println("       case "+parent.getIdentifier()+": {");
+          output.println("       /* "+parent.getPrettyIdentifier()+" */");
+          output.println("       case "+parent.getIdentifier()+": {");
 
-	  output.println("         REntry* rentry=NULL;");
-	  output.println("         INTPTR* pointer=NULL;");
-	  output.println("         seseToIssue->common.rentryIdx=0;");
-	  Vector<TempDescriptor> invars=newChild.getInVarsForDynamicCoarseConflictResolution();
-	  //System.out.println(fm.getMethod()+"["+invars+"]");
+          output.println("         REntry* rentry=NULL;");
+          output.println("         INTPTR* pointer=NULL;");
+          output.println("         seseToIssue->common.rentryIdx=0;");
+          Vector<TempDescriptor> invars=newChild.getInVarsForDynamicCoarseConflictResolution();
+          //System.out.println(fm.getMethod()+"["+invars+"]");
 
-	  Vector<Long> queuetovar=new Vector<Long>();
+          Vector<Long> queuetovar=new Vector<Long>();
 
-	  for(int i=0; i<invars.size(); i++) {
-	    TempDescriptor td=invars.get(i);
-	    Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
+          for(int i=0; i<invars.size(); i++) {
+            TempDescriptor td=invars.get(i);
+            Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
 
-	    //TODO FIX MEEEEE!!!!
-	    //Weset is sometimes null which breaks the following code and
-	    //we don't know what weset = null means. For now, we bail when it's null
-	    //until we find out what to do....
+            //TODO FIX MEEEEE!!!!
+            //Weset is sometimes null which breaks the following code and
+            //we don't know what weset = null means. For now, we bail when it's null
+            //until we find out what to do....
 //            if(weset == null) {
 //              continue;
 //            }
-	    //UPDATE: This hack DOES NOT FIX IT!.
+            //UPDATE: This hack DOES NOT FIX IT!.
 
 
 
-	    int numqueues=0;
-	    Set<Integer> queueSet=new HashSet<Integer>();
-	    for (Iterator iterator = weset.iterator(); iterator.hasNext(); ) {
-	      WaitingElement we = (WaitingElement) iterator.next();
-	      Integer queueID=new Integer(we.getQueueID());
-	      if(!queueSet.contains(queueID)) {
-		numqueues++;
-		queueSet.add(queueID);
-	      }
-	    }
+            int numqueues=0;
+            Set<Integer> queueSet=new HashSet<Integer>();
+            for (Iterator iterator = weset.iterator(); iterator.hasNext(); ) {
+              WaitingElement we = (WaitingElement) iterator.next();
+              Integer queueID=new Integer(we.getQueueID());
+              if(!queueSet.contains(queueID)) {
+                numqueues++;
+                queueSet.add(queueID);
+              }
+            }
 
-	    output.println("        seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
-	    output.println("        seseToIssue->rcrRecords["+i+"].index=0;");
-	    output.println("        seseToIssue->rcrRecords["+i+"].next=NULL;");
-	    output.println("        int dispCount"+i+"=0;");
+            output.println("        seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
+            output.println("        seseToIssue->rcrRecords["+i+"].index=0;");
+            output.println("        seseToIssue->rcrRecords["+i+"].next=NULL;");
+            output.println("        int dispCount"+i+"=0;");
 
-	    for (Iterator<WaitingElement> wtit = weset.iterator(); wtit.hasNext(); ) {
-	      WaitingElement waitingElement = wtit.next();
-	      int queueID = waitingElement.getQueueID();
-	      if (queueID >= queuetovar.size())
-		queuetovar.setSize(queueID + 1);
-	      Long l = queuetovar.get(queueID);
-	      long val = (l != null)?l.longValue():0;
-	      val = val | (1 << i);
-	      queuetovar.set(queueID, new Long(val));
-	    }
-	  }
+            for (Iterator<WaitingElement> wtit = weset.iterator(); wtit.hasNext(); ) {
+              WaitingElement waitingElement = wtit.next();
+              int queueID = waitingElement.getQueueID();
+              if (queueID >= queuetovar.size())
+                queuetovar.setSize(queueID + 1);
+              Long l = queuetovar.get(queueID);
+              long val = (l != null)?l.longValue():0;
+              val = val | (1 << i);
+              queuetovar.set(queueID, new Long(val));
+            }
+          }
 
-	  HashSet generatedqueueentry=new HashSet();
-	  for(int i=0; i<invars.size(); i++) {
-	    TempDescriptor td=invars.get(i);
-	    Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
+          HashSet generatedqueueentry=new HashSet();
+          for(int i=0; i<invars.size(); i++) {
+            TempDescriptor td=invars.get(i);
+            Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
 
 
 
-	    //TODO FIX MEEEEE!!!!
-	    //Weset is sometimes null which breaks the following code and
-	    //we don't know what weset = null means. For now, we bail when it's null
-	    //until we find out what to do....
+            //TODO FIX MEEEEE!!!!
+            //Weset is sometimes null which breaks the following code and
+            //we don't know what weset = null means. For now, we bail when it's null
+            //until we find out what to do....
 //            if(weset == null) {
 //              continue;
 //            }
-	    //UPDATE: This hack DOES NOT FIX IT!.
+            //UPDATE: This hack DOES NOT FIX IT!.
 
 
 
-	    for(Iterator<WaitingElement> wtit=weset.iterator(); wtit.hasNext(); ) {
-	      WaitingElement waitingElement=wtit.next();
-	      int queueID=waitingElement.getQueueID();
+            for(Iterator<WaitingElement> wtit=weset.iterator(); wtit.hasNext(); ) {
+              WaitingElement waitingElement=wtit.next();
+              int queueID=waitingElement.getQueueID();
 
-	      if(waitingElement.isBogus()) {
-		continue;
-	      }
+              if(waitingElement.isBogus()) {
+                continue;
+              }
 
-	      if (generatedqueueentry.contains(queueID))
-		continue;
-	      else
-		generatedqueueentry.add(queueID);
+              if (generatedqueueentry.contains(queueID))
+                continue;
+              else
+                generatedqueueentry.add(queueID);
 
-	      assert(waitingElement.getStatus()>=ConflictNode.COARSE);
-	      long mask=queuetovar.get(queueID);
-	      output.println("         rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "]," + waitingElement.getStatus() + ", &(seseToIssue->common), "+mask+"LL);");
-	      output.println("         rentry->count=2;");
-	      output.println("         seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
-	      output.println("         rentry->queue=runningSESE->memoryQueueArray[" + waitingElement.getQueueID()+"];");
+              assert(waitingElement.getStatus()>=ConflictNode.COARSE);
+              long mask=queuetovar.get(queueID);
+              output.println("         rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "]," + waitingElement.getStatus() + ", &(seseToIssue->common), "+mask+"LL);");
+              output.println("         rentry->count=2;");
+              output.println("         seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
+              output.println("         rentry->queue=runningSESE->memoryQueueArray[" + waitingElement.getQueueID()+"];");
 
-	      output.println("         if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==READY) {");
-	      for(int j=0; mask!=0; j++) {
-		if ((mask&1)==1)
-		  output.println("            dispCount"+j+"++;");
-		mask=mask>>1;
-	      }
-	      output.println("         } else ");
-	      output.println("           refCount--;");
-	    }
+              output.println("         if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==READY) {");
+              for(int j=0; mask!=0; j++) {
+                if ((mask&1)==1)
+                  output.println("            dispCount"+j+"++;");
+                mask=mask>>1;
+              }
+              output.println("         } else ");
+              output.println("           refCount--;");
+            }
 
-	    if (newChild.getDynamicInVarSet().contains(td)) {
-	      // dynamic in-var case
-	      //output.println("       pointer=seseToIssue->"+waitingElement.getDynID()+
-	      //               "_srcSESE+seseToIssue->"+waitingElement.getDynID()+
-	      //               "_srcOffset;");
-	      //output.println("       rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+
-	      //               ", &(seseToIssue->common),  pointer );");
-	    }
-	  }
-	  for(int i=0; i<invars.size(); i++) {
-	    output.println("       if(!dispCount"+i+" || !atomic_sub_and_test(dispCount"+i+",&(seseToIssue->rcrRecords["+i+"].flag)))");
-	    output.println("         localCount++;");
-	  }
-	  output.println("      } break;");
-	}
+            if (newChild.getDynamicInVarSet().contains(td)) {
+              // dynamic in-var case
+              //output.println("       pointer=seseToIssue->"+waitingElement.getDynID()+
+              //               "_srcSESE+seseToIssue->"+waitingElement.getDynID()+
+              //               "_srcOffset;");
+              //output.println("       rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+
+              //               ", &(seseToIssue->common),  pointer );");
+            }
+          }
+          for(int i=0; i<invars.size(); i++) {
+            output.println("       if(!dispCount"+i+" || !atomic_sub_and_test(dispCount"+i+",&(seseToIssue->rcrRecords["+i+"].flag)))");
+            output.println("         localCount++;");
+          }
+          output.println("      } break;");
+        }
       }
     }
 
@@ -1761,7 +1761,7 @@ public class BuildOoOJavaCode extends BuildCode {
             temp.getType().isPrimitive() && !temp.getType().isArray()
             )
           ) {
-	continue;
+        continue;
       }
 
       String from = generateTemp(fsen.getfmBogus(), temp);
@@ -1888,18 +1888,18 @@ public class BuildOoOJavaCode extends BuildCode {
       output.println("    struct Hashtable_rcr ** hashstruct=runningSESE->parent->allHashStructures;");
 
       for (int i = 0; i < inset.size(); i++) {
-	output.println("    rec=&" + paramsprefix + "->rcrRecords[" + i + "];");
-	output.println("    while(rec!=NULL) {");
-	output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
+        output.println("    rec=&" + paramsprefix + "->rcrRecords[" + i + "];");
+        output.println("    while(rec!=NULL) {");
+        output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
 
-	int weaklyConnectedComponentIndex = rcr.getWeakID(inset.get(i), fsen);
+        int weaklyConnectedComponentIndex = rcr.getWeakID(inset.get(i), fsen);
 
-	output.println("        rcr_RETIREHASHTABLE(hashstruct[" + weaklyConnectedComponentIndex
-	               + "],&(___params___->common), rec->array[idx2], (BinItem_rcr *) rec->ptrarray[idx2]);");
+        output.println("        rcr_RETIREHASHTABLE(hashstruct[" + weaklyConnectedComponentIndex
+                       + "],&(___params___->common), rec->array[idx2], (BinItem_rcr *) rec->ptrarray[idx2]);");
 
-	output.println("      }"); // exit idx2 for loop
-	output.println("      rec=rec->next;");
-	output.println("    }"); // exit rec while loop
+        output.println("      }"); // exit idx2 for loop
+        output.println("      rec=rec->next;");
+        output.println("    }"); // exit rec while loop
       }
       output.println("}");
     }
@@ -1933,7 +1933,7 @@ public class BuildOoOJavaCode extends BuildCode {
     if( !fsen.getIsLeafSESE() ) {
       output.println("     pooldestroy( runningSESE->taskRecordMemPool );");
       if (state.RCR && fsen.getInVarsForDynamicCoarseConflictResolution().size() > 0 ) {
-	output.println("     returnTR();");
+        output.println("     returnTR();");
       }
     }
     output.println("#endif // OOO_DISABLE_TASKMEMPOOL");
@@ -1998,15 +1998,15 @@ public class BuildOoOJavaCode extends BuildCode {
       output.println("       SESEcommon* oldSrc = "+refVar+"_srcSESE;");
 
       if( vst == null ) {
-	// if there is no given source, this variable is ready so
-	// mark src pointer NULL to signify that the var is up-to-date
-	output.println("       "+refVar+"_srcSESE   = NULL;");
+        // if there is no given source, this variable is ready so
+        // mark src pointer NULL to signify that the var is up-to-date
+        output.println("       "+refVar+"_srcSESE   = NULL;");
       } else {
-	// otherwise we track where it will come from
-	SESEandAgePair instance = new SESEandAgePair(vst.getSESE(), vst.getAge() );
-	output.println("       "+refVar+"_srcSESE = "+instance+";");
-	output.println("       "+refVar+"_srcOffset = (INTPTR) &((("+
-	               vst.getSESE().getSESErecordName()+"*)0)->"+vst.getAddrVar()+");");
+        // otherwise we track where it will come from
+        SESEandAgePair instance = new SESEandAgePair(vst.getSESE(), vst.getAge() );
+        output.println("       "+refVar+"_srcSESE = "+instance+";");
+        output.println("       "+refVar+"_srcOffset = (INTPTR) &((("+
+                       vst.getSESE().getSESErecordName()+"*)0)->"+vst.getAddrVar()+");");
       }
 
       // no matter what we did above, track reference count of whatever
@@ -2035,34 +2035,34 @@ public class BuildOoOJavaCode extends BuildCode {
       int arrayid = state.getArrayNumber(fn.getType() )+state.numClasses();
 
       if( GENERATEPRECISEGC ) {
-	output.println(generateTemp(fm, fn.getDst())+
-	               "=allocate_newarray_mlp("+localsprefixaddr+
-	               ", "+arrayid+", "+generateTemp(fm, fn.getSize())+
-	               ", oid, "+
-	               oooa.getDisjointAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+
-	               ");");
-	output.println("    oid += oidIncrement;");
+        output.println(generateTemp(fm, fn.getDst())+
+                       "=allocate_newarray_mlp("+localsprefixaddr+
+                       ", "+arrayid+", "+generateTemp(fm, fn.getSize())+
+                       ", oid, "+
+                       oooa.getDisjointAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+
+                       ");");
+        output.println("    oid += oidIncrement;");
       } else {
-	output.println(generateTemp(fm, fn.getDst())+
-	               "=allocate_newarray("+arrayid+
-	               ", "+generateTemp(fm, fn.getSize())+
-	               ");");
+        output.println(generateTemp(fm, fn.getDst())+
+                       "=allocate_newarray("+arrayid+
+                       ", "+generateTemp(fm, fn.getSize())+
+                       ");");
       }
 
     } else {
       // not an array
       if( GENERATEPRECISEGC ) {
-	output.println(generateTemp(fm, fn.getDst())+
-	               "=allocate_new_mlp("+localsprefixaddr+
-	               ", "+fn.getType().getClassDesc().getId()+
-	               ", oid, "+
-	               oooa.getDisjointAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+
-	               ");");
-	output.println("    oid += oidIncrement;");
+        output.println(generateTemp(fm, fn.getDst())+
+                       "=allocate_new_mlp("+localsprefixaddr+
+                       ", "+fn.getType().getClassDesc().getId()+
+                       ", oid, "+
+                       oooa.getDisjointAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+
+                       ");");
+        output.println("    oid += oidIncrement;");
       } else {
-	output.println(generateTemp(fm, fn.getDst())+
-	               "=allocate_new("+fn.getType().getClassDesc().getId()+
-	               ");");
+        output.println(generateTemp(fm, fn.getDst())+
+                       "=allocate_new("+fn.getType().getClassDesc().getId()+
+                       ");");
       }
     }
   }
@@ -2075,14 +2075,14 @@ public class BuildOoOJavaCode extends BuildCode {
     for (Iterator iterator = fsen.getInVarSet().iterator(); iterator.hasNext(); ) {
       TempDescriptor tempDescriptor = (TempDescriptor) iterator.next();
       if(!tempDescriptor.getType().isPrimitive() || tempDescriptor.getType().isArray()) {
-	tdSet.add(tempDescriptor);
+        tdSet.add(tempDescriptor);
       }
     }
 
     for (Iterator iterator = fsen.getOutVarSet().iterator(); iterator.hasNext(); ) {
       TempDescriptor tempDescriptor = (TempDescriptor) iterator.next();
       if(!tempDescriptor.getType().isPrimitive() || tempDescriptor.getType().isArray()) {
-	tdSet.add(tempDescriptor);
+        tdSet.add(tempDescriptor);
       }
     }
 
@@ -2107,7 +2107,7 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor temp = itr.next();
       TypeDescriptor type = temp.getType();
       if( !type.isPtr() ) {
-	inSetAndOutSetPrims.add(temp);
+        inSetAndOutSetPrims.add(temp);
       }
     }
 
@@ -2116,13 +2116,13 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor temp = itrPrims.next();
       TypeDescriptor type = temp.getType();
       if(type.isPrimitive()) {
-	Integer count=map.get(type.getSymbol());
-	if(count==null) {
-	  count=new Integer(1);
-	  map.put(type.getSymbol(), count);
-	} else {
-	  map.put(type.getSymbol(), new Integer(count.intValue()+1));
-	}
+        Integer count=map.get(type.getSymbol());
+        if(count==null) {
+          count=new Integer(1);
+          map.put(type.getSymbol(), count);
+        } else {
+          map.put(type.getSymbol(), new Integer(count.intValue()+1));
+        }
       }
     }
 

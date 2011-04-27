@@ -42,27 +42,27 @@ public class SimExecutionEdge extends Edge {
   public long getBestStartPoint() {
     if(this.bestStartPoint == -1) {
       if((this.predicates != null) && (this.predicates.size() > 0)) {
-	// have predicates
-	long starttime = 0;
-	// check the latest finish time of all the predicates
-	for(int j = 0; j < this.predicates.size(); j++) {
-	  SimExecutionEdge predicate = this.predicates.elementAt(j);
-	  long tmptime = predicate.getBestStartPoint() + predicate.getWeight();
-	  if(tmptime > starttime) {
-	    starttime = tmptime;
-	    this.lastpredicateedge = predicate;
-	    if(predicate.getTd() != null) {
-	      this.lastpredicatenode = (SimExecutionNode)predicate.getTarget();
-	    } else {
-	      // transfer edge
-	      this.lastpredicatenode = (SimExecutionNode)predicate.getSource();
-	    }
-	  }
-	}
-	this.bestStartPoint = starttime;
+        // have predicates
+        long starttime = 0;
+        // check the latest finish time of all the predicates
+        for(int j = 0; j < this.predicates.size(); j++) {
+          SimExecutionEdge predicate = this.predicates.elementAt(j);
+          long tmptime = predicate.getBestStartPoint() + predicate.getWeight();
+          if(tmptime > starttime) {
+            starttime = tmptime;
+            this.lastpredicateedge = predicate;
+            if(predicate.getTd() != null) {
+              this.lastpredicatenode = (SimExecutionNode)predicate.getTarget();
+            } else {
+              // transfer edge
+              this.lastpredicatenode = (SimExecutionNode)predicate.getSource();
+            }
+          }
+        }
+        this.bestStartPoint = starttime;
       } else {
-	// no predicates
-	this.bestStartPoint = 0;
+        // no predicates
+        this.bestStartPoint = 0;
       }
     }
     return bestStartPoint;

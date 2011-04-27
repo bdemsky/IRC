@@ -51,11 +51,11 @@ int genputtable(struct genhashtable *ht, void * key, void * object) {
     for(i=0; i<oldcurrentsize; i++) {
       struct genpointerlist * tmpptr=oldbins[i];
       while(tmpptr!=NULL) {
-	unsigned int hashcode=genhashfunction(ht, tmpptr->src);
-	struct genpointerlist *nextptr=tmpptr->next;
-	tmpptr->next=newbins[hashcode];
-	newbins[hashcode]=tmpptr;
-	tmpptr=nextptr;
+        unsigned int hashcode=genhashfunction(ht, tmpptr->src);
+        struct genpointerlist *nextptr=tmpptr->next;
+        tmpptr->next=newbins[hashcode];
+        newbins[hashcode]=tmpptr;
+        tmpptr=nextptr;
       }
     }
     ht->bins=newbins;
@@ -96,11 +96,11 @@ int genputtable_I(struct genhashtable *ht, void * key, void * object) {
     for(i=0; i<oldcurrentsize; i++) {
       struct genpointerlist * tmpptr=oldbins[i];
       while(tmpptr!=NULL) {
-	unsigned int hashcode=genhashfunction(ht, tmpptr->src);
-	struct genpointerlist *nextptr=tmpptr->next;
-	tmpptr->next=newbins[hashcode];
-	newbins[hashcode]=tmpptr;
-	tmpptr=nextptr;
+        unsigned int hashcode=genhashfunction(ht, tmpptr->src);
+        struct genpointerlist *nextptr=tmpptr->next;
+        tmpptr->next=newbins[hashcode];
+        newbins[hashcode]=tmpptr;
+        tmpptr=nextptr;
       }
     }
     ht->bins=newbins;
@@ -151,9 +151,9 @@ void * getnext(struct genhashtable *ht, void * key) {
   while(ptr!=NULL) {
     if (((ht->comp_function==NULL)&&(ptr->src==key))||((ht->comp_function!=NULL)&&(*ht->comp_function)(ptr->src,key)))
       if (ptr->inext!=NULL) {
-	return ptr->inext->src;
+        return ptr->inext->src;
       } else
-	return NULL;
+        return NULL;
     ptr=ptr->next;
   }
 #ifndef MULTICORE
@@ -200,13 +200,13 @@ void genfreekey(struct genhashtable *ht, void * key) {
       struct genpointerlist *tmpptr=ptr->next;
       ptr->next=tmpptr->next;
       if (tmpptr==ht->list)
-	ht->list=tmpptr->inext;
+        ht->list=tmpptr->inext;
       if (tmpptr==ht->last)
-	ht->last=tmpptr->iprev;
+        ht->last=tmpptr->iprev;
       if (tmpptr->iprev!=NULL)
-	tmpptr->iprev->inext=tmpptr->inext;
+        tmpptr->iprev->inext=tmpptr->inext;
       if (tmpptr->inext!=NULL)
-	tmpptr->inext->iprev=tmpptr->iprev;
+        tmpptr->inext->iprev=tmpptr->iprev;
       RUNFREE(tmpptr);
       ht->counter--;
       return;
@@ -251,9 +251,9 @@ void genfreehashtable(struct genhashtable * ht) {
     if (ht->bins[i]!=NULL) {
       struct genpointerlist *genptr=ht->bins[i];
       while(genptr!=NULL) {
-	struct genpointerlist *tmpptr=genptr->next;
-	RUNFREE(genptr);
-	genptr=tmpptr;
+        struct genpointerlist *tmpptr=genptr->next;
+        RUNFREE(genptr);
+        genptr=tmpptr;
       }
     }
   }

@@ -72,13 +72,13 @@ public class FEdge extends Edge {
 
     public boolean equals(Object o) {
       if (o instanceof NewObjInfo) {
-	NewObjInfo e=(NewObjInfo)o;
-	if (e.newRate == this.newRate &&
-	    e.probability == this.probability &&
-	    e.invokeNum == this.invokeNum &&
-	    e.root.equals(this.root)) {
-	  return true;
-	}
+        NewObjInfo e=(NewObjInfo)o;
+        if (e.newRate == this.newRate &&
+            e.probability == this.probability &&
+            e.invokeNum == this.invokeNum &&
+            e.root.equals(this.root)) {
+          return true;
+        }
       }
       return false;
     }
@@ -158,14 +158,14 @@ public class FEdge extends Edge {
           e.executeTime == executeTime &&
           e.m_taskexitindex == m_taskexitindex &&
           e.m_isbackedge == m_isbackedge) {
-	if(this.newObjInfos != null) {
-	  if(e.newObjInfos == null) {
-	    return false;
-	  } else {
-	    return e.newObjInfos.equals(this.newObjInfos);
-	  }
-	}
-	return true;
+        if(this.newObjInfos != null) {
+          if(e.newObjInfos == null) {
+            return false;
+          } else {
+            return e.newObjInfos.equals(this.newObjInfos);
+          }
+        }
+        return true;
       }
     }
     return false;
@@ -203,7 +203,7 @@ public class FEdge extends Edge {
     if(this.newObjInfos != null) {
       Iterator<NewObjInfo> it_nobjs = this.newObjInfos.values().iterator();
       while(it_nobjs.hasNext()) {
-	it_nobjs.next().invokeNum = 0;
+        it_nobjs.next().invokeNum = 0;
       }
     }
   }

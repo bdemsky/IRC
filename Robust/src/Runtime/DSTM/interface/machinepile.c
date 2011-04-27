@@ -34,17 +34,17 @@ void insertPile(int mid, unsigned int oid, int siteid, short numoffset, short *o
       int matchstatus;
 
       if ((*tmp)==NULL||((toid=(*tmp)->oid)>oid)) {
-	objnode = (objpile_t *) malloc(sizeof(objpile_t));
-	objnode->offset = offset;
-	objnode->oid = oid;
-	objnode->numoffset = numoffset;
-	objnode->siteid = siteid;
-	objnode->next = *tmp;
-	*tmp = objnode;
-	return;
+        objnode = (objpile_t *) malloc(sizeof(objpile_t));
+        objnode->offset = offset;
+        objnode->oid = oid;
+        objnode->numoffset = numoffset;
+        objnode->siteid = siteid;
+        objnode->next = *tmp;
+        *tmp = objnode;
+        return;
       }
       if (toid < oid)
-	continue;
+        continue;
 
       /* Fill objpiles DS */
       int i;
@@ -52,25 +52,25 @@ void insertPile(int mid, unsigned int oid, int siteid, short numoffset, short *o
       short * ooffset=(*tmp)->offset;
 
       for(i=0; i<numoffset; i++) {
-	if (i>onumoffset) {
-	  //We've matched, let's just extend the current prefetch
-	  (*tmp)->numoffset=numoffset;
-	  (*tmp)->offset=offset;
-	  return;
-	}
-	if (ooffset[i]<offset[i]) {
-	  goto oidloop;
-	} else if (ooffset[i]>offset[i]) {
-	  //Place item before the current one
-	  objnode = (objpile_t *) malloc(sizeof(objpile_t));
-	  objnode->offset = offset;
-	  objnode->oid = oid;
-	  objnode->numoffset = numoffset;
-	  objnode->siteid = siteid;
-	  objnode->next = *tmp;
-	  *tmp = objnode;
-	  return;
-	}
+        if (i>onumoffset) {
+          //We've matched, let's just extend the current prefetch
+          (*tmp)->numoffset=numoffset;
+          (*tmp)->offset=offset;
+          return;
+        }
+        if (ooffset[i]<offset[i]) {
+          goto oidloop;
+        } else if (ooffset[i]>offset[i]) {
+          //Place item before the current one
+          objnode = (objpile_t *) malloc(sizeof(objpile_t));
+          objnode->offset = offset;
+          objnode->oid = oid;
+          objnode->numoffset = numoffset;
+          objnode->siteid = siteid;
+          objnode->next = *tmp;
+          *tmp = objnode;
+          return;
+        }
       }
       //if we get to the end, we're already covered by this prefetch
       return;

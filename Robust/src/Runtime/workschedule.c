@@ -167,62 +167,62 @@ void* workerMain(void* arg) {
 
 
       if( workUnit != DQ_POP_EMPTY ) {
-	haveWork = TRUE;
-	goto dowork;
+        haveWork = TRUE;
+        goto dowork;
       } else {
-	// try to steal from another queue, starting
-	// with the last successful victim, don't check
-	// your own deque
-	int mynumWorkSchedWorkers=numWorkSchedWorkers;
-	for( i = 0; i < mynumWorkSchedWorkers - 1; ++i ) {
+        // try to steal from another queue, starting
+        // with the last successful victim, don't check
+        // your own deque
+        int mynumWorkSchedWorkers=numWorkSchedWorkers;
+        for( i = 0; i < mynumWorkSchedWorkers - 1; ++i ) {
 
-	  workUnit = dqPopTop(&(deques[lastVictim]) );
+          workUnit = dqPopTop(&(deques[lastVictim]) );
 
 #ifdef SQUEUE
-	  if( workUnit != DQ_POP_EMPTY ) {
+          if( workUnit != DQ_POP_EMPTY ) {
 #else
-	  if( workUnit != DQ_POP_ABORT &&
-	      workUnit != DQ_POP_EMPTY ) {
+          if( workUnit != DQ_POP_ABORT &&
+              workUnit != DQ_POP_EMPTY ) {
 #endif
-	    // successful steal!
-	    haveWork = TRUE;
-	    goto dowork;
-	  }
+            // successful steal!
+            haveWork = TRUE;
+            goto dowork;
+          }
 
-	  // choose next victim
-	  lastVictim++; if( lastVictim == mynumWorkSchedWorkers ) {
-	    lastVictim = 0;
-	  }
+          // choose next victim
+          lastVictim++; if( lastVictim == mynumWorkSchedWorkers ) {
+            lastVictim = 0;
+          }
 
-	  if( lastVictim == myWorkerID ) {
-	    lastVictim++; if( lastVictim == mynumWorkSchedWorkers ) {
-	      lastVictim = 0;
-	    }
-	  }
-	}
-	// end steal attempts
+          if( lastVictim == myWorkerID ) {
+            lastVictim++; if( lastVictim == mynumWorkSchedWorkers ) {
+              lastVictim = 0;
+            }
+          }
+        }
+        // end steal attempts
 
 
-	// if we successfully stole work, break out of the
-	// while-not-have-work loop, otherwise we looked
-	// everywhere, so drop down to "I'm idle" code below
-	if( haveWork ) {
-	  goto dowork;
-	}
+        // if we successfully stole work, break out of the
+        // while-not-have-work loop, otherwise we looked
+        // everywhere, so drop down to "I'm idle" code below
+        if( haveWork ) {
+          goto dowork;
+        }
       }
 
       // if we drop down this far, we didn't find any work,
       // so do a garbage collection, yield the processor,
       // then check if the entire system is out of work
       if( unlikely(needtocollect) ) {
-	checkcollect(&emptygarbagelist);
+        checkcollect(&emptygarbagelist);
       }
 
       sched_yield();
 
       if( mainTaskRetired ) {
-	keepRunning = FALSE;
-	break;
+        keepRunning = FALSE;
+        break;
       }
 
     } // end the while-not-have-work loop
@@ -241,7 +241,7 @@ dowork:
 
 #ifdef DEBUG_DEQUE
       if( workUnit == NULL ) {
-	printf("About to execute a null work item\n");
+        printf("About to execute a null work item\n");
       }
 #endif
 
@@ -302,8 +302,8 @@ void workScheduleInit(int numProcessors,
     for(; x<oidIncrement; x++) {
       //not prime
       if (oidIncrement%x==0) {
-	oidIncrement++;
-	break;
+        oidIncrement++;
+        break;
       }
     }
     //have prime

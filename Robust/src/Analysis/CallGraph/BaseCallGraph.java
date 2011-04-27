@@ -86,48 +86,48 @@ public class BaseCallGraph implements CallGraph {
       Iterator methodit=cn.getMethods();
       //Iterator through methods
       while(methodit.hasNext()) {
-	MethodDescriptor md=(MethodDescriptor)methodit.next();
-	if (md.isStatic()||md.getReturnType()==null)
-	  continue;
-	Stack<ClassDescriptor> possInterfaces=new Stack<ClassDescriptor>();
-	ClassDescriptor tmpcd=cn;
-	while(tmpcd!=null) {
-	  for(Iterator supit=tmpcd.getSuperInterfaces(); supit.hasNext(); ) {
-	    possInterfaces.add((ClassDescriptor)supit.next());
-	  }
-	  tmpcd=tmpcd.getSuperDesc();
-	}
-	while(!possInterfaces.isEmpty()) {
-	  ClassDescriptor IFdesc=possInterfaces.pop();
-	  for(Iterator supit=IFdesc.getSuperInterfaces(); supit.hasNext(); ) {
-	    possInterfaces.add((ClassDescriptor)supit.next());
-	  }
-	  Set possiblematches=IFdesc.getMethodTable().getSet(md.getSymbol());
-	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
-	    MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-	    if (md.matches(matchmd)) {
-	      if (!mapVirtual2ImplementationSet.containsKey(matchmd))
-		mapVirtual2ImplementationSet.put(matchmd,new HashSet());
-	      ((HashSet)mapVirtual2ImplementationSet.get(matchmd)).add(md);
-	      break;
-	    }
-	  }
-	}
+        MethodDescriptor md=(MethodDescriptor)methodit.next();
+        if (md.isStatic()||md.getReturnType()==null)
+          continue;
+        Stack<ClassDescriptor> possInterfaces=new Stack<ClassDescriptor>();
+        ClassDescriptor tmpcd=cn;
+        while(tmpcd!=null) {
+          for(Iterator supit=tmpcd.getSuperInterfaces(); supit.hasNext(); ) {
+            possInterfaces.add((ClassDescriptor)supit.next());
+          }
+          tmpcd=tmpcd.getSuperDesc();
+        }
+        while(!possInterfaces.isEmpty()) {
+          ClassDescriptor IFdesc=possInterfaces.pop();
+          for(Iterator supit=IFdesc.getSuperInterfaces(); supit.hasNext(); ) {
+            possInterfaces.add((ClassDescriptor)supit.next());
+          }
+          Set possiblematches=IFdesc.getMethodTable().getSet(md.getSymbol());
+          for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
+            MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+            if (md.matches(matchmd)) {
+              if (!mapVirtual2ImplementationSet.containsKey(matchmd))
+                mapVirtual2ImplementationSet.put(matchmd,new HashSet());
+              ((HashSet)mapVirtual2ImplementationSet.get(matchmd)).add(md);
+              break;
+            }
+          }
+        }
 
 
-	ClassDescriptor superdesc=cn.getSuperDesc();
-	if (superdesc!=null) {
-	  Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
-	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
-	    MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-	    if (md.matches(matchmd)) {
-	      if (!mapVirtual2ImplementationSet.containsKey(matchmd))
-		mapVirtual2ImplementationSet.put(matchmd,new HashSet());
-	      ((HashSet)mapVirtual2ImplementationSet.get(matchmd)).add(md);
-	      break;
-	    }
-	  }
-	}
+        ClassDescriptor superdesc=cn.getSuperDesc();
+        if (superdesc!=null) {
+          Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
+          for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
+            MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+            if (md.matches(matchmd)) {
+              if (!mapVirtual2ImplementationSet.containsKey(matchmd))
+                mapVirtual2ImplementationSet.put(matchmd,new HashSet());
+              ((HashSet)mapVirtual2ImplementationSet.get(matchmd)).add(md);
+              break;
+            }
+          }
+        }
       }
     }
   }
@@ -144,8 +144,8 @@ public class BaseCallGraph implements CallGraph {
     Set s=(Set)mapVirtual2ImplementationSet.get(md);
     if (s!=null)
       for(Iterator it=s.iterator(); it.hasNext(); ) {
-	MethodDescriptor md2=(MethodDescriptor)it.next();
-	ns.addAll(getMethods(md2));
+        MethodDescriptor md2=(MethodDescriptor)it.next();
+        ns.addAll(getMethods(md2));
       }
     return ns;
   }
@@ -176,10 +176,10 @@ public class BaseCallGraph implements CallGraph {
     Set s=(Set)mapCaller2CalleeSet.get(d);
     if (s!=null)
       for(Iterator it=s.iterator(); it.hasNext(); ) {
-	MethodDescriptor md=(MethodDescriptor)it.next();
-	if( !found.contains(md) ) {
-	  ns.addAll(getMoreMethodCalls(found, md));
-	}
+        MethodDescriptor md=(MethodDescriptor)it.next();
+        if( !found.contains(md) ) {
+          ns.addAll(getMoreMethodCalls(found, md));
+        }
       }
     return ns;
   }
@@ -200,13 +200,13 @@ public class BaseCallGraph implements CallGraph {
       Set s=(Set)mapCaller2CalleeSet.get(md);
 
       if (s!=null) {
-	for(Iterator it=s.iterator(); it.hasNext(); ) {
-	  MethodDescriptor md2=(MethodDescriptor)it.next();
-	  if( !callable.contains(md2) ) {
-	    callable.add(md2);
-	    tovisit.add(md2);
-	  }
-	}
+        for(Iterator it=s.iterator(); it.hasNext(); ) {
+          MethodDescriptor md2=(MethodDescriptor)it.next();
+          if( !callable.contains(md2) ) {
+            callable.add(md2);
+            tovisit.add(md2);
+          }
+        }
       }
     }
     return callable;
@@ -225,16 +225,16 @@ public class BaseCallGraph implements CallGraph {
       Set s = (Set) mapCaller2CalleeSet.get(md);
 
       if (s != null) {
-	for (Iterator it = s.iterator(); it.hasNext(); ) {
-	  MethodDescriptor md2 = (MethodDescriptor) it.next();
-	  if (!callable.contains(md2)) {
-	    callable.add(md2);
-	    if (!methodsContainingSESEs.contains(md2)) {
-	      // if current method has sese, do not need to go down
-	      tovisit.add(md2);
-	    }
-	  }
-	}
+        for (Iterator it = s.iterator(); it.hasNext(); ) {
+          MethodDescriptor md2 = (MethodDescriptor) it.next();
+          if (!callable.contains(md2)) {
+            callable.add(md2);
+            if (!methodsContainingSESEs.contains(md2)) {
+              // if current method has sese, do not need to go down
+              tovisit.add(md2);
+            }
+          }
+        }
       }
     }
 //    callable.retainAll(methodsContainingSESEs);
@@ -249,8 +249,8 @@ public class BaseCallGraph implements CallGraph {
       Iterator methodit=cn.getMethods();
       //Iterator through methods
       while(methodit.hasNext()) {
-	MethodDescriptor md=(MethodDescriptor)methodit.next();
-	analyzeMethod( (Object)md, state.getMethodFlat(md) );
+        MethodDescriptor md=(MethodDescriptor)methodit.next();
+        analyzeMethod( (Object)md, state.getMethodFlat(md) );
       }
     }
     it=state.getTaskSymbolTable().getDescriptorsIterator();
@@ -270,31 +270,31 @@ public class BaseCallGraph implements CallGraph {
       toexplore.remove(fn);
       explored.add(fn);
       for(int i=0; i<fn.numNext(); i++) {
-	FlatNode fnnext=fn.getNext(i);
-	if (!explored.contains(fnnext))
-	  toexplore.add(fnnext);
+        FlatNode fnnext=fn.getNext(i);
+        if (!explored.contains(fnnext))
+          toexplore.add(fnnext);
       }
       if (fn.kind()==FKind.FlatCall) {
-	FlatCall fc=(FlatCall)fn;
-	MethodDescriptor calledmethod=fc.getMethod();
-	Set methodsthatcouldbecalled=fc.getThis()==null?getMethods(calledmethod):
-	                              getMethods(calledmethod, fc.getThis().getType());
+        FlatCall fc=(FlatCall)fn;
+        MethodDescriptor calledmethod=fc.getMethod();
+        Set methodsthatcouldbecalled=fc.getThis()==null?getMethods(calledmethod):
+                                      getMethods(calledmethod, fc.getThis().getType());
 
-	// add caller -> callee maps
-	if( !mapCaller2CalleeSet.containsKey(caller) ) {
-	  mapCaller2CalleeSet.put(caller, new HashSet() );
-	}
-	((HashSet)mapCaller2CalleeSet.get(caller)).addAll(methodsthatcouldbecalled);
+        // add caller -> callee maps
+        if( !mapCaller2CalleeSet.containsKey(caller) ) {
+          mapCaller2CalleeSet.put(caller, new HashSet() );
+        }
+        ((HashSet)mapCaller2CalleeSet.get(caller)).addAll(methodsthatcouldbecalled);
 
-	// add callee -> caller maps
-	Iterator calleeItr = methodsthatcouldbecalled.iterator();
-	while( calleeItr.hasNext() ) {
-	  MethodDescriptor callee = (MethodDescriptor) calleeItr.next();
-	  if( !mapCallee2CallerSet.containsKey(callee) ) {
-	    mapCallee2CallerSet.put(callee, new HashSet() );
-	  }
-	  ((HashSet)mapCallee2CallerSet.get(callee)).add(caller);
-	}
+        // add callee -> caller maps
+        Iterator calleeItr = methodsthatcouldbecalled.iterator();
+        while( calleeItr.hasNext() ) {
+          MethodDescriptor callee = (MethodDescriptor) calleeItr.next();
+          if( !mapCallee2CallerSet.containsKey(callee) ) {
+            mapCallee2CallerSet.put(callee, new HashSet() );
+          }
+          ((HashSet)mapCallee2CallerSet.get(callee)).add(caller);
+        }
       }
     }
   }
@@ -312,20 +312,20 @@ public class BaseCallGraph implements CallGraph {
       HashSet implemSet = (HashSet)          me.getValue();
 
       if( !labeledInDot.contains(virtual) ) {
-	labeledInDot.add(virtual);
-	bw.write("  "+virtual.getNum()+"[label=\""+virtual+"\"];\n");
+        labeledInDot.add(virtual);
+        bw.write("  "+virtual.getNum()+"[label=\""+virtual+"\"];\n");
       }
 
       Iterator implemItr = implemSet.iterator();
       while( implemItr.hasNext() ) {
-	Descriptor implem = (Descriptor) implemItr.next();
+        Descriptor implem = (Descriptor) implemItr.next();
 
-	if( !labeledInDot.contains(implem) ) {
-	  labeledInDot.add(implem);
-	  bw.write("  "+implem.getNum()+"[label=\""+implem+"\"];\n");
-	}
+        if( !labeledInDot.contains(implem) ) {
+          labeledInDot.add(implem);
+          bw.write("  "+implem.getNum()+"[label=\""+implem+"\"];\n");
+        }
 
-	bw.write("  "+virtual.getNum()+"->"+implem.getNum()+";\n");
+        bw.write("  "+virtual.getNum()+"->"+implem.getNum()+";\n");
       }
     }
     bw.write("}\n");
@@ -346,20 +346,20 @@ public class BaseCallGraph implements CallGraph {
       HashSet calleeSet = (HashSet)    me.getValue();
 
       if( !labeledInDot.contains(caller) ) {
-	labeledInDot.add(caller);
-	bw.write("  "+caller.getNum()+"[label=\"" +caller+"\"];\n");
+        labeledInDot.add(caller);
+        bw.write("  "+caller.getNum()+"[label=\"" +caller+"\"];\n");
       }
 
       Iterator calleeItr = calleeSet.iterator();
       while( calleeItr.hasNext() ) {
-	MethodDescriptor callee = (MethodDescriptor) calleeItr.next();
+        MethodDescriptor callee = (MethodDescriptor) calleeItr.next();
 
-	if( !labeledInDot.contains(callee) ) {
-	  labeledInDot.add(callee);
-	  bw.write("  "+callee.getNum()+"[label=\""+callee+"\"];\n");
-	}
+        if( !labeledInDot.contains(callee) ) {
+          labeledInDot.add(callee);
+          bw.write("  "+callee.getNum()+"[label=\""+callee+"\"];\n");
+        }
 
-	bw.write("  "+caller.getNum()+"->"+callee.getNum()+";\n");
+        bw.write("  "+caller.getNum()+"->"+callee.getNum()+";\n");
       }
     }
     bw.write("}\n");
@@ -382,20 +382,20 @@ public class BaseCallGraph implements CallGraph {
       HashSet callerSet = (HashSet)          me.getValue();
 
       if( !labeledInDot.contains(callee) ) {
-	labeledInDot.add(callee);
-	bw.write("  "+callee.getNum()+"[label=\""+callee+"\"];\n");
+        labeledInDot.add(callee);
+        bw.write("  "+callee.getNum()+"[label=\""+callee+"\"];\n");
       }
 
       Iterator callerItr = callerSet.iterator();
       while( callerItr.hasNext() ) {
-	Descriptor caller = (Descriptor) callerItr.next();
+        Descriptor caller = (Descriptor) callerItr.next();
 
-	if( !labeledInDot.contains(caller) ) {
-	  labeledInDot.add(caller);
-	  bw.write("  "+caller.getNum()+"[label=\""+caller+"\"];\n");
-	}
+        if( !labeledInDot.contains(caller) ) {
+          labeledInDot.add(caller);
+          bw.write("  "+caller.getNum()+"[label=\""+caller+"\"];\n");
+        }
 
-	bw.write("  "+caller.getNum()+"->"+callee.getNum()+";\n");
+        bw.write("  "+caller.getNum()+"->"+callee.getNum()+";\n");
       }
     }
     bw.write("}\n");

@@ -147,21 +147,21 @@ public class ReachGraph {
 
     if( inherent == null ) {
       if( markForAnalysis ) {
-	inherent =
-	  Canonical.changePredsTo(
-	    ReachSet.factory(
-	      ReachState.factory(
-	        ReachTuple.factory(id,
-	                           !isSingleObject,
-	                           ReachTuple.ARITY_ONE,
-	                           false                                                        // out-of-context
-	                           )
-	        )
-	      ),
-	    predsTrue
-	    );
+        inherent =
+          Canonical.changePredsTo(
+            ReachSet.factory(
+              ReachState.factory(
+                ReachTuple.factory(id,
+                                   !isSingleObject,
+                                   ReachTuple.ARITY_ONE,
+                                   false                                                        // out-of-context
+                                   )
+                )
+              ),
+            predsTrue
+            );
       } else {
-	inherent = rsetWithEmptyState;
+        inherent = rsetWithEmptyState;
       }
     }
 
@@ -267,14 +267,14 @@ public class ReachGraph {
           (edge.typeEquals(type) && edge.fieldEquals(field))
           ) {
 
-	HeapRegionNode referencee = edge.getDst();
+        HeapRegionNode referencee = edge.getDst();
 
-	removeRefEdge(referencer,
-	              referencee,
-	              edge.getType(),
-	              edge.getField() );
+        removeRefEdge(referencer,
+                      referencee,
+                      edge.getType(),
+                      edge.getField() );
 
-	atLeastOneEdgeRemoved = true;
+        atLeastOneEdgeRemoved = true;
       }
     }
 
@@ -298,12 +298,12 @@ public class ReachGraph {
           (edge.typeEquals(type) && edge.fieldEquals(field))
           ) {
 
-	RefSrcNode referencer = edge.getSrc();
+        RefSrcNode referencer = edge.getSrc();
 
-	removeRefEdge(referencer,
-	              referencee,
-	              edge.getType(),
-	              edge.getField() );
+        removeRefEdge(referencer,
+                      referencee,
+                      edge.getType(),
+                      edge.getField() );
       }
     }
   }
@@ -319,10 +319,10 @@ public class ReachGraph {
       RefEdge edge = i.next();
       RefSrcNode referencer = edge.getSrc();
       if( !(referencer instanceof VariableNode) ) {
-	removeRefEdge(referencer,
-	              referencee,
-	              edge.getType(),
-	              edge.getField() );
+        removeRefEdge(referencer,
+                      referencee,
+                      edge.getType(),
+                      edge.getField() );
       }
     }
   }
@@ -407,25 +407,25 @@ public class ReachGraph {
       RefEdge edgeNew    = edgeY.copy();
 
       if( !isSuperiorType(x.getType(), edgeY.getType() ) ) {
-	impossibleEdges.add(edgeY);
-	continue;
+        impossibleEdges.add(edgeY);
+        continue;
       }
 
       edgeNew.setSrc(lnX);
 
       if( tdCast == null ) {
-	edgeNew.setType(mostSpecificType(y.getType(),
-	                                 edgeY.getType(),
-	                                 referencee.getType()
-	                                 )
-	                );
+        edgeNew.setType(mostSpecificType(y.getType(),
+                                         edgeY.getType(),
+                                         referencee.getType()
+                                         )
+                        );
       } else {
-	edgeNew.setType(mostSpecificType(y.getType(),
-	                                 edgeY.getType(),
-	                                 referencee.getType(),
-	                                 tdCast
-	                                 )
-	                );
+        edgeNew.setType(mostSpecificType(y.getType(),
+                                         edgeY.getType(),
+                                         referencee.getType(),
+                                         tdCast
+                                         )
+                        );
       }
 
       edgeNew.setField(null);
@@ -466,47 +466,47 @@ public class ReachGraph {
       Iterator<RefEdge> itrHrnFhrn = hrnY.iteratorToReferencees();
 
       while( itrHrnFhrn.hasNext() ) {
-	RefEdge edgeHrn = itrHrnFhrn.next();
-	HeapRegionNode hrnHrn  = edgeHrn.getDst();
-	ReachSet betaHrn = edgeHrn.getBeta();
+        RefEdge edgeHrn = itrHrnFhrn.next();
+        HeapRegionNode hrnHrn  = edgeHrn.getDst();
+        ReachSet betaHrn = edgeHrn.getBeta();
 
-	// prune edges that are not a matching field
-	if( edgeHrn.getType() != null &&
-	    !edgeHrn.getField().equals(f.getSymbol() )
-	    ) {
-	  continue;
-	}
+        // prune edges that are not a matching field
+        if( edgeHrn.getType() != null &&
+            !edgeHrn.getField().equals(f.getSymbol() )
+            ) {
+          continue;
+        }
 
-	// check for impossible edges
-	if( !isSuperiorType(x.getType(), edgeHrn.getType() ) ) {
-	  impossibleEdges.add(edgeHrn);
-	  continue;
-	}
+        // check for impossible edges
+        if( !isSuperiorType(x.getType(), edgeHrn.getType() ) ) {
+          impossibleEdges.add(edgeHrn);
+          continue;
+        }
 
-	TypeDescriptor tdNewEdge =
-	  mostSpecificType(edgeHrn.getType(),
-	                   hrnHrn.getType()
-	                   );
+        TypeDescriptor tdNewEdge =
+          mostSpecificType(edgeHrn.getType(),
+                           hrnHrn.getType()
+                           );
 
-	TaintSet taints = Canonical.unionORpreds(edgeHrn.getTaints(),
-	                                         edgeY.getTaints()
-	                                         );
-	if( state.RCR ) {
-	  // the DFJ way to generate taints changes for field statements
-	  taints = Canonical.changeWhereDefined(taints,
-	                                        currentProgramPoint);
-	}
+        TaintSet taints = Canonical.unionORpreds(edgeHrn.getTaints(),
+                                                 edgeY.getTaints()
+                                                 );
+        if( state.RCR ) {
+          // the DFJ way to generate taints changes for field statements
+          taints = Canonical.changeWhereDefined(taints,
+                                                currentProgramPoint);
+        }
 
-	RefEdge edgeNew = new RefEdge(lnX,
-	                              hrnHrn,
-	                              tdNewEdge,
-	                              null,
-	                              Canonical.intersection(betaY, betaHrn),
-	                              predsTrue,
-	                              taints
-	                              );
+        RefEdge edgeNew = new RefEdge(lnX,
+                                      hrnHrn,
+                                      tdNewEdge,
+                                      null,
+                                      Canonical.intersection(betaY, betaHrn),
+                                      predsTrue,
+                                      taints
+                                      );
 
-	addEdgeOrMergeWithExisting(edgeNew);
+        addEdgeOrMergeWithExisting(edgeNew);
       }
     }
 
@@ -520,7 +520,7 @@ public class ReachGraph {
     // you must global sweep to clean up broken reachability
     if( !impossibleEdges.isEmpty() ) {
       if( !DISABLE_GLOBAL_SWEEP ) {
-	globalSweep();
+        globalSweep();
       }
     }
 
@@ -561,18 +561,18 @@ public class ReachGraph {
               (hrnX.isSingleObject() && lnX.getNumReferencees() == 1)    // case 2
           )
           ) {
-	if( !DISABLE_STRONG_UPDATES ) {
-	  strongUpdateCond = true;
+        if( !DISABLE_STRONG_UPDATES ) {
+          strongUpdateCond = true;
 
-	  boolean atLeastOne =
-	    clearRefEdgesFrom(hrnX,
-	                      f.getType(),
-	                      f.getSymbol(),
-	                      false);
-	  if( atLeastOne ) {
-	    edgeRemovedByStrongUpdate = true;
-	  }
-	}
+          boolean atLeastOne =
+            clearRefEdgesFrom(hrnX,
+                              f.getType(),
+                              f.getSymbol(),
+                              false);
+          if( atLeastOne ) {
+            edgeRemovedByStrongUpdate = true;
+          }
+        }
       }
     }
 
@@ -588,38 +588,38 @@ public class ReachGraph {
 
       Iterator<RefEdge> itrYhrn = lnY.iteratorToReferencees();
       while( itrYhrn.hasNext() ) {
-	RefEdge edgeY = itrYhrn.next();
-	HeapRegionNode hrnY  = edgeY.getDst();
-	ReachSet O     = edgeY.getBeta();
+        RefEdge edgeY = itrYhrn.next();
+        HeapRegionNode hrnY  = edgeY.getDst();
+        ReachSet O     = edgeY.getBeta();
 
-	// check for impossible edges
-	if( !isSuperiorType(f.getType(), edgeY.getType() ) ) {
-	  impossibleEdges.add(edgeY);
-	  continue;
-	}
+        // check for impossible edges
+        if( !isSuperiorType(f.getType(), edgeY.getType() ) ) {
+          impossibleEdges.add(edgeY);
+          continue;
+        }
 
-	// propagate tokens over nodes starting from hrnSrc, and it will
-	// take care of propagating back up edges from any touched nodes
-	ChangeSet Cy = Canonical.unionUpArityToChangeSet(O, R);
-	propagateTokensOverNodes(hrnY, Cy, nodesWithNewAlpha, edgesWithNewBeta);
+        // propagate tokens over nodes starting from hrnSrc, and it will
+        // take care of propagating back up edges from any touched nodes
+        ChangeSet Cy = Canonical.unionUpArityToChangeSet(O, R);
+        propagateTokensOverNodes(hrnY, Cy, nodesWithNewAlpha, edgesWithNewBeta);
 
-	// then propagate back just up the edges from hrn
-	ChangeSet Cx = Canonical.unionUpArityToChangeSet(R, O);
-	HashSet<RefEdge> todoEdges = new HashSet<RefEdge>();
+        // then propagate back just up the edges from hrn
+        ChangeSet Cx = Canonical.unionUpArityToChangeSet(R, O);
+        HashSet<RefEdge> todoEdges = new HashSet<RefEdge>();
 
-	Hashtable<RefEdge, ChangeSet> edgePlannedChanges =
-	  new Hashtable<RefEdge, ChangeSet>();
+        Hashtable<RefEdge, ChangeSet> edgePlannedChanges =
+          new Hashtable<RefEdge, ChangeSet>();
 
-	Iterator<RefEdge> referItr = hrnX.iteratorToReferencers();
-	while( referItr.hasNext() ) {
-	  RefEdge edgeUpstream = referItr.next();
-	  todoEdges.add(edgeUpstream);
-	  edgePlannedChanges.put(edgeUpstream, Cx);
-	}
+        Iterator<RefEdge> referItr = hrnX.iteratorToReferencers();
+        while( referItr.hasNext() ) {
+          RefEdge edgeUpstream = referItr.next();
+          todoEdges.add(edgeUpstream);
+          edgePlannedChanges.put(edgeUpstream, Cx);
+        }
 
-	propagateTokensOverEdges(todoEdges,
-	                         edgePlannedChanges,
-	                         edgesWithNewBeta);
+        propagateTokensOverEdges(todoEdges,
+                                 edgePlannedChanges,
+                                 edgesWithNewBeta);
       }
     }
 
@@ -644,46 +644,46 @@ public class ReachGraph {
 
       Iterator<RefEdge> itrYhrn = lnY.iteratorToReferencees();
       while( itrYhrn.hasNext() ) {
-	RefEdge edgeY = itrYhrn.next();
-	HeapRegionNode hrnY  = edgeY.getDst();
+        RefEdge edgeY = itrYhrn.next();
+        HeapRegionNode hrnY  = edgeY.getDst();
 
-	// skip impossible edges here, we already marked them
-	// when computing reachability propagations above
-	if( !isSuperiorType(f.getType(), edgeY.getType() ) ) {
-	  continue;
-	}
+        // skip impossible edges here, we already marked them
+        // when computing reachability propagations above
+        if( !isSuperiorType(f.getType(), edgeY.getType() ) ) {
+          continue;
+        }
 
-	// prepare the new reference edge hrnX.f -> hrnY
-	TypeDescriptor tdNewEdge =
-	  mostSpecificType(y.getType(),
-	                   edgeY.getType(),
-	                   hrnY.getType()
-	                   );
+        // prepare the new reference edge hrnX.f -> hrnY
+        TypeDescriptor tdNewEdge =
+          mostSpecificType(y.getType(),
+                           edgeY.getType(),
+                           hrnY.getType()
+                           );
 
-	TaintSet taints = edgeY.getTaints();
+        TaintSet taints = edgeY.getTaints();
 
-	if( state.RCR ) {
-	  // the DFJ way to generate taints changes for field statements
-	  taints = Canonical.changeWhereDefined(taints,
-	                                        currentProgramPoint);
-	}
+        if( state.RCR ) {
+          // the DFJ way to generate taints changes for field statements
+          taints = Canonical.changeWhereDefined(taints,
+                                                currentProgramPoint);
+        }
 
-	RefEdge edgeNew =
-	  new RefEdge(hrnX,
-	              hrnY,
-	              tdNewEdge,
-	              f.getSymbol(),
-	              Canonical.changePredsTo(
-	                Canonical.pruneBy(edgeY.getBeta(),
-	                                  hrnX.getAlpha()
-	                                  ),
-	                predsTrue
-	                ),
-	              predsTrue,
-	              taints
-	              );
+        RefEdge edgeNew =
+          new RefEdge(hrnX,
+                      hrnY,
+                      tdNewEdge,
+                      f.getSymbol(),
+                      Canonical.changePredsTo(
+                        Canonical.pruneBy(edgeY.getBeta(),
+                                          hrnX.getAlpha()
+                                          ),
+                        predsTrue
+                        ),
+                      predsTrue,
+                      taints
+                      );
 
-	addEdgeOrMergeWithExisting(edgeNew);
+        addEdgeOrMergeWithExisting(edgeNew);
       }
     }
 
@@ -697,7 +697,7 @@ public class ReachGraph {
     // reachability with a global sweep
     if( edgeRemovedByStrongUpdate || !impossibleEdges.isEmpty() ) {
       if( !DISABLE_GLOBAL_SWEEP ) {
-	globalSweep();
+        globalSweep();
       }
     }
 
@@ -804,16 +804,16 @@ public class ReachGraph {
       // only do the transfer if the i-1 node exists
       Integer idImin1th = as.getIthOldest(i - 1);
       if( id2hrn.containsKey(idImin1th) ) {
-	HeapRegionNode hrnImin1 = id2hrn.get(idImin1th);
-	if( hrnImin1.isWiped() ) {
-	  // there is no info on this node, just skip
-	  continue;
-	}
+        HeapRegionNode hrnImin1 = id2hrn.get(idImin1th);
+        if( hrnImin1.isWiped() ) {
+          // there is no info on this node, just skip
+          continue;
+        }
 
-	// either retrieve or make target of transfer
-	HeapRegionNode hrnI = getIthNode(as, i, false);
+        // either retrieve or make target of transfer
+        HeapRegionNode hrnI = getIthNode(as, i, false);
 
-	transferOnto(hrnImin1, hrnI);
+        transferOnto(hrnImin1, hrnI);
       }
 
     }
@@ -834,7 +834,7 @@ public class ReachGraph {
 
       Iterator<RefEdge> itrEdges = hrnToAge.iteratorToReferencers();
       while( itrEdges.hasNext() ) {
-	ageTuplesFrom(as, itrEdges.next() );
+        ageTuplesFrom(as, itrEdges.next() );
       }
     }
 
@@ -940,22 +940,22 @@ public class ReachGraph {
                                   );
 
       if( edgeSummary == null ) {
-	// the merge is trivial, nothing to be done
-	addRefEdge(hrnSummary, hrnReferencee, edgeMerged);
+        // the merge is trivial, nothing to be done
+        addRefEdge(hrnSummary, hrnReferencee, edgeMerged);
 
       } else {
-	// otherwise an edge from the referencer to hrnSummary exists already
-	// and the edge referencer->hrn should be merged with it
-	edgeSummary.setBeta(
-	  Canonical.unionORpreds(edgeMerged.getBeta(),
-	                         edgeSummary.getBeta()
-	                         )
-	  );
-	edgeSummary.setPreds(
-	  Canonical.join(edgeMerged.getPreds(),
-	                 edgeSummary.getPreds()
-	                 )
-	  );
+        // otherwise an edge from the referencer to hrnSummary exists already
+        // and the edge referencer->hrn should be merged with it
+        edgeSummary.setBeta(
+          Canonical.unionORpreds(edgeMerged.getBeta(),
+                                 edgeSummary.getBeta()
+                                 )
+          );
+        edgeSummary.setPreds(
+          Canonical.join(edgeMerged.getPreds(),
+                         edgeSummary.getPreds()
+                         )
+          );
       }
     }
 
@@ -974,22 +974,22 @@ public class ReachGraph {
                                     );
 
       if( edgeSummary == null ) {
-	// the merge is trivial, nothing to be done
-	addRefEdge(onReferencer, hrnSummary, edgeMerged);
+        // the merge is trivial, nothing to be done
+        addRefEdge(onReferencer, hrnSummary, edgeMerged);
 
       } else {
-	// otherwise an edge from the referencer to alpha_S exists already
-	// and the edge referencer->alpha_K should be merged with it
-	edgeSummary.setBeta(
-	  Canonical.unionORpreds(edgeMerged.getBeta(),
-	                         edgeSummary.getBeta()
-	                         )
-	  );
-	edgeSummary.setPreds(
-	  Canonical.join(edgeMerged.getPreds(),
-	                 edgeSummary.getPreds()
-	                 )
-	  );
+        // otherwise an edge from the referencer to alpha_S exists already
+        // and the edge referencer->alpha_K should be merged with it
+        edgeSummary.setBeta(
+          Canonical.unionORpreds(edgeMerged.getBeta(),
+                                 edgeSummary.getBeta()
+                                 )
+          );
+        edgeSummary.setPreds(
+          Canonical.join(edgeMerged.getPreds(),
+                         edgeSummary.getPreds()
+                         )
+          );
       }
     }
 
@@ -1120,56 +1120,56 @@ public class ReachGraph {
 
       Iterator<RefEdge> referItr = n.iteratorToReferencers();
       while( referItr.hasNext() ) {
-	RefEdge edge = referItr.next();
-	todoEdges.add(edge);
+        RefEdge edge = referItr.next();
+        todoEdges.add(edge);
 
-	if( !edgePlannedChanges.containsKey(edge) ) {
-	  edgePlannedChanges.put(edge,
-	                         ChangeSet.factory()
-	                         );
-	}
+        if( !edgePlannedChanges.containsKey(edge) ) {
+          edgePlannedChanges.put(edge,
+                                 ChangeSet.factory()
+                                 );
+        }
 
-	edgePlannedChanges.put(edge,
-	                       Canonical.union(edgePlannedChanges.get(edge),
-	                                       C
-	                                       )
-	                       );
+        edgePlannedChanges.put(edge,
+                               Canonical.union(edgePlannedChanges.get(edge),
+                                               C
+                                               )
+                               );
       }
 
       Iterator<RefEdge> refeeItr = n.iteratorToReferencees();
       while( refeeItr.hasNext() ) {
-	RefEdge edgeF = refeeItr.next();
-	HeapRegionNode m     = edgeF.getDst();
+        RefEdge edgeF = refeeItr.next();
+        HeapRegionNode m     = edgeF.getDst();
 
-	ChangeSet changesToPass = ChangeSet.factory();
+        ChangeSet changesToPass = ChangeSet.factory();
 
-	Iterator<ChangeTuple> itrCprime = C.iterator();
-	while( itrCprime.hasNext() ) {
-	  ChangeTuple c = itrCprime.next();
-	  if( edgeF.getBeta().containsIgnorePreds(c.getStateToMatch() )
-	      != null
-	      ) {
-	    changesToPass = Canonical.add(changesToPass, c);
-	  }
-	}
+        Iterator<ChangeTuple> itrCprime = C.iterator();
+        while( itrCprime.hasNext() ) {
+          ChangeTuple c = itrCprime.next();
+          if( edgeF.getBeta().containsIgnorePreds(c.getStateToMatch() )
+              != null
+              ) {
+            changesToPass = Canonical.add(changesToPass, c);
+          }
+        }
 
-	if( !changesToPass.isEmpty() ) {
-	  if( !nodePlannedChanges.containsKey(m) ) {
-	    nodePlannedChanges.put(m, ChangeSet.factory() );
-	  }
+        if( !changesToPass.isEmpty() ) {
+          if( !nodePlannedChanges.containsKey(m) ) {
+            nodePlannedChanges.put(m, ChangeSet.factory() );
+          }
 
-	  ChangeSet currentChanges = nodePlannedChanges.get(m);
+          ChangeSet currentChanges = nodePlannedChanges.get(m);
 
-	  if( !changesToPass.isSubset(currentChanges) ) {
+          if( !changesToPass.isSubset(currentChanges) ) {
 
-	    nodePlannedChanges.put(m,
-	                           Canonical.union(currentChanges,
-	                                           changesToPass
-	                                           )
-	                           );
-	    todoNodes.add(m);
-	  }
-	}
+            nodePlannedChanges.put(m,
+                                   Canonical.union(currentChanges,
+                                                   changesToPass
+                                                   )
+                                   );
+            todoNodes.add(m);
+          }
+        }
       }
 
       todoNodes.remove(n);
@@ -1216,9 +1216,9 @@ public class ReachGraph {
       todoEdges.remove(edgeE);
 
       if( !edgePlannedChanges.containsKey(edgeE) ) {
-	edgePlannedChanges.put(edgeE,
-	                       ChangeSet.factory()
-	                       );
+        edgePlannedChanges.put(edgeE,
+                               ChangeSet.factory()
+                               );
       }
 
       ChangeSet C = edgePlannedChanges.get(edgeE);
@@ -1227,40 +1227,40 @@ public class ReachGraph {
 
       Iterator<ChangeTuple> itrC = C.iterator();
       while( itrC.hasNext() ) {
-	ChangeTuple c = itrC.next();
-	if( edgeE.getBeta().containsIgnorePreds(c.getStateToMatch() )
-	    != null
-	    ) {
-	  changesToPass = Canonical.add(changesToPass, c);
-	}
+        ChangeTuple c = itrC.next();
+        if( edgeE.getBeta().containsIgnorePreds(c.getStateToMatch() )
+            != null
+            ) {
+          changesToPass = Canonical.add(changesToPass, c);
+        }
       }
 
       RefSrcNode rsn = edgeE.getSrc();
 
       if( !changesToPass.isEmpty() && rsn instanceof HeapRegionNode ) {
-	HeapRegionNode n = (HeapRegionNode) rsn;
+        HeapRegionNode n = (HeapRegionNode) rsn;
 
-	Iterator<RefEdge> referItr = n.iteratorToReferencers();
-	while( referItr.hasNext() ) {
-	  RefEdge edgeF = referItr.next();
+        Iterator<RefEdge> referItr = n.iteratorToReferencers();
+        while( referItr.hasNext() ) {
+          RefEdge edgeF = referItr.next();
 
-	  if( !edgePlannedChanges.containsKey(edgeF) ) {
-	    edgePlannedChanges.put(edgeF,
-	                           ChangeSet.factory()
-	                           );
-	  }
+          if( !edgePlannedChanges.containsKey(edgeF) ) {
+            edgePlannedChanges.put(edgeF,
+                                   ChangeSet.factory()
+                                   );
+          }
 
-	  ChangeSet currentChanges = edgePlannedChanges.get(edgeF);
+          ChangeSet currentChanges = edgePlannedChanges.get(edgeF);
 
-	  if( !changesToPass.isSubset(currentChanges) ) {
-	    todoEdges.add(edgeF);
-	    edgePlannedChanges.put(edgeF,
-	                           Canonical.union(currentChanges,
-	                                           changesToPass
-	                                           )
-	                           );
-	  }
-	}
+          if( !changesToPass.isSubset(currentChanges) ) {
+            todoEdges.add(edgeF);
+            edgePlannedChanges.put(edgeF,
+                                   Canonical.union(currentChanges,
+                                                   changesToPass
+                                                   )
+                                   );
+          }
+        }
       }
     }
 
@@ -1301,7 +1301,7 @@ public class ReachGraph {
       // use this where defined flatnode to support RCR/DFJ
       FlatNode whereDefined = null;
       if( state.RCR ) {
-	whereDefined = sese;
+        whereDefined = sese;
       }
 
       // in-set var taints should NOT propagate back into callers
@@ -1372,12 +1372,12 @@ public class ReachGraph {
 
       Iterator<RefEdge> reItr = hrn.iteratorToReferencers();
       while( reItr.hasNext() ) {
-	RefEdge re = reItr.next();
+        RefEdge re = reItr.next();
 
-	re.setTaints(Canonical.removeInContextTaints(re.getTaints(),
-	                                             sese
-	                                             )
-	             );
+        re.setTaints(Canonical.removeInContextTaints(re.getTaints(),
+                                                     sese
+                                                     )
+                     );
       }
     }
   }
@@ -1392,11 +1392,11 @@ public class ReachGraph {
 
       Iterator<RefEdge> reItr = hrn.iteratorToReferencers();
       while( reItr.hasNext() ) {
-	RefEdge re = reItr.next();
+        RefEdge re = reItr.next();
 
-	re.setTaints(Canonical.removeStallSiteTaints(re.getTaints()
-	                                             )
-	             );
+        re.setTaints(Canonical.removeStallSiteTaints(re.getTaints()
+                                                     )
+                     );
       }
     }
   }
@@ -1425,30 +1425,30 @@ public class ReachGraph {
       assert belongsToThis(re.getDst() );
 
       if( !(re.getSrc() instanceof HeapRegionNode) ) {
-	continue;
+        continue;
       }
 
       HeapRegionNode hrnSrc = (HeapRegionNode) re.getSrc();
       if( !hrnSrc.isOutOfContext() ) {
-	continue;
+        continue;
       }
 
       if( srcType == null ) {
-	if( hrnSrc.getType() != null ) {
-	  continue;
-	}
+        if( hrnSrc.getType() != null ) {
+          continue;
+        }
       } else {
-	if( !srcType.equals(hrnSrc.getType() ) ) {
-	  continue;
-	}
+        if( !srcType.equals(hrnSrc.getType() ) ) {
+          continue;
+        }
       }
 
       if( !re.typeEquals(refType) ) {
-	continue;
+        continue;
       }
 
       if( !re.fieldEquals(refField) ) {
-	continue;
+        continue;
       }
 
       // tada!  We found it!
@@ -1474,74 +1474,74 @@ public class ReachGraph {
 
       Iterator<AllocSite> asItr = allocSites.iterator();
       while( asItr.hasNext() ) {
-	AllocSite as = asItr.next();
+        AllocSite as = asItr.next();
 
-	ReachState stateNew = ReachState.factory();
-	Iterator<ReachTuple> rtItr = stateCallee.iterator();
-	while( rtItr.hasNext() ) {
-	  ReachTuple rt = rtItr.next();
+        ReachState stateNew = ReachState.factory();
+        Iterator<ReachTuple> rtItr = stateCallee.iterator();
+        while( rtItr.hasNext() ) {
+          ReachTuple rt = rtItr.next();
 
-	  // only translate this tuple if it is
-	  // in the out-callee-context bag
-	  HrnIdOoc hio = new HrnIdOoc(rt.getHrnID(),
-	                              rt.isOutOfContext()
-	                              );
-	  if( !oocHrnIdOoc2callee.contains(hio) ) {
-	    stateNew = Canonical.addUpArity(stateNew, rt);
-	    continue;
-	  }
+          // only translate this tuple if it is
+          // in the out-callee-context bag
+          HrnIdOoc hio = new HrnIdOoc(rt.getHrnID(),
+                                      rt.isOutOfContext()
+                                      );
+          if( !oocHrnIdOoc2callee.contains(hio) ) {
+            stateNew = Canonical.addUpArity(stateNew, rt);
+            continue;
+          }
 
-	  int age = as.getAgeCategory(rt.getHrnID() );
+          int age = as.getAgeCategory(rt.getHrnID() );
 
-	  // this is the current mapping, where 0, 1, 2S were allocated
-	  // in the current context, 0?, 1? and 2S? were allocated in a
-	  // previous context, and we're translating to a future context
-	  //
-	  // 0    -> 0?
-	  // 1    -> 1?
-	  // 2S   -> 2S?
-	  // 2S*  -> 2S?*
-	  //
-	  // 0?   -> 2S?
-	  // 1?   -> 2S?
-	  // 2S?  -> 2S?
-	  // 2S?* -> 2S?*
+          // this is the current mapping, where 0, 1, 2S were allocated
+          // in the current context, 0?, 1? and 2S? were allocated in a
+          // previous context, and we're translating to a future context
+          //
+          // 0    -> 0?
+          // 1    -> 1?
+          // 2S   -> 2S?
+          // 2S*  -> 2S?*
+          //
+          // 0?   -> 2S?
+          // 1?   -> 2S?
+          // 2S?  -> 2S?
+          // 2S?* -> 2S?*
 
-	  if( age == AllocSite.AGE_notInThisSite ) {
-	    // things not from the site just go back in
-	    stateNew = Canonical.addUpArity(stateNew, rt);
+          if( age == AllocSite.AGE_notInThisSite ) {
+            // things not from the site just go back in
+            stateNew = Canonical.addUpArity(stateNew, rt);
 
-	  } else if( age == AllocSite.AGE_summary ||
-	             rt.isOutOfContext()
-	             ) {
+          } else if( age == AllocSite.AGE_summary ||
+                     rt.isOutOfContext()
+                     ) {
 
-	    stateNew = Canonical.addUpArity(stateNew,
-	                                    ReachTuple.factory(as.getSummary(),
-	                                                       true,   // multi
-	                                                       rt.getArity(),
-	                                                       true    // out-of-context
-	                                                       )
-	                                    );
+            stateNew = Canonical.addUpArity(stateNew,
+                                            ReachTuple.factory(as.getSummary(),
+                                                               true,   // multi
+                                                               rt.getArity(),
+                                                               true    // out-of-context
+                                                               )
+                                            );
 
-	  } else {
-	    // otherwise everything else just goes to an out-of-context
-	    // version, everything else the same
-	    Integer I = as.getAge(rt.getHrnID() );
-	    assert I != null;
+          } else {
+            // otherwise everything else just goes to an out-of-context
+            // version, everything else the same
+            Integer I = as.getAge(rt.getHrnID() );
+            assert I != null;
 
-	    assert !rt.isMultiObject();
+            assert !rt.isMultiObject();
 
-	    stateNew = Canonical.addUpArity(stateNew,
-	                                    ReachTuple.factory(rt.getHrnID(),
-	                                                       rt.isMultiObject(),   // multi
-	                                                       rt.getArity(),
-	                                                       true    // out-of-context
-	                                                       )
-	                                    );
-	  }
-	}
+            stateNew = Canonical.addUpArity(stateNew,
+                                            ReachTuple.factory(rt.getHrnID(),
+                                                               rt.isMultiObject(),   // multi
+                                                               rt.getArity(),
+                                                               true    // out-of-context
+                                                               )
+                                            );
+          }
+        }
 
-	stateCallee = stateNew;
+        stateCallee = stateNew;
       }
 
       // make a predicate of the caller graph element
@@ -1550,22 +1550,22 @@ public class ReachGraph {
 
       Iterator<ExistPred> predItr = predsNodeOrEdge.iterator();
       while( predItr.hasNext() ) {
-	ExistPred predNodeOrEdge = predItr.next();
+        ExistPred predNodeOrEdge = predItr.next();
 
-	predsWithState =
-	  Canonical.add(predsWithState,
-	                ExistPred.factory(predNodeOrEdge.n_hrnID,
-	                                  predNodeOrEdge.e_tdSrc,
-	                                  predNodeOrEdge.e_hrnSrcID,
-	                                  predNodeOrEdge.e_hrnDstID,
-	                                  predNodeOrEdge.e_type,
-	                                  predNodeOrEdge.e_field,
-	                                  stateCallee,
-	                                  null,
-	                                  predNodeOrEdge.e_srcOutCalleeContext,
-	                                  predNodeOrEdge.e_srcOutCallerContext
-	                                  )
-	                );
+        predsWithState =
+          Canonical.add(predsWithState,
+                        ExistPred.factory(predNodeOrEdge.n_hrnID,
+                                          predNodeOrEdge.e_tdSrc,
+                                          predNodeOrEdge.e_hrnSrcID,
+                                          predNodeOrEdge.e_hrnDstID,
+                                          predNodeOrEdge.e_type,
+                                          predNodeOrEdge.e_field,
+                                          stateCallee,
+                                          null,
+                                          predNodeOrEdge.e_srcOutCalleeContext,
+                                          predNodeOrEdge.e_srcOutCallerContext
+                                          )
+                        );
       }
 
       stateCallee = Canonical.changePredsTo(stateCallee,
@@ -1599,30 +1599,30 @@ public class ReachGraph {
 
       if( calleeStatesSatisfied.containsKey(stateCallee) ) {
 
-	// starting from one callee state...
-	ReachSet rsCaller = ReachSet.factory(stateCallee);
+        // starting from one callee state...
+        ReachSet rsCaller = ReachSet.factory(stateCallee);
 
-	// possibly branch it into many states, which any
-	// allocation site might do, so lots of derived states
-	Iterator<AllocSite> asItr = allocSites.iterator();
-	while( asItr.hasNext() ) {
-	  AllocSite as = asItr.next();
-	  rsCaller = Canonical.toCallerContext(rsCaller, as);
-	}
+        // possibly branch it into many states, which any
+        // allocation site might do, so lots of derived states
+        Iterator<AllocSite> asItr = allocSites.iterator();
+        while( asItr.hasNext() ) {
+          AllocSite as = asItr.next();
+          rsCaller = Canonical.toCallerContext(rsCaller, as);
+        }
 
-	// then before adding each derived, now caller-context
-	// states to the output, attach the appropriate pred
-	// based on the source callee state
-	Iterator<ReachState> stateItr = rsCaller.iterator();
-	while( stateItr.hasNext() ) {
-	  ReachState stateCaller = stateItr.next();
-	  stateCaller = Canonical.attach(stateCaller,
-	                                 calleeStatesSatisfied.get(stateCallee)
-	                                 );
-	  out = Canonical.add(out,
-	                      stateCaller
-	                      );
-	}
+        // then before adding each derived, now caller-context
+        // states to the output, attach the appropriate pred
+        // based on the source callee state
+        Iterator<ReachState> stateItr = rsCaller.iterator();
+        while( stateItr.hasNext() ) {
+          ReachState stateCaller = stateItr.next();
+          stateCaller = Canonical.attach(stateCaller,
+                                         calleeStatesSatisfied.get(stateCallee)
+                                         );
+          out = Canonical.add(out,
+                              stateCaller
+                              );
+        }
       }
     }
 
@@ -1666,21 +1666,21 @@ public class ReachGraph {
 
       Iterator<ExistPred> predItr = predsEdge.iterator();
       while( predItr.hasNext() ) {
-	ExistPred predEdge = predItr.next();
+        ExistPred predEdge = predItr.next();
 
-	predsWithTaint =
-	  Canonical.add(predsWithTaint,
-	                ExistPred.factory(predEdge.e_tdSrc,
-	                                  predEdge.e_hrnSrcID,
-	                                  predEdge.e_hrnDstID,
-	                                  predEdge.e_type,
-	                                  predEdge.e_field,
-	                                  null,
-	                                  tCaller,
-	                                  predEdge.e_srcOutCalleeContext,
-	                                  predEdge.e_srcOutCallerContext
-	                                  )
-	                );
+        predsWithTaint =
+          Canonical.add(predsWithTaint,
+                        ExistPred.factory(predEdge.e_tdSrc,
+                                          predEdge.e_hrnSrcID,
+                                          predEdge.e_hrnDstID,
+                                          predEdge.e_type,
+                                          predEdge.e_field,
+                                          null,
+                                          tCaller,
+                                          predEdge.e_srcOutCalleeContext,
+                                          predEdge.e_srcOutCallerContext
+                                          )
+                        );
       }
 
       Taint tCallee = Canonical.changePredsTo(tCaller,
@@ -1717,18 +1717,18 @@ public class ReachGraph {
 
       if( calleeTaintsSatisfied.containsKey(tCallee) ) {
 
-	Taint tCaller =
-	  Canonical.attach(Taint.factory(tCallee.sese,
-	                                 tCallee.stallSite,
-	                                 tCallee.var,
-	                                 tCallee.allocSite,
-	                                 tCallee.fnDefined,
-	                                 ExistPredSet.factory() ),
-	                   calleeTaintsSatisfied.get(tCallee)
-	                   );
-	out = Canonical.add(out,
-	                    tCaller
-	                    );
+        Taint tCaller =
+          Canonical.attach(Taint.factory(tCallee.sese,
+                                         tCallee.stallSite,
+                                         tCallee.var,
+                                         tCallee.allocSite,
+                                         tCallee.fnDefined,
+                                         ExistPredSet.factory() ),
+                           calleeTaintsSatisfied.get(tCallee)
+                           );
+        out = Canonical.add(out,
+                            tCaller
+                            );
       }
     }
 
@@ -1782,33 +1782,33 @@ public class ReachGraph {
       toVisitInCaller.add(vnArgCaller);
 
       while( !toVisitInCaller.isEmpty() ) {
-	RefSrcNode rsnCaller = toVisitInCaller.iterator().next();
-	toVisitInCaller.remove(rsnCaller);
-	visitedInCaller.add(rsnCaller);
+        RefSrcNode rsnCaller = toVisitInCaller.iterator().next();
+        toVisitInCaller.remove(rsnCaller);
+        visitedInCaller.add(rsnCaller);
 
-	Iterator<RefEdge> itrRefEdges = rsnCaller.iteratorToReferencees();
-	while( itrRefEdges.hasNext() ) {
-	  RefEdge reCaller  = itrRefEdges.next();
-	  HeapRegionNode hrnCaller = reCaller.getDst();
+        Iterator<RefEdge> itrRefEdges = rsnCaller.iteratorToReferencees();
+        while( itrRefEdges.hasNext() ) {
+          RefEdge reCaller  = itrRefEdges.next();
+          HeapRegionNode hrnCaller = reCaller.getDst();
 
-	  callerNodeIDsCopiedToCallee.add(hrnCaller.getID() );
-	  reachableCallerNodes.add(hrnCaller);
+          callerNodeIDsCopiedToCallee.add(hrnCaller.getID() );
+          reachableCallerNodes.add(hrnCaller);
 
-	  if( reCaller.getSrc() instanceof HeapRegionNode ) {
-	    reachableCallerEdges.add(reCaller);
-	  } else {
-	    if( rsnCaller.equals(vnArgCaller) ) {
-	      reachableCallerArgEdges2paramIndex.put(reCaller, i);
-	    } else {
-	      oocCallerEdges.add(reCaller);
-	    }
-	  }
+          if( reCaller.getSrc() instanceof HeapRegionNode ) {
+            reachableCallerEdges.add(reCaller);
+          } else {
+            if( rsnCaller.equals(vnArgCaller) ) {
+              reachableCallerArgEdges2paramIndex.put(reCaller, i);
+            } else {
+              oocCallerEdges.add(reCaller);
+            }
+          }
 
-	  if( !visitedInCaller.contains(hrnCaller) ) {
-	    toVisitInCaller.add(hrnCaller);
-	  }
+          if( !visitedInCaller.contains(hrnCaller) ) {
+            toVisitInCaller.add(hrnCaller);
+          }
 
-	} // end edge iteration
+        } // end edge iteration
       } // end visiting heap nodes in caller
     } // end iterating over parameters as starting points
 
@@ -1827,48 +1827,48 @@ public class ReachGraph {
       Iterator<RefEdge> itrMightCross =
         hrnCallerAndInContext.iteratorToReferencers();
       while( itrMightCross.hasNext() ) {
-	RefEdge edgeMightCross = itrMightCross.next();
+        RefEdge edgeMightCross = itrMightCross.next();
 
-	RefSrcNode rsnCallerAndOutContext =
-	  edgeMightCross.getSrc();
+        RefSrcNode rsnCallerAndOutContext =
+          edgeMightCross.getSrc();
 
-	if( rsnCallerAndOutContext instanceof VariableNode ) {
-	  // variables do not have out-of-context reach states,
-	  // so jump out now
-	  oocCallerEdges.add(edgeMightCross);
-	  continue;
-	}
+        if( rsnCallerAndOutContext instanceof VariableNode ) {
+          // variables do not have out-of-context reach states,
+          // so jump out now
+          oocCallerEdges.add(edgeMightCross);
+          continue;
+        }
 
-	HeapRegionNode hrnCallerAndOutContext =
-	  (HeapRegionNode) rsnCallerAndOutContext;
+        HeapRegionNode hrnCallerAndOutContext =
+          (HeapRegionNode) rsnCallerAndOutContext;
 
-	// is this source node out-of-context?
-	if( callerNodeIDsCopiedToCallee.contains(hrnCallerAndOutContext.getID() ) ) {
-	  // no, skip this edge
-	  continue;
-	}
+        // is this source node out-of-context?
+        if( callerNodeIDsCopiedToCallee.contains(hrnCallerAndOutContext.getID() ) ) {
+          // no, skip this edge
+          continue;
+        }
 
-	// okay, we got one
-	oocCallerEdges.add(edgeMightCross);
+        // okay, we got one
+        oocCallerEdges.add(edgeMightCross);
 
-	// add all reach tuples on the node to list
-	// of things that are out-of-context: insight
-	// if this node is reachable from someting that WAS
-	// in-context, then this node should already be in-context
-	Iterator<ReachState> stateItr = hrnCallerAndOutContext.getAlpha().iterator();
-	while( stateItr.hasNext() ) {
-	  ReachState state = stateItr.next();
+        // add all reach tuples on the node to list
+        // of things that are out-of-context: insight
+        // if this node is reachable from someting that WAS
+        // in-context, then this node should already be in-context
+        Iterator<ReachState> stateItr = hrnCallerAndOutContext.getAlpha().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
 
-	  Iterator<ReachTuple> rtItr = state.iterator();
-	  while( rtItr.hasNext() ) {
-	    ReachTuple rt = rtItr.next();
+          Iterator<ReachTuple> rtItr = state.iterator();
+          while( rtItr.hasNext() ) {
+            ReachTuple rt = rtItr.next();
 
-	    oocHrnIdOoc2callee.add(new HrnIdOoc(rt.getHrnID(),
-	                                        rt.isOutOfContext()
-	                                        )
-	                           );
-	  }
-	}
+            oocHrnIdOoc2callee.add(new HrnIdOoc(rt.getHrnID(),
+                                                rt.isOutOfContext()
+                                                )
+                                   );
+          }
+        }
       }
     }
 
@@ -2024,26 +2024,26 @@ public class ReachGraph {
       boolean outOfCallerContext;
 
       if( rsnCaller instanceof VariableNode ) {
-	VariableNode vnCaller = (VariableNode) rsnCaller;
-	oocNodeType    = null;
-	oocReach       = rsetEmpty;
-	oocPredSrcTemp = vnCaller.getTempDescriptor();
-	outOfCalleeContext = true;
-	outOfCallerContext = false;
+        VariableNode vnCaller = (VariableNode) rsnCaller;
+        oocNodeType    = null;
+        oocReach       = rsetEmpty;
+        oocPredSrcTemp = vnCaller.getTempDescriptor();
+        outOfCalleeContext = true;
+        outOfCallerContext = false;
 
       } else {
-	HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;
-	assert !callerNodeIDsCopiedToCallee.contains(hrnSrcCaller.getID() );
-	oocNodeType  = hrnSrcCaller.getType();
-	oocReach     = hrnSrcCaller.getAlpha();
-	oocPredSrcID = hrnSrcCaller.getID();
-	if( hrnSrcCaller.isOutOfContext() ) {
-	  outOfCalleeContext = false;
-	  outOfCallerContext = true;
-	} else {
-	  outOfCalleeContext = true;
-	  outOfCallerContext = false;
-	}
+        HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;
+        assert !callerNodeIDsCopiedToCallee.contains(hrnSrcCaller.getID() );
+        oocNodeType  = hrnSrcCaller.getType();
+        oocReach     = hrnSrcCaller.getAlpha();
+        oocPredSrcID = hrnSrcCaller.getID();
+        if( hrnSrcCaller.isOutOfContext() ) {
+          outOfCalleeContext = false;
+          outOfCallerContext = true;
+        } else {
+          outOfCalleeContext = true;
+          outOfCallerContext = false;
+        }
       }
 
       ExistPred pred =
@@ -2069,131 +2069,131 @@ public class ReachGraph {
                                       );
 
       if( oocEdgeExisting == null ) {
-	// for consistency, map one out-of-context "identifier"
-	// to one heap region node id, otherwise no convergence
-	String oocid = "oocid"+
-	               fmCallee+
-	               hrnDstCallee.getIDString()+
-	               oocNodeType+
-	               reCaller.getType()+
-	               reCaller.getField();
+        // for consistency, map one out-of-context "identifier"
+        // to one heap region node id, otherwise no convergence
+        String oocid = "oocid"+
+                       fmCallee+
+                       hrnDstCallee.getIDString()+
+                       oocNodeType+
+                       reCaller.getType()+
+                       reCaller.getField();
 
-	Integer oocHrnID = oocid2hrnid.get(oocid);
+        Integer oocHrnID = oocid2hrnid.get(oocid);
 
-	HeapRegionNode hrnCalleeAndOutContext;
+        HeapRegionNode hrnCalleeAndOutContext;
 
-	if( oocHrnID == null ) {
+        if( oocHrnID == null ) {
 
-	  hrnCalleeAndOutContext =
-	    rg.createNewHeapRegionNode(null,   // ID
-	                               false,  // single object?
-	                               false,  // new summary?
-	                               true,   // out-of-context?
-	                               oocNodeType,
-	                               null,   // alloc site, shouldn't be used
-	                               toCalleeContext(oocReach,
-	                                               preds,
-	                                               oocHrnIdOoc2callee
-	                                               ),
-	                               toCalleeContext(oocReach,
-	                                               preds,
-	                                               oocHrnIdOoc2callee
-	                                               ),
-	                               preds,
-	                               "out-of-context"
-	                               );
+          hrnCalleeAndOutContext =
+            rg.createNewHeapRegionNode(null,   // ID
+                                       false,  // single object?
+                                       false,  // new summary?
+                                       true,   // out-of-context?
+                                       oocNodeType,
+                                       null,   // alloc site, shouldn't be used
+                                       toCalleeContext(oocReach,
+                                                       preds,
+                                                       oocHrnIdOoc2callee
+                                                       ),
+                                       toCalleeContext(oocReach,
+                                                       preds,
+                                                       oocHrnIdOoc2callee
+                                                       ),
+                                       preds,
+                                       "out-of-context"
+                                       );
 
-	  oocid2hrnid.put(oocid, hrnCalleeAndOutContext.getID() );
+          oocid2hrnid.put(oocid, hrnCalleeAndOutContext.getID() );
 
-	} else {
+        } else {
 
-	  // the mapping already exists, so see if node is there
-	  hrnCalleeAndOutContext = rg.id2hrn.get(oocHrnID);
+          // the mapping already exists, so see if node is there
+          hrnCalleeAndOutContext = rg.id2hrn.get(oocHrnID);
 
-	  if( hrnCalleeAndOutContext == null ) {
-	    // nope, make it
-	    hrnCalleeAndOutContext =
-	      rg.createNewHeapRegionNode(oocHrnID,   // ID
-	                                 false,  // single object?
-	                                 false,  // new summary?
-	                                 true,   // out-of-context?
-	                                 oocNodeType,
-	                                 null,   // alloc site, shouldn't be used
-	                                 toCalleeContext(oocReach,
-	                                                 preds,
-	                                                 oocHrnIdOoc2callee
-	                                                 ),
-	                                 toCalleeContext(oocReach,
-	                                                 preds,
-	                                                 oocHrnIdOoc2callee
-	                                                 ),
-	                                 preds,
-	                                 "out-of-context"
-	                                 );
+          if( hrnCalleeAndOutContext == null ) {
+            // nope, make it
+            hrnCalleeAndOutContext =
+              rg.createNewHeapRegionNode(oocHrnID,   // ID
+                                         false,  // single object?
+                                         false,  // new summary?
+                                         true,   // out-of-context?
+                                         oocNodeType,
+                                         null,   // alloc site, shouldn't be used
+                                         toCalleeContext(oocReach,
+                                                         preds,
+                                                         oocHrnIdOoc2callee
+                                                         ),
+                                         toCalleeContext(oocReach,
+                                                         preds,
+                                                         oocHrnIdOoc2callee
+                                                         ),
+                                         preds,
+                                         "out-of-context"
+                                         );
 
-	  } else {
-	    // otherwise it is there, so merge reachability
-	    hrnCalleeAndOutContext.setAlpha(Canonical.unionORpreds(hrnCalleeAndOutContext.getAlpha(),
-	                                                           toCalleeContext(oocReach,
-	                                                                           preds,
-	                                                                           oocHrnIdOoc2callee
-	                                                                           )
-	                                                           )
-	                                    );
-	  }
-	}
+          } else {
+            // otherwise it is there, so merge reachability
+            hrnCalleeAndOutContext.setAlpha(Canonical.unionORpreds(hrnCalleeAndOutContext.getAlpha(),
+                                                                   toCalleeContext(oocReach,
+                                                                                   preds,
+                                                                                   oocHrnIdOoc2callee
+                                                                                   )
+                                                                   )
+                                            );
+          }
+        }
 
-	assert hrnCalleeAndOutContext.reachHasOnlyOOC();
+        assert hrnCalleeAndOutContext.reachHasOnlyOOC();
 
-	rg.addRefEdge(hrnCalleeAndOutContext,
-	              hrnDstCallee,
-	              new RefEdge(hrnCalleeAndOutContext,
-	                          hrnDstCallee,
-	                          reCaller.getType(),
-	                          reCaller.getField(),
-	                          toCalleeContext(reCaller.getBeta(),
-	                                          preds,
-	                                          oocHrnIdOoc2callee
-	                                          ),
-	                          preds,
-	                          toCalleeContext(reCaller.getTaints(),
-	                                          preds)
-	                          )
-	              );
+        rg.addRefEdge(hrnCalleeAndOutContext,
+                      hrnDstCallee,
+                      new RefEdge(hrnCalleeAndOutContext,
+                                  hrnDstCallee,
+                                  reCaller.getType(),
+                                  reCaller.getField(),
+                                  toCalleeContext(reCaller.getBeta(),
+                                                  preds,
+                                                  oocHrnIdOoc2callee
+                                                  ),
+                                  preds,
+                                  toCalleeContext(reCaller.getTaints(),
+                                                  preds)
+                                  )
+                      );
 
       } else {
-	// the out-of-context edge already exists
-	oocEdgeExisting.setBeta(Canonical.unionORpreds(oocEdgeExisting.getBeta(),
-	                                               toCalleeContext(reCaller.getBeta(),
-	                                                               preds,
-	                                                               oocHrnIdOoc2callee
-	                                                               )
-	                                               )
-	                        );
+        // the out-of-context edge already exists
+        oocEdgeExisting.setBeta(Canonical.unionORpreds(oocEdgeExisting.getBeta(),
+                                                       toCalleeContext(reCaller.getBeta(),
+                                                                       preds,
+                                                                       oocHrnIdOoc2callee
+                                                                       )
+                                                       )
+                                );
 
-	oocEdgeExisting.setPreds(Canonical.join(oocEdgeExisting.getPreds(),
-	                                        preds
-	                                        )
-	                         );
+        oocEdgeExisting.setPreds(Canonical.join(oocEdgeExisting.getPreds(),
+                                                preds
+                                                )
+                                 );
 
-	oocEdgeExisting.setTaints(Canonical.unionORpreds(oocEdgeExisting.getTaints(),
-	                                                 toCalleeContext(reCaller.getTaints(),
-	                                                                 preds
-	                                                                 )
-	                                                 )
-	                          );
+        oocEdgeExisting.setTaints(Canonical.unionORpreds(oocEdgeExisting.getTaints(),
+                                                         toCalleeContext(reCaller.getTaints(),
+                                                                         preds
+                                                                         )
+                                                         )
+                                  );
 
-	HeapRegionNode hrnCalleeAndOutContext =
-	  (HeapRegionNode) oocEdgeExisting.getSrc();
-	hrnCalleeAndOutContext.setAlpha(Canonical.unionORpreds(hrnCalleeAndOutContext.getAlpha(),
-	                                                       toCalleeContext(oocReach,
-	                                                                       preds,
-	                                                                       oocHrnIdOoc2callee
-	                                                                       )
-	                                                       )
-	                                );
+        HeapRegionNode hrnCalleeAndOutContext =
+          (HeapRegionNode) oocEdgeExisting.getSrc();
+        hrnCalleeAndOutContext.setAlpha(Canonical.unionORpreds(hrnCalleeAndOutContext.getAlpha(),
+                                                               toCalleeContext(oocReach,
+                                                                               preds,
+                                                                               oocHrnIdOoc2callee
+                                                                               )
+                                                               )
+                                        );
 
-	assert hrnCalleeAndOutContext.reachHasOnlyOOC();
+        assert hrnCalleeAndOutContext.reachHasOnlyOOC();
       }
     }
 
@@ -2324,10 +2324,10 @@ public class ReachGraph {
                                            );
 
       if( predsIfSatis != null ) {
-	calleeNodesSatisfied.put(hrnCallee, predsIfSatis);
+        calleeNodesSatisfied.put(hrnCallee, predsIfSatis);
       } else {
-	// otherwise don't bother looking at edges to this node
-	continue;
+        // otherwise don't bother looking at edges to this node
+        continue;
       }
 
       // since the node is coming over, find out which reach
@@ -2336,215 +2336,215 @@ public class ReachGraph {
 
       Iterator<ReachState> stateItr = hrnCallee.getAlpha().iterator();
       while( stateItr.hasNext() ) {
-	ReachState stateCallee = stateItr.next();
+        ReachState stateCallee = stateItr.next();
 
-	predsIfSatis =
-	  stateCallee.getPreds().isSatisfiedBy(this,
-	                                       callerNodeIDsCopiedToCallee
-	                                       );
-	if( predsIfSatis != null ) {
+        predsIfSatis =
+          stateCallee.getPreds().isSatisfiedBy(this,
+                                               callerNodeIDsCopiedToCallee
+                                               );
+        if( predsIfSatis != null ) {
 
-	  Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
-	    calleeNode2calleeStatesSatisfied.get(hrnCallee);
+          Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
+            calleeNode2calleeStatesSatisfied.get(hrnCallee);
 
-	  if( calleeStatesSatisfied == null ) {
-	    calleeStatesSatisfied =
-	      new Hashtable<ReachState, ExistPredSet>();
+          if( calleeStatesSatisfied == null ) {
+            calleeStatesSatisfied =
+              new Hashtable<ReachState, ExistPredSet>();
 
-	    calleeNode2calleeStatesSatisfied.put(hrnCallee, calleeStatesSatisfied);
-	  }
+            calleeNode2calleeStatesSatisfied.put(hrnCallee, calleeStatesSatisfied);
+          }
 
-	  calleeStatesSatisfied.put(stateCallee, predsIfSatis);
-	}
+          calleeStatesSatisfied.put(stateCallee, predsIfSatis);
+        }
       }
 
       // then look at edges to the node
       Iterator<RefEdge> reItr = hrnCallee.iteratorToReferencers();
       while( reItr.hasNext() ) {
-	RefEdge reCallee  = reItr.next();
-	RefSrcNode rsnCallee = reCallee.getSrc();
+        RefEdge reCallee  = reItr.next();
+        RefSrcNode rsnCallee = reCallee.getSrc();
 
-	// (caller local variables to in-context heap regions)
-	// have an (out-of-context heap region -> in-context heap region)
-	// abstraction in the callEE, so its true we never need to
-	// look at a (var node -> heap region) edge in callee to bring
-	// those over for the call site transfer, except for the special
-	// case of *RETURN var* -> heap region edges.
-	// What about (param var->heap region)
-	// edges in callee? They are dealt with below this loop.
+        // (caller local variables to in-context heap regions)
+        // have an (out-of-context heap region -> in-context heap region)
+        // abstraction in the callEE, so its true we never need to
+        // look at a (var node -> heap region) edge in callee to bring
+        // those over for the call site transfer, except for the special
+        // case of *RETURN var* -> heap region edges.
+        // What about (param var->heap region)
+        // edges in callee? They are dealt with below this loop.
 
-	if( rsnCallee instanceof VariableNode ) {
+        if( rsnCallee instanceof VariableNode ) {
 
-	  // looking for the return-value variable only
-	  VariableNode vnCallee = (VariableNode) rsnCallee;
-	  if( vnCallee.getTempDescriptor() != tdReturn ) {
-	    continue;
-	  }
+          // looking for the return-value variable only
+          VariableNode vnCallee = (VariableNode) rsnCallee;
+          if( vnCallee.getTempDescriptor() != tdReturn ) {
+            continue;
+          }
 
-	  TempDescriptor returnTemp = fc.getReturnTemp();
-	  if( returnTemp == null ||
-	      !DisjointAnalysis.shouldAnalysisTrack(returnTemp.getType() )
-	      ) {
-	    continue;
-	  }
+          TempDescriptor returnTemp = fc.getReturnTemp();
+          if( returnTemp == null ||
+              !DisjointAnalysis.shouldAnalysisTrack(returnTemp.getType() )
+              ) {
+            continue;
+          }
 
-	  // note that the assignment of the return value is to a
-	  // variable in the caller which is out-of-context with
-	  // respect to the callee
-	  VariableNode vnLhsCaller = getVariableNodeFromTemp(returnTemp);
-	  Set<RefSrcNode> rsnCallers = new HashSet<RefSrcNode>();
-	  rsnCallers.add(vnLhsCaller);
-	  calleeEdges2oocCallerSrcMatches.put(reCallee, rsnCallers);
-
-
-	} else {
-	  // for HeapRegionNode callee sources...
-
-	  // first see if the source is out-of-context, and only
-	  // proceed with this edge if we find some caller-context
-	  // matches
-	  HeapRegionNode hrnSrcCallee = (HeapRegionNode) rsnCallee;
-	  boolean matchedOutOfContext = false;
-
-	  if( !hrnSrcCallee.isOutOfContext() ) {
-
-	    predsIfSatis =
-	      hrnSrcCallee.getPreds().isSatisfiedBy(this,
-	                                            callerNodeIDsCopiedToCallee
-	                                            );
-	    if( predsIfSatis != null ) {
-	      calleeNodesSatisfied.put(hrnSrcCallee, predsIfSatis);
-	    } else {
-	      // otherwise forget this edge
-	      continue;
-	    }
-
-	  } else {
-	    // hrnSrcCallee is out-of-context
-
-	    assert !calleeEdges2oocCallerSrcMatches.containsKey(reCallee);
-
-	    Set<RefSrcNode> rsnCallers = new HashSet<RefSrcNode>();
-
-	    // is the target node in the caller?
-	    HeapRegionNode hrnDstCaller = this.id2hrn.get(hrnCallee.getID() );
-	    if( hrnDstCaller == null ) {
-	      continue;
-	    }
-
-	    Iterator<RefEdge> reDstItr = hrnDstCaller.iteratorToReferencers();
-	    while( reDstItr.hasNext() ) {
-	      // the edge and field (either possibly null) must match
-	      RefEdge reCaller = reDstItr.next();
-
-	      if( !reCaller.typeEquals(reCallee.getType()  ) ||
-	          !reCaller.fieldEquals(reCallee.getField() )
-	          ) {
-		continue;
-	      }
-
-	      RefSrcNode rsnCaller = reCaller.getSrc();
-	      if( rsnCaller instanceof VariableNode ) {
-
-		// a variable node matches an OOC region with null type
-		if( hrnSrcCallee.getType() != null ) {
-		  continue;
-		}
-
-	      } else {
-		// otherwise types should match
-		HeapRegionNode hrnCallerSrc = (HeapRegionNode) rsnCaller;
-		if( hrnSrcCallee.getType() == null ) {
-		  if( hrnCallerSrc.getType() != null ) {
-		    continue;
-		  }
-		} else {
-		  if( !hrnSrcCallee.getType().equals(hrnCallerSrc.getType() ) ) {
-		    continue;
-		  }
-		}
-	      }
-
-	      rsnCallers.add(rsnCaller);
-	      matchedOutOfContext = true;
-	    }
-
-	    if( !rsnCallers.isEmpty() ) {
-	      calleeEdges2oocCallerSrcMatches.put(reCallee, rsnCallers);
-	    }
-	  }
-
-	  if( hrnSrcCallee.isOutOfContext() &&
-	      !matchedOutOfContext ) {
-	    continue;
-	  }
-	}
+          // note that the assignment of the return value is to a
+          // variable in the caller which is out-of-context with
+          // respect to the callee
+          VariableNode vnLhsCaller = getVariableNodeFromTemp(returnTemp);
+          Set<RefSrcNode> rsnCallers = new HashSet<RefSrcNode>();
+          rsnCallers.add(vnLhsCaller);
+          calleeEdges2oocCallerSrcMatches.put(reCallee, rsnCallers);
 
 
-	predsIfSatis =
-	  reCallee.getPreds().isSatisfiedBy(this,
-	                                    callerNodeIDsCopiedToCallee
-	                                    );
+        } else {
+          // for HeapRegionNode callee sources...
 
-	if( predsIfSatis != null ) {
-	  calleeEdgesSatisfied.put(reCallee, predsIfSatis);
+          // first see if the source is out-of-context, and only
+          // proceed with this edge if we find some caller-context
+          // matches
+          HeapRegionNode hrnSrcCallee = (HeapRegionNode) rsnCallee;
+          boolean matchedOutOfContext = false;
 
-	  // since the edge is coming over, find out which reach
-	  // states on it should come over, too
-	  assert calleeEdge2calleeStatesSatisfied.get(reCallee) == null;
+          if( !hrnSrcCallee.isOutOfContext() ) {
 
-	  stateItr = reCallee.getBeta().iterator();
-	  while( stateItr.hasNext() ) {
-	    ReachState stateCallee = stateItr.next();
+            predsIfSatis =
+              hrnSrcCallee.getPreds().isSatisfiedBy(this,
+                                                    callerNodeIDsCopiedToCallee
+                                                    );
+            if( predsIfSatis != null ) {
+              calleeNodesSatisfied.put(hrnSrcCallee, predsIfSatis);
+            } else {
+              // otherwise forget this edge
+              continue;
+            }
 
-	    predsIfSatis =
-	      stateCallee.getPreds().isSatisfiedBy(this,
-	                                           callerNodeIDsCopiedToCallee
-	                                           );
-	    if( predsIfSatis != null ) {
+          } else {
+            // hrnSrcCallee is out-of-context
 
-	      Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
-	        calleeEdge2calleeStatesSatisfied.get(reCallee);
+            assert !calleeEdges2oocCallerSrcMatches.containsKey(reCallee);
 
-	      if( calleeStatesSatisfied == null ) {
-		calleeStatesSatisfied =
-		  new Hashtable<ReachState, ExistPredSet>();
+            Set<RefSrcNode> rsnCallers = new HashSet<RefSrcNode>();
 
-		calleeEdge2calleeStatesSatisfied.put(reCallee, calleeStatesSatisfied);
-	      }
+            // is the target node in the caller?
+            HeapRegionNode hrnDstCaller = this.id2hrn.get(hrnCallee.getID() );
+            if( hrnDstCaller == null ) {
+              continue;
+            }
 
-	      calleeStatesSatisfied.put(stateCallee, predsIfSatis);
-	    }
-	  }
+            Iterator<RefEdge> reDstItr = hrnDstCaller.iteratorToReferencers();
+            while( reDstItr.hasNext() ) {
+              // the edge and field (either possibly null) must match
+              RefEdge reCaller = reDstItr.next();
 
-	  // since the edge is coming over, find out which taints
-	  // on it should come over, too
-	  assert calleeEdge2calleeTaintsSatisfied.get(reCallee) == null;
+              if( !reCaller.typeEquals(reCallee.getType()  ) ||
+                  !reCaller.fieldEquals(reCallee.getField() )
+                  ) {
+                continue;
+              }
 
-	  Iterator<Taint> tItr = reCallee.getTaints().iterator();
-	  while( tItr.hasNext() ) {
-	    Taint tCallee = tItr.next();
+              RefSrcNode rsnCaller = reCaller.getSrc();
+              if( rsnCaller instanceof VariableNode ) {
 
-	    predsIfSatis =
-	      tCallee.getPreds().isSatisfiedBy(this,
-	                                       callerNodeIDsCopiedToCallee
-	                                       );
-	    if( predsIfSatis != null ) {
+                // a variable node matches an OOC region with null type
+                if( hrnSrcCallee.getType() != null ) {
+                  continue;
+                }
 
-	      Hashtable<Taint, ExistPredSet> calleeTaintsSatisfied =
-	        calleeEdge2calleeTaintsSatisfied.get(reCallee);
+              } else {
+                // otherwise types should match
+                HeapRegionNode hrnCallerSrc = (HeapRegionNode) rsnCaller;
+                if( hrnSrcCallee.getType() == null ) {
+                  if( hrnCallerSrc.getType() != null ) {
+                    continue;
+                  }
+                } else {
+                  if( !hrnSrcCallee.getType().equals(hrnCallerSrc.getType() ) ) {
+                    continue;
+                  }
+                }
+              }
 
-	      if( calleeTaintsSatisfied == null ) {
-		calleeTaintsSatisfied =
-		  new Hashtable<Taint, ExistPredSet>();
+              rsnCallers.add(rsnCaller);
+              matchedOutOfContext = true;
+            }
 
-		calleeEdge2calleeTaintsSatisfied.put(reCallee, calleeTaintsSatisfied);
-	      }
+            if( !rsnCallers.isEmpty() ) {
+              calleeEdges2oocCallerSrcMatches.put(reCallee, rsnCallers);
+            }
+          }
 
-	      calleeTaintsSatisfied.put(tCallee, predsIfSatis);
-	    }
-	  }
-	}
+          if( hrnSrcCallee.isOutOfContext() &&
+              !matchedOutOfContext ) {
+            continue;
+          }
+        }
+
+
+        predsIfSatis =
+          reCallee.getPreds().isSatisfiedBy(this,
+                                            callerNodeIDsCopiedToCallee
+                                            );
+
+        if( predsIfSatis != null ) {
+          calleeEdgesSatisfied.put(reCallee, predsIfSatis);
+
+          // since the edge is coming over, find out which reach
+          // states on it should come over, too
+          assert calleeEdge2calleeStatesSatisfied.get(reCallee) == null;
+
+          stateItr = reCallee.getBeta().iterator();
+          while( stateItr.hasNext() ) {
+            ReachState stateCallee = stateItr.next();
+
+            predsIfSatis =
+              stateCallee.getPreds().isSatisfiedBy(this,
+                                                   callerNodeIDsCopiedToCallee
+                                                   );
+            if( predsIfSatis != null ) {
+
+              Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
+                calleeEdge2calleeStatesSatisfied.get(reCallee);
+
+              if( calleeStatesSatisfied == null ) {
+                calleeStatesSatisfied =
+                  new Hashtable<ReachState, ExistPredSet>();
+
+                calleeEdge2calleeStatesSatisfied.put(reCallee, calleeStatesSatisfied);
+              }
+
+              calleeStatesSatisfied.put(stateCallee, predsIfSatis);
+            }
+          }
+
+          // since the edge is coming over, find out which taints
+          // on it should come over, too
+          assert calleeEdge2calleeTaintsSatisfied.get(reCallee) == null;
+
+          Iterator<Taint> tItr = reCallee.getTaints().iterator();
+          while( tItr.hasNext() ) {
+            Taint tCallee = tItr.next();
+
+            predsIfSatis =
+              tCallee.getPreds().isSatisfiedBy(this,
+                                               callerNodeIDsCopiedToCallee
+                                               );
+            if( predsIfSatis != null ) {
+
+              Hashtable<Taint, ExistPredSet> calleeTaintsSatisfied =
+                calleeEdge2calleeTaintsSatisfied.get(reCallee);
+
+              if( calleeTaintsSatisfied == null ) {
+                calleeTaintsSatisfied =
+                  new Hashtable<Taint, ExistPredSet>();
+
+                calleeEdge2calleeTaintsSatisfied.put(reCallee, calleeTaintsSatisfied);
+              }
+
+              calleeTaintsSatisfied.put(tCallee, predsIfSatis);
+            }
+          }
+        }
       }
     }
 
@@ -2619,7 +2619,7 @@ public class ReachGraph {
       // it to link everything up in caller context, so that's why we're
       // skipping this... maybe that's a sillier way to do it?
       if( hrnCallee.isOutOfContext() ) {
-	continue;
+        continue;
       }
 
       AllocSite as = hrnCallee.getAllocSite();
@@ -2629,21 +2629,21 @@ public class ReachGraph {
 
       HeapRegionNode hrnCaller = id2hrn.get(hrnIDshadow);
       if( hrnCaller == null ) {
-	hrnCaller =
-	  createNewHeapRegionNode(hrnIDshadow,                 // id or null to generate a new one
-	                          hrnCallee.isSingleObject(),  // single object?
-	                          hrnCallee.isNewSummary(),    // summary?
-	                          false,                       // out-of-context?
-	                          hrnCallee.getType(),         // type
-	                          hrnCallee.getAllocSite(),    // allocation site
-	                          toCallerContext(hrnCallee.getInherent(),
-	                                          calleeNode2calleeStatesSatisfied.get(hrnCallee) ),     // inherent reach
-	                          null,                        // current reach
-	                          predsEmpty,                  // predicates
-	                          hrnCallee.getDescription()   // description
-	                          );
+        hrnCaller =
+          createNewHeapRegionNode(hrnIDshadow,                 // id or null to generate a new one
+                                  hrnCallee.isSingleObject(),  // single object?
+                                  hrnCallee.isNewSummary(),    // summary?
+                                  false,                       // out-of-context?
+                                  hrnCallee.getType(),         // type
+                                  hrnCallee.getAllocSite(),    // allocation site
+                                  toCallerContext(hrnCallee.getInherent(),
+                                                  calleeNode2calleeStatesSatisfied.get(hrnCallee) ),     // inherent reach
+                                  null,                        // current reach
+                                  predsEmpty,                  // predicates
+                                  hrnCallee.getDescription()   // description
+                                  );
       } else {
-	assert hrnCaller.isWiped();
+        assert hrnCaller.isWiped();
       }
 
       hrnCaller.setAlpha(toCallerContext(hrnCallee.getAlpha(),
@@ -2708,57 +2708,57 @@ public class ReachGraph {
         calleeEdges2oocCallerSrcMatches.get(reCallee);
 
       if( rsnCallee instanceof HeapRegionNode ) {
-	HeapRegionNode hrnCalleeSrc = (HeapRegionNode) rsnCallee;
-	if( hrnCalleeSrc.isOutOfContext() ) {
-	  assert oocCallers != null;
-	}
+        HeapRegionNode hrnCalleeSrc = (HeapRegionNode) rsnCallee;
+        if( hrnCalleeSrc.isOutOfContext() ) {
+          assert oocCallers != null;
+        }
       }
 
 
       if( oocCallers == null ) {
-	// there are no out-of-context matches, so it's
-	// either a param/arg var or one in-context heap region
-	if( rsnCallee instanceof VariableNode ) {
-	  // variable -> node in the callee should only
-	  // come into the caller if its from a param var
-	  VariableNode vnCallee = (VariableNode) rsnCallee;
-	  TempDescriptor tdParam  = vnCallee.getTempDescriptor();
-	  TempDescriptor tdArg    = fc.getArgMatchingParam(fmCallee,
-	                                                   tdParam);
-	  if( tdArg == null ) {
-	    // this means the variable isn't a parameter, its local
-	    // to the callee so we ignore it in call site transfer
-	    // shouldn't this NEVER HAPPEN?
-	    assert false;
-	  }
+        // there are no out-of-context matches, so it's
+        // either a param/arg var or one in-context heap region
+        if( rsnCallee instanceof VariableNode ) {
+          // variable -> node in the callee should only
+          // come into the caller if its from a param var
+          VariableNode vnCallee = (VariableNode) rsnCallee;
+          TempDescriptor tdParam  = vnCallee.getTempDescriptor();
+          TempDescriptor tdArg    = fc.getArgMatchingParam(fmCallee,
+                                                           tdParam);
+          if( tdArg == null ) {
+            // this means the variable isn't a parameter, its local
+            // to the callee so we ignore it in call site transfer
+            // shouldn't this NEVER HAPPEN?
+            assert false;
+          }
 
-	  rsnCallers.add(this.getVariableNodeFromTemp(tdArg) );
+          rsnCallers.add(this.getVariableNodeFromTemp(tdArg) );
 
-	} else {
-	  // otherwise source is in context, one region
+        } else {
+          // otherwise source is in context, one region
 
-	  HeapRegionNode hrnSrcCallee = (HeapRegionNode) rsnCallee;
+          HeapRegionNode hrnSrcCallee = (HeapRegionNode) rsnCallee;
 
-	  // translate an in-context node to shadow
-	  AllocSite asSrc = hrnSrcCallee.getAllocSite();
-	  allocSites.add(asSrc);
+          // translate an in-context node to shadow
+          AllocSite asSrc = hrnSrcCallee.getAllocSite();
+          allocSites.add(asSrc);
 
-	  Integer hrnIDSrcShadow =
-	    asSrc.getShadowIDfromID(hrnSrcCallee.getID() );
+          Integer hrnIDSrcShadow =
+            asSrc.getShadowIDfromID(hrnSrcCallee.getID() );
 
-	  HeapRegionNode hrnSrcCallerShadow =
-	    this.id2hrn.get(hrnIDSrcShadow);
+          HeapRegionNode hrnSrcCallerShadow =
+            this.id2hrn.get(hrnIDSrcShadow);
 
-	  assert hrnSrcCallerShadow != null;
+          assert hrnSrcCallerShadow != null;
 
-	  rsnCallers.add(hrnSrcCallerShadow);
-	}
+          rsnCallers.add(hrnSrcCallerShadow);
+        }
 
       } else {
-	// otherwise we have a set of out-of-context srcs
-	// that should NOT be translated to shadow nodes
-	assert !oocCallers.isEmpty();
-	rsnCallers.addAll(oocCallers);
+        // otherwise we have a set of out-of-context srcs
+        // that should NOT be translated to shadow nodes
+        assert !oocCallers.isEmpty();
+        rsnCallers.addAll(oocCallers);
       }
 
       // now make all caller edges we've identified from
@@ -2766,73 +2766,73 @@ public class ReachGraph {
       assert !rsnCallers.isEmpty();
       Iterator<RefSrcNode> rsnItr = rsnCallers.iterator();
       while( rsnItr.hasNext() ) {
-	RefSrcNode rsnCaller = rsnItr.next();
+        RefSrcNode rsnCaller = rsnItr.next();
 
-	RefEdge reCaller = new RefEdge(rsnCaller,
-	                               hrnDstCaller,
-	                               reCallee.getType(),
-	                               reCallee.getField(),
-	                               toCallerContext(reCallee.getBeta(),
-	                                               calleeEdge2calleeStatesSatisfied.get(reCallee) ),
-	                               preds,
-	                               toCallerContext(reCallee.getTaints(),
-	                                               calleeEdge2calleeTaintsSatisfied.get(reCallee) )
-	                               );
+        RefEdge reCaller = new RefEdge(rsnCaller,
+                                       hrnDstCaller,
+                                       reCallee.getType(),
+                                       reCallee.getField(),
+                                       toCallerContext(reCallee.getBeta(),
+                                                       calleeEdge2calleeStatesSatisfied.get(reCallee) ),
+                                       preds,
+                                       toCallerContext(reCallee.getTaints(),
+                                                       calleeEdge2calleeTaintsSatisfied.get(reCallee) )
+                                       );
 
-	ChangeSet cs = ChangeSet.factory();
-	Iterator<ReachState> rsItr = reCaller.getBeta().iterator();
-	while( rsItr.hasNext() ) {
-	  ReachState state          = rsItr.next();
-	  ExistPredSet predsPreCallee = state.getPreds();
+        ChangeSet cs = ChangeSet.factory();
+        Iterator<ReachState> rsItr = reCaller.getBeta().iterator();
+        while( rsItr.hasNext() ) {
+          ReachState state          = rsItr.next();
+          ExistPredSet predsPreCallee = state.getPreds();
 
-	  if( state.isEmpty() ) {
-	    continue;
-	  }
+          if( state.isEmpty() ) {
+            continue;
+          }
 
-	  Iterator<ExistPred> predItr = predsPreCallee.iterator();
-	  while( predItr.hasNext() ) {
-	    ExistPred pred = predItr.next();
-	    ReachState old = pred.ne_state;
+          Iterator<ExistPred> predItr = predsPreCallee.iterator();
+          while( predItr.hasNext() ) {
+            ExistPred pred = predItr.next();
+            ReachState old = pred.ne_state;
 
-	    if( old == null ) {
-	      old = rstateEmpty;
-	    }
+            if( old == null ) {
+              old = rstateEmpty;
+            }
 
-	    cs = Canonical.add(cs,
-	                       ChangeTuple.factory(old,
-	                                           state
-	                                           )
-	                       );
-	  }
-	}
+            cs = Canonical.add(cs,
+                               ChangeTuple.factory(old,
+                                                   state
+                                                   )
+                               );
+          }
+        }
 
-	// we're just going to use the convenient "merge-if-exists"
-	// edge call below, but still take a separate look if there
-	// is an existing caller edge to build change sets properly
-	if( !cs.isEmpty() ) {
-	  RefEdge edgeExisting = rsnCaller.getReferenceTo(hrnDstCaller,
-	                                                  reCallee.getType(),
-	                                                  reCallee.getField()
-	                                                  );
-	  if( edgeExisting != null ) {
-	    ChangeSet csExisting = edgePlannedChanges.get(edgeExisting);
-	    if( csExisting == null ) {
-	      csExisting = ChangeSet.factory();
-	    }
-	    edgePlannedChanges.put(edgeExisting,
-	                           Canonical.union(csExisting,
-	                                           cs
-	                                           )
-	                           );
-	  } else {
-	    edgesForPropagation.add(reCaller);
-	    assert !edgePlannedChanges.containsKey(reCaller);
-	    edgePlannedChanges.put(reCaller, cs);
-	  }
-	}
+        // we're just going to use the convenient "merge-if-exists"
+        // edge call below, but still take a separate look if there
+        // is an existing caller edge to build change sets properly
+        if( !cs.isEmpty() ) {
+          RefEdge edgeExisting = rsnCaller.getReferenceTo(hrnDstCaller,
+                                                          reCallee.getType(),
+                                                          reCallee.getField()
+                                                          );
+          if( edgeExisting != null ) {
+            ChangeSet csExisting = edgePlannedChanges.get(edgeExisting);
+            if( csExisting == null ) {
+              csExisting = ChangeSet.factory();
+            }
+            edgePlannedChanges.put(edgeExisting,
+                                   Canonical.union(csExisting,
+                                                   cs
+                                                   )
+                                   );
+          } else {
+            edgesForPropagation.add(reCaller);
+            assert !edgePlannedChanges.containsKey(reCaller);
+            edgePlannedChanges.put(reCaller, cs);
+          }
+        }
 
-	// then add new caller edge or merge
-	addEdgeOrMergeWithExisting(reCaller);
+        // then add new caller edge or merge
+        addEdgeOrMergeWithExisting(reCaller);
       }
     }
 
@@ -2901,89 +2901,89 @@ public class ReachGraph {
       while( ageNorm < allocationDepth &&
              ageShad < allocationDepth ) {
 
-	// first, are there any normal nodes left?
-	Integer idNorm  = as.getIthOldest(ageNorm);
-	HeapRegionNode hrnNorm = id2hrn.get(idNorm);
-	if( hrnNorm == null ) {
-	  // no, this age of normal node not in the caller graph
-	  ageNorm++;
-	  continue;
-	}
+        // first, are there any normal nodes left?
+        Integer idNorm  = as.getIthOldest(ageNorm);
+        HeapRegionNode hrnNorm = id2hrn.get(idNorm);
+        if( hrnNorm == null ) {
+          // no, this age of normal node not in the caller graph
+          ageNorm++;
+          continue;
+        }
 
-	// yes, a normal node exists, is there an empty shadow
-	// "slot" to transfer it onto?
-	HeapRegionNode hrnShad = getIthNode(as, ageShad, true);
-	if( !hrnShad.isWiped() ) {
-	  // no, this age of shadow node is not empty
-	  ageShad++;
-	  continue;
-	}
+        // yes, a normal node exists, is there an empty shadow
+        // "slot" to transfer it onto?
+        HeapRegionNode hrnShad = getIthNode(as, ageShad, true);
+        if( !hrnShad.isWiped() ) {
+          // no, this age of shadow node is not empty
+          ageShad++;
+          continue;
+        }
 
-	// yes, this shadow node is empty
-	transferOnto(hrnNorm, hrnShad);
-	ageNorm++;
-	ageShad++;
+        // yes, this shadow node is empty
+        transferOnto(hrnNorm, hrnShad);
+        ageNorm++;
+        ageShad++;
       }
 
       // now, while there are still normal nodes but no shadow
       // slots, merge normal nodes into the shadow summary
       while( ageNorm < allocationDepth ) {
 
-	// first, are there any normal nodes left?
-	Integer idNorm  = as.getIthOldest(ageNorm);
-	HeapRegionNode hrnNorm = id2hrn.get(idNorm);
-	if( hrnNorm == null ) {
-	  // no, this age of normal node not in the caller graph
-	  ageNorm++;
-	  continue;
-	}
+        // first, are there any normal nodes left?
+        Integer idNorm  = as.getIthOldest(ageNorm);
+        HeapRegionNode hrnNorm = id2hrn.get(idNorm);
+        if( hrnNorm == null ) {
+          // no, this age of normal node not in the caller graph
+          ageNorm++;
+          continue;
+        }
 
-	// yes, a normal node exists, so get the shadow summary
-	HeapRegionNode summShad = getSummaryNode(as, true);
-	mergeIntoSummary(hrnNorm, summShad);
+        // yes, a normal node exists, so get the shadow summary
+        HeapRegionNode summShad = getSummaryNode(as, true);
+        mergeIntoSummary(hrnNorm, summShad);
 
-	// now tokens in reachability sets need to age also
-	Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
-	while( itrAllHRNodes.hasNext() ) {
-	  Map.Entry me       = (Map.Entry)itrAllHRNodes.next();
-	  HeapRegionNode hrnToAge = (HeapRegionNode) me.getValue();
+        // now tokens in reachability sets need to age also
+        Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
+        while( itrAllHRNodes.hasNext() ) {
+          Map.Entry me       = (Map.Entry)itrAllHRNodes.next();
+          HeapRegionNode hrnToAge = (HeapRegionNode) me.getValue();
 
-	  ageTuplesFrom(as, hrnToAge);
+          ageTuplesFrom(as, hrnToAge);
 
-	  Iterator<RefEdge> itrEdges = hrnToAge.iteratorToReferencers();
-	  while( itrEdges.hasNext() ) {
-	    ageTuplesFrom(as, itrEdges.next() );
-	  }
-	}
+          Iterator<RefEdge> itrEdges = hrnToAge.iteratorToReferencers();
+          while( itrEdges.hasNext() ) {
+            ageTuplesFrom(as, itrEdges.next() );
+          }
+        }
 
-	ageNorm++;
+        ageNorm++;
       }
 
       // if there is a normal summary, merge it into shadow summary
       Integer idNorm   = as.getSummary();
       HeapRegionNode summNorm = id2hrn.get(idNorm);
       if( summNorm != null ) {
-	HeapRegionNode summShad = getSummaryNode(as, true);
-	mergeIntoSummary(summNorm, summShad);
+        HeapRegionNode summShad = getSummaryNode(as, true);
+        mergeIntoSummary(summNorm, summShad);
       }
 
       // finally, flip all existing shadow nodes onto the normal
       for( int i = 0; i < allocationDepth; ++i ) {
-	Integer idShad  = as.getIthOldestShadow(i);
-	HeapRegionNode hrnShad = id2hrn.get(idShad);
-	if( hrnShad != null ) {
-	  // flip it
-	  HeapRegionNode hrnNorm = getIthNode(as, i, false);
-	  assert hrnNorm.isWiped();
-	  transferOnto(hrnShad, hrnNorm);
-	}
+        Integer idShad  = as.getIthOldestShadow(i);
+        HeapRegionNode hrnShad = id2hrn.get(idShad);
+        if( hrnShad != null ) {
+          // flip it
+          HeapRegionNode hrnNorm = getIthNode(as, i, false);
+          assert hrnNorm.isWiped();
+          transferOnto(hrnShad, hrnNorm);
+        }
       }
 
       Integer idShad   = as.getSummaryShadow();
       HeapRegionNode summShad = id2hrn.get(idShad);
       if( summShad != null ) {
-	summNorm = getSummaryNode(as, false);
-	transferOnto(summShad, summNorm);
+        summNorm = getSummaryNode(as, false);
+        transferOnto(summShad, summNorm);
       }
     }
 
@@ -3013,8 +3013,8 @@ public class ReachGraph {
 
       Iterator<RefEdge> itrEdges = hrn.iteratorToReferencers();
       while( itrEdges.hasNext() ) {
-	RefEdge re = itrEdges.next();
-	re.setBeta(unshadow(re.getBeta() ) );
+        RefEdge re = itrEdges.next();
+        re.setBeta(unshadow(re.getBeta() ) );
       }
     }
 
@@ -3084,12 +3084,12 @@ public class ReachGraph {
       VariableNode vn = (VariableNode)   me.getValue();
 
       if( liveSet.contains(td) ) {
-	toVisit.add(vn);
+        toVisit.add(vn);
 
       } else {
-	// dead var, remove completely from graph
-	td2vn.remove(td);
-	clearRefEdgesFrom(vn, null, null, true);
+        // dead var, remove completely from graph
+        td2vn.remove(td);
+        clearRefEdgesFrom(vn, null, null, true);
       }
     }
 
@@ -3104,12 +3104,12 @@ public class ReachGraph {
 
       Iterator<RefEdge> hrnItr = rsn.iteratorToReferencees();
       while( hrnItr.hasNext() ) {
-	RefEdge edge = hrnItr.next();
-	HeapRegionNode hrn  = edge.getDst();
+        RefEdge edge = hrnItr.next();
+        HeapRegionNode hrn  = edge.getDst();
 
-	if( !visited.contains(hrn) ) {
-	  toVisit.add(hrn);
-	}
+        if( !visited.contains(hrn) ) {
+          toVisit.add(hrn);
+        }
       }
     }
 
@@ -3128,24 +3128,24 @@ public class ReachGraph {
 
       if( !visited.contains(hrn) ) {
 
-	// heap region nodes are compared across ReachGraph
-	// objects by their integer ID, so when discarding
-	// garbage nodes we must also discard entries in
-	// the ID -> heap region hashtable.
-	id2hrn.remove(hrn.getID() );
+        // heap region nodes are compared across ReachGraph
+        // objects by their integer ID, so when discarding
+        // garbage nodes we must also discard entries in
+        // the ID -> heap region hashtable.
+        id2hrn.remove(hrn.getID() );
 
-	// RefEdge objects are two-way linked between
-	// nodes, so when a node is identified as garbage,
-	// actively clear references to and from it so
-	// live nodes won't have dangling RefEdge's
-	wipeOut(hrn, true);
+        // RefEdge objects are two-way linked between
+        // nodes, so when a node is identified as garbage,
+        // actively clear references to and from it so
+        // live nodes won't have dangling RefEdge's
+        wipeOut(hrn, true);
 
-	// if we just removed the last node from an allocation
-	// site, it should be taken out of the ReachGraph's list
-	AllocSite as = hrn.getAllocSite();
-	if( !hasNodesOf(as) ) {
-	  allocSites.remove(as);
-	}
+        // if we just removed the last node from an allocation
+        // site, it should be taken out of the ReachGraph's list
+        AllocSite as = hrn.getAllocSite();
+        if( !hasNodesOf(as) ) {
+          allocSites.remove(as);
+        }
       }
     }
   }
@@ -3157,7 +3157,7 @@ public class ReachGraph {
 
     for( int i = 0; i < allocationDepth; ++i ) {
       if( id2hrn.containsKey(as.getIthOldest(i) ) ) {
-	return true;
+        return true;
       }
     }
     return false;
@@ -3206,49 +3206,49 @@ public class ReachGraph {
 
       Iterator<RefEdge> itrRers = hrn.iteratorToReferencers();
       while( itrRers.hasNext() ) {
-	RefEdge edge = itrRers.next();
-	assert rsetEmpty.equals(edge.getBetaNew() );
+        RefEdge edge = itrRers.next();
+        assert rsetEmpty.equals(edge.getBetaNew() );
       }
 
       // make a mapping of IDs to heap regions they propagate from
       if( hrn.isFlagged() ) {
-	assert !hrn.isOutOfContext();
-	assert !icID2srcs.containsKey(hrn.getID() );
+        assert !hrn.isOutOfContext();
+        assert !icID2srcs.containsKey(hrn.getID() );
 
-	// in-context flagged node IDs simply propagate from the
-	// node they name
-	Set<HeapRegionNode> srcs = new HashSet<HeapRegionNode>();
-	srcs.add(hrn);
-	icID2srcs.put(hrn.getID(), srcs);
+        // in-context flagged node IDs simply propagate from the
+        // node they name
+        Set<HeapRegionNode> srcs = new HashSet<HeapRegionNode>();
+        srcs.add(hrn);
+        icID2srcs.put(hrn.getID(), srcs);
       }
 
       if( hrn.isOutOfContext() ) {
-	assert !hrn.isFlagged();
+        assert !hrn.isFlagged();
 
-	// the reachability states on an out-of-context
-	// node are not really important (combinations of
-	// IDs or arity)--what matters is that the states
-	// specify which nodes this out-of-context node
-	// stands in for.  For example, if the state [17?, 19*]
-	// appears on the ooc node, it may serve as a source
-	// for node 17? and a source for node 19.
-	Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
-	while( stateItr.hasNext() ) {
-	  ReachState state = stateItr.next();
+        // the reachability states on an out-of-context
+        // node are not really important (combinations of
+        // IDs or arity)--what matters is that the states
+        // specify which nodes this out-of-context node
+        // stands in for.  For example, if the state [17?, 19*]
+        // appears on the ooc node, it may serve as a source
+        // for node 17? and a source for node 19.
+        Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
 
-	  Iterator<ReachTuple> rtItr = state.iterator();
-	  while( rtItr.hasNext() ) {
-	    ReachTuple rt = rtItr.next();
-	    assert rt.isOutOfContext();
+          Iterator<ReachTuple> rtItr = state.iterator();
+          while( rtItr.hasNext() ) {
+            ReachTuple rt = rtItr.next();
+            assert rt.isOutOfContext();
 
-	    Set<HeapRegionNode> srcs = oocID2srcs.get(rt.getHrnID() );
-	    if( srcs == null ) {
-	      srcs = new HashSet<HeapRegionNode>();
-	    }
-	    srcs.add(hrn);
-	    oocID2srcs.put(rt.getHrnID(), srcs);
-	  }
-	}
+            Set<HeapRegionNode> srcs = oocID2srcs.get(rt.getHrnID() );
+            if( srcs == null ) {
+              srcs = new HashSet<HeapRegionNode>();
+            }
+            srcs.add(hrn);
+            oocID2srcs.put(rt.getHrnID(), srcs);
+          }
+        }
       }
     }
 
@@ -3261,20 +3261,20 @@ public class ReachGraph {
       boolean inContext;
 
       if( !icID2srcs.isEmpty() ) {
-	Map.Entry me = (Map.Entry)icID2srcs.entrySet().iterator().next();
-	hrnID = (Integer)             me.getKey();
-	srcs  = (Set<HeapRegionNode>)me.getValue();
-	inContext = true;
-	icID2srcs.remove(hrnID);
+        Map.Entry me = (Map.Entry)icID2srcs.entrySet().iterator().next();
+        hrnID = (Integer)             me.getKey();
+        srcs  = (Set<HeapRegionNode>)me.getValue();
+        inContext = true;
+        icID2srcs.remove(hrnID);
 
       } else {
-	assert !oocID2srcs.isEmpty();
+        assert !oocID2srcs.isEmpty();
 
-	Map.Entry me = (Map.Entry)oocID2srcs.entrySet().iterator().next();
-	hrnID = (Integer)             me.getKey();
-	srcs  = (Set<HeapRegionNode>)me.getValue();
-	inContext = false;
-	oocID2srcs.remove(hrnID);
+        Map.Entry me = (Map.Entry)oocID2srcs.entrySet().iterator().next();
+        hrnID = (Integer)             me.getKey();
+        srcs  = (Set<HeapRegionNode>)me.getValue();
+        inContext = false;
+        oocID2srcs.remove(hrnID);
       }
 
 
@@ -3285,65 +3285,65 @@ public class ReachGraph {
 
       Iterator<HeapRegionNode> hrnItr = srcs.iterator();
       while( hrnItr.hasNext() ) {
-	HeapRegionNode hrn = hrnItr.next();
+        HeapRegionNode hrn = hrnItr.next();
 
-	assert workSetEdges.isEmpty();
+        assert workSetEdges.isEmpty();
 
-	// initial boldB_f constraints
-	Iterator<RefEdge> itrRees = hrn.iteratorToReferencees();
-	while( itrRees.hasNext() ) {
-	  RefEdge edge = itrRees.next();
+        // initial boldB_f constraints
+        Iterator<RefEdge> itrRees = hrn.iteratorToReferencees();
+        while( itrRees.hasNext() ) {
+          RefEdge edge = itrRees.next();
 
-	  assert !boldB_f.containsKey(edge);
-	  boldB_f.put(edge, edge.getBeta() );
+          assert !boldB_f.containsKey(edge);
+          boldB_f.put(edge, edge.getBeta() );
 
-	  assert !workSetEdges.contains(edge);
-	  workSetEdges.add(edge);
-	}
+          assert !workSetEdges.contains(edge);
+          workSetEdges.add(edge);
+        }
 
-	// enforce the boldB_f constraint at edges until we reach a fixed point
-	while( !workSetEdges.isEmpty() ) {
-	  RefEdge edge = workSetEdges.iterator().next();
-	  workSetEdges.remove(edge);
+        // enforce the boldB_f constraint at edges until we reach a fixed point
+        while( !workSetEdges.isEmpty() ) {
+          RefEdge edge = workSetEdges.iterator().next();
+          workSetEdges.remove(edge);
 
-	  Iterator<RefEdge> itrPrime = edge.getDst().iteratorToReferencees();
-	  while( itrPrime.hasNext() ) {
-	    RefEdge edgePrime = itrPrime.next();
+          Iterator<RefEdge> itrPrime = edge.getDst().iteratorToReferencees();
+          while( itrPrime.hasNext() ) {
+            RefEdge edgePrime = itrPrime.next();
 
-	    ReachSet prevResult   = boldB_f.get(edgePrime);
-	    ReachSet intersection = Canonical.intersection(boldB_f.get(edge),
-	                                                   edgePrime.getBeta()
-	                                                   );
+            ReachSet prevResult   = boldB_f.get(edgePrime);
+            ReachSet intersection = Canonical.intersection(boldB_f.get(edge),
+                                                           edgePrime.getBeta()
+                                                           );
 
-	    if( prevResult == null ||
-	        Canonical.unionORpreds(prevResult,
-	                               intersection).size()
-	        > prevResult.size()
-	        ) {
+            if( prevResult == null ||
+                Canonical.unionORpreds(prevResult,
+                                       intersection).size()
+                > prevResult.size()
+                ) {
 
-	      if( prevResult == null ) {
-		boldB_f.put(edgePrime,
-		            Canonical.unionORpreds(edgePrime.getBeta(),
-		                                   intersection
-		                                   )
-		            );
-	      } else {
-		boldB_f.put(edgePrime,
-		            Canonical.unionORpreds(prevResult,
-		                                   intersection
-		                                   )
-		            );
-	      }
-	      workSetEdges.add(edgePrime);
-	    }
-	  }
-	}
+              if( prevResult == null ) {
+                boldB_f.put(edgePrime,
+                            Canonical.unionORpreds(edgePrime.getBeta(),
+                                                   intersection
+                                                   )
+                            );
+              } else {
+                boldB_f.put(edgePrime,
+                            Canonical.unionORpreds(prevResult,
+                                                   intersection
+                                                   )
+                            );
+              }
+              workSetEdges.add(edgePrime);
+            }
+          }
+        }
       }
 
       if( inContext ) {
-	boldBic.put(hrnID, boldB_f);
+        boldBic.put(hrnID, boldB_f);
       } else {
-	boldBooc.put(hrnID, boldB_f);
+        boldBooc.put(hrnID, boldB_f);
       }
     }
 
@@ -3366,7 +3366,7 @@ public class ReachGraph {
       // global sweep, they serve as sources for the pass
       // performed above
       if( hrn.isOutOfContext() ) {
-	continue;
+        continue;
       }
 
       // the inherent states of a region are the exception
@@ -3382,107 +3382,107 @@ public class ReachGraph {
       // mark hrnIDs for removal
       Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
       while( stateItr.hasNext() ) {
-	ReachState stateOld = stateItr.next();
+        ReachState stateOld = stateItr.next();
 
-	ReachState markedHrnIDs = ReachState.factory();
+        ReachState markedHrnIDs = ReachState.factory();
 
-	Iterator<ReachTuple> rtItr = stateOld.iterator();
-	while( rtItr.hasNext() ) {
-	  ReachTuple rtOld = rtItr.next();
+        Iterator<ReachTuple> rtItr = stateOld.iterator();
+        while( rtItr.hasNext() ) {
+          ReachTuple rtOld = rtItr.next();
 
-	  // never remove the inherent hrnID from a flagged region
-	  // because it is trivially satisfied
-	  if( hrn.isFlagged() ) {
-	    if( rtOld == rtException ) {
-	      continue;
-	    }
-	  }
+          // never remove the inherent hrnID from a flagged region
+          // because it is trivially satisfied
+          if( hrn.isFlagged() ) {
+            if( rtOld == rtException ) {
+              continue;
+            }
+          }
 
-	  // does boldB allow this hrnID?
-	  boolean foundState = false;
-	  Iterator<RefEdge> incidentEdgeItr = hrn.iteratorToReferencers();
-	  while( incidentEdgeItr.hasNext() ) {
-	    RefEdge incidentEdge = incidentEdgeItr.next();
+          // does boldB allow this hrnID?
+          boolean foundState = false;
+          Iterator<RefEdge> incidentEdgeItr = hrn.iteratorToReferencers();
+          while( incidentEdgeItr.hasNext() ) {
+            RefEdge incidentEdge = incidentEdgeItr.next();
 
-	    Hashtable<RefEdge, ReachSet> B;
-	    if( rtOld.isOutOfContext() ) {
-	      B = boldBooc.get(rtOld.getHrnID() );
-	    } else {
+            Hashtable<RefEdge, ReachSet> B;
+            if( rtOld.isOutOfContext() ) {
+              B = boldBooc.get(rtOld.getHrnID() );
+            } else {
 
-	      if( !id2hrn.containsKey(rtOld.getHrnID() ) ) {
-		// let symbols not in the graph get pruned
-		break;
-	      }
+              if( !id2hrn.containsKey(rtOld.getHrnID() ) ) {
+                // let symbols not in the graph get pruned
+                break;
+              }
 
-	      B = boldBic.get(rtOld.getHrnID() );
-	    }
+              B = boldBic.get(rtOld.getHrnID() );
+            }
 
-	    if( B != null ) {
-	      ReachSet boldB_rtOld_incident = B.get(incidentEdge);
-	      if( boldB_rtOld_incident != null &&
-	          boldB_rtOld_incident.containsIgnorePreds(stateOld) != null
-	          ) {
-		foundState = true;
-	      }
-	    }
-	  }
+            if( B != null ) {
+              ReachSet boldB_rtOld_incident = B.get(incidentEdge);
+              if( boldB_rtOld_incident != null &&
+                  boldB_rtOld_incident.containsIgnorePreds(stateOld) != null
+                  ) {
+                foundState = true;
+              }
+            }
+          }
 
-	  if( !foundState ) {
-	    markedHrnIDs = Canonical.addUpArity(markedHrnIDs, rtOld);
-	  }
-	}
+          if( !foundState ) {
+            markedHrnIDs = Canonical.addUpArity(markedHrnIDs, rtOld);
+          }
+        }
 
-	// if there is nothing marked, just move on
-	if( markedHrnIDs.isEmpty() ) {
-	  hrn.setAlphaNew(Canonical.add(hrn.getAlphaNew(),
-	                                stateOld
-	                                )
-	                  );
-	  continue;
-	}
+        // if there is nothing marked, just move on
+        if( markedHrnIDs.isEmpty() ) {
+          hrn.setAlphaNew(Canonical.add(hrn.getAlphaNew(),
+                                        stateOld
+                                        )
+                          );
+          continue;
+        }
 
-	// remove all marked hrnIDs and establish a change set that should
-	// propagate backwards over edges from this node
-	ReachState statePruned = ReachState.factory();
-	rtItr = stateOld.iterator();
-	while( rtItr.hasNext() ) {
-	  ReachTuple rtOld = rtItr.next();
+        // remove all marked hrnIDs and establish a change set that should
+        // propagate backwards over edges from this node
+        ReachState statePruned = ReachState.factory();
+        rtItr = stateOld.iterator();
+        while( rtItr.hasNext() ) {
+          ReachTuple rtOld = rtItr.next();
 
-	  if( !markedHrnIDs.containsTuple(rtOld) ) {
-	    statePruned = Canonical.addUpArity(statePruned, rtOld);
-	  }
-	}
-	assert !stateOld.equals(statePruned);
+          if( !markedHrnIDs.containsTuple(rtOld) ) {
+            statePruned = Canonical.addUpArity(statePruned, rtOld);
+          }
+        }
+        assert !stateOld.equals(statePruned);
 
-	hrn.setAlphaNew(Canonical.add(hrn.getAlphaNew(),
-	                              statePruned
-	                              )
-	                );
-	ChangeTuple ct = ChangeTuple.factory(stateOld,
-	                                     statePruned
-	                                     );
-	cts = Canonical.add(cts, ct);
+        hrn.setAlphaNew(Canonical.add(hrn.getAlphaNew(),
+                                      statePruned
+                                      )
+                        );
+        ChangeTuple ct = ChangeTuple.factory(stateOld,
+                                             statePruned
+                                             );
+        cts = Canonical.add(cts, ct);
       }
 
       // throw change tuple set on all incident edges
       if( !cts.isEmpty() ) {
-	Iterator<RefEdge> incidentEdgeItr = hrn.iteratorToReferencers();
-	while( incidentEdgeItr.hasNext() ) {
-	  RefEdge incidentEdge = incidentEdgeItr.next();
+        Iterator<RefEdge> incidentEdgeItr = hrn.iteratorToReferencers();
+        while( incidentEdgeItr.hasNext() ) {
+          RefEdge incidentEdge = incidentEdgeItr.next();
 
-	  edgesForPropagation.add(incidentEdge);
+          edgesForPropagation.add(incidentEdge);
 
-	  if( edgePlannedChanges.get(incidentEdge) == null ) {
-	    edgePlannedChanges.put(incidentEdge, cts);
-	  } else {
-	    edgePlannedChanges.put(
-	      incidentEdge,
-	      Canonical.union(edgePlannedChanges.get(incidentEdge),
-	                      cts
-	                      )
-	      );
-	  }
-	}
+          if( edgePlannedChanges.get(incidentEdge) == null ) {
+            edgePlannedChanges.put(incidentEdge, cts);
+          } else {
+            edgePlannedChanges.put(
+              incidentEdge,
+              Canonical.union(edgePlannedChanges.get(incidentEdge),
+                              cts
+                              )
+              );
+          }
+        }
       }
     }
 
@@ -3509,14 +3509,14 @@ public class ReachGraph {
       // as sources of reach states for the sweep, not part
       // of the changes
       if( hrn.isOutOfContext() ) {
-	assert hrn.getAlphaNew().equals(rsetEmpty);
+        assert hrn.getAlphaNew().equals(rsetEmpty);
       } else {
-	hrn.applyAlphaNew();
+        hrn.applyAlphaNew();
       }
 
       Iterator<RefEdge> itrRes = hrn.iteratorToReferencers();
       while( itrRes.hasNext() ) {
-	res.add(itrRes.next() );
+        res.add(itrRes.next() );
       }
     }
 
@@ -3529,7 +3529,7 @@ public class ReachGraph {
 
       // commit results of last phase
       if( edgesUpdated.contains(edge) ) {
-	edge.applyBetaNew();
+        edge.applyBetaNew();
       }
 
       // compute intial condition of 2nd phase
@@ -3547,35 +3547,35 @@ public class ReachGraph {
 
       RefSrcNode rsn = edgePrime.getSrc();
       if( !(rsn instanceof HeapRegionNode) ) {
-	continue;
+        continue;
       }
       HeapRegionNode hrn = (HeapRegionNode) rsn;
 
       Iterator<RefEdge> itrEdge = hrn.iteratorToReferencers();
       while( itrEdge.hasNext() ) {
-	RefEdge edge = itrEdge.next();
+        RefEdge edge = itrEdge.next();
 
-	ReachSet prevResult = edge.getBetaNew();
-	assert prevResult != null;
+        ReachSet prevResult = edge.getBetaNew();
+        assert prevResult != null;
 
-	ReachSet intersection =
-	  Canonical.intersection(edge.getBeta(),
-	                         edgePrime.getBetaNew()
-	                         );
+        ReachSet intersection =
+          Canonical.intersection(edge.getBeta(),
+                                 edgePrime.getBetaNew()
+                                 );
 
-	if( Canonical.unionORpreds(prevResult,
-	                           intersection
-	                           ).size()
-	    > prevResult.size()
-	    ) {
+        if( Canonical.unionORpreds(prevResult,
+                                   intersection
+                                   ).size()
+            > prevResult.size()
+            ) {
 
-	  edge.setBetaNew(
-	    Canonical.unionORpreds(prevResult,
-	                           intersection
-	                           )
-	    );
-	  edgeWorkSet.add(edge);
-	}
+          edge.setBetaNew(
+            Canonical.unionORpreds(prevResult,
+                                   intersection
+                                   )
+            );
+          edgeWorkSet.add(edge);
+        }
       }
     }
 
@@ -3599,44 +3599,44 @@ public class ReachGraph {
       HeapRegionNode hrn = (HeapRegionNode) me.getValue();
 
       {
-	Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
-	while( stateItr.hasNext() ) {
-	  ReachState state = stateItr.next();
+        Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
 
-	  Iterator<ReachTuple> rtItr = state.iterator();
-	  while( rtItr.hasNext() ) {
-	    ReachTuple rt = rtItr.next();
+          Iterator<ReachTuple> rtItr = state.iterator();
+          while( rtItr.hasNext() ) {
+            ReachTuple rt = rtItr.next();
 
-	    if( !rt.isOutOfContext() ) {
-	      if( !id2hrn.containsKey(rt.getHrnID() ) ) {
-		System.out.println(rt.getHrnID()+" is missing");
-		return false;
-	      }
-	    }
-	  }
-	}
+            if( !rt.isOutOfContext() ) {
+              if( !id2hrn.containsKey(rt.getHrnID() ) ) {
+                System.out.println(rt.getHrnID()+" is missing");
+                return false;
+              }
+            }
+          }
+        }
       }
 
       Iterator<RefEdge> edgeItr = hrn.iteratorToReferencers();
       while( edgeItr.hasNext() ) {
-	RefEdge edge = edgeItr.next();
+        RefEdge edge = edgeItr.next();
 
-	Iterator<ReachState> stateItr = edge.getBeta().iterator();
-	while( stateItr.hasNext() ) {
-	  ReachState state = stateItr.next();
+        Iterator<ReachState> stateItr = edge.getBeta().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
 
-	  Iterator<ReachTuple> rtItr = state.iterator();
-	  while( rtItr.hasNext() ) {
-	    ReachTuple rt = rtItr.next();
+          Iterator<ReachTuple> rtItr = state.iterator();
+          while( rtItr.hasNext() ) {
+            ReachTuple rt = rtItr.next();
 
-	    if( !rt.isOutOfContext() ) {
-	      if( !id2hrn.containsKey(rt.getHrnID() ) ) {
-		System.out.println(rt.getHrnID()+" is missing");
-		return false;
-	      }
-	    }
-	  }
-	}
+            if( !rt.isOutOfContext() ) {
+              if( !id2hrn.containsKey(rt.getHrnID() ) ) {
+                System.out.println(rt.getHrnID()+" is missing");
+                return false;
+              }
+            }
+          }
+        }
       }
     }
 
@@ -3656,18 +3656,18 @@ public class ReachGraph {
           !hrn.isWiped()        &&
           hrn.getAlpha().isEmpty()
           ) {
-	System.out.println("!!! "+hrn+" has an empty ReachSet !!!");
-	return false;
+        System.out.println("!!! "+hrn+" has an empty ReachSet !!!");
+        return false;
       }
 
       Iterator<RefEdge> edgeItr = hrn.iteratorToReferencers();
       while( edgeItr.hasNext() ) {
-	RefEdge edge = edgeItr.next();
+        RefEdge edge = edgeItr.next();
 
-	if( edge.getBeta().isEmpty() ) {
-	  System.out.println("!!! "+edge+" has an empty ReachSet !!!");
-	  return false;
-	}
+        if( edge.getBeta().isEmpty() ) {
+          System.out.println("!!! "+edge+" has an empty ReachSet !!!");
+          return false;
+        }
       }
     }
 
@@ -3683,28 +3683,28 @@ public class ReachGraph {
       HeapRegionNode hrn = (HeapRegionNode) me.getValue();
 
       {
-	Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
-	while( stateItr.hasNext() ) {
-	  ReachState state = stateItr.next();
+        Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
 
-	  if( !state.getPreds().equals(predsTrue) ) {
-	    return false;
-	  }
-	}
+          if( !state.getPreds().equals(predsTrue) ) {
+            return false;
+          }
+        }
       }
 
       Iterator<RefEdge> edgeItr = hrn.iteratorToReferencers();
       while( edgeItr.hasNext() ) {
-	RefEdge edge = edgeItr.next();
+        RefEdge edge = edgeItr.next();
 
-	Iterator<ReachState> stateItr = edge.getBeta().iterator();
-	while( stateItr.hasNext() ) {
-	  ReachState state = stateItr.next();
+        Iterator<ReachState> stateItr = edge.getBeta().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
 
-	  if( !state.getPreds().equals(predsTrue) ) {
-	    return false;
-	  }
-	}
+          if( !state.getPreds().equals(predsTrue) ) {
+            return false;
+          }
+        }
       }
     }
 
@@ -3747,31 +3747,31 @@ public class ReachGraph {
       // if this graph doesn't have a node the
       // incoming graph has, allocate it
       if( !id2hrn.containsKey(idA) ) {
-	HeapRegionNode hrnB = hrnA.copy();
-	id2hrn.put(idA, hrnB);
+        HeapRegionNode hrnB = hrnA.copy();
+        id2hrn.put(idA, hrnB);
 
       } else {
-	// otherwise this is a node present in both graphs
-	// so make the new reachability set a union of the
-	// nodes' reachability sets
-	HeapRegionNode hrnB = id2hrn.get(idA);
-	hrnB.setAlpha(Canonical.unionORpreds(hrnB.getAlpha(),
-	                                     hrnA.getAlpha()
-	                                     )
-	              );
+        // otherwise this is a node present in both graphs
+        // so make the new reachability set a union of the
+        // nodes' reachability sets
+        HeapRegionNode hrnB = id2hrn.get(idA);
+        hrnB.setAlpha(Canonical.unionORpreds(hrnB.getAlpha(),
+                                             hrnA.getAlpha()
+                                             )
+                      );
 
-	hrnB.setPreds(Canonical.join(hrnB.getPreds(),
-	                             hrnA.getPreds()
-	                             )
-	              );
+        hrnB.setPreds(Canonical.join(hrnB.getPreds(),
+                                     hrnA.getPreds()
+                                     )
+                      );
 
 
 
-	if( !hrnA.equals(hrnB) ) {
-	  rg.writeGraph("graphA");
-	  this.writeGraph("graphB");
-	  throw new Error("flagged not matching");
-	}
+        if( !hrnA.equals(hrnB) ) {
+          rg.writeGraph("graphA");
+          this.writeGraph("graphB");
+          throw new Error("flagged not matching");
+        }
 
 
 
@@ -3804,65 +3804,65 @@ public class ReachGraph {
 
       Iterator<RefEdge> heapRegionsItrA = hrnA.iteratorToReferencees();
       while( heapRegionsItrA.hasNext() ) {
-	RefEdge edgeA     = heapRegionsItrA.next();
-	HeapRegionNode hrnChildA = edgeA.getDst();
-	Integer idChildA  = hrnChildA.getID();
+        RefEdge edgeA     = heapRegionsItrA.next();
+        HeapRegionNode hrnChildA = edgeA.getDst();
+        Integer idChildA  = hrnChildA.getID();
 
-	// at this point we know an edge in graph A exists
-	// idA -> idChildA, does this exist in B?
-	assert id2hrn.containsKey(idA);
-	HeapRegionNode hrnB        = id2hrn.get(idA);
-	RefEdge edgeToMerge = null;
+        // at this point we know an edge in graph A exists
+        // idA -> idChildA, does this exist in B?
+        assert id2hrn.containsKey(idA);
+        HeapRegionNode hrnB        = id2hrn.get(idA);
+        RefEdge edgeToMerge = null;
 
-	Iterator<RefEdge> heapRegionsItrB = hrnB.iteratorToReferencees();
-	while( heapRegionsItrB.hasNext() &&
-	       edgeToMerge == null          ) {
+        Iterator<RefEdge> heapRegionsItrB = hrnB.iteratorToReferencees();
+        while( heapRegionsItrB.hasNext() &&
+               edgeToMerge == null          ) {
 
-	  RefEdge edgeB     = heapRegionsItrB.next();
-	  HeapRegionNode hrnChildB = edgeB.getDst();
-	  Integer idChildB  = hrnChildB.getID();
+          RefEdge edgeB     = heapRegionsItrB.next();
+          HeapRegionNode hrnChildB = edgeB.getDst();
+          Integer idChildB  = hrnChildB.getID();
 
-	  // don't use the RefEdge.equals() here because
-	  // we're talking about existence between graphs,
-	  // not intragraph equal
-	  if( idChildB.equals(idChildA) &&
-	      edgeB.typeAndFieldEquals(edgeA) ) {
+          // don't use the RefEdge.equals() here because
+          // we're talking about existence between graphs,
+          // not intragraph equal
+          if( idChildB.equals(idChildA) &&
+              edgeB.typeAndFieldEquals(edgeA) ) {
 
-	    edgeToMerge = edgeB;
-	  }
-	}
+            edgeToMerge = edgeB;
+          }
+        }
 
-	// if the edge from A was not found in B,
-	// add it to B.
-	if( edgeToMerge == null ) {
-	  assert id2hrn.containsKey(idChildA);
-	  HeapRegionNode hrnChildB = id2hrn.get(idChildA);
-	  edgeToMerge = edgeA.copy();
-	  edgeToMerge.setSrc(hrnB);
-	  edgeToMerge.setDst(hrnChildB);
-	  addRefEdge(hrnB, hrnChildB, edgeToMerge);
-	}
-	// otherwise, the edge already existed in both graphs
-	// so merge their reachability sets
-	else {
-	  // just replace this beta set with the union
-	  assert edgeToMerge != null;
-	  edgeToMerge.setBeta(
-	    Canonical.unionORpreds(edgeToMerge.getBeta(),
-	                           edgeA.getBeta()
-	                           )
-	    );
-	  edgeToMerge.setPreds(
-	    Canonical.join(edgeToMerge.getPreds(),
-	                   edgeA.getPreds()
-	                   )
-	    );
-	  edgeToMerge.setTaints(
-	    Canonical.union(edgeToMerge.getTaints(),
-	                    edgeA.getTaints()
-	                    )
-	    );
-	}
+        // if the edge from A was not found in B,
+        // add it to B.
+        if( edgeToMerge == null ) {
+          assert id2hrn.containsKey(idChildA);
+          HeapRegionNode hrnChildB = id2hrn.get(idChildA);
+          edgeToMerge = edgeA.copy();
+          edgeToMerge.setSrc(hrnB);
+          edgeToMerge.setDst(hrnChildB);
+          addRefEdge(hrnB, hrnChildB, edgeToMerge);
+        }
+        // otherwise, the edge already existed in both graphs
+        // so merge their reachability sets
+        else {
+          // just replace this beta set with the union
+          assert edgeToMerge != null;
+          edgeToMerge.setBeta(
+            Canonical.unionORpreds(edgeToMerge.getBeta(),
+                                   edgeA.getBeta()
+                                   )
+            );
+          edgeToMerge.setPreds(
+            Canonical.join(edgeToMerge.getPreds(),
+                           edgeA.getPreds()
+                           )
+            );
+          edgeToMerge.setTaints(
+            Canonical.union(edgeToMerge.getTaints(),
+                            edgeA.getTaints()
+                            )
+            );
+        }
       }
     }
 
@@ -3876,61 +3876,61 @@ public class ReachGraph {
 
       Iterator<RefEdge> heapRegionsItrA = vnA.iteratorToReferencees();
       while( heapRegionsItrA.hasNext() ) {
-	RefEdge edgeA     = heapRegionsItrA.next();
-	HeapRegionNode hrnChildA = edgeA.getDst();
-	Integer idChildA  = hrnChildA.getID();
+        RefEdge edgeA     = heapRegionsItrA.next();
+        HeapRegionNode hrnChildA = edgeA.getDst();
+        Integer idChildA  = hrnChildA.getID();
 
-	// at this point we know an edge in graph A exists
-	// tdA -> idChildA, does this exist in B?
-	assert td2vn.containsKey(tdA);
-	VariableNode vnB         = td2vn.get(tdA);
-	RefEdge edgeToMerge = null;
+        // at this point we know an edge in graph A exists
+        // tdA -> idChildA, does this exist in B?
+        assert td2vn.containsKey(tdA);
+        VariableNode vnB         = td2vn.get(tdA);
+        RefEdge edgeToMerge = null;
 
-	Iterator<RefEdge> heapRegionsItrB = vnB.iteratorToReferencees();
-	while( heapRegionsItrB.hasNext() &&
-	       edgeToMerge == null          ) {
+        Iterator<RefEdge> heapRegionsItrB = vnB.iteratorToReferencees();
+        while( heapRegionsItrB.hasNext() &&
+               edgeToMerge == null          ) {
 
-	  RefEdge edgeB     = heapRegionsItrB.next();
-	  HeapRegionNode hrnChildB = edgeB.getDst();
-	  Integer idChildB  = hrnChildB.getID();
+          RefEdge edgeB     = heapRegionsItrB.next();
+          HeapRegionNode hrnChildB = edgeB.getDst();
+          Integer idChildB  = hrnChildB.getID();
 
-	  // don't use the RefEdge.equals() here because
-	  // we're talking about existence between graphs
-	  if( idChildB.equals(idChildA) &&
-	      edgeB.typeAndFieldEquals(edgeA) ) {
+          // don't use the RefEdge.equals() here because
+          // we're talking about existence between graphs
+          if( idChildB.equals(idChildA) &&
+              edgeB.typeAndFieldEquals(edgeA) ) {
 
-	    edgeToMerge = edgeB;
-	  }
-	}
+            edgeToMerge = edgeB;
+          }
+        }
 
-	// if the edge from A was not found in B,
-	// add it to B.
-	if( edgeToMerge == null ) {
-	  assert id2hrn.containsKey(idChildA);
-	  HeapRegionNode hrnChildB = id2hrn.get(idChildA);
-	  edgeToMerge = edgeA.copy();
-	  edgeToMerge.setSrc(vnB);
-	  edgeToMerge.setDst(hrnChildB);
-	  addRefEdge(vnB, hrnChildB, edgeToMerge);
-	}
-	// otherwise, the edge already existed in both graphs
-	// so merge their reachability sets
-	else {
-	  // just replace this beta set with the union
-	  edgeToMerge.setBeta(Canonical.unionORpreds(edgeToMerge.getBeta(),
-	                                             edgeA.getBeta()
-	                                             )
-	                      );
-	  edgeToMerge.setPreds(Canonical.join(edgeToMerge.getPreds(),
-	                                      edgeA.getPreds()
-	                                      )
-	                       );
-	  edgeToMerge.setTaints(
-	    Canonical.union(edgeToMerge.getTaints(),
-	                    edgeA.getTaints()
-	                    )
-	    );
-	}
+        // if the edge from A was not found in B,
+        // add it to B.
+        if( edgeToMerge == null ) {
+          assert id2hrn.containsKey(idChildA);
+          HeapRegionNode hrnChildB = id2hrn.get(idChildA);
+          edgeToMerge = edgeA.copy();
+          edgeToMerge.setSrc(vnB);
+          edgeToMerge.setDst(hrnChildB);
+          addRefEdge(vnB, hrnChildB, edgeToMerge);
+        }
+        // otherwise, the edge already existed in both graphs
+        // so merge their reachability sets
+        else {
+          // just replace this beta set with the union
+          edgeToMerge.setBeta(Canonical.unionORpreds(edgeToMerge.getBeta(),
+                                                     edgeA.getBeta()
+                                                     )
+                              );
+          edgeToMerge.setPreds(Canonical.join(edgeToMerge.getPreds(),
+                                              edgeA.getPreds()
+                                              )
+                               );
+          edgeToMerge.setTaints(
+            Canonical.union(edgeToMerge.getTaints(),
+                            edgeA.getTaints()
+                            )
+            );
+        }
       }
     }
   }
@@ -3962,28 +3962,28 @@ public class ReachGraph {
 
     if( rg == null ) {
       if( dbgEquals ) {
-	System.out.println("rg is null");
+        System.out.println("rg is null");
       }
       return false;
     }
 
     if( !areHeapRegionNodesEqual(rg) ) {
       if( dbgEquals ) {
-	System.out.println("hrn not equal");
+        System.out.println("hrn not equal");
       }
       return false;
     }
 
     if( !areVariableNodesEqual(rg) ) {
       if( dbgEquals ) {
-	System.out.println("vars not equal");
+        System.out.println("vars not equal");
       }
       return false;
     }
 
     if( !areRefEdgesEqual(rg) ) {
       if( dbgEquals ) {
-	System.out.println("edges not equal");
+        System.out.println("edges not equal");
       }
       return false;
     }
@@ -4024,12 +4024,12 @@ public class ReachGraph {
       HeapRegionNode hrnA = (HeapRegionNode) meA.getValue();
 
       if( !rgB.id2hrn.containsKey(idA) ) {
-	return false;
+        return false;
       }
 
       HeapRegionNode hrnB = rgB.id2hrn.get(idA);
       if( !hrnA.equalsIncludingAlphaAndPreds(hrnB) ) {
-	return false;
+        return false;
       }
     }
 
@@ -4058,7 +4058,7 @@ public class ReachGraph {
       TempDescriptor tdA = (TempDescriptor) meA.getKey();
 
       if( !rgB.td2vn.containsKey(tdA) ) {
-	return false;
+        return false;
       }
     }
 
@@ -4094,7 +4094,7 @@ public class ReachGraph {
       assert rgB.id2hrn.containsKey(idA);
 
       if( !areallREfromAequaltoB(rgA, hrnA, rgB) ) {
-	return false;
+        return false;
       }
 
       // then check every edge in B for presence in A, starting
@@ -4102,7 +4102,7 @@ public class ReachGraph {
       HeapRegionNode hrnB = rgB.id2hrn.get(idA);
 
       if( !areallREfromAequaltoB(rgB, hrnB, rgA) ) {
-	return false;
+        return false;
       }
     }
 
@@ -4119,7 +4119,7 @@ public class ReachGraph {
       assert rgB.td2vn.containsKey(tdA);
 
       if( !areallREfromAequaltoB(rgA, vnA, rgB) ) {
-	return false;
+        return false;
       }
 
       // then check every edge in B for presence in A, starting
@@ -4127,7 +4127,7 @@ public class ReachGraph {
       VariableNode vnB = rgB.td2vn.get(tdA);
 
       if( !areallREfromAequaltoB(rgB, vnB, rgA) ) {
-	return false;
+        return false;
       }
     }
 
@@ -4153,34 +4153,34 @@ public class ReachGraph {
 
       RefSrcNode rnB = null;
       if( rnA instanceof HeapRegionNode ) {
-	HeapRegionNode hrnA = (HeapRegionNode) rnA;
-	rnB = rgB.id2hrn.get(hrnA.getID() );
+        HeapRegionNode hrnA = (HeapRegionNode) rnA;
+        rnB = rgB.id2hrn.get(hrnA.getID() );
       } else {
-	VariableNode vnA = (VariableNode) rnA;
-	rnB = rgB.td2vn.get(vnA.getTempDescriptor() );
+        VariableNode vnA = (VariableNode) rnA;
+        rnB = rgB.td2vn.get(vnA.getTempDescriptor() );
       }
 
       Iterator<RefEdge> itrB = rnB.iteratorToReferencees();
       while( itrB.hasNext() ) {
-	RefEdge edgeB     = itrB.next();
-	HeapRegionNode hrnChildB = edgeB.getDst();
-	Integer idChildB  = hrnChildB.getID();
+        RefEdge edgeB     = itrB.next();
+        HeapRegionNode hrnChildB = edgeB.getDst();
+        Integer idChildB  = hrnChildB.getID();
 
-	if( idChildA.equals(idChildB) &&
-	    edgeA.typeAndFieldEquals(edgeB) ) {
+        if( idChildA.equals(idChildB) &&
+            edgeA.typeAndFieldEquals(edgeB) ) {
 
-	  // there is an edge in the right place with the right field,
-	  // but do they have the same attributes?
-	  if( edgeA.getBeta().equals(edgeB.getBeta() ) &&
-	      edgeA.equalsPreds(edgeB)
-	      ) {
-	    edgeFound = true;
-	  }
-	}
+          // there is an edge in the right place with the right field,
+          // but do they have the same attributes?
+          if( edgeA.getBeta().equals(edgeB.getBeta() ) &&
+              edgeA.equalsPreds(edgeB)
+              ) {
+            edgeFound = true;
+          }
+        }
       }
 
       if( !edgeFound ) {
-	return false;
+        return false;
       }
     }
 
@@ -4202,8 +4202,8 @@ public class ReachGraph {
       HeapRegionNode hrnA = (HeapRegionNode) meA.getValue();
 
       if( !rgB.id2hrn.containsKey(idA) ) {
-	System.out.println("  regions smaller");
-	return false;
+        System.out.println("  regions smaller");
+        return false;
       }
 
       //HeapRegionNode hrnB = rgB.id2hrn.get( idA );
@@ -4232,39 +4232,39 @@ public class ReachGraph {
 
       Iterator<RefEdge> reItr = hrnA.iteratorToReferencers();
       while( reItr.hasNext() ) {
-	RefEdge edgeA = reItr.next();
-	RefSrcNode rsnA  = edgeA.getSrc();
+        RefEdge edgeA = reItr.next();
+        RefSrcNode rsnA  = edgeA.getSrc();
 
-	// we already checked that nodes were present
-	HeapRegionNode hrnB = rgB.id2hrn.get(hrnA.getID() );
-	assert hrnB != null;
+        // we already checked that nodes were present
+        HeapRegionNode hrnB = rgB.id2hrn.get(hrnA.getID() );
+        assert hrnB != null;
 
-	RefSrcNode rsnB;
-	if( rsnA instanceof VariableNode ) {
-	  VariableNode vnA = (VariableNode) rsnA;
-	  rsnB = rgB.td2vn.get(vnA.getTempDescriptor() );
+        RefSrcNode rsnB;
+        if( rsnA instanceof VariableNode ) {
+          VariableNode vnA = (VariableNode) rsnA;
+          rsnB = rgB.td2vn.get(vnA.getTempDescriptor() );
 
-	} else {
-	  HeapRegionNode hrnSrcA = (HeapRegionNode) rsnA;
-	  rsnB = rgB.id2hrn.get(hrnSrcA.getID() );
-	}
-	assert rsnB != null;
+        } else {
+          HeapRegionNode hrnSrcA = (HeapRegionNode) rsnA;
+          rsnB = rgB.id2hrn.get(hrnSrcA.getID() );
+        }
+        assert rsnB != null;
 
-	RefEdge edgeB = rsnB.getReferenceTo(hrnB,
-	                                    edgeA.getType(),
-	                                    edgeA.getField()
-	                                    );
-	if( edgeB == null ) {
-	  System.out.println("  edges smaller:");
-	  return false;
-	}
+        RefEdge edgeB = rsnB.getReferenceTo(hrnB,
+                                            edgeA.getType(),
+                                            edgeA.getField()
+                                            );
+        if( edgeB == null ) {
+          System.out.println("  edges smaller:");
+          return false;
+        }
 
-	// REMEMBER, IS NO SMALLER THAN
-	/*
-	   System.out.println( "  edges smaller" );
-	   return false;
-	   }
-	 */
+        // REMEMBER, IS NO SMALLER THAN
+        /*
+           System.out.println( "  edges smaller" );
+           return false;
+           }
+         */
 
       }
     }
@@ -4340,7 +4340,7 @@ public class ReachGraph {
       assert tdSrcDeref != null;
 
       if( !typeUtil.isSuperorType(tdSrcDeref, td) ) {
-	return false;
+        return false;
       }
 
       return edge.getField().equals(DisjointAnalysis.arrayElementFieldName);
@@ -4356,12 +4356,12 @@ public class ReachGraph {
       Iterator fieldItr = cd.getFields();
 
       while( fieldItr.hasNext() ) {
-	FieldDescriptor fd = (FieldDescriptor) fieldItr.next();
+        FieldDescriptor fd = (FieldDescriptor) fieldItr.next();
 
-	if( fd.getType().equals(edge.getType() ) &&
-	    fd.getSymbol().equals(edge.getField() ) ) {
-	  return true;
-	}
+        if( fd.getType().equals(edge.getType() ) &&
+            fd.getSymbol().equals(edge.getField() ) ) {
+          return true;
+        }
       }
 
       cd = cd.getSuperDesc();
@@ -4454,25 +4454,25 @@ public class ReachGraph {
       // "cut-out" into a DOT cluster for visualization
       if( callerNodeIDsCopiedToCallee != null ) {
 
-	bw.write("  subgraph cluster0 {\n");
-	bw.write("    color=blue;\n");
+        bw.write("  subgraph cluster0 {\n");
+        bw.write("    color=blue;\n");
 
-	Iterator i = id2hrn.entrySet().iterator();
-	while( i.hasNext() ) {
-	  Map.Entry me  = (Map.Entry)i.next();
-	  HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+        Iterator i = id2hrn.entrySet().iterator();
+        while( i.hasNext() ) {
+          Map.Entry me  = (Map.Entry)i.next();
+          HeapRegionNode hrn = (HeapRegionNode) me.getValue();
 
-	  if( callerNodeIDsCopiedToCallee.contains(hrn.getID() ) ) {
-	    bw.write("    "+
-	             hrn.toString()+
-	             hrn.toStringDOT(hideReachability,
-	                             hideSubsetReachability,
-	                             hidePredicates)+
-	             ";\n");
-	  }
-	}
+          if( callerNodeIDsCopiedToCallee.contains(hrn.getID() ) ) {
+            bw.write("    "+
+                     hrn.toString()+
+                     hrn.toStringDOT(hideReachability,
+                                     hideSubsetReachability,
+                                     hidePredicates)+
+                     ";\n");
+          }
+        }
 
-	bw.write("  }\n");
+        bw.write("  }\n");
       }
 
 
@@ -4481,29 +4481,29 @@ public class ReachGraph {
       // then visit every heap region node
       Iterator i = id2hrn.entrySet().iterator();
       while( i.hasNext() ) {
-	Map.Entry me  = (Map.Entry)i.next();
-	HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+        Map.Entry me  = (Map.Entry)i.next();
+        HeapRegionNode hrn = (HeapRegionNode) me.getValue();
 
-	// only visit nodes worth writing out--for instance
-	// not every node at an allocation is referenced
-	// (think of it as garbage-collected), etc.
-	if( !pruneGarbage        ||
-	    hrn.isOutOfContext() ||
-	    (hrn.isFlagged() && hrn.getID() > 0 && !hrn.isWiped()) // a non-shadow flagged node
-	    ) {
+        // only visit nodes worth writing out--for instance
+        // not every node at an allocation is referenced
+        // (think of it as garbage-collected), etc.
+        if( !pruneGarbage        ||
+            hrn.isOutOfContext() ||
+            (hrn.isFlagged() && hrn.getID() > 0 && !hrn.isWiped()) // a non-shadow flagged node
+            ) {
 
-	  if( !visited.contains(hrn) ) {
-	    traverseHeapRegionNodes(hrn,
-	                            bw,
-	                            null,
-	                            visited,
-	                            hideReachability,
-	                            hideSubsetReachability,
-	                            hidePredicates,
-	                            hideEdgeTaints,
-	                            callerNodeIDsCopiedToCallee);
-	  }
-	}
+          if( !visited.contains(hrn) ) {
+            traverseHeapRegionNodes(hrn,
+                                    bw,
+                                    null,
+                                    visited,
+                                    hideReachability,
+                                    hideSubsetReachability,
+                                    hidePredicates,
+                                    hideEdgeTaints,
+                                    callerNodeIDsCopiedToCallee);
+          }
+        }
       }
 
       bw.write("  graphTitle[label=\""+graphName+"\",shape=box];\n");
@@ -4511,49 +4511,49 @@ public class ReachGraph {
 
       // then visit every label node, useful for debugging
       if( writeLabels ) {
-	i = td2vn.entrySet().iterator();
-	while( i.hasNext() ) {
-	  Map.Entry me = (Map.Entry)i.next();
-	  VariableNode vn = (VariableNode) me.getValue();
+        i = td2vn.entrySet().iterator();
+        while( i.hasNext() ) {
+          Map.Entry me = (Map.Entry)i.next();
+          VariableNode vn = (VariableNode) me.getValue();
 
-	  if( labelSelect ) {
-	    String labelStr = vn.getTempDescriptorString();
-	    if( labelStr.startsWith("___temp")     ||
-	        labelStr.startsWith("___dst")      ||
-	        labelStr.startsWith("___srctmp")   ||
-	        labelStr.startsWith("___neverused")
-	        ) {
-	      continue;
-	    }
-	  }
+          if( labelSelect ) {
+            String labelStr = vn.getTempDescriptorString();
+            if( labelStr.startsWith("___temp")     ||
+                labelStr.startsWith("___dst")      ||
+                labelStr.startsWith("___srctmp")   ||
+                labelStr.startsWith("___neverused")
+                ) {
+              continue;
+            }
+          }
 
-	  Iterator<RefEdge> heapRegionsItr = vn.iteratorToReferencees();
-	  while( heapRegionsItr.hasNext() ) {
-	    RefEdge edge = heapRegionsItr.next();
-	    HeapRegionNode hrn  = edge.getDst();
+          Iterator<RefEdge> heapRegionsItr = vn.iteratorToReferencees();
+          while( heapRegionsItr.hasNext() ) {
+            RefEdge edge = heapRegionsItr.next();
+            HeapRegionNode hrn  = edge.getDst();
 
-	    if( !visited.contains(hrn) ) {
-	      traverseHeapRegionNodes(hrn,
-	                              bw,
-	                              null,
-	                              visited,
-	                              hideReachability,
-	                              hideSubsetReachability,
-	                              hidePredicates,
-	                              hideEdgeTaints,
-	                              callerNodeIDsCopiedToCallee);
-	    }
+            if( !visited.contains(hrn) ) {
+              traverseHeapRegionNodes(hrn,
+                                      bw,
+                                      null,
+                                      visited,
+                                      hideReachability,
+                                      hideSubsetReachability,
+                                      hidePredicates,
+                                      hideEdgeTaints,
+                                      callerNodeIDsCopiedToCallee);
+            }
 
-	    bw.write("  "+vn.toString()+
-	             " -> "+hrn.toString()+
-	             edge.toStringDOT(hideReachability,
-	                              hideSubsetReachability,
-	                              hidePredicates,
-	                              hideEdgeTaints,
-	                              "")+
-	             ";\n");
-	  }
-	}
+            bw.write("  "+vn.toString()+
+                     " -> "+hrn.toString()+
+                     edge.toStringDOT(hideReachability,
+                                      hideSubsetReachability,
+                                      hidePredicates,
+                                      hideEdgeTaints,
+                                      "")+
+                     ";\n");
+          }
+        }
       }
 
       bw.write("}\n");
@@ -4602,48 +4602,48 @@ public class ReachGraph {
 
       if( callerNodeIDsCopiedToCallee != null &&
           (edge.getSrc() instanceof HeapRegionNode) ) {
-	HeapRegionNode hrnSrc = (HeapRegionNode) edge.getSrc();
-	if( callerNodeIDsCopiedToCallee.contains(hrnSrc.getID()        ) &&
-	    callerNodeIDsCopiedToCallee.contains(edge.getDst().getID() )
-	    ) {
-	  bw.write("  "+hrn.toString()+
-	           " -> "+hrnChild.toString()+
-	           edge.toStringDOT(hideReachability,
-	                            hideSubsetReachability,
-	                            hidePredicates,
-	                            hideEdgeTaints,
-	                            ",color=blue")+
-	           ";\n");
-	} else if( !callerNodeIDsCopiedToCallee.contains(hrnSrc.getID()       ) &&
-	           callerNodeIDsCopiedToCallee.contains(edge.getDst().getID() )
-	           ) {
-	  bw.write("  "+hrn.toString()+
-	           " -> "+hrnChild.toString()+
-	           edge.toStringDOT(hideReachability,
-	                            hideSubsetReachability,
-	                            hidePredicates,
-	                            hideEdgeTaints,
-	                            ",color=blue,style=dashed")+
-	           ";\n");
-	} else {
-	  bw.write("  "+hrn.toString()+
-	           " -> "+hrnChild.toString()+
-	           edge.toStringDOT(hideReachability,
-	                            hideSubsetReachability,
-	                            hidePredicates,
-	                            hideEdgeTaints,
-	                            "")+
-	           ";\n");
-	}
+        HeapRegionNode hrnSrc = (HeapRegionNode) edge.getSrc();
+        if( callerNodeIDsCopiedToCallee.contains(hrnSrc.getID()        ) &&
+            callerNodeIDsCopiedToCallee.contains(edge.getDst().getID() )
+            ) {
+          bw.write("  "+hrn.toString()+
+                   " -> "+hrnChild.toString()+
+                   edge.toStringDOT(hideReachability,
+                                    hideSubsetReachability,
+                                    hidePredicates,
+                                    hideEdgeTaints,
+                                    ",color=blue")+
+                   ";\n");
+        } else if( !callerNodeIDsCopiedToCallee.contains(hrnSrc.getID()       ) &&
+                   callerNodeIDsCopiedToCallee.contains(edge.getDst().getID() )
+                   ) {
+          bw.write("  "+hrn.toString()+
+                   " -> "+hrnChild.toString()+
+                   edge.toStringDOT(hideReachability,
+                                    hideSubsetReachability,
+                                    hidePredicates,
+                                    hideEdgeTaints,
+                                    ",color=blue,style=dashed")+
+                   ";\n");
+        } else {
+          bw.write("  "+hrn.toString()+
+                   " -> "+hrnChild.toString()+
+                   edge.toStringDOT(hideReachability,
+                                    hideSubsetReachability,
+                                    hidePredicates,
+                                    hideEdgeTaints,
+                                    "")+
+                   ";\n");
+        }
       } else {
-	bw.write("  "+hrn.toString()+
-	         " -> "+hrnChild.toString()+
-	         edge.toStringDOT(hideReachability,
-	                          hideSubsetReachability,
-	                          hidePredicates,
-	                          hideEdgeTaints,
-	                          "")+
-	         ";\n");
+        bw.write("  "+hrn.toString()+
+                 " -> "+hrnChild.toString()+
+                 edge.toStringDOT(hideReachability,
+                                  hideSubsetReachability,
+                                  hidePredicates,
+                                  hideEdgeTaints,
+                                  "")+
+                 ";\n");
       }
 
       traverseHeapRegionNodes(hrnChild,
@@ -4677,7 +4677,7 @@ public class ReachGraph {
     for( int i = 0; i < as.getAllocationDepth(); ++i ) {
       Integer idI = as.getIthOldest(i);
       if( id2hrn.containsKey(idI) ) {
-	out.add(id2hrn.get(idI) );
+        out.add(id2hrn.get(idI) );
       }
     }
 
@@ -4700,19 +4700,19 @@ public class ReachGraph {
       assert !hrn.isOutOfContext();
 
       if( !includeARITY_ZEROORMORE ) {
-	out.add(ReachTuple.factory(hrn.getID(),
-	                           true,     // multi-obj region
-	                           ReachTuple.ARITY_ZEROORMORE,
-	                           false)    // ooc?
-	        );
+        out.add(ReachTuple.factory(hrn.getID(),
+                                   true,     // multi-obj region
+                                   ReachTuple.ARITY_ZEROORMORE,
+                                   false)    // ooc?
+                );
       }
 
       if( includeARITY_ONE ) {
-	out.add(ReachTuple.factory(hrn.getID(),
-	                           true,     // multi-object region
-	                           ReachTuple.ARITY_ONE,
-	                           false)    // ooc?
-	        );
+        out.add(ReachTuple.factory(hrn.getID(),
+                                   true,     // multi-object region
+                                   ReachTuple.ARITY_ONE,
+                                   false)    // ooc?
+                );
       }
     }
 
@@ -4727,14 +4727,14 @@ public class ReachGraph {
       Integer idI = as.getIthOldest(i);
       if( id2hrn.containsKey(idI) ) {
 
-	HeapRegionNode hrn = id2hrn.get(idI);
-	assert !hrn.isOutOfContext();
+        HeapRegionNode hrn = id2hrn.get(idI);
+        assert !hrn.isOutOfContext();
 
-	out.add(ReachTuple.factory(hrn.getID(),
-	                           false,    // multi-object region
-	                           ReachTuple.ARITY_ONE,
-	                           false)    // ooc?
-	        );
+        out.add(ReachTuple.factory(hrn.getID(),
+                                   false,    // multi-object region
+                                   ReachTuple.ARITY_ONE,
+                                   false)    // ooc?
+                );
       }
     }
 
@@ -4764,16 +4764,16 @@ public class ReachGraph {
 
       Iterator<ReachTuple> rtItr1 = rtSet1.iterator();
       while( rtItr1.hasNext() ) {
-	ReachTuple rt1 = rtItr1.next();
+        ReachTuple rt1 = rtItr1.next();
 
-	Iterator<ReachTuple> rtItr2 = rtSet2.iterator();
-	while( rtItr2.hasNext() ) {
-	  ReachTuple rt2 = rtItr2.next();
+        Iterator<ReachTuple> rtItr2 = rtSet2.iterator();
+        while( rtItr2.hasNext() ) {
+          ReachTuple rt2 = rtItr2.next();
 
-	  if( !hrn.getAlpha().getStatesWithBoth(rt1, rt2).isEmpty() ) {
-	    return true;
-	  }
-	}
+          if( !hrn.getAlpha().getStatesWithBoth(rt1, rt2).isEmpty() ) {
+            return true;
+          }
+        }
       }
     }
 
@@ -4802,30 +4802,30 @@ public class ReachGraph {
       // if any ZERORMORE tuples are here, TRUE
       Iterator<ReachTuple> rtItr = rtSetZOM.iterator();
       while( rtItr.hasNext() ) {
-	ReachTuple rtZOM = rtItr.next();
+        ReachTuple rtZOM = rtItr.next();
 
-	if( hrn.getAlpha().containsTuple(rtZOM) ) {
-	  return true;
-	}
+        if( hrn.getAlpha().containsTuple(rtZOM) ) {
+          return true;
+        }
       }
 
       // otherwise, look for any pair of ONE tuples
       Iterator<ReachTuple> rtItr1 = rtSetONE.iterator();
       while( rtItr1.hasNext() ) {
-	ReachTuple rt1 = rtItr1.next();
+        ReachTuple rt1 = rtItr1.next();
 
-	Iterator<ReachTuple> rtItr2 = rtSetONE.iterator();
-	while( rtItr2.hasNext() ) {
-	  ReachTuple rt2 = rtItr2.next();
+        Iterator<ReachTuple> rtItr2 = rtSetONE.iterator();
+        while( rtItr2.hasNext() ) {
+          ReachTuple rt2 = rtItr2.next();
 
-	  if( rt1 == rt2 ) {
-	    continue;
-	  }
+          if( rt1 == rt2 ) {
+            continue;
+          }
 
-	  if( !hrn.getAlpha().getStatesWithBoth(rt1, rt2).isEmpty() ) {
-	    return true;
-	  }
-	}
+          if( !hrn.getAlpha().getStatesWithBoth(rt1, rt2).isEmpty() ) {
+            return true;
+          }
+        }
       }
     }
 
@@ -4851,8 +4851,8 @@ public class ReachGraph {
                                hrn.getAlpha()
                                );
       if( !intersection.isEmpty() ) {
-	assert !hrn.isOutOfContext();
-	exhibitProofState.add(hrn);
+        assert !hrn.isOutOfContext();
+        exhibitProofState.add(hrn);
       }
     }
 
@@ -4974,7 +4974,7 @@ public class ReachGraph {
       if( !DISABLE_STRONG_UPDATES &&
           !DISABLE_GLOBAL_SWEEP
           ) {
-	assert !common.isEmpty();
+        assert !common.isEmpty();
       }
     }
 
@@ -5018,7 +5018,7 @@ public class ReachGraph {
       if( !DISABLE_STRONG_UPDATES &&
           !DISABLE_GLOBAL_SWEEP
           ) {
-	assert !common.isEmpty();
+        assert !common.isEmpty();
       }
     }
 
@@ -5134,11 +5134,11 @@ public class ReachGraph {
     // check sum2 against alloc1 nodes
     if(hrnSum2!=null) {
       for (int i = 0; i < as1.getAllocationDepth(); ++i) {
-	Integer idI1 = as1.getIthOldest(i);
-	assert id2hrn.containsKey(idI1);
-	HeapRegionNode hrnI1 = id2hrn.get(idI1);
-	assert hrnI1 != null;
-	common.addAll(mayReachSharedObjects(hrnI1, hrnSum2));
+        Integer idI1 = as1.getIthOldest(i);
+        assert id2hrn.containsKey(idI1);
+        HeapRegionNode hrnI1 = id2hrn.get(idI1);
+        assert hrnI1 != null;
+        common.addAll(mayReachSharedObjects(hrnI1, hrnSum2));
       }
 
       // also ask if objects from this summary share among each other
@@ -5153,23 +5153,23 @@ public class ReachGraph {
       assert hrnI2 != null;
 
       if(hrnSum1!=null) {
-	common.addAll(mayReachSharedObjects(hrnSum1, hrnI2));
+        common.addAll(mayReachSharedObjects(hrnSum1, hrnI2));
       }
 
       // while we're at it, do an inner loop for alloc2 vs alloc1 nodes
       for (int j = 0; j < as1.getAllocationDepth(); ++j) {
-	Integer idI1 = as1.getIthOldest(j);
+        Integer idI1 = as1.getIthOldest(j);
 
-	// if these are the same site, don't look for the same token, no
-	// alias.
-	// different tokens of the same site could alias together though
-	if (idI1.equals(idI2)) {
-	  continue;
-	}
+        // if these are the same site, don't look for the same token, no
+        // alias.
+        // different tokens of the same site could alias together though
+        if (idI1.equals(idI2)) {
+          continue;
+        }
 
-	HeapRegionNode hrnI1 = id2hrn.get(idI1);
+        HeapRegionNode hrnI1 = id2hrn.get(idI1);
 
-	common.addAll(mayReachSharedObjects(hrnI1, hrnI2));
+        common.addAll(mayReachSharedObjects(hrnI1, hrnI2));
       }
     }
 

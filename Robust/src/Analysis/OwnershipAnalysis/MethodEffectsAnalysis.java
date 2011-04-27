@@ -88,51 +88,51 @@ public class MethodEffectsAnalysis {
       Set<MethodContext> mcSet = mapMethodContextToMethodEffects.keySet();
       Iterator<MethodContext> mcIter = mcSet.iterator();
       while (mcIter.hasNext()) {
-	MethodContext mc = mcIter.next();
-	MethodDescriptor md = (MethodDescriptor) mc.getDescriptor();
+        MethodContext mc = mcIter.next();
+        MethodDescriptor md = (MethodDescriptor) mc.getDescriptor();
 
-	int startIdx = 0;
-	if (!md.isStatic()) {
-	  startIdx = 1;
-	}
+        int startIdx = 0;
+        if (!md.isStatic()) {
+          startIdx = 1;
+        }
 
-	MethodEffects me = mapMethodContextToMethodEffects.get(mc);
-	EffectsSet effectsSet = me.getEffects();
+        MethodEffects me = mapMethodContextToMethodEffects.get(mc);
+        EffectsSet effectsSet = me.getEffects();
 
-	bw.write("Method " + mc + " :\n");
-	for (int i = startIdx; i < md.numParameters() + startIdx; i++) {
+        bw.write("Method " + mc + " :\n");
+        for (int i = startIdx; i < md.numParameters() + startIdx; i++) {
 
-	  String paramName = md.getParamName(i - startIdx);
+          String paramName = md.getParamName(i - startIdx);
 
-	  Set<EffectsKey> effectSet = effectsSet.getReadingSet(i);
-	  String keyStr = "{";
-	  if (effectSet != null) {
-	    Iterator<EffectsKey> effectIter = effectSet.iterator();
-	    while (effectIter.hasNext()) {
-	      EffectsKey key = effectIter.next();
-	      keyStr += " " + key;
-	    }
-	  }
-	  keyStr += " }";
-	  bw.write("  Paramter " + paramName + " ReadingSet="
-	           + keyStr + "\n");
+          Set<EffectsKey> effectSet = effectsSet.getReadingSet(i);
+          String keyStr = "{";
+          if (effectSet != null) {
+            Iterator<EffectsKey> effectIter = effectSet.iterator();
+            while (effectIter.hasNext()) {
+              EffectsKey key = effectIter.next();
+              keyStr += " " + key;
+            }
+          }
+          keyStr += " }";
+          bw.write("  Paramter " + paramName + " ReadingSet="
+                   + keyStr + "\n");
 
-	  effectSet = effectsSet.getWritingSet(new Integer(i));
-	  keyStr = "{";
-	  if (effectSet != null) {
-	    Iterator<EffectsKey> effectIter = effectSet.iterator();
-	    while (effectIter.hasNext()) {
-	      EffectsKey key = effectIter.next();
-	      keyStr += " " + key;
-	    }
-	  }
+          effectSet = effectsSet.getWritingSet(new Integer(i));
+          keyStr = "{";
+          if (effectSet != null) {
+            Iterator<EffectsKey> effectIter = effectSet.iterator();
+            while (effectIter.hasNext()) {
+              EffectsKey key = effectIter.next();
+              keyStr += " " + key;
+            }
+          }
 
-	  keyStr += " }";
-	  bw.write("  Paramter " + paramName + " WritingngSet="
-	           + keyStr + "\n");
+          keyStr += " }";
+          bw.write("  Paramter " + paramName + " WritingngSet="
+                   + keyStr + "\n");
 
-	}
-	bw.write("\n");
+        }
+        bw.write("\n");
 
       }
 

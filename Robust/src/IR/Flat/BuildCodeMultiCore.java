@@ -116,13 +116,13 @@ public class BuildCodeMultiCore extends BuildCode {
       outvirtual=new PrintWriter(new FileOutputStream(PREFIX+"virtualtable.h"), true);
       outmethod=new PrintWriter(new FileOutputStream(PREFIX+"methods.c"), true);
       if (state.TASK) {
-	outtask=new PrintWriter(new FileOutputStream(PREFIX+"task.h"), true);
-	outtaskdefs=new PrintWriter(new FileOutputStream(PREFIX+"taskdefs.c"), true);
-	/* optional
-	   if (state.OPTIONAL){
-	    outoptionalarrays=new PrintWriter(new FileOutputStream(PREFIX+"optionalarrays.c"), true);
-	    optionalheaders=new PrintWriter(new FileOutputStream(PREFIX+"optionalstruct.h"), true);
-	   } */
+        outtask=new PrintWriter(new FileOutputStream(PREFIX+"task.h"), true);
+        outtaskdefs=new PrintWriter(new FileOutputStream(PREFIX+"taskdefs.c"), true);
+        /* optional
+           if (state.OPTIONAL){
+            outoptionalarrays=new PrintWriter(new FileOutputStream(PREFIX+"optionalarrays.c"), true);
+            optionalheaders=new PrintWriter(new FileOutputStream(PREFIX+"optionalstruct.h"), true);
+           } */
       }
       /*if (state.structfile!=null) {
           outrepairstructs=new PrintWriter(new FileOutputStream(PREFIX+state.structfile+".struct"), true);
@@ -201,8 +201,8 @@ public class BuildCodeMultiCore extends BuildCode {
       /* The runtime keeps track of flags using these integers */
       it=state.getClassSymbolTable().getDescriptorsIterator();
       while(it.hasNext()) {
-	ClassDescriptor cn=(ClassDescriptor)it.next();
-	mapFlags(cn);
+        ClassDescriptor cn=(ClassDescriptor)it.next();
+        mapFlags(cn);
       }
       /* Generate Tasks */
       generateTaskStructs(outstructs, outmethodheader);
@@ -218,14 +218,14 @@ public class BuildCodeMultiCore extends BuildCode {
     if (state.TASK) {
       Iterator[] taskits = new Iterator[this.coreNum];
       for(int i = 0; i < taskits.length; ++i) {
-	taskits[i] = null;
+        taskits[i] = null;
       }
       int[] numtasks = new int[this.coreNum];
       int[][] numqueues = new int[this.coreNum][numclasses];
       /* Output code for tasks */
       for(int i = 0; i < this.scheduling.size(); ++i) {
-	this.currentSchedule = this.scheduling.elementAt(i);
-	outputTaskCode(outtaskdefs, outmethod, outtask, taskits, numtasks, numqueues);
+        this.currentSchedule = this.scheduling.elementAt(i);
+        outputTaskCode(outtaskdefs, outmethod, outtask, taskits, numtasks, numqueues);
       }
 
       // Output task descriptors
@@ -233,45 +233,45 @@ public class BuildCodeMultiCore extends BuildCode {
       outtaskdefs.println("struct parameterwrapper ** objectqueues[][NUMCLASSES] = {");
       boolean needcomma = false;
       for(int i = 0; i < numqueues.length; ++i) {
-	if(needcomma) {
-	  outtaskdefs.println(",");
-	} else {
-	  needcomma = true;
-	}
-	outtaskdefs.println("/* object queue array for core " + i + "*/");
-	outtaskdefs.print("{");
-	comma = false;
-	for(int j = 0; j < numclasses; ++j) {
-	  if(comma) {
-	    outtaskdefs.println(",");
-	  } else {
-	    comma = true;
-	  }
-	  outtaskdefs.print(this.objqarrayprefix + j + "_core" + i);
-	}
-	outtaskdefs.print("}");
+        if(needcomma) {
+          outtaskdefs.println(",");
+        } else {
+          needcomma = true;
+        }
+        outtaskdefs.println("/* object queue array for core " + i + "*/");
+        outtaskdefs.print("{");
+        comma = false;
+        for(int j = 0; j < numclasses; ++j) {
+          if(comma) {
+            outtaskdefs.println(",");
+          } else {
+            comma = true;
+          }
+          outtaskdefs.print(this.objqarrayprefix + j + "_core" + i);
+        }
+        outtaskdefs.print("}");
       }
       outtaskdefs.println("};");
       needcomma = false;
       outtaskdefs.println("int numqueues[][NUMCLASSES] = {");
       for(int i = 0; i < numqueues.length; ++i) {
-	if(needcomma) {
-	  outtaskdefs.println(",");
-	} else {
-	  needcomma = true;
-	}
-	int[] tmparray = numqueues[i];
-	comma = false;
-	outtaskdefs.print("{");
-	for(int j = 0; j < tmparray.length; ++j) {
-	  if(comma) {
-	    outtaskdefs.print(",");
-	  } else {
-	    comma = true;
-	  }
-	  outtaskdefs.print(tmparray[j]);
-	}
-	outtaskdefs.print("}");
+        if(needcomma) {
+          outtaskdefs.println(",");
+        } else {
+          needcomma = true;
+        }
+        int[] tmparray = numqueues[i];
+        comma = false;
+        outtaskdefs.print("{");
+        for(int j = 0; j < tmparray.length; ++j) {
+          if(comma) {
+            outtaskdefs.print(",");
+          } else {
+            comma = true;
+          }
+          outtaskdefs.print(tmparray[j]);
+        }
+        outtaskdefs.print("}");
       }
       outtaskdefs.println("};");
 
@@ -279,52 +279,52 @@ public class BuildCodeMultiCore extends BuildCode {
       outtaskdefs.println("struct parameterwrapper *** paramqueues[] = {");
       needcomma = false;
       for(int i = 0; i < this.coreNum; ++i) {
-	if(needcomma) {
-	  outtaskdefs.println(",");
-	} else {
-	  needcomma = true;
-	}
-	outtaskdefs.println("/* parameter queue array for core " + i + "*/");
-	outtaskdefs.print(this.coreqarrayprefix + i);
+        if(needcomma) {
+          outtaskdefs.println(",");
+        } else {
+          needcomma = true;
+        }
+        outtaskdefs.println("/* parameter queue array for core " + i + "*/");
+        outtaskdefs.print(this.coreqarrayprefix + i);
       }
       outtaskdefs.println("};");
 
       for(int i = 0; i < taskits.length; ++i) {
-	outtaskdefs.println("struct taskdescriptor * " + this.taskarrayprefix + i + "[]={");
-	Iterator taskit = taskits[i];
-	if(taskit != null) {
-	  boolean first=true;
-	  while(taskit.hasNext()) {
-	    TaskDescriptor td=(TaskDescriptor)taskit.next();
-	    if (first)
-	      first=false;
-	    else
-	      outtaskdefs.println(",");
-	    outtaskdefs.print("&" + this.taskprefix +td.getCoreSafeSymbol(i));
-	  }
-	}
-	outtaskdefs.println();
-	outtaskdefs.println("};");
+        outtaskdefs.println("struct taskdescriptor * " + this.taskarrayprefix + i + "[]={");
+        Iterator taskit = taskits[i];
+        if(taskit != null) {
+          boolean first=true;
+          while(taskit.hasNext()) {
+            TaskDescriptor td=(TaskDescriptor)taskit.next();
+            if (first)
+              first=false;
+            else
+              outtaskdefs.println(",");
+            outtaskdefs.print("&" + this.taskprefix +td.getCoreSafeSymbol(i));
+          }
+        }
+        outtaskdefs.println();
+        outtaskdefs.println("};");
       }
       outtaskdefs.println("struct taskdescriptor ** taskarray[]= {");
       comma = false;
       for(int i = 0; i < taskits.length; ++i) {
-	if (comma)
-	  outtaskdefs.println(",");
-	else
-	  comma = true;
-	outtaskdefs.print(this.taskarrayprefix + i);
+        if (comma)
+          outtaskdefs.println(",");
+        else
+          comma = true;
+        outtaskdefs.print(this.taskarrayprefix + i);
       }
       outtaskdefs.println("};");
 
       outtaskdefs.print("int numtasks[]= {");
       comma = false;
       for(int i = 0; i < taskits.length; ++i) {
-	if (comma)
-	  outtaskdefs.print(",");
-	else
-	  comma=true;
-	outtaskdefs.print(numtasks[i]);
+        if (comma)
+          outtaskdefs.print(",");
+        else
+          comma=true;
+        outtaskdefs.print(numtasks[i]);
       }
       outtaskdefs.println("};");
       outtaskdefs.println("int corenum=0;");
@@ -405,56 +405,56 @@ public class BuildCodeMultiCore extends BuildCode {
       Iterator<TaskDescriptor> taskit = tmpschedule.getTasks().iterator();
 
       while(taskit.hasNext()) {
-	/* Classify parameters */
-	TaskDescriptor task=taskit.next();
-	FlatMethod fm=state.getMethodFlat(task);
-	generateTempStructs(fm);
+        /* Classify parameters */
+        TaskDescriptor task=taskit.next();
+        FlatMethod fm=state.getMethodFlat(task);
+        generateTempStructs(fm);
 
-	ParamsObject objectparams=(ParamsObject) paramstable.get(task);
-	TempObject objecttemps=(TempObject) tempstable.get(task);
+        ParamsObject objectparams=(ParamsObject) paramstable.get(task);
+        TempObject objecttemps=(TempObject) tempstable.get(task);
 
-	/* Output parameter structure */
-	if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	  output.println("struct "+task.getCoreSafeSymbol(num)+"_params {");
-	  output.println("  int size;");
-	  output.println("  void * next;");
-	  for(int j=0; j<objectparams.numPointers(); j++) {
-	    TempDescriptor temp=objectparams.getPointer(j);
-	    output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-	  }
+        /* Output parameter structure */
+        if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+          output.println("struct "+task.getCoreSafeSymbol(num)+"_params {");
+          output.println("  int size;");
+          output.println("  void * next;");
+          for(int j=0; j<objectparams.numPointers(); j++) {
+            TempDescriptor temp=objectparams.getPointer(j);
+            output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+          }
 
-	  output.println("};\n");
-	  if ((objectparams.numPointers()+fm.numTags())>maxtaskparams) {
-	    maxtaskparams=objectparams.numPointers()+fm.numTags();
-	  }
-	}
+          output.println("};\n");
+          if ((objectparams.numPointers()+fm.numTags())>maxtaskparams) {
+            maxtaskparams=objectparams.numPointers()+fm.numTags();
+          }
+        }
 
-	/* Output temp structure */
-	if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	  output.println("struct "+task.getCoreSafeSymbol(num)+"_locals {");
-	  output.println("  int size;");
-	  output.println("  void * next;");
-	  for(int j=0; j<objecttemps.numPointers(); j++) {
-	    TempDescriptor temp=objecttemps.getPointer(j);
-	    if (temp.getType().isNull())
-	      output.println("  void * "+temp.getSafeSymbol()+";");
-	    else if(temp.getType().isTag())
-	      output.println("  struct "+
-	                     (new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass))).getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-	    else
-	      output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-	  }
-	  output.println("};\n");
-	}
+        /* Output temp structure */
+        if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+          output.println("struct "+task.getCoreSafeSymbol(num)+"_locals {");
+          output.println("  int size;");
+          output.println("  void * next;");
+          for(int j=0; j<objecttemps.numPointers(); j++) {
+            TempDescriptor temp=objecttemps.getPointer(j);
+            if (temp.getType().isNull())
+              output.println("  void * "+temp.getSafeSymbol()+";");
+            else if(temp.getType().isTag())
+              output.println("  struct "+
+                             (new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass))).getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+            else
+              output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+          }
+          output.println("};\n");
+        }
 
-	/* Output task declaration */
-	headersout.print("void " + task.getCoreSafeSymbol(num)+"(");
+        /* Output task declaration */
+        headersout.print("void " + task.getCoreSafeSymbol(num)+"(");
 
-	if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	  headersout.print("struct "+task.getCoreSafeSymbol(num)+"_params * "+paramsprefix);
-	} else
-	  headersout.print("void * parameterarray[]");
-	headersout.println(");\n");
+        if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+          headersout.print("struct "+task.getCoreSafeSymbol(num)+"_params * "+paramsprefix);
+        } else
+          headersout.print("void * parameterarray[]");
+        headersout.println(");\n");
       }
     }
 
@@ -498,17 +498,17 @@ public class BuildCodeMultiCore extends BuildCode {
       comma = false;
       Vector tmpvector = qnames[i];
       if(tmpvector != null) {
-	for(int j = 0; j < tmpvector.size(); ++j) {
-	  if(comma) {
-	    outtaskdefs.println(",");
-	  } else {
-	    comma = true;
-	  }
-	  outtaskdefs.print("&" + tmpvector.elementAt(j));
-	}
-	numqueues[num][i] = tmpvector.size();
+        for(int j = 0; j < tmpvector.size(); ++j) {
+          if(comma) {
+            outtaskdefs.println(",");
+          } else {
+            comma = true;
+          }
+          outtaskdefs.print("&" + tmpvector.elementAt(j));
+        }
+        numqueues[num][i] = tmpvector.size();
       } else {
-	numqueues[num][i] = 0;
+        numqueues[num][i] = 0;
       }
       outtaskdefs.println("};");
     }
@@ -520,9 +520,9 @@ public class BuildCodeMultiCore extends BuildCode {
     taskit=this.currentSchedule.getTasks().iterator();
     while(taskit.hasNext()) {
       if (comma) {
-	outtaskdefs.println(",");
+        outtaskdefs.println(",");
       } else {
-	comma = true;
+        comma = true;
       }
       TaskDescriptor td=taskit.next();
       outtaskdefs.print(this.paramqarrayprefix + td.getCoreSafeSymbol(num));
@@ -608,7 +608,7 @@ public class BuildCodeMultiCore extends BuildCode {
     if(this.fsate2qnames == null) {
       this.fsate2qnames = new Hashtable[this.coreNum];
       for(int i = 0; i < this.fsate2qnames.length; ++i) {
-	this.fsate2qnames[i] = null;
+        this.fsate2qnames[i] = null;
       }
     }
     int num = this.currentSchedule.getCoreNum();
@@ -621,28 +621,28 @@ public class BuildCodeMultiCore extends BuildCode {
       output.println();
       output.println("/* Object transfer queues for core" + num + ".*/");
       for(int i = 0; i < keys.length; ++i) {
-	FlagState tmpfstate = (FlagState)keys[i];
-	Object[] targetcores = targetCoreTbl.get(tmpfstate).toArray();
-	String queuename = this.otqueueprefix + tmpfstate.getClassDescriptor().getCoreSafeSymbol(num) + tmpfstate.getuid() + "___";
-	String queueins = queuename + "ins";
-	flag2qname.put(tmpfstate, queuename);
-	output.println("struct " + queuename + " {");
-	output.println("  int * cores;");
-	output.println("  int index;");
-	output.println("  int length;");
-	output.println("};");
-	output.print("int " + queuename + "cores[] = {");
-	for(int j = 0; j < targetcores.length; ++j) {
-	  if(j > 0) {
-	    output.print(", ");
-	  }
-	  output.print(((Integer)targetcores[j]).intValue());
-	}
-	output.println("};");
-	output.println("struct " + queuename + " " + queueins + "= {");
-	output.println(/*".cores = " + */ queuename + "cores,");
-	output.println(/*".index = " + */ "0,");
-	output.println(/*".length = " +*/ targetcores.length + "};");
+        FlagState tmpfstate = (FlagState)keys[i];
+        Object[] targetcores = targetCoreTbl.get(tmpfstate).toArray();
+        String queuename = this.otqueueprefix + tmpfstate.getClassDescriptor().getCoreSafeSymbol(num) + tmpfstate.getuid() + "___";
+        String queueins = queuename + "ins";
+        flag2qname.put(tmpfstate, queuename);
+        output.println("struct " + queuename + " {");
+        output.println("  int * cores;");
+        output.println("  int index;");
+        output.println("  int length;");
+        output.println("};");
+        output.print("int " + queuename + "cores[] = {");
+        for(int j = 0; j < targetcores.length; ++j) {
+          if(j > 0) {
+            output.print(", ");
+          }
+          output.print(((Integer)targetcores[j]).intValue());
+        }
+        output.println("};");
+        output.println("struct " + queuename + " " + queueins + "= {");
+        output.println(/*".cores = " + */ queuename + "cores,");
+        output.println(/*".index = " + */ "0,");
+        output.println(/*".length = " +*/ targetcores.length + "};");
       }
     }
     output.println();
@@ -667,7 +667,7 @@ public class BuildCodeMultiCore extends BuildCode {
       output.print(objecttemp.numPointers()+",");
       output.print(paramsprefix);
       for(int j=0; j<objecttemp.numPointers(); j++)
-	output.print(", NULL");
+        output.print(", NULL");
       output.println("};");
     }
 
@@ -675,13 +675,13 @@ public class BuildCodeMultiCore extends BuildCode {
       TempDescriptor td=objecttemp.getPrimitive(i);
       TypeDescriptor type=td.getType();
       if (type.isNull())
-	output.println("   void * "+td.getSafeSymbol()+";");
+        output.println("   void * "+td.getSafeSymbol()+";");
       else if (state.MGC && type.isClass() && type.getClassDesc().isEnum()) {
-	output.println("   int " + td.getSafeSymbol()+";");
+        output.println("   int " + td.getSafeSymbol()+";");
       } else if (type.isClass()||type.isArray())
-	output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
+        output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
       else
-	output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
+        output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
     }
 
     for(int i = 0; i < fm.numParameters(); ++i) {
@@ -761,12 +761,12 @@ public class BuildCodeMultiCore extends BuildCode {
     tovisit.add(fm.getNext(0));
     while(current_node!=null||!tovisit.isEmpty()) {
       if (current_node==null) {
-	current_node=(FlatNode)tovisit.iterator().next();
-	tovisit.remove(current_node);
+        current_node=(FlatNode)tovisit.iterator().next();
+        tovisit.remove(current_node);
       }
       visited.add(current_node);
       if (nodetolabel.containsKey(current_node))
-	output.println("L"+nodetolabel.get(current_node)+":");
+        output.println("L"+nodetolabel.get(current_node)+":");
       /*if (state.INSTRUCTIONFAILURE) {
           if (state.THREAD||state.DSM) {
               output.println("if ((++instructioncount)>failurecount) {instructioncount=0;injectinstructionfailure();}");
@@ -775,45 +775,45 @@ public class BuildCodeMultiCore extends BuildCode {
               output.println("if ((--instructioncount)==0) injectinstructionfailure();");
          }*/
       if (current_node.numNext()==0) {
-	output.print("   ");
-	generateFlatNode(fm, current_node, output);
-	if (current_node.kind()!=FKind.FlatReturnNode) {
-	  //output.println("   flushAll();");
-	  output.println("#ifdef CACHEFLUSH");
-	  output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
-	  output.println("#ifdef DEBUG");
-	  output.println("BAMBOO_DEBUGPRINT(0xec00);");
-	  output.println("#endif");
-	  output.println("BAMBOO_CACHE_FLUSH_ALL();");
-	  output.println("#ifdef DEBUG");
-	  output.println("BAMBOO_DEBUGPRINT(0xecff);");
-	  output.println("#endif");
-	  output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
-	  output.println("#endif");
-	  outputTransCode(output);
-	  output.println("   return;");
-	}
-	current_node=null;
+        output.print("   ");
+        generateFlatNode(fm, current_node, output);
+        if (current_node.kind()!=FKind.FlatReturnNode) {
+          //output.println("   flushAll();");
+          output.println("#ifdef CACHEFLUSH");
+          output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
+          output.println("#ifdef DEBUG");
+          output.println("BAMBOO_DEBUGPRINT(0xec00);");
+          output.println("#endif");
+          output.println("BAMBOO_CACHE_FLUSH_ALL();");
+          output.println("#ifdef DEBUG");
+          output.println("BAMBOO_DEBUGPRINT(0xecff);");
+          output.println("#endif");
+          output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
+          output.println("#endif");
+          outputTransCode(output);
+          output.println("   return;");
+        }
+        current_node=null;
       } else if(current_node.numNext()==1) {
-	output.print("   ");
-	generateFlatNode(fm, current_node, output);
-	FlatNode nextnode=current_node.getNext(0);
-	if (visited.contains(nextnode)) {
-	  output.println("goto L"+nodetolabel.get(nextnode)+";");
-	  current_node=null;
-	} else
-	  current_node=nextnode;
+        output.print("   ");
+        generateFlatNode(fm, current_node, output);
+        FlatNode nextnode=current_node.getNext(0);
+        if (visited.contains(nextnode)) {
+          output.println("goto L"+nodetolabel.get(nextnode)+";");
+          current_node=null;
+        } else
+          current_node=nextnode;
       } else if (current_node.numNext()==2) {
-	/* Branch */
-	output.print("   ");
-	generateFlatCondBranch(fm, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
-	if (!visited.contains(current_node.getNext(1)))
-	  tovisit.add(current_node.getNext(1));
-	if (visited.contains(current_node.getNext(0))) {
-	  output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
-	  current_node=null;
-	} else
-	  current_node=current_node.getNext(0);
+        /* Branch */
+        output.print("   ");
+        generateFlatCondBranch(fm, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+        if (!visited.contains(current_node.getNext(1)))
+          tovisit.add(current_node.getNext(1));
+        if (visited.contains(current_node.getNext(0))) {
+          output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
+          current_node=null;
+        } else
+          current_node=current_node.getNext(0);
       } else throw new Error();
     }
 
@@ -838,58 +838,58 @@ public class BuildCodeMultiCore extends BuildCode {
 
       int dnfterms;
       if (param_flag==null) {
-	output.println("int parameterdnf_"+i+"_"+task.getCoreSafeSymbol(num)+"[]={");
-	output.println("0x0, 0x0 };");
-	dnfterms=1;
+        output.println("int parameterdnf_"+i+"_"+task.getCoreSafeSymbol(num)+"[]={");
+        output.println("0x0, 0x0 };");
+        dnfterms=1;
       } else {
-	DNFFlag dflag=param_flag.getDNF();
-	dnfterms=dflag.size();
+        DNFFlag dflag=param_flag.getDNF();
+        dnfterms=dflag.size();
 
-	Hashtable flags=(Hashtable)flagorder.get(param_type.getClassDesc());
-	output.println("int parameterdnf_"+i+"_"+task.getCoreSafeSymbol(num)+"[]={");
-	for(int j=0; j<dflag.size(); j++) {
-	  if (j!=0)
-	    output.println(",");
-	  Vector term=dflag.get(j);
-	  int andmask=0;
-	  int checkmask=0;
-	  for(int k=0; k<term.size(); k++) {
-	    DNFFlagAtom dfa=(DNFFlagAtom)term.get(k);
-	    FlagDescriptor fd=dfa.getFlag();
-	    boolean negated=dfa.getNegated();
-	    int flagid=1<<((Integer)flags.get(fd)).intValue();
-	    andmask|=flagid;
-	    if (!negated)
-	      checkmask|=flagid;
-	  }
-	  output.print("0x"+Integer.toHexString(andmask)+", 0x"+Integer.toHexString(checkmask));
-	}
-	output.println("};");
+        Hashtable flags=(Hashtable)flagorder.get(param_type.getClassDesc());
+        output.println("int parameterdnf_"+i+"_"+task.getCoreSafeSymbol(num)+"[]={");
+        for(int j=0; j<dflag.size(); j++) {
+          if (j!=0)
+            output.println(",");
+          Vector term=dflag.get(j);
+          int andmask=0;
+          int checkmask=0;
+          for(int k=0; k<term.size(); k++) {
+            DNFFlagAtom dfa=(DNFFlagAtom)term.get(k);
+            FlagDescriptor fd=dfa.getFlag();
+            boolean negated=dfa.getNegated();
+            int flagid=1<<((Integer)flags.get(fd)).intValue();
+            andmask|=flagid;
+            if (!negated)
+              checkmask|=flagid;
+          }
+          output.print("0x"+Integer.toHexString(andmask)+", 0x"+Integer.toHexString(checkmask));
+        }
+        output.println("};");
       }
 
       output.println("int parametertag_"+i+"_"+task.getCoreSafeSymbol(num)+"[]={");
       //BUG...added next line to fix, test with any task program
       if (param_tag!=null)
-	for(int j=0; j<param_tag.numTags(); j++) {
-	  if (j!=0)
-	    output.println(",");
-	  /* for each tag we need */
-	  /* which slot it is */
-	  /* what type it is */
-	  TagVarDescriptor tvd=(TagVarDescriptor)task.getParameterTable().get(param_tag.getName(j));
-	  TempDescriptor tmp=param_tag.getTemp(j);
-	  int slot=fm.getTagInt(tmp);
-	  output.println(slot+", "+state.getTagId(tvd.getTag()));
-	}
+        for(int j=0; j<param_tag.numTags(); j++) {
+          if (j!=0)
+            output.println(",");
+          /* for each tag we need */
+          /* which slot it is */
+          /* what type it is */
+          TagVarDescriptor tvd=(TagVarDescriptor)task.getParameterTable().get(param_tag.getName(j));
+          TempDescriptor tmp=param_tag.getTemp(j);
+          int slot=fm.getTagInt(tmp);
+          output.println(slot+", "+state.getTagId(tvd.getTag()));
+        }
       output.println("};");
 
       // generate object queue for this parameter
       String qname = this.objqueueprefix+i+"_"+task.getCoreSafeSymbol(num);
       if(param_type.getClassDesc().getSymbol().equals("StartupObject")) {
-	this.startupcorenum = num;
+        this.startupcorenum = num;
       }
       if(qnames[param_type.getClassDesc().getId()] == null) {
-	qnames[param_type.getClassDesc().getId()] = new Vector();
+        qnames[param_type.getClassDesc().getId()] = new Vector();
       }
       qnames[param_type.getClassDesc().getId()].addElement(qname);
       outtask.println("extern struct parameterwrapper " + qname + ";");
@@ -899,9 +899,9 @@ public class BuildCodeMultiCore extends BuildCode {
       output.println(".intarray = parameterdnf_"+i+"_"+task.getCoreSafeSymbol(num)+",");    // intarray
       // numbertags
       if (param_tag!=null)
-	output.println("/* number of tags */ .numbertags = "+param_tag.numTags()+",");
+        output.println("/* number of tags */ .numbertags = "+param_tag.numTags()+",");
       else
-	output.println("/* number of tags */ .numbertags = 0,");
+        output.println("/* number of tags */ .numbertags = 0,");
       output.println(".tagarray = parametertag_"+i+"_"+task.getCoreSafeSymbol(num)+",");    // tagarray
       output.println(".task = 0,");      // task
       output.println(".slot = " + i + ",");    // slot
@@ -916,9 +916,9 @@ public class BuildCodeMultiCore extends BuildCode {
       //BUG, added next line to fix and else statement...test
       //with any task program
       if (param_tag!=null)
-	output.println("/* number of tags */"+param_tag.numTags()+",");
+        output.println("/* number of tags */"+param_tag.numTags()+",");
       else
-	output.println("/* number of tags */ 0,");
+        output.println("/* number of tags */ 0,");
       output.println("parametertag_"+i+"_"+task.getCoreSafeSymbol(num));     // tagarray
       output.println("};");
     }
@@ -927,7 +927,7 @@ public class BuildCodeMultiCore extends BuildCode {
     output.println("struct parameterwrapper * " + this.paramqarrayprefix + task.getCoreSafeSymbol(num)+"[] = {");
     for (int i=0; i<task.numParameters(); i++) {
       if (i!=0)
-	output.println(",");
+        output.println(",");
       output.print("&" + this.objqueueprefix + i + "_" + task.getCoreSafeSymbol(num));
     }
     output.println("};");
@@ -935,7 +935,7 @@ public class BuildCodeMultiCore extends BuildCode {
     output.println("struct parameterdescriptor * parameterdescriptors_"+task.getCoreSafeSymbol(num)+"[] = {");
     for (int i=0; i<task.numParameters(); i++) {
       if (i!=0)
-	output.println(",");
+        output.println(",");
       output.print("&parameter_"+i+"_"+task.getCoreSafeSymbol(num));
     }
     output.println("};");
@@ -978,17 +978,17 @@ public class BuildCodeMultiCore extends BuildCode {
       output.println("void * parameterarray[]) {");
       /* Unpack variables */
       for(int i=0; i<objectparams.numPrimitives(); i++) {
-	TempDescriptor temp=objectparams.getPrimitive(i);
-	output.println("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+"=parameterarray["+i+"];");
+        TempDescriptor temp=objectparams.getPrimitive(i);
+        output.println("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+"=parameterarray["+i+"];");
       }
       for(int i=0; i<fm.numTags(); i++) {
-	TempDescriptor temp=fm.getTag(i);
-	int offset=i+objectparams.numPrimitives();
-	output.println("struct ___TagDescriptor___ * "+temp.getSafeSymbol()+i+"___=parameterarray["+offset+"];");     // add i to fix bugs of duplicate definition of tags
+        TempDescriptor temp=fm.getTag(i);
+        int offset=i+objectparams.numPrimitives();
+        output.println("struct ___TagDescriptor___ * "+temp.getSafeSymbol()+i+"___=parameterarray["+offset+"];");     // add i to fix bugs of duplicate definition of tags
       }
 
       if ((objectparams.numPrimitives()+fm.numTags())>maxtaskparams)
-	maxtaskparams=objectparams.numPrimitives()+fm.numTags();
+        maxtaskparams=objectparams.numPrimitives()+fm.numTags();
     } else output.println(") {");
   }
 
@@ -1005,19 +1005,19 @@ public class BuildCodeMultiCore extends BuildCode {
       ClassDescriptor cd = temp.getType().getClassDesc();
       Vector<FlagState> initfstates = ffan.getInitFStates(cd);
       for(int i = 0; i < initfstates.size(); ++i) {
-	FlagState tmpFState = initfstates.elementAt(i);
-	output.println("{");
-	QueueInfo qinfo = outputqueues(tmpFState, num, output, false);
-	output.println("flagorand("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+
-	               ", 0x"+Integer.toHexString(andmask)+", " + qinfo.qname +
-	               ", " + qinfo.length + ");");
-	output.println("}");
+        FlagState tmpFState = initfstates.elementAt(i);
+        output.println("{");
+        QueueInfo qinfo = outputqueues(tmpFState, num, output, false);
+        output.println("flagorand("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+
+                       ", 0x"+Integer.toHexString(andmask)+", " + qinfo.qname +
+                       ", " + qinfo.length + ");");
+        output.println("}");
       }
       if(ffan.getTaskType()==FlatFlagActionNode.TASKEXIT) {
-	// generate codes for profiling, recording which task exit it is
-	output.println("#ifdef PROFILE");
-	output.println("setTaskExitIndex(" + ffan.getTaskExitIndex() + ");");
-	output.println("#endif");
+        // generate codes for profiling, recording which task exit it is
+        output.println("#ifdef PROFILE");
+        output.println("setTaskExitIndex(" + ffan.getTaskExitIndex() + ");");
+        output.println("#endif");
       }
     }
   }
@@ -1036,24 +1036,24 @@ public class BuildCodeMultiCore extends BuildCode {
       initfstates = ffan.getInitFStates(cd);
       targetFStates = new Vector[initfstates.size()];
       for(int i = 0; i < initfstates.size(); ++i) {
-	FlagState fs = initfstates.elementAt(i);
-	targetFStates[i] = ffan.getTargetFStates(fs);
+        FlagState fs = initfstates.elementAt(i);
+        targetFStates[i] = ffan.getTargetFStates(fs);
 
-	if(!fs.isSetmask()) {
-	  Hashtable flags=(Hashtable)flagorder.get(cd);
-	  int andmask=0;
-	  int checkmask=0;
-	  Iterator it_flags = fs.getFlags();
-	  while(it_flags.hasNext()) {
-	    FlagDescriptor fd = (FlagDescriptor)it_flags.next();
-	    int flagid=1<<((Integer)flags.get(fd)).intValue();
-	    andmask|=flagid;
-	    checkmask|=flagid;
-	  }
-	  fs.setAndmask(andmask);
-	  fs.setCheckmask(checkmask);
-	  fs.setSetmask(true);
-	}
+        if(!fs.isSetmask()) {
+          Hashtable flags=(Hashtable)flagorder.get(cd);
+          int andmask=0;
+          int checkmask=0;
+          Iterator it_flags = fs.getFlags();
+          while(it_flags.hasNext()) {
+            FlagDescriptor fd = (FlagDescriptor)it_flags.next();
+            int flagid=1<<((Integer)flags.get(fd)).intValue();
+            andmask|=flagid;
+            checkmask|=flagid;
+          }
+          fs.setAndmask(andmask);
+          fs.setCheckmask(checkmask);
+          fs.setSetmask(true);
+        }
       }
     }
     boolean isolate = true;     // check if this flagstate can associate to some task with multiple params which can
@@ -1061,22 +1061,22 @@ public class BuildCodeMultiCore extends BuildCode {
     if((this.currentSchedule == null) && (fm.getMethod().getClassDesc().getSymbol().equals("ServerSocket"))) {
       // ServerSocket object will always reside on current core
       for(int j = 0; j < targetFStates.length; ++j) {
-	if(initfstates != null) {
-	  FlagState fs = initfstates.elementAt(j);
-	  output.println("if(" + generateTempFlagName(fm, temp) + "&(0x" + Integer.toHexString(fs.getAndmask())
-	                 + ")==(0x" + Integer.toHexString(fs.getCheckmask()) + ")) {");
-	}
-	Vector<FlagState> tmpfstates = (Vector<FlagState>)targetFStates[j];
-	for(int i = 0; i < tmpfstates.size(); ++i) {
-	  FlagState tmpFState = tmpfstates.elementAt(i);
-	  // TODO
-	  // may have bugs here
-	  output.println("/* reside on this core*");
-	  output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
-	}
-	if(initfstates != null) {
-	  output.println("}");
-	}
+        if(initfstates != null) {
+          FlagState fs = initfstates.elementAt(j);
+          output.println("if(" + generateTempFlagName(fm, temp) + "&(0x" + Integer.toHexString(fs.getAndmask())
+                         + ")==(0x" + Integer.toHexString(fs.getCheckmask()) + ")) {");
+        }
+        Vector<FlagState> tmpfstates = (Vector<FlagState>)targetFStates[j];
+        for(int i = 0; i < tmpfstates.size(); ++i) {
+          FlagState tmpFState = tmpfstates.elementAt(i);
+          // TODO
+          // may have bugs here
+          output.println("/* reside on this core*");
+          output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
+        }
+        if(initfstates != null) {
+          output.println("}");
+        }
       }
       return;
     }
@@ -1086,182 +1086,182 @@ public class BuildCodeMultiCore extends BuildCode {
     for(int j = 0; j < targetFStates.length; ++j) {
       FlagState fs = null;
       if(initfstates != null) {
-	fs = initfstates.elementAt(j);
-	output.println("if((" + generateTempFlagName(fm, temp) + "&(0x" + Integer.toHexString(fs.getAndmask())
-	               + "))==(0x" + Integer.toHexString(fs.getCheckmask()) + ")) {");
+        fs = initfstates.elementAt(j);
+        output.println("if((" + generateTempFlagName(fm, temp) + "&(0x" + Integer.toHexString(fs.getAndmask())
+                       + "))==(0x" + Integer.toHexString(fs.getCheckmask()) + ")) {");
       }
       Vector<FlagState> tmpfstates = (Vector<FlagState>)targetFStates[j];
       for(int i = 0; i < tmpfstates.size(); ++i) {
-	FlagState tmpFState = tmpfstates.elementAt(i);
+        FlagState tmpFState = tmpfstates.elementAt(i);
 
-	if(this.currentSchedule.getAllyCoreTable() == null) {
-	  isolate = true;
-	} else {
-	  isolate = (this.currentSchedule.getAllyCoreTable().get(tmpFState) == null) ||
-	            (this.currentSchedule.getAllyCoreTable().get(tmpFState).size() == 0);
-	}
+        if(this.currentSchedule.getAllyCoreTable() == null) {
+          isolate = true;
+        } else {
+          isolate = (this.currentSchedule.getAllyCoreTable().get(tmpFState) == null) ||
+                    (this.currentSchedule.getAllyCoreTable().get(tmpFState).size() == 0);
+        }
 
-	Vector<Integer> sendto = new Vector<Integer>();
-	Queue<Integer> queue = null;
-	if(targetCoreTbl != null) {
-	  queue = targetCoreTbl.get(tmpFState);
-	}
-	if((queue != null) &&
-	   ((queue.size() != 1) ||
-	    ((queue.size() == 1) && (queue.element().intValue() != num)))) {
-	  // this object may be transferred to other cores
-	  String queuename = (String) this.fsate2qnames[num].get(tmpFState);
-	  String queueins = queuename + "ins";
+        Vector<Integer> sendto = new Vector<Integer>();
+        Queue<Integer> queue = null;
+        if(targetCoreTbl != null) {
+          queue = targetCoreTbl.get(tmpFState);
+        }
+        if((queue != null) &&
+           ((queue.size() != 1) ||
+            ((queue.size() == 1) && (queue.element().intValue() != num)))) {
+          // this object may be transferred to other cores
+          String queuename = (String) this.fsate2qnames[num].get(tmpFState);
+          String queueins = queuename + "ins";
 
-	  Object[] cores = queue.toArray();
-	  String index = "0";
-	  Integer targetcore = (Integer)cores[0];
-	  if(queue.size() > 1) {
-	    index = queueins + ".index";
-	  }
-	  if(queue.size() > 1) {
-	    output.println("switch(" + queueins + ".index % " + queueins + ".length) {");
-	    for(int k = 0; k < cores.length; ++k) {
-	      output.println("case " + k + ":");
-	      targetcore = (Integer)cores[k];
-	      if(targetcore.intValue() == num) {
-		output.println("/* reside on this core*/");
-		if(isolate) {
-		  output.println("{");
-		  QueueInfo qinfo = outputqueues(tmpFState, num, output, true);
-		  output.println("enqueueObject("+generateTemp(fm, temp)+", " + qinfo.qname +
-		                 ", " + qinfo.length + ");");
-		  output.println("}");
-		} /*else {
-		     // TODO
-		     // really needed?
-		     output.println("/* possibly needed by multi-parameter tasks on this core*//*");
-		     output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
-		     }*/                                                                                                                                                                                                                           // deleted 09/07/06, multi-param tasks are pinned to one core now
-	      } else {
-		/*if(!isolate) {
-		   // TODO
-		   // Is it possible to decide the actual queues?
-		   output.println("/* possibly needed by multi-parameter tasks on this core*//*");
-		   output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
-		   }*/                                                                                                                                                                                                                                                      // deleted 09/07/06, multi-param tasks are pinned to one core now
-		output.println("/* transfer to core " + targetcore.toString() + "*/");
-		output.println("{");
-		// enqueue this object and its destinations for later process
-		// all the possible queues
-		QueueInfo qinfo = null;
-		TranObjInfo tmpinfo = new TranObjInfo();
-		tmpinfo.name = generateTemp(fm, temp);
-		tmpinfo.targetcore = targetcore;
-		FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
-		if(targetFS != null) {
-		  tmpinfo.fs = targetFS;
-		} else {
-		  tmpinfo.fs = tmpFState;
-		}
-		qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
-		output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
-		output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
-		output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
-		output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
-		output.println("tmpObjInfo->length = " + qinfo.length + ";");
-		output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
-		output.println("}");
-	      }
-	      output.println("break;");
-	    }
-	    output.println("}");
-	  } else {
-	    /*if(!isolate) {
-	       // TODO
-	       // Is it possible to decide the actual queues?
-	       output.println("/* possibly needed by multi-parameter tasks on this core*//*");
-	       output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
-	       }*/                                                                                                                                                                                                                                                                     // deleted 09/07/06, multi-param tasks are pinned to one core now
-	    output.println("/* transfer to core " + targetcore.toString() + "*/");
-	    output.println("{");
-	    // enqueue this object and its destinations for later process
-	    // all the possible queues
-	    QueueInfo qinfo = null;
-	    TranObjInfo tmpinfo = new TranObjInfo();
-	    tmpinfo.name = generateTemp(fm, temp);
-	    tmpinfo.targetcore = targetcore;
-	    FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
-	    if(targetFS != null) {
-	      tmpinfo.fs = targetFS;
-	    } else {
-	      tmpinfo.fs = tmpFState;
-	    }
-	    qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
-	    output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
-	    output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
-	    output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
-	    output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
-	    output.println("tmpObjInfo->length = " + qinfo.length + ";");
-	    output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
-	    output.println("}");
-	  }
-	  output.println("/* increase index*/");
-	  output.println("++" + queueins + ".index;");
-	} else {
-	  // this object will reside on current core
-	  output.println("/* reside on this core*/");
-	  if(isolate) {
-	    output.println("{");
-	    QueueInfo qinfo = outputqueues(tmpFState, num, output, true);
-	    output.println("enqueueObject("+generateTemp(fm, temp)+", " + qinfo.qname +
-	                   ", " + qinfo.length + ");");
-	    output.println("}");
-	  } /*else {
-	       // TODO
-	       // really needed?
-	       output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
-	       }*/                                                                                                                                        // deleted 09/07/06, multi-param tasks are pinned to one core now
-	}
+          Object[] cores = queue.toArray();
+          String index = "0";
+          Integer targetcore = (Integer)cores[0];
+          if(queue.size() > 1) {
+            index = queueins + ".index";
+          }
+          if(queue.size() > 1) {
+            output.println("switch(" + queueins + ".index % " + queueins + ".length) {");
+            for(int k = 0; k < cores.length; ++k) {
+              output.println("case " + k + ":");
+              targetcore = (Integer)cores[k];
+              if(targetcore.intValue() == num) {
+                output.println("/* reside on this core*/");
+                if(isolate) {
+                  output.println("{");
+                  QueueInfo qinfo = outputqueues(tmpFState, num, output, true);
+                  output.println("enqueueObject("+generateTemp(fm, temp)+", " + qinfo.qname +
+                                 ", " + qinfo.length + ");");
+                  output.println("}");
+                } /*else {
+                     // TODO
+                     // really needed?
+                     output.println("/* possibly needed by multi-parameter tasks on this core*//*");
+                     output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
+                     }*/                                                                                                                                                                                                                                                                                                 // deleted 09/07/06, multi-param tasks are pinned to one core now
+              } else {
+                /*if(!isolate) {
+                   // TODO
+                   // Is it possible to decide the actual queues?
+                   output.println("/* possibly needed by multi-parameter tasks on this core*//*");
+                   output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
+                   }*/                                                                                                                                                                                                                                                                                                                            // deleted 09/07/06, multi-param tasks are pinned to one core now
+                output.println("/* transfer to core " + targetcore.toString() + "*/");
+                output.println("{");
+                // enqueue this object and its destinations for later process
+                // all the possible queues
+                QueueInfo qinfo = null;
+                TranObjInfo tmpinfo = new TranObjInfo();
+                tmpinfo.name = generateTemp(fm, temp);
+                tmpinfo.targetcore = targetcore;
+                FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
+                if(targetFS != null) {
+                  tmpinfo.fs = targetFS;
+                } else {
+                  tmpinfo.fs = tmpFState;
+                }
+                qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
+                output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
+                output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
+                output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
+                output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
+                output.println("tmpObjInfo->length = " + qinfo.length + ";");
+                output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
+                output.println("}");
+              }
+              output.println("break;");
+            }
+            output.println("}");
+          } else {
+            /*if(!isolate) {
+               // TODO
+               // Is it possible to decide the actual queues?
+               output.println("/* possibly needed by multi-parameter tasks on this core*//*");
+               output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
+               }*/                                                                                                                                                                                                                                                                                                        // deleted 09/07/06, multi-param tasks are pinned to one core now
+            output.println("/* transfer to core " + targetcore.toString() + "*/");
+            output.println("{");
+            // enqueue this object and its destinations for later process
+            // all the possible queues
+            QueueInfo qinfo = null;
+            TranObjInfo tmpinfo = new TranObjInfo();
+            tmpinfo.name = generateTemp(fm, temp);
+            tmpinfo.targetcore = targetcore;
+            FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
+            if(targetFS != null) {
+              tmpinfo.fs = targetFS;
+            } else {
+              tmpinfo.fs = tmpFState;
+            }
+            qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
+            output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
+            output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
+            output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
+            output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
+            output.println("tmpObjInfo->length = " + qinfo.length + ";");
+            output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
+            output.println("}");
+          }
+          output.println("/* increase index*/");
+          output.println("++" + queueins + ".index;");
+        } else {
+          // this object will reside on current core
+          output.println("/* reside on this core*/");
+          if(isolate) {
+            output.println("{");
+            QueueInfo qinfo = outputqueues(tmpFState, num, output, true);
+            output.println("enqueueObject("+generateTemp(fm, temp)+", " + qinfo.qname +
+                           ", " + qinfo.length + ");");
+            output.println("}");
+          } /*else {
+               // TODO
+               // really needed?
+               output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
+               }*/                                                                                                                                                                    // deleted 09/07/06, multi-param tasks are pinned to one core now
+        }
 
-	// codes for multi-params tasks
-	if(!isolate) {
-	  // flagstate associated with some multi-params tasks
-	  // need to be send to other cores
-	  Vector<Integer> targetcores = this.currentSchedule.getAllyCores(tmpFState);
-	  output.println("/* send the shared object to possible queues on other cores*/");
-	  // TODO, temporary solution, send to mostly the first two
-	  int upperbound = targetcores.size() > 2?2:targetcores.size();
-	  for(int k = 0; k < upperbound; ++k) {
-	    // TODO
-	    // add the information of exactly which queue
-	    int targetcore = targetcores.elementAt(k).intValue();
-	    if(!sendto.contains(targetcore)) {
-	      // previously not sended to this target core
-	      // enqueue this object and its destinations for later process
-	      output.println("{");
-	      // all the possible queues
-	      QueueInfo qinfo = null;
-	      TranObjInfo tmpinfo = new TranObjInfo();
-	      tmpinfo.name = generateTemp(fm, temp);
-	      tmpinfo.targetcore = targetcore;
-	      FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
-	      if(targetFS != null) {
-		tmpinfo.fs = targetFS;
-	      } else {
-		tmpinfo.fs = tmpFState;
-	      }
-	      qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
-	      output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
-	      output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
-	      output.println("tmpObjInfo->targetcore = "+targetcore+";");
-	      output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
-	      output.println("tmpObjInfo->length = " + qinfo.length + ";");
-	      output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
-	      output.println("}");
-	      sendto.addElement(targetcore);
-	    }
-	  }
-	}
+        // codes for multi-params tasks
+        if(!isolate) {
+          // flagstate associated with some multi-params tasks
+          // need to be send to other cores
+          Vector<Integer> targetcores = this.currentSchedule.getAllyCores(tmpFState);
+          output.println("/* send the shared object to possible queues on other cores*/");
+          // TODO, temporary solution, send to mostly the first two
+          int upperbound = targetcores.size() > 2?2:targetcores.size();
+          for(int k = 0; k < upperbound; ++k) {
+            // TODO
+            // add the information of exactly which queue
+            int targetcore = targetcores.elementAt(k).intValue();
+            if(!sendto.contains(targetcore)) {
+              // previously not sended to this target core
+              // enqueue this object and its destinations for later process
+              output.println("{");
+              // all the possible queues
+              QueueInfo qinfo = null;
+              TranObjInfo tmpinfo = new TranObjInfo();
+              tmpinfo.name = generateTemp(fm, temp);
+              tmpinfo.targetcore = targetcore;
+              FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
+              if(targetFS != null) {
+                tmpinfo.fs = targetFS;
+              } else {
+                tmpinfo.fs = tmpFState;
+              }
+              qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
+              output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
+              output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
+              output.println("tmpObjInfo->targetcore = "+targetcore+";");
+              output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
+              output.println("tmpObjInfo->length = " + qinfo.length + ";");
+              output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
+              output.println("}");
+              sendto.addElement(targetcore);
+            }
+          }
+        }
       }
 
       if(initfstates != null) {
-	output.println("}");
+        output.println("}");
       }
     }
   }
@@ -1285,18 +1285,18 @@ public class BuildCodeMultiCore extends BuildCode {
       TaskDescriptor td = fe.getTask();
       int paraindex = fe.getIndex();
       if((!isEnqueue) || (isEnqueue && residetasks.contains(td))) {
-	if((!tasks.contains(td)) ||
-	   ((tasks.contains(td)) && (paraindex != indexes.elementAt(tasks.indexOf(td)).intValue()))) {
-	  tasks.addElement(td);
-	  indexes.addElement(paraindex);
-	  if(comma) {
-	    output.println(",");
-	  } else {
-	    comma = true;
-	  }
-	  output.print("&" + this.objqueueprefix + paraindex + "_" + td.getCoreSafeSymbol(num));
-	  ++qinfo.length;
-	}
+        if((!tasks.contains(td)) ||
+           ((tasks.contains(td)) && (paraindex != indexes.elementAt(tasks.indexOf(td)).intValue()))) {
+          tasks.addElement(td);
+          indexes.addElement(paraindex);
+          if(comma) {
+            output.println(",");
+          } else {
+            comma = true;
+          }
+          output.print("&" + this.objqueueprefix + paraindex + "_" + td.getCoreSafeSymbol(num));
+          ++qinfo.length;
+        }
       }
     }
     output.println("};");
@@ -1321,19 +1321,19 @@ public class BuildCodeMultiCore extends BuildCode {
       TaskDescriptor td = fe.getTask();
       int paraindex = fe.getIndex();
       if(residetasks.contains(td)) {
-	if((!tasks.contains(td)) ||
-	   ((tasks.contains(td)) && (paraindex != indexes.elementAt(tasks.indexOf(td)).intValue()))) {
-	  tasks.addElement(td);
-	  indexes.addElement(paraindex);
-	  if(comma) {
-	    output.println(",");
-	  } else {
-	    comma = true;
-	  }
-	  output.print(residetasks.indexOf(td) + ", ");
-	  output.print(paraindex);
-	  ++qinfo.length;
-	}
+        if((!tasks.contains(td)) ||
+           ((tasks.contains(td)) && (paraindex != indexes.elementAt(tasks.indexOf(td)).intValue()))) {
+          tasks.addElement(td);
+          indexes.addElement(paraindex);
+          if(comma) {
+            output.println(",");
+          } else {
+            comma = true;
+          }
+          output.print(residetasks.indexOf(td) + ", ");
+          output.print(paraindex);
+          ++qinfo.length;
+        }
       }
     }
     output.println("};");
@@ -1394,14 +1394,14 @@ public class BuildCodeMultiCore extends BuildCode {
       // higher numbered parameters
       aliasSets.add(null);
       for( int j = i + 1; j < fm.numParameters(); ++j ) {
-	common = this.m_oa.createsPotentialAliases(td, i, j);
-	if(!common.isEmpty()) {
-	  // ith parameter and jth parameter has alias, create lock to protect them
-	  if(aliasSets.elementAt(i) == null) {
-	    aliasSets.setElementAt(new Vector<Integer>(), i);
-	  }
-	  aliasSets.elementAt(i).add(j);
-	}
+        common = this.m_oa.createsPotentialAliases(td, i, j);
+        if(!common.isEmpty()) {
+          // ith parameter and jth parameter has alias, create lock to protect them
+          if(aliasSets.elementAt(i) == null) {
+            aliasSets.setElementAt(new Vector<Integer>(), i);
+          }
+          aliasSets.elementAt(i).add(j);
+        }
       }
 
       // for the ith parameter, check for aliases against
@@ -1409,15 +1409,15 @@ public class BuildCodeMultiCore extends BuildCode {
       // task context
       aliasFNSets.add(null);
       for(int j = 0; j < allocSites.length; j++) {
-	AllocationSite as = (AllocationSite)allocSites[j];
-	common = this.m_oa.createsPotentialAliases(td, i, as);
-	if( !common.isEmpty() ) {
-	  // ith parameter and allocationsite as has alias
-	  if(aliasFNSets.elementAt(i) == null) {
-	    aliasFNSets.setElementAt(new Vector<FlatNew>(), i);
-	  }
-	  aliasFNSets.elementAt(i).add(as.getFlatNew());
-	}
+        AllocationSite as = (AllocationSite)allocSites[j];
+        common = this.m_oa.createsPotentialAliases(td, i, as);
+        if( !common.isEmpty() ) {
+          // ith parameter and allocationsite as has alias
+          if(aliasFNSets.elementAt(i) == null) {
+            aliasFNSets.setElementAt(new Vector<FlatNew>(), i);
+          }
+          aliasFNSets.elementAt(i).add(as.getFlatNew());
+        }
       }
     }
 
@@ -1427,18 +1427,18 @@ public class BuildCodeMultiCore extends BuildCode {
     for( int i = 0; i < allocSites.length; ++i ) {
       AllocationSite as1 = (AllocationSite)allocSites[i];
       for(int j = i + 1; j < allocSites.length; j++) {
-	AllocationSite as2 = (AllocationSite)allocSites[j];
+        AllocationSite as2 = (AllocationSite)allocSites[j];
 
-	common = this.m_oa.createsPotentialAliases(td, as1, as2);
-	if( !common.isEmpty() ) {
-	  // as1 and as2 has alias
-	  if(!aliasFNTbl.containsKey(as1.getFlatNew())) {
-	    aliasFNTbl.put(as1.getFlatNew(), new Vector<FlatNew>());
-	  }
-	  if(!aliasFNTbl.get(as1.getFlatNew()).contains(as2.getFlatNew())) {
-	    aliasFNTbl.get(as1.getFlatNew()).add(as2.getFlatNew());
-	  }
-	}
+        common = this.m_oa.createsPotentialAliases(td, as1, as2);
+        if( !common.isEmpty() ) {
+          // as1 and as2 has alias
+          if(!aliasFNTbl.containsKey(as1.getFlatNew())) {
+            aliasFNTbl.put(as1.getFlatNew(), new Vector<FlatNew>());
+          }
+          if(!aliasFNTbl.get(as1.getFlatNew()).contains(as2.getFlatNew())) {
+            aliasFNTbl.get(as1.getFlatNew()).add(as2.getFlatNew());
+          }
+        }
       }
     }
 
@@ -1448,33 +1448,33 @@ public class BuildCodeMultiCore extends BuildCode {
     while(it.hasNext()) {
       FlatNew tmpfn = it.next();
       if(visited.contains(tmpfn)) {
-	continue;
+        continue;
       }
       visited.add(tmpfn);
       Queue<FlatNew> tovisit = new LinkedList<FlatNew>();
       Vector<FlatNew> tmpv = aliasFNTbl.get(tmpfn);
       if(tmpv == null) {
-	continue;
+        continue;
       }
 
       for(int j = 0; j < tmpv.size(); j++) {
-	tovisit.add(tmpv.elementAt(j));
+        tovisit.add(tmpv.elementAt(j));
       }
 
       while(!tovisit.isEmpty()) {
-	FlatNew fn = tovisit.poll();
-	visited.add(fn);
-	Vector<FlatNew> tmpset = aliasFNTbl.get(fn);
-	if(tmpset != null) {
-	  // merge tmpset to the alias set of the ith parameter
-	  for(int j = 0; j < tmpset.size(); j++) {
-	    if(!tmpv.contains(tmpset.elementAt(j))) {
-	      tmpv.add(tmpset.elementAt(j));
-	      tovisit.add(tmpset.elementAt(j));
-	    }
-	  }
-	  aliasFNTbl.remove(fn);
-	}
+        FlatNew fn = tovisit.poll();
+        visited.add(fn);
+        Vector<FlatNew> tmpset = aliasFNTbl.get(fn);
+        if(tmpset != null) {
+          // merge tmpset to the alias set of the ith parameter
+          for(int j = 0; j < tmpset.size(); j++) {
+            if(!tmpv.contains(tmpset.elementAt(j))) {
+              tmpv.add(tmpset.elementAt(j));
+              tovisit.add(tmpset.elementAt(j));
+            }
+          }
+          aliasFNTbl.remove(fn);
+        }
       }
       it = aliasFNTbl.keySet().iterator();
     }
@@ -1484,42 +1484,42 @@ public class BuildCodeMultiCore extends BuildCode {
       Queue<Integer> tovisit = new LinkedList<Integer>();
       Vector<Integer> tmpv = aliasSets.elementAt(i);
       if(tmpv == null) {
-	continue;
+        continue;
       }
 
       for(int j = 0; j < tmpv.size(); j++) {
-	tovisit.add(tmpv.elementAt(j));
+        tovisit.add(tmpv.elementAt(j));
       }
 
       while(!tovisit.isEmpty()) {
-	int index = tovisit.poll().intValue();
-	Vector<Integer> tmpset = aliasSets.elementAt(index);
-	if(tmpset != null) {
-	  // merge tmpset to the alias set of the ith parameter
-	  for(int j = 0; j < tmpset.size(); j++) {
-	    if(!tmpv.contains(tmpset.elementAt(j))) {
-	      tmpv.add(tmpset.elementAt(j));
-	      tovisit.add(tmpset.elementAt(j));
-	    }
-	  }
-	  aliasSets.setElementAt(null, index);
-	}
+        int index = tovisit.poll().intValue();
+        Vector<Integer> tmpset = aliasSets.elementAt(index);
+        if(tmpset != null) {
+          // merge tmpset to the alias set of the ith parameter
+          for(int j = 0; j < tmpset.size(); j++) {
+            if(!tmpv.contains(tmpset.elementAt(j))) {
+              tmpv.add(tmpset.elementAt(j));
+              tovisit.add(tmpset.elementAt(j));
+            }
+          }
+          aliasSets.setElementAt(null, index);
+        }
 
-	Vector<FlatNew> tmpFNSet = aliasFNSets.elementAt(index);
-	if(tmpFNSet != null) {
-	  // merge tmpFNSet to the aliasFNSet of the ith parameter
-	  if(aliasFNSets.elementAt(i) == null) {
-	    aliasFNSets.setElementAt(tmpFNSet, i);
-	  } else {
-	    Vector<FlatNew> tmpFNv = aliasFNSets.elementAt(i);
-	    for(int j = 0; j < tmpFNSet.size(); j++) {
-	      if(!tmpFNv.contains(tmpFNSet.elementAt(j))) {
-		tmpFNv.add(tmpFNSet.elementAt(j));
-	      }
-	    }
-	  }
-	  aliasFNSets.setElementAt(null, index);
-	}
+        Vector<FlatNew> tmpFNSet = aliasFNSets.elementAt(index);
+        if(tmpFNSet != null) {
+          // merge tmpFNSet to the aliasFNSet of the ith parameter
+          if(aliasFNSets.elementAt(i) == null) {
+            aliasFNSets.setElementAt(tmpFNSet, i);
+          } else {
+            Vector<FlatNew> tmpFNv = aliasFNSets.elementAt(i);
+            for(int j = 0; j < tmpFNSet.size(); j++) {
+              if(!tmpFNv.contains(tmpFNSet.elementAt(j))) {
+                tmpFNv.add(tmpFNSet.elementAt(j));
+              }
+            }
+          }
+          aliasFNSets.setElementAt(null, index);
+        }
       }
     }
 
@@ -1529,17 +1529,17 @@ public class BuildCodeMultiCore extends BuildCode {
     for(int i = 0; i < aliasSets.size(); i++) {
       Vector<Integer> tmpv = aliasSets.elementAt(i);
       if(tmpv != null) {
-	tmpv.add(0, i);
-	tmpaliasSets.add(tmpv);
-	numlock++;
+        tmpv.add(0, i);
+        tmpaliasSets.add(tmpv);
+        numlock++;
       }
 
       Vector<FlatNew> tmpFNv = aliasFNSets.elementAt(i);
       if(tmpFNv != null) {
-	aliasFNTbl4Para.put(i, tmpFNv);
-	if(tmpv == null) {
-	  numlock++;
-	}
+        aliasFNTbl4Para.put(i, tmpFNv);
+        if(tmpv == null) {
+          numlock++;
+        }
       }
     }
     numparalock = numlock;
@@ -1559,88 +1559,88 @@ public class BuildCodeMultiCore extends BuildCode {
       // associate locks with parameters
       int lockindex = 0;
       for(int i = 0; i < this.m_aliasSets.size(); i++) {
-	Vector<Integer> toadd = this.m_aliasSets.elementAt(i);
+        Vector<Integer> toadd = this.m_aliasSets.elementAt(i);
 
-	output.println("int tmplen_" + lockindex + " = " + toadd.size());
-	output.println("void * tmpptrs_" + lockindex + "[] = {");
-	for(int j = 0; j < toadd.size(); j++) {
-	  int para = toadd.elementAt(j).intValue();
-	  output.print(generateTemp(fm, fm.getParameter(para)));
-	  if(j < toadd.size() - 1) {
-	    output.print(", ");
-	  } else {
-	    output.println("};");
-	  }
-	}
-	output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", tmplen_" + lockindex + ", lockRedirectTbl);");
+        output.println("int tmplen_" + lockindex + " = " + toadd.size());
+        output.println("void * tmpptrs_" + lockindex + "[] = {");
+        for(int j = 0; j < toadd.size(); j++) {
+          int para = toadd.elementAt(j).intValue();
+          output.print(generateTemp(fm, fm.getParameter(para)));
+          if(j < toadd.size() - 1) {
+            output.print(", ");
+          } else {
+            output.println("};");
+          }
+        }
+        output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", tmplen_" + lockindex + ", lockRedirectTbl);");
 
-	for(int j = 0; j < toadd.size(); j++) {
-	  int para = toadd.elementAt(j).intValue();
-	  output.println("addAliasLock("  + generateTemp(fm, fm.getParameter(para)) + ", aliaslocks[" + i + "]);");
-	}
-	// check if this lock is also associated with any FlatNew nodes
-	if(this.m_aliasFNTbl4Para.containsKey(toadd.elementAt(0))) {
-	  if(this.m_aliaslocksTbl4FN == null) {
-	    this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
-	  }
-	  Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(toadd.elementAt(0));
-	  for(int j = 0; j < tmpv.size(); j++) {
-	    FlatNew fn = tmpv.elementAt(j);
-	    if(!this.m_aliaslocksTbl4FN.containsKey(fn)) {
-	      this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
-	    }
-	    this.m_aliaslocksTbl4FN.get(fn).add(i);
-	  }
-	  this.m_aliasFNTbl4Para.remove(toadd.elementAt(0));
-	}
-	lockindex++;
+        for(int j = 0; j < toadd.size(); j++) {
+          int para = toadd.elementAt(j).intValue();
+          output.println("addAliasLock("  + generateTemp(fm, fm.getParameter(para)) + ", aliaslocks[" + i + "]);");
+        }
+        // check if this lock is also associated with any FlatNew nodes
+        if(this.m_aliasFNTbl4Para.containsKey(toadd.elementAt(0))) {
+          if(this.m_aliaslocksTbl4FN == null) {
+            this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
+          }
+          Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(toadd.elementAt(0));
+          for(int j = 0; j < tmpv.size(); j++) {
+            FlatNew fn = tmpv.elementAt(j);
+            if(!this.m_aliaslocksTbl4FN.containsKey(fn)) {
+              this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
+            }
+            this.m_aliaslocksTbl4FN.get(fn).add(i);
+          }
+          this.m_aliasFNTbl4Para.remove(toadd.elementAt(0));
+        }
+        lockindex++;
       }
 
       Object[] key = this.m_aliasFNTbl4Para.keySet().toArray();
       for(int i = 0; i < key.length; i++) {
-	int para = ((Integer)key[i]).intValue();
+        int para = ((Integer)key[i]).intValue();
 
-	output.println("void * tmpptrs_" + lockindex + "[] = {" + generateTemp(fm, fm.getParameter(para)) + "};");
-	output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", 1, lockRedirectTbl);");
+        output.println("void * tmpptrs_" + lockindex + "[] = {" + generateTemp(fm, fm.getParameter(para)) + "};");
+        output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", 1, lockRedirectTbl);");
 
-	output.println("addAliasLock(" + generateTemp(fm, fm.getParameter(para)) + ", aliaslocks[" + lockindex + "]);");
-	Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(para);
-	for(int j = 0; j < tmpv.size(); j++) {
-	  FlatNew fn = tmpv.elementAt(j);
-	  if(this.m_aliaslocksTbl4FN == null) {
-	    this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
-	  }
-	  if(!this.m_aliaslocksTbl4FN.containsKey(fn)) {
-	    this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
-	  }
-	  this.m_aliaslocksTbl4FN.get(fn).add(lockindex);
-	}
-	lockindex++;
+        output.println("addAliasLock(" + generateTemp(fm, fm.getParameter(para)) + ", aliaslocks[" + lockindex + "]);");
+        Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(para);
+        for(int j = 0; j < tmpv.size(); j++) {
+          FlatNew fn = tmpv.elementAt(j);
+          if(this.m_aliaslocksTbl4FN == null) {
+            this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
+          }
+          if(!this.m_aliaslocksTbl4FN.containsKey(fn)) {
+            this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
+          }
+          this.m_aliaslocksTbl4FN.get(fn).add(lockindex);
+        }
+        lockindex++;
       }
 
       // check m_aliasFNTbl for locks associated with FlatNew nodes
       Object[] FNkey = this.m_aliasFNTbl.keySet().toArray();
       for(int i = 0; i < FNkey.length; i++) {
-	FlatNew fn = (FlatNew)FNkey[i];
-	Vector<FlatNew> tmpv = this.m_aliasFNTbl.get(fn);
+        FlatNew fn = (FlatNew)FNkey[i];
+        Vector<FlatNew> tmpv = this.m_aliasFNTbl.get(fn);
 
-	output.println("aliaslocks[tmpi++] = (int)(RUNMALLOC(sizeof(int)));");
+        output.println("aliaslocks[tmpi++] = (int)(RUNMALLOC(sizeof(int)));");
 
-	if(this.m_aliaslocksTbl4FN == null) {
-	  this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
-	}
-	if(!this.m_aliaslocksTbl4FN.containsKey(fn)) {
-	  this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
-	}
-	this.m_aliaslocksTbl4FN.get(fn).add(lockindex);
-	for(int j = 0; j < tmpv.size(); j++) {
-	  FlatNew tfn = tmpv.elementAt(j);
-	  if(!this.m_aliaslocksTbl4FN.containsKey(tfn)) {
-	    this.m_aliaslocksTbl4FN.put(tfn, new Vector<Integer>());
-	  }
-	  this.m_aliaslocksTbl4FN.get(tfn).add(lockindex);
-	}
-	lockindex++;
+        if(this.m_aliaslocksTbl4FN == null) {
+          this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
+        }
+        if(!this.m_aliaslocksTbl4FN.containsKey(fn)) {
+          this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
+        }
+        this.m_aliaslocksTbl4FN.get(fn).add(lockindex);
+        for(int j = 0; j < tmpv.size(); j++) {
+          FlatNew tfn = tmpv.elementAt(j);
+          if(!this.m_aliaslocksTbl4FN.containsKey(tfn)) {
+            this.m_aliaslocksTbl4FN.put(tfn, new Vector<Integer>());
+          }
+          this.m_aliaslocksTbl4FN.get(tfn).add(lockindex);
+        }
+        lockindex++;
       }
     }
   }
@@ -1650,23 +1650,23 @@ public class BuildCodeMultiCore extends BuildCode {
                                         PrintWriter output) {
     if (frn.getReturnTemp()!=null) {
       if (frn.getReturnTemp().getType().isPtr())
-	output.println("return (struct "+fm.getMethod().getReturnType().getSafeSymbol()+"*)"+generateTemp(fm, frn.getReturnTemp())+";");
+        output.println("return (struct "+fm.getMethod().getReturnType().getSafeSymbol()+"*)"+generateTemp(fm, frn.getReturnTemp())+";");
       else
-	output.println("return "+generateTemp(fm, frn.getReturnTemp())+";");
+        output.println("return "+generateTemp(fm, frn.getReturnTemp())+";");
     } else {
       if(fm.getTask() != null) {
-	output.println("#ifdef CACHEFLUSH");
-	output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
-	output.println("#ifdef DEBUG");
-	output.println("BAMBOO_DEBUGPRINT(0xec00);");
-	output.println("#endif");
-	output.println("BAMBOO_CACHE_FLUSH_ALL();");
-	output.println("#ifdef DEBUG");
-	output.println("BAMBOO_DEBUGPRINT(0xecff);");
-	output.println("#endif");
-	output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
-	output.println("#endif");
-	outputTransCode(output);
+        output.println("#ifdef CACHEFLUSH");
+        output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
+        output.println("#ifdef DEBUG");
+        output.println("BAMBOO_DEBUGPRINT(0xec00);");
+        output.println("#endif");
+        output.println("BAMBOO_CACHE_FLUSH_ALL();");
+        output.println("#ifdef DEBUG");
+        output.println("BAMBOO_DEBUGPRINT(0xecff);");
+        output.println("#endif");
+        output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
+        output.println("#endif");
+        outputTransCode(output);
       }
       output.println("return;");
     }
@@ -1679,39 +1679,39 @@ public class BuildCodeMultiCore extends BuildCode {
       int arrayid = state.getArrayNumber(fn.getType())
                     + state.numClasses();
       if (fn.isGlobal()) {
-	output.println(generateTemp(fm, fn.getDst())
-	               + "=allocate_newarrayglobal(trans, " + arrayid + ", "
-	               + generateTemp(fm, fn.getSize()) + ");");
+        output.println(generateTemp(fm, fn.getDst())
+                       + "=allocate_newarrayglobal(trans, " + arrayid + ", "
+                       + generateTemp(fm, fn.getSize()) + ");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(generateTemp(fm, fn.getDst())
-	               + "=allocate_newarray(&" + localsprefix + ", "
-	               + arrayid + ", " + generateTemp(fm, fn.getSize())
-	               + ");");
+        output.println(generateTemp(fm, fn.getDst())
+                       + "=allocate_newarray(&" + localsprefix + ", "
+                       + arrayid + ", " + generateTemp(fm, fn.getSize())
+                       + ");");
       } else {
-	output.println(generateTemp(fm, fn.getDst())
-	               + "=allocate_newarray(" + arrayid + ", "
-	               + generateTemp(fm, fn.getSize()) + ");");
+        output.println(generateTemp(fm, fn.getDst())
+                       + "=allocate_newarray(" + arrayid + ", "
+                       + generateTemp(fm, fn.getSize()) + ");");
       }
     } else {
       if (fn.isGlobal()) {
-	output.println(generateTemp(fm, fn.getDst())
-	               + "=allocate_newglobal(trans, "
-	               + fn.getType().getClassDesc().getId() + ");");
+        output.println(generateTemp(fm, fn.getDst())
+                       + "=allocate_newglobal(trans, "
+                       + fn.getType().getClassDesc().getId() + ");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(generateTemp(fm, fn.getDst())
-	               + "=allocate_new(&" + localsprefix + ", "
-	               + fn.getType().getClassDesc().getId() + ");");
+        output.println(generateTemp(fm, fn.getDst())
+                       + "=allocate_new(&" + localsprefix + ", "
+                       + fn.getType().getClassDesc().getId() + ");");
       } else {
-	output.println(generateTemp(fm, fn.getDst())
-	               + "=allocate_new("
-	               + fn.getType().getClassDesc().getId() + ");");
+        output.println(generateTemp(fm, fn.getDst())
+                       + "=allocate_new("
+                       + fn.getType().getClassDesc().getId() + ");");
       }
     }
     // create alias lock if necessary
     if((this.m_aliaslocksTbl4FN != null) && (this.m_aliaslocksTbl4FN.containsKey(fn))) {
       Vector<Integer> tmpv = this.m_aliaslocksTbl4FN.get(fn);
       for(int i = 0; i < tmpv.size(); i++) {
-	output.println("addAliasLock(" + generateTemp(fm, fn.getDst()) + ", aliaslocks[" + tmpv.elementAt(i).intValue() + "]);");
+        output.println("addAliasLock(" + generateTemp(fm, fn.getDst()) + ", aliaslocks[" + tmpv.elementAt(i).intValue() + "]);");
       }
     }
     // generate codes for profiling, recording how many new objects are created
@@ -1738,13 +1738,13 @@ public class BuildCodeMultiCore extends BuildCode {
     for(int i = 0; i < sendto.size(); i++) {
       TranObjInfo tmp = sendto.elementAt(i);
       if(!tmp.name.equals(t.name)) {
-	return false;
+        return false;
       }
       if(tmp.targetcore != t.targetcore) {
-	return false;
+        return false;
       }
       if(tmp.fs != t.fs) {
-	return false;
+        return false;
       }
     }
     return true;

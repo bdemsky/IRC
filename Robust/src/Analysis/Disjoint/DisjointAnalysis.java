@@ -122,10 +122,10 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       AllocSite as = n.getAllocSite();
       if (as == null) {
-	out += "  " + n.toString() + ",\n";
+        out += "  " + n.toString() + ",\n";
       } else {
-	out += "  " + n.toString() + ": " + as.toStringVerbose()
-	       + ",\n";
+        out += "  " + n.toString() + ": " + as.toStringVerbose()
+               + ",\n";
       }
     }
 
@@ -161,7 +161,7 @@ public class DisjointAnalysis implements HeapAnalysis {
       TaskDescriptor td = (TaskDescriptor) taskItr.next();
 
       if (!tabularOutput) {
-	bw.write("\n---------" + td + "--------\n");
+        bw.write("\n---------" + td + "--------\n");
       }
 
       HashSet<AllocSite> allocSites = getFlaggedAllocationSitesReachableFromTask(td);
@@ -176,52 +176,52 @@ public class DisjointAnalysis implements HeapAnalysis {
       FlatMethod fm = state.getMethodFlat(td);
       for (int i = 0; i < fm.numParameters(); ++i) {
 
-	// skip parameters with types that cannot reference
-	// into the heap
-	if( !shouldAnalysisTrack(fm.getParameter(i).getType() ) ) {
-	  continue;
-	}
+        // skip parameters with types that cannot reference
+        // into the heap
+        if( !shouldAnalysisTrack(fm.getParameter(i).getType() ) ) {
+          continue;
+        }
 
-	// for the ith parameter check for sharing classes to all
-	// higher numbered parameters
-	for (int j = i + 1; j < fm.numParameters(); ++j) {
+        // for the ith parameter check for sharing classes to all
+        // higher numbered parameters
+        for (int j = i + 1; j < fm.numParameters(); ++j) {
 
-	  // skip parameters with types that cannot reference
-	  // into the heap
-	  if( !shouldAnalysisTrack(fm.getParameter(j).getType() ) ) {
-	    continue;
-	  }
+          // skip parameters with types that cannot reference
+          // into the heap
+          if( !shouldAnalysisTrack(fm.getParameter(j).getType() ) ) {
+            continue;
+          }
 
 
-	  common = hasPotentialSharing(td, i, j);
-	  if (!common.isEmpty()) {
-	    foundSomeSharing = true;
-	    ++numSharing;
-	    if (!tabularOutput) {
-	      bw.write("Potential sharing between parameters " + i
-	               + " and " + j + ".\n");
-	      bw.write(prettyPrintNodeSet(common) + "\n");
-	    }
-	  }
-	}
+          common = hasPotentialSharing(td, i, j);
+          if (!common.isEmpty()) {
+            foundSomeSharing = true;
+            ++numSharing;
+            if (!tabularOutput) {
+              bw.write("Potential sharing between parameters " + i
+                       + " and " + j + ".\n");
+              bw.write(prettyPrintNodeSet(common) + "\n");
+            }
+          }
+        }
 
-	// for the ith parameter, check for sharing classes against
-	// the set of allocation sites reachable from this
-	// task context
-	Iterator allocItr = allocSites.iterator();
-	while (allocItr.hasNext()) {
-	  AllocSite as = (AllocSite) allocItr.next();
-	  common = hasPotentialSharing(td, i, as);
-	  if (!common.isEmpty()) {
-	    foundSomeSharing = true;
-	    ++numSharing;
-	    if (!tabularOutput) {
-	      bw.write("Potential sharing between parameter " + i
-	               + " and " + as.getFlatNew() + ".\n");
-	      bw.write(prettyPrintNodeSet(common) + "\n");
-	    }
-	  }
-	}
+        // for the ith parameter, check for sharing classes against
+        // the set of allocation sites reachable from this
+        // task context
+        Iterator allocItr = allocSites.iterator();
+        while (allocItr.hasNext()) {
+          AllocSite as = (AllocSite) allocItr.next();
+          common = hasPotentialSharing(td, i, as);
+          if (!common.isEmpty()) {
+            foundSomeSharing = true;
+            ++numSharing;
+            if (!tabularOutput) {
+              bw.write("Potential sharing between parameter " + i
+                       + " and " + as.getFlatNew() + ".\n");
+              bw.write(prettyPrintNodeSet(common) + "\n");
+            }
+          }
+        }
       }
 
       // for each allocation site check for sharing classes with
@@ -230,36 +230,36 @@ public class DisjointAnalysis implements HeapAnalysis {
       HashSet<AllocSite> outerChecked = new HashSet<AllocSite>();
       Iterator allocItr1 = allocSites.iterator();
       while (allocItr1.hasNext()) {
-	AllocSite as1 = (AllocSite) allocItr1.next();
+        AllocSite as1 = (AllocSite) allocItr1.next();
 
-	Iterator allocItr2 = allocSites.iterator();
-	while (allocItr2.hasNext()) {
-	  AllocSite as2 = (AllocSite) allocItr2.next();
+        Iterator allocItr2 = allocSites.iterator();
+        while (allocItr2.hasNext()) {
+          AllocSite as2 = (AllocSite) allocItr2.next();
 
-	  if (!outerChecked.contains(as2)) {
-	    common = hasPotentialSharing(td, as1, as2);
+          if (!outerChecked.contains(as2)) {
+            common = hasPotentialSharing(td, as1, as2);
 
-	    if (!common.isEmpty()) {
-	      foundSomeSharing = true;
-	      ++numSharing;
-	      if (!tabularOutput) {
-		bw.write("Potential sharing between "
-		         + as1.getFlatNew() + " and "
-		         + as2.getFlatNew() + ".\n");
-		bw.write(prettyPrintNodeSet(common) + "\n");
-	      }
-	    }
-	  }
-	}
+            if (!common.isEmpty()) {
+              foundSomeSharing = true;
+              ++numSharing;
+              if (!tabularOutput) {
+                bw.write("Potential sharing between "
+                         + as1.getFlatNew() + " and "
+                         + as2.getFlatNew() + ".\n");
+                bw.write(prettyPrintNodeSet(common) + "\n");
+              }
+            }
+          }
+        }
 
-	outerChecked.add(as1);
+        outerChecked.add(as1);
       }
 
       if (!foundSomeSharing) {
-	if (!tabularOutput) {
-	  bw.write("No sharing between flagged objects in Task " + td
-	           + ".\n");
-	}
+        if (!tabularOutput) {
+          bw.write("No sharing between flagged objects in Task " + td
+                   + ".\n");
+        }
       }
     }
 
@@ -316,21 +316,21 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       Iterator allocItr2 = allocSites.iterator();
       while (allocItr2.hasNext()) {
-	AllocSite as2 = (AllocSite) allocItr2.next();
+        AllocSite as2 = (AllocSite) allocItr2.next();
 
-	if (!outerChecked.contains(as2)) {
-	  Set<HeapRegionNode> common = hasPotentialSharing(d,
-	                                                   as1, as2);
+        if (!outerChecked.contains(as2)) {
+          Set<HeapRegionNode> common = hasPotentialSharing(d,
+                                                           as1, as2);
 
-	  if (!common.isEmpty()) {
-	    foundSomeSharing = true;
-	    bw.write("Potential sharing between "
-	             + as1.getDisjointAnalysisId() + " and "
-	             + as2.getDisjointAnalysisId() + ".\n");
-	    bw.write(prettyPrintNodeSet(common) + "\n");
-	    ++numSharing;
-	  }
-	}
+          if (!common.isEmpty()) {
+            foundSomeSharing = true;
+            bw.write("Potential sharing between "
+                     + as1.getDisjointAnalysisId() + " and "
+                     + as2.getDisjointAnalysisId() + ".\n");
+            bw.write(prettyPrintNodeSet(common) + "\n");
+            ++numSharing;
+          }
+        }
       }
 
       outerChecked.add(as1);
@@ -755,7 +755,7 @@ public class DisjointAnalysis implements HeapAnalysis {
     if( sitesToFlag != null ) {
       treport = String.format("Disjoint reachability analysis flagged %d sites and took %.3f sec.", sitesToFlag.size(), dt);
       if(sitesToFlag.size()>0) {
-	treport+="\nFlagged sites:"+"\n"+sitesToFlag.toString();
+        treport+="\nFlagged sites:"+"\n"+sitesToFlag.toString();
       }
     } else {
       treport = String.format("Disjoint reachability analysis took %.3f sec.", dt);
@@ -766,32 +766,32 @@ public class DisjointAnalysis implements HeapAnalysis {
 
     try {
       if( writeFinalDOTs && !writeAllIncrementalDOTs ) {
-	writeFinalGraphs();
+        writeFinalGraphs();
       }
 
       if( state.DISJOINTWRITEIHMS && !suppressOutput ) {
-	writeFinalIHMs();
+        writeFinalIHMs();
       }
 
       if( state.DISJOINTWRITEINITCONTEXTS && !suppressOutput ) {
-	writeInitialContexts();
+        writeInitialContexts();
       }
 
       if( state.DISJOINTALIASFILE != null && !suppressOutput ) {
-	if( state.TASK ) {
-	  writeAllSharing(state.DISJOINTALIASFILE, treport, justtime, state.DISJOINTALIASTAB, state.lines);
-	} else {
-	  writeAllSharingJava(state.DISJOINTALIASFILE,
-	                      treport,
-	                      justtime,
-	                      state.DISJOINTALIASTAB,
-	                      state.lines
-	                      );
-	}
+        if( state.TASK ) {
+          writeAllSharing(state.DISJOINTALIASFILE, treport, justtime, state.DISJOINTALIASTAB, state.lines);
+        } else {
+          writeAllSharingJava(state.DISJOINTALIASFILE,
+                              treport,
+                              justtime,
+                              state.DISJOINTALIASTAB,
+                              state.lines
+                              );
+        }
       }
 
       if( state.RCR ) {
-	buildStateMachines.writeStateMachines();
+        buildStateMachines.writeStateMachines();
       }
 
     } catch( IOException e ) {
@@ -824,23 +824,23 @@ public class DisjointAnalysis implements HeapAnalysis {
 
     if( state.TASK ) {
       if( !suppressOutput ) {
-	System.out.println("Bamboo mode...");
+        System.out.println("Bamboo mode...");
       }
 
       Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
       while( taskItr.hasNext() ) {
-	TaskDescriptor td = (TaskDescriptor) taskItr.next();
-	if( !descriptorsToAnalyze.contains(td) ) {
-	  // add all methods transitively reachable from the
-	  // tasks as well
-	  descriptorsToAnalyze.add(td);
-	  descriptorsToAnalyze.addAll(callGraph.getAllMethods(td) );
-	}
+        TaskDescriptor td = (TaskDescriptor) taskItr.next();
+        if( !descriptorsToAnalyze.contains(td) ) {
+          // add all methods transitively reachable from the
+          // tasks as well
+          descriptorsToAnalyze.add(td);
+          descriptorsToAnalyze.addAll(callGraph.getAllMethods(td) );
+        }
       }
 
     } else {
       if( !suppressOutput ) {
-	System.out.println("Java mode...");
+        System.out.println("Java mode...");
       }
 
       // add all methods transitively reachable from the
@@ -876,11 +876,11 @@ public class DisjointAnalysis implements HeapAnalysis {
       // for the priority queue, give items at the head
       // of the sorted list a low number (highest priority)
       while( !sortedDescriptors.isEmpty() ) {
-	Descriptor d = sortedDescriptors.removeFirst();
-	mapDescriptorToPriority.put(d, new Integer(p) );
-	descriptorsToVisitQ.add(new DescriptorQWrapper(p, d) );
-	descriptorsToVisitSet.add(d);
-	++p;
+        Descriptor d = sortedDescriptors.removeFirst();
+        mapDescriptorToPriority.put(d, new Integer(p) );
+        descriptorsToVisitQ.add(new DescriptorQWrapper(p, d) );
+        descriptorsToVisitSet.add(d);
+        ++p;
       }
 
     } else if( state.DISJOINTDVISITSTACK ||
@@ -889,16 +889,16 @@ public class DisjointAnalysis implements HeapAnalysis {
       // if we're doing the stack scheme, just throw the root
       // method or tasks on the stack
       if( state.TASK ) {
-	Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
-	while( taskItr.hasNext() ) {
-	  TaskDescriptor td = (TaskDescriptor) taskItr.next();
-	  descriptorsToVisitStack.add(td);
-	  descriptorsToVisitSet.add(td);
-	}
+        Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
+        while( taskItr.hasNext() ) {
+          TaskDescriptor td = (TaskDescriptor) taskItr.next();
+          descriptorsToVisitStack.add(td);
+          descriptorsToVisitSet.add(td);
+        }
 
       } else {
-	descriptorsToVisitStack.add(mdAnalysisEntry);
-	descriptorsToVisitSet.add(mdAnalysisEntry);
+        descriptorsToVisitStack.add(mdAnalysisEntry);
+        descriptorsToVisitSet.add(mdAnalysisEntry);
       }
 
     } else {
@@ -913,10 +913,10 @@ public class DisjointAnalysis implements HeapAnalysis {
       if( state.DISJOINTDVISITSTACK ||
           state.DISJOINTDVISITSTACKEESONTOP
           ) {
-	d = descriptorsToVisitStack.pop();
+        d = descriptorsToVisitStack.pop();
 
       } else if( state.DISJOINTDVISITPQUE ) {
-	d = descriptorsToVisitQ.poll().getDescriptor();
+        d = descriptorsToVisitQ.poll().getDescriptor();
       }
 
       assert descriptorsToVisitSet.contains(d);
@@ -931,34 +931,34 @@ public class DisjointAnalysis implements HeapAnalysis {
       // that depend on this one to the "to visit" set.
 
       if( !suppressOutput ) {
-	System.out.println("Analyzing " + d);
+        System.out.println("Analyzing " + d);
       }
 
       if( state.DISJOINTDVISITSTACKEESONTOP ) {
-	assert calleesToEnqueue.isEmpty();
+        assert calleesToEnqueue.isEmpty();
       }
 
       ReachGraph rg     = analyzeMethod(d);
       ReachGraph rgPrev = getPartial(d);
 
       if( !rg.equals(rgPrev) ) {
-	setPartial(d, rg);
+        setPartial(d, rg);
 
-	if( state.DISJOINTDEBUGSCHEDULING ) {
-	  System.out.println("  complete graph changed, scheduling callers for analysis:");
-	}
+        if( state.DISJOINTDEBUGSCHEDULING ) {
+          System.out.println("  complete graph changed, scheduling callers for analysis:");
+        }
 
-	// results for d changed, so enqueue dependents
-	// of d for further analysis
-	Iterator<Descriptor> depsItr = getDependents(d).iterator();
-	while( depsItr.hasNext() ) {
-	  Descriptor dNext = depsItr.next();
-	  enqueue(dNext);
+        // results for d changed, so enqueue dependents
+        // of d for further analysis
+        Iterator<Descriptor> depsItr = getDependents(d).iterator();
+        while( depsItr.hasNext() ) {
+          Descriptor dNext = depsItr.next();
+          enqueue(dNext);
 
-	  if( state.DISJOINTDEBUGSCHEDULING ) {
-	    System.out.println("    "+dNext);
-	  }
-	}
+          if( state.DISJOINTDEBUGSCHEDULING ) {
+            System.out.println("    "+dNext);
+          }
+        }
       }
 
       // whether or not the method under analysis changed,
@@ -967,12 +967,12 @@ public class DisjointAnalysis implements HeapAnalysis {
       // the stack now (in other method-visiting modes they
       // are already enqueued at this point
       if( state.DISJOINTDVISITSTACKEESONTOP ) {
-	Iterator<Descriptor> depsItr = calleesToEnqueue.iterator();
-	while( depsItr.hasNext() ) {
-	  Descriptor dNext = depsItr.next();
-	  enqueue(dNext);
-	}
-	calleesToEnqueue.clear();
+        Iterator<Descriptor> depsItr = calleesToEnqueue.iterator();
+        while( depsItr.hasNext() ) {
+          Descriptor dNext = depsItr.next();
+          enqueue(dNext);
+        }
+        calleesToEnqueue.clear();
       }
 
     }
@@ -1014,10 +1014,10 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       FlatNode fn;
       if( determinismDesired ) {
-	assert !flatNodesToVisitQ.isEmpty();
-	fn = flatNodesToVisitQ.remove();
+        assert !flatNodesToVisitQ.isEmpty();
+        fn = flatNodesToVisitQ.remove();
       } else {
-	fn = flatNodesToVisit.iterator().next();
+        fn = flatNodesToVisit.iterator().next();
       }
       flatNodesToVisit.remove(fn);
 
@@ -1028,31 +1028,31 @@ public class DisjointAnalysis implements HeapAnalysis {
       ReachGraph rg = new ReachGraph();
       TaskDescriptor taskDesc;
       if(fn instanceof FlatMethod && (taskDesc=((FlatMethod)fn).getTask())!=null) {
-	if(mapDescriptorToReachGraph.containsKey(taskDesc)) {
-	  // retrieve existing reach graph if it is not first time
-	  rg=mapDescriptorToReachGraph.get(taskDesc);
-	} else {
-	  // create initial reach graph for a task
-	  rg=createInitialTaskReachGraph((FlatMethod)fn);
-	  rg.globalSweep();
-	  mapDescriptorToReachGraph.put(taskDesc, rg);
-	}
+        if(mapDescriptorToReachGraph.containsKey(taskDesc)) {
+          // retrieve existing reach graph if it is not first time
+          rg=mapDescriptorToReachGraph.get(taskDesc);
+        } else {
+          // create initial reach graph for a task
+          rg=createInitialTaskReachGraph((FlatMethod)fn);
+          rg.globalSweep();
+          mapDescriptorToReachGraph.put(taskDesc, rg);
+        }
       }
 
       // start by merging all node's parents' graphs
       for( int i = 0; i < pm.numPrev(fn); ++i ) {
-	FlatNode pn = pm.getPrev(fn,i);
-	if( mapFlatNodeToReachGraph.containsKey(pn) ) {
-	  ReachGraph rgParent = mapFlatNodeToReachGraph.get(pn);
-	  rg.merge(rgParent);
-	}
+        FlatNode pn = pm.getPrev(fn,i);
+        if( mapFlatNodeToReachGraph.containsKey(pn) ) {
+          ReachGraph rgParent = mapFlatNodeToReachGraph.get(pn);
+          rg.merge(rgParent);
+        }
       }
 
 
       if( takeDebugSnapshots &&
           d.getSymbol().equals(descSymbolDebug)
           ) {
-	debugSnapshot(rg, fn, true);
+        debugSnapshot(rg, fn, true);
       }
 
 
@@ -1063,8 +1063,8 @@ public class DisjointAnalysis implements HeapAnalysis {
       if( takeDebugSnapshots &&
           d.getSymbol().equals(descSymbolDebug)
           ) {
-	debugSnapshot(rg, fn, false);
-	++snapNodeCounter;
+        debugSnapshot(rg, fn, false);
+        ++snapNodeCounter;
       }
 
 
@@ -1073,16 +1073,16 @@ public class DisjointAnalysis implements HeapAnalysis {
       // with the update and enqueue the children
       ReachGraph rgPrev = mapFlatNodeToReachGraph.get(fn);
       if( !rg.equals(rgPrev) ) {
-	mapFlatNodeToReachGraph.put(fn, rg);
+        mapFlatNodeToReachGraph.put(fn, rg);
 
-	for( int i = 0; i < pm.numNext(fn); i++ ) {
-	  FlatNode nn = pm.getNext(fn, i);
+        for( int i = 0; i < pm.numNext(fn); i++ ) {
+          FlatNode nn = pm.getNext(fn, i);
 
-	  flatNodesToVisit.add(nn);
-	  if( determinismDesired ) {
-	    flatNodesToVisitQ.add(nn);
-	  }
-	}
+          flatNodesToVisit.add(nn);
+          if( determinismDesired ) {
+            flatNodesToVisitQ.add(nn);
+          }
+        }
       }
     }
 
@@ -1116,8 +1116,8 @@ public class DisjointAnalysis implements HeapAnalysis {
       if( snapVisitCounter == visitStartCapture + numVisitsToCapture &&
           stopAfterCapture
           ) {
-	System.out.println("!!! Stopping analysis after debug snap captures. !!!");
-	System.exit(0);
+        System.out.println("!!! Stopping analysis after debug snap captures. !!!");
+        System.exit(0);
       }
     }
 
@@ -1183,13 +1183,13 @@ public class DisjointAnalysis implements HeapAnalysis {
       Set entrySet = heapsFromCallers.entrySet();
       Iterator itr = entrySet.iterator();
       while( itr.hasNext() ) {
-	Map.Entry me        = (Map.Entry)itr.next();
-	FlatCall fc        = (FlatCall)   me.getKey();
-	ReachGraph rgContrib = (ReachGraph) me.getValue();
+        Map.Entry me        = (Map.Entry)itr.next();
+        FlatCall fc        = (FlatCall)   me.getKey();
+        ReachGraph rgContrib = (ReachGraph) me.getValue();
 
-	assert fc.getMethod().equals(d);
+        assert fc.getMethod().equals(d);
 
-	rg.merge(rgContrib);
+        rg.merge(rgContrib);
       }
 
       // additionally, we are enforcing STRICT MONOTONICITY for the
@@ -1205,22 +1205,22 @@ public class DisjointAnalysis implements HeapAnalysis {
     case FKind.FlatOpNode:
       FlatOpNode fon = (FlatOpNode) fn;
       if( fon.getOp().getOp() == Operation.ASSIGN ) {
-	lhs = fon.getDest();
-	rhs = fon.getLeft();
+        lhs = fon.getDest();
+        rhs = fon.getLeft();
 
-	// before transfer, do effects analysis support
-	if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-	  if(rblockRel.isPotentialStallSite(fn)) {
-	    // x gets status of y
+        // before transfer, do effects analysis support
+        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+          if(rblockRel.isPotentialStallSite(fn)) {
+            // x gets status of y
 //            if(!rg.isAccessible(rhs)){
-	    if(!accessible.isAccessible(fn, rhs)) {
-	      rg.makeInaccessible(lhs);
-	    }
-	  }
-	}
+            if(!accessible.isAccessible(fn, rhs)) {
+              rg.makeInaccessible(lhs);
+            }
+          }
+        }
 
-	// transfer func
-	rg.assignTempXEqualToTempY(lhs, rhs);
+        // transfer func
+        rg.assignTempXEqualToTempY(lhs, rhs);
       }
       break;
 
@@ -1234,13 +1234,13 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       // before transfer, do effects analysis support
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-	if(rblockRel.isPotentialStallSite(fn)) {
-	  // x gets status of y
+        if(rblockRel.isPotentialStallSite(fn)) {
+          // x gets status of y
 //          if(!rg.isAccessible(rhs)){
-	  if(!accessible.isAccessible(fn,rhs)) {
-	    rg.makeInaccessible(lhs);
-	  }
-	}
+          if(!accessible.isAccessible(fn,rhs)) {
+            rg.makeInaccessible(lhs);
+          }
+        }
       }
 
       // transfer func
@@ -1258,29 +1258,29 @@ public class DisjointAnalysis implements HeapAnalysis {
       // a stall-site taint
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 
-	if(rblockRel.isPotentialStallSite(fn)) {
-	  // x=y.f, stall y if not accessible
-	  // contributes read effects on stall site of y
+        if(rblockRel.isPotentialStallSite(fn)) {
+          // x=y.f, stall y if not accessible
+          // contributes read effects on stall site of y
 //          if(!rg.isAccessible(rhs)) {
-	  if(!accessible.isAccessible(fn,rhs)) {
-	    rg.taintStallSite(fn, rhs);
-	  }
+          if(!accessible.isAccessible(fn,rhs)) {
+            rg.taintStallSite(fn, rhs);
+          }
 
-	  // after this, x and y are accessbile.
-	  rg.makeAccessible(lhs);
-	  rg.makeAccessible(rhs);
-	}
+          // after this, x and y are accessbile.
+          rg.makeAccessible(lhs);
+          rg.makeAccessible(rhs);
+        }
       }
 
       if( shouldAnalysisTrack(fld.getType() ) ) {
-	// transfer func
-	rg.assignTempXEqualToTempYFieldF(lhs, rhs, fld, fn);
+        // transfer func
+        rg.assignTempXEqualToTempYFieldF(lhs, rhs, fld, fn);
       }
 
       // after transfer, use updated graph to
       // do effects analysis
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-	effectsAnalysis.analyzeFlatFieldNode(rg, rhs, fld, fn);
+        effectsAnalysis.analyzeFlatFieldNode(rg, rhs, fld, fn);
       }
       break;
 
@@ -1297,33 +1297,33 @@ public class DisjointAnalysis implements HeapAnalysis {
       // stall-site taints
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 
-	if(rblockRel.isPotentialStallSite(fn)) {
-	  // x.y=f , stall x and y if they are not accessible
-	  // also contribute write effects on stall site of x
+        if(rblockRel.isPotentialStallSite(fn)) {
+          // x.y=f , stall x and y if they are not accessible
+          // also contribute write effects on stall site of x
 //          if(!rg.isAccessible(lhs)) {
-	  if(!accessible.isAccessible(fn,lhs)) {
-	    rg.taintStallSite(fn, lhs);
-	  }
+          if(!accessible.isAccessible(fn,lhs)) {
+            rg.taintStallSite(fn, lhs);
+          }
 
 //          if(!rg.isAccessible(rhs)) {
-	  if(!accessible.isAccessible(fn,rhs)) {
-	    rg.taintStallSite(fn, rhs);
-	  }
+          if(!accessible.isAccessible(fn,rhs)) {
+            rg.taintStallSite(fn, rhs);
+          }
 
-	  // accessible status update
-	  rg.makeAccessible(lhs);
-	  rg.makeAccessible(rhs);
-	}
+          // accessible status update
+          rg.makeAccessible(lhs);
+          rg.makeAccessible(rhs);
+        }
       }
 
       if( shouldAnalysisTrack(fld.getType() ) ) {
-	// transfer func
-	strongUpdate = rg.assignTempXFieldFEqualToTempY(lhs, fld, rhs, fn);
+        // transfer func
+        strongUpdate = rg.assignTempXFieldFEqualToTempY(lhs, fld, rhs, fn);
       }
 
       // use transformed graph to do effects analysis
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-	effectsAnalysis.analyzeFlatSetFieldNode(rg, lhs, fld, fn, strongUpdate);
+        effectsAnalysis.analyzeFlatSetFieldNode(rg, lhs, fld, fn, strongUpdate);
       }
       break;
 
@@ -1342,28 +1342,28 @@ public class DisjointAnalysis implements HeapAnalysis {
       // before transfer func, possibly inject
       // stall-site taint
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-	if(rblockRel.isPotentialStallSite(fn)) {
-	  // x=y.f, stall y if not accessible
-	  // contributes read effects on stall site of y
-	  // after this, x and y are accessbile.
+        if(rblockRel.isPotentialStallSite(fn)) {
+          // x=y.f, stall y if not accessible
+          // contributes read effects on stall site of y
+          // after this, x and y are accessbile.
 //          if(!rg.isAccessible(rhs)) {
-	  if(!accessible.isAccessible(fn,rhs)) {
-	    rg.taintStallSite(fn, rhs);
-	  }
+          if(!accessible.isAccessible(fn,rhs)) {
+            rg.taintStallSite(fn, rhs);
+          }
 
-	  rg.makeAccessible(lhs);
-	  rg.makeAccessible(rhs);
-	}
+          rg.makeAccessible(lhs);
+          rg.makeAccessible(rhs);
+        }
       }
 
       if( shouldAnalysisTrack(lhs.getType() ) ) {
-	// transfer func
-	rg.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement, fn);
+        // transfer func
+        rg.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement, fn);
       }
 
       // use transformed graph to do effects analysis
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-	effectsAnalysis.analyzeFlatFieldNode(rg, rhs, fdElement, fn);
+        effectsAnalysis.analyzeFlatFieldNode(rg, rhs, fdElement, fn);
       }
       break;
 
@@ -1383,37 +1383,37 @@ public class DisjointAnalysis implements HeapAnalysis {
       // stall-site taints
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 
-	if(rblockRel.isPotentialStallSite(fn)) {
-	  // x.y=f , stall x and y if they are not accessible
-	  // also contribute write effects on stall site of x
+        if(rblockRel.isPotentialStallSite(fn)) {
+          // x.y=f , stall x and y if they are not accessible
+          // also contribute write effects on stall site of x
 //          if(!rg.isAccessible(lhs)) {
-	  if(!accessible.isAccessible(fn,lhs)) {
-	    rg.taintStallSite(fn, lhs);
-	  }
+          if(!accessible.isAccessible(fn,lhs)) {
+            rg.taintStallSite(fn, lhs);
+          }
 
 //          if(!rg.isAccessible(rhs)) {
-	  if(!accessible.isAccessible(fn,rhs)) {
-	    rg.taintStallSite(fn, rhs);
-	  }
+          if(!accessible.isAccessible(fn,rhs)) {
+            rg.taintStallSite(fn, rhs);
+          }
 
-	  // accessible status update
-	  rg.makeAccessible(lhs);
-	  rg.makeAccessible(rhs);
-	}
+          // accessible status update
+          rg.makeAccessible(lhs);
+          rg.makeAccessible(rhs);
+        }
       }
 
       if( shouldAnalysisTrack(rhs.getType() ) ) {
-	// transfer func, BUT
-	// skip this node if it cannot create new reachability paths
-	if( !arrayReferencees.doesNotCreateNewReaching(fsen) ) {
-	  rg.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs, fn);
-	}
+        // transfer func, BUT
+        // skip this node if it cannot create new reachability paths
+        if( !arrayReferencees.doesNotCreateNewReaching(fsen) ) {
+          rg.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs, fn);
+        }
       }
 
       // use transformed graph to do effects analysis
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-	effectsAnalysis.analyzeFlatSetFieldNode(rg, lhs, fdElement, fn,
-	                                        false);
+        effectsAnalysis.analyzeFlatSetFieldNode(rg, lhs, fdElement, fn,
+                                                false);
       }
       break;
 
@@ -1421,18 +1421,18 @@ public class DisjointAnalysis implements HeapAnalysis {
       FlatNew fnn = (FlatNew) fn;
       lhs = fnn.getDst();
       if( shouldAnalysisTrack(lhs.getType() ) ) {
-	AllocSite as = getAllocSiteFromFlatNewPRIVATE(fnn);
+        AllocSite as = getAllocSiteFromFlatNewPRIVATE(fnn);
 
-	// before transform, support effects analysis
-	if (doEffectsAnalysis && fmContaining != fmAnalysisEntry) {
-	  if (rblockRel.isPotentialStallSite(fn)) {
-	    // after creating new object, lhs is accessible
-	    rg.makeAccessible(lhs);
-	  }
-	}
+        // before transform, support effects analysis
+        if (doEffectsAnalysis && fmContaining != fmAnalysisEntry) {
+          if (rblockRel.isPotentialStallSite(fn)) {
+            // after creating new object, lhs is accessible
+            rg.makeAccessible(lhs);
+          }
+        }
 
-	// transfer func
-	rg.assignTempEqualToNewAlloc(lhs, as);
+        // transfer func
+        rg.assignTempEqualToNewAlloc(lhs, as);
       }
       break;
 
@@ -1441,11 +1441,11 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 
-	// always remove ALL stall site taints at enter
-	rg.removeAllStallSiteTaints();
+        // always remove ALL stall site taints at enter
+        rg.removeAllStallSiteTaints();
 
-	// inject taints for in-set vars
-	rg.taintInSetVars(sese);
+        // inject taints for in-set vars
+        rg.taintInSetVars(sese);
 
       }
       break;
@@ -1456,15 +1456,15 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 
-	// @ sese exit make all live variables
-	// inaccessible to later parent statements
-	rg.makeInaccessible(liveness.getLiveInTemps(fmContaining, fn) );
+        // @ sese exit make all live variables
+        // inaccessible to later parent statements
+        rg.makeInaccessible(liveness.getLiveInTemps(fmContaining, fn) );
 
-	// always remove ALL stall site taints at exit
-	rg.removeAllStallSiteTaints();
+        // always remove ALL stall site taints at exit
+        rg.removeAllStallSiteTaints();
 
-	// remove in-set var taints for the exiting rblock
-	rg.removeInContextTaints(sese);
+        // remove in-set var taints for the exiting rblock
+        rg.removeInContextTaints(sese);
       }
       break;
 
@@ -1472,9 +1472,9 @@ public class DisjointAnalysis implements HeapAnalysis {
     case FKind.FlatCall: {
       Descriptor mdCaller;
       if( fmContaining.getMethod() != null ) {
-	mdCaller = fmContaining.getMethod();
+        mdCaller = fmContaining.getMethod();
       } else {
-	mdCaller = fmContaining.getTask();
+        mdCaller = fmContaining.getTask();
       }
       FlatCall fc       = (FlatCall) fn;
       MethodDescriptor mdCallee = fc.getMethod();
@@ -1482,15 +1482,15 @@ public class DisjointAnalysis implements HeapAnalysis {
 
 
       if( mdCallee.getSymbol().equals("genReach") ) {
-	rg.writeGraph("genReach"+d,
-	              true,     // write labels (variables)
-	              true,     // selectively hide intermediate temp vars
-	              true,     // prune unreachable heap regions
-	              false,    // hide reachability altogether
-	              true,     // hide subset reachability states
-	              true,     // hide predicates
-	              true);    // hide edge taints
-	break;
+        rg.writeGraph("genReach"+d,
+                      true,     // write labels (variables)
+                      true,     // selectively hide intermediate temp vars
+                      true,     // prune unreachable heap regions
+                      false,    // hide reachability altogether
+                      true,     // hide subset reachability states
+                      true,     // hide predicates
+                      true);    // hide edge taints
+        break;
       }
 
 
@@ -1502,29 +1502,29 @@ public class DisjointAnalysis implements HeapAnalysis {
       boolean writeDebugDOTs = false;
       boolean stopAfter      = false;
       if( debugCallSite ) {
-	++ReachGraph.debugCallSiteVisitCounter;
-	System.out.println("    $$$ Debug call site visit "+
-	                   ReachGraph.debugCallSiteVisitCounter+
-	                   " $$$"
-	                   );
-	if(
-	  (ReachGraph.debugCallSiteVisitCounter >=
-	   ReachGraph.debugCallSiteVisitStartCapture)  &&
+        ++ReachGraph.debugCallSiteVisitCounter;
+        System.out.println("    $$$ Debug call site visit "+
+                           ReachGraph.debugCallSiteVisitCounter+
+                           " $$$"
+                           );
+        if(
+          (ReachGraph.debugCallSiteVisitCounter >=
+           ReachGraph.debugCallSiteVisitStartCapture)  &&
 
-	  (ReachGraph.debugCallSiteVisitCounter <
-	   ReachGraph.debugCallSiteVisitStartCapture +
-	   ReachGraph.debugCallSiteNumVisitsToCapture)
-	  ) {
-	  writeDebugDOTs = true;
-	  System.out.println("      $$$ Capturing this call site visit $$$");
-	  if( ReachGraph.debugCallSiteStopAfter &&
-	      (ReachGraph.debugCallSiteVisitCounter ==
-	       ReachGraph.debugCallSiteVisitStartCapture +
-	       ReachGraph.debugCallSiteNumVisitsToCapture - 1)
-	      ) {
-	    stopAfter = true;
-	  }
-	}
+          (ReachGraph.debugCallSiteVisitCounter <
+           ReachGraph.debugCallSiteVisitStartCapture +
+           ReachGraph.debugCallSiteNumVisitsToCapture)
+          ) {
+          writeDebugDOTs = true;
+          System.out.println("      $$$ Capturing this call site visit $$$");
+          if( ReachGraph.debugCallSiteStopAfter &&
+              (ReachGraph.debugCallSiteVisitCounter ==
+               ReachGraph.debugCallSiteVisitStartCapture +
+               ReachGraph.debugCallSiteNumVisitsToCapture - 1)
+              ) {
+            stopAfter = true;
+          }
+        }
       }
 
 
@@ -1553,23 +1553,23 @@ public class DisjointAnalysis implements HeapAnalysis {
       heapForThisCall_cur.merge(heapForThisCall_old);
 
       if( !heapForThisCall_cur.equals(heapForThisCall_old) ) {
-	// if heap at call site changed, update the contribution,
-	// and reschedule the callee for analysis
-	addIHMcontribution(mdCallee, fc, heapForThisCall_cur);
+        // if heap at call site changed, update the contribution,
+        // and reschedule the callee for analysis
+        addIHMcontribution(mdCallee, fc, heapForThisCall_cur);
 
-	// map a FlatCall to its enclosing method/task descriptor
-	// so we can write that info out later
-	fc2enclosing.put(fc, mdCaller);
+        // map a FlatCall to its enclosing method/task descriptor
+        // so we can write that info out later
+        fc2enclosing.put(fc, mdCaller);
 
-	if( state.DISJOINTDEBUGSCHEDULING ) {
-	  System.out.println("  context changed, scheduling callee: "+mdCallee);
-	}
+        if( state.DISJOINTDEBUGSCHEDULING ) {
+          System.out.println("  context changed, scheduling callee: "+mdCallee);
+        }
 
-	if( state.DISJOINTDVISITSTACKEESONTOP ) {
-	  calleesToEnqueue.add(mdCallee);
-	} else {
-	  enqueue(mdCallee);
-	}
+        if( state.DISJOINTDVISITSTACKEESONTOP ) {
+          calleesToEnqueue.add(mdCallee);
+        } else {
+          enqueue(mdCallee);
+        }
 
       }
 
@@ -1579,78 +1579,78 @@ public class DisjointAnalysis implements HeapAnalysis {
       // callees, so find the set of callees...
       Set<MethodDescriptor> setPossibleCallees;
       if( determinismDesired ) {
-	// use an ordered set
-	setPossibleCallees = new TreeSet<MethodDescriptor>(dComp);
+        // use an ordered set
+        setPossibleCallees = new TreeSet<MethodDescriptor>(dComp);
       } else {
-	// otherwise use a speedy hashset
-	setPossibleCallees = new HashSet<MethodDescriptor>();
+        // otherwise use a speedy hashset
+        setPossibleCallees = new HashSet<MethodDescriptor>();
       }
 
       if( mdCallee.isStatic() ) {
-	setPossibleCallees.add(mdCallee);
+        setPossibleCallees.add(mdCallee);
       } else {
-	TypeDescriptor typeDesc = fc.getThis().getType();
-	setPossibleCallees.addAll(callGraph.getMethods(mdCallee,
-	                                               typeDesc)
-	                          );
+        TypeDescriptor typeDesc = fc.getThis().getType();
+        setPossibleCallees.addAll(callGraph.getMethods(mdCallee,
+                                                       typeDesc)
+                                  );
       }
 
       ReachGraph rgMergeOfPossibleCallers = new ReachGraph();
 
       Iterator<MethodDescriptor> mdItr = setPossibleCallees.iterator();
       while( mdItr.hasNext() ) {
-	MethodDescriptor mdPossible = mdItr.next();
-	FlatMethod fmPossible = state.getMethodFlat(mdPossible);
+        MethodDescriptor mdPossible = mdItr.next();
+        FlatMethod fmPossible = state.getMethodFlat(mdPossible);
 
-	addDependent(mdPossible,  // callee
-	             d);          // caller
+        addDependent(mdPossible,  // callee
+                     d);          // caller
 
-	// don't alter the working graph (rg) until we compute a
-	// result for every possible callee, merge them all together,
-	// then set rg to that
-	ReachGraph rgPossibleCaller = new ReachGraph();
-	rgPossibleCaller.merge(rg);
+        // don't alter the working graph (rg) until we compute a
+        // result for every possible callee, merge them all together,
+        // then set rg to that
+        ReachGraph rgPossibleCaller = new ReachGraph();
+        rgPossibleCaller.merge(rg);
 
-	ReachGraph rgPossibleCallee = getPartial(mdPossible);
+        ReachGraph rgPossibleCallee = getPartial(mdPossible);
 
-	if( rgPossibleCallee == null ) {
-	  // if this method has never been analyzed just schedule it
-	  // for analysis and skip over this call site for now
-	  if( state.DISJOINTDVISITSTACKEESONTOP ) {
-	    calleesToEnqueue.add(mdPossible);
-	  } else {
-	    enqueue(mdPossible);
-	  }
+        if( rgPossibleCallee == null ) {
+          // if this method has never been analyzed just schedule it
+          // for analysis and skip over this call site for now
+          if( state.DISJOINTDVISITSTACKEESONTOP ) {
+            calleesToEnqueue.add(mdPossible);
+          } else {
+            enqueue(mdPossible);
+          }
 
-	  if( state.DISJOINTDEBUGSCHEDULING ) {
-	    System.out.println("  callee hasn't been analyzed, scheduling: "+mdPossible);
-	  }
+          if( state.DISJOINTDEBUGSCHEDULING ) {
+            System.out.println("  callee hasn't been analyzed, scheduling: "+mdPossible);
+          }
 
-	} else {
-	  // calculate the method call transform
-	  rgPossibleCaller.resolveMethodCall(fc,
-	                                     fmPossible,
-	                                     rgPossibleCallee,
-	                                     callerNodeIDsCopiedToCallee,
-	                                     writeDebugDOTs
-	                                     );
+        } else {
+          // calculate the method call transform
+          rgPossibleCaller.resolveMethodCall(fc,
+                                             fmPossible,
+                                             rgPossibleCallee,
+                                             callerNodeIDsCopiedToCallee,
+                                             writeDebugDOTs
+                                             );
 
-	  if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+          if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 //            if( !rgPossibleCallee.isAccessible( ReachGraph.tdReturn ) ) {
-	    if( !accessible.isAccessible(fn, ReachGraph.tdReturn) ) {
-	      rgPossibleCaller.makeInaccessible(fc.getReturnTemp() );
-	    }
-	  }
+            if( !accessible.isAccessible(fn, ReachGraph.tdReturn) ) {
+              rgPossibleCaller.makeInaccessible(fc.getReturnTemp() );
+            }
+          }
 
-	}
+        }
 
-	rgMergeOfPossibleCallers.merge(rgPossibleCaller);
+        rgMergeOfPossibleCallers.merge(rgPossibleCaller);
       }
 
 
       if( stopAfter ) {
-	System.out.println("$$$ Exiting after requested captures of call site. $$$");
-	System.exit(0);
+        System.out.println("$$$ Exiting after requested captures of call site. $$$");
+        System.exit(0);
       }
 
 
@@ -1665,10 +1665,10 @@ public class DisjointAnalysis implements HeapAnalysis {
       //need to consider more
       FlatNode nextFN=fmCallee.getNext(0);
       if( nextFN instanceof FlatSESEEnterNode ) {
-	FlatSESEEnterNode calleeSESE=(FlatSESEEnterNode)nextFN;
-	if(!calleeSESE.getIsLeafSESE()) {
-	  rg.makeInaccessible(liveness.getLiveInTemps(fmContaining, fn) );
-	}
+        FlatSESEEnterNode calleeSESE=(FlatSESEEnterNode)nextFN;
+        if(!calleeSESE.getIsLeafSESE()) {
+          rg.makeInaccessible(liveness.getLiveInTemps(fmContaining, fn) );
+        }
       }
 
     } break;
@@ -1681,13 +1681,13 @@ public class DisjointAnalysis implements HeapAnalysis {
       // before transfer, do effects analysis support
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 //        if(!rg.isAccessible(rhs)){
-	if(!accessible.isAccessible(fn,rhs)) {
-	  rg.makeInaccessible(ReachGraph.tdReturn);
-	}
+        if(!accessible.isAccessible(fn,rhs)) {
+          rg.makeInaccessible(ReachGraph.tdReturn);
+        }
       }
 
       if( rhs != null && shouldAnalysisTrack(rhs.getType() ) ) {
-	rg.assignReturnEqualToTemp(rhs);
+        rg.assignReturnEqualToTemp(rhs);
       }
 
       setRetNodes.add(frn);
@@ -1754,9 +1754,9 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       String graphName;
       if( d instanceof TaskDescriptor ) {
-	graphName = "COMPLETEtask"+d;
+        graphName = "COMPLETEtask"+d;
       } else {
-	graphName = "COMPLETE"+d;
+        graphName = "COMPLETE"+d;
       }
 
       rg.writeGraph(graphName,
@@ -1779,18 +1779,18 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       Iterator fc2rgItr = IHMs.entrySet().iterator();
       while( fc2rgItr.hasNext() ) {
-	Map.Entry me2 = (Map.Entry)fc2rgItr.next();
-	FlatCall fc  = (FlatCall)   me2.getKey();
-	ReachGraph rg  = (ReachGraph) me2.getValue();
+        Map.Entry me2 = (Map.Entry)fc2rgItr.next();
+        FlatCall fc  = (FlatCall)   me2.getKey();
+        ReachGraph rg  = (ReachGraph) me2.getValue();
 
-	rg.writeGraph("IHMPARTFOR"+d+"FROM"+fc2enclosing.get(fc)+fc,
-	              true,    // write labels (variables)
-	              true,    // selectively hide intermediate temp vars
-	              true,    // hide reachability altogether
-	              true,    // prune unreachable heap regions
-	              true,    // hide subset reachability states
-	              false,   // hide predicates
-	              true);   // hide edge taints
+        rg.writeGraph("IHMPARTFOR"+d+"FROM"+fc2enclosing.get(fc)+fc,
+                      true,    // write labels (variables)
+                      true,    // selectively hide intermediate temp vars
+                      true,    // hide reachability altogether
+                      true,    // prune unreachable heap regions
+                      true,    // hide subset reachability states
+                      false,   // hide predicates
+                      true);   // hide edge taints
       }
     }
   }
@@ -1829,15 +1829,15 @@ public class DisjointAnalysis implements HeapAnalysis {
     // descriptor we've already written out
     if( writeAllIncrementalDOTs ) {
       if( !mapDescriptorToNumUpdates.containsKey(d) ) {
-	mapDescriptorToNumUpdates.put(d, new Integer(0) );
+        mapDescriptorToNumUpdates.put(d, new Integer(0) );
       }
       Integer n = mapDescriptorToNumUpdates.get(d);
 
       String graphName;
       if( d instanceof TaskDescriptor ) {
-	graphName = d+"COMPLETEtask"+String.format("%05d", n);
+        graphName = d+"COMPLETEtask"+String.format("%05d", n);
       } else {
-	graphName = d+"COMPLETE"+String.format("%05d", n);
+        graphName = d+"COMPLETE"+String.format("%05d", n);
       }
 
       rg.writeGraph(graphName,
@@ -1872,9 +1872,9 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       // the newest nodes are single objects
       for( int i = 0; i < allocationDepth; ++i ) {
-	Integer id = generateUniqueHeapRegionNodeID();
-	as.setIthOldest(i, id);
-	mapHrnIdToAllocSite.put(id, as);
+        Integer id = generateUniqueHeapRegionNodeID();
+        as.setIthOldest(i, id);
+        mapHrnIdToAllocSite.put(id, as);
       }
 
       // the oldest node is a summary node
@@ -1982,7 +1982,7 @@ public class DisjointAnalysis implements HeapAnalysis {
       Descriptor d = itr.next();
 
       if( !discovered.contains(d) ) {
-	dfsVisit(d, toSort, sorted, discovered);
+        dfsVisit(d, toSort, sorted, discovered);
       }
     }
 
@@ -2010,31 +2010,31 @@ public class DisjointAnalysis implements HeapAnalysis {
       // the call graph is not aware that we have a fabricated
       // analysis entry that calls the program source's entry
       if( md == mdSourceEntry ) {
-	if( !discovered.contains(mdAnalysisEntry) ) {
-	  addDependent(mdSourceEntry,   // callee
-	               mdAnalysisEntry  // caller
-	               );
-	  dfsVisit(mdAnalysisEntry, toSort, sorted, discovered);
-	}
+        if( !discovered.contains(mdAnalysisEntry) ) {
+          addDependent(mdSourceEntry,   // callee
+                       mdAnalysisEntry  // caller
+                       );
+          dfsVisit(mdAnalysisEntry, toSort, sorted, discovered);
+        }
       }
 
       // otherwise call graph guides DFS
       Iterator itr = callGraph.getCallerSet(md).iterator();
       while( itr.hasNext() ) {
-	Descriptor dCaller = (Descriptor) itr.next();
+        Descriptor dCaller = (Descriptor) itr.next();
 
-	// only consider callers in the original set to analyze
-	if( !toSort.contains(dCaller) ) {
-	  continue;
-	}
+        // only consider callers in the original set to analyze
+        if( !toSort.contains(dCaller) ) {
+          continue;
+        }
 
-	if( !discovered.contains(dCaller) ) {
-	  addDependent(md,      // callee
-	               dCaller  // caller
-	               );
+        if( !discovered.contains(dCaller) ) {
+          addDependent(md,      // callee
+                       dCaller  // caller
+                       );
 
-	  dfsVisit(dCaller, toSort, sorted, discovered);
-	}
+          dfsVisit(dCaller, toSort, sorted, discovered);
+        }
       }
     }
 
@@ -2050,13 +2050,13 @@ public class DisjointAnalysis implements HeapAnalysis {
       if( state.DISJOINTDVISITSTACK ||
           state.DISJOINTDVISITSTACKEESONTOP
           ) {
-	descriptorsToVisitStack.add(d);
+        descriptorsToVisitStack.add(d);
 
       } else if( state.DISJOINTDVISITPQUE ) {
-	Integer priority = mapDescriptorToPriority.get(d);
-	descriptorsToVisitQ.add(new DescriptorQWrapper(priority,
-	                                               d)
-	                        );
+        Integer priority = mapDescriptorToPriority.get(d);
+        descriptorsToVisitQ.add(new DescriptorQWrapper(priority,
+                                                       d)
+                                );
       }
 
       descriptorsToVisitSet.add(d);
@@ -2170,11 +2170,11 @@ public class DisjointAnalysis implements HeapAnalysis {
     if(!typeDesc.isImmutable()) {
       ClassDescriptor classDesc = typeDesc.getClassDesc();
       for (Iterator it = classDesc.getFields(); it.hasNext(); ) {
-	FieldDescriptor field = (FieldDescriptor) it.next();
-	TypeDescriptor fieldType = field.getType();
-	if (shouldAnalysisTrack(fieldType)) {
-	  fieldSet.add(field);
-	}
+        FieldDescriptor field = (FieldDescriptor) it.next();
+        TypeDescriptor fieldType = field.getType();
+        if (shouldAnalysisTrack(fieldType)) {
+          fieldSet.add(field);
+        }
       }
     }
     return fieldSet;
@@ -2192,59 +2192,59 @@ public class DisjointAnalysis implements HeapAnalysis {
       TempDescriptor tempDesc=new TempDescriptor(typeDesc.getSymbol(),typeDesc);
       HeapRegionNode hrnSummary;
       if(!mapToExistingNode.containsKey(typeDesc)) {
-	AllocSite as;
-	if(i==dimCount) {
-	  as = alloc;
-	} else {
-	  as = createParameterAllocSite(rg, tempDesc, false);
-	}
-	// make a new reference to allocated node
-	hrnSummary =
-	  rg.createNewHeapRegionNode(as.getSummary(),                       // id or null to generate a new one
-	                             false,                       // single object?
-	                             true,                       // summary?
-	                             false,                       // out-of-context?
-	                             as.getType(),                       // type
-	                             as,                       // allocation site
-	                             alpha,                       // inherent reach
-	                             alpha,                       // current reach
-	                             ExistPredSet.factory(rg.predTrue),                       // predicates
-	                             tempDesc.toString()                       // description
-	                             );
-	rg.id2hrn.put(as.getSummary(),hrnSummary);
+        AllocSite as;
+        if(i==dimCount) {
+          as = alloc;
+        } else {
+          as = createParameterAllocSite(rg, tempDesc, false);
+        }
+        // make a new reference to allocated node
+        hrnSummary =
+          rg.createNewHeapRegionNode(as.getSummary(),                       // id or null to generate a new one
+                                     false,                       // single object?
+                                     true,                       // summary?
+                                     false,                       // out-of-context?
+                                     as.getType(),                       // type
+                                     as,                       // allocation site
+                                     alpha,                       // inherent reach
+                                     alpha,                       // current reach
+                                     ExistPredSet.factory(rg.predTrue),                       // predicates
+                                     tempDesc.toString()                       // description
+                                     );
+        rg.id2hrn.put(as.getSummary(),hrnSummary);
 
-	mapToExistingNode.put(typeDesc, hrnSummary);
+        mapToExistingNode.put(typeDesc, hrnSummary);
       } else {
-	hrnSummary=mapToExistingNode.get(typeDesc);
+        hrnSummary=mapToExistingNode.get(typeDesc);
       }
 
       if(prevNode==null) {
-	// make a new reference between new summary node and source
-	RefEdge edgeToSummary = new RefEdge(srcHRN,       // source
-	                                    hrnSummary,             // dest
-	                                    typeDesc,             // type
-	                                    fd.getSymbol(),             // field name
-	                                    alpha,             // beta
-	                                    ExistPredSet.factory(rg.predTrue),       // predicates
-	                                    null
-	                                    );
+        // make a new reference between new summary node and source
+        RefEdge edgeToSummary = new RefEdge(srcHRN,       // source
+                                            hrnSummary,             // dest
+                                            typeDesc,             // type
+                                            fd.getSymbol(),             // field name
+                                            alpha,             // beta
+                                            ExistPredSet.factory(rg.predTrue),       // predicates
+                                            null
+                                            );
 
-	rg.addRefEdge(srcHRN, hrnSummary, edgeToSummary);
-	prevNode=hrnSummary;
-	arrayEntryNode=hrnSummary;
+        rg.addRefEdge(srcHRN, hrnSummary, edgeToSummary);
+        prevNode=hrnSummary;
+        arrayEntryNode=hrnSummary;
       } else {
-	// make a new reference between summary nodes of array
-	RefEdge edgeToSummary = new RefEdge(prevNode,             // source
-	                                    hrnSummary,             // dest
-	                                    typeDesc,             // type
-	                                    arrayElementFieldName,             // field name
-	                                    alpha,             // beta
-	                                    ExistPredSet.factory(rg.predTrue),             // predicates
-	                                    null
-	                                    );
+        // make a new reference between summary nodes of array
+        RefEdge edgeToSummary = new RefEdge(prevNode,             // source
+                                            hrnSummary,             // dest
+                                            typeDesc,             // type
+                                            arrayElementFieldName,             // field name
+                                            alpha,             // beta
+                                            ExistPredSet.factory(rg.predTrue),             // predicates
+                                            null
+                                            );
 
-	rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
-	prevNode=hrnSummary;
+        rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
+        prevNode=hrnSummary;
       }
 
     }
@@ -2255,47 +2255,47 @@ public class DisjointAnalysis implements HeapAnalysis {
       TypeDescriptor typeDesc=type.dereference();
       typeDesc.setArrayCount(0);
       if(!mapToExistingNode.containsKey(typeDesc)) {
-	TempDescriptor tempDesc=new TempDescriptor(type.getSymbol(),typeDesc);
-	AllocSite as = createParameterAllocSite(rg, tempDesc, false);
-	// make a new reference to allocated node
-	HeapRegionNode hrnSummary =
-	  rg.createNewHeapRegionNode(as.getSummary(),                       // id or null to generate a new one
-	                             false,                       // single object?
-	                             true,                       // summary?
-	                             false,                       // out-of-context?
-	                             typeDesc,                       // type
-	                             as,                       // allocation site
-	                             alpha,                       // inherent reach
-	                             alpha,                       // current reach
-	                             ExistPredSet.factory(rg.predTrue),                       // predicates
-	                             tempDesc.toString()                       // description
-	                             );
-	rg.id2hrn.put(as.getSummary(),hrnSummary);
-	mapToExistingNode.put(typeDesc, hrnSummary);
-	RefEdge edgeToSummary = new RefEdge(prevNode,             // source
-	                                    hrnSummary, // dest
-	                                    typeDesc, // type
-	                                    arrayElementFieldName, // field name
-	                                    alpha, // beta
-	                                    ExistPredSet.factory(rg.predTrue),             // predicates
-	                                    null
-	                                    );
-	rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
-	prevNode=hrnSummary;
+        TempDescriptor tempDesc=new TempDescriptor(type.getSymbol(),typeDesc);
+        AllocSite as = createParameterAllocSite(rg, tempDesc, false);
+        // make a new reference to allocated node
+        HeapRegionNode hrnSummary =
+          rg.createNewHeapRegionNode(as.getSummary(),                       // id or null to generate a new one
+                                     false,                       // single object?
+                                     true,                       // summary?
+                                     false,                       // out-of-context?
+                                     typeDesc,                       // type
+                                     as,                       // allocation site
+                                     alpha,                       // inherent reach
+                                     alpha,                       // current reach
+                                     ExistPredSet.factory(rg.predTrue),                       // predicates
+                                     tempDesc.toString()                       // description
+                                     );
+        rg.id2hrn.put(as.getSummary(),hrnSummary);
+        mapToExistingNode.put(typeDesc, hrnSummary);
+        RefEdge edgeToSummary = new RefEdge(prevNode,             // source
+                                            hrnSummary, // dest
+                                            typeDesc, // type
+                                            arrayElementFieldName, // field name
+                                            alpha, // beta
+                                            ExistPredSet.factory(rg.predTrue),             // predicates
+                                            null
+                                            );
+        rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
+        prevNode=hrnSummary;
       } else {
-	HeapRegionNode hrnSummary=mapToExistingNode.get(typeDesc);
-	if(prevNode.getReferenceTo(hrnSummary, typeDesc, arrayElementFieldName)==null) {
-	  RefEdge edgeToSummary = new RefEdge(prevNode,               // source
-	                                      hrnSummary, // dest
-	                                      typeDesc, // type
-	                                      arrayElementFieldName, // field name
-	                                      alpha, // beta
-	                                      ExistPredSet.factory(rg.predTrue),               // predicates
-	                                      null
-	                                      );
-	  rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
-	}
-	prevNode=hrnSummary;
+        HeapRegionNode hrnSummary=mapToExistingNode.get(typeDesc);
+        if(prevNode.getReferenceTo(hrnSummary, typeDesc, arrayElementFieldName)==null) {
+          RefEdge edgeToSummary = new RefEdge(prevNode,               // source
+                                              hrnSummary, // dest
+                                              typeDesc, // type
+                                              arrayElementFieldName, // field name
+                                              alpha, // beta
+                                              ExistPredSet.factory(rg.predTrue),               // predicates
+                                              null
+                                              );
+          rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
+        }
+        prevNode=hrnSummary;
       }
     }
 
@@ -2341,118 +2341,118 @@ public class DisjointAnalysis implements HeapAnalysis {
       // set-up a work set for class field
       ClassDescriptor classDesc = paramTypeDesc.getClassDesc();
       for (Iterator it = classDesc.getFields(); it.hasNext(); ) {
-	FieldDescriptor fd = (FieldDescriptor) it.next();
-	TypeDescriptor fieldType = fd.getType();
-	if (shouldAnalysisTrack(fieldType)) {
-	  HashMap<HeapRegionNode, FieldDescriptor> newMap = new HashMap<HeapRegionNode, FieldDescriptor>();
-	  newMap.put(hrnNewest, fd);
-	  workSet.add(newMap);
-	}
+        FieldDescriptor fd = (FieldDescriptor) it.next();
+        TypeDescriptor fieldType = fd.getType();
+        if (shouldAnalysisTrack(fieldType)) {
+          HashMap<HeapRegionNode, FieldDescriptor> newMap = new HashMap<HeapRegionNode, FieldDescriptor>();
+          newMap.put(hrnNewest, fd);
+          workSet.add(newMap);
+        }
       }
 
       int uniqueIdentifier = 0;
       while (!workSet.isEmpty()) {
-	HashMap<HeapRegionNode, FieldDescriptor> map = workSet
-	                                               .iterator().next();
-	workSet.remove(map);
+        HashMap<HeapRegionNode, FieldDescriptor> map = workSet
+                                                       .iterator().next();
+        workSet.remove(map);
 
-	Set<HeapRegionNode> key = map.keySet();
-	HeapRegionNode srcHRN = key.iterator().next();
-	FieldDescriptor fd = map.get(srcHRN);
-	TypeDescriptor type = fd.getType();
-	String doneSetIdentifier = srcHRN.getIDString() + "_" + fd;
+        Set<HeapRegionNode> key = map.keySet();
+        HeapRegionNode srcHRN = key.iterator().next();
+        FieldDescriptor fd = map.get(srcHRN);
+        TypeDescriptor type = fd.getType();
+        String doneSetIdentifier = srcHRN.getIDString() + "_" + fd;
 
-	if (!doneSet.contains(doneSetIdentifier)) {
-	  doneSet.add(doneSetIdentifier);
-	  if (!mapTypeToExistingSummaryNode.containsKey(type)) {
-	    // create new summary Node
-	    TempDescriptor td = new TempDescriptor("temp"
-	                                           + uniqueIdentifier, type);
+        if (!doneSet.contains(doneSetIdentifier)) {
+          doneSet.add(doneSetIdentifier);
+          if (!mapTypeToExistingSummaryNode.containsKey(type)) {
+            // create new summary Node
+            TempDescriptor td = new TempDescriptor("temp"
+                                                   + uniqueIdentifier, type);
 
-	    AllocSite allocSite;
-	    if(type.equals(paramTypeDesc)) {
-	      //corresponding allocsite has already been created for a parameter variable.
-	      allocSite=as;
-	    } else {
-	      allocSite = createParameterAllocSite(rg, td, false);
-	    }
-	    String strDesc = allocSite.toStringForDOT()
-	                     + "\\nsummary";
-	    TypeDescriptor allocType=allocSite.getType();
+            AllocSite allocSite;
+            if(type.equals(paramTypeDesc)) {
+              //corresponding allocsite has already been created for a parameter variable.
+              allocSite=as;
+            } else {
+              allocSite = createParameterAllocSite(rg, td, false);
+            }
+            String strDesc = allocSite.toStringForDOT()
+                             + "\\nsummary";
+            TypeDescriptor allocType=allocSite.getType();
 
-	    HeapRegionNode hrnSummary;
-	    if(allocType.isArray() && allocType.getArrayCount()>0) {
-	      hrnSummary=createMultiDeimensionalArrayHRN(rg,allocSite,srcHRN,fd,mapToFirstDimensionArrayNode,mapTypeToExistingSummaryNode,hrnNewest.getAlpha());
-	    } else {
-	      hrnSummary =
-	        rg.createNewHeapRegionNode(allocSite.getSummary(),                         // id or null to generate a new one
-	                                   false,                         // single object?
-	                                   true,                         // summary?
-	                                   false,                         // out-of-context?
-	                                   allocSite.getType(),                         // type
-	                                   allocSite,                         // allocation site
-	                                   hrnNewest.getAlpha(),                         // inherent reach
-	                                   hrnNewest.getAlpha(),                         // current reach
-	                                   ExistPredSet.factory(rg.predTrue),                         // predicates
-	                                   strDesc                         // description
-	                                   );
-	      rg.id2hrn.put(allocSite.getSummary(),hrnSummary);
+            HeapRegionNode hrnSummary;
+            if(allocType.isArray() && allocType.getArrayCount()>0) {
+              hrnSummary=createMultiDeimensionalArrayHRN(rg,allocSite,srcHRN,fd,mapToFirstDimensionArrayNode,mapTypeToExistingSummaryNode,hrnNewest.getAlpha());
+            } else {
+              hrnSummary =
+                rg.createNewHeapRegionNode(allocSite.getSummary(),                         // id or null to generate a new one
+                                           false,                         // single object?
+                                           true,                         // summary?
+                                           false,                         // out-of-context?
+                                           allocSite.getType(),                         // type
+                                           allocSite,                         // allocation site
+                                           hrnNewest.getAlpha(),                         // inherent reach
+                                           hrnNewest.getAlpha(),                         // current reach
+                                           ExistPredSet.factory(rg.predTrue),                         // predicates
+                                           strDesc                         // description
+                                           );
+              rg.id2hrn.put(allocSite.getSummary(),hrnSummary);
 
-	      // make a new reference to summary node
-	      RefEdge edgeToSummary = new RefEdge(srcHRN,       // source
-	                                          hrnSummary,       // dest
-	                                          type,       // type
-	                                          fd.getSymbol(),       // field name
-	                                          hrnNewest.getAlpha(),       // beta
-	                                          ExistPredSet.factory(rg.predTrue),       // predicates
-	                                          null
-	                                          );
+              // make a new reference to summary node
+              RefEdge edgeToSummary = new RefEdge(srcHRN,       // source
+                                                  hrnSummary,       // dest
+                                                  type,       // type
+                                                  fd.getSymbol(),       // field name
+                                                  hrnNewest.getAlpha(),       // beta
+                                                  ExistPredSet.factory(rg.predTrue),       // predicates
+                                                  null
+                                                  );
 
-	      rg.addRefEdge(srcHRN, hrnSummary, edgeToSummary);
-	    }
-	    uniqueIdentifier++;
+              rg.addRefEdge(srcHRN, hrnSummary, edgeToSummary);
+            }
+            uniqueIdentifier++;
 
-	    mapTypeToExistingSummaryNode.put(type, hrnSummary);
+            mapTypeToExistingSummaryNode.put(type, hrnSummary);
 
-	    // set-up a work set for  fields of the class
-	    Set<FieldDescriptor> fieldTobeAnalyzed=getFieldSetTobeAnalyzed(type);
-	    for (Iterator iterator = fieldTobeAnalyzed.iterator(); iterator
-	         .hasNext(); ) {
-	      FieldDescriptor fieldDescriptor = (FieldDescriptor) iterator
-	                                        .next();
-	      HeapRegionNode newDstHRN;
-	      if(mapToFirstDimensionArrayNode.containsKey(hrnSummary)) {
-		//related heap region node is already exsited.
-		newDstHRN=mapToFirstDimensionArrayNode.get(hrnSummary);
-	      } else {
-		newDstHRN=hrnSummary;
-	      }
-	      doneSetIdentifier = newDstHRN.getIDString() + "_" + fieldDescriptor;
-	      if(!doneSet.contains(doneSetIdentifier)) {
-		// add new work item
-		HashMap<HeapRegionNode, FieldDescriptor> newMap =
-		  new HashMap<HeapRegionNode, FieldDescriptor>();
-		newMap.put(newDstHRN, fieldDescriptor);
-		workSet.add(newMap);
-	      }
-	    }
+            // set-up a work set for  fields of the class
+            Set<FieldDescriptor> fieldTobeAnalyzed=getFieldSetTobeAnalyzed(type);
+            for (Iterator iterator = fieldTobeAnalyzed.iterator(); iterator
+                 .hasNext(); ) {
+              FieldDescriptor fieldDescriptor = (FieldDescriptor) iterator
+                                                .next();
+              HeapRegionNode newDstHRN;
+              if(mapToFirstDimensionArrayNode.containsKey(hrnSummary)) {
+                //related heap region node is already exsited.
+                newDstHRN=mapToFirstDimensionArrayNode.get(hrnSummary);
+              } else {
+                newDstHRN=hrnSummary;
+              }
+              doneSetIdentifier = newDstHRN.getIDString() + "_" + fieldDescriptor;
+              if(!doneSet.contains(doneSetIdentifier)) {
+                // add new work item
+                HashMap<HeapRegionNode, FieldDescriptor> newMap =
+                  new HashMap<HeapRegionNode, FieldDescriptor>();
+                newMap.put(newDstHRN, fieldDescriptor);
+                workSet.add(newMap);
+              }
+            }
 
-	  } else {
-	    // if there exists corresponding summary node
-	    HeapRegionNode hrnDst=mapTypeToExistingSummaryNode.get(type);
+          } else {
+            // if there exists corresponding summary node
+            HeapRegionNode hrnDst=mapTypeToExistingSummaryNode.get(type);
 
-	    RefEdge edgeToSummary = new RefEdge(srcHRN,         // source
-	                                        hrnDst,         // dest
-	                                        fd.getType(),         // type
-	                                        fd.getSymbol(),         // field name
-	                                        srcHRN.getAlpha(),         // beta
-	                                        ExistPredSet.factory(rg.predTrue),         // predicates
-	                                        null
-	                                        );
-	    rg.addRefEdge(srcHRN, hrnDst, edgeToSummary);
+            RefEdge edgeToSummary = new RefEdge(srcHRN,         // source
+                                                hrnDst,         // dest
+                                                fd.getType(),         // type
+                                                fd.getSymbol(),         // field name
+                                                srcHRN.getAlpha(),         // beta
+                                                ExistPredSet.factory(rg.predTrue),         // predicates
+                                                null
+                                                );
+            rg.addRefEdge(srcHRN, hrnDst, edgeToSummary);
 
-	  }
-	}
+          }
+        }
       }
     }
 
@@ -2493,17 +2493,17 @@ public class DisjointAnalysis implements HeapAnalysis {
       FlatNode n = toVisit.iterator().next();
 
       if( n instanceof FlatNew ) {
-	s.add(getAllocSiteFromFlatNewPRIVATE( (FlatNew) n) );
+        s.add(getAllocSiteFromFlatNewPRIVATE( (FlatNew) n) );
       }
 
       toVisit.remove(n);
       visited.add(n);
 
       for( int i = 0; i < pm.numNext(n); ++i ) {
-	FlatNode child = pm.getNext(n, i);
-	if( !visited.contains(child) ) {
-	  toVisit.add(child);
-	}
+        FlatNode child = pm.getNext(n, i);
+        if( !visited.contains(child) ) {
+          toVisit.add(child);
+        }
       }
     }
 
@@ -2526,24 +2526,24 @@ public class DisjointAnalysis implements HeapAnalysis {
       HashSet<AllocSite> asSet = getAllocationSiteSet(d);
       Iterator asItr = asSet.iterator();
       while (asItr.hasNext()) {
-	AllocSite as = (AllocSite) asItr.next();
-	if (as.getDisjointAnalysisId() != null) {
-	  out.add(as);
-	}
+        AllocSite as = (AllocSite) asItr.next();
+        if (as.getDisjointAnalysisId() != null) {
+          out.add(as);
+        }
       }
 
       // enqueue callees of this method to be searched for
       // allocation sites also
       Set callees = callGraph.getCalleeSet(d);
       if (callees != null) {
-	Iterator methItr = callees.iterator();
-	while (methItr.hasNext()) {
-	  MethodDescriptor md = (MethodDescriptor) methItr.next();
+        Iterator methItr = callees.iterator();
+        while (methItr.hasNext()) {
+          MethodDescriptor md = (MethodDescriptor) methItr.next();
 
-	  if (!visited.contains(md)) {
-	    toVisit.add(md);
-	  }
-	}
+          if (!visited.contains(md)) {
+            toVisit.add(md);
+          }
+        }
       }
     }
 
@@ -2569,28 +2569,28 @@ public class DisjointAnalysis implements HeapAnalysis {
       HashSet<AllocSite> asSet = getAllocationSiteSet(d);
       Iterator asItr = asSet.iterator();
       while( asItr.hasNext() ) {
-	AllocSite as = (AllocSite) asItr.next();
-	TypeDescriptor typed = as.getType();
-	if( typed != null ) {
-	  ClassDescriptor cd = typed.getClassDesc();
-	  if( cd != null && cd.hasFlags() ) {
-	    asSetTotal.add(as);
-	  }
-	}
+        AllocSite as = (AllocSite) asItr.next();
+        TypeDescriptor typed = as.getType();
+        if( typed != null ) {
+          ClassDescriptor cd = typed.getClassDesc();
+          if( cd != null && cd.hasFlags() ) {
+            asSetTotal.add(as);
+          }
+        }
       }
 
       // enqueue callees of this method to be searched for
       // allocation sites also
       Set callees = callGraph.getCalleeSet(d);
       if( callees != null ) {
-	Iterator methItr = callees.iterator();
-	while( methItr.hasNext() ) {
-	  MethodDescriptor md = (MethodDescriptor) methItr.next();
+        Iterator methItr = callees.iterator();
+        while( methItr.hasNext() ) {
+          MethodDescriptor md = (MethodDescriptor) methItr.next();
 
-	  if( !visited.contains(md) ) {
-	    toVisit.add(md);
-	  }
-	}
+          if( !visited.contains(md) ) {
+            toVisit.add(md);
+          }
+        }
       }
     }
 
@@ -2639,16 +2639,16 @@ public class DisjointAnalysis implements HeapAnalysis {
                          " @@@");
       String graphName;
       if( in ) {
-	graphName = String.format("snap%03d_%04din",
-	                          snapVisitCounter,
-	                          snapNodeCounter);
+        graphName = String.format("snap%03d_%04din",
+                                  snapVisitCounter,
+                                  snapNodeCounter);
       } else {
-	graphName = String.format("snap%03d_%04dout",
-	                          snapVisitCounter,
-	                          snapNodeCounter);
+        graphName = String.format("snap%03d_%04dout",
+                                  snapVisitCounter,
+                                  snapNodeCounter);
       }
       if( fn != null ) {
-	graphName = graphName + fn;
+        graphName = graphName + fn;
       }
       rg.writeGraph(graphName,
                     true,    // write labels (variables)

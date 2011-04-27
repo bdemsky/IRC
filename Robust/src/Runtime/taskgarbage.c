@@ -27,15 +27,15 @@ void searchtaskroots() {
 #if !defined(MULTICORE)
       struct parameterwrapper * p=objectqueues[i];
       while(p!=NULL) {
-	struct ObjectHash * set=p->objectset;
-	struct ObjectNode * ptr=set->listhead;
-	while(ptr!=NULL) {
-	  void *orig=(void *)ptr->key;
-	  ENQUEUE(orig, *((void **)(&ptr->key)));
-	  ptr=ptr->lnext;
-	}
-	ObjectHashrehash(set); /* Rehash the table */
-	p=p->next;
+        struct ObjectHash * set=p->objectset;
+        struct ObjectNode * ptr=set->listhead;
+        while(ptr!=NULL) {
+          void *orig=(void *)ptr->key;
+          ENQUEUE(orig, *((void **)(&ptr->key)));
+          ptr=ptr->lnext;
+        }
+        ObjectHashrehash(set); /* Rehash the table */
+        p=p->next;
       }
 #endif
     }
@@ -88,8 +88,8 @@ void searchtaskroots() {
       struct taskparamdescriptor *tpd=ptr->src;
       int i;
       for(i=0; i<tpd->numParameters; i++) {
-	void * orig=tpd->parameterArray[i];
-	ENQUEUE(orig, tpd->parameterArray[i]);
+        void * orig=tpd->parameterArray[i];
+        ENQUEUE(orig, tpd->parameterArray[i]);
       }
       ptr=ptr->inext;
     }
@@ -103,8 +103,8 @@ void searchtaskroots() {
       struct taskparamdescriptor *tpd=ptr->src;
       int i;
       for(i=0; i<tpd->numParameters; i++) {
-	void * orig=tpd->parameterArray[i];
-	ENQUEUE(orig, tpd->parameterArray[i]);
+        void * orig=tpd->parameterArray[i];
+        ENQUEUE(orig, tpd->parameterArray[i]);
       }
       ptr=ptr->inext;
     }
@@ -136,45 +136,45 @@ void fixtags() {
       struct ___Object___ *obj=tagd->flagptr;
       struct ___TagDescriptor___ *copy=((struct ___TagDescriptor___**)tagd)[1];
       if (obj==NULL) {
-	/* Zero object case */
+        /* Zero object case */
       } else if (obj->type==-1) {
-	/* Single object case */
-	copy->flagptr=((struct ___Object___**)obj)[1];
+        /* Single object case */
+        copy->flagptr=((struct ___Object___**)obj)[1];
       } else if (obj->type==OBJECTARRAYTYPE) {
-	/* Array case */
-	struct ArrayObject *ao=(struct ArrayObject *) obj;
-	int livecount=0;
-	int j;
-	int k=0;
-	struct ArrayObject *aonew;
+        /* Array case */
+        struct ArrayObject *ao=(struct ArrayObject *) obj;
+        int livecount=0;
+        int j;
+        int k=0;
+        struct ArrayObject *aonew;
 
-	/* Count live objects */
-	for(j=0; j<ao->___cachedCode___; j++) {
-	  struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, j);
-	  if (tobj->type==-1)
-	    livecount++;
-	}
+        /* Count live objects */
+        for(j=0; j<ao->___cachedCode___; j++) {
+          struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, j);
+          if (tobj->type==-1)
+            livecount++;
+        }
 
-	livecount=((livecount-1)/OBJECTARRAYINTERVAL+1)*OBJECTARRAYINTERVAL;
-	aonew=(struct ArrayObject *) tomalloc(sizeof(struct ArrayObject)+sizeof(struct ___Object___*)*livecount);
-	memcpy(aonew, ao, sizeof(struct ArrayObject));
-	aonew->type=OBJECTARRAYTYPE;
-	aonew->___length___=livecount;
-	copy->flagptr=aonew;
-	for(j=0; j<ao->___cachedCode___; j++) {
-	  struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, j);
-	  if (tobj->type==-1) {
-	    struct ___Object___ * tobjcpy=((struct ___Object___**)tobj)[1];
-	    ARRAYSET(aonew, struct ___Object___*, k++,tobjcpy);
-	  }
-	}
-	aonew->___cachedCode___=k;
-	for(; k<livecount; k++) {
-	  ARRAYSET(aonew, struct ___Object___*, k, NULL);
-	}
+        livecount=((livecount-1)/OBJECTARRAYINTERVAL+1)*OBJECTARRAYINTERVAL;
+        aonew=(struct ArrayObject *) tomalloc(sizeof(struct ArrayObject)+sizeof(struct ___Object___*)*livecount);
+        memcpy(aonew, ao, sizeof(struct ArrayObject));
+        aonew->type=OBJECTARRAYTYPE;
+        aonew->___length___=livecount;
+        copy->flagptr=aonew;
+        for(j=0; j<ao->___cachedCode___; j++) {
+          struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, j);
+          if (tobj->type==-1) {
+            struct ___Object___ * tobjcpy=((struct ___Object___**)tobj)[1];
+            ARRAYSET(aonew, struct ___Object___*, k++,tobjcpy);
+          }
+        }
+        aonew->___cachedCode___=k;
+        for(; k<livecount; k++) {
+          ARRAYSET(aonew, struct ___Object___*, k, NULL);
+        }
       } else {
-	/* No object live anymore */
-	copy->flagptr=NULL;
+        /* No object live anymore */
+        copy->flagptr=NULL;
       }
     }
     free(taghead);

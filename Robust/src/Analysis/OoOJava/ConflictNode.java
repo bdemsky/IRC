@@ -89,7 +89,7 @@ public class ConflictNode {
     for (Iterator iterator = taintSet.iterator(); iterator.hasNext(); ) {
       Taint t = (Taint) iterator.next();
       if (t.getAllocSite().equals(as)) {
-	return t;
+        return t;
       }
     }
     return null;
@@ -244,21 +244,21 @@ public class ConflictNode {
       ConflictEdge edge = (ConflictEdge) iterator.next();
 
       if (edge.getVertexU() == edge.getVertexV()) {
-	// self-conflict, need to generate traverser
-	return false;
+        // self-conflict, need to generate traverser
+        return false;
       } else {
 
-	if (edge.getVertexU() == this) {
-	  if (edge.getVertexV().isInVarNode()) {
-	    // has a conflict with invar, need to generate traverser
-	    return false;
-	  }
-	} else {
-	  if (edge.getVertexU().isInVarNode()) {
-	    // has a conflict with invar, need to generate traverser
-	    return false;
-	  }
-	}
+        if (edge.getVertexU() == this) {
+          if (edge.getVertexV().isInVarNode()) {
+            // has a conflict with invar, need to generate traverser
+            return false;
+          }
+        } else {
+          if (edge.getVertexU().isInVarNode()) {
+            // has a conflict with invar, need to generate traverser
+            return false;
+          }
+        }
       }
     }
     return true;

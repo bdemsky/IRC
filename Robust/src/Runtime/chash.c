@@ -89,17 +89,17 @@ unsigned int cRemove(ctable_t *table, void * key) {
     if (curr->key == key) {         // Find a match in the hash table
       table->numelements--;  // Decrement the number of elements in the global hashtable
       if ((curr == &ptr[index]) && (curr->next == NULL)) {  // Delete the first item inside the hashtable with no linked list of cnode_t
-	curr->key = 0;
-	curr->val = NULL;
+        curr->key = 0;
+        curr->val = NULL;
       } else if ((curr == &ptr[index]) && (curr->next != NULL)) { //Delete the first item with a linked list of cnode_t  connected
-	curr->key = curr->next->key;
-	curr->val = curr->next->val;
-	node = curr->next;
-	curr->next = curr->next->next;
-	free(node);
+        curr->key = curr->next->key;
+        curr->val = curr->next->val;
+        node = curr->next;
+        curr->next = curr->next->next;
+        free(node);
       } else {                                          // Regular delete from linked listed
-	prev->next = curr->next;
-	free(curr);
+        prev->next = curr->next;
+        free(curr);
       }
       return 0;
     }
@@ -132,23 +132,23 @@ unsigned int cResize(ctable_t *table, unsigned int newsize) {
       cnode_t * newnode=&ntable[index];
 
       if(newnode->key==0) {
-	newnode->key=curr->key;
-	newnode->val=curr->val;
-	newnode->lnext=last;
-	last=newnode;
+        newnode->key=curr->key;
+        newnode->val=curr->val;
+        newnode->lnext=last;
+        last=newnode;
       } else {
-	cnode_t *tmp=malloc(sizeof(cnode_t));
-	tmp->next=newnode->next;
-	newnode->next=tmp;
-	tmp->key=curr->key;
-	tmp->val=curr->val;
-	tmp->lnext=last;
-	last=tmp;
+        cnode_t *tmp=malloc(sizeof(cnode_t));
+        tmp->next=newnode->next;
+        newnode->next=tmp;
+        tmp->key=curr->key;
+        tmp->val=curr->val;
+        tmp->lnext=last;
+        last=tmp;
       }
       if (isfirst) {
-	isfirst=0;
+        isfirst=0;
       } else {
-	free(curr);
+        free(curr);
       }
       curr = next;
     }
@@ -170,7 +170,7 @@ void cDelete(ctable_t *ctable) {
     while(curr  != NULL) {
       next = curr->next;
       if(isFirst != 1) {
-	free(curr);
+        free(curr);
       }
       isFirst = 0;
       curr = next;

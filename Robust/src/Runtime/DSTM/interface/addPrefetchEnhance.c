@@ -65,8 +65,8 @@ void handleDynPrefetching(int numLocal, int ntuples, int siteid) {
     if(getOperationMode(siteid) != 0) {
       evalPrefetch[siteid].uselesscount--;
       if(evalPrefetch[siteid].uselesscount <= 0) {
-	LOGEVENT('O');
-	evalPrefetch[siteid].operMode = 0;
+        LOGEVENT('O');
+        evalPrefetch[siteid].operMode = 0;
       }
     }
   }
@@ -83,12 +83,12 @@ void cleanPCache() {
     chashlistnode_t *curr = &ptr[i]; //for each entry in the cache lookupTable
     while(curr != NULL) {
       if(curr->key == 0)
-	break;
+        break;
       objheader_t *header1, *header2;
       /* Not found in local machine's object store and found in prefetch cache */
       if((header1 = mhashSearch(curr->key)) == NULL && ((header2 = prehashSearch(curr->key)) != NULL)) {
-	/* Remove from prefetch cache */
-	prehashRemove(curr->key);
+        /* Remove from prefetch cache */
+        prehashRemove(curr->key);
       }
       curr = curr->next;
     }

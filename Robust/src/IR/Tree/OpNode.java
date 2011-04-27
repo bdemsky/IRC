@@ -74,57 +74,57 @@ public class OpNode extends ExpressionNode {
     Long l = this.left.evaluate();
     if(l != null) {
       if (this.op.getOp() == Operation.LOGIC_NOT)
-	eval = Long.valueOf(l.longValue() > 0?0:1);
+        eval = Long.valueOf(l.longValue() > 0?0:1);
       else if (this.op.getOp() == Operation.COMP)
-	eval = Long.valueOf((long)(~l.longValue()));
+        eval = Long.valueOf((long)(~l.longValue()));
       else if (this.op.getOp() == Operation.UNARYMINUS)
-	eval = Long.valueOf(-l.longValue() );
+        eval = Long.valueOf(-l.longValue() );
       else if (this.op.getOp() == Operation.UNARYPLUS)
-	eval = Long.valueOf(+l.longValue());
+        eval = Long.valueOf(+l.longValue());
       else {
-	Long r = this.right.evaluate();
-	if(r != null) {
-	  //if (this.op.getOp() == Operation.LOGIC_OR)
-	  //  return Long.valueOf((long)(l.longValue() || r.longValue()));
-	  //else if (this.op.getOp() == Operation.LOGIC_AND)
-	  //  return Long.valueOf((long)(l.longValue() && r.longValue()));
-	  /*else */ if (this.op.getOp() == Operation.BIT_OR)
-	    eval = Long.valueOf(l.longValue() | r.longValue());
-	  else if (this.op.getOp() == Operation.BIT_XOR)
-	    eval = Long.valueOf(l.longValue() ^ r.longValue());
-	  else if (this.op.getOp() == Operation.BIT_AND)
-	    eval = Long.valueOf(l.longValue() & r.longValue());
-	  else if (this.op.getOp() == Operation.EQUAL)
-	    eval = Long.valueOf((l.longValue() == r.longValue())?1:0);
-	  else if (this.op.getOp() == Operation.NOTEQUAL)
-	    eval = Long.valueOf((l.longValue() != r.longValue())?1:0);
-	  else if (this.op.getOp() == Operation.LT)
-	    eval = Long.valueOf((l.longValue() < r.longValue())?1:0);
-	  else if (this.op.getOp() == Operation.GT)
-	    eval = Long.valueOf((l.longValue() > r.longValue())?1:0);
-	  else if (this.op.getOp() == Operation.LTE)
-	    eval = Long.valueOf((l.longValue() <= r.longValue())?1:0);
-	  else if (this.op.getOp() == Operation.GTE)
-	    eval = Long.valueOf((l.longValue() >= r.longValue())?1:0);
-	  else if (this.op.getOp() == Operation.LEFTSHIFT)
-	    eval = Long.valueOf(l.longValue() << r.longValue());
-	  else if (this.op.getOp() == Operation.RIGHTSHIFT)
-	    eval = Long.valueOf(l.longValue() >> r.longValue());
-	  else if (this.op.getOp() == Operation.URIGHTSHIFT)
-	    eval = Long.valueOf(l.longValue() >>> r.longValue());
-	  else if (this.op.getOp() == Operation.SUB)
-	    eval = Long.valueOf(l.longValue() - r.longValue());
-	  else if (this.op.getOp() == Operation.ADD)
-	    eval = Long.valueOf(l.longValue() + r.longValue());
-	  else if (this.op.getOp() == Operation.MULT)
-	    eval = Long.valueOf(l.longValue() * r.longValue());
-	  else if (this.op.getOp() == Operation.DIV)
-	    eval = Long.valueOf(l.longValue() / r.longValue());
-	  else if (this.op.getOp() == Operation.MOD)
-	    eval = Long.valueOf(l.longValue() % r.longValue());
-	  else if (this.op.getOp() == Operation.ASSIGN)
-	    eval = Long.valueOf(r.longValue());
-	}
+        Long r = this.right.evaluate();
+        if(r != null) {
+          //if (this.op.getOp() == Operation.LOGIC_OR)
+          //  return Long.valueOf((long)(l.longValue() || r.longValue()));
+          //else if (this.op.getOp() == Operation.LOGIC_AND)
+          //  return Long.valueOf((long)(l.longValue() && r.longValue()));
+          /*else */ if (this.op.getOp() == Operation.BIT_OR)
+            eval = Long.valueOf(l.longValue() | r.longValue());
+          else if (this.op.getOp() == Operation.BIT_XOR)
+            eval = Long.valueOf(l.longValue() ^ r.longValue());
+          else if (this.op.getOp() == Operation.BIT_AND)
+            eval = Long.valueOf(l.longValue() & r.longValue());
+          else if (this.op.getOp() == Operation.EQUAL)
+            eval = Long.valueOf((l.longValue() == r.longValue())?1:0);
+          else if (this.op.getOp() == Operation.NOTEQUAL)
+            eval = Long.valueOf((l.longValue() != r.longValue())?1:0);
+          else if (this.op.getOp() == Operation.LT)
+            eval = Long.valueOf((l.longValue() < r.longValue())?1:0);
+          else if (this.op.getOp() == Operation.GT)
+            eval = Long.valueOf((l.longValue() > r.longValue())?1:0);
+          else if (this.op.getOp() == Operation.LTE)
+            eval = Long.valueOf((l.longValue() <= r.longValue())?1:0);
+          else if (this.op.getOp() == Operation.GTE)
+            eval = Long.valueOf((l.longValue() >= r.longValue())?1:0);
+          else if (this.op.getOp() == Operation.LEFTSHIFT)
+            eval = Long.valueOf(l.longValue() << r.longValue());
+          else if (this.op.getOp() == Operation.RIGHTSHIFT)
+            eval = Long.valueOf(l.longValue() >> r.longValue());
+          else if (this.op.getOp() == Operation.URIGHTSHIFT)
+            eval = Long.valueOf(l.longValue() >>> r.longValue());
+          else if (this.op.getOp() == Operation.SUB)
+            eval = Long.valueOf(l.longValue() - r.longValue());
+          else if (this.op.getOp() == Operation.ADD)
+            eval = Long.valueOf(l.longValue() + r.longValue());
+          else if (this.op.getOp() == Operation.MULT)
+            eval = Long.valueOf(l.longValue() * r.longValue());
+          else if (this.op.getOp() == Operation.DIV)
+            eval = Long.valueOf(l.longValue() / r.longValue());
+          else if (this.op.getOp() == Operation.MOD)
+            eval = Long.valueOf(l.longValue() % r.longValue());
+          else if (this.op.getOp() == Operation.ASSIGN)
+            eval = Long.valueOf(r.longValue());
+        }
       }
     }
     return eval;

@@ -26,9 +26,9 @@ public class TempNodePair {
     if (o instanceof TempNodePair) {
       TempNodePair tnp=(TempNodePair)o;
       if (tnp.fn!=null||fn!=null) {
-	// need to check flat node equivalence also
-	if (tnp.fn==null||fn==null||(!fn.equals(tnp.fn)))
-	  return false;
+        // need to check flat node equivalence also
+        if (tnp.fn==null||fn==null||(!fn.equals(tnp.fn)))
+          return false;
       }
       return tmp.equals(tnp.tmp);
     }

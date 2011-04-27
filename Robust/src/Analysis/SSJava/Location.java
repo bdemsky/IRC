@@ -49,13 +49,13 @@ public class Location  implements TypeExtension {
 
     if (loc.getClassDescriptor().equals(getClassDescriptor())) {
       if (loc.getLocIdentifier() == null || getLocIdentifier() == null) {
-	if (loc.getType() == getType()) {
-	  return true;
-	}
+        if (loc.getType() == getType()) {
+          return true;
+        }
       } else {
-	if (loc.getLocIdentifier().equals(getLocIdentifier())) {
-	  return true;
-	}
+        if (loc.getLocIdentifier().equals(getLocIdentifier())) {
+          return true;
+        }
       }
     }
 

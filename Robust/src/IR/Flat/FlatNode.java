@@ -102,11 +102,11 @@ public class FlatNode {
       tovisit.remove(fn);
       visited.add(fn);
       if (endset!=null&&!endset.contains(fn)) {
-	for(int i=0; i<fn.numNext(); i++) {
-	  FlatNode nn=fn.getNext(i);
-	  if (!visited.contains(nn))
-	    tovisit.add(nn);
-	}
+        for(int i=0; i<fn.numNext(); i++) {
+          FlatNode nn=fn.getNext(i);
+          if (!visited.contains(nn))
+            tovisit.add(nn);
+        }
       }
     }
     return visited;
@@ -119,18 +119,18 @@ public class FlatNode {
       FlatNode nprev=(FlatNode)prev.get(i);
       fnnew.prev.set(i,nprev);
       for(int j=0; j<nprev.numNext(); j++) {
-	FlatNode n=nprev.getNext(j);
-	if (n==this)
-	  nprev.next.set(j, fnnew);
+        FlatNode n=nprev.getNext(j);
+        if (n==this)
+          nprev.next.set(j, fnnew);
       }
     }
     for(int i=0; i<next.size(); i++) {
       FlatNode nnext=(FlatNode)next.get(i);
       fnnew.next.set(i,nnext);
       for(int j=0; j<nnext.numPrev(); j++) {
-	FlatNode n=nnext.getPrev(j);
-	if (n==this)
-	  nnext.prev.set(j, fnnew);
+        FlatNode n=nnext.getPrev(j);
+        if (n==this)
+          nnext.prev.set(j, fnnew);
       }
     }
     next=null;

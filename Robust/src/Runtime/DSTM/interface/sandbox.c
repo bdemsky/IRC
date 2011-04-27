@@ -45,24 +45,24 @@ int checktrans() {
     /* Inner loop to traverse the linked list of the cache lookupTable */
     while(curr != NULL) {
       if (curr->key == 0)
-	break;
+        break;
       objheader_t *headeraddr=(objheader_t*) curr->val;
       unsigned int machinenum;
       objheader_t *tmp;
 
       if (STATUS(headeraddr) & NEW) {
-	//new objects cannot be stale
+        //new objects cannot be stale
       } else if ((tmp=mhashSearch(curr->key)) != NULL) {
-	//memory barrier
-	CFENCE;
-	if (tmp->version!=headeraddr->version) {
-	  //version mismatch
-	  deletehead(head);
-	  return 1; //return 1 when objects are inconsistent
-	}
+        //memory barrier
+        CFENCE;
+        if (tmp->version!=headeraddr->version) {
+          //version mismatch
+          deletehead(head);
+          return 1; //return 1 when objects are inconsistent
+        }
       } else {
-	machinenum = lhashSearch(curr->key);
-	head = createList(head, headeraddr, machinenum, c_numelements);
+        machinenum = lhashSearch(curr->key);
+        head = createList(head, headeraddr, machinenum, c_numelements);
       }
 
       curr = curr->next;
@@ -87,17 +87,17 @@ nodeElem_t * createList(nodeElem_t *head, objheader_t *headeraddr, unsigned int 
   while(tmp != NULL) {
     if(tmp->mid == mid) {
       if (STATUS(headeraddr) & DIRTY) {
-	offset = (sizeof(unsigned int) + sizeof(short)) * tmp->nummod;
-	*((unsigned int *)(((char *)tmp->objmod) + offset))=OID(headeraddr);
-	offset += sizeof(unsigned int);
-	*((unsigned short *)(((char *)tmp->objmod) + offset)) = headeraddr->version;
-	tmp->nummod++;
+        offset = (sizeof(unsigned int) + sizeof(short)) * tmp->nummod;
+        *((unsigned int *)(((char *)tmp->objmod) + offset))=OID(headeraddr);
+        offset += sizeof(unsigned int);
+        *((unsigned short *)(((char *)tmp->objmod) + offset)) = headeraddr->version;
+        tmp->nummod++;
       } else {
-	offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
-	*((unsigned int *)(((char *)tmp->objread) + offset))=OID(headeraddr);
-	offset += sizeof(unsigned int);
-	*((unsigned short *)(((char *)tmp->objread) + offset)) = headeraddr->version;
-	tmp->numread++;
+        offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
+        *((unsigned int *)(((char *)tmp->objread) + offset))=OID(headeraddr);
+        offset += sizeof(unsigned int);
+        *((unsigned short *)(((char *)tmp->objread) + offset)) = headeraddr->version;
+        tmp->numread++;
       }
       found = 1;
       break;
@@ -232,8 +232,8 @@ int verify(nodeElem_t *pile) {
       recv_data(sd, &control, sizeof(char));
       getReplyCtrl[i] = control;
       if(control == OBJ_INCONSISTENT) { /* Inconsistent */
-	checkObj = 1;
-	break;
+        checkObj = 1;
+        break;
       }
       countConsistent++;
     }
@@ -332,18 +332,18 @@ void checkObjVersion(struct readstruct * readbuffer, int sd, unsigned int numrea
       return;
     } else {
       if(is_write_locked(STATUSPTR(header))) { //object write locked
-	control = OBJ_INCONSISTENT;
-	send_data(sd, &control, sizeof(char));
-	return;
+        control = OBJ_INCONSISTENT;
+        send_data(sd, &control, sizeof(char));
+        return;
       }
       CFENCE;
       //compare versions
       if(version == header->version)
-	v_match++;
+        v_match++;
       else {
-	control = OBJ_INCONSISTENT;
-	send_data(sd, &control, sizeof(char));
-	return;
+        control = OBJ_INCONSISTENT;
+        send_data(sd, &control, sizeof(char));
+        return;
       }
     }
   } // end of objects read
@@ -363,17 +363,17 @@ void checkObjVersion(struct readstruct * readbuffer, int sd, unsigned int numrea
       return;
     } else {
       if(is_write_locked(STATUSPTR(header))) { //object write locked
-	control = OBJ_INCONSISTENT;
-	send_data(sd, &control, sizeof(char));
-	return;
+        control = OBJ_INCONSISTENT;
+        send_data(sd, &control, sizeof(char));
+        return;
       }
       //compare versions
       if(version == header->version)
-	v_match++;
+        v_match++;
       else {
-	control = OBJ_INCONSISTENT;
-	send_data(sd, &control, sizeof(char));
-	return;
+        control = OBJ_INCONSISTENT;
+        send_data(sd, &control, sizeof(char));
+        return;
       }
     }
   } // end of objects modified

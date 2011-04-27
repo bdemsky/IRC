@@ -71,12 +71,12 @@ public class ExistPredSet extends Canonical {
                                      calleeReachableNodes);
 
       if( predsFromSatisfier != null ) {
-	if( predsOut == null ) {
-	  predsOut = predsFromSatisfier;
-	} else {
-	  predsOut = Canonical.join(predsOut,
-	                            predsFromSatisfier);
-	}
+        if( predsOut == null ) {
+          predsOut = predsFromSatisfier;
+        } else {
+          predsOut = Canonical.join(predsOut,
+                                    predsFromSatisfier);
+        }
       }
     }
 
@@ -117,7 +117,7 @@ public class ExistPredSet extends Canonical {
       ExistPred pred = predItr.next();
       s += pred.toString();
       if( predItr.hasNext() ) {
-	s += " ||\\n";
+        s += " ||\\n";
       }
     }
     s += "]";
@@ -132,7 +132,7 @@ public class ExistPredSet extends Canonical {
       ExistPred pred = predItr.next();
       s += pred.toString();
       if( predItr.hasNext() ) {
-	s += " || ";
+        s += " || ";
       }
     }
     s += "]";

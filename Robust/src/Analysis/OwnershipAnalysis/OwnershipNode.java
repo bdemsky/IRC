@@ -50,7 +50,7 @@ public abstract class OwnershipNode {
       if( edge.getDst().equals(hrn) &&
           edge.typeEquals(type) &&
           edge.fieldEquals(field) ) {
-	return edge;
+        return edge;
       }
     }
 

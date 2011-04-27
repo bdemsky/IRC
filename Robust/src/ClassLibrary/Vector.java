@@ -43,7 +43,7 @@ public class Vector {
   public int indexOf(Object elem, int index) {
     for(int i=index; i<size; i++) {
       if (elem.equals(array[i]))
-	return i;
+        return i;
     }
     return -1;
   }
@@ -84,14 +84,14 @@ public class Vector {
     if (minCapacity>array.length) {
       int newsize;
       if (capacityIncrement<=0)
-	newsize=array.length*2;
+        newsize=array.length*2;
       else
-	newsize=array.length+capacityIncrement;
+        newsize=array.length+capacityIncrement;
       if (newsize<minCapacity)
-	newsize=minCapacity;
+        newsize=minCapacity;
       Object [] newarray=new Object[newsize];
       for(int i=0; i<size; i++)
-	newarray[i]=array[i];
+        newarray[i]=array[i];
       array=newarray;
     }
   }

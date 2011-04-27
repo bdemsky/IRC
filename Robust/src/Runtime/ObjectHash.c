@@ -73,14 +73,14 @@ int ObjectHashremove(struct ObjectHash *thisvar, int key) {
       *ptr=(*ptr)->next;
 
       if (toremove->lprev!=NULL) {
-	toremove->lprev->lnext=toremove->lnext;
+        toremove->lprev->lnext=toremove->lnext;
       } else {
-	thisvar->listhead=toremove->lnext;
+        thisvar->listhead=toremove->lnext;
       }
       if (toremove->lnext!=NULL) {
-	toremove->lnext->lprev=toremove->lprev;
+        toremove->lnext->lprev=toremove->lprev;
       } else {
-	thisvar->listtail=toremove->lprev;
+        thisvar->listtail=toremove->lprev;
       }
       RUNFREE(toremove);
 
@@ -124,11 +124,11 @@ int ObjectHashadd(struct ObjectHash * thisvar,int key, int data, int data2, int 
     for(i=thisvar->size-1; i>=0; i--) {
       struct ObjectNode *ptr;
       for(ptr=thisvar->bucket[i]; ptr!=NULL; ) {
-	struct ObjectNode * nextptr=ptr->next;
-	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-	ptr->next=newbucket[newhashkey];
-	newbucket[newhashkey]=ptr;
-	ptr=nextptr;
+        struct ObjectNode * nextptr=ptr->next;
+        unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+        ptr->next=newbucket[newhashkey];
+        newbucket[newhashkey]=ptr;
+        ptr=nextptr;
       }
     }
     thisvar->size=newsize;
@@ -178,11 +178,11 @@ int ObjectHashadd_I(struct ObjectHash * thisvar,int key, int data, int data2, in
     for(i=thisvar->size-1; i>=0; i--) {
       struct ObjectNode *ptr;
       for(ptr=thisvar->bucket[i]; ptr!=NULL; ) {
-	struct ObjectNode * nextptr=ptr->next;
-	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-	ptr->next=newbucket[newhashkey];
-	newbucket[newhashkey]=ptr;
-	ptr=nextptr;
+        struct ObjectNode * nextptr=ptr->next;
+        unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+        ptr->next=newbucket[newhashkey];
+        newbucket[newhashkey]=ptr;
+        ptr=nextptr;
       }
     }
     thisvar->size=newsize;

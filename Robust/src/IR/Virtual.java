@@ -53,16 +53,16 @@ public class Virtual {
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
       if (state.DSM||state.SINGLETM)
-	numberLocality(cd);
+        numberLocality(cd);
       else
-	numberMethods(cd);
+        numberMethods(cd);
     }
     classit=state.getClassSymbolTable().getDescriptorsIterator();
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
       if(!cd.isInterface()) {
-	int count = classmethodcount.get(cd).intValue();
-	classmethodcount.put(cd, new Integer(count+this.if_starts));
+        int count = classmethodcount.get(cd).intValue();
+        classmethodcount.put(cd, new Integer(count+this.if_starts));
       }
     }
   }
@@ -77,36 +77,36 @@ public class Virtual {
 
     if (locality.getClassBindings(cd)!=null)
       for(Iterator<LocalityBinding> lbit=locality.getClassBindings(cd).iterator(); lbit.hasNext(); ) {
-	LocalityBinding lb=lbit.next();
-	MethodDescriptor md=lb.getMethod();
-	//Is it a static method or constructor
-	if (md.isStatic()||md.getReturnType()==null)
-	  continue;
+        LocalityBinding lb=lbit.next();
+        MethodDescriptor md=lb.getMethod();
+        //Is it a static method or constructor
+        if (md.isStatic()||md.getReturnType()==null)
+          continue;
 
-	if (superdesc!=null) {
-	  Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
-	  boolean foundmatch=false;
-	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
-	    MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-	    if (md.matches(matchmd)) {
-	      Set<LocalityBinding> lbset=locality.getMethodBindings(matchmd);
-	      if (lbset!=null)
-		for(Iterator<LocalityBinding> suplbit=lbset.iterator(); suplbit.hasNext(); ) {
-		  LocalityBinding suplb=suplbit.next();
-		  if (lb.contextMatches(suplb)) {
-		    foundmatch=true;
-		    localitynumber.put(lb, localitynumber.get(suplb));
-		    break;
-		  }
-		}
-	      break;
-	    }
-	  }
-	  if (!foundmatch)
-	    localitynumber.put(lb, new Integer(start++));
-	} else {
-	  localitynumber.put(lb, new Integer(start++));
-	}
+        if (superdesc!=null) {
+          Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
+          boolean foundmatch=false;
+          for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
+            MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+            if (md.matches(matchmd)) {
+              Set<LocalityBinding> lbset=locality.getMethodBindings(matchmd);
+              if (lbset!=null)
+                for(Iterator<LocalityBinding> suplbit=lbset.iterator(); suplbit.hasNext(); ) {
+                  LocalityBinding suplb=suplbit.next();
+                  if (lb.contextMatches(suplb)) {
+                    foundmatch=true;
+                    localitynumber.put(lb, localitynumber.get(suplb));
+                    break;
+                  }
+                }
+              break;
+            }
+          }
+          if (!foundmatch)
+            localitynumber.put(lb, new Integer(start++));
+        } else {
+          localitynumber.put(lb, new Integer(start++));
+        }
       }
     classmethodcount.put(cd, new Integer(start));
     return start;
@@ -128,26 +128,26 @@ public class Virtual {
     for(Iterator it=cd.getMethods(); it.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
-	continue;
+        continue;
 
       if (!callgraph.isCallable(md)&&!callgraph.isCalled(md))
-	continue;
+        continue;
       boolean foundmatch=false;
       // check if there is a matched method that has been assigned method num
       Set possiblematches_if = if_methods.getSet(md.getSymbol());
       for(Iterator matchit=possiblematches_if.iterator(); matchit.hasNext(); ) {
-	MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-	if (md.matches(matchmd)) {
-	  int num=methodnumber.get(matchmd);
-	  methodnumber.put(md, new Integer(num));
-	  foundmatch=true;
-	  break;
-	}
+        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+        if (md.matches(matchmd)) {
+          int num=methodnumber.get(matchmd);
+          methodnumber.put(md, new Integer(num));
+          foundmatch=true;
+          break;
+        }
       }
       if (!foundmatch) {
-	methodnumber.put(md, new Integer(if_starts++));
-	if_methods.add(md);
-	mnum++;
+        methodnumber.put(md, new Integer(if_starts++));
+        if_methods.add(md);
+        mnum++;
       }
     }
     classmethodcount.put(cd, new Integer(mnum));
@@ -168,41 +168,41 @@ methodit:
     for(Iterator it=cd.getMethods(); it.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
-	continue;
+        continue;
       if (!callgraph.isCallable(md)&&!callgraph.isCalled(md))
-	continue;
+        continue;
       // check if there is a matched method in methods defined in interfaces
       Set possiblematches_if=if_methods.getSet(md.getSymbol());
       for(Iterator matchit=possiblematches_if.iterator(); matchit.hasNext(); ) {
-	MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-	if (md.matches(matchmd)) {
-	  int num;
-	  if (!methodnumber.containsKey(matchmd)) {
-	    num=start++;
-	    mnum++;
-	    methodnumber.put(matchmd,num);
-	  } else
-	    num = methodnumber.get(matchmd);
-	  methodnumber.put(md, new Integer(num));
-	  continue methodit;
-	}
+        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+        if (md.matches(matchmd)) {
+          int num;
+          if (!methodnumber.containsKey(matchmd)) {
+            num=start++;
+            mnum++;
+            methodnumber.put(matchmd,num);
+          } else
+            num = methodnumber.get(matchmd);
+          methodnumber.put(md, new Integer(num));
+          continue methodit;
+        }
       }
       if (superdesc!=null) {
-	Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
-	for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
-	  MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-	  if (md.matches(matchmd)) {
-	    int num;
-	    if (!methodnumber.containsKey(matchmd)) {
-	      num=start++;
-	      mnum++;
-	      methodnumber.put(matchmd,num);
-	    } else
-	      num = methodnumber.get(matchmd);
-	    methodnumber.put(md, new Integer(num));
-	    continue methodit;
-	  }
-	}
+        Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
+        for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
+          MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+          if (md.matches(matchmd)) {
+            int num;
+            if (!methodnumber.containsKey(matchmd)) {
+              num=start++;
+              mnum++;
+              methodnumber.put(matchmd,num);
+            } else
+              num = methodnumber.get(matchmd);
+            methodnumber.put(md, new Integer(num));
+            continue methodit;
+          }
+        }
       }
 
       methodnumber.put(md, new Integer(start++));

@@ -73,11 +73,11 @@ public class VarSrcTokTable {
 
       VariableSourceToken vstAlready = trueSet.get(vst);
       if (vstAlready!=null) {
-	removePrivate(vstAlready);
-	HashSet<TempDescriptor> toAddSet=new HashSet<TempDescriptor>();
-	toAddSet.addAll(vstAlready.getRefVars());
-	toAddSet.addAll(vst.getRefVars());
-	vst.setRefVars(toAddSet);
+        removePrivate(vstAlready);
+        HashSet<TempDescriptor> toAddSet=new HashSet<TempDescriptor>();
+        toAddSet.addAll(vstAlready.getRefVars());
+        toAddSet.addAll(vst.getRefVars());
+        vst.setRefVars(toAddSet);
       }
     }
 
@@ -95,16 +95,16 @@ public class VarSrcTokTable {
       TempDescriptor refVar = refVarItr.next();
       s = var2vst.get(refVar);
       if( s == null ) {
-	s = new HashSet<VariableSourceToken>();
-	var2vst.put(refVar, s);
+        s = new HashSet<VariableSourceToken>();
+        var2vst.put(refVar, s);
       }
       s.add(vst);
 
       SVKey key = new SVKey(vst.getSESE(), refVar);
       s = sv2vst.get(key);
       if( s == null ) {
-	s = new HashSet<VariableSourceToken>();
-	sv2vst.put(key, s);
+        s = new HashSet<VariableSourceToken>();
+        sv2vst.put(key, s);
       }
       s.add(vst);
     }
@@ -166,7 +166,7 @@ public class VarSrcTokTable {
     while( sItr.hasNext() ) {
       VariableSourceToken vst = sItr.next();
       if( !vst.getAge().equals(age) ) {
-	s.remove(vst);
+        s.remove(vst);
       }
     }
 
@@ -216,18 +216,18 @@ public class VarSrcTokTable {
 
       s = get(refVar);
       if( s != null ) {
-	s.remove(vst);
-	if( s.isEmpty() ) {
-	  var2vst.remove(refVar);
-	}
+        s.remove(vst);
+        if( s.isEmpty() ) {
+          var2vst.remove(refVar);
+        }
       }
 
       s = get(vst.getSESE(), refVar);
       if( s != null ) {
-	s.remove(vst);
-	if( s.isEmpty() ) {
-	  sv2vst.remove(new SVKey(vst.getSESE(), refVar) );
-	}
+        s.remove(vst);
+        if( s.isEmpty() ) {
+          sv2vst.remove(new SVKey(vst.getSESE(), refVar) );
+        }
       }
     }
   }
@@ -288,7 +288,7 @@ public class VarSrcTokTable {
       // referencing this token, just take it
       // out of the table all together
       if( refVars.size() == 1 ) {
-	removePrivate(vst);
+        removePrivate(vst);
       }
 
       sv2vst.remove(new SVKey(vst.getSESE(), refVar) );
@@ -329,18 +329,18 @@ public class VarSrcTokTable {
 
       if( vst.getSESE().equals(curr) ) {
 
-	// only age if the token isn't already the maximum age
-	if( vst.getAge() < MAX_AGE ) {
+        // only age if the token isn't already the maximum age
+        if( vst.getAge() < MAX_AGE ) {
 
-	  forRemoval.add(vst);
+          forRemoval.add(vst);
 
-	  forAddition.add(new VariableSourceToken(vst.getRefVars(),
-	                                          curr,
-	                                          vst.getAge() + 1,
-	                                          vst.getAddrVar()
-	                                          )
-	                  );
-	}
+          forAddition.add(new VariableSourceToken(vst.getRefVars(),
+                                                  curr,
+                                                  vst.getAge() + 1,
+                                                  vst.getAddrVar()
+                                                  )
+                          );
+        }
       }
     }
 
@@ -397,28 +397,28 @@ public class VarSrcTokTable {
 
       Iterator<VariableSourceToken> vstItr = get(child).iterator();
       while( vstItr.hasNext() ) {
-	VariableSourceToken vst = vstItr.next();
-	removalSet.add(vst);
+        VariableSourceToken vst = vstItr.next();
+        removalSet.add(vst);
 
-	additionSet.add(new VariableSourceToken(vst.getRefVars(),
-	                                        curr,
-	                                        new Integer(0),
-	                                        vst.getAddrVar()
-	                                        )
-	                );
+        additionSet.add(new VariableSourceToken(vst.getRefVars(),
+                                                curr,
+                                                new Integer(0),
+                                                vst.getAddrVar()
+                                                )
+                        );
       }
 
       // remove( eah item in forremoval )
       vstItr = removalSet.iterator();
       while( vstItr.hasNext() ) {
-	VariableSourceToken vst = vstItr.next();
-	remove(vst);
+        VariableSourceToken vst = vstItr.next();
+        remove(vst);
       }
       // add( each  ite inm for additon _
       vstItr = additionSet.iterator();
       while( vstItr.hasNext() ) {
-	VariableSourceToken vst = vstItr.next();
-	add(vst);
+        VariableSourceToken vst = vstItr.next();
+        add(vst);
       }
     }
 
@@ -460,26 +460,26 @@ public class VarSrcTokTable {
       Iterator<FlatSESEEnterNode> childItr;
 
       if( ancestor == null ) {
-	// when some caller task is the next parent, the siblings
-	// of the current task are other local root tasks
-	ancestor = rblockRel.getCallerProxySESE();
-	childItr = rblockRel.getLocalRootSESEs(exiter.getfmEnclosing() ).iterator();
-	findMore = false;
+        // when some caller task is the next parent, the siblings
+        // of the current task are other local root tasks
+        ancestor = rblockRel.getCallerProxySESE();
+        childItr = rblockRel.getLocalRootSESEs(exiter.getfmEnclosing() ).iterator();
+        findMore = false;
       } else {
-	// otherwise, the siblings are locally-defined
-	childItr = ancestor.getLocalChildren().iterator();
+        // otherwise, the siblings are locally-defined
+        childItr = ancestor.getLocalChildren().iterator();
 
-	// and there is no further ancestry beyond the main task
-	if( ancestor.equals(rblockRel.getMainSESE() ) ) {
-	  findMore = false;
-	}
+        // and there is no further ancestry beyond the main task
+        if( ancestor.equals(rblockRel.getMainSESE() ) ) {
+          findMore = false;
+        }
       }
 
       // this ancestor and its children are valid alternate sources
       alternateSESEs.add(ancestor);
       while( childItr.hasNext() ) {
-	FlatSESEEnterNode sibling = childItr.next();
-	alternateSESEs.add(sibling);
+        FlatSESEEnterNode sibling = childItr.next();
+        alternateSESEs.add(sibling);
       }
     }
 
@@ -495,48 +495,48 @@ public class VarSrcTokTable {
 
       // only interested in sources from our current instance
       if( vstExiterSrc.getAge() != 0 ) {
-	continue;
+        continue;
       }
 
       // for each variable that might come from those sources...
       Iterator<TempDescriptor> refVarItr = vstExiterSrc.getRefVars().iterator();
       while( refVarItr.hasNext() ) {
-	TempDescriptor refVar = refVarItr.next();
+        TempDescriptor refVar = refVarItr.next();
 
-	// only matters for live variables at SESE exit program point
-	if( !liveVars.contains(refVar) ) {
-	  continue;
-	}
+        // only matters for live variables at SESE exit program point
+        if( !liveVars.contains(refVar) ) {
+          continue;
+        }
 
-	// examine other sources for a variable...
-	Iterator<VariableSourceToken> srcItr = get(refVar).iterator();
-	while( srcItr.hasNext() ) {
-	  VariableSourceToken vstPossibleOtherSrc = srcItr.next();
+        // examine other sources for a variable...
+        Iterator<VariableSourceToken> srcItr = get(refVar).iterator();
+        while( srcItr.hasNext() ) {
+          VariableSourceToken vstPossibleOtherSrc = srcItr.next();
 
-	  if( vstPossibleOtherSrc.getSESE().equals(exiter) &&
-	      vstPossibleOtherSrc.getAge() > 0
-	      ) {
-	    // this is an alternate source if its
-	    // an older instance of this SESE
-	    virtReadSet.add(refVar);
-	    forRemoval.add(vstPossibleOtherSrc);
+          if( vstPossibleOtherSrc.getSESE().equals(exiter) &&
+              vstPossibleOtherSrc.getAge() > 0
+              ) {
+            // this is an alternate source if its
+            // an older instance of this SESE
+            virtReadSet.add(refVar);
+            forRemoval.add(vstPossibleOtherSrc);
 
-	  } else if( alternateSESEs.contains(vstPossibleOtherSrc.getSESE() ) ) {
-	    // this is an alternate source from ancestor or ancestor's sibling
-	    virtReadSet.add(refVar);
-	    forRemoval.add(vstPossibleOtherSrc);
+          } else if( alternateSESEs.contains(vstPossibleOtherSrc.getSESE() ) ) {
+            // this is an alternate source from ancestor or ancestor's sibling
+            virtReadSet.add(refVar);
+            forRemoval.add(vstPossibleOtherSrc);
 
-	  } else {
-	    if( !(vstPossibleOtherSrc.getSESE().equals(exiter) &&
-	          vstPossibleOtherSrc.getAge().equals(0)
-	          )
-	        ) {
-	      System.out.println("For refVar="+refVar+" at exit of "+exiter+
-	                         ", unexpected possible variable source "+vstPossibleOtherSrc);
-	      assert false;
-	    }
-	  }
-	}
+          } else {
+            if( !(vstPossibleOtherSrc.getSESE().equals(exiter) &&
+                  vstPossibleOtherSrc.getAge().equals(0)
+                  )
+                ) {
+              System.out.println("For refVar="+refVar+" at exit of "+exiter+
+                                 ", unexpected possible variable source "+vstPossibleOtherSrc);
+              assert false;
+            }
+          }
+        }
       }
     }
 
@@ -572,21 +572,21 @@ public class VarSrcTokTable {
       // only worth tracking if live
       if( nextLiveIn.contains(var) ) {
 
-	VSTWrapper vstIfStaticBefore = new VSTWrapper();
-	VSTWrapper vstIfStaticAfter  = new VSTWrapper();
+        VSTWrapper vstIfStaticBefore = new VSTWrapper();
+        VSTWrapper vstIfStaticAfter  = new VSTWrapper();
 
-	Integer srcTypeBefore =      this.getRefVarSrcType(var, current, vstIfStaticBefore);
-	Integer srcTypeAfter  = nextTable.getRefVarSrcType(var, current, vstIfStaticAfter);
+        Integer srcTypeBefore =      this.getRefVarSrcType(var, current, vstIfStaticBefore);
+        Integer srcTypeAfter  = nextTable.getRefVarSrcType(var, current, vstIfStaticAfter);
 
-	if( !srcTypeBefore.equals(SrcType_DYNAMIC) &&
-	    srcTypeAfter.equals(SrcType_DYNAMIC)
-	    ) {
-	  // remember the variable and a source
-	  // it had before crossing the transition
-	  // 1) if it was ready, vstIfStatic.vst is null
-	  // 2) if is was static, use vstIfStatic.vst
-	  out.put(var, vstIfStaticBefore);
-	}
+        if( !srcTypeBefore.equals(SrcType_DYNAMIC) &&
+            srcTypeAfter.equals(SrcType_DYNAMIC)
+            ) {
+          // remember the variable and a source
+          // it had before crossing the transition
+          // 1) if it was ready, vstIfStatic.vst is null
+          // 2) if is was static, use vstIfStatic.vst
+          out.put(var, vstIfStaticBefore);
+        }
       }
     }
 
@@ -639,21 +639,21 @@ public class VarSrcTokTable {
 
       if( case1 || case2 ) {
 
-	// if we ever have at least one child source with an
-	// unknown age, have to treat var as dynamic
-	if( vst.getAge().equals(OoOJavaAnalysis.maxSESEage) ) {
-	  return SrcType_DYNAMIC;
-	}
+        // if we ever have at least one child source with an
+        // unknown age, have to treat var as dynamic
+        if( vst.getAge().equals(OoOJavaAnalysis.maxSESEage) ) {
+          return SrcType_DYNAMIC;
+        }
 
-	// if we have a known-age child source, this var is
-	// either static or dynamic now: it's static if this
-	// source is the only source, otherwise dynamic
-	if( srcs.size() > 1 ) {
-	  return SrcType_DYNAMIC;
-	}
+        // if we have a known-age child source, this var is
+        // either static or dynamic now: it's static if this
+        // source is the only source, otherwise dynamic
+        if( srcs.size() > 1 ) {
+          return SrcType_DYNAMIC;
+        }
 
-	vstIfStatic.vst = vst;
-	return SrcType_STATIC;
+        vstIfStatic.vst = vst;
+        return SrcType_STATIC;
       }
     }
 
@@ -876,7 +876,7 @@ public class VarSrcTokTable {
 
       vstItr = s1.iterator();
       while( vstItr.hasNext() ) {
-	str += "       "+tokHighlighter+" "+vstItr.next()+"\n";
+        str += "       "+tokHighlighter+" "+vstItr.next()+"\n";
       }
     }
 
@@ -892,7 +892,7 @@ public class VarSrcTokTable {
 
       vstItr = s1.iterator();
       while( vstItr.hasNext() ) {
-	str += "       "+tokHighlighter+" "+vstItr.next()+"\n";
+        str += "       "+tokHighlighter+" "+vstItr.next()+"\n";
       }
     }
 
@@ -908,7 +908,7 @@ public class VarSrcTokTable {
 
       vstItr = s1.iterator();
       while( vstItr.hasNext() ) {
-	str += "       "+tokHighlighter+" "+vstItr.next()+"\n";
+        str += "       "+tokHighlighter+" "+vstItr.next()+"\n";
       }
     }
 

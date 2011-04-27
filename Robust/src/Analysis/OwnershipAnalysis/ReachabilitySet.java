@@ -71,7 +71,7 @@ public class ReachabilitySet extends Canonical {
     while( itr.hasNext() ) {
       TokenTupleSet ttsThis = (TokenTupleSet) itr.next();
       if( ttsThis.containsWithZeroes(tts) ) {
-	return true;
+        return true;
       }
     }
 
@@ -98,13 +98,13 @@ public class ReachabilitySet extends Canonical {
     while( itr.hasNext() ) {
       TokenTupleSet ttsThis = (TokenTupleSet) itr.next();
       if( strict ) {
-	if( !tts.equals(ttsThis) && tts.isSubset(ttsThis) ) {
-	  return true;
-	}
+        if( !tts.equals(ttsThis) && tts.isSubset(ttsThis) ) {
+          return true;
+        }
       } else {
-	if( tts.isSubset(ttsThis) ) {
-	  return true;
-	}
+        if( tts.isSubset(ttsThis) ) {
+          return true;
+        }
       }
     }
 
@@ -117,7 +117,7 @@ public class ReachabilitySet extends Canonical {
     while( itr.hasNext() ) {
       TokenTupleSet tts = (TokenTupleSet) itr.next();
       if( tts.containsTuple(tt) ) {
-	return true;
+        return true;
       }
     }
     return false;
@@ -128,7 +128,7 @@ public class ReachabilitySet extends Canonical {
     while( itr.hasNext() ) {
       TokenTupleSet tts = (TokenTupleSet) itr.next();
       if( tts.containsTuple(tt1) && tts.containsTuple(tt2) ) {
-	return true;
+        return true;
       }
     }
     return false;
@@ -190,10 +190,10 @@ public class ReachabilitySet extends Canonical {
       ReachabilitySet rsOut = new ReachabilitySet();
       Iterator i = this.iterator();
       while( i.hasNext() ) {
-	TokenTupleSet tts = (TokenTupleSet) i.next();
-	if( rsIn.possibleReachabilities.contains(tts) ) {
-	  rsOut.possibleReachabilities.add(tts);
-	}
+        TokenTupleSet tts = (TokenTupleSet) i.next();
+        if( rsIn.possibleReachabilities.contains(tts) ) {
+          rsOut.possibleReachabilities.add(tts);
+        }
       }
       ro.c=rsOut=rsOut.makeCanonical();
       interhash.put(ro,ro);
@@ -225,9 +225,9 @@ public class ReachabilitySet extends Canonical {
     while( i.hasNext() ) {
       TokenTupleSet tts = (TokenTupleSet) i.next();
       if( tts.containsTuple(ttB) ) {
-	rsOut.possibleReachabilities.add(tts.remove(ttA) );
+        rsOut.possibleReachabilities.add(tts.remove(ttA) );
       } else {
-	rsOut.possibleReachabilities.add(tts);
+        rsOut.possibleReachabilities.add(tts);
       }
     }
 
@@ -248,16 +248,16 @@ public class ReachabilitySet extends Canonical {
 
       Iterator<ChangeTuple> itrC = C.iterator();
       while( itrC.hasNext() ) {
-	ChangeTuple c = itrC.next();
+        ChangeTuple c = itrC.next();
 
-	if( tts.equals(c.getSetToMatch() ) ) {
-	  rsOut.possibleReachabilities.add(c.getSetToAdd() );
-	  changeFound = true;
-	}
+        if( tts.equals(c.getSetToMatch() ) ) {
+          rsOut.possibleReachabilities.add(c.getSetToAdd() );
+          changeFound = true;
+        }
       }
 
       if( keepSourceState || !changeFound ) {
-	rsOut.possibleReachabilities.add(tts);
+        rsOut.possibleReachabilities.add(tts);
       }
     }
 
@@ -276,35 +276,35 @@ public class ReachabilitySet extends Canonical {
 
       Iterator itrR = rsIn.iterator();
       while( itrR.hasNext() ) {
-	TokenTupleSet r = (TokenTupleSet) itrR.next();
+        TokenTupleSet r = (TokenTupleSet) itrR.next();
 
-	TokenTupleSet theUnion = new TokenTupleSet().makeCanonical();
+        TokenTupleSet theUnion = new TokenTupleSet().makeCanonical();
 
-	Iterator itrRelement = r.iterator();
-	while( itrRelement.hasNext() ) {
-	  TokenTuple ttR = (TokenTuple) itrRelement.next();
-	  TokenTuple ttO = o.containsToken(ttR.getToken() );
+        Iterator itrRelement = r.iterator();
+        while( itrRelement.hasNext() ) {
+          TokenTuple ttR = (TokenTuple) itrRelement.next();
+          TokenTuple ttO = o.containsToken(ttR.getToken() );
 
-	  if( ttO != null ) {
-	    theUnion = theUnion.union((new TokenTupleSet(ttR.unionArity(ttO)).makeCanonical() ) );
-	  } else {
-	    theUnion = theUnion.union((new TokenTupleSet(ttR)).makeCanonical() );
-	  }
-	}
+          if( ttO != null ) {
+            theUnion = theUnion.union((new TokenTupleSet(ttR.unionArity(ttO)).makeCanonical() ) );
+          } else {
+            theUnion = theUnion.union((new TokenTupleSet(ttR)).makeCanonical() );
+          }
+        }
 
-	Iterator itrOelement = o.iterator();
-	while( itrOelement.hasNext() ) {
-	  TokenTuple ttO = (TokenTuple) itrOelement.next();
-	  TokenTuple ttR = theUnion.containsToken(ttO.getToken() );
+        Iterator itrOelement = o.iterator();
+        while( itrOelement.hasNext() ) {
+          TokenTuple ttO = (TokenTuple) itrOelement.next();
+          TokenTuple ttR = theUnion.containsToken(ttO.getToken() );
 
-	  if( ttR == null ) {
-	    theUnion = theUnion.union(new TokenTupleSet(ttO).makeCanonical() );
-	  }
-	}
+          if( ttR == null ) {
+            theUnion = theUnion.union(new TokenTupleSet(ttO).makeCanonical() );
+          }
+        }
 
-	if( !theUnion.isEmpty() ) {
-	  ctsOut = ctsOut.union((new ChangeTupleSet(new ChangeTuple(o, theUnion) )).makeCanonical() );
-	}
+        if( !theUnion.isEmpty() ) {
+          ctsOut = ctsOut.union((new ChangeTupleSet(new ChangeTuple(o, theUnion) )).makeCanonical() );
+        }
       }
     }
 
@@ -370,15 +370,15 @@ public class ReachabilitySet extends Canonical {
 
       Iterator itrA = rsIn.iterator();
       while( itrA.hasNext() && !subsetExists ) {
-	TokenTupleSet ttsA = (TokenTupleSet) itrA.next();
+        TokenTupleSet ttsA = (TokenTupleSet) itrA.next();
 
-	if( ttsA.isSubset(ttsB) ) {
-	  subsetExists = true;
-	}
+        if( ttsA.isSubset(ttsB) ) {
+          subsetExists = true;
+        }
       }
 
       if( subsetExists ) {
-	rsOut.possibleReachabilities.add(ttsB);
+        rsOut.possibleReachabilities.add(ttsB);
       }
     }
 
@@ -398,8 +398,8 @@ public class ReachabilitySet extends Canonical {
 
       Iterator<TokenTupleSet> itrThis = this.iterator();
       while( itrThis.hasNext() ) {
-	TokenTupleSet ttsUnit = itrThis.next();
-	ttsImprecise = ttsImprecise.unionUpArity(ttsUnit.makeArityZeroOrMore() );
+        TokenTupleSet ttsUnit = itrThis.next();
+        ttsImprecise = ttsImprecise.unionUpArity(ttsUnit.makeArityZeroOrMore() );
       }
 
       //rsOut = this.union( ttsImprecise );
@@ -425,26 +425,26 @@ public class ReachabilitySet extends Canonical {
       TokenTupleSet ttsCoordinate = new TokenTupleSet().makeCanonical();
       Iterator<TokenTupleSet> ttsItr = this.iterator();
       for( int i = 0; i < numDimensions; ++i ) {
-	assert ttsItr.hasNext();
-	TokenTupleSet ttsUnit = ttsItr.next();
-	for( int j = 0; j < digits[i]; ++j ) {
-	  ttsCoordinate = ttsCoordinate.unionUpArity(ttsUnit);
-	}
+        assert ttsItr.hasNext();
+        TokenTupleSet ttsUnit = ttsItr.next();
+        for( int j = 0; j < digits[i]; ++j ) {
+          ttsCoordinate = ttsCoordinate.unionUpArity(ttsUnit);
+        }
       }
       rsOut = rsOut.add(ttsCoordinate.makeCanonical() );
 
       // increment
       for( int i = 0; i < numDimensions+1; ++i ) {
-	digits[i]++;
+        digits[i]++;
 
-	if( digits[i] > maxArity ) {
-	  // this axis reached its max, so roll it back to min and increment next higher digit
-	  digits[i] = minArity;
+        if( digits[i] > maxArity ) {
+          // this axis reached its max, so roll it back to min and increment next higher digit
+          digits[i] = minArity;
 
-	} else {
-	  // this axis did not reach its max so we just enumerated a new unique coordinate, stop
-	  break;
-	}
+        } else {
+          // this axis did not reach its max so we just enumerated a new unique coordinate, stop
+          break;
+        }
       }
     }
 
@@ -476,9 +476,9 @@ public class ReachabilitySet extends Canonical {
       oldHashSet = true;
     } else {
       if( oldHash != currentHash ) {
-	System.out.println("IF YOU SEE THIS A CANONICAL ReachabilitySet CHANGED");
-	Integer x = null;
-	x.toString();
+        System.out.println("IF YOU SEE THIS A CANONICAL ReachabilitySet CHANGED");
+        Integer x = null;
+        x.toString();
       }
     }
 
@@ -496,12 +496,12 @@ public class ReachabilitySet extends Canonical {
       // skip this if there is a superset already
       if( hideSubsetReachability &&
           containsStrictSuperSet(tts) ) {
-	continue;
+        continue;
       }
 
       s += tts;
       if( i.hasNext() ) {
-	s += "\\n";
+        s += "\\n";
       }
     }
 
@@ -524,12 +524,12 @@ public class ReachabilitySet extends Canonical {
       // skip this if there is a superset already
       if( hideSubsetReachability &&
           containsStrictSuperSet(tts) ) {
-	continue;
+        continue;
       }
 
       s += tts;
       if( i.hasNext() ) {
-	s += "\n";
+        s += "\n";
       }
     }
 

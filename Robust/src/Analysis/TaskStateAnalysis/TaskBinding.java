@@ -51,70 +51,70 @@ mainloop:
       temptotag=new Hashtable<TempDescriptor, TagWrapper>();
       //build current state
       for(int i=0; i<(numtags+numobjs); i++) {
-	TagState tag=null;
-	TagWrapper tw=null;
-	if (i>=numtags) {
-	  int objindex=i-numtags;
-	  tag=tqi.ftsarray[objindex].ts;
-	} else {
-	  TempDescriptor tmp=tagv.get(i);
-	  tag=tqi.getTS(tmp);
-	}
-	int index=decisions.get(i).intValue();
-	int currentsize=ttable.get(tag).size();
-	if (i==incrementlevel) {
-	  if (index==currentsize) {
-	    if (incrementlevel==0)
-	      return false;
-	    incrementlevel--;
-	    continue mainloop;
-	  } else {
-	    index++;
-	    decisions.set(i, new Integer(index));
-	  }
-	} else if (i>incrementlevel) {
-	  index=0;
-	  decisions.set(i, new Integer(index));
-	}
-	if (index>currentsize) {
-	  tw=new TagWrapper(tag);
-	  if (!ttable.containsKey(tag)) {
-	    ttable.put(tag, new Vector<TagWrapper>());
-	  }
-	  ttable.get(tag).add(tw);
-	} else {
-	  //use old instance
-	  tw=ttable.get(tag).get(index);
-	}
-	if (i>=numtags) {
-	  int objindex=i-numtags;
-	  FlagTagState fts=tqi.ftsarray[objindex];
-	  ObjWrapper ow=new ObjWrapper(fts.fs);
-	  Hashtable <TagState,Set<TagWrapper>> ctable=new Hashtable<TagState, Set<TagWrapper>>();
-	  ctable.put(tw.getState(), new HashSet<TagWrapper>());
-	  ctable.get(tw.getState()).add(tw);
-	  ow.tags.add(tw);
-	  TagExpressionList tel=tqi.tq.task.getTag(tqi.tq.task.getParameter(i));
-	  for(int j=0; j<tel.numTags(); j++) {
-	    TempDescriptor tagtmp=tel.getTemp(j);
-	    TagWrapper twtmp=temptotag.get(tagtmp);
-	    if (!ctable.containsKey(twtmp.ts))
-	      ctable.put(twtmp.getState(), new HashSet<TagWrapper>());
-	    ctable.get(twtmp.getState()).add(twtmp);
-	    ow.tags.add(twtmp);
-	    int tagcount=ctable.get(twtmp.ts).size();
-	    int fstagcount=fts.fs.getTagCount(twtmp.getState().getTag());
-	    if (fstagcount>=0&&(tagcount>fstagcount)) {
-	      //Too many unique tags of this type bound to object wrapper
-	      incrementlevel=i;
-	      continue mainloop;
-	    }
-	  }
-	  parameterbindings[objindex]=ow;
-	} else {
-	  TempDescriptor tmp=tagv.get(i);
-	  temptotag.put(tmp, tw);
-	}
+        TagState tag=null;
+        TagWrapper tw=null;
+        if (i>=numtags) {
+          int objindex=i-numtags;
+          tag=tqi.ftsarray[objindex].ts;
+        } else {
+          TempDescriptor tmp=tagv.get(i);
+          tag=tqi.getTS(tmp);
+        }
+        int index=decisions.get(i).intValue();
+        int currentsize=ttable.get(tag).size();
+        if (i==incrementlevel) {
+          if (index==currentsize) {
+            if (incrementlevel==0)
+              return false;
+            incrementlevel--;
+            continue mainloop;
+          } else {
+            index++;
+            decisions.set(i, new Integer(index));
+          }
+        } else if (i>incrementlevel) {
+          index=0;
+          decisions.set(i, new Integer(index));
+        }
+        if (index>currentsize) {
+          tw=new TagWrapper(tag);
+          if (!ttable.containsKey(tag)) {
+            ttable.put(tag, new Vector<TagWrapper>());
+          }
+          ttable.get(tag).add(tw);
+        } else {
+          //use old instance
+          tw=ttable.get(tag).get(index);
+        }
+        if (i>=numtags) {
+          int objindex=i-numtags;
+          FlagTagState fts=tqi.ftsarray[objindex];
+          ObjWrapper ow=new ObjWrapper(fts.fs);
+          Hashtable <TagState,Set<TagWrapper>> ctable=new Hashtable<TagState, Set<TagWrapper>>();
+          ctable.put(tw.getState(), new HashSet<TagWrapper>());
+          ctable.get(tw.getState()).add(tw);
+          ow.tags.add(tw);
+          TagExpressionList tel=tqi.tq.task.getTag(tqi.tq.task.getParameter(i));
+          for(int j=0; j<tel.numTags(); j++) {
+            TempDescriptor tagtmp=tel.getTemp(j);
+            TagWrapper twtmp=temptotag.get(tagtmp);
+            if (!ctable.containsKey(twtmp.ts))
+              ctable.put(twtmp.getState(), new HashSet<TagWrapper>());
+            ctable.get(twtmp.getState()).add(twtmp);
+            ow.tags.add(twtmp);
+            int tagcount=ctable.get(twtmp.ts).size();
+            int fstagcount=fts.fs.getTagCount(twtmp.getState().getTag());
+            if (fstagcount>=0&&(tagcount>fstagcount)) {
+              //Too many unique tags of this type bound to object wrapper
+              incrementlevel=i;
+              continue mainloop;
+            }
+          }
+          parameterbindings[objindex]=ow;
+        } else {
+          TempDescriptor tmp=tagv.get(i);
+          temptotag.put(tmp, tw);
+        }
       }
       return true;
     }

@@ -8,7 +8,7 @@ public class Util {
     MySet<T> newset=new MySet<T>();
     for(T e : orig) {
       if (!sub.contains(e))
-	newset.add(e);
+        newset.add(e);
     }
     return newset;
   }
@@ -16,11 +16,11 @@ public class Util {
   public static <K,V> void relationUpdate(HashMap<K,MySet<V>> map, K key, MySet<V> toremove, MySet<V> toadd) {
     if (map.containsKey(key)) {
       if (toremove!=null)
-	map.get(key).removeAll(toremove);
+        map.get(key).removeAll(toremove);
       map.get(key).addAll(toadd);
     } else {
       if (toadd!=null)
-	map.put(key, (MySet<V>)toadd.clone());
+        map.put(key, (MySet<V>)toadd.clone());
     }
   }
 

@@ -20,19 +20,19 @@ public class Delta {
     for(Map.Entry<AllocNode, MySet<Edge>> entry : heapedgeadd.entrySet()) {
       AllocNode node=entry.getKey();
       if (node==null)
-	throw new Error("null node key");
+        throw new Error("null node key");
       for(Edge e : entry.getValue())
-	if (e.src!=node)
-	  throw new Error(e.src+" is not equal to "+node);
+        if (e.src!=node)
+          throw new Error(e.src+" is not equal to "+node);
     }
 
     for(Map.Entry<TempDescriptor, MySet<Edge>> entry : varedgeadd.entrySet()) {
       TempDescriptor tmp=entry.getKey();
       if (tmp==null)
-	throw new Error("null temp key");
+        throw new Error("null temp key");
       for(Edge e : entry.getValue())
-	if (e.srcvar!=tmp)
-	  throw new Error(e.srcvar+" is not equal to "+tmp);
+        if (e.srcvar!=tmp)
+          throw new Error(e.srcvar+" is not equal to "+tmp);
     }
     return this;
   }
@@ -105,10 +105,10 @@ public class Delta {
       TempDescriptor newTmp=tmpMap.get(entry.getKey());
       MySet<Edge> edgeset=entry.getValue();
       if (!edgeset.isEmpty()) {
-	newdelta.varedgeadd.put(newTmp, new MySet<Edge>());
-	for(Edge e : edgeset) {
-	  newdelta.varedgeadd.get(newTmp).add(e.rewrite(origTmp, newTmp));
-	}
+        newdelta.varedgeadd.put(newTmp, new MySet<Edge>());
+        for(Edge e : edgeset) {
+          newdelta.varedgeadd.get(newTmp).add(e.rewrite(origTmp, newTmp));
+        }
       }
     }
     newdelta.varedgeremove=varedgeremove;
@@ -143,15 +143,15 @@ public class Delta {
 
     for(Edge e : edges) {
       if (e.srcvar!=null) {
-	if (!newdelta.varedgeadd.containsKey(e.srcvar)) {
-	  newdelta.varedgeadd.put(e.srcvar, new MySet<Edge>());
-	}
-	newdelta.varedgeadd.get(e.srcvar).add(e);
+        if (!newdelta.varedgeadd.containsKey(e.srcvar)) {
+          newdelta.varedgeadd.put(e.srcvar, new MySet<Edge>());
+        }
+        newdelta.varedgeadd.get(e.srcvar).add(e);
       } else {
-	if (!newdelta.heapedgeadd.containsKey(e.src)) {
-	  newdelta.heapedgeadd.put(e.src, new MySet<Edge>());
-	}
-	newdelta.heapedgeadd.get(e.src).add(e.makeOld());
+        if (!newdelta.heapedgeadd.containsKey(e.src)) {
+          newdelta.heapedgeadd.put(e.src, new MySet<Edge>());
+        }
+        newdelta.heapedgeadd.get(e.src).add(e.makeOld());
       }
     }
     return newdelta;

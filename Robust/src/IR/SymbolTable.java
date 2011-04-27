@@ -46,9 +46,9 @@ public class SymbolTable {
       hs=new HashSet();
     if(this.parentIFs != null) {
       for(int i = 0; i < this.parentIFs.size(); i++) {
-	if(this.parentIFs.elementAt(i).contains(name)) {
-	  hs.addAll((HashSet)(this.parentIFs.elementAt(i).getPSet(name)));
-	}
+        if(this.parentIFs.elementAt(i).contains(name)) {
+          hs.addAll((HashSet)(this.parentIFs.elementAt(i).getPSet(name)));
+        }
       }
     }
     if (table.containsKey(name)) {
@@ -73,15 +73,15 @@ public class SymbolTable {
     Descriptor d = getFromSameScope(name);
     if (d == null) {
       if(parent != null) {
-	d = parent.get(name);
+        d = parent.get(name);
       }
       if((d == null) && (this.parentIFs != null)) {
-	for(int i = 0; i < this.parentIFs.size(); i++) {
-	  d = this.parentIFs.elementAt(i).get(name);
-	  if(d != null) {
-	    return d;
-	  }
-	}
+        for(int i = 0; i < this.parentIFs.size(); i++) {
+          d = this.parentIFs.elementAt(i).get(name);
+          if(d != null) {
+            return d;
+          }
+        }
       }
     }
     return d;
@@ -120,7 +120,7 @@ public class SymbolTable {
       hs=new HashSet();
     if (this.parentIFs != null) {
       for(int i = 0; i < this.parentIFs.size(); i++) {
-	hs.addAll(this.parentIFs.elementAt(i).getAllValueSet());
+        hs.addAll(this.parentIFs.elementAt(i).getAllValueSet());
       }
     }
     hs.addAll(valueset);

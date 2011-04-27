@@ -27,7 +27,7 @@ static __inline__ unsigned long long rdtsc(void) {
 
 int main() {
   unsigned long long dir[DIRSIZE];  /* used for incomming dir name, and
-				       outgoing data */
+                                       outgoing data */
   int sd, sd_current;
   socklen_t addrlen;
   struct   sockaddr_in sin;

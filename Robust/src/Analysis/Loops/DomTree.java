@@ -33,18 +33,18 @@ public class DomTree {
       Set<FlatNode> fnodes=fm.getNodeSet();
       Vector<FlatNode> v=new Vector<FlatNode>();
       for(Iterator<FlatNode> fit=fnodes.iterator(); fit.hasNext(); ) {
-	FlatNode fn=fit.next();
-	if (fn.numNext()==0) {
-	  v.add(fn);
-	}
+        FlatNode fn=fit.next();
+        if (fn.numNext()==0) {
+          v.add(fn);
+        }
       }
       FlatNode[] fnarray=new FlatNode[v.size()];
       for(int i=0; i<v.size(); i++) {
-	fnarray[i]=v.elementAt(i);
-	domtable.put(fnarray[i],fnarray[i]);
-	HashSet<FlatNode> set=new HashSet<FlatNode> ();
-	set.add(fnarray[i]);
-	childtree.put(fnarray[i],set);
+        fnarray[i]=v.elementAt(i);
+        domtable.put(fnarray[i],fnarray[i]);
+        HashSet<FlatNode> set=new HashSet<FlatNode> ();
+        set.add(fnarray[i]);
+        childtree.put(fnarray[i],set);
       }
       DFS(fnarray, postdominator);
     } else {
@@ -59,26 +59,26 @@ public class DomTree {
     while(changed) {
       changed=false;
       for(int i=vec.size()-2; i>=0; i--) {
-	FlatNode fn=vec.elementAt(i);
-	FlatNode dom=null;
-	for(int j=0; j<(postdominator?fn.numNext():fn.numPrev()); j++) {
-	  FlatNode np=postdominator?fn.getNext(j):fn.getPrev(j);
-	  FlatNode ndom=domtable.get(np);
-	  if (ndom!=null) {
-	    if (dom==null)
-	      dom=np;
-	    else
-	      dom=intersect(dom,np);
-	  }
-	}
-	if (!domtable.containsKey(fn)||
-	    !domtable.get(fn).equals(dom)) {
-	  domtable.put(fn,dom);
-	  if (!childtree.containsKey(dom))
-	    childtree.put(dom, new HashSet<FlatNode>());
-	  childtree.get(dom).add(fn);
-	  changed=true;
-	}
+        FlatNode fn=vec.elementAt(i);
+        FlatNode dom=null;
+        for(int j=0; j<(postdominator?fn.numNext():fn.numPrev()); j++) {
+          FlatNode np=postdominator?fn.getNext(j):fn.getPrev(j);
+          FlatNode ndom=domtable.get(np);
+          if (ndom!=null) {
+            if (dom==null)
+              dom=np;
+            else
+              dom=intersect(dom,np);
+          }
+        }
+        if (!domtable.containsKey(fn)||
+            !domtable.get(fn).equals(dom)) {
+          domtable.put(fn,dom);
+          if (!childtree.containsKey(dom))
+            childtree.put(dom, new HashSet<FlatNode>());
+          childtree.get(dom).add(fn);
+          changed=true;
+        }
       }
     }
   }
@@ -88,12 +88,12 @@ public class DomTree {
     int ifb=vecindex.get(fb).intValue();
     while(ifa!=ifb) {
       while (ifa<ifb) {
-	fa=domtable.get(fa);
-	ifa=vecindex.get(fa).intValue();
+        fa=domtable.get(fa);
+        ifa=vecindex.get(fa).intValue();
       }
       while (ifb<ifa) {
-	fb=domtable.get(fb);
-	ifb=vecindex.get(fb).intValue();
+        fb=domtable.get(fb);
+        ifb=vecindex.get(fb).intValue();
       }
     }
     return fa;
@@ -113,12 +113,12 @@ mainloop:
     while(!stack.isEmpty()) {
       FlatNode fn=stack.peek();
       for(int i=0; i<(postdominator?fn.numPrev():fn.numNext()); i++) {
-	FlatNode next=postdominator?fn.getPrev(i):fn.getNext(i);
-	if (!visited.contains(next)) {
-	  visited.add(next);
-	  stack.push(next);
-	  continue mainloop;
-	}
+        FlatNode next=postdominator?fn.getPrev(i):fn.getNext(i);
+        if (!visited.contains(next)) {
+          visited.add(next);
+          stack.push(next);
+          continue mainloop;
+        }
       }
       //We're done with this item, return
       vecindex.put(fn, new Integer(vec.size()));

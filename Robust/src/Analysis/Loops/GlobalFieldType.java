@@ -46,61 +46,61 @@ public class GlobalFieldType {
       analyzeMethod(md);
       Set callees=cg.getCalleeSet(md);
       for(Iterator it=callees.iterator(); it.hasNext(); ) {
-	MethodDescriptor md2=(MethodDescriptor)it.next();
-	if (!discovered.contains(md2)) {
-	  discovered.add(md2);
-	  toprocess.add(md2);
-	}
+        MethodDescriptor md2=(MethodDescriptor)it.next();
+        if (!discovered.contains(md2)) {
+          discovered.add(md2);
+          toprocess.add(md2);
+        }
       }
       if (md.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&
           md.getSymbol().equals("start")&&!md.getModifiers().isStatic()&&
           md.numParameters()==0) {
-	//start -> run link
-	MethodDescriptor runmd=null;
-	for(Iterator methodit=md.getClassDesc().getMethodTable().getSet("run").iterator(); methodit.hasNext(); ) {
-	  MethodDescriptor mdrun=(MethodDescriptor) methodit.next();
-	  if (mdrun.numParameters()!=0||mdrun.getModifiers().isStatic())
-	    continue;
-	  runmd=mdrun;
-	  break;
-	}
-	if (runmd!=null) {
-	  Set runmethodset=cg.getMethods(runmd);
-	  for(Iterator it=runmethodset.iterator(); it.hasNext(); ) {
-	    MethodDescriptor md2=(MethodDescriptor)it.next();
-	    if (!discovered.contains(md2)) {
-	      discovered.add(md2);
-	      toprocess.add(md2);
-	    }
-	  }
-	} else throw new Error("Can't find run method");
+        //start -> run link
+        MethodDescriptor runmd=null;
+        for(Iterator methodit=md.getClassDesc().getMethodTable().getSet("run").iterator(); methodit.hasNext(); ) {
+          MethodDescriptor mdrun=(MethodDescriptor) methodit.next();
+          if (mdrun.numParameters()!=0||mdrun.getModifiers().isStatic())
+            continue;
+          runmd=mdrun;
+          break;
+        }
+        if (runmd!=null) {
+          Set runmethodset=cg.getMethods(runmd);
+          for(Iterator it=runmethodset.iterator(); it.hasNext(); ) {
+            MethodDescriptor md2=(MethodDescriptor)it.next();
+            if (!discovered.contains(md2)) {
+              discovered.add(md2);
+              toprocess.add(md2);
+            }
+          }
+        } else throw new Error("Can't find run method");
       }
     }
     boolean changed=true;
     while(changed) {
       changed=false;
       for(Iterator it=discovered.iterator(); it.hasNext(); ) {
-	MethodDescriptor md=(MethodDescriptor)it.next();
-	Set callees=cg.getCalleeSet(md);
-	for(Iterator cit=callees.iterator(); cit.hasNext(); ) {
-	  MethodDescriptor md2=(MethodDescriptor)cit.next();
-	  if (fields.get(md).addAll(fields.get(md2)))
-	    changed=true;
-	  if (arrays.get(md).addAll(arrays.get(md2)))
-	    changed=true;
-	  if (fieldsrd.get(md).addAll(fieldsrd.get(md2)))
-	    changed=true;
-	  if (arraysrd.get(md).addAll(arraysrd.get(md2)))
-	    changed=true;
-	  if (containsAtomic.contains(md2)) {
-	    if (containsAtomic.add(md))
-	      changed=true;
-	  }
-	  if (containsBarrier.contains(md2)) {
-	    if (containsBarrier.add(md))
-	      changed=true;
-	  }
-	}
+        MethodDescriptor md=(MethodDescriptor)it.next();
+        Set callees=cg.getCalleeSet(md);
+        for(Iterator cit=callees.iterator(); cit.hasNext(); ) {
+          MethodDescriptor md2=(MethodDescriptor)cit.next();
+          if (fields.get(md).addAll(fields.get(md2)))
+            changed=true;
+          if (arrays.get(md).addAll(arrays.get(md2)))
+            changed=true;
+          if (fieldsrd.get(md).addAll(fieldsrd.get(md2)))
+            changed=true;
+          if (arraysrd.get(md).addAll(arraysrd.get(md2)))
+            changed=true;
+          if (containsAtomic.contains(md2)) {
+            if (containsAtomic.add(md))
+              changed=true;
+          }
+          if (containsBarrier.contains(md2)) {
+            if (containsBarrier.add(md))
+              changed=true;
+          }
+        }
       }
     }
   }
@@ -134,7 +134,7 @@ public class GlobalFieldType {
     for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (containsAtomic.contains(md2))
-	return true;
+        return true;
     }
     return false;
   }
@@ -144,7 +144,7 @@ public class GlobalFieldType {
     for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (containsBarrier.contains(md2))
-	return true;
+        return true;
     }
     return false;
   }
@@ -155,7 +155,7 @@ public class GlobalFieldType {
     for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (fields.containsKey(md2))
-	s.addAll(fields.get(md2));
+        s.addAll(fields.get(md2));
     }
     return s;
   }
@@ -166,7 +166,7 @@ public class GlobalFieldType {
     for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (arrays.containsKey(md2))
-	s.addAll(arrays.get(md2));
+        s.addAll(arrays.get(md2));
     }
     return s;
   }
@@ -177,7 +177,7 @@ public class GlobalFieldType {
     for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (fieldsrd.containsKey(md2))
-	s.addAll(fieldsrd.get(md2));
+        s.addAll(fieldsrd.get(md2));
     }
     return s;
   }
@@ -188,7 +188,7 @@ public class GlobalFieldType {
     for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (arraysrd.containsKey(md2))
-	s.addAll(arraysrd.get(md2));
+        s.addAll(arraysrd.get(md2));
     }
     return s;
   }
@@ -203,32 +203,32 @@ public class GlobalFieldType {
     for(Iterator it=fm.getNodeSet().iterator(); it.hasNext(); ) {
       FlatNode fn=(FlatNode)it.next();
       if (fn.kind()==FKind.FlatSetElementNode) {
-	FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	arrays.get(md).add(fsen.getDst().getType());
+        FlatSetElementNode fsen=(FlatSetElementNode)fn;
+        arrays.get(md).add(fsen.getDst().getType());
       } else if (fn.kind()==FKind.FlatElementNode) {
-	FlatElementNode fen=(FlatElementNode)fn;
-	arraysrd.get(md).add(fen.getSrc().getType());
+        FlatElementNode fen=(FlatElementNode)fn;
+        arraysrd.get(md).add(fen.getSrc().getType());
       } else if (fn.kind()==FKind.FlatSetFieldNode) {
-	FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
-	fields.get(md).add(fsfn.getField());
+        FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+        fields.get(md).add(fsfn.getField());
       } else if (fn.kind()==FKind.FlatFieldNode) {
-	FlatFieldNode ffn=(FlatFieldNode)fn;
-	fieldsrd.get(md).add(ffn.getField());
+        FlatFieldNode ffn=(FlatFieldNode)fn;
+        fieldsrd.get(md).add(ffn.getField());
       } else if (fn.kind()==FKind.FlatAtomicEnterNode) {
-	containsAtomic.add(md);
+        containsAtomic.add(md);
       } else if (fn.kind()==FKind.FlatCall) {
-	MethodDescriptor mdcall=((FlatCall)fn).getMethod();
-	if (mdcall.getSymbol().equals("enterBarrier")&&
-	    mdcall.getClassDesc().getSymbol().equals("Barrier")) {
-	  containsBarrier.add(md);
-	  containsBarrier.add(mdcall);
-	}
-	//treat lock acquire the same as a barrier
-	if ((mdcall.getSymbol().equals("MonitorEnter")||mdcall.getSymbol().equals("MonitorExit")||mdcall.getSymbol().equals("wait"))&&
-	    mdcall.getClassDesc().getSymbol().equals("Object")) {
-	  containsBarrier.add(md);
-	  containsBarrier.add(mdcall);
-	}
+        MethodDescriptor mdcall=((FlatCall)fn).getMethod();
+        if (mdcall.getSymbol().equals("enterBarrier")&&
+            mdcall.getClassDesc().getSymbol().equals("Barrier")) {
+          containsBarrier.add(md);
+          containsBarrier.add(mdcall);
+        }
+        //treat lock acquire the same as a barrier
+        if ((mdcall.getSymbol().equals("MonitorEnter")||mdcall.getSymbol().equals("MonitorExit")||mdcall.getSymbol().equals("wait"))&&
+            mdcall.getClassDesc().getSymbol().equals("Object")) {
+          containsBarrier.add(md);
+          containsBarrier.add(mdcall);
+        }
       }
     }
   }

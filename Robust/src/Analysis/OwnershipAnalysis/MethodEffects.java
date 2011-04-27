@@ -28,39 +28,39 @@ public class MethodEffects {
       Iterator<ReferenceEdge> heapRegionsItr = ln.iteratorToReferencees();
 
       while (heapRegionsItr.hasNext()) {
-	ReferenceEdge edge = heapRegionsItr.next();
-	HeapRegionNode hrn = edge.getDst();
+        ReferenceEdge edge = heapRegionsItr.next();
+        HeapRegionNode hrn = edge.getDst();
 
-	if (hrn.isParameter()) {
-	  Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
-	                                                         .getID());
+        if (hrn.isParameter()) {
+          Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
+                                                                 .getID());
 
-	  if (paramSet != null) {
-	    Iterator<Integer> paramIter = paramSet.iterator();
-	    while (paramIter.hasNext()) {
-	      Integer paramID = paramIter.next();
-	      effectsSet.addReadingVar(paramID, new EffectsKey(
-	                                 fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
+          if (paramSet != null) {
+            Iterator<Integer> paramIter = paramSet.iterator();
+            while (paramIter.hasNext()) {
+              Integer paramID = paramIter.next();
+              effectsSet.addReadingVar(paramID, new EffectsKey(
+                                         fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
 
-	    }
-	  }
+            }
+          }
 
-	  // check weather this heap region is parameter
-	  // reachable...
+          // check weather this heap region is parameter
+          // reachable...
 
-	  paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
-	  if (paramSet != null) {
-	    Iterator<Integer> paramIter = paramSet.iterator();
+          paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
+          if (paramSet != null) {
+            Iterator<Integer> paramIter = paramSet.iterator();
 
-	    while (paramIter.hasNext()) {
-	      Integer paramID = paramIter.next();
-	      effectsSet.addReadingVar(paramID, new EffectsKey(
-	                                 fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
+            while (paramIter.hasNext()) {
+              Integer paramID = paramIter.next();
+              effectsSet.addReadingVar(paramID, new EffectsKey(
+                                         fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
 
-	    }
-	  }
+            }
+          }
 
-	}
+        }
       }
     }
 
@@ -74,37 +74,37 @@ public class MethodEffects {
       Iterator<ReferenceEdge> heapRegionsItr = ln.iteratorToReferencees();
 
       while (heapRegionsItr.hasNext()) {
-	ReferenceEdge edge = heapRegionsItr.next();
-	HeapRegionNode hrn = edge.getDst();
+        ReferenceEdge edge = heapRegionsItr.next();
+        HeapRegionNode hrn = edge.getDst();
 
-	if (hrn.isParameter()) {
-	  Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
-	                                                         .getID());
+        if (hrn.isParameter()) {
+          Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
+                                                                 .getID());
 
-	  if (paramSet != null) {
-	    Iterator<Integer> paramIter = paramSet.iterator();
-	    while (paramIter.hasNext()) {
-	      Integer paramID = paramIter.next();
-	      effectsSet.addReadingVar(paramID, new EffectsKey(
-	                                 fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
-	    }
-	  }
+          if (paramSet != null) {
+            Iterator<Integer> paramIter = paramSet.iterator();
+            while (paramIter.hasNext()) {
+              Integer paramID = paramIter.next();
+              effectsSet.addReadingVar(paramID, new EffectsKey(
+                                         fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
+            }
+          }
 
-	  // check weather this heap region is parameter
-	  // reachable...
+          // check weather this heap region is parameter
+          // reachable...
 
-	  paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
-	  if (paramSet != null) {
-	    Iterator<Integer> paramIter = paramSet.iterator();
+          paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
+          if (paramSet != null) {
+            Iterator<Integer> paramIter = paramSet.iterator();
 
-	    while (paramIter.hasNext()) {
-	      Integer paramID = paramIter.next();
-	      effectsSet.addReadingVar(paramID, new EffectsKey(
-	                                 fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
-	    }
-	  }
+            while (paramIter.hasNext()) {
+              Integer paramID = paramIter.next();
+              effectsSet.addReadingVar(paramID, new EffectsKey(
+                                         fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
+            }
+          }
 
-	}
+        }
       }
     }
 
@@ -123,69 +123,69 @@ public class MethodEffects {
       boolean strongUpdate = false;
       if (!fieldDesc.getType().isImmutable()
           || fieldDesc.getType().isArray()) {
-	Iterator<ReferenceEdge> itrXhrn = ln.iteratorToReferencees();
-	while (itrXhrn.hasNext()) {
-	  ReferenceEdge edgeX = itrXhrn.next();
-	  HeapRegionNode hrnX = edgeX.getDst();
+        Iterator<ReferenceEdge> itrXhrn = ln.iteratorToReferencees();
+        while (itrXhrn.hasNext()) {
+          ReferenceEdge edgeX = itrXhrn.next();
+          HeapRegionNode hrnX = edgeX.getDst();
 
-	  if (fieldDesc != null
-	      && fieldDesc != OwnershipAnalysis
-	      .getArrayField(fieldDesc.getType())
-	      && ((hrnX.getNumReferencers() == 1) ||                                           // case 1
-	          (hrnX.isSingleObject() && ln.getNumReferencees() == 1)                                       // case
-	          // 2
-	          )) {
-	    strongUpdate = true;
-	  }
-	}
+          if (fieldDesc != null
+              && fieldDesc != OwnershipAnalysis
+              .getArrayField(fieldDesc.getType())
+              && ((hrnX.getNumReferencers() == 1) ||                                           // case 1
+                  (hrnX.isSingleObject() && ln.getNumReferencees() == 1)                                       // case
+                  // 2
+                  )) {
+            strongUpdate = true;
+          }
+        }
       }
       // //
 
       Iterator<ReferenceEdge> heapRegionsItr = ln.iteratorToReferencees();
       while (heapRegionsItr.hasNext()) {
-	ReferenceEdge edge = heapRegionsItr.next();
-	HeapRegionNode hrn = edge.getDst();
+        ReferenceEdge edge = heapRegionsItr.next();
+        HeapRegionNode hrn = edge.getDst();
 
-	if (hrn.isParameter()) {
-	  Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
-	                                                         .getID());
+        if (hrn.isParameter()) {
+          Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
+                                                                 .getID());
 
-	  if (paramSet != null) {
-	    Iterator<Integer> paramIter = paramSet.iterator();
-	    while (paramIter.hasNext()) {
-	      Integer paramID = paramIter.next();
-	      effectsSet.addWritingVar(paramID, new EffectsKey(
-	                                 fieldDesc.getSymbol(), dstDesc.getType(),
-	                                 hrn.getID(), hrn
-	                                 .getGloballyUniqueIdentifier(), 0));
-	      if(strongUpdate) {
-		effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
-		                                fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
-	      }
-	    }
-	  }
+          if (paramSet != null) {
+            Iterator<Integer> paramIter = paramSet.iterator();
+            while (paramIter.hasNext()) {
+              Integer paramID = paramIter.next();
+              effectsSet.addWritingVar(paramID, new EffectsKey(
+                                         fieldDesc.getSymbol(), dstDesc.getType(),
+                                         hrn.getID(), hrn
+                                         .getGloballyUniqueIdentifier(), 0));
+              if(strongUpdate) {
+                effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
+                                                fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
+              }
+            }
+          }
 
-	  // check weather this heap region is parameter
-	  // reachable...
+          // check weather this heap region is parameter
+          // reachable...
 
-	  paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
-	  if (paramSet != null) {
-	    Iterator<Integer> paramIter = paramSet.iterator();
+          paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
+          if (paramSet != null) {
+            Iterator<Integer> paramIter = paramSet.iterator();
 
-	    while (paramIter.hasNext()) {
-	      Integer paramID = paramIter.next();
-	      effectsSet.addWritingVar(paramID, new EffectsKey(
-	                                 fieldDesc.getSymbol(), dstDesc.getType(),
-	                                 hrn.getID(), hrn
-	                                 .getGloballyUniqueIdentifier(), 1));
-	      if(strongUpdate) {
-		effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
-		                                fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
-	      }
-	    }
-	  }
+            while (paramIter.hasNext()) {
+              Integer paramID = paramIter.next();
+              effectsSet.addWritingVar(paramID, new EffectsKey(
+                                         fieldDesc.getSymbol(), dstDesc.getType(),
+                                         hrn.getID(), hrn
+                                         .getGloballyUniqueIdentifier(), 1));
+              if(strongUpdate) {
+                effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
+                                                fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
+              }
+            }
+          }
 
-	}
+        }
 
       }
     }
@@ -200,68 +200,68 @@ public class MethodEffects {
       /// check possible strong updates
       boolean strongUpdate = false;
       if( !fieldDesc.getType().isImmutable() || fieldDesc.getType().isArray() ) {
-	Iterator<ReferenceEdge> itrXhrn = ln.iteratorToReferencees();
-	while( itrXhrn.hasNext() ) {
-	  ReferenceEdge edgeX = itrXhrn.next();
-	  HeapRegionNode hrnX = edgeX.getDst();
+        Iterator<ReferenceEdge> itrXhrn = ln.iteratorToReferencees();
+        while( itrXhrn.hasNext() ) {
+          ReferenceEdge edgeX = itrXhrn.next();
+          HeapRegionNode hrnX = edgeX.getDst();
 
-	  if( fieldDesc != null &&
-	      fieldDesc != OwnershipAnalysis.getArrayField(fieldDesc.getType() ) &&
-	      (   (hrnX.getNumReferencers()                         == 1) ||                                     // case 1
-	          (hrnX.isSingleObject() && ln.getNumReferencees() == 1)                                        // case 2
-	      )
-	      ) {
-	    strongUpdate = true;
-	  }
-	}
+          if( fieldDesc != null &&
+              fieldDesc != OwnershipAnalysis.getArrayField(fieldDesc.getType() ) &&
+              (   (hrnX.getNumReferencers()                         == 1) ||                                     // case 1
+                  (hrnX.isSingleObject() && ln.getNumReferencees() == 1)                                        // case 2
+              )
+              ) {
+            strongUpdate = true;
+          }
+        }
       }
       ////
 
       Iterator<ReferenceEdge> heapRegionsItr = ln.iteratorToReferencees();
 
       while (heapRegionsItr.hasNext()) {
-	ReferenceEdge edge = heapRegionsItr.next();
-	HeapRegionNode hrn = edge.getDst();
+        ReferenceEdge edge = heapRegionsItr.next();
+        HeapRegionNode hrn = edge.getDst();
 
-	if (hrn.isParameter()) {
+        if (hrn.isParameter()) {
 
-	  Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
-	                                                         .getID());
+          Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
+                                                                 .getID());
 
-	  if (paramSet != null) {
-	    Iterator<Integer> paramIter = paramSet.iterator();
-	    while (paramIter.hasNext()) {
-	      Integer paramID = paramIter.next();
-	      effectsSet.addWritingVar(paramID, new EffectsKey(
-	                                 fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
-	      if(strongUpdate) {
-		effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
-		                                fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
-	      }
+          if (paramSet != null) {
+            Iterator<Integer> paramIter = paramSet.iterator();
+            while (paramIter.hasNext()) {
+              Integer paramID = paramIter.next();
+              effectsSet.addWritingVar(paramID, new EffectsKey(
+                                         fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
+              if(strongUpdate) {
+                effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
+                                                fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
+              }
 
-	    }
-	  }
+            }
+          }
 
-	  // check weather this heap region is parameter
-	  // reachable...
+          // check weather this heap region is parameter
+          // reachable...
 
-	  paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
-	  if (paramSet != null) {
-	    Iterator<Integer> paramIter = paramSet.iterator();
+          paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
+          if (paramSet != null) {
+            Iterator<Integer> paramIter = paramSet.iterator();
 
-	    while (paramIter.hasNext()) {
-	      Integer paramID = paramIter.next();
-	      effectsSet.addWritingVar(paramID, new EffectsKey(
-	                                 fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
-	      if(strongUpdate) {
-		effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
-		                                fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
-	      }
+            while (paramIter.hasNext()) {
+              Integer paramID = paramIter.next();
+              effectsSet.addWritingVar(paramID, new EffectsKey(
+                                         fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
+              if(strongUpdate) {
+                effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
+                                                fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
+              }
 
-	    }
-	  }
+            }
+          }
 
-	}
+        }
       }
     }
 
@@ -278,40 +278,40 @@ public class MethodEffects {
       Iterator<ReferenceEdge> heapRegionsItr = ln.iteratorToReferencees();
 
       while (heapRegionsItr.hasNext()) {
-	ReferenceEdge edge = heapRegionsItr.next();
-	HeapRegionNode hrn = edge.getDst();
+        ReferenceEdge edge = heapRegionsItr.next();
+        HeapRegionNode hrn = edge.getDst();
 
-	if (hrn.isParameter()) {
+        if (hrn.isParameter()) {
 
-	  Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
-	                                                         .getID());
+          Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
+                                                                 .getID());
 
-	  if (paramSet != null) {
-	    Iterator<Integer> paramIter = paramSet.iterator();
-	    while (paramIter.hasNext()) {
-	      Integer paramID = paramIter.next();
+          if (paramSet != null) {
+            Iterator<Integer> paramIter = paramSet.iterator();
+            while (paramIter.hasNext()) {
+              Integer paramID = paramIter.next();
 
-	      resultSet.add(paramID);
+              resultSet.add(paramID);
 
-	    }
-	  }
+            }
+          }
 
-	  // check weather this heap region is parameter
-	  // reachable...
+          // check weather this heap region is parameter
+          // reachable...
 
-	  paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
-	  if (paramSet != null) {
-	    Iterator<Integer> paramIter = paramSet.iterator();
+          paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
+          if (paramSet != null) {
+            Iterator<Integer> paramIter = paramSet.iterator();
 
-	    while (paramIter.hasNext()) {
-	      Integer paramID = paramIter.next();
+            while (paramIter.hasNext()) {
+              Integer paramID = paramIter.next();
 
-	      resultSet.add(paramID);
+              resultSet.add(paramID);
 
-	    }
-	  }
+            }
+          }
 
-	}
+        }
       }
 
     }
@@ -333,122 +333,122 @@ public class MethodEffects {
       // handle read effects
       Iterator<Integer> paramIter = paramIDs.iterator();
       while (paramIter.hasNext()) {
-	Integer paramIdx = paramIter.next();
-	HashSet<EffectsKey> newSet = callee.getEffects().getReadTable()
-	                             .get(calleeParamIdx);
+        Integer paramIdx = paramIter.next();
+        HashSet<EffectsKey> newSet = callee.getEffects().getReadTable()
+                                     .get(calleeParamIdx);
 
 
-	if(newSet!=null) {
-	  HashSet<EffectsKey> thisSet=new HashSet<EffectsKey>();
-	  HeapRegionNode priHRN=og.id2hrn.get(og.paramIndex2idPrimary.get(paramIdx));
-	  Integer secIdx=og.paramIndex2idSecondary.get(paramIdx);
-	  HeapRegionNode secHRN=null;
-	  if(secIdx!=null) {
-	    secHRN=og.id2hrn.get(secIdx);
-	  } else {
-	    secHRN=priHRN;
-	  }
+        if(newSet!=null) {
+          HashSet<EffectsKey> thisSet=new HashSet<EffectsKey>();
+          HeapRegionNode priHRN=og.id2hrn.get(og.paramIndex2idPrimary.get(paramIdx));
+          Integer secIdx=og.paramIndex2idSecondary.get(paramIdx);
+          HeapRegionNode secHRN=null;
+          if(secIdx!=null) {
+            secHRN=og.id2hrn.get(secIdx);
+          } else {
+            secHRN=priHRN;
+          }
 
-	  for (Iterator iterator = newSet.iterator(); iterator.hasNext(); ) {
-	    EffectsKey effectsKey = (EffectsKey) iterator.next();
-	    HeapRegionNode hrnTemp;
-	    if(effectsKey.getParamIden()==0) {                                   //primary
-	      hrnTemp=priHRN;
-	    } else {                                  //secondary
-	      hrnTemp=secHRN;
-	    }
-	    EffectsKey newEffectsKey;
-	    if(secIdx==null) {
-	      newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),0);
-	    } else {
-	      newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),effectsKey.getParamIden());
-	    }
-	    thisSet.add(newEffectsKey);
-	  }
+          for (Iterator iterator = newSet.iterator(); iterator.hasNext(); ) {
+            EffectsKey effectsKey = (EffectsKey) iterator.next();
+            HeapRegionNode hrnTemp;
+            if(effectsKey.getParamIden()==0) {                                   //primary
+              hrnTemp=priHRN;
+            } else {                                  //secondary
+              hrnTemp=secHRN;
+            }
+            EffectsKey newEffectsKey;
+            if(secIdx==null) {
+              newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),0);
+            } else {
+              newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),effectsKey.getParamIden());
+            }
+            thisSet.add(newEffectsKey);
+          }
 
-	  effectsSet.addReadingEffectsSet(paramIdx, thisSet);
-	}
+          effectsSet.addReadingEffectsSet(paramIdx, thisSet);
+        }
 
       }
 
       // handle write effects
       paramIter = paramIDs.iterator();
       while (paramIter.hasNext()) {
-	Integer paramIdx = paramIter.next();
-	HashSet<EffectsKey> newSet = callee.getEffects()
-	                             .getWriteTable().get(calleeParamIdx);
+        Integer paramIdx = paramIter.next();
+        HashSet<EffectsKey> newSet = callee.getEffects()
+                                     .getWriteTable().get(calleeParamIdx);
 
-	if(newSet!=null) {
+        if(newSet!=null) {
 
-	  HashSet<EffectsKey> thisSet=new HashSet<EffectsKey>();
-	  HeapRegionNode priHRN=og.id2hrn.get(og.paramIndex2idPrimary.get(paramIdx));
-	  Integer secIdx=og.paramIndex2idSecondary.get(paramIdx);
-	  HeapRegionNode secHRN=null;
-	  if(secIdx!=null) {
-	    secHRN=og.id2hrn.get(secIdx);
-	  } else {
-	    secHRN=priHRN;
-	  }
+          HashSet<EffectsKey> thisSet=new HashSet<EffectsKey>();
+          HeapRegionNode priHRN=og.id2hrn.get(og.paramIndex2idPrimary.get(paramIdx));
+          Integer secIdx=og.paramIndex2idSecondary.get(paramIdx);
+          HeapRegionNode secHRN=null;
+          if(secIdx!=null) {
+            secHRN=og.id2hrn.get(secIdx);
+          } else {
+            secHRN=priHRN;
+          }
 
-	  for (Iterator iterator = newSet.iterator(); iterator.hasNext(); ) {
-	    EffectsKey effectsKey = (EffectsKey) iterator.next();
-	    HeapRegionNode hrnTemp;
-	    if(effectsKey.getParamIden()==0) {                                   //primary
-	      hrnTemp=priHRN;
-	    } else {                                  //secondary
-	      hrnTemp=secHRN;
-	    }
-	    EffectsKey newEffectsKey;
-	    if(secIdx==null) {
-	      newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),0);
-	    } else {
-	      newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),effectsKey.getParamIden());
-	    }
-	    thisSet.add(newEffectsKey);
-	  }
+          for (Iterator iterator = newSet.iterator(); iterator.hasNext(); ) {
+            EffectsKey effectsKey = (EffectsKey) iterator.next();
+            HeapRegionNode hrnTemp;
+            if(effectsKey.getParamIden()==0) {                                   //primary
+              hrnTemp=priHRN;
+            } else {                                  //secondary
+              hrnTemp=secHRN;
+            }
+            EffectsKey newEffectsKey;
+            if(secIdx==null) {
+              newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),0);
+            } else {
+              newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),effectsKey.getParamIden());
+            }
+            thisSet.add(newEffectsKey);
+          }
 
-	  effectsSet.addWritingEffectsSet(paramIdx, thisSet);
-	}
+          effectsSet.addWritingEffectsSet(paramIdx, thisSet);
+        }
 
       }
 
       // handle strong update effects
       paramIter = paramIDs.iterator();
       while (paramIter.hasNext()) {
-	Integer paramIdx = paramIter.next();
-	HashSet<EffectsKey> newSet = callee.getEffects()
-	                             .getStrongUpdateTable().get(calleeParamIdx);
-	if(newSet!=null) {
+        Integer paramIdx = paramIter.next();
+        HashSet<EffectsKey> newSet = callee.getEffects()
+                                     .getStrongUpdateTable().get(calleeParamIdx);
+        if(newSet!=null) {
 
-	  HashSet<EffectsKey> thisSet=new HashSet<EffectsKey>();
-	  HeapRegionNode priHRN=og.id2hrn.get(og.paramIndex2idPrimary.get(paramIdx));
-	  Integer secIdx=og.paramIndex2idSecondary.get(paramIdx);
-	  HeapRegionNode secHRN=null;
-	  if(secIdx!=null) {
-	    secHRN=og.id2hrn.get(secIdx);
-	  } else {
-	    secHRN=priHRN;
-	  }
+          HashSet<EffectsKey> thisSet=new HashSet<EffectsKey>();
+          HeapRegionNode priHRN=og.id2hrn.get(og.paramIndex2idPrimary.get(paramIdx));
+          Integer secIdx=og.paramIndex2idSecondary.get(paramIdx);
+          HeapRegionNode secHRN=null;
+          if(secIdx!=null) {
+            secHRN=og.id2hrn.get(secIdx);
+          } else {
+            secHRN=priHRN;
+          }
 
-	  for (Iterator iterator = newSet.iterator(); iterator.hasNext(); ) {
-	    EffectsKey effectsKey = (EffectsKey) iterator.next();
-	    HeapRegionNode hrnTemp;
-	    if(effectsKey.getParamIden()==0) {                                   //primary
-	      hrnTemp=priHRN;
-	    } else {                                  //secondary
-	      hrnTemp=secHRN;
-	    }
-	    EffectsKey newEffectsKey;
-	    if(secIdx==null) {
-	      newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),0);
-	    } else {
-	      newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),effectsKey.getParamIden());
-	    }
-	    thisSet.add(newEffectsKey);
-	  }
+          for (Iterator iterator = newSet.iterator(); iterator.hasNext(); ) {
+            EffectsKey effectsKey = (EffectsKey) iterator.next();
+            HeapRegionNode hrnTemp;
+            if(effectsKey.getParamIden()==0) {                                   //primary
+              hrnTemp=priHRN;
+            } else {                                  //secondary
+              hrnTemp=secHRN;
+            }
+            EffectsKey newEffectsKey;
+            if(secIdx==null) {
+              newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),0);
+            } else {
+              newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),effectsKey.getParamIden());
+            }
+            thisSet.add(newEffectsKey);
+          }
 
-	  effectsSet.addStrongUpdateEffectsSet(paramIdx, thisSet);
-	}
+          effectsSet.addStrongUpdateEffectsSet(paramIdx, thisSet);
+        }
 
       }
 

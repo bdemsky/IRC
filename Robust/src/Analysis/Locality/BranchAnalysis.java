@@ -86,22 +86,22 @@ public class BranchAnalysis {
       String label=getGroup(fn);
       output.println(label+":");
       if (numJumps(fn)==1) {
-	FlatNode fndst=getJumps(fn).get(0);
-	output.println("goto L"+nodetolabels.get(fndst)+";");
+        FlatNode fndst=getJumps(fn).get(0);
+        output.println("goto L"+nodetolabels.get(fndst)+";");
       } else if (numJumps(fn)==2) {
-	Vector<FlatNode> exits=getJumps(fn);
-	output.println("if(RESTOREBRANCH())");
-	output.println("goto L"+nodetolabels.get(exits.get(1))+";");
-	output.println("else");
-	output.println("goto L"+nodetolabels.get(exits.get(0))+";");
+        Vector<FlatNode> exits=getJumps(fn);
+        output.println("if(RESTOREBRANCH())");
+        output.println("goto L"+nodetolabels.get(exits.get(1))+";");
+        output.println("else");
+        output.println("goto L"+nodetolabels.get(exits.get(0))+";");
       } else {
-	Vector<FlatNode> exits=getJumps(fn);
-	output.println("switch(RESTOREBRANCH()) {");
-	for(int i=0; i<exits.size(); i++) {
-	  output.println("case "+i+":");
-	  output.println("goto L"+nodetolabels.get(exits.get(i))+";");
-	}
-	output.println("}");
+        Vector<FlatNode> exits=getJumps(fn);
+        output.println("switch(RESTOREBRANCH()) {");
+        for(int i=0; i<exits.size(); i++) {
+          output.println("case "+i+":");
+          output.println("goto L"+nodetolabels.get(exits.get(i))+";");
+        }
+        output.println("}");
       }
     }
   }
@@ -114,19 +114,19 @@ public class BranchAnalysis {
     for(Iterator<FlatNode> fnit=transset.iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       if ((fn.numNext()>1&&storeset.contains(fn))||fn.kind()==FKind.FlatBackEdge||fn.kind()==FKind.FlatNop) {
-	FlatNode[] children=fnmap.get(fn);
-	if (children==null)
-	  continue;
-	if (!groupmap.containsKey(fn)) {
-	  groupmap.put(fn, new HashSet<FlatNode>());
-	  groupmap.get(fn).add(fn);
-	}
-	for(int i=0; i<children.length; i++) {
-	  FlatNode child=children[i];
-	  if ((child.numNext()>1&&storeset.contains(child))||child.kind()==FKind.FlatBackEdge||child.kind()==FKind.FlatNop) {
-	    mergegroups(fn, child, groupmap);
-	  }
-	}
+        FlatNode[] children=fnmap.get(fn);
+        if (children==null)
+          continue;
+        if (!groupmap.containsKey(fn)) {
+          groupmap.put(fn, new HashSet<FlatNode>());
+          groupmap.get(fn).add(fn);
+        }
+        for(int i=0; i<children.length; i++) {
+          FlatNode child=children[i];
+          if ((child.numNext()>1&&storeset.contains(child))||child.kind()==FKind.FlatBackEdge||child.kind()==FKind.FlatNop) {
+            mergegroups(fn, child, groupmap);
+          }
+        }
       }
     }
     //now we have groupings...
@@ -136,17 +136,17 @@ public class BranchAnalysis {
       Vector<FlatNode> exits=new Vector<FlatNode>();
       table.put(group, exits);
       for(Iterator<FlatNode> fnit=group.iterator(); fnit.hasNext(); ) {
-	FlatNode fn=fnit.next();
-	FlatNode[] nextnodes=fnmap.get(fn);
-	for(int i=0; i<nextnodes.length; i++) {
-	  FlatNode nextnode=nextnodes[i];
-	  if (!group.contains(nextnode)) {
-	    //outside edge
-	    if (!exits.contains(nextnode)) {
-	      exits.add(nextnode);
-	    }
-	  }
-	}
+        FlatNode fn=fnit.next();
+        FlatNode[] nextnodes=fnmap.get(fn);
+        for(int i=0; i<nextnodes.length; i++) {
+          FlatNode nextnode=nextnodes[i];
+          if (!group.contains(nextnode)) {
+            //outside edge
+            if (!exits.contains(nextnode)) {
+              exits.add(nextnode);
+            }
+          }
+        }
       }
     }
   }
@@ -163,8 +163,8 @@ public class BranchAnalysis {
     if (groupmap.get(fn1)!=groupmap.get(fn2)) {
       groupmap.get(fn1).addAll(groupmap.get(fn2));
       for(Iterator<FlatNode> fnit=groupmap.get(fn2).iterator(); fnit.hasNext(); ) {
-	FlatNode fn3=fnit.next();
-	groupmap.put(fn3, groupmap.get(fn1));
+        FlatNode fn3=fnit.next();
+        groupmap.put(fn3, groupmap.get(fn1));
       }
     }
   }
@@ -180,43 +180,43 @@ public class BranchAnalysis {
       Set<Object[]> incomingtuples=new HashSet<Object[]>();
 
       for(int i=0; i<fn.numPrev(); i++) {
-	FlatNode fprev=fn.getPrev(i);
-	if (nodeset.contains(fprev)||storeset.contains(fprev)) {
-	  for(int j=0; j<fprev.numNext(); j++) {
-	    if (fprev.getNext(j)==fn) {
-	      Object[] pair=new Object[2];
-	      pair[0]=new Integer(j); pair[1]=fprev;
-	      incomingtuples.add(pair);
-	    }
-	  }
-	} else {
-	  Set<Object[]> tuple=fntotuple.get(fprev);
-	  if (tuple!=null)
-	    incomingtuples.addAll(tuple);
-	}
+        FlatNode fprev=fn.getPrev(i);
+        if (nodeset.contains(fprev)||storeset.contains(fprev)) {
+          for(int j=0; j<fprev.numNext(); j++) {
+            if (fprev.getNext(j)==fn) {
+              Object[] pair=new Object[2];
+              pair[0]=new Integer(j); pair[1]=fprev;
+              incomingtuples.add(pair);
+            }
+          }
+        } else {
+          Set<Object[]> tuple=fntotuple.get(fprev);
+          if (tuple!=null)
+            incomingtuples.addAll(tuple);
+        }
       }
 
       if (nodeset.contains(fn)||storeset.contains(fn)||fn.kind()==FKind.FlatAtomicExitNode) {
-	//nodeset contains this node
-	for(Iterator<Object[]> it=incomingtuples.iterator(); it.hasNext(); ) {
-	  Object[] pair=it.next();
-	  int index=((Integer)pair[0]).intValue();
-	  FlatNode node=(FlatNode)pair[1];
-	  if (!fnmap.containsKey(node))
-	    fnmap.put(node, new FlatNode[node.numNext()]);
-	  fnmap.get(node)[index]=fn;
-	}
-	incomingtuples=new HashSet<Object[]>();
+        //nodeset contains this node
+        for(Iterator<Object[]> it=incomingtuples.iterator(); it.hasNext(); ) {
+          Object[] pair=it.next();
+          int index=((Integer)pair[0]).intValue();
+          FlatNode node=(FlatNode)pair[1];
+          if (!fnmap.containsKey(node))
+            fnmap.put(node, new FlatNode[node.numNext()]);
+          fnmap.get(node)[index]=fn;
+        }
+        incomingtuples=new HashSet<Object[]>();
       }
 
       //add if we need to update
       if (!fntotuple.containsKey(fn)||
           !fntotuple.get(fn).equals(incomingtuples)) {
-	fntotuple.put(fn,incomingtuples);
-	for(int i=0; i<fn.numNext(); i++) {
-	  if (transset.contains(fn.getNext(i)))
-	    toprocess.add(fn.getNext(i));
-	}
+        fntotuple.put(fn,incomingtuples);
+        for(int i=0; i<fn.numNext(); i++) {
+          if (transset.contains(fn.getNext(i)))
+            toprocess.add(fn.getNext(i));
+        }
       }
     }
     return fnmap;
@@ -231,7 +231,7 @@ public class BranchAnalysis {
       FlatNode fn=tovisit.iterator().next();
       tovisit.remove(fn);
       if (locality.getAtomic(lb).get(fn).intValue()>0||fn.kind()==FKind.FlatAtomicExitNode)
-	transset.add(fn);
+        transset.add(fn);
     }
     return transset;
   }

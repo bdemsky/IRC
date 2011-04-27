@@ -341,8 +341,8 @@ void prefetch(int siteid, int ntuples, unsigned int *oids, unsigned short *endof
       int top=endoffsets[ntuples-1];
 
       if (node==NULL) {
-	LOGEVENT('D');
-	return;
+        LOGEVENT('D');
+        return;
       }
       /* Set queue node values */
 
@@ -366,18 +366,18 @@ void prefetch(int siteid, int ntuples, unsigned int *oids, unsigned short *endof
       node=gettail();
       prefetchpile_t *pilehead = foundLocal(node,numpref,siteid);
       if (pilehead!=NULL) {
-	// Get sock from shared pool
+        // Get sock from shared pool
 
-	/* Send  Prefetch Request */
-	prefetchpile_t *ptr = pilehead;
-	while(ptr != NULL) {
-	  globalid++;
-	  int sd = getSock2(transPrefetchSockPool, ptr->mid);
-	  sendPrefetchReq(ptr, sd, globalid);
-	  ptr = ptr->next;
-	}
+        /* Send  Prefetch Request */
+        prefetchpile_t *ptr = pilehead;
+        while(ptr != NULL) {
+          globalid++;
+          int sd = getSock2(transPrefetchSockPool, ptr->mid);
+          sendPrefetchReq(ptr, sd, globalid);
+          ptr = ptr->next;
+        }
 
-	mcdealloc(pilehead);
+        mcdealloc(pilehead);
       }
       resetqueue();
     } //end do prefetch if condition
@@ -659,9 +659,9 @@ __attribute__((pure)) objheader_t *transRead(unsigned int oid) {
     if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) {
       if(STATUS(tmp) & DIRTY) {
 #ifdef TRANSSTATS
-	ndirtyCacheObj++;
+        ndirtyCacheObj++;
 #endif
-	goto remoteread;
+        goto remoteread;
       }
 #ifdef TRANSSTATS
       nprehashSearch++;
@@ -703,10 +703,10 @@ remoteread:
       int size;
       GETSIZE(size, objcopy);
       if((headerObj = prefetchobjstrAlloc(size + sizeof(objheader_t))) == NULL) {
-	printf("%s(): Error in getting memory from prefetch cache at %s, %d\n", __func__,
-	       __FILE__, __LINE__);
-	pthread_mutex_unlock(&prefetchcache_mutex);
-	return NULL;
+        printf("%s(): Error in getting memory from prefetch cache at %s, %d\n", __func__,
+               __FILE__, __LINE__);
+        pthread_mutex_unlock(&prefetchcache_mutex);
+        return NULL;
       }
       pthread_mutex_unlock(&prefetchcache_mutex);
       memcpy(headerObj, objcopy, size+sizeof(objheader_t));
@@ -765,9 +765,9 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
     if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) {
       if(STATUS(tmp) & DIRTY) {
 #ifdef TRANSSTATS
-	ndirtyCacheObj++;
+        ndirtyCacheObj++;
 #endif
-	goto remoteread;
+        goto remoteread;
       }
 #ifdef TRANSSTATS
       LOGEVENT('P')
@@ -814,10 +814,10 @@ remoteread:
       int size;
       GETSIZE(size, objcopy);
       if((headerObj = prefetchobjstrAlloc(size+sizeof(objheader_t))) == NULL) {
-	printf("%s(): Error in getting memory from prefetch cache at %s, %d\n", __func__,
-	       __FILE__, __LINE__);
-	pthread_mutex_unlock(&prefetchcache_mutex);
-	return NULL;
+        printf("%s(): Error in getting memory from prefetch cache at %s, %d\n", __func__,
+               __FILE__, __LINE__);
+        pthread_mutex_unlock(&prefetchcache_mutex);
+        return NULL;
       }
       pthread_mutex_unlock(&prefetchcache_mutex);
       memcpy(headerObj, objcopy, size+sizeof(objheader_t));
@@ -874,14 +874,14 @@ plistnode_t *createPiles() {
     while(curr != NULL) {
       //if the first bin in hash table is empty
       if(curr->key == 0)
-	break;
+        break;
       headeraddr=(objheader_t *) curr->val;
       //Get machine location for object id (and whether local or not)
       if (STATUS(headeraddr) & NEW || (mhashSearch(curr->key) != NULL)) {
-	machinenum = myIpAddr;
+        machinenum = myIpAddr;
       } else if ((machinenum = lhashSearch(curr->key)) == 0) {
-	printf("Error: No such machine %s, %d\n", __FILE__, __LINE__);
-	return NULL;
+        printf("Error: No such machine %s, %d\n", __FILE__, __LINE__);
+        return NULL;
       }
 
       //Make machine groups
@@ -1023,57 +1023,57 @@ int transCommit() {
       tosend[sockindex].oidcreated = pile->oidcreated;
       int sd = 0;
       if(pile->mid != myIpAddr) {
-	if((sd = getSock2WithLock(transRequestSockPool, pile->mid)) < 0) {
-	  printf("transRequest(): socket create error\n");
-	  free(listmid);
-	  free(tosend);
-	  return 1;
-	}
-	socklist[sockindex] = sd;
-	/* Send bytes of data with TRANS_REQUEST control message */
-	send_buf(sd, &writebuffer, &(tosend[sockindex].f), sizeof(fixed_data_t));
+        if((sd = getSock2WithLock(transRequestSockPool, pile->mid)) < 0) {
+          printf("transRequest(): socket create error\n");
+          free(listmid);
+          free(tosend);
+          return 1;
+        }
+        socklist[sockindex] = sd;
+        /* Send bytes of data with TRANS_REQUEST control message */
+        send_buf(sd, &writebuffer, &(tosend[sockindex].f), sizeof(fixed_data_t));
 
-	/* Send list of machines involved in the transaction */
-	{
-	  int size=sizeof(unsigned int)*(tosend[sockindex].f.mcount);
-	  send_buf(sd, &writebuffer, tosend[sockindex].listmid, size);
-	}
+        /* Send list of machines involved in the transaction */
+        {
+          int size=sizeof(unsigned int)*(tosend[sockindex].f.mcount);
+          send_buf(sd, &writebuffer, tosend[sockindex].listmid, size);
+        }
 
-	/* Send oids and version number tuples for objects that are read */
-	{
-	  int size=(sizeof(unsigned int)+sizeof(unsigned short))*(tosend[sockindex].f.numread);
-	  send_buf(sd, &writebuffer, tosend[sockindex].objread, size);
-	}
+        /* Send oids and version number tuples for objects that are read */
+        {
+          int size=(sizeof(unsigned int)+sizeof(unsigned short))*(tosend[sockindex].f.numread);
+          send_buf(sd, &writebuffer, tosend[sockindex].objread, size);
+        }
 
-	/* Send objects that are modified */
-	void *modptr;
-	if((modptr = calloc(1, tosend[sockindex].f.sum_bytes)) == NULL) {
-	  printf("Calloc error for modified objects %s, %d\n", __FILE__, __LINE__);
-	  free(listmid);
-	  free(tosend);
-	  return 1;
-	}
-	int offset = 0;
-	int i;
-	for(i = 0; i < tosend[sockindex].f.nummod; i++) {
-	  int size;
-	  objheader_t *headeraddr;
-	  if((headeraddr = t_chashSearch(tosend[sockindex].oidmod[i])) == NULL) {
-	    printf("%s() Error: No such oid %s, %d\n", __func__, __FILE__, __LINE__);
-	    free(modptr);
-	    free(listmid);
-	    free(tosend);
-	    return 1;
-	  }
-	  GETSIZE(size,headeraddr);
-	  size+=sizeof(objheader_t);
-	  memcpy(modptr+offset, headeraddr, size);
-	  offset+=size;
-	}
-	forcesend_buf(sd, &writebuffer, modptr, tosend[sockindex].f.sum_bytes);
-	free(modptr);
+        /* Send objects that are modified */
+        void *modptr;
+        if((modptr = calloc(1, tosend[sockindex].f.sum_bytes)) == NULL) {
+          printf("Calloc error for modified objects %s, %d\n", __FILE__, __LINE__);
+          free(listmid);
+          free(tosend);
+          return 1;
+        }
+        int offset = 0;
+        int i;
+        for(i = 0; i < tosend[sockindex].f.nummod; i++) {
+          int size;
+          objheader_t *headeraddr;
+          if((headeraddr = t_chashSearch(tosend[sockindex].oidmod[i])) == NULL) {
+            printf("%s() Error: No such oid %s, %d\n", __func__, __FILE__, __LINE__);
+            free(modptr);
+            free(listmid);
+            free(tosend);
+            return 1;
+          }
+          GETSIZE(size,headeraddr);
+          size+=sizeof(objheader_t);
+          memcpy(modptr+offset, headeraddr, size);
+          offset+=size;
+        }
+        forcesend_buf(sd, &writebuffer, modptr, tosend[sockindex].f.sum_bytes);
+        free(modptr);
       } else { //handle request locally
-	handleLocalReq(&tosend[sockindex], &transinfo, &getReplyCtrl[sockindex]);
+        handleLocalReq(&tosend[sockindex], &transinfo, &getReplyCtrl[sockindex]);
       }
       sockindex++;
       pile = pile->next;
@@ -1084,43 +1084,43 @@ int transCommit() {
     for(i = 0; i < pilecount; i++) {
       int sd = socklist[i];
       if(sd != 0) {
-	char control;
-	recv_data(sd, &control, sizeof(char));
-	//Update common data structure with new ctrl msg
-	getReplyCtrl[i] = control;
-	/* Recv Objects if participant sends TRANS_DISAGREE */
+        char control;
+        recv_data(sd, &control, sizeof(char));
+        //Update common data structure with new ctrl msg
+        getReplyCtrl[i] = control;
+        /* Recv Objects if participant sends TRANS_DISAGREE */
 #ifdef CACHE
-	if(control == TRANS_DISAGREE) {
-	  int length;
-	  recv_data(sd, &length, sizeof(int));
-	  void *newAddr;
-	  pthread_mutex_lock(&prefetchcache_mutex);
-	  if ((newAddr = prefetchobjstrAlloc((unsigned int)length)) == NULL) {
-	    printf("Error: %s() objstrAlloc error for copying into prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
-	    free(tosend);
-	    free(listmid);
-	    pthread_mutex_unlock(&prefetchcache_mutex);
-	    return 1;
-	  }
-	  pthread_mutex_unlock(&prefetchcache_mutex);
-	  recv_data(sd, newAddr, length);
-	  int offset = 0;
-	  while(length != 0) {
-	    unsigned int oidToPrefetch;
-	    objheader_t * header;
-	    header = (objheader_t *)(((char *)newAddr) + offset);
-	    oidToPrefetch = OID(header);
-	    STATUS(header)=0;
-	    int size = 0;
-	    GETSIZE(size, header);
-	    size += sizeof(objheader_t);
-	    //make an entry in prefetch hash table
-	    prehashInsert(oidToPrefetch, header);
-	    LOGEVENT('E');
-	    length = length - size;
-	    offset += size;
-	  }
-	} //end of receiving objs
+        if(control == TRANS_DISAGREE) {
+          int length;
+          recv_data(sd, &length, sizeof(int));
+          void *newAddr;
+          pthread_mutex_lock(&prefetchcache_mutex);
+          if ((newAddr = prefetchobjstrAlloc((unsigned int)length)) == NULL) {
+            printf("Error: %s() objstrAlloc error for copying into prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
+            free(tosend);
+            free(listmid);
+            pthread_mutex_unlock(&prefetchcache_mutex);
+            return 1;
+          }
+          pthread_mutex_unlock(&prefetchcache_mutex);
+          recv_data(sd, newAddr, length);
+          int offset = 0;
+          while(length != 0) {
+            unsigned int oidToPrefetch;
+            objheader_t * header;
+            header = (objheader_t *)(((char *)newAddr) + offset);
+            oidToPrefetch = OID(header);
+            STATUS(header)=0;
+            int size = 0;
+            GETSIZE(size, header);
+            size += sizeof(objheader_t);
+            //make an entry in prefetch hash table
+            prehashInsert(oidToPrefetch, header);
+            LOGEVENT('E');
+            length = length - size;
+            offset += size;
+          }
+        } //end of receiving objs
 #endif
       }
     }
@@ -1138,10 +1138,10 @@ int transCommit() {
       /* Invalidate objects in other machine cache */
       int retval;
       if((retval = invalidateObj(tosend, pilecount,finalResponse,socklist)) != 0) {
-	printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
-	free(tosend);
-	free(listmid);
-	return 1;
+        printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
+        free(tosend);
+        free(listmid);
+        return 1;
       }
     }
 #endif
@@ -1150,39 +1150,39 @@ int transCommit() {
       int sd = socklist[i];
       if(sd != 0) {
 #ifdef CACHE
-	if(finalResponse == TRANS_COMMIT) {
-	  int retval;
-	  /* Update prefetch cache */
-	  if((retval = updatePrefetchCache(&(tosend[i]))) != 0) {
-	    printf("Error: %s() in updating prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
-	    free(tosend);
-	    free(listmid);
-	    return 1;
-	  }
+        if(finalResponse == TRANS_COMMIT) {
+          int retval;
+          /* Update prefetch cache */
+          if((retval = updatePrefetchCache(&(tosend[i]))) != 0) {
+            printf("Error: %s() in updating prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
+            free(tosend);
+            free(listmid);
+            return 1;
+          }
 #ifdef ABORTREADERS
-	  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
-	  removethisreadtransaction(tosend[i].objread, tosend[i].f.numread);
+          removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
+          removethisreadtransaction(tosend[i].objread, tosend[i].f.numread);
 #endif
-	}
+        }
 #ifdef ABORTREADERS
-	else if (!treplyretry) {
-	  removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
-	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
-	}
+        else if (!treplyretry) {
+          removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
+          removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
+        }
 #endif
 #endif
-	send_data(sd, &finalResponse, sizeof(char));
+        send_data(sd, &finalResponse, sizeof(char));
       } else {
-	/* Complete local processing */
-	doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
+        /* Complete local processing */
+        doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
 #ifdef ABORTREADERS
-	if(finalResponse == TRANS_COMMIT) {
-	  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
-	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
-	} else if (!treplyretry) {
-	  removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
-	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
-	}
+        if(finalResponse == TRANS_COMMIT) {
+          removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
+          removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
+        } else if (!treplyretry) {
+          removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
+          removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
+        }
 #endif
       }
     }
@@ -1261,14 +1261,14 @@ void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, cha
       commitCountForObjRead(getReplyCtrl, oidnotfound, oidlocked, &numoidnotfound, &numoidlocked, &v_nomatch, &v_matchlock, &v_matchnolock, oid, version);
     } else { // Objects Modified
       if(i == tdata->f.numread) {
-	oidlocked[numoidlocked++] = -1;
+        oidlocked[numoidlocked++] = -1;
       }
       int tmpsize;
       objheader_t *headptr;
       headptr = (objheader_t *) t_chashSearch(tdata->oidmod[i-numread]);
       if (headptr == NULL) {
-	printf("Error: handleLocalReq() returning NULL, no such oid %s, %d\n", __FILE__, __LINE__);
-	return;
+        printf("Error: handleLocalReq() returning NULL, no such oid %s, %d\n", __FILE__, __LINE__);
+        return;
       }
       oid = OID(headptr);
       version = headptr->version;
@@ -1324,7 +1324,7 @@ void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_da
  * all Participant machines after the TRANS_REQUEST protocol */
 char decideResponse(char *getReplyCtrl, char *treplyretry, int pilecount) {
   int i, transagree = 0, transdisagree = 0, transsoftabort = 0; /* Counters to formulate decision of what
-								   message to send */
+                                                                   message to send */
   for (i = 0; i < pilecount; i++) {
     char control;
     control = getReplyCtrl[i];
@@ -1421,26 +1421,26 @@ void commitCountForObjMod(char *getReplyCtrl, unsigned int *oidnotfound, unsigne
     /* Check if Obj is locked by any previous transaction */
     if (write_trylock(STATUSPTR(mobj))) { // Can acquire write lock
       if (version == ((objheader_t *)mobj)->version) {      /* match versions */
-	(*v_matchnolock)++;
-	//Keep track of what is locked
-	oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
+        (*v_matchnolock)++;
+        //Keep track of what is locked
+        oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
       } else { /* If versions don't match ...HARD ABORT */
-	(*v_nomatch)++;
-	/* Send TRANS_DISAGREE to Coordinator */
-	*getReplyCtrl = TRANS_DISAGREE;
+        (*v_nomatch)++;
+        /* Send TRANS_DISAGREE to Coordinator */
+        *getReplyCtrl = TRANS_DISAGREE;
 
-	//Keep track of what is locked
-	oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
-	return;
+        //Keep track of what is locked
+        oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
+        return;
       }
     } else { //A lock is acquired some place else
       if (version == ((objheader_t *)mobj)->version) { /* Check if versions match */
-	(*v_matchlock)++;
+        (*v_matchlock)++;
       } else { /* If versions don't match ...HARD ABORT */
-	(*v_nomatch)++;
-	/* Send TRANS_DISAGREE to Coordinator */
-	*getReplyCtrl = TRANS_DISAGREE;
-	return;
+        (*v_nomatch)++;
+        /* Send TRANS_DISAGREE to Coordinator */
+        *getReplyCtrl = TRANS_DISAGREE;
+        return;
       }
     }
   }
@@ -1460,26 +1460,26 @@ void commitCountForObjRead(char *getReplyCtrl, unsigned int *oidnotfound, unsign
     /* Check if Obj is locked by any previous transaction */
     if (read_trylock(STATUSPTR(mobj))) { // Can further acquire read locks
       if (version == ((objheader_t *)mobj)->version) {      /* If locked then match versions */
-	(*v_matchnolock)++;
-	//Keep track of what is locked
-	oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
+        (*v_matchnolock)++;
+        //Keep track of what is locked
+        oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
       } else { /* If versions don't match ...HARD ABORT */
-	(*v_nomatch)++;
-	/* Send TRANS_DISAGREE to Coordinator */
-	*getReplyCtrl = TRANS_DISAGREE;
-	//Keep track of what is locked
-	oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
-	return;
+        (*v_nomatch)++;
+        /* Send TRANS_DISAGREE to Coordinator */
+        *getReplyCtrl = TRANS_DISAGREE;
+        //Keep track of what is locked
+        oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
+        return;
       }
     } else { //Has reached max number of readers or some other transaction
       //has acquired a lock on this object
       if (version == ((objheader_t *)mobj)->version) { /* Check if versions match */
-	(*v_matchlock)++;
+        (*v_matchlock)++;
       } else { /* If versions don't match ...HARD ABORT */
-	(*v_nomatch)++;
-	/* Send TRANS_DISAGREE to Coordinator */
-	*getReplyCtrl = TRANS_DISAGREE;
-	return;
+        (*v_nomatch)++;
+        /* Send TRANS_DISAGREE to Coordinator */
+        *getReplyCtrl = TRANS_DISAGREE;
+        return;
       }
     }
   }
@@ -1620,30 +1620,30 @@ prefetchpile_t *foundLocal(char *ptr, int numprefetches, int mysiteid) {
       int countInvalidObj=0;
 
       if (oid==0) {
-	numLocal++;
-	continue;
+        numLocal++;
+        continue;
       }
       //Look up fields locally
       int isLastOffset=0;
       if(endindex==0)
-	isLastOffset=1;
+        isLastOffset=1;
       for(newbase=baseindex; newbase<endindex; newbase++) {
-	if(newbase==(endindex-1))
-	  isLastOffset=1;
-	if (!lookupObject(&oid,arryfields[newbase],&countInvalidObj)) {
-	  break;
-	}
-	//Ended in a null pointer...
-	if (oid==0) {
-	  numLocal++;
-	  goto tuple;
-	}
+        if(newbase==(endindex-1))
+          isLastOffset=1;
+        if (!lookupObject(&oid,arryfields[newbase],&countInvalidObj)) {
+          break;
+        }
+        //Ended in a null pointer...
+        if (oid==0) {
+          numLocal++;
+          goto tuple;
+        }
       }
 
       //Entire prefetch is local
       if (newbase==endindex&&checkoid(oid,isLastOffset)) {
-	numLocal++;
-	goto tuple;
+        numLocal++;
+        goto tuple;
       }
 
       //Add to remote requests
@@ -1689,7 +1689,7 @@ int lookupObject(unsigned int * oid, short offset, int *countInvalidObj) {
       //only once because later old entries may still cause unnecessary roundtrips during prefetching
       (*countInvalidObj)+=1;
       if(*countInvalidObj > 1) {
-	return 0;
+        return 0;
       }
     }
   } else {
@@ -1731,10 +1731,10 @@ void *transPrefetch(void *t) {
       /* Send  Prefetch Request */
       prefetchpile_t *ptr = pilehead;
       while(ptr != NULL) {
-	globalid++;
-	int sd = getSock2(transPrefetchSockPool, ptr->mid);
-	sendPrefetchReq(ptr, sd,globalid);
-	ptr = ptr->next;
+        globalid++;
+        int sd = getSock2(transPrefetchSockPool, ptr->mid);
+        sendPrefetchReq(ptr, sd,globalid);
+        ptr = ptr->next;
       }
 
       /* Release socket */
@@ -1870,7 +1870,7 @@ int getPrefetchResponse(int sd, struct readstruct *readbuffer) {
     if((oldptr = prehashSearch(oid)) != NULL) {
       /* If older version then update with new object ptr */
       if(((objheader_t *)oldptr)->version < ((objheader_t *)modptr)->version) {
-	prehashInsert(oid, modptr);
+        prehashInsert(oid, modptr);
       }
     } else { /* Else add the object ptr to hash table*/
       prehashInsert(oid, modptr);
@@ -1924,8 +1924,8 @@ unsigned short getObjType(unsigned int oid) {
 #ifdef CACHE
       pthread_mutex_lock(&prefetchcache_mutex);
       if ((objheader = prefetchobjstrAlloc(size)) == NULL) {
-	printf("Error: %s() objstrAlloc error for copying into prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
-	pthread_exit(NULL);
+        printf("Error: %s() objstrAlloc error for copying into prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
+        pthread_exit(NULL);
       }
       pthread_mutex_unlock(&prefetchcache_mutex);
       recv_data(sd, objheader, size);
@@ -1934,9 +1934,9 @@ unsigned short getObjType(unsigned int oid) {
 #else
       char *buffer;
       if((buffer = calloc(1, size)) == NULL) {
-	printf("%s() Calloc Error %s at line %d\n", __func__, __FILE__, __LINE__);
-	fflush(stdout);
-	return 0;
+        printf("%s() Calloc Error %s at line %d\n", __func__, __FILE__, __LINE__);
+        fflush(stdout);
+        return 0;
       }
       recv_data(sd, buffer, size);
       objheader = (objheader_t *)buffer;
@@ -2022,11 +2022,11 @@ int processConfigFile() {
     while (token != NULL) {
       tmpAddr = inet_addr(token);
       if ((int)tmpAddr == -1) {
-	printf("error in %s: bad token:%s\n", CONFIG_FILENAME, token);
-	fclose(configFile);
-	return -1;
+        printf("error in %s: bad token:%s\n", CONFIG_FILENAME, token);
+        fclose(configFile);
+        return -1;
       } else
-	addHost(htonl(tmpAddr));
+        addHost(htonl(tmpAddr));
       token = strtok(NULL, delimiters);
     }
   }
@@ -2191,8 +2191,8 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
   } else  {
     for(i = 0; i < ndata->numoid; i++) {
       if(ndata->oidarry[i] == oid) {
-	objIsFound = 1;
-	index = i;
+        objIsFound = 1;
+        index = i;
       }
     }
     if(objIsFound == 0) {
@@ -2200,18 +2200,18 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
       return;
     } else {
       if(version <= ndata->versionarry[index]) {
-	printf("threadNotify(): New version %d has not changed since last version for oid = %d, %s, %d\n", version, oid, __FILE__, __LINE__);
-	return;
+        printf("threadNotify(): New version %d has not changed since last version for oid = %d, %s, %d\n", version, oid, __FILE__, __LINE__);
+        return;
       } else {
 #ifdef CACHE
-	/* Clear from prefetch cache and free thread related data structure */
-	if((ptr = prehashSearch(oid)) != NULL) {
-	  prehashRemove(oid);
-	}
+        /* Clear from prefetch cache and free thread related data structure */
+        if((ptr = prehashSearch(oid)) != NULL) {
+          prehashRemove(oid);
+        }
 #endif
-	pthread_mutex_lock(&(ndata->threadnotify));
-	pthread_cond_signal(&(ndata->threadcond));
-	pthread_mutex_unlock(&(ndata->threadnotify));
+        pthread_mutex_lock(&(ndata->threadnotify));
+        pthread_cond_signal(&(ndata->threadcond));
+        pthread_mutex_unlock(&(ndata->threadnotify));
       }
     }
   }
@@ -2288,21 +2288,21 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
       int tmpsize;
 
       if (STATUS(headeraddr) & NEW) {
-	tmp->oidcreated[tmp->numcreated] = OID(headeraddr);
-	tmp->numcreated++;
-	GETSIZE(tmpsize, headeraddr);
-	tmp->sum_bytes += sizeof(objheader_t) + tmpsize;
+        tmp->oidcreated[tmp->numcreated] = OID(headeraddr);
+        tmp->numcreated++;
+        GETSIZE(tmpsize, headeraddr);
+        tmp->sum_bytes += sizeof(objheader_t) + tmpsize;
       } else if (STATUS(headeraddr) & DIRTY) {
-	tmp->oidmod[tmp->nummod] = OID(headeraddr);
-	tmp->nummod++;
-	GETSIZE(tmpsize, headeraddr);
-	tmp->sum_bytes += sizeof(objheader_t) + tmpsize;
+        tmp->oidmod[tmp->nummod] = OID(headeraddr);
+        tmp->nummod++;
+        GETSIZE(tmpsize, headeraddr);
+        tmp->sum_bytes += sizeof(objheader_t) + tmpsize;
       } else {
-	offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
-	*((unsigned int *)(((char *)tmp->objread) + offset))=OID(headeraddr);
-	offset += sizeof(unsigned int);
-	*((short *)(((char *)tmp->objread) + offset)) = headeraddr->version;
-	tmp->numread++;
+        offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
+        *((unsigned int *)(((char *)tmp->objread) + offset))=OID(headeraddr);
+        offset += sizeof(unsigned int);
+        *((short *)(((char *)tmp->objread) + offset)) = headeraddr->version;
+        tmp->numread++;
       }
       found = 1;
       break;

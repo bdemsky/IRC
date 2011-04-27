@@ -42,7 +42,7 @@ public class ConstraintCheck {
     String str="assert("+specname+"(";
     for(int i=0; i<numArgs(); i++) {
       if (i>0)
-	str+=",";
+        str+=",";
       str+=getVar(i)+" : ";
       str+=getArg(i).printNode(0);
     }

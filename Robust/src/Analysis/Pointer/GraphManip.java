@@ -27,7 +27,7 @@ public class GraphManip {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(AllocNode srcnode : srcSet) {
       for(AllocNode dstnode : dstSet) {
-	edgeset.add(new Edge(srcnode, fd, dstnode, Edge.NEW));
+        edgeset.add(new Edge(srcnode, fd, dstnode, Edge.NEW));
       }
     }
     return edgeset;
@@ -37,7 +37,7 @@ public class GraphManip {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(Edge srcedge : srcSet) {
       for(Edge dstedge : dstSet) {
-	edgeset.add(dstedge.changeSrc(fd, srcedge.dst));
+        edgeset.add(dstedge.changeSrc(fd, srcedge.dst));
       }
     }
     return edgeset;
@@ -47,7 +47,7 @@ public class GraphManip {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(AllocNode srcnode : srcSet) {
       for(Edge dstedge : dstSet) {
-	edgeset.add(dstedge.changeSrc(fd, srcnode));
+        edgeset.add(dstedge.changeSrc(fd, srcnode));
       }
     }
     return edgeset;
@@ -60,13 +60,13 @@ public class GraphManip {
     MySet<Edge> baseedges=delta.basevaredge.get(tmp);
     if (baseedges!=null) {
       for(Edge e : baseedges) {
-	if (removeedges==null||!removeedges.contains(e))
-	  edges.add(e);
+        if (removeedges==null||!removeedges.contains(e))
+          edges.add(e);
       }
     }
     if (delta.varedgeadd.containsKey(tmp))
       for(Edge e : delta.varedgeadd.get(tmp)) {
-	edges.add(e);
+        edges.add(e);
       }
     return edges;
   }
@@ -77,11 +77,11 @@ public class GraphManip {
 
     for(Edge e : graph.getEdges(tmp)) {
       if (removeedges==null||!removeedges.contains(e))
-	edges.add(e);
+        edges.add(e);
     }
     if (delta.varedgeadd.containsKey(tmp))
       for(Edge e : delta.varedgeadd.get(tmp)) {
-	edges.add(e);
+        edges.add(e);
       }
     return edges;
   }
@@ -91,14 +91,14 @@ public class GraphManip {
     for(Edge node : srcNodes) {
       MySet<Edge> removeedges=delta.heapedgeremove.get(node.dst);
       for(Edge e : graph.getEdges(node.dst)) {
-	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
-	  nodes.add(e);
+        if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
+          nodes.add(e);
       }
       if (delta.heapedgeadd.containsKey(node.dst))
-	for(Edge e : delta.heapedgeadd.get(node.dst)) {
-	  if (e.fd==fd)
-	    nodes.add(e);
-	}
+        for(Edge e : delta.heapedgeadd.get(node.dst)) {
+          if (e.fd==fd)
+            nodes.add(e);
+        }
     }
     return nodes;
   }
@@ -108,14 +108,14 @@ public class GraphManip {
     for(AllocNode node : srcNodes) {
       MySet<Edge> removeedges=delta.heapedgeremove.get(node);
       for(Edge e : graph.getEdges(node)) {
-	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
-	  nodes.add(e);
+        if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
+          nodes.add(e);
       }
       if (delta.heapedgeadd.containsKey(node))
-	for(Edge e : delta.heapedgeadd.get(node)) {
-	  if (e.fd==fd)
-	    nodes.add(e);
-	}
+        for(Edge e : delta.heapedgeadd.get(node)) {
+          if (e.fd==fd)
+            nodes.add(e);
+        }
     }
     return nodes;
   }
@@ -125,11 +125,11 @@ public class GraphManip {
     MySet<Edge> removeedges=delta.heapedgeremove.get(node);
     for(Edge e : graph.getEdges(node)) {
       if ((removeedges==null||!removeedges.contains(e)))
-	nodes.add(e);
+        nodes.add(e);
     }
     if (delta.heapedgeadd.containsKey(node))
       for(Edge e : delta.heapedgeadd.get(node)) {
-	nodes.add(e);
+        nodes.add(e);
       }
 
     return nodes;
@@ -143,12 +143,12 @@ public class GraphManip {
 
     if (baseEdges!=null)
       for(Edge e : baseEdges) {
-	if (removeedges==null||!removeedges.contains(e))
-	  nodes.add(e.dst);
+        if (removeedges==null||!removeedges.contains(e))
+          nodes.add(e.dst);
       }
     if (delta.varedgeadd.containsKey(tmp))
       for(Edge e : delta.varedgeadd.get(tmp)) {
-	nodes.add(e.dst);
+        nodes.add(e.dst);
       }
     return nodes;
   }
@@ -159,11 +159,11 @@ public class GraphManip {
 
     for(Edge e : graph.getEdges(tmp)) {
       if (removeedges==null||!removeedges.contains(e))
-	nodes.add(e.dst);
+        nodes.add(e.dst);
     }
     if (delta.varedgeadd.containsKey(tmp))
       for(Edge e : delta.varedgeadd.get(tmp)) {
-	nodes.add(e.dst);
+        nodes.add(e.dst);
       }
     return nodes;
   }
@@ -174,15 +174,15 @@ public class GraphManip {
       MySet<Edge> removeedges=delta.heapedgeremove.get(node);
       MySet<Edge> baseEdges=delta.baseheapedge.get(node);
       if (baseEdges!=null)
-	for(Edge e : baseEdges) {
-	  if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
-	    nodes.add(e.dst);
-	}
+        for(Edge e : baseEdges) {
+          if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
+            nodes.add(e.dst);
+        }
       if (delta.heapedgeadd.containsKey(node))
-	for(Edge e : delta.heapedgeadd.get(node)) {
-	  if (e.fd==fd)
-	    nodes.add(e.dst);
-	}
+        for(Edge e : delta.heapedgeadd.get(node)) {
+          if (e.fd==fd)
+            nodes.add(e.dst);
+        }
     }
     return nodes;
   }
@@ -192,20 +192,20 @@ public class GraphManip {
     for(Map.Entry<AllocNode, MySet<Edge>> entry : delta.baseheapedge.entrySet()) {
       AllocNode node=entry.getKey();
       if (srcNodes.contains(node)) {
-	MySet<Edge> edges=entry.getValue();
-	MySet<Edge> removeedges=delta.heapedgeremove.get(node);
-	for(Edge e : edges) {
-	  if (removeedges==null||!removeedges.contains(e)) {
-	    newedges.add(e);
-	  }
-	}
+        MySet<Edge> edges=entry.getValue();
+        MySet<Edge> removeedges=delta.heapedgeremove.get(node);
+        for(Edge e : edges) {
+          if (removeedges==null||!removeedges.contains(e)) {
+            newedges.add(e);
+          }
+        }
       }
     }
     for(Map.Entry<AllocNode, MySet<Edge>> entry : delta.heapedgeadd.entrySet()) {
       AllocNode node=entry.getKey();
       if (srcNodes.contains(node)) {
-	MySet<Edge> edges=entry.getValue();
-	newedges.addAll(edges);
+        MySet<Edge> edges=entry.getValue();
+        newedges.addAll(edges);
       }
     }
     return newedges;
@@ -216,23 +216,23 @@ public class GraphManip {
     for(Map.Entry<AllocNode, MySet<Edge>> entry : delta.baseheapedge.entrySet()) {
       AllocNode node=entry.getKey();
       if (srcNodes.contains(node)) {
-	MySet<Edge> edges=entry.getValue();
-	MySet<Edge> removeedges=delta.heapedgeremove.get(node);
-	for(Edge e : edges) {
-	  if ((removeedges==null||!removeedges.contains(e))&&(e.fd==fd)) {
-	    newedges.add(e);
-	  }
-	}
+        MySet<Edge> edges=entry.getValue();
+        MySet<Edge> removeedges=delta.heapedgeremove.get(node);
+        for(Edge e : edges) {
+          if ((removeedges==null||!removeedges.contains(e))&&(e.fd==fd)) {
+            newedges.add(e);
+          }
+        }
       }
     }
     for(Map.Entry<AllocNode, MySet<Edge>> entry : delta.heapedgeadd.entrySet()) {
       AllocNode node=entry.getKey();
       if (srcNodes.contains(node)) {
-	MySet<Edge> edges=entry.getValue();
-	for(Edge e : edges) {
-	  if (e.fd==fd)
-	    newedges.add(e);
-	}
+        MySet<Edge> edges=entry.getValue();
+        for(Edge e : edges) {
+          if (e.fd==fd)
+            newedges.add(e);
+        }
       }
     }
     return newedges;
@@ -251,34 +251,34 @@ public class GraphManip {
     for(Edge edge : srcEdges) {
       TaintSet ts=edge.getTaints();
       if (ts!=null) {
-	ts=ts.reTaint(fn);
+        ts=ts.reTaint(fn);
       }
       MySet<Edge> removeedges=delta.heapedgeremove.get(edge.dst);
       for(Edge e : graph.getEdges(edge.dst)) {
-	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e))) {
-	  e=e.changeSrcVar(dst, ts);
-	  if (!edgeset.contains(e))
-	    edgeset.add(e);
-	  else {
-	    Edge preve=edgeset.get(e);
-	    e=e.merge(preve);
-	    edgeset.add(e);
-	  }
-	}
+        if (e.fd==fd&&(removeedges==null||!removeedges.contains(e))) {
+          e=e.changeSrcVar(dst, ts);
+          if (!edgeset.contains(e))
+            edgeset.add(e);
+          else {
+            Edge preve=edgeset.get(e);
+            e=e.merge(preve);
+            edgeset.add(e);
+          }
+        }
       }
       if (delta.heapedgeadd.containsKey(edge.dst))
-	for(Edge e : delta.heapedgeadd.get(edge.dst)) {
-	  if (e.fd==fd) {
-	    e=e.changeSrcVar(dst, ts);
-	    if (!edgeset.contains(e))
-	      edgeset.add(e);
-	    else {
-	      Edge preve=edgeset.get(e);
-	      e=e.merge(preve);
-	      edgeset.add(e);
-	    }
-	  }
-	}
+        for(Edge e : delta.heapedgeadd.get(edge.dst)) {
+          if (e.fd==fd) {
+            e=e.changeSrcVar(dst, ts);
+            if (!edgeset.contains(e))
+              edgeset.add(e);
+            else {
+              Edge preve=edgeset.get(e);
+              e=e.merge(preve);
+              edgeset.add(e);
+            }
+          }
+        }
     }
     return edgeset;
   }
@@ -288,36 +288,36 @@ public class GraphManip {
     for(Edge edge : srcEdges) {
       TaintSet ts=edge.getTaints();
       if (ts!=null) {
-	ts=ts.reTaint(fn);
+        ts=ts.reTaint(fn);
       }
       MySet<Edge> removeedges=delta.heapedgeremove.get(edge.dst);
       if (delta.baseheapedge.containsKey(edge.dst)) {
-	for(Edge e : delta.baseheapedge.get(edge.dst)) {
-	  if (e.fd==fd&&(removeedges==null||!removeedges.contains(e))) {
-	    e=e.changeSrcVar(dst, ts);
-	    if (!edgeset.contains(e))
-	      edgeset.add(e);
-	    else {
-	      Edge preve=edgeset.get(e);
-	      e=e.merge(preve);
-	      edgeset.add(e);
-	    }
-	  }
-	}
+        for(Edge e : delta.baseheapedge.get(edge.dst)) {
+          if (e.fd==fd&&(removeedges==null||!removeedges.contains(e))) {
+            e=e.changeSrcVar(dst, ts);
+            if (!edgeset.contains(e))
+              edgeset.add(e);
+            else {
+              Edge preve=edgeset.get(e);
+              e=e.merge(preve);
+              edgeset.add(e);
+            }
+          }
+        }
       }
       if (delta.heapedgeadd.containsKey(edge.dst))
-	for(Edge e : delta.heapedgeadd.get(edge.dst)) {
-	  if (e.fd==fd) {
-	    e=e.changeSrcVar(dst, ts);
-	    if (!edgeset.contains(e))
-	      edgeset.add(e);
-	    else {
-	      Edge preve=edgeset.get(e);
-	      e=e.merge(preve);
-	      edgeset.add(e);
-	    }
-	  }
-	}
+        for(Edge e : delta.heapedgeadd.get(edge.dst)) {
+          if (e.fd==fd) {
+            e=e.changeSrcVar(dst, ts);
+            if (!edgeset.contains(e))
+              edgeset.add(e);
+            else {
+              Edge preve=edgeset.get(e);
+              e=e.merge(preve);
+              edgeset.add(e);
+            }
+          }
+        }
     }
     return edgeset;
   }
@@ -327,14 +327,14 @@ public class GraphManip {
     for(AllocNode node : srcNodes) {
       MySet<Edge> removeedges=delta.heapedgeremove.get(node);
       for(Edge e : graph.getEdges(node)) {
-	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
-	  nodes.add(e.dst);
+        if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
+          nodes.add(e.dst);
       }
       if (delta.heapedgeadd.containsKey(node))
-	for(Edge e : delta.heapedgeadd.get(node)) {
-	  if (e.fd==fd)
-	    nodes.add(e.dst);
-	}
+        for(Edge e : delta.heapedgeadd.get(node)) {
+          if (e.fd==fd)
+            nodes.add(e.dst);
+        }
     }
     return nodes;
   }

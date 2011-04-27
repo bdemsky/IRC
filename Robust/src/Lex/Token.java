@@ -14,10 +14,10 @@ abstract class Token extends InputElement {
       case '\n': sb.append("\\n"); break;
 
       default:
-	if ((int)s.charAt(i)<32)
-	  sb.append("\\"+Integer.toOctalString((int)s.charAt(i)));
-	else
-	  sb.append(s.charAt(i));
+        if ((int)s.charAt(i)<32)
+          sb.append("\\"+Integer.toOctalString((int)s.charAt(i)));
+        else
+          sb.append(s.charAt(i));
       }
     return sb.toString();
   }

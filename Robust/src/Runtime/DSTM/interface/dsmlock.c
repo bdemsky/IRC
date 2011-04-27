@@ -7,20 +7,20 @@ inline void initdsmlocks(volatile int *addr) {
 
 inline void atomic_dec(volatile int *v) {
   __asm__ __volatile__ (LOCK_PREFIX "decl %0"
-			: "+m" (*v));
+                        : "+m" (*v));
 }
 
 inline void atomic_inc(volatile int *v) {
   __asm__ __volatile__ (LOCK_PREFIX "incl %0"
-			: "+m" (*v));
+                        : "+m" (*v));
 }
 
 static inline int atomic_sub_and_test(int i, volatile int *v) {
   unsigned char c;
 
   __asm__ __volatile__ (LOCK_PREFIX "subl %2,%0; sete %1"
-			: "+m" (*v), "=qm" (c)
-			: "ir" (i) : "memory");
+                        : "+m" (*v), "=qm" (c)
+                        : "ir" (i) : "memory");
   return c;
 }
 
@@ -33,8 +33,8 @@ static inline int atomic_sub_and_test(int i, volatile int *v) {
  */
 static inline void atomic_add(int i, volatile int *v) {
   __asm__ __volatile__ (LOCK_PREFIX "addl %1,%0"
-			: "+m" (*v)
-			: "ir" (i));
+                        : "+m" (*v)
+                        : "ir" (i));
 }
 
 inline int read_trylock(volatile int  *lock) {
@@ -59,7 +59,7 @@ inline void read_unlock(volatile int *rw) {
 
 inline void write_unlock(volatile int *rw) {
   __asm__ __volatile__ (LOCK_PREFIX "addl %1, %0"
-			: "+m" (*rw) : "i" (RW_LOCK_BIAS) : "memory");
+                        : "+m" (*rw) : "i" (RW_LOCK_BIAS) : "memory");
 }
 
 inline int is_write_locked(volatile int *lock) {

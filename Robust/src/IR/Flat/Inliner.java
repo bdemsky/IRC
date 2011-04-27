@@ -24,18 +24,18 @@ public class Inliner {
       FlatNode fn=toprocess.pop();
       int atomicval=atomictable.get(fn).intValue();
       if (fn.kind()==FKind.FlatAtomicEnterNode)
-	atomicval++;
+        atomicval++;
       else if(fn.kind()==FKind.FlatAtomicExitNode)
-	atomicval--;
+        atomicval--;
       for(int i=0; i<fn.numNext(); i++) {
-	FlatNode fnext=fn.getNext(i);
-	if (!visited.contains(fnext)) {
-	  atomictable.put(fnext, new Integer(atomicval));
-	  if (atomicval>0)
-	    atomicset.add(fnext);
-	  visited.add(fnext);
-	  toprocess.push(fnext);
-	}
+        FlatNode fnext=fn.getNext(i);
+        if (!visited.contains(fnext)) {
+          atomictable.put(fnext, new Integer(atomicval));
+          if (atomicval>0)
+            atomicset.add(fnext);
+          visited.add(fnext);
+          toprocess.push(fnext);
+        }
       }
     }
     //make depth 0 be depth infinity
@@ -52,20 +52,20 @@ public class Inliner {
     for(Iterator<FlatNode> fnit=fnset.iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       if (fn.kind()==FKind.FlatCall) {
-	FlatCall fc=(FlatCall)fn;
-	MethodDescriptor md=fc.getMethod();
+        FlatCall fc=(FlatCall)fn;
+        MethodDescriptor md=fc.getMethod();
 
-	if (toexclude.contains(md))
-	  continue;
+        if (toexclude.contains(md))
+          continue;
 
-	Set<FlatNode> inlinefnset=inline(fc, typeutil, state);
-	if (inlinefnset==null)
-	  continue;
+        Set<FlatNode> inlinefnset=inline(fc, typeutil, state);
+        if (inlinefnset==null)
+          continue;
 
-	toexclude.push(md);
-	if (depth>1)
-	  recursive(state, typeutil, inlinefnset, depth-1, toexclude);
-	toexclude.pop();
+        toexclude.push(md);
+        if (depth>1)
+          recursive(state, typeutil, inlinefnset, depth-1, toexclude);
+        toexclude.pop();
       }
     }
   }
@@ -94,71 +94,71 @@ public class Inliner {
 
       //Build the clones
       for(Iterator<FlatNode> fnit=nodeset.iterator(); fnit.hasNext(); ) {
-	FlatNode fn=fnit.next();
-	if (fn.kind()==FKind.FlatReturnNode) {
-	  //Convert FlatReturn node into move
-	  TempDescriptor rtmp=((FlatReturnNode)fn).getReturnTemp();
-	  if (rtmp!=null) {
-	    FlatOpNode fon=new FlatOpNode(rettmp, rtmp, null, new Operation(Operation.ASSIGN));
-	    flatmap.put(fn, fon);
-	  } else {
-	    flatmap.put(fn, aftercallnode);
-	  }
-	} else {
-	  FlatNode clone=fn.clone(clonemap);
-	  newnodes.add(clone);
-	  flatmap.put(fn,clone);
-	}
+        FlatNode fn=fnit.next();
+        if (fn.kind()==FKind.FlatReturnNode) {
+          //Convert FlatReturn node into move
+          TempDescriptor rtmp=((FlatReturnNode)fn).getReturnTemp();
+          if (rtmp!=null) {
+            FlatOpNode fon=new FlatOpNode(rettmp, rtmp, null, new Operation(Operation.ASSIGN));
+            flatmap.put(fn, fon);
+          } else {
+            flatmap.put(fn, aftercallnode);
+          }
+        } else {
+          FlatNode clone=fn.clone(clonemap);
+          newnodes.add(clone);
+          flatmap.put(fn,clone);
+        }
       }
       //Build the move chain
       FlatNode first=new FlatNop();;
       newnodes.add(first);
       FlatNode last=first;
       {
-	int i=0;
-	if (fc.getThis()!=null) {
-	  FlatOpNode fon=new FlatOpNode(fm.getParameter(i++), fc.getThis(), null, new Operation(Operation.ASSIGN));
-	  newnodes.add(fon);
-	  last.addNext(fon);
-	  last=fon;
-	}
-	for(int j=0; j<fc.numArgs(); i++,j++) {
-	  FlatOpNode fon=new FlatOpNode(fm.getParameter(i), fc.getArg(j), null, new Operation(Operation.ASSIGN));
-	  newnodes.add(fon);
-	  last.addNext(fon);
-	  last=fon;
-	}
+        int i=0;
+        if (fc.getThis()!=null) {
+          FlatOpNode fon=new FlatOpNode(fm.getParameter(i++), fc.getThis(), null, new Operation(Operation.ASSIGN));
+          newnodes.add(fon);
+          last.addNext(fon);
+          last=fon;
+        }
+        for(int j=0; j<fc.numArgs(); i++,j++) {
+          FlatOpNode fon=new FlatOpNode(fm.getParameter(i), fc.getArg(j), null, new Operation(Operation.ASSIGN));
+          newnodes.add(fon);
+          last.addNext(fon);
+          last=fon;
+        }
       }
 
       //Add the edges
       for(Iterator<FlatNode> fnit=nodeset.iterator(); fnit.hasNext(); ) {
-	FlatNode fn=fnit.next();
-	FlatNode fnclone=flatmap.get(fn);
+        FlatNode fn=fnit.next();
+        FlatNode fnclone=flatmap.get(fn);
 
-	if (fn.kind()!=FKind.FlatReturnNode) {
-	  //don't build old edges out of a flat return node
-	  for(int i=0; i<fn.numNext(); i++) {
-	    FlatNode fnnext=fn.getNext(i);
-	    FlatNode fnnextclone=flatmap.get(fnnext);
-	    fnclone.setNewNext(i, fnnextclone);
-	  }
-	} else {
-	  if (fnclone!=aftercallnode)
-	    fnclone.addNext(aftercallnode);
-	}
+        if (fn.kind()!=FKind.FlatReturnNode) {
+          //don't build old edges out of a flat return node
+          for(int i=0; i<fn.numNext(); i++) {
+            FlatNode fnnext=fn.getNext(i);
+            FlatNode fnnextclone=flatmap.get(fnnext);
+            fnclone.setNewNext(i, fnnextclone);
+          }
+        } else {
+          if (fnclone!=aftercallnode)
+            fnclone.addNext(aftercallnode);
+        }
       }
 
       //Add edges to beginning of move chain
       for(int i=0; i<fc.numPrev(); i++) {
-	FlatNode fnprev=fc.getPrev(i);
-	for(int j=0; j<fnprev.numNext(); j++) {
-	  if (fnprev.getNext(j)==fc) {
-	    //doing setnewnext to avoid changing the node we are
-	    //iterating over
-	    fnprev.setNewNext(j, first);
-	    break;
-	  }
-	}
+        FlatNode fnprev=fc.getPrev(i);
+        for(int j=0; j<fnprev.numNext(); j++) {
+          if (fnprev.getNext(j)==fc) {
+            //doing setnewnext to avoid changing the node we are
+            //iterating over
+            fnprev.setNewNext(j, first);
+            break;
+          }
+        }
       }
 
       //Add in the edge from move chain to callee
@@ -175,9 +175,9 @@ public class Inliner {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
       Set possiblematches=cd.getMethodTable().getSet(md.getSymbol());
       for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
-	MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-	if (md.matches(matchmd))
-	  return false;
+        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+        if (md.matches(matchmd))
+          return false;
       }
     }
     return true;

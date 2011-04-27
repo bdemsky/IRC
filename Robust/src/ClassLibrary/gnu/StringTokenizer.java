@@ -144,7 +144,7 @@ public class StringTokenizer //implements Enumeration<Object>
   public boolean hasMoreTokens() {
     if (!retDelims) {
       while (pos < len && delim.indexOf(str.charAt(pos)) >= 0)
-	pos++;
+        pos++;
     }
     return pos < len;
   }
@@ -174,14 +174,14 @@ public class StringTokenizer //implements Enumeration<Object>
   public String nextToken() { //throws NoSuchElementException
     if (pos < len && delim.indexOf(str.charAt(pos)) >= 0) {
       if (retDelims)
-	return str.substring(pos, ++pos);
+        return str.substring(pos, ++pos);
       while (++pos < len && delim.indexOf(str.charAt(pos)) >= 0)
-	;
+        ;
     }
     if (pos < len) {
       int start = pos;
       while (++pos < len && delim.indexOf(str.charAt(pos)) < 0)
-	;
+        ;
 
       return str.substring(start, pos);
     }
@@ -232,19 +232,19 @@ public class StringTokenizer //implements Enumeration<Object>
     // just do the conditional once at the end of the method
     while (tmpPos < len) {
       if (delim.indexOf(str.charAt(tmpPos++)) >= 0) {
-	if (tokenFound) {
-	  // Got to the end of a token
-	  count++;
-	  tokenFound = false;
-	}
-	delimiterCount++;     // Increment for this delimiter
+        if (tokenFound) {
+          // Got to the end of a token
+          count++;
+          tokenFound = false;
+        }
+        delimiterCount++;     // Increment for this delimiter
       } else
       {
-	tokenFound = true;
-	// Get to the end of the token
-	while (tmpPos < len
-	       && delim.indexOf(str.charAt(tmpPos)) < 0)
-	  ++tmpPos;
+        tokenFound = true;
+        // Get to the end of the token
+        while (tmpPos < len
+               && delim.indexOf(str.charAt(tmpPos)) < 0)
+          ++tmpPos;
       }
     }
 

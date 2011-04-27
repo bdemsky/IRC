@@ -48,7 +48,7 @@ public class TaskSimulator {
 
     public void addNewObj(ObjectSimulator newObj) {
       if(this.newObjs == null) {
-	this.newObjs = new Vector<ObjectSimulator>();
+        this.newObjs = new Vector<ObjectSimulator>();
       }
 
       this.newObjs.add(newObj);
@@ -65,7 +65,7 @@ public class TaskSimulator {
     public void init() {
       finishTime = 0;
       if(newObjs != null) {
-	newObjs.clear();
+        newObjs.clear();
       }
     }
   }
@@ -114,34 +114,34 @@ public class TaskSimulator {
     for(int i = 0; i < paraNum; i++) {
       VarDescriptor para = td.getParameter(i);
       if(cd.equals(para.getType().getClassDesc())) {
-	// check if the status is right
-	FlagExpressionNode fen = td.getFlag(para);
-	FlagState cfs = fs;
-	if(inherent) {
-	  cfs = obj.getCurrentFS();
-	}
-	if(SchedulingUtil.isTaskTrigger_flag(fen, cfs)) {
-	  if(this.paraQueues == null) {
-	    this.paraQueues = new Vector<Queue<ObjectSimulator>>();
-	    for(int j = 0; j < paraNum; j++) {
-	      this.paraQueues.add(null);
-	    }
-	  }
-	  if(this.paraQueues.elementAt(i) == null) {
-	    this.paraQueues.setElementAt(new LinkedList<ObjectSimulator>(), i);
-	  }
-	  if(this.objVersionTbl == null) {
-	    this.objVersionTbl = new Hashtable<ObjectSimulator, Integer>();
-	  }
-	  if(!this.paraQueues.elementAt(i).contains(obj)) {
-	    this.paraQueues.elementAt(i).add(obj);
-	    if(inherent) {
-	      this.objVersionTbl.put(obj, obj.getVersion());
-	    } else {
-	      this.objVersionTbl.put(obj, version);
-	    }
-	  }
-	}
+        // check if the status is right
+        FlagExpressionNode fen = td.getFlag(para);
+        FlagState cfs = fs;
+        if(inherent) {
+          cfs = obj.getCurrentFS();
+        }
+        if(SchedulingUtil.isTaskTrigger_flag(fen, cfs)) {
+          if(this.paraQueues == null) {
+            this.paraQueues = new Vector<Queue<ObjectSimulator>>();
+            for(int j = 0; j < paraNum; j++) {
+              this.paraQueues.add(null);
+            }
+          }
+          if(this.paraQueues.elementAt(i) == null) {
+            this.paraQueues.setElementAt(new LinkedList<ObjectSimulator>(), i);
+          }
+          if(this.objVersionTbl == null) {
+            this.objVersionTbl = new Hashtable<ObjectSimulator, Integer>();
+          }
+          if(!this.paraQueues.elementAt(i).contains(obj)) {
+            this.paraQueues.elementAt(i).add(obj);
+            if(inherent) {
+              this.objVersionTbl.put(obj, obj.getVersion());
+            } else {
+              this.objVersionTbl.put(obj, version);
+            }
+          }
+        }
       }
     }
   }
@@ -153,40 +153,40 @@ public class TaskSimulator {
     for(int i = 0; i < paraNum; i++) {
       VarDescriptor para = td.getParameter(i);
       if(cd.equals(para.getType().getClassDesc())) {
-	if(remove) {
-	  if((this.paraQueues != null) &&
-	     (this.paraQueues.elementAt(i) != null)  &&
-	     (this.paraQueues.elementAt(i).contains(obj))) {
-	    this.paraQueues.elementAt(i).remove(obj);
-	    this.objVersionTbl.remove(obj);
-	  }
-	} else {
-	  // check if the status is right
-	  FlagExpressionNode fen = td.getFlag(para);
-	  if(SchedulingUtil.isTaskTrigger_flag(fen, obj.getCurrentFS())) {
-	    if(this.paraQueues == null) {
-	      this.paraQueues = new Vector<Queue<ObjectSimulator>>();
-	      for(int j = 0; j < paraNum; j++) {
-		this.paraQueues.add(null);
-	      }
-	    }
-	    if(this.paraQueues.elementAt(i) == null) {
-	      this.paraQueues.setElementAt(new LinkedList<ObjectSimulator>(), i);
-	    }
-	    this.paraQueues.elementAt(i).add(obj);
-	    if(this.objVersionTbl == null) {
-	      this.objVersionTbl = new Hashtable<ObjectSimulator, Integer>();
-	    }
-	    this.objVersionTbl.put(obj, obj.getVersion());
-	  } else {
-	    if((this.paraQueues != null) &&
-	       (this.paraQueues.elementAt(i) != null)  &&
-	       (this.paraQueues.elementAt(i).contains(obj))) {
-	      this.paraQueues.elementAt(i).remove(obj);
-	      this.objVersionTbl.remove(obj);
-	    }
-	  }
-	}
+        if(remove) {
+          if((this.paraQueues != null) &&
+             (this.paraQueues.elementAt(i) != null)  &&
+             (this.paraQueues.elementAt(i).contains(obj))) {
+            this.paraQueues.elementAt(i).remove(obj);
+            this.objVersionTbl.remove(obj);
+          }
+        } else {
+          // check if the status is right
+          FlagExpressionNode fen = td.getFlag(para);
+          if(SchedulingUtil.isTaskTrigger_flag(fen, obj.getCurrentFS())) {
+            if(this.paraQueues == null) {
+              this.paraQueues = new Vector<Queue<ObjectSimulator>>();
+              for(int j = 0; j < paraNum; j++) {
+                this.paraQueues.add(null);
+              }
+            }
+            if(this.paraQueues.elementAt(i) == null) {
+              this.paraQueues.setElementAt(new LinkedList<ObjectSimulator>(), i);
+            }
+            this.paraQueues.elementAt(i).add(obj);
+            if(this.objVersionTbl == null) {
+              this.objVersionTbl = new Hashtable<ObjectSimulator, Integer>();
+            }
+            this.objVersionTbl.put(obj, obj.getVersion());
+          } else {
+            if((this.paraQueues != null) &&
+               (this.paraQueues.elementAt(i) != null)  &&
+               (this.paraQueues.elementAt(i).contains(obj))) {
+              this.paraQueues.elementAt(i).remove(obj);
+              this.objVersionTbl.remove(obj);
+            }
+          }
+        }
       }
     }
   }
@@ -216,75 +216,75 @@ public class TaskSimulator {
     for(int i = 0; i < paraQueues.size(); i++) {
       ObjectSimulator tpara = paraQueues.elementAt(i).peek();
       if(tpara == null) {
-	// the parameter is already removed, delete this task too
-	finishTime = 800;
-	this.currentRun.setFinishTime(finishTime);
-	this.currentRun.setExetype(2);
-	for(int j = 0; j < i; ++j) {
-	  tpara = this.paraQueues.elementAt(j).poll();
-	  if(tpara.isShared() && tpara.isHold()) {
-	    tpara.setHold(false);
-	  }
-	  this.paraQueues.elementAt(j).add(tpara);
-	}
-	return;
+        // the parameter is already removed, delete this task too
+        finishTime = 800;
+        this.currentRun.setFinishTime(finishTime);
+        this.currentRun.setExetype(2);
+        for(int j = 0; j < i; ++j) {
+          tpara = this.paraQueues.elementAt(j).poll();
+          if(tpara.isShared() && tpara.isHold()) {
+            tpara.setHold(false);
+          }
+          this.paraQueues.elementAt(j).add(tpara);
+        }
+        return;
       }
       if(tpara.isShared()) {
-	if(tpara.isHold()) {
-	  // shared object held by other tasks
-	  finishTime = 800;           // TODO currenly assume the effort on requesting locks are only 800
-	  /*this.currentRun.setFinishTime(finishTime);
-	     this.currentRun.setExetype(1);
-	     paraQueues.elementAt(i).poll();
-	     paraQueues.elementAt(i).add(tpara);
-	     for(int j = 0; j < i; ++j) {
-	     tpara = this.paraQueues.elementAt(j).poll();
-	     if(tpara.isShared() && tpara.isHold()) {
-	      tpara.setHold(false);
-	     }
-	     this.paraQueues.elementAt(j).add(tpara);
-	     }*/
-	  // remove it instead
-	  this.currentRun.setFinishTime(finishTime);
-	  this.currentRun.setExetype(2);
-	  paraQueues.elementAt(i).poll();
-	  // remove this object from the remaining parameter queues
-	  for(int j = i + 1; j < paraQueues.size(); j++) {
-	    paraQueues.elementAt(j).remove(tpara);
-	  }
-	  for(int j = 0; j < i; ++j) {
-	    tpara = this.paraQueues.elementAt(j).poll();
-	    if(tpara.isShared() && tpara.isHold()) {
-	      tpara.setHold(false);
-	    }
-	    this.paraQueues.elementAt(j).add(tpara);
-	  }
-	  return;
-	} else if (tpara.getVersion() != this.objVersionTbl.get(tpara)) {
-	  // shared object has been updated and no longer fitted to this task
-	  finishTime = 800;           // TODO currenly assume the effort on requesting locks are only 800
-	  this.currentRun.setFinishTime(finishTime);
-	  this.currentRun.setExetype(2);
-	  paraQueues.elementAt(i).poll();
-	  // remove this object from the remaining parameter queues
-	  for(int j = i + 1; j < paraQueues.size(); j++) {
-	    paraQueues.elementAt(j).remove(tpara);
-	  }
-	  for(int j = 0; j < i; ++j) {
-	    tpara = this.paraQueues.elementAt(j).poll();
-	    if(tpara.isShared() && tpara.isHold()) {
-	      tpara.setHold(false);
-	    }
-	    this.paraQueues.elementAt(j).add(tpara);
-	  }
-	  return;
-	} else {
-	  tpara.setHold(true);
-	}
+        if(tpara.isHold()) {
+          // shared object held by other tasks
+          finishTime = 800;           // TODO currenly assume the effort on requesting locks are only 800
+          /*this.currentRun.setFinishTime(finishTime);
+             this.currentRun.setExetype(1);
+             paraQueues.elementAt(i).poll();
+             paraQueues.elementAt(i).add(tpara);
+             for(int j = 0; j < i; ++j) {
+             tpara = this.paraQueues.elementAt(j).poll();
+             if(tpara.isShared() && tpara.isHold()) {
+              tpara.setHold(false);
+             }
+             this.paraQueues.elementAt(j).add(tpara);
+             }*/
+          // remove it instead
+          this.currentRun.setFinishTime(finishTime);
+          this.currentRun.setExetype(2);
+          paraQueues.elementAt(i).poll();
+          // remove this object from the remaining parameter queues
+          for(int j = i + 1; j < paraQueues.size(); j++) {
+            paraQueues.elementAt(j).remove(tpara);
+          }
+          for(int j = 0; j < i; ++j) {
+            tpara = this.paraQueues.elementAt(j).poll();
+            if(tpara.isShared() && tpara.isHold()) {
+              tpara.setHold(false);
+            }
+            this.paraQueues.elementAt(j).add(tpara);
+          }
+          return;
+        } else if (tpara.getVersion() != this.objVersionTbl.get(tpara)) {
+          // shared object has been updated and no longer fitted to this task
+          finishTime = 800;           // TODO currenly assume the effort on requesting locks are only 800
+          this.currentRun.setFinishTime(finishTime);
+          this.currentRun.setExetype(2);
+          paraQueues.elementAt(i).poll();
+          // remove this object from the remaining parameter queues
+          for(int j = i + 1; j < paraQueues.size(); j++) {
+            paraQueues.elementAt(j).remove(tpara);
+          }
+          for(int j = 0; j < i; ++j) {
+            tpara = this.paraQueues.elementAt(j).poll();
+            if(tpara.isShared() && tpara.isHold()) {
+              tpara.setHold(false);
+            }
+            this.paraQueues.elementAt(j).add(tpara);
+          }
+          return;
+        } else {
+          tpara.setHold(true);
+        }
       }
       // remove this object from the remaining parameter queues
       for(int j = i + 1; j < paraQueues.size(); j++) {
-	paraQueues.elementAt(j).remove(tpara);
+        paraQueues.elementAt(j).remove(tpara);
       }
     }
     long ftime = 0;
@@ -296,9 +296,9 @@ public class TaskSimulator {
       finishTime += toexecute.getExeTime();
       // TODO for test
       if(ftime == 0) {
-	ftime = toexecute.getExeTime();
+        ftime = toexecute.getExeTime();
       } else if(ftime != toexecute.getExeTime()) {
-	//System.err.println("error for simulation: " + td.getSymbol());
+        //System.err.println("error for simulation: " + td.getSymbol());
       }
       // TODO for test
       /*if(td.getSymbol().equals("addIYLM")) {
@@ -306,20 +306,20 @@ public class TaskSimulator {
          }*/
       if((toexecute.getNewObjInfoHashtable() != null)
          && (toexecute.getNewObjInfoHashtable().size() > 0)) {
-	// have new objects
-	Iterator it = toexecute.getNewObjInfoHashtable().keySet().iterator();
-	int invokeNum = toexecute.getInvokeNum();
-	while(it.hasNext()) {
-	  ClassDescriptor cd = (ClassDescriptor)it.next();
-	  NewObjInfo noi = toexecute.getNewObjInfo(cd);
-	  if(noi.getInvokeNum() < ((int)Math.round(((noi.getProbability() / 100) * noi.getNewRate() * invokeNum)))) {
-	    for(int j = 0; j < noi.getNewRate(); j++) {
-	      ObjectSimulator tmpObj = new ObjectSimulator(cd, noi.getRoot());
-	      this.currentRun.addNewObj(tmpObj);
-	      noi.incInvokeNum();
-	    }
-	  }
-	}
+        // have new objects
+        Iterator it = toexecute.getNewObjInfoHashtable().keySet().iterator();
+        int invokeNum = toexecute.getInvokeNum();
+        while(it.hasNext()) {
+          ClassDescriptor cd = (ClassDescriptor)it.next();
+          NewObjInfo noi = toexecute.getNewObjInfo(cd);
+          if(noi.getInvokeNum() < ((int)Math.round(((noi.getProbability() / 100) * noi.getNewRate() * invokeNum)))) {
+            for(int j = 0; j < noi.getNewRate(); j++) {
+              ObjectSimulator tmpObj = new ObjectSimulator(cd, noi.getRoot());
+              this.currentRun.addNewObj(tmpObj);
+              noi.incInvokeNum();
+            }
+          }
+        }
       }
       tpara.applyEdge(toexecute);
       tpara.increaseVersion();

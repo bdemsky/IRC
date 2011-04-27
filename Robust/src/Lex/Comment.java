@@ -13,12 +13,12 @@ abstract class Comment extends InputElement {
     // skip leading white space.
     for (; i<more.length(); i++)
       if (!Character.isSpaceChar(more.charAt(i)))
-	break;
+        break;
 
     // skip any leading stars.
     for (; i<more.length(); i++)
       if (more.charAt(i)!='*')
-	break;
+        break;
 
     // the rest of the string belongs to the comment.
     if (i<more.length())

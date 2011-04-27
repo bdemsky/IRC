@@ -34,7 +34,7 @@ public class InetAddress {
       return false;
     for(int i=0; i<address.length; i++)
       if (ia.address[i]!=address[i])
-	return false;
+        return false;
     return true;
   }
 
@@ -47,7 +47,7 @@ public class InetAddress {
       addresses = new InetAddress[iplist.length];
 
       for (int i = 0; i < iplist.length; i++) {
-	addresses[i] = new InetAddress(iplist[i], hostname);
+        addresses[i] = new InetAddress(iplist[i], hostname);
       }
       return addresses;
     } else
@@ -60,7 +60,7 @@ public class InetAddress {
     String h=hostname+" ";
     for (int i=0; i<address.length; i++) {
       if (i>0)
-	h+=".";
+        h+=".";
       h+=(int)address[i];
     }
     return h;

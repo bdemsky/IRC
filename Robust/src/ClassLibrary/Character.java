@@ -6,11 +6,11 @@ public class Character {
     else if (ch>='a'&&ch<='z') {
       int val=(ch-'a')+10;
       if (val<radix)
-	return val;
+        return val;
     } else if (ch>='A'&&ch<='Z') {
       int val=(ch-'A')+10;
       if (val<radix)
-	return val;
+        return val;
     }
     return -1;
   }

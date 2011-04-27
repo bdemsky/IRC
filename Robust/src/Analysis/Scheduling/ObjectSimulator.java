@@ -40,12 +40,12 @@ public class ObjectSimulator {
       this.changed = true;
       currentFS = (FlagState)fedge.getTarget();
       if(this.counter > 0) {
-	//System.err.println(this.counter);
-	this.counter--;
+        //System.err.println(this.counter);
+        this.counter--;
       }
       if((this.cd.getSymbol().equals("Cluster")) && (this.counter == 0)) {
-	// go to end state
-	this.currentFS = new FlagState(this.cd);
+        // go to end state
+        this.currentFS = new FlagState(this.cd);
       }
     } else {
       this.changed = false;

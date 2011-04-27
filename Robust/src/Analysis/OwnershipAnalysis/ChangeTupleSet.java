@@ -84,9 +84,9 @@ public class ChangeTupleSet extends Canonical {
       oldHashSet = true;
     } else {
       if( oldHash != currentHash ) {
-	System.out.println("IF YOU SEE THIS A CANONICAL ChangeTupleSet CHANGED");
-	Integer x = null;
-	x.toString();
+        System.out.println("IF YOU SEE THIS A CANONICAL ChangeTupleSet CHANGED");
+        Integer x = null;
+        x.toString();
       }
     }
 

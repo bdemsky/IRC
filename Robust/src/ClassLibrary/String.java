@@ -141,7 +141,7 @@ public class String {
   public int lastindexOf(int ch, int fromIndex) {
     for(int i=fromIndex; i>0; i--)
       if (this.charAt(i)==ch)
-	return i;
+        return i;
     return -1;
   }
 
@@ -150,7 +150,7 @@ public class String {
     for(int i=0; i<count; i++) {
       char x=charAt(i);
       if (x==oldch)
-	x=newch;
+        x=newch;
       buffer[i]=x;
     }
     return new String(buffer);
@@ -161,7 +161,7 @@ public class String {
     for(int i=0; i<count; i++) {
       char x=charAt(i);
       if (x>='a'&&x<='z') {
-	x=(char) ((x-'a')+'A');
+        x=(char) ((x-'a')+'A');
       }
       buffer[i]=x;
     }
@@ -173,7 +173,7 @@ public class String {
     for(int i=0; i<count; i++) {
       char x=charAt(i);
       if (x>='A'&&x<='Z') {
-	x=(char) ((x-'A')+'a');
+        x=(char) ((x-'A')+'a');
       }
       buffer[i]=x;
     }
@@ -187,7 +187,7 @@ public class String {
   public int indexOf(int ch, int fromIndex) {
     for(int i=fromIndex; i<count; i++)
       if (this.charAt(i)==ch)
-	return i;
+        return i;
     return -1;
   }
 
@@ -200,7 +200,7 @@ public class String {
       fromIndex=0;
     for(int i=fromIndex; i<=(count-str.count); i++)
       if (regionMatches(i, str, 0, str.count))
-	return i;
+        return i;
     return -1;
   }
 
@@ -215,7 +215,7 @@ public class String {
       k=fromIndex;
     for(; k>=0; k--) {
       if (regionMatches(k, str, 0, str.count))
-	return k;
+        return k;
     }
     return -1;
   }
@@ -238,7 +238,7 @@ public class String {
     for(int i=0; i<len; i++)
       if (other.value[i+other.offset+ooffset]!=
           this.value[i+this.offset+toffset])
-	return false;
+        return false;
     return true;
   }
 
@@ -386,7 +386,7 @@ public class String {
     for( int i = 0; i < smallerlength; i++ ) {
       int valDiff = this.charAt(i) - s.charAt(i);
       if( valDiff != 0 ) {
-	return valDiff;
+        return valDiff;
       }
     }
     return count-s.count;
@@ -410,7 +410,7 @@ public class String {
       return false;
     for(int i=0; i<count; i++) {
       if (s.value[i+s.offset]!=value[i+offset])
-	return false;
+        return false;
     }
     return true;
   }
@@ -422,11 +422,11 @@ public class String {
       char l=s.value[i+s.offset];
       char r=value[i+offset];
       if (l>='a'&&l<='z')
-	l=(char)((l-'a')+'A');
+        l=(char)((l-'a')+'A');
       if (r>='a'&&r<='z')
-	r=(char)((r-'a')+'A');
+        r=(char)((r-'a')+'A');
       if (l!=r)
-	return false;
+        return false;
     }
     return true;
   }
@@ -439,26 +439,26 @@ public class String {
     // skip first spaces
     for(i = 0; i< count; i++) {
       if(value[i+offset] != '\n' && value[i+offset] != '\t' && value[i+offset] != ' ')
-	break;
+        break;
     }
 
     int oldi=i;
 
     while(i<count) {
       if(value[i+offset] == '\n' || value[i+offset] == '\t' || value[i+offset] == ' ') {
-	String t=new String();
-	t.value=value;
-	t.offset=oldi;
-	t.count=i-oldi;
-	splitted.addElement(t);
+        String t=new String();
+        t.value=value;
+        t.offset=oldi;
+        t.count=i-oldi;
+        splitted.addElement(t);
 
-	// skip extra spaces
-	while( i < count && ( value[i+offset] == '\n' || value[i+offset] == '\t' || value[i+offset] == ' ')) {
-	  i++;
-	}
-	oldi=i;
+        // skip extra spaces
+        while( i < count && ( value[i+offset] == '\n' || value[i+offset] == '\t' || value[i+offset] == ' ')) {
+          i++;
+        }
+        oldi=i;
       } else {
-	i++;
+        i++;
       }
     }
 
@@ -480,13 +480,13 @@ public class String {
 
     for(i = 0; i < count; i++) {
       if(value[i] == strChar[0]) {
-	cnt=0;
-	for(j=0; j < str.length() && i+j < count; j++) {
-	  if(value[i+j] == strChar[j])
-	    cnt++;
-	}
-	if(cnt == str.length())
-	  return true;
+        cnt=0;
+        for(j=0; j < str.length() && i+j < count; j++) {
+          if(value[i+j] == strChar[j])
+            cnt++;
+        }
+        if(cnt == str.length())
+          return true;
       }
     }
 

@@ -49,17 +49,17 @@ public class TagAnalysis {
       Set component=scc.getSCC(i);
       HashSet flagset=new HashSet();
       for(Iterator compit=component.iterator(); compit.hasNext(); ) {
-	TagBinding tb=(TagBinding)compit.next();
-	flagset.addAll(tb.getAllocations());
-	for(Iterator edgeit=tb.edges(); edgeit.hasNext(); ) {
-	  Edge e=(Edge)edgeit.next();
-	  TagBinding tb2=(TagBinding)e.getTarget();
-	  flagset.addAll(tb2.getAllocations());
-	}
+        TagBinding tb=(TagBinding)compit.next();
+        flagset.addAll(tb.getAllocations());
+        for(Iterator edgeit=tb.edges(); edgeit.hasNext(); ) {
+          Edge e=(Edge)edgeit.next();
+          TagBinding tb2=(TagBinding)e.getTarget();
+          flagset.addAll(tb2.getAllocations());
+        }
       }
       for(Iterator compit=component.iterator(); compit.hasNext(); ) {
-	TagBinding tb=(TagBinding)compit.next();
-	tb.getAllocations().addAll(flagset);
+        TagBinding tb=(TagBinding)compit.next();
+        tb.getAllocations().addAll(flagset);
       }
     }
 
@@ -69,8 +69,8 @@ public class TagAnalysis {
       HashSet roottags=(HashSet)tasktotagbindings.get(task);
       HashSet taskflags=(HashSet)tasktoflagstates.get(task);
       for(Iterator tagit=roottags.iterator(); tagit.hasNext(); ) {
-	TagBinding tb=(TagBinding)tagit.next();
-	taskflags.addAll(tb.getAllocations());
+        TagBinding tb=(TagBinding)tagit.next();
+        taskflags.addAll(tb.getAllocations());
       }
     }
   }
@@ -96,92 +96,92 @@ public class TagAnalysis {
     for(Iterator nodeit=nodeset.iterator(); nodeit.hasNext(); ) {
       FlatNode fn=(FlatNode)nodeit.next();
       if(fn.kind()==FKind.FlatCall) {
-	FlatCall fc=(FlatCall)fn;
-	MethodDescriptor nodemd=fc.getMethod();
-	Set methodset=fc.getThis()==null?callgraph.getMethods(nodemd):
-	               callgraph.getMethods(nodemd, fc.getThis().getType());
+        FlatCall fc=(FlatCall)fn;
+        MethodDescriptor nodemd=fc.getMethod();
+        Set methodset=fc.getThis()==null?callgraph.getMethods(nodemd):
+                       callgraph.getMethods(nodemd, fc.getThis().getType());
 
-	for(Iterator methodit=methodset.iterator(); methodit.hasNext(); ) {
-	  MethodDescriptor md=(MethodDescriptor) methodit.next();
-	  TagBinding nodetb=new TagBinding(md);
-	  for(int i=0; i<md.numParameters(); i++) {
-	    TempDescriptor temp=fc.getArg(i);
-	    TagDescriptor tag=temp.getTag();
-	    if (tag==null&&parammap!=null&&parammap.containsKey(temp)) {
-	      tag=(TagDescriptor)parammap.get(temp);
-	    }
-	    if (tag!=null)
-	      nodetb.setBinding(i,tag);
-	  }
-	  if (!discovered.containsKey(nodetb)) {
-	    discovered.put(nodetb,nodetb);
-	    tovisit.add(nodetb);
-	  } else
-	    nodetb=(TagBinding)discovered.get(nodetb);
-	  tagbindings.add(nodetb);
-	}
+        for(Iterator methodit=methodset.iterator(); methodit.hasNext(); ) {
+          MethodDescriptor md=(MethodDescriptor) methodit.next();
+          TagBinding nodetb=new TagBinding(md);
+          for(int i=0; i<md.numParameters(); i++) {
+            TempDescriptor temp=fc.getArg(i);
+            TagDescriptor tag=temp.getTag();
+            if (tag==null&&parammap!=null&&parammap.containsKey(temp)) {
+              tag=(TagDescriptor)parammap.get(temp);
+            }
+            if (tag!=null)
+              nodetb.setBinding(i,tag);
+          }
+          if (!discovered.containsKey(nodetb)) {
+            discovered.put(nodetb,nodetb);
+            tovisit.add(nodetb);
+          } else
+            nodetb=(TagBinding)discovered.get(nodetb);
+          tagbindings.add(nodetb);
+        }
       } else if (fn.kind()==FKind.FlatFlagActionNode) {
-	FlatFlagActionNode ffan=(FlatFlagActionNode)fn;
-	if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT) {
-	  TempDescriptor ffantemp=null;
-	  {
-	    /* Compute type */
+        FlatFlagActionNode ffan=(FlatFlagActionNode)fn;
+        if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT) {
+          TempDescriptor ffantemp=null;
+          {
+            /* Compute type */
 
-	    Iterator it=ffan.getTempFlagPairs();
-	    if (it.hasNext()) {
-	      TempFlagPair tfp=(TempFlagPair)it.next();
-	      ffantemp=tfp.getTemp();
-	    } else {
-	      it=ffan.getTempTagPairs();
-	      if (!it.hasNext())
-		throw new Error();
-	      TempTagPair ttp=(TempTagPair)it.next();
-	      ffantemp=ttp.getTemp();
-	    }
-	  }
-	  Vector<FlagState> targetFStates = ffan.getTargetFStates4NewObj(ffantemp.getType().getClassDesc());
-	  FlagState fs=new FlagState(ffantemp.getType().getClassDesc());
-	  for(Iterator it=ffan.getTempFlagPairs(); it.hasNext(); ) {
-	    TempFlagPair tfp=(TempFlagPair)it.next();
-	    if (ffan.getFlagChange(tfp))
-	      fs=fs.setFlag(tfp.getFlag(), true);
-	    else
-	      fs=fs.setFlag(tfp.getFlag(), false);
-	  }
+            Iterator it=ffan.getTempFlagPairs();
+            if (it.hasNext()) {
+              TempFlagPair tfp=(TempFlagPair)it.next();
+              ffantemp=tfp.getTemp();
+            } else {
+              it=ffan.getTempTagPairs();
+              if (!it.hasNext())
+                throw new Error();
+              TempTagPair ttp=(TempTagPair)it.next();
+              ffantemp=ttp.getTemp();
+            }
+          }
+          Vector<FlagState> targetFStates = ffan.getTargetFStates4NewObj(ffantemp.getType().getClassDesc());
+          FlagState fs=new FlagState(ffantemp.getType().getClassDesc());
+          for(Iterator it=ffan.getTempFlagPairs(); it.hasNext(); ) {
+            TempFlagPair tfp=(TempFlagPair)it.next();
+            if (ffan.getFlagChange(tfp))
+              fs=fs.setFlag(tfp.getFlag(), true);
+            else
+              fs=fs.setFlag(tfp.getFlag(), false);
+          }
 
-	  HashSet fsset=new HashSet();
-	  fsset.add(fs);
+          HashSet fsset=new HashSet();
+          fsset.add(fs);
 
-	  for(Iterator it=ffan.getTempTagPairs(); it.hasNext(); ) {
-	    HashSet oldfsset=fsset;
-	    fsset=new HashSet();
+          for(Iterator it=ffan.getTempTagPairs(); it.hasNext(); ) {
+            HashSet oldfsset=fsset;
+            fsset=new HashSet();
 
-	    TempTagPair ttp=(TempTagPair)it.next();
-	    if (ffan.getTagChange(ttp)) {
-	      TagDescriptor tag=ttp.getTag();
-	      if (tag==null&&parammap!=null&&parammap.containsKey(ttp.getTagTemp())) {
-		tag=(TagDescriptor)parammap.get(ttp.getTagTemp());
-	      }
-	      for(Iterator setit=oldfsset.iterator(); setit.hasNext(); ) {
-		FlagState fs2=(FlagState)setit.next();
-		fsset.addAll(Arrays.asList(fs2.setTag(tag)));
-	      }
-	    } else
-	      throw new Error("Don't clear tag in new object allocation");
-	  }
+            TempTagPair ttp=(TempTagPair)it.next();
+            if (ffan.getTagChange(ttp)) {
+              TagDescriptor tag=ttp.getTag();
+              if (tag==null&&parammap!=null&&parammap.containsKey(ttp.getTagTemp())) {
+                tag=(TagDescriptor)parammap.get(ttp.getTagTemp());
+              }
+              for(Iterator setit=oldfsset.iterator(); setit.hasNext(); ) {
+                FlagState fs2=(FlagState)setit.next();
+                fsset.addAll(Arrays.asList(fs2.setTag(tag)));
+              }
+            } else
+              throw new Error("Don't clear tag in new object allocation");
+          }
 
-	  for(Iterator setit=fsset.iterator(); setit.hasNext(); ) {
-	    FlagState fs2=(FlagState)setit.next();
-	    if (!flagmap.containsKey(fs2))
-	      flagmap.put(fs2,fs2);
-	    else
-	      fs2=(FlagState) flagmap.get(fs2);
-	    newflags.add(fs2);
-	    if(!targetFStates.contains(fs2)) {
-	      targetFStates.addElement(fs2);
-	    }
-	  }
-	}
+          for(Iterator setit=fsset.iterator(); setit.hasNext(); ) {
+            FlagState fs2=(FlagState)setit.next();
+            if (!flagmap.containsKey(fs2))
+              flagmap.put(fs2,fs2);
+            else
+              fs2=(FlagState) flagmap.get(fs2);
+            newflags.add(fs2);
+            if(!targetFStates.contains(fs2)) {
+              targetFStates.addElement(fs2);
+            }
+          }
+        }
       }
     }
   }
@@ -204,15 +204,15 @@ public class TagAnalysis {
 
 
       for(int i=0; i<fm.numParameters(); i++) {
-	TempDescriptor temp=fm.getParameter(i);
-	int offsetindex=i-offset;
-	if (offsetindex>=0) {
-	  TagDescriptor tag=tb.getBinding(offsetindex);
+        TempDescriptor temp=fm.getParameter(i);
+        int offsetindex=i-offset;
+        if (offsetindex>=0) {
+          TagDescriptor tag=tb.getBinding(offsetindex);
 
-	  if (tag!=null) {
-	    parammap.put(temp,tag);
-	  }
-	}
+          if (tag!=null) {
+            parammap.put(temp,tag);
+          }
+        }
       }
 
       HashSet newtags=new HashSet();
@@ -220,9 +220,9 @@ public class TagAnalysis {
       computeCallsFlags(fm, parammap, newtags, tb.getAllocations());
 
       for(Iterator tagit=newtags.iterator(); tagit.hasNext(); ) {
-	TagBinding newtag=(TagBinding)tagit.next();
-	Edge e=new Edge(newtag);
-	tb.addEdge(e);
+        TagBinding newtag=(TagBinding)tagit.next();
+        Edge e=new Edge(newtag);
+        tb.addEdge(e);
       }
     }
   }

@@ -129,98 +129,98 @@ void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, cliststruc
       chashlistnode_t *tmp,*next;
 
       if ((key=(void *)curr->key) == 0) {             //Exit inner loop if there the first element is 0
-	break;                  //key = val =0 for element if not present within the hash table
+        break;                  //key = val =0 for element if not present within the hash table
       }
       SENQUEUE(key, key);
       if (curr->val>=curr_heapbase&&curr->val<curr_heaptop) {
-	SENQUEUE(curr->val, curr->val);
+        SENQUEUE(curr->val, curr->val);
       } else {
-	//rewrite transaction cache entry
-	void *vptr=curr->val;
-	int type=((int *)vptr)[0];
-	unsigned INTPTR *pointer=pointerarray[type];
-	if (pointer==0) {
-	  //array of primitives - do nothing
-	  struct ArrayObject *ao=(struct ArrayObject *) vptr;
-	  SENQUEUE((void *)ao->___objlocation___, *((void **)&ao->___objlocation___));
-	} else if (((INTPTR)pointer)==1) {
-	  //array of pointers
-	  struct ArrayObject *ao=(struct ArrayObject *) vptr;
-	  int length=ao->___length___;
-	  int i;
-	  SENQUEUE((void *)ao->___objlocation___, *((void **)&ao->___objlocation___));
+        //rewrite transaction cache entry
+        void *vptr=curr->val;
+        int type=((int *)vptr)[0];
+        unsigned INTPTR *pointer=pointerarray[type];
+        if (pointer==0) {
+          //array of primitives - do nothing
+          struct ArrayObject *ao=(struct ArrayObject *) vptr;
+          SENQUEUE((void *)ao->___objlocation___, *((void **)&ao->___objlocation___));
+        } else if (((INTPTR)pointer)==1) {
+          //array of pointers
+          struct ArrayObject *ao=(struct ArrayObject *) vptr;
+          int length=ao->___length___;
+          int i;
+          SENQUEUE((void *)ao->___objlocation___, *((void **)&ao->___objlocation___));
 #ifdef STMARRAY
-	  int lowindex=ao->lowindex;
-	  int highindex=ao->highindex;
-	  int j;
-	  for(j=lowindex; j<=highindex; j++) {
-	    unsigned int lockval;
-	    GETLOCKVAL(lockval, ao, j);
-	    if (lockval!=STMNONE) {
-	      int lowi=(j<<INDEXSHIFT)/sizeof(void *);
-	      int highi=lowi+(INDEXLENGTH/sizeof(void *));
-	      for(i=lowi; i<highi; i++) {
+          int lowindex=ao->lowindex;
+          int highindex=ao->highindex;
+          int j;
+          for(j=lowindex; j<=highindex; j++) {
+            unsigned int lockval;
+            GETLOCKVAL(lockval, ao, j);
+            if (lockval!=STMNONE) {
+              int lowi=(j<<INDEXSHIFT)/sizeof(void *);
+              int highi=lowi+(INDEXLENGTH/sizeof(void *));
+              for(i=lowi; i<highi; i++) {
 #else
-	  for(i=0; i<length; i++) {
+          for(i=0; i<length; i++) {
 #endif
-		void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
-		SENQUEUE(objptr, ((void **)(((char *)&ao->___length___)+sizeof(int)))[i]);
-	      }
+                void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
+                SENQUEUE(objptr, ((void **)(((char *)&ao->___length___)+sizeof(int)))[i]);
+              }
 #ifdef STMARRAY
-	    }
-	  }
+            }
+          }
 #endif
-	    } else {
-	      INTPTR size=pointer[0];
-	      int i;
-	      for(i=1; i<=size; i++) {
-		unsigned int offset=pointer[i];
-		void * objptr=*((void **)(((char *)vptr)+offset));
-		SENQUEUE(objptr, *((void **)(((char *)vptr)+offset)));
-	      }
-	    }
-	  }
+            } else {
+              INTPTR size=pointer[0];
+              int i;
+              for(i=1; i<=size; i++) {
+                unsigned int offset=pointer[i];
+                void * objptr=*((void **)(((char *)vptr)+offset));
+                SENQUEUE(objptr, *((void **)(((char *)vptr)+offset)));
+              }
+            }
+          }
 
-	  next = curr->next;
-	  index = (((unsigned INTPTR)key) & mask) >>4;
+          next = curr->next;
+          index = (((unsigned INTPTR)key) & mask) >>4;
 
-	  curr->key=key;
-	  tmp=&node[index];
-	  // Insert into the new table
-	  if(tmp->key == 0) {
-	    tmp->key = curr->key;
-	    tmp->val = curr->val;
-	    tmp->lnext=newlist;
-	    newlist=tmp;
-	  } else if (isfirst) {
-	    chashlistnode_t *newnode;
-	    if ((*cstr)->num<NUMCLIST) {
-	      newnode=&(*cstr)->array[(*cstr)->num];
-	      (*cstr)->num++;
-	    } else {
-	      //get new list
-	      cliststruct_t *tcl=calloc(1,sizeof(cliststruct_t));
-	      tcl->next=*cstr;
-	      *cstr=tcl;
-	      newnode=&tcl->array[0];
-	      tcl->num=1;
-	    }
-	    newnode->key = curr->key;
-	    newnode->val = curr->val;
-	    newnode->next = tmp->next;
-	    newnode->lnext=newlist;
-	    newlist=newnode;
-	    tmp->next=newnode;
-	  } else {
-	    curr->lnext=newlist;
-	    newlist=curr;
-	    curr->next=tmp->next;
-	    tmp->next=curr;
-	  }
-	  isfirst = 0;
-	  curr = next;
-	}
-	while(curr!=NULL) ;
+          curr->key=key;
+          tmp=&node[index];
+          // Insert into the new table
+          if(tmp->key == 0) {
+            tmp->key = curr->key;
+            tmp->val = curr->val;
+            tmp->lnext=newlist;
+            newlist=tmp;
+          } else if (isfirst) {
+            chashlistnode_t *newnode;
+            if ((*cstr)->num<NUMCLIST) {
+              newnode=&(*cstr)->array[(*cstr)->num];
+              (*cstr)->num++;
+            } else {
+              //get new list
+              cliststruct_t *tcl=calloc(1,sizeof(cliststruct_t));
+              tcl->next=*cstr;
+              *cstr=tcl;
+              newnode=&tcl->array[0];
+              tcl->num=1;
+            }
+            newnode->key = curr->key;
+            newnode->val = curr->val;
+            newnode->next = tmp->next;
+            newnode->lnext=newlist;
+            newlist=newnode;
+            tmp->next=newnode;
+          } else {
+            curr->lnext=newlist;
+            newlist=curr;
+            curr->next=tmp->next;
+            tmp->next=curr;
+          }
+          isfirst = 0;
+          curr = next;
+        }
+        while(curr!=NULL) ;
       }
       free(ptr);
       (*tc_table)=node;
@@ -459,16 +459,16 @@ void collect(struct garbagelist * stackptr) {
       int length=ao->___length___;
       int i;
       for(i=0; i<length; i++) {
-	void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
-	ENQUEUE(objptr, ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]);
+        void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
+        ENQUEUE(objptr, ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]);
       }
     } else {
       INTPTR size=pointer[0];
       int i;
       for(i=1; i<=size; i++) {
-	unsigned int offset=pointer[i];
-	void * objptr=*((void **)(((char *)ptr)+offset));
-	ENQUEUE(objptr, *((void **)(((char *)cpy)+offset)));
+        unsigned int offset=pointer[i];
+        void * objptr=*((void **)(((char *)ptr)+offset));
+        ENQUEUE(objptr, *((void **)(((char *)cpy)+offset)));
       }
     }
   }
@@ -608,8 +608,8 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       /* Need to allocate base heap */
       curr_heapbase=malloc(INITIALHEAPSIZE);
       if (curr_heapbase==NULL) {
-	printf("malloc failed.  Garbage colletcor couldn't get enough memory.  Try changing heap size.\n");
-	exit(-1);
+        printf("malloc failed.  Garbage colletcor couldn't get enough memory.  Try changing heap size.\n");
+        exit(-1);
       }
 #if defined(STM)||defined(THREADS)||defined(MLP)
 #else
@@ -621,8 +621,8 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
 
       to_heapbase=malloc(INITIALHEAPSIZE);
       if (to_heapbase==NULL) {
-	printf("malloc failed.  Garbage collector couldn't get enough memory.  Try changing heap size.\n");
-	exit(-1);
+        printf("malloc failed.  Garbage collector couldn't get enough memory.  Try changing heap size.\n");
+        exit(-1);
       }
 
       to_heaptop=to_heapbase+INITIALHEAPSIZE;
@@ -640,21 +640,21 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       INTPTR to_heapsize=to_heaptop-to_heapbase;
       INTPTR last_heapsize=0;
       if (lastgcsize>0) {
-	last_heapsize=HEAPSIZE(lastgcsize, size);
-	if ((last_heapsize&7)!=0)
-	  last_heapsize+=(8-(last_heapsize%8));
+        last_heapsize=HEAPSIZE(lastgcsize, size);
+        if ((last_heapsize&7)!=0)
+          last_heapsize+=(8-(last_heapsize%8));
       }
       if (curr_heapsize>last_heapsize)
-	last_heapsize=curr_heapsize;
+        last_heapsize=curr_heapsize;
       if (last_heapsize>to_heapsize) {
-	free(to_heapbase);
-	to_heapbase=malloc(last_heapsize);
-	if (to_heapbase==NULL) {
-	  printf("Error Allocating enough memory\n");
-	  exit(-1);
-	}
-	to_heaptop=to_heapbase+last_heapsize;
-	to_heapptr=to_heapbase;
+        free(to_heapbase);
+        to_heapbase=malloc(last_heapsize);
+        if (to_heapbase==NULL) {
+          printf("Error Allocating enough memory\n");
+          exit(-1);
+        }
+        to_heaptop=to_heapbase+last_heapsize;
+        to_heapptr=to_heapbase;
       }
     }
 
@@ -671,8 +671,8 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
     {
       int i;
       for(i=0; i<MAXSTATS; i++) {
-	if (garbagearray[i]!=0)
-	  printf("Type=%d Size=%u\n", i, garbagearray[i]);
+        if (garbagearray[i]!=0)
+          printf("Type=%d Size=%u\n", i, garbagearray[i]);
       }
     }
 #endif
@@ -694,9 +694,9 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       /* Not enough room :(, redo gc */
       if (curr_heapptr>curr_heapgcpoint) {
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
-	pthread_mutex_unlock(&gclock);
+        pthread_mutex_unlock(&gclock);
 #endif
-	return mygcmalloc(stackptr, size);
+        return mygcmalloc(stackptr, size);
       }
 
       bzero(tmp, curr_heaptop-tmp);

@@ -64,7 +64,7 @@ public class StateMachineForEffects {
     for(FlatNode fn : fn2state.keySet()) {
       SMFEState state=fn2state.get(fn);
       if (!state.getConflicts().isEmpty())
-	return false;
+        return false;
     }
     return true;
   }
@@ -143,8 +143,8 @@ public class StateMachineForEffects {
 
       Iterator<FlatNode> fnItr = fn2state.keySet().iterator();
       while( fnItr.hasNext() ) {
-	SMFEState state = fn2state.get(fnItr.next() );
-	bw.write(state.toStringDOT()+"\n");
+        SMFEState state = fn2state.get(fnItr.next() );
+        bw.write(state.toStringDOT()+"\n");
       }
 
       bw.write("}\n");

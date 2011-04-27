@@ -97,15 +97,15 @@ public class FlatCall extends FlatNode {
 
       if( tdParamI.equals(tdParam) ) {
 
-	if( method.isStatic() ) {
-	  return args[i];
-	}
+        if( method.isStatic() ) {
+          return args[i];
+        }
 
-	if( i == 0 ) {
-	  return this_temp;
-	}
+        if( i == 0 ) {
+          return this_temp;
+        }
 
-	return args[i-1];
+        return args[i-1];
       }
     }
 
@@ -116,21 +116,21 @@ public class FlatCall extends FlatNode {
     String st="FlatCall_";
     if (dst==null) {
       if (method==null)
-	st+="null(";
+        st+="null(";
       else
-	st+=method.getSymbol()+"(";
+        st+=method.getSymbol()+"(";
     } else
       st+=dst+"="+method.getSymbol()+"(";
     if (this_temp!=null) {
       st+=this_temp;
       if (args.length!=0)
-	st+=", ";
+        st+=", ";
     }
 
     for(int i=0; i<args.length; i++) {
       st+=args[i].toString();
       if ((i+1)<args.length)
-	st+=", ";
+        st+=", ";
     }
     return st+")";
   }

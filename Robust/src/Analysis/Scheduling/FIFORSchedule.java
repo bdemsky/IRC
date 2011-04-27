@@ -28,18 +28,18 @@ public class FIFORSchedule extends RuntimeSchedule {
       int paraNum = next.getTd().numParameters();
       Vector<Queue<ObjectSimulator>> pqueues = next.getParaQueues();
       if((pqueues == null) || (pqueues.size() < paraNum)) {
-	continue;
+        continue;
       }
       int j = 0;
       for(; j < pqueues.size(); j++) {
-	Queue<ObjectSimulator> objs = pqueues.elementAt(j);
-	if((objs == null) || (objs.size() == 0)) {
-	  break;
-	}
+        Queue<ObjectSimulator> objs = pqueues.elementAt(j);
+        if((objs == null) || (objs.size() == 0)) {
+          break;
+        }
       }
       if(j == pqueues.size()) {
-	pqueues = null;
-	return next;
+        pqueues = null;
+        return next;
       }
       pqueues = null;
     }

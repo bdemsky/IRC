@@ -60,9 +60,9 @@ public class ChangeTuple extends Canonical
       oldHashSet = true;
     } else {
       if( oldHash != currentHash ) {
-	System.out.println("IF YOU SEE THIS A CANONICAL ChangeTuple CHANGED");
-	Integer x = null;
-	x.toString();
+        System.out.println("IF YOU SEE THIS A CANONICAL ChangeTuple CHANGED");
+        Integer x = null;
+        x.toString();
       }
     }
 

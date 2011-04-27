@@ -46,7 +46,7 @@ public class Lexer {
     if (lookahead==null) lookahead = new FIFO(new FIFO.Getter() {
                                                 java_cup.runtime.Symbol next() throws java.io.IOException
                                                 { return _nextToken(); }
-					      });
+                                              });
     int i=0;
     // skip past IDENTIFIER (DOT IDENTIFIER)*
     if (lookahead.peek(i++).sym != Sym.IDENTIFIER)
@@ -54,13 +54,13 @@ public class Lexer {
     while (lookahead.peek(i).sym == Sym.DOT) {
       i++;
       if (lookahead.peek(i++).sym != Sym.IDENTIFIER)
-	return false;
+        return false;
     }
     // skip past (LBRACK RBRACK)*
     while (lookahead.peek(i).sym == Sym.LBRACK) {
       i++;
       if (lookahead.peek(i++).sym != Sym.RBRACK)
-	return false;
+        return false;
     }
     // now the next sym has to be one of LT GT COMMA EXTENDS IMPLEMENTS
     switch(lookahead.peek(i).sym) {
@@ -93,7 +93,7 @@ public class Lexer {
       startpos = lineL.head + line_pos;
       ie = getInputElement();
       if (ie instanceof DocumentationComment)
-	comment = ((Comment)ie).getComment();
+        comment = ((Comment)ie).getComment();
     } while (!(ie instanceof Token));
     endpos = lineL.head + line_pos - 1;
 
@@ -126,7 +126,7 @@ public class Lexer {
     if (line.length()<=line_pos) {      // end of line.
       nextLine();
       if (line==null)
-	return new EOF();
+        return new EOF();
     }
 
     switch (line.charAt(line_pos)) {
@@ -165,9 +165,9 @@ public class Lexer {
     case '*': // TraditionalComment or DocumentationComment
       line_pos += 2;
       if (line.charAt(line_pos)=='*') { // DocumentationComment
-	return snarfComment(new DocumentationComment());
+        return snarfComment(new DocumentationComment());
       } else { // TraditionalComment
-	return snarfComment(new TraditionalComment());
+        return snarfComment(new TraditionalComment());
       }
 
     default: // it's a token, not a comment.
@@ -179,23 +179,23 @@ public class Lexer {
     StringBuffer text=new StringBuffer();
     while(true) { // Grab CommentTail
       while (line.charAt(line_pos)!='*') { // Add NotStar to comment.
-	int star_pos = line.indexOf('*', line_pos);
-	if (star_pos<0) {
-	  text.append(line.substring(line_pos));
-	  c.appendLine(text.toString()); text.setLength(0);
-	  line_pos = line.length();
-	  nextLine();
-	  if (line==null)
-	    throw new IOException("Unterminated comment at end of file.");
-	} else {
-	  text.append(line.substring(line_pos, star_pos));
-	  line_pos=star_pos;
-	}
+        int star_pos = line.indexOf('*', line_pos);
+        if (star_pos<0) {
+          text.append(line.substring(line_pos));
+          c.appendLine(text.toString()); text.setLength(0);
+          line_pos = line.length();
+          nextLine();
+          if (line==null)
+            throw new IOException("Unterminated comment at end of file.");
+        } else {
+          text.append(line.substring(line_pos, star_pos));
+          line_pos=star_pos;
+        }
       }
       // At this point, line.charAt(line_pos)=='*'
       // Grab CommentTailStar starting at line_pos+1.
       if (line.charAt(line_pos+1)=='/') { // safe because line ends with '\n'
-	c.appendLine(text.toString()); line_pos+=2; return c;
+        c.appendLine(text.toString()); line_pos+=2; return c;
       }
       text.append(line.charAt(line_pos++)); // add the '*'
     }
@@ -243,12 +243,12 @@ public class Lexer {
     // a period is a special case:
     case '.':
       if (Character.digit(line.charAt(line_pos+1),10)!=-1)
-	return getNumericLiteral();
+        return getNumericLiteral();
       else if (isJava15 &&
                line.charAt(line_pos+1)=='.' &&
                line.charAt(line_pos+2)=='.') {
-	consume(); consume(); consume();
-	return new Separator('\u2026'); // unicode ellipsis character.
+        consume(); consume(); consume();
+        return new Separator('\u2026'); // unicode ellipsis character.
       } else return new Separator(consume());
 
     default:
@@ -344,7 +344,7 @@ public class Lexer {
     case 'l':
     default:
       if (line.charAt(line_pos)=='0')
-	return getIntegerLiteral(/*base*/ 8);
+        return getIntegerLiteral(/*base*/ 8);
       return getIntegerLiteral(/*base*/ 10);
     }
   }
@@ -373,23 +373,23 @@ public class Lexer {
       rep+=consume();
       if (line.charAt(line_pos)=='+' ||
           line.charAt(line_pos)=='-')
-	rep+=consume();
+        rep+=consume();
       rep+=getDigits();
     }
     try {
       switch (line.charAt(line_pos)) {
       case 'f':
       case 'F':
-	consume();
-	return new FloatLiteral(Float.valueOf(rep).floatValue());
+        consume();
+        return new FloatLiteral(Float.valueOf(rep).floatValue());
 
       case 'd':
       case 'D':
-	consume();
+        consume();
 
       /* falls through */
       default:
-	return new DoubleLiteral(Double.valueOf(rep).doubleValue());
+        return new DoubleLiteral(Double.valueOf(rep).doubleValue());
       }
     } catch (NumberFormatException e) {
       throw new IOException("Illegal floating-point on line "+line_num+": "+e);
@@ -419,7 +419,7 @@ public class Lexer {
     case '&':
     case '|':
       if (first==second)
-	return new Operator(new String(new char[] {first, consume()}));
+        return new Operator(new String(new char[] {first, consume()}));
 
     default:
       break;
@@ -433,9 +433,9 @@ public class Lexer {
         (first=='>' && second=='>')) {  // >>
       String op = new String(new char[] {first, consume()});
       if (first=='>' && line.charAt(line_pos)=='>') // >>>
-	op += consume();
+        op += consume();
       if (line.charAt(line_pos)=='=') // <<=, >>=, >>>=
-	op += consume();
+        op += consume();
       return new Operator(op);
     }
 
@@ -472,15 +472,15 @@ public class Lexer {
     while (line.charAt(line_pos)!='\"') {
       switch(line.charAt(line_pos)) {
       case '\\':
-	val.append(getEscapeSequence());
-	break;
+        val.append(getEscapeSequence());
+        break;
 
       case '\n':
-	throw new IOException("Invalid string literal on line " + line_num);
+        throw new IOException("Invalid string literal on line " + line_num);
 
       default:
-	val.append(consume());
-	break;
+        val.append(consume());
+        break;
       }
     }
     char closequote = consume();
@@ -538,7 +538,7 @@ public class Lexer {
     int i, val=0;
     for (i=0; i<maxlength; i++)
       if (Character.digit(line.charAt(line_pos), 8)!=-1) {
-	val = (8*val) + Character.digit(consume(), 8);
+        val = (8*val) + Character.digit(consume(), 8);
       } else break;
     if ((i==0) || (val>0xFF)) // impossible.
       throw new IOException("Invalid octal escape sequence in line " + line_num);
@@ -561,7 +561,7 @@ public class Lexer {
     int n=line_num, c=info.left-lineL.head;
     for (LineList p = lineL; p!=null; p=p.tail, n--)
       if (p.head<=info.left) {
-	c=info.left-p.head; break;
+        c=info.left-p.head; break;
       }
     System.err.println(msg+" at line "+n);
     num_errors++;

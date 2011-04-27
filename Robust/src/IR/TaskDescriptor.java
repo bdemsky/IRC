@@ -56,11 +56,11 @@ public class TaskDescriptor extends Descriptor {
     if (tel!=null) {    //BUGFIX - added null check here...test with any bristlecone program
       tagstable.put(vd, tel);
       for(int i=0; i<tel.numTags(); i++) {
-	TagVarDescriptor tvd=new TagVarDescriptor(new TagDescriptor(tel.getType(i)), tel.getName(i));
-	if (paramtable.getFromSameScope(tel.getName(i))==null) {
-	  paramtable.add(tvd);
-	} else if (!((paramtable.getFromSameScope(tel.getName(i)) instanceof TagVarDescriptor)&&((TagVarDescriptor)paramtable.getFromSameScope(tel.getName(i))).getTag().equals(tvd.getTag())))
-	  throw new Error("Parameter "+paramname+" already defined");
+        TagVarDescriptor tvd=new TagVarDescriptor(new TagDescriptor(tel.getType(i)), tel.getName(i));
+        if (paramtable.getFromSameScope(tel.getName(i))==null) {
+          paramtable.add(tvd);
+        } else if (!((paramtable.getFromSameScope(tel.getName(i)) instanceof TagVarDescriptor)&&((TagVarDescriptor)paramtable.getFromSameScope(tel.getName(i))).getTag().equals(tvd.getTag())))
+          throw new Error("Parameter "+paramname+" already defined");
       }
     }
 
@@ -105,7 +105,7 @@ public class TaskDescriptor extends Descriptor {
     for(int i=0; i<params.size(); i++) {
       st+=getParamType(i)+" "+getParamName(i);
       if ((i+1)!=params.size())
-	st+=", ";
+        st+=", ";
     }
     st+=")";
     return st;

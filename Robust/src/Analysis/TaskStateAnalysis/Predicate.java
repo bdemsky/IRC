@@ -23,7 +23,7 @@ public class Predicate {
       if (vardescriptors.equals(p.vardescriptors)&&
           flags.equals(p.flags)&&
           tags.equals(p.tags))
-	return true;
+        return true;
     }
     return false;
   }

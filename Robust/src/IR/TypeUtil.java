@@ -48,13 +48,13 @@ public class TypeUtil {
       String path = (String) state.classpath.get(i);
       File f = new File(path, cl.replace('.', '/') + ".java");
       if (f.exists()) {
-	try {
-	  ParseNode pn = Main.readSourceFile(state, f.getCanonicalPath());
-	  bir.buildtree(pn, todo, f.getCanonicalPath());
-	  return;
-	} catch (Exception e) {
-	  throw new Error(e);
-	}
+        try {
+          ParseNode pn = Main.readSourceFile(state, f.getCanonicalPath());
+          bir.buildtree(pn, todo, f.getCanonicalPath());
+          return;
+        } catch (Exception e) {
+          throw new Error(e);
+        }
       }
     }
     throw new Error("Couldn't find class " + cl);
@@ -80,8 +80,8 @@ public class TypeUtil {
     if (!supertable.containsKey(cd)) {
       String superc=cd.getSuper();
       if (superc!=null) {
-	ClassDescriptor cd_super=getClass(superc, todo);
-	supertable.put(cd,cd_super);
+        ClassDescriptor cd_super=getClass(superc, todo);
+        supertable.put(cd,cd_super);
       }
     }
     if (!superIFtbl.containsKey(cd)) {
@@ -90,9 +90,9 @@ public class TypeUtil {
       HashSet hs=(HashSet)superIFtbl.get(cd);
       Vector<String> superifv = cd.getSuperInterface();
       for(int i = 0; i < superifv.size(); i++) {
-	String superif = superifv.elementAt(i);
-	ClassDescriptor if_super = getClass(superif, todo);
-	hs.add(if_super);
+        String superif = superifv.elementAt(i);
+        ClassDescriptor if_super = getClass(superif, todo);
+        hs.add(if_super);
       }
     }
     return cd;
@@ -112,7 +112,7 @@ public class TypeUtil {
     for(Iterator methodit=cd.getMethodTable().getSet("run").iterator(); methodit.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor) methodit.next();
       if (md.numParameters()!=0||md.getModifiers().isStatic())
-	continue;
+        continue;
       return md;
     }
     throw new Error("Can't find Thread.run");
@@ -123,7 +123,7 @@ public class TypeUtil {
     for(Iterator methodit=cd.getMethodTable().getSet("staticStart").iterator(); methodit.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor) methodit.next();
       if (md.numParameters()!=1||!md.getModifiers().isStatic()||!md.getParamType(0).isClass()||md.getParamType(0).getClassDesc()!=cd)
-	continue;
+        continue;
       return md;
     }
     throw new Error("Can't find Thread.run");
@@ -138,7 +138,7 @@ public class TypeUtil {
     for(Iterator methodit = cd.getMethodTable().getSet("execute").iterator(); methodit.hasNext(); ) {
       MethodDescriptor md = (MethodDescriptor) methodit.next();
       if (md.numParameters()!=0 || md.getModifiers().isStatic())
-	continue;
+        continue;
       return md;
     }
     throw new Error("Can't find Task.execute");
@@ -152,16 +152,16 @@ public class TypeUtil {
     for(Iterator mainit=mainset.iterator(); mainit.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor)mainit.next();
       if (md.numParameters()!=1)
-	continue;
+        continue;
       Descriptor pd=md.getParameter(0);
       TypeDescriptor tpd=(pd instanceof TagVarDescriptor)?((TagVarDescriptor)pd).getType():((VarDescriptor)pd)
                           .getType();
       if (tpd.getArrayCount()!=1)
-	continue;
+        continue;
       if (!tpd.getSymbol().equals(StringClass))
-	continue;
+        continue;
       if (!md.getModifiers().isStatic())
-	throw new Error("Error: Non static main");
+        throw new Error("Error: Non static main");
       return md;
     }
     throw new Error(cd+" has no main");
@@ -177,18 +177,18 @@ public class TypeUtil {
       throw new Error();
     for(int i=0; i<md1.numParameters(); i++) {
       if (!this.isSuperorType(md2.getParamType(i), md1.getParamType(i))) {
-	if(((!md1.getParamType(i).isArray() &&
-	     (md1.getParamType(i).isInt() || md1.getParamType(i).isLong() || md1.getParamType(i).isDouble() || md1.getParamType(i).isFloat()))
-	    && md2.getParamType(i).isClass() && md2.getParamType(i).getClassDesc().getSymbol().equals("Object"))) {
-	  // primitive parameters vs Object
-	} else {
-	  return false;
-	}
+        if(((!md1.getParamType(i).isArray() &&
+             (md1.getParamType(i).isInt() || md1.getParamType(i).isLong() || md1.getParamType(i).isDouble() || md1.getParamType(i).isFloat()))
+            && md2.getParamType(i).isClass() && md2.getParamType(i).getClassDesc().getSymbol().equals("Object"))) {
+          // primitive parameters vs Object
+        } else {
+          return false;
+        }
       }
     }
     if (md1.getReturnType()==null||md2.getReturnType()==null) {
       if (md1.getReturnType()!=md2.getReturnType())
-	return false;
+        return false;
     } else
     if (!this.isSuperorType(md2.getReturnType(), md1.getReturnType()))
       return false;
@@ -207,21 +207,21 @@ NextMethod:
       MethodDescriptor currmd=(MethodDescriptor)methodit.next();
       /* Need correct number of parameters */
       if (types.length!=currmd.numParameters())
-	continue;
+        continue;
       for(int i=0; i<types.length; i++) {
-	if (!this.isSuperorType(currmd.getParamType(i),types[i]))
-	  continue NextMethod;
+        if (!this.isSuperorType(currmd.getParamType(i),types[i]))
+          continue NextMethod;
       }
       /* Method okay so far */
       if (bestmd==null)
-	bestmd=currmd;
+        bestmd=currmd;
       else {
-	if (isMoreSpecific(currmd,bestmd)) {
-	  bestmd=currmd;
-	} else if (!isMoreSpecific(bestmd, currmd))
-	  throw new Error("No method is most specific");
+        if (isMoreSpecific(currmd,bestmd)) {
+          bestmd=currmd;
+        } else if (!isMoreSpecific(bestmd, currmd))
+          throw new Error("No method is most specific");
 
-	/* Is this more specific than bestmd */
+        /* Is this more specific than bestmd */
       }
     }
     if (bestmd==null)
@@ -244,52 +244,52 @@ NextMethod:
 
       // check cd's interface ancestors
       {
-	Iterator it_sifs = cd.getSuperInterfaces();
-	while(it_sifs.hasNext()) {
-	  ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
-	  if(!tovisit.contains(cdt)) {
-	    tovisit.add(cdt);
-	  }
-	}
+        Iterator it_sifs = cd.getSuperInterfaces();
+        while(it_sifs.hasNext()) {
+          ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
+          if(!tovisit.contains(cdt)) {
+            tovisit.add(cdt);
+          }
+        }
       }
 
       while(tmp!=null) {
-	if (!subclasstable.containsKey(tmp))
-	  subclasstable.put(tmp,new HashSet());
-	HashSet hs=(HashSet)subclasstable.get(tmp);
-	hs.add(cd);
-	// check tmp's interface ancestors
-	Iterator it_sifs = tmp.getSuperInterfaces();
-	while(it_sifs.hasNext()) {
-	  ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
-	  if(!tovisit.contains(cdt)) {
-	    tovisit.add(cdt);
-	  }
-	}
+        if (!subclasstable.containsKey(tmp))
+          subclasstable.put(tmp,new HashSet());
+        HashSet hs=(HashSet)subclasstable.get(tmp);
+        hs.add(cd);
+        // check tmp's interface ancestors
+        Iterator it_sifs = tmp.getSuperInterfaces();
+        while(it_sifs.hasNext()) {
+          ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
+          if(!tovisit.contains(cdt)) {
+            tovisit.add(cdt);
+          }
+        }
 
-	tmp=tmp.getSuperDesc();
+        tmp=tmp.getSuperDesc();
       }
 
       while(!tovisit.isEmpty()) {
-	ClassDescriptor sif = (ClassDescriptor)tovisit.iterator().next();
-	tovisit.remove(sif);
+        ClassDescriptor sif = (ClassDescriptor)tovisit.iterator().next();
+        tovisit.remove(sif);
 
-	if(!visited.contains(sif)) {
-	  if(!this.subclasstable.containsKey(sif)) {
-	    this.subclasstable.put(sif, new HashSet());
-	  }
-	  HashSet hs = (HashSet) this.subclasstable.get(sif);
-	  hs.add(cd);
+        if(!visited.contains(sif)) {
+          if(!this.subclasstable.containsKey(sif)) {
+            this.subclasstable.put(sif, new HashSet());
+          }
+          HashSet hs = (HashSet) this.subclasstable.get(sif);
+          hs.add(cd);
 
-	  Iterator it_sifs = sif.getSuperInterfaces();
-	  while(it_sifs.hasNext()) {
-	    ClassDescriptor siftmp = (ClassDescriptor)it_sifs.next();
-	    if(!tovisit.contains(siftmp)) {
-	      tovisit.add(siftmp);
-	    }
-	  }
-	  visited.add(sif);
-	}
+          Iterator it_sifs = sif.getSuperInterfaces();
+          while(it_sifs.hasNext()) {
+            ClassDescriptor siftmp = (ClassDescriptor)it_sifs.next();
+            if(!tovisit.contains(siftmp)) {
+              tovisit.add(siftmp);
+            }
+          }
+          visited.add(sif);
+        }
       }
     }
   }
@@ -338,22 +338,22 @@ NextMethod:
     if (cd2.isArray()||possiblesuper.isArray()) {
       // Object is super class of all arrays
       if (possiblesuper.getSymbol().equals(ObjectClass)&&!possiblesuper.isArray())
-	return true;
+        return true;
 
       // If we have the same dimensionality of arrays & both are classes, we can default to the normal test
       if (cd2.isClass()&&possiblesuper.isClass()
           &&(possiblesuper.getArrayCount()==cd2.getArrayCount())&&
           isSuperorType(possiblesuper.getClassDesc(), cd2.getClassDesc()))
-	return true;
+        return true;
 
       // Object is superclass of all array classes
       if (possiblesuper.getSymbol().equals(ObjectClass)&&cd2.isClass()
           &&(possiblesuper.getArrayCount()<cd2.getArrayCount()))
-	return true;
+        return true;
 
       //Allow arraytype=null statements
       if (possiblesuper.isArray()&&cd2.isNull())
-	return true;
+        return true;
 
       return false;
     }
@@ -372,34 +372,34 @@ NextMethod:
       if (cd2.isByte()&&(possiblesuper.isByte()||possiblesuper.isShort()||
                          possiblesuper.isInt()||possiblesuper.isLong()||
                          possiblesuper.isFloat()||possiblesuper.isDouble()))
-	return true;
+        return true;
       if (cd2.isShort()&&(possiblesuper.isShort()||
                           possiblesuper.isInt()||possiblesuper.isLong()||
                           possiblesuper.isFloat()||possiblesuper.isDouble()))
-	return true;
+        return true;
       if (cd2.isChar()&&(possiblesuper.isChar()||
                          possiblesuper.isInt()||possiblesuper.isLong()||
                          possiblesuper.isFloat()||possiblesuper.isDouble()))
-	return true;
+        return true;
       if (cd2.isInt()&&(possiblesuper.isInt()||possiblesuper.isLong()||
                         possiblesuper.isFloat()||possiblesuper.isDouble()
                         ||possiblesuper.isEnum()))
-	return true;
+        return true;
       if (cd2.isEnum()&&(possiblesuper.isInt()||possiblesuper.isLong()||
                          possiblesuper.isFloat()||possiblesuper.isDouble()))
-	return true;
+        return true;
       if(cd2.isEnum()&&possiblesuper.isEnum()&&cd2.class_desc.equals(possiblesuper.class_desc))
-	return true;
+        return true;
       if (cd2.isLong()&&(possiblesuper.isLong()||
                          possiblesuper.isFloat()||possiblesuper.isDouble()))
-	return true;
+        return true;
       if (cd2.isFloat()&&(possiblesuper.isFloat()||possiblesuper.isDouble()))
-	return true;
+        return true;
       if (cd2.isDouble()&&possiblesuper.isDouble())
 
-	return true;
+        return true;
       if (cd2.isBoolean()&&possiblesuper.isBoolean())
-	return true;
+        return true;
 
       return false;
     } else if (possiblesuper.isPrimitive()&&(!possiblesuper.isArray())&&
@@ -441,31 +441,31 @@ NextMethod:
       // check cd2's interface ancestors
       Iterator<ClassDescriptor> it_sifs = getSuperIFs(cd2).iterator();
       while(it_sifs.hasNext()) {
-	ClassDescriptor cd = it_sifs.next();
-	if(cd == possiblesuper) {
-	  return true;
-	} else if(!tovisit.contains(cd)) {
-	  tovisit.add(cd);
-	}
+        ClassDescriptor cd = it_sifs.next();
+        if(cd == possiblesuper) {
+          return true;
+        } else if(!tovisit.contains(cd)) {
+          tovisit.add(cd);
+        }
       }
     }
 
     while(cd2!=null) {
       cd2=getSuper(cd2);
       if (cd2==possiblesuper)
-	return true;
+        return true;
 
       // check cd2's interface ancestors
       if(cd2 != null) {
-	Iterator it_sifs = getSuperIFs(cd2).iterator();
-	while(it_sifs.hasNext()) {
-	  ClassDescriptor cd = (ClassDescriptor)it_sifs.next();
-	  if(cd == possiblesuper) {
-	    return true;
-	  } else if(!tovisit.contains(cd)) {
-	    tovisit.add(cd);
-	  }
-	}
+        Iterator it_sifs = getSuperIFs(cd2).iterator();
+        while(it_sifs.hasNext()) {
+          ClassDescriptor cd = (ClassDescriptor)it_sifs.next();
+          if(cd == possiblesuper) {
+            return true;
+          } else if(!tovisit.contains(cd)) {
+            tovisit.add(cd);
+          }
+        }
       }
     }
 
@@ -474,16 +474,16 @@ NextMethod:
       tovisit.remove(cd);
 
       if(!visited.contains(cd)) {
-	Iterator it_sifs = getSuperIFs(cd).iterator();
-	while(it_sifs.hasNext()) {
-	  ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
-	  if(cdt == possiblesuper) {
-	    return true;
-	  } else if(!tovisit.contains(cdt)) {
-	    tovisit.add(cdt);
-	  }
-	}
-	visited.add(cd);
+        Iterator it_sifs = getSuperIFs(cd).iterator();
+        while(it_sifs.hasNext()) {
+          ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
+          if(cdt == possiblesuper) {
+            return true;
+          } else if(!tovisit.contains(cdt)) {
+            tovisit.add(cdt);
+          }
+        }
+        visited.add(cd);
       }
     }
     return false;

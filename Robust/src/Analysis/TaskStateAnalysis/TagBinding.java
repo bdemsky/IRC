@@ -43,13 +43,13 @@ public class TagBinding extends GraphNode {
     if (o instanceof TagBinding) {
       TagBinding tb=(TagBinding)o;
       if (md!=tb.md)
-	return false;
+        return false;
       for(int i=0; i<tdarray.length; i++)
-	if (tdarray[i]!=null) {
-	  if (!tdarray[i].equals(tb.tdarray[i]))
-	    return false;
-	} else if(tb.tdarray[i]!=null)
-	  return false;
+        if (tdarray[i]!=null) {
+          if (!tdarray[i].equals(tb.tdarray[i]))
+            return false;
+        } else if(tb.tdarray[i]!=null)
+          return false;
       return true;
     }
     return false;
@@ -59,7 +59,7 @@ public class TagBinding extends GraphNode {
     int hashcode=md.hashCode();
     for(int i=0; i<tdarray.length; i++) {
       if (tdarray[i]!=null)
-	hashcode^=tdarray[i].hashCode();
+        hashcode^=tdarray[i].hashCode();
     }
     return hashcode;
   }

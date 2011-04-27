@@ -24,7 +24,7 @@ public class GenerateConversions {
       LocalityBinding lb=bindit.next();
       //Don't need to do conversion if it is already atomic
       if (lb.isAtomic())
-	continue;
+        continue;
       converttoPtr(lb);
       converttoOid(lb);
     }
@@ -56,80 +56,80 @@ public class GenerateConversions {
 
       if (!isatomic&&fn.kind()==FKind.FlatAtomicExitNode
           &&!nodetoconvs.containsKey(fn)) {
-	nodetoconvs.put(fn, new HashSet<TempDescriptor>());
-	nodetoconvs2.put(fn, new HashSet<TempDescriptor>());
+        nodetoconvs.put(fn, new HashSet<TempDescriptor>());
+        nodetoconvs2.put(fn, new HashSet<TempDescriptor>());
       }
 
       HashSet<TempNodePair> tempset=new HashSet<TempNodePair>();
 
       for(int i=0; i<fn.numPrev(); i++) {
-	FlatNode fnprev=fn.getPrev(i);
-	if (!nodetotnpair.containsKey(fnprev))
-	  continue;
+        FlatNode fnprev=fn.getPrev(i);
+        if (!nodetotnpair.containsKey(fnprev))
+          continue;
 
-	Set<TempNodePair> prevset=nodetotnpair.get(fnprev);
-	for(Iterator<TempNodePair> it=prevset.iterator(); it.hasNext(); ) {
-	  TempNodePair tnp=it.next();
-	  if (fn.kind()==FKind.FlatGlobalConvNode&&
-	      ((FlatGlobalConvNode)fn).getLocality()!=lb) {
-	    //ignore this node
-	    tempset.add(tnp);
-	    continue;
-	  }
-	  if (reads.contains(tnp.getTemp())&&tnp.getNode()!=null) {
-	    //Value actually is read...
-	    nodetoconvs.get(tnp.getNode()).add(tnp.getTemp());
-	  }
+        Set<TempNodePair> prevset=nodetotnpair.get(fnprev);
+        for(Iterator<TempNodePair> it=prevset.iterator(); it.hasNext(); ) {
+          TempNodePair tnp=it.next();
+          if (fn.kind()==FKind.FlatGlobalConvNode&&
+              ((FlatGlobalConvNode)fn).getLocality()!=lb) {
+            //ignore this node
+            tempset.add(tnp);
+            continue;
+          }
+          if (reads.contains(tnp.getTemp())&&tnp.getNode()!=null) {
+            //Value actually is read...
+            nodetoconvs.get(tnp.getNode()).add(tnp.getTemp());
+          }
 
-	  if (writes.contains(tnp.getTemp()))           //value overwritten
-	    continue;
-	  if (!isatomic&&fn.kind()==FKind.FlatAtomicExitNode) {
-	    //Create new node and tag it with this exit
-	    if (tnp.getNode()==null) {
-	      TempNodePair tnp2=new TempNodePair(tnp.getTemp());
-	      tnp2.setNode(fn);
-	      tempset.add(tnp2);
-	      nodetoconvs2.get(fn).add(tnp.getTemp());  //have to hide cached copies from gc -- add unused converted temps
-	    } else
-	      tempset.add(tnp);
-	  } else
-	    tempset.add(tnp);
-	}
+          if (writes.contains(tnp.getTemp()))           //value overwritten
+            continue;
+          if (!isatomic&&fn.kind()==FKind.FlatAtomicExitNode) {
+            //Create new node and tag it with this exit
+            if (tnp.getNode()==null) {
+              TempNodePair tnp2=new TempNodePair(tnp.getTemp());
+              tnp2.setNode(fn);
+              tempset.add(tnp2);
+              nodetoconvs2.get(fn).add(tnp.getTemp());  //have to hide cached copies from gc -- add unused converted temps
+            } else
+              tempset.add(tnp);
+          } else
+            tempset.add(tnp);
+        }
       }
       if (isatomic) {
-	/* If this is in an atomic block, record temps that
-	 * are written to.*/
+        /* If this is in an atomic block, record temps that
+         * are written to.*/
 
-	/* NOTE: If this compiler is changed to maintain
-	 * OID/Ptr's in variables, then we need to use all
-	 * global temps that could be read and not just the
-	 * ones converted by globalconvnode*/
+        /* NOTE: If this compiler is changed to maintain
+         * OID/Ptr's in variables, then we need to use all
+         * global temps that could be read and not just the
+         * ones converted by globalconvnode*/
 
-	if (fn.kind()!=FKind.FlatGlobalConvNode||
-	    ((FlatGlobalConvNode)fn).getLocality()==lb) {
-	  /*If globalconvnode, make sure we have the right
-	   * locality. */
-	  for(Iterator<TempDescriptor> writeit=writes.iterator(); writeit.hasNext(); ) {
-	    TempDescriptor wrtmp=writeit.next();
-	    if (state.SINGLETM) {
-	      if (wrtmp.getType().isPtr()&&
-	          (nodetemptab.get(wrtmp)!=LocalityAnalysis.SCRATCH)) {
-		TempNodePair tnp=new TempNodePair(wrtmp);
-		tempset.add(tnp);
-	      }
-	    } else if (nodetemptab.get(wrtmp)==LocalityAnalysis.GLOBAL) {
-	      TempNodePair tnp=new TempNodePair(wrtmp);
-	      tempset.add(tnp);
-	    }
-	  }
-	}
+        if (fn.kind()!=FKind.FlatGlobalConvNode||
+            ((FlatGlobalConvNode)fn).getLocality()==lb) {
+          /*If globalconvnode, make sure we have the right
+           * locality. */
+          for(Iterator<TempDescriptor> writeit=writes.iterator(); writeit.hasNext(); ) {
+            TempDescriptor wrtmp=writeit.next();
+            if (state.SINGLETM) {
+              if (wrtmp.getType().isPtr()&&
+                  (nodetemptab.get(wrtmp)!=LocalityAnalysis.SCRATCH)) {
+                TempNodePair tnp=new TempNodePair(wrtmp);
+                tempset.add(tnp);
+              }
+            } else if (nodetemptab.get(wrtmp)==LocalityAnalysis.GLOBAL) {
+              TempNodePair tnp=new TempNodePair(wrtmp);
+              tempset.add(tnp);
+            }
+          }
+        }
       }
       if (!nodetotnpair.containsKey(fn)||!nodetotnpair.get(fn).equals(tempset)) {
-	//changes to set, so enqueue next nodes
-	nodetotnpair.put(fn, tempset);         //update set
-	for(int i=0; i<fn.numNext(); i++) {
-	  toprocess.add(fn.getNext(i));
-	}
+        //changes to set, so enqueue next nodes
+        nodetotnpair.put(fn, tempset);         //update set
+        for(int i=0; i<fn.numNext(); i++) {
+          toprocess.add(fn.getNext(i));
+        }
       }
     }
     //Place Convert to Oid nodes
@@ -138,39 +138,39 @@ public class GenerateConversions {
       FlatNode fn=it.next();
       if (atomictab.get(fn).intValue()==0&&fn.numPrev()>0&&
           atomictab.get(fn.getPrev(0)).intValue()>0) {
-	//sanity check
-	assert(fn.kind()==FKind.FlatAtomicExitNode);
-	//insert calls here...
-	Set<TempDescriptor> tempset=nodetoconvs2.get(fn);
-	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext(); ) {
-	  TempDescriptor tmpd=tempit.next();
-	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tmpd, lb, false, nodetoconvs.get(fn).contains(tmpd));
+        //sanity check
+        assert(fn.kind()==FKind.FlatAtomicExitNode);
+        //insert calls here...
+        Set<TempDescriptor> tempset=nodetoconvs2.get(fn);
+        for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext(); ) {
+          TempDescriptor tmpd=tempit.next();
+          FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tmpd, lb, false, nodetoconvs.get(fn).contains(tmpd));
 
-	  //This loop makes sure that we have accurate atomic information for the new node
-	  for(Iterator<LocalityBinding> lbit=locality.getMethodBindings(lb.getMethod()).iterator(); lbit.hasNext(); ) {
-	    LocalityBinding fixlb=lbit.next();
-	    locality.getAtomic(fixlb).put(fgcn, locality.getAtomic(fixlb).get(fn.getPrev(0)));
-	    locality.getNodeTempInfo(fixlb).put(fgcn, (Hashtable<TempDescriptor, Integer>)locality.getNodeTempInfo(fixlb).get(fn).clone());
-	  }
+          //This loop makes sure that we have accurate atomic information for the new node
+          for(Iterator<LocalityBinding> lbit=locality.getMethodBindings(lb.getMethod()).iterator(); lbit.hasNext(); ) {
+            LocalityBinding fixlb=lbit.next();
+            locality.getAtomic(fixlb).put(fgcn, locality.getAtomic(fixlb).get(fn.getPrev(0)));
+            locality.getNodeTempInfo(fixlb).put(fgcn, (Hashtable<TempDescriptor, Integer>)locality.getNodeTempInfo(fixlb).get(fn).clone());
+          }
 
-	  fgcn.setAtomicEnter(((FlatAtomicExitNode)fn).getAtomicEnter());
+          fgcn.setAtomicEnter(((FlatAtomicExitNode)fn).getAtomicEnter());
 
-	  FlatNode[] prevarray=new FlatNode[fn.numPrev()];
-	  for(int i=0; i<fn.numPrev(); i++) {
-	    FlatNode fnprev=fn.getPrev(i);
-	    prevarray[i]=fnprev;
-	  }
-	  for(int i=0; i<prevarray.length; i++) {
-	    for(int j=0; j<prevarray[i].numNext(); j++) {
-	      if (prevarray[i].getNext(j)==fn) {
-		//found index, change node
-		prevarray[i].setNext(j, fgcn);
-		break;
-	      }
-	    }
-	  }
-	  fgcn.addNext(fn);
-	}
+          FlatNode[] prevarray=new FlatNode[fn.numPrev()];
+          for(int i=0; i<fn.numPrev(); i++) {
+            FlatNode fnprev=fn.getPrev(i);
+            prevarray[i]=fnprev;
+          }
+          for(int i=0; i<prevarray.length; i++) {
+            for(int j=0; j<prevarray[i].numNext(); j++) {
+              if (prevarray[i].getNext(j)==fn) {
+                //found index, change node
+                prevarray[i].setNext(j, fgcn);
+                break;
+              }
+            }
+          }
+          fgcn.addNext(fn);
+        }
       }
     }
   }
@@ -191,40 +191,40 @@ public class GenerateConversions {
       toprocess.remove(fn);
 
       if (atomictab.get(fn).intValue()>0) {
-	//build set of transaction temps use by next nodes
-	HashSet<TempDescriptor> transtemps=new HashSet<TempDescriptor>();
-	for(int i=0; i<fn.numNext(); i++) {
-	  FlatNode fnnext=fn.getNext(i);
-	  if (nodetotranstemps.containsKey(fnnext))
-	    transtemps.addAll(nodetotranstemps.get(fnnext));
-	}
-	//subtract out the ones we write to
-	transtemps.removeAll(Arrays.asList(fn.writesTemps()));
-	//add in the globals we read from
-	Hashtable<TempDescriptor, Integer> pretemptab=locality.getNodePreTempInfo(lb, fn);
-	if (state.SINGLETM) {
-	  TempDescriptor [] readtemps=fn.readsTemps();
-	  for(int i=0; i<readtemps.length; i++) {
-	    TempDescriptor tmp=readtemps[i];
-	    if (tmp.getType().isPtr()&&
-	        pretemptab.get(tmp).intValue()!=LocalityAnalysis.SCRATCH) {
-	      transtemps.add(tmp);
-	    }
-	  }
-	} else {
-	  TempDescriptor [] readtemps=fn.readsTemps();
-	  for(int i=0; i<readtemps.length; i++) {
-	    TempDescriptor tmp=readtemps[i];
-	    if (pretemptab.get(tmp).intValue()==LocalityAnalysis.GLOBAL) {
-	      transtemps.add(tmp);
-	    }
-	  }
-	}
-	if (!nodetotranstemps.containsKey(fn)||!nodetotranstemps.get(fn).equals(transtemps)) {
-	  nodetotranstemps.put(fn, transtemps);
-	  for(int i=0; i<fn.numPrev(); i++)
-	    toprocess.add(fn.getPrev(i));
-	}
+        //build set of transaction temps use by next nodes
+        HashSet<TempDescriptor> transtemps=new HashSet<TempDescriptor>();
+        for(int i=0; i<fn.numNext(); i++) {
+          FlatNode fnnext=fn.getNext(i);
+          if (nodetotranstemps.containsKey(fnnext))
+            transtemps.addAll(nodetotranstemps.get(fnnext));
+        }
+        //subtract out the ones we write to
+        transtemps.removeAll(Arrays.asList(fn.writesTemps()));
+        //add in the globals we read from
+        Hashtable<TempDescriptor, Integer> pretemptab=locality.getNodePreTempInfo(lb, fn);
+        if (state.SINGLETM) {
+          TempDescriptor [] readtemps=fn.readsTemps();
+          for(int i=0; i<readtemps.length; i++) {
+            TempDescriptor tmp=readtemps[i];
+            if (tmp.getType().isPtr()&&
+                pretemptab.get(tmp).intValue()!=LocalityAnalysis.SCRATCH) {
+              transtemps.add(tmp);
+            }
+          }
+        } else {
+          TempDescriptor [] readtemps=fn.readsTemps();
+          for(int i=0; i<readtemps.length; i++) {
+            TempDescriptor tmp=readtemps[i];
+            if (pretemptab.get(tmp).intValue()==LocalityAnalysis.GLOBAL) {
+              transtemps.add(tmp);
+            }
+          }
+        }
+        if (!nodetotranstemps.containsKey(fn)||!nodetotranstemps.get(fn).equals(transtemps)) {
+          nodetotranstemps.put(fn, transtemps);
+          for(int i=0; i<fn.numPrev(); i++)
+            toprocess.add(fn.getPrev(i));
+        }
       }
     }
     toprocess=fm.getNodeSet();
@@ -232,23 +232,23 @@ public class GenerateConversions {
       FlatNode fn=it.next();
       if (atomictab.get(fn).intValue()>0&&
           atomictab.get(fn.getPrev(0)).intValue()==0) {
-	//sanity check
-	assert(fn.kind()==FKind.FlatAtomicEnterNode);
+        //sanity check
+        assert(fn.kind()==FKind.FlatAtomicEnterNode);
 
-	//insert calls here...
-	Set<TempDescriptor> tempset=nodetotranstemps.get(fn);
-	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext(); ) {
-	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tempit.next(), lb, true);
-	  fgcn.setAtomicEnter((FlatAtomicEnterNode)fn);
-	  //This loop makes sure that we have accurate atomic information for the new node
-	  for(Iterator<LocalityBinding> lbit=locality.getMethodBindings(lb.getMethod()).iterator(); lbit.hasNext(); ) {
-	    LocalityBinding fixlb=lbit.next();
-	    locality.getAtomic(fixlb).put(fgcn, locality.getAtomic(fixlb).get(fn));
-	    locality.getNodeTempInfo(fixlb).put(fgcn, (Hashtable<TempDescriptor, Integer>)locality.getNodeTempInfo(fixlb).get(fn).clone());
-	  }
-	  fgcn.addNext(fn.getNext(0));
-	  fn.setNext(0, fgcn);
-	}
+        //insert calls here...
+        Set<TempDescriptor> tempset=nodetotranstemps.get(fn);
+        for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext(); ) {
+          FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tempit.next(), lb, true);
+          fgcn.setAtomicEnter((FlatAtomicEnterNode)fn);
+          //This loop makes sure that we have accurate atomic information for the new node
+          for(Iterator<LocalityBinding> lbit=locality.getMethodBindings(lb.getMethod()).iterator(); lbit.hasNext(); ) {
+            LocalityBinding fixlb=lbit.next();
+            locality.getAtomic(fixlb).put(fgcn, locality.getAtomic(fixlb).get(fn));
+            locality.getNodeTempInfo(fixlb).put(fgcn, (Hashtable<TempDescriptor, Integer>)locality.getNodeTempInfo(fixlb).get(fn).clone());
+          }
+          fgcn.addNext(fn.getNext(0));
+          fn.setNext(0, fgcn);
+        }
       }
     }
   }

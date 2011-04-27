@@ -127,9 +127,9 @@ public class Edge {
     if (o instanceof Edge) {
       Edge e=(Edge) o;
       if (srcvar!=null) {
-	return (srcvar==e.srcvar)&&(dst==e.dst);
+        return (srcvar==e.srcvar)&&(dst==e.dst);
       } else {
-	return (src==e.src)&&(dst==e.dst)&&(fd==e.fd);
+        return (src==e.src)&&(dst==e.dst)&&(fd==e.fd);
       }
     }
     return false;
@@ -180,9 +180,9 @@ public class Edge {
     newe.statuspredicate=mergeStatus(statuspredicate, e.statuspredicate);
     if (e.taints!=null) {
       if (newe.taints==null)
-	newe.taints=e.taints;
+        newe.taints=e.taints;
       else
-	newe.taints=newe.taints.merge(e.taints);
+        newe.taints=newe.taints.merge(e.taints);
     }
     return newe;
   }
@@ -212,11 +212,11 @@ public class Edge {
     int edgeindex=0;
     for(int count=0; count<4; count++) {
       if ((mask&statuspredicate)==mask) {
-	Edge e=new Edge();
-	e.fd=fd;
-	e.src=factory.getAllocNode(src, (mask&3)==0);
-	e.dst=factory.getAllocNode(dst, (mask&5)==0);
-	earray[edgeindex++]=e;
+        Edge e=new Edge();
+        e.fd=fd;
+        e.src=factory.getAllocNode(src, (mask&3)==0);
+        e.dst=factory.getAllocNode(dst, (mask&5)==0);
+        earray[edgeindex++]=e;
       }
       mask=mask<<1;
     }
@@ -232,9 +232,9 @@ public class Edge {
       return true;
     if (ts1==null) {
       if (ts2.isEmpty())
-	return true;
+        return true;
       else
-	return false;
+        return false;
     }
     //Neither is null
     //Do a set comparison
@@ -274,8 +274,8 @@ public class Edge {
   public static void mergeEdgesInto(MySet<Edge> orig, MySet<Edge> merge) {
     for(Edge e : merge) {
       if (orig.contains(e)) {
-	Edge old=orig.get(e);
-	e=e.merge(old);
+        Edge old=orig.get(e);
+        e=e.merge(old);
       }
       orig.add(e);
     }

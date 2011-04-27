@@ -36,19 +36,19 @@ public class WebInterface {
     for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext(); ) {
       ClassDescriptor cd=(ClassDescriptor) it_classes.next();
       if(cd.hasFlags()) {
-	Vector rootnodes=taskanalysis.getRootNodes(cd);
+        Vector rootnodes=taskanalysis.getRootNodes(cd);
 
-	if(rootnodes!=null)
-	  for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext(); ) {
-	    FlagState root=(FlagState)it_rootnodes.next();
-	    Vector cd_nodeid=new Vector();                     //Vector is designed to contain only 2 elements: ClassDescriptor,Node label
-	    // Both the values are required to correctly resolve the rootnode.
-	    // Should think of a better way to do this, instead of using a vector(maybe a class)
-	    cd_nodeid.addElement(cd);                      //adding the ClassDescriptor
-	    cd_nodeid.addElement(root.getLabel());                     //adding the Node label
-	    System.out.println(cd+" "+root.getLabel());
-	    sourcenodemap.put("/"+cd.getSymbol()+"_"+root.getLabel()+".html",cd_nodeid);
-	  }
+        if(rootnodes!=null)
+          for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext(); ) {
+            FlagState root=(FlagState)it_rootnodes.next();
+            Vector cd_nodeid=new Vector();                     //Vector is designed to contain only 2 elements: ClassDescriptor,Node label
+            // Both the values are required to correctly resolve the rootnode.
+            // Should think of a better way to do this, instead of using a vector(maybe a class)
+            cd_nodeid.addElement(cd);                      //adding the ClassDescriptor
+            cd_nodeid.addElement(root.getLabel());                     //adding the Node label
+            System.out.println(cd+" "+root.getLabel());
+            sourcenodemap.put("/"+cd.getSymbol()+"_"+root.getLabel()+".html",cd_nodeid);
+          }
       }
     }
   }
@@ -96,10 +96,10 @@ public class WebInterface {
       pw.println("<br><h3>Instantiated Classes:</h3>");
       Set newstates=taganalysis.getFlagStates(td);
       for(Iterator fsit=newstates.iterator(); fsit.hasNext(); ) {
-	FlagState fsnew=(FlagState) fsit.next();
-	ClassDescriptor cd=fsnew.getClassDescriptor();
-	pw.println("&nbsp;&nbsp;<a href=\"/"+cd.getSymbol()+".html\">"+cd.getSymbol()+"</a><br>");
-	pw.println("&nbsp;&nbsp;&nbsp;&nbsp;"+fsnew.getTextLabel()+"<br>");
+        FlagState fsnew=(FlagState) fsit.next();
+        ClassDescriptor cd=fsnew.getClassDescriptor();
+        pw.println("&nbsp;&nbsp;<a href=\"/"+cd.getSymbol()+".html\">"+cd.getSymbol()+"</a><br>");
+        pw.println("&nbsp;&nbsp;&nbsp;&nbsp;"+fsnew.getTextLabel()+"<br>");
       }
 
       pw.flush();
@@ -113,9 +113,9 @@ public class WebInterface {
     try {
 
       for(int i=0; i < td.numParameters(); i++) {
-	pw.println("FlagState Graph:&nbsp;&nbsp;<a href=\"/"+td.getParamType(i)+".html\">"+td.getParamType(i)+"</a><br>");
-	pw.println("Task Graph:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"/"+td.getParamType(i)+"-t.html\">"
-	           +td.getParamType(i)+"</a><br>");
+        pw.println("FlagState Graph:&nbsp;&nbsp;<a href=\"/"+td.getParamType(i)+".html\">"+td.getParamType(i)+"</a><br>");
+        pw.println("Task Graph:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"/"+td.getParamType(i)+"-t.html\">"
+                   +td.getParamType(i)+"</a><br>");
       }
       pw.flush();
     } catch(Exception e) {
@@ -129,20 +129,20 @@ public class WebInterface {
     for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext(); ) {
       FlagState root=(FlagState)it_rootnodes.next();
       if (root.getLabel().equals((String)cd_nodeid.elementAt(1))) {
-	try {
-	  PrintWriter pw=new PrintWriter(out);
-	  pw.println("<br><br><h3>Allocating tasks for "+root.getTextLabel()+":</h3><br>");
-	  Vector tasks=root.getAllocatingTasks();
-	  for(Iterator it_tasks=tasks.iterator(); it_tasks.hasNext(); ) {
-	    TaskDescriptor td=(TaskDescriptor)it_tasks.next();
-	    pw.println("<br><strong>Task:&nbsp;&nbsp;&nbsp;"+td.toString()+"</strong><br>");
-	    printTask(td,pw);
-	  }
+        try {
+          PrintWriter pw=new PrintWriter(out);
+          pw.println("<br><br><h3>Allocating tasks for "+root.getTextLabel()+":</h3><br>");
+          Vector tasks=root.getAllocatingTasks();
+          for(Iterator it_tasks=tasks.iterator(); it_tasks.hasNext(); ) {
+            TaskDescriptor td=(TaskDescriptor)it_tasks.next();
+            pw.println("<br><strong>Task:&nbsp;&nbsp;&nbsp;"+td.toString()+"</strong><br>");
+            printTask(td,pw);
+          }
 
-	} catch (Exception e) {
-	  e.printStackTrace(); System.exit(-1);
-	}
-	break;
+        } catch (Exception e) {
+          e.printStackTrace(); System.exit(-1);
+        }
+        break;
       }
 
     }
@@ -178,7 +178,7 @@ public class WebInterface {
       //pw.println("<a href=\"/"+ cd.getSymbol()+".map\"><img src=\"/"+ cd.getSymbol()+".gif\" ismap=\"ismap\"></A>");
       pw.println("<img src=\""+cd.getSymbol()+".jpg\" usemap=\"#dotvisitor\" />");
       while((str=mapbr.readLine())!=null) {
-	pw.println(str);
+        pw.println(str);
       }
 
       pw.flush();
@@ -217,7 +217,7 @@ public class WebInterface {
       pw.println("<img src=\""+cd.getSymbol()+"-t.jpg\" usemap=\"#dotvisitor\" />");
 
       while((str=mapbr.readLine())!=null) {
-	pw.println(str);
+        pw.println(str);
       }
       pw.flush();
     } catch (Exception e) {
@@ -235,16 +235,16 @@ public class WebInterface {
     for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext(); ) {
       ClassDescriptor cd=(ClassDescriptor) it_classes.next();
       if (cd.hasFlags()) {
-	if (taskanalysis.getFlagStates(cd)!=null) {
-	  pw.println("<a href=\""+cd.getSymbol()+".html\">"+ cd.getSymbol() +"</a>");
-	  pw.println("<br>");
-	  flagstatemap.put("/"+cd.getSymbol()+".html", cd);
-	}
-	if (taskgraph.getTaskNodes(cd)!=null) {
-	  pw.println("<a href=\""+cd.getSymbol()+"-t.html\">Task Graph "+ cd.getSymbol() +"</a>");
-	  pw.println("<br>");
-	  taskgraphmap.put("/"+cd.getSymbol()+"-t.html", cd);
-	}
+        if (taskanalysis.getFlagStates(cd)!=null) {
+          pw.println("<a href=\""+cd.getSymbol()+".html\">"+ cd.getSymbol() +"</a>");
+          pw.println("<br>");
+          flagstatemap.put("/"+cd.getSymbol()+".html", cd);
+        }
+        if (taskgraph.getTaskNodes(cd)!=null) {
+          pw.println("<a href=\""+cd.getSymbol()+"-t.html\">Task Graph "+ cd.getSymbol() +"</a>");
+          pw.println("<br>");
+          taskgraphmap.put("/"+cd.getSymbol()+"-t.html", cd);
+        }
       }
     }
     pw.println("<br><br><a href=\"/UnifiedTaskGraph.html\">Program flow</a>");
@@ -280,7 +280,7 @@ public class WebInterface {
       pw.println("<img src=\"/UnifiedTaskGraph.jpg\" usemap=\"#dotvisitor\"  />");
 
       while((str=mapbr.readLine())!=null)
-	pw.println(str);
+        pw.println(str);
 
       pw.flush();
     } catch (Exception e) {

@@ -50,7 +50,7 @@ public abstract class RefSrcNode {
           edge.typeEquals(type)     &&
           edge.fieldEquals(field)
           ) {
-	return edge;
+        return edge;
       }
     }
 

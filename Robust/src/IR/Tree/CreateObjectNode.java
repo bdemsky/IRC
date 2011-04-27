@@ -79,10 +79,10 @@ public class CreateObjectNode extends ExpressionNode {
       ExpressionNode en=(ExpressionNode)argumentlist.get(i);
       st+=en.printNode(indent);
       if ((i+1)!=argumentlist.size()) {
-	if (isarray)
-	  st+="][";
-	else
-	  st+=", ";
+        if (isarray)
+          st+="][";
+        else
+          st+=", ";
       }
     }
     if (isarray)

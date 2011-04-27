@@ -15,7 +15,7 @@ import java.util.Iterator;
  * <code>LoopFinder</code> implements Dominator Tree Loop detection.
  *
  * @author  Brian Demsky <bdemsky@mit.edu>
- * @version $Id: LoopFinder.java,v 1.4 2011/04/27 20:34:22 bdemsky Exp $
+ * @version $Id: LoopFinder.java,v 1.5 2011/04/27 20:51:36 bdemsky Exp $
  */
 
 public class LoopFinder implements Loops {
@@ -173,7 +173,7 @@ public class LoopFinder implements Loops {
 
       //Add it to the tree, complain if oddness
       if (addnode(A, root)!=1)
-	System.out.println("Evil Error in LoopFinder while building tree.");
+        System.out.println("Evil Error in LoopFinder while building tree.");
     }
   }
 
@@ -186,70 +186,70 @@ public class LoopFinder implements Loops {
       //Do we share headers?
       if (treenode.header!=A.header) {
 
-	//No...  Loop through our children to see if they want this
-	//node.
+        //No...  Loop through our children to see if they want this
+        //node.
 
-	//Use integers for tri-state:
-	//0=not stored here, 1=stored and everything is good
-	//2=combined 2 natural loops with same header...need cleanup
+        //Use integers for tri-state:
+        //0=not stored here, 1=stored and everything is good
+        //2=combined 2 natural loops with same header...need cleanup
 
-	int stored=0;
-	Iterator iterate=treenode.children.iterator();
-	Loop temp=new Loop();
-	while (iterate.hasNext()) {
-	  temp=(Loop) iterate.next();
-	  stored=addnode(A,temp);
-	  if (stored!=0) break;
-	}
+        int stored=0;
+        Iterator iterate=treenode.children.iterator();
+        Loop temp=new Loop();
+        while (iterate.hasNext()) {
+          temp=(Loop) iterate.next();
+          stored=addnode(A,temp);
+          if (stored!=0) break;
+        }
 
-	//See what our children did for us
+        //See what our children did for us
 
-	if (stored==0) {
-	  //We get a new child...
-	  treenode.children.add(A);
-	  temp=A;
-	}
+        if (stored==0) {
+          //We get a new child...
+          treenode.children.add(A);
+          temp=A;
+        }
 
-	//Need to do cleanup for case 0 or 2
-	//temp points to the new child
+        //Need to do cleanup for case 0 or 2
+        //temp points to the new child
 
-	if (stored!=1) {
+        if (stored!=1) {
 
-	  //Have to make sure that none of the nodes under this one
-	  //are children of the new node
+          //Have to make sure that none of the nodes under this one
+          //are children of the new node
 
-	  Iterator iterate2=treenode.children.iterator();
-	  temp.parent=treenode;
+          Iterator iterate2=treenode.children.iterator();
+          temp.parent=treenode;
 
-	  //Loop through the children
-	  while (iterate2.hasNext()) {
-	    Loop temp2=(Loop)iterate2.next();
+          //Loop through the children
+          while (iterate2.hasNext()) {
+            Loop temp2=(Loop)iterate2.next();
 
-	    //Don't look at the new node...otherwise we will create
-	    //a unreachable subtree
+            //Don't look at the new node...otherwise we will create
+            //a unreachable subtree
 
-	    if (temp2!=temp)
-	      //If the new node has a childs header
-	      //give the child up to it...
+            if (temp2!=temp)
+              //If the new node has a childs header
+              //give the child up to it...
 
-	      if (temp.entries.contains(temp2.header)) {
-		temp.children.add(temp2);
-		iterate2.remove();
-	      }
-	  }
-	}
+              if (temp.entries.contains(temp2.header)) {
+                temp.children.add(temp2);
+                iterate2.remove();
+              }
+          }
+        }
 
-	//We fixed everything...let our parents know
-	return 1;
+        //We fixed everything...let our parents know
+        return 1;
       } else {
-	//need to combine loops
-	while (!A.entries.isEmpty()) {
-	  FlatNode node=(FlatNode)A.entries.iterator().next();
-	  A.entries.remove(node);
-	  treenode.entries.add(node);
-	}
-	//let the previous caller know that they have stuff todo
-	return 2;
+        //need to combine loops
+        while (!A.entries.isEmpty()) {
+          FlatNode node=(FlatNode)A.entries.iterator().next();
+          A.entries.remove(node);
+          treenode.entries.add(node);
+        }
+        //let the previous caller know that they have stuff todo
+        return 2;
       }
     //We aren't adopting the new node
     else return 0;
@@ -270,11 +270,11 @@ public class LoopFinder implements Loops {
       Set<FlatNode> children=dominator.children(current_node);
 
       if (children!=null) {
-	for(Iterator<FlatNode> it=children.iterator(); it.hasNext(); ) {
-	  FlatNode fn=it.next();
-	  if (fn!=current_node)
-	    stk.push(fn);
-	}
+        for(Iterator<FlatNode> it=children.iterator(); it.hasNext(); ) {
+          FlatNode fn=it.next();
+          if (fn!=current_node)
+            stk.push(fn);
+        }
       }
     }
   }
@@ -293,7 +293,7 @@ public class LoopFinder implements Loops {
       //find the node we jump back too
       while ((temp!=hc)&&
              (temp_to!=temp)) {
-	temp=dominator.idom(temp);
+        temp=dominator.idom(temp);
       }
 
       //If we found the node we jumped back to
@@ -301,33 +301,33 @@ public class LoopFinder implements Loops {
 
       if (temp_to==temp) {
 
-	//found a loop
-	A.entries.add(temp); //Push the header
-	A.header=temp;
-	B.add(q); //Put the backedge in the todo list
+        //found a loop
+        A.entries.add(temp); //Push the header
+        A.header=temp;
+        B.add(q); //Put the backedge in the todo list
 
-	//Starting with the backedge, work on the incoming edges
-	//until we get back to the loop header...
-	//Then we have the entire natural loop
+        //Starting with the backedge, work on the incoming edges
+        //until we get back to the loop header...
+        //Then we have the entire natural loop
 
-	while(!B.isEmpty()) {
-	  FlatNode newnode=(FlatNode)B.iterator().next();
-	  B.remove(newnode);
+        while(!B.isEmpty()) {
+          FlatNode newnode=(FlatNode)B.iterator().next();
+          B.remove(newnode);
 
-	  //Add all of the new incoming edges that we haven't already
-	  //visited
-	  for (int j=0; j<newnode.numPrev(); j++) {
-	    FlatNode from=newnode.getPrev(j);
-	    if (!A.entries.contains(from))
-	      B.add(from);
-	  }
+          //Add all of the new incoming edges that we haven't already
+          //visited
+          for (int j=0; j<newnode.numPrev(); j++) {
+            FlatNode from=newnode.getPrev(j);
+            if (!A.entries.contains(from))
+              B.add(from);
+          }
 
-	  //push the new node on our list of nodes in the loop
-	  A.entries.add(newnode);
-	}
+          //push the new node on our list of nodes in the loop
+          A.entries.add(newnode);
+        }
 
-	//save our new loop
-	setofloops.add(A);
+        //save our new loop
+        setofloops.add(A);
       }
     }
   }

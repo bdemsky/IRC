@@ -63,7 +63,7 @@ public class ParseNodeDOTVisitor {
       String childid = getNewID("node");
       output.println("\t" + nodeid + " -> " + childid + ";");
       if (child.getLabel()=="rule") {
-	output.println("\tnode [color=" + newColor() + "];");
+        output.println("\tnode [color=" + newColor() + "];");
       }
       traverse(child, childid);
     }

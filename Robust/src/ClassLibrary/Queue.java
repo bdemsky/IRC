@@ -115,24 +115,24 @@ public class Queue {
       Object[] newElements = new Object[newCapacity];
 
       if (newElements == null) {
-	return false;
+        return false;
       }
 
       int dst = 0;
       Object[] tmpelements = elements;
       if (pop < push) {
-	int src;
-	for (src = (pop + 1); src < push; src++, dst++) {
-	  newElements[dst] = elements[src];
-	}
+        int src;
+        for (src = (pop + 1); src < push; src++, dst++) {
+          newElements[dst] = elements[src];
+        }
       } else {
-	int src;
-	for (src = (pop + 1); src < capacity; src++, dst++) {
-	  newElements[dst] = elements[src];
-	}
-	for (src = 0; src < push; src++, dst++) {
-	  newElements[dst] = elements[src];
-	}
+        int src;
+        for (src = (pop + 1); src < capacity; src++, dst++) {
+          newElements[dst] = elements[src];
+        }
+        for (src = 0; src < push; src++, dst++) {
+          newElements[dst] = elements[src];
+        }
       }
 
       //elements = null;

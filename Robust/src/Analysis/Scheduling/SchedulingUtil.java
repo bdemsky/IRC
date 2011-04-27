@@ -53,31 +53,31 @@ public class SchedulingUtil {
     for(int i = 0; i < mapping.size(); i++) {
       Vector<ScheduleNode> sNodes = mapping.elementAt(i);
       if(sNodes != null) {
-	ScheduleNode rootnode = sNodes.elementAt(0);
-	for(int j = 1; j < sNodes.size(); j++) {
-	  ScheduleNode tocombine = sn2sn.get(sNodes.elementAt(j));
-	  ScheduleNode root = sn2sn.get(rootnode);
-	  ScheduleEdge se = (ScheduleEdge)tocombine.inedges().next();
-	  try {
-	    if(root.equals(((ScheduleNode)se.getSource()))) {
-	      root.mergeSEdge(se);
-	      if(ScheduleEdge.NEWEDGE == se.getType()) {
-		// As se has been changed into an internal edge inside a ScheduleNode,
-		// change the source and target of se from original ScheduleNodes into ClassNodes.
-		se.setTarget(se.getTargetCNode());
-		//se.setSource(se.getSourceCNode());
-		//se.getTargetCNode().addEdge(se);
-		se.getSourceCNode().addEdge(se);
-	      }
-	    } else {
-	      root.mergeSNode(tocombine);
-	    }
-	  } catch(Exception e) {
-	    e.printStackTrace();
-	    System.exit(-1);
-	  }
-	  result.removeElement(tocombine);
-	}
+        ScheduleNode rootnode = sNodes.elementAt(0);
+        for(int j = 1; j < sNodes.size(); j++) {
+          ScheduleNode tocombine = sn2sn.get(sNodes.elementAt(j));
+          ScheduleNode root = sn2sn.get(rootnode);
+          ScheduleEdge se = (ScheduleEdge)tocombine.inedges().next();
+          try {
+            if(root.equals(((ScheduleNode)se.getSource()))) {
+              root.mergeSEdge(se);
+              if(ScheduleEdge.NEWEDGE == se.getType()) {
+                // As se has been changed into an internal edge inside a ScheduleNode,
+                // change the source and target of se from original ScheduleNodes into ClassNodes.
+                se.setTarget(se.getTargetCNode());
+                //se.setSource(se.getSourceCNode());
+                //se.getTargetCNode().addEdge(se);
+                se.getSourceCNode().addEdge(se);
+              }
+            } else {
+              root.mergeSNode(tocombine);
+            }
+          } catch(Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
+          }
+          result.removeElement(tocombine);
+        }
       }
     }
 
@@ -119,31 +119,31 @@ public class SchedulingUtil {
     // combine those nodes in combine with corresponding rootnodes
     for(int i = 0; i < combine.size(); i++) {
       if(combine.elementAt(i) != null) {
-	for(int j = 0; j < combine.elementAt(i).size(); j++) {
-	  CombinationUtil.Combine tmpcombine = combine.elementAt(i).elementAt(j);
-	  ScheduleNode tocombine = sn2sn.get(tmpcombine.node);
-	  ScheduleNode root = sn2sn.get(rootnodes.elementAt(tmpcombine.root).elementAt(tmpcombine.index));
-	  ScheduleEdge se = (ScheduleEdge)tocombine.inedges().next();
-	  try {
-	    if(root.equals(((ScheduleNode)se.getSource()))) {
-	      root.mergeSEdge(se);
-	      if(ScheduleEdge.NEWEDGE == se.getType()) {
-		// As se has been changed into an internal edge inside a ScheduleNode,
-		// change the source and target of se from original ScheduleNodes into ClassNodes.
-		se.setTarget(se.getTargetCNode());
-		//se.setSource(se.getSourceCNode());
-		//se.getTargetCNode().addEdge(se);
-		se.getSourceCNode().addEdge(se);
-	      }
-	    } else {
-	      root.mergeSNode(tocombine);
-	    }
-	  } catch(Exception e) {
-	    e.printStackTrace();
-	    System.exit(-1);
-	  }
-	  result.removeElement(tocombine);
-	}
+        for(int j = 0; j < combine.elementAt(i).size(); j++) {
+          CombinationUtil.Combine tmpcombine = combine.elementAt(i).elementAt(j);
+          ScheduleNode tocombine = sn2sn.get(tmpcombine.node);
+          ScheduleNode root = sn2sn.get(rootnodes.elementAt(tmpcombine.root).elementAt(tmpcombine.index));
+          ScheduleEdge se = (ScheduleEdge)tocombine.inedges().next();
+          try {
+            if(root.equals(((ScheduleNode)se.getSource()))) {
+              root.mergeSEdge(se);
+              if(ScheduleEdge.NEWEDGE == se.getType()) {
+                // As se has been changed into an internal edge inside a ScheduleNode,
+                // change the source and target of se from original ScheduleNodes into ClassNodes.
+                se.setTarget(se.getTargetCNode());
+                //se.setSource(se.getSourceCNode());
+                //se.getTargetCNode().addEdge(se);
+                se.getSourceCNode().addEdge(se);
+              }
+            } else {
+              root.mergeSNode(tocombine);
+            }
+          } catch(Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
+          }
+          result.removeElement(tocombine);
+        }
       }
     }
 
@@ -187,15 +187,15 @@ public class SchedulingUtil {
       ScheduleEdge se =  null;
       switch(sse.getType()) {
       case ScheduleEdge.NEWEDGE: {
-	se = new ScheduleEdge(ctarget, "new", sse.getFstate(), sse.getType(), gid);               //new ScheduleEdge(ctarget, "new", sse.getClassDescriptor(), sse.getIsNew(), gid);
-	se.setProbability(sse.getProbability());
-	se.setNewRate(sse.getNewRate());
-	break;
+        se = new ScheduleEdge(ctarget, "new", sse.getFstate(), sse.getType(), gid);               //new ScheduleEdge(ctarget, "new", sse.getClassDescriptor(), sse.getIsNew(), gid);
+        se.setProbability(sse.getProbability());
+        se.setNewRate(sse.getNewRate());
+        break;
       }
 
       case ScheduleEdge.TRANSEDGE: {
-	se = new ScheduleEdge(ctarget, "transmit", sse.getFstate(), sse.getType(), gid);               //new ScheduleEdge(ctarget, "transmit", sse.getClassDescriptor(), false, gid);
-	break;
+        se = new ScheduleEdge(ctarget, "transmit", sse.getFstate(), sse.getType(), gid);               //new ScheduleEdge(ctarget, "transmit", sse.getClassDescriptor(), false, gid);
+        break;
       }
       }
       se.setSourceCNode(sourcecn2cn.get(sse.getSourceCNode()));
@@ -217,13 +217,13 @@ public class SchedulingUtil {
       tmpnode.computeHashcid();
       int hcid = tmpnode.getHashcid();
       if(hcid2cid.containsKey(hcid)) {
-	// already have a cid for this node
-	tmpnode.setCid(hcid2cid.get(hcid));
+        // already have a cid for this node
+        tmpnode.setCid(hcid2cid.get(hcid));
       } else {
-	// generate a new cid for such node
-	tmpnode.setCid(ncid);
-	hcid2cid.put(hcid, ncid);
-	ncid++;
+        // generate a new cid for such node
+        tmpnode.setCid(ncid);
+        hcid2cid.put(hcid, ncid);
+        ncid++;
       }
     }
     hcid2cid.clear();
@@ -237,37 +237,37 @@ public class SchedulingUtil {
       Vector<Vector<ScheduleNode>> sNodeVecs = new Vector<Vector<ScheduleNode>>();
 
       for(int i = 0; i < scheduleNodes.size(); i++) {
-	ScheduleNode tmpn = scheduleNodes.elementAt(i);
-	int tmpcid = tmpn.getCid();
-	int index = 0;
-	for(index = 0; index < sNodeVecs.size(); index++) {
-	  if(sNodeVecs.elementAt(index).elementAt(0).getCid() > tmpcid) {
-	    // find the place to insert
-	    sNodeVecs.insertElementAt(new Vector<ScheduleNode>(), index);
-	    /*sNodeVecs.add(sNodeVecs.lastElement());
-	       for(int j = sNodeVecs.size() - 2; j > index; j--) {
-	       sNodeVecs.setElementAt(sNodeVecs.elementAt(j - 1), j);
-	       }
-	       sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);*/
-	    break;
-	  } else if(sNodeVecs.elementAt(index).elementAt(0).getCid() == tmpcid) {
-	    break;
-	  }
-	}
-	if(index == sNodeVecs.size()) {
-	  sNodeVecs.add(new Vector<ScheduleNode>());
-	}
+        ScheduleNode tmpn = scheduleNodes.elementAt(i);
+        int tmpcid = tmpn.getCid();
+        int index = 0;
+        for(index = 0; index < sNodeVecs.size(); index++) {
+          if(sNodeVecs.elementAt(index).elementAt(0).getCid() > tmpcid) {
+            // find the place to insert
+            sNodeVecs.insertElementAt(new Vector<ScheduleNode>(), index);
+            /*sNodeVecs.add(sNodeVecs.lastElement());
+               for(int j = sNodeVecs.size() - 2; j > index; j--) {
+               sNodeVecs.setElementAt(sNodeVecs.elementAt(j - 1), j);
+               }
+               sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);*/
+            break;
+          } else if(sNodeVecs.elementAt(index).elementAt(0).getCid() == tmpcid) {
+            break;
+          }
+        }
+        if(index == sNodeVecs.size()) {
+          sNodeVecs.add(new Vector<ScheduleNode>());
+        }
 
-	/*int index = tmpcid;
-	   while(sNodeVecs.size() <= index) {
-	   sNodeVecs.add(null);
-	   }
-	   if(sNodeVecs.elementAt(index) == null) {
-	   sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
-	   }*/
-	if(!sNodeVecs.elementAt(index).contains(tmpn)) {
-	  sNodeVecs.elementAt(index).addElement(tmpn);
-	}
+        /*int index = tmpcid;
+           while(sNodeVecs.size() <= index) {
+           sNodeVecs.add(null);
+           }
+           if(sNodeVecs.elementAt(index) == null) {
+           sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
+           }*/
+        if(!sNodeVecs.elementAt(index).contains(tmpn)) {
+          sNodeVecs.elementAt(index).addElement(tmpn);
+        }
       }
 
       return sNodeVecs;
@@ -320,16 +320,16 @@ public class SchedulingUtil {
     else
       switch (((FlagOpNode)fen).getOp().getOp()) {
       case Operation.LOGIC_AND:
-	return ((isTaskTrigger_flag(((FlagOpNode)fen).getLeft(),fs)) && (isTaskTrigger_flag(((FlagOpNode)fen).getRight(),fs)));
+        return ((isTaskTrigger_flag(((FlagOpNode)fen).getLeft(),fs)) && (isTaskTrigger_flag(((FlagOpNode)fen).getRight(),fs)));
 
       case Operation.LOGIC_OR:
-	return ((isTaskTrigger_flag(((FlagOpNode)fen).getLeft(),fs)) || (isTaskTrigger_flag(((FlagOpNode)fen).getRight(),fs)));
+        return ((isTaskTrigger_flag(((FlagOpNode)fen).getLeft(),fs)) || (isTaskTrigger_flag(((FlagOpNode)fen).getRight(),fs)));
 
       case Operation.LOGIC_NOT:
-	return !(isTaskTrigger_flag(((FlagOpNode)fen).getLeft(),fs));
+        return !(isTaskTrigger_flag(((FlagOpNode)fen).getLeft(),fs));
 
       default:
-	return false;
+        return false;
       }
   }
 
@@ -365,62 +365,62 @@ public class SchedulingUtil {
       //Draw the internal 'new' edges
       Iterator it_edges =gn.getScheduleEdgesIterator();
       while(it_edges.hasNext()) {
-	ScheduleEdge se = (ScheduleEdge)it_edges.next();
-	output.print("\t");
-	if(se.getSourceCNode().isclone()) {
-	  output.print(se.getSourceCNode().getLabel());
-	} else {
-	  if(se.getSourceFState() == null) {
-	    output.print(se.getSourceCNode().getClusterLabel());
-	  } else {
-	    output.print(se.getSourceFState().getLabel());
-	  }
-	}
+        ScheduleEdge se = (ScheduleEdge)it_edges.next();
+        output.print("\t");
+        if(se.getSourceCNode().isclone()) {
+          output.print(se.getSourceCNode().getLabel());
+        } else {
+          if(se.getSourceFState() == null) {
+            output.print(se.getSourceCNode().getClusterLabel());
+          } else {
+            output.print(se.getSourceFState().getLabel());
+          }
+        }
 
-	output.print(" -> ");
-	if(se.isclone()) {
-	  if(se.getTargetCNode().isclone()) {
-	    output.print(se.getTargetCNode().getLabel());
-	  } else {
-	    output.print(se.getTargetCNode().getClusterLabel());
-	  }
-	  output.println(" [label=\"" + se.getLabel() + "\", color=red];");
-	} else {
-	  output.print(se.getTargetFState().getLabel() + " [label=\"" + se.getLabel() + "\", color=red, ltail=");
-	  if(se.getSourceCNode().isclone()) {
-	    output.println(se.getSourceCNode().getLabel() + "];");
-	  } else {
-	    output.println(se.getSourceCNode().getClusterLabel() + "];");
-	  }
-	}
+        output.print(" -> ");
+        if(se.isclone()) {
+          if(se.getTargetCNode().isclone()) {
+            output.print(se.getTargetCNode().getLabel());
+          } else {
+            output.print(se.getTargetCNode().getClusterLabel());
+          }
+          output.println(" [label=\"" + se.getLabel() + "\", color=red];");
+        } else {
+          output.print(se.getTargetFState().getLabel() + " [label=\"" + se.getLabel() + "\", color=red, ltail=");
+          if(se.getSourceCNode().isclone()) {
+            output.println(se.getSourceCNode().getLabel() + "];");
+          } else {
+            output.println(se.getSourceCNode().getClusterLabel() + "];");
+          }
+        }
       }
       output.println("\t}\n");
       it_edges = null;
       //Draw 'new' edges of this ScheduleNode
       while(edges.hasNext()) {
-	ScheduleEdge se = (ScheduleEdge)edges.next();
-	output.print("\t");
-	if(se.getSourceCNode().isclone()) {
-	  output.print(se.getSourceCNode().getLabel());
-	} else {
-	  if(se.getSourceFState() == null) {
-	    output.print(se.getSourceCNode().getClusterLabel());
-	  } else {
-	    output.print(se.getSourceFState().getLabel());
-	  }
-	}
+        ScheduleEdge se = (ScheduleEdge)edges.next();
+        output.print("\t");
+        if(se.getSourceCNode().isclone()) {
+          output.print(se.getSourceCNode().getLabel());
+        } else {
+          if(se.getSourceFState() == null) {
+            output.print(se.getSourceCNode().getClusterLabel());
+          } else {
+            output.print(se.getSourceFState().getLabel());
+          }
+        }
 
-	output.print(" -> ");
-	if(se.isclone()) {
-	  if(se.getTargetCNode().isclone()) {
-	    output.print(se.getTargetCNode().getLabel());
-	  } else {
-	    output.print(se.getTargetCNode().getClusterLabel());
-	  }
-	  output.println(" [label=\"" + se.getLabel() + "\", color=red, style=dashed];");
-	} else {
-	  output.println(se.getTargetFState().getLabel() + " [label=\"" + se.getLabel() + "\", color=red, style=dashed];");
-	}
+        output.print(" -> ");
+        if(se.isclone()) {
+          if(se.getTargetCNode().isclone()) {
+            output.print(se.getTargetCNode().getLabel());
+          } else {
+            output.print(se.getTargetCNode().getClusterLabel());
+          }
+          output.println(" [label=\"" + se.getLabel() + "\", color=red, style=dashed];");
+        } else {
+          output.println(se.getTargetFState().getLabel() + " [label=\"" + se.getLabel() + "\", color=red, style=dashed];");
+        }
       }
       edges = null;
     }
@@ -433,13 +433,13 @@ public class SchedulingUtil {
     while (it.hasNext()) {
       ClassNode gn = (ClassNode) it.next();
       if(gn.isclone()) {
-	output.println("\t\t" + gn.getLabel() + " [style=dashed, label=\"" + gn.getTextLabel() + "\", shape=box];");
+        output.println("\t\t" + gn.getLabel() + " [style=dashed, label=\"" + gn.getTextLabel() + "\", shape=box];");
       } else {
-	output.println("\tsubgraph " + gn.getClusterLabel() + "{");
-	output.println("\t\tstyle=dashed;");
-	output.println("\t\tlabel=\"" + gn.getTextLabel() + "\";");
-	traverseFlagStates(output, gn.getFlagStates());
-	output.println("\t}\n");
+        output.println("\tsubgraph " + gn.getClusterLabel() + "{");
+        output.println("\t\tstyle=dashed;");
+        output.println("\t\tlabel=\"" + gn.getTextLabel() + "\";");
+        traverseFlagStates(output, gn.getFlagStates());
+        output.println("\t}\n");
       }
     }
   }
@@ -459,63 +459,63 @@ public class SchedulingUtil {
       String dotnodeparams="";
 
       for(int i=0; i<namers.size(); i++) {
-	Namer name=(Namer) namers.get(i);
-	String newlabel=name.nodeLabel(gn);
-	String newparams=name.nodeOption(gn);
+        Namer name=(Namer) namers.get(i);
+        String newlabel=name.nodeLabel(gn);
+        String newparams=name.nodeOption(gn);
 
-	if (!newlabel.equals("") && !label.equals("")) {
-	  label+=", ";
-	}
-	if (!newparams.equals("")) {
-	  dotnodeparams+=", " + name.nodeOption(gn);
-	}
-	label+=name.nodeLabel(gn);
+        if (!newlabel.equals("") && !label.equals("")) {
+          label+=", ";
+        }
+        if (!newparams.equals("")) {
+          dotnodeparams+=", " + name.nodeOption(gn);
+        }
+        label+=name.nodeLabel(gn);
       }
       label += ":[" + ((FlagState)gn).getExeTime() + "]";
 
       if (!gn.merge)
-	output.println("\t" + gn.getLabel() + " [label=\"" + label + "\"" + dotnodeparams + "];");
+        output.println("\t" + gn.getLabel() + " [label=\"" + label + "\"" + dotnodeparams + "];");
 
       if (!gn.merge)
-	while (edges.hasNext()) {
-	  Edge edge = (Edge) edges.next();
-	  GraphNode node = edge.getTarget();
-	  if (nodes.contains(node)) {
-	    Iterator nodeit=nonmerge(node, nodes).iterator();
-	    for(; nodeit.hasNext(); ) {
-	      GraphNode node2=(GraphNode)nodeit.next();
-	      String edgelabel = "";
-	      String edgedotnodeparams="";
+        while (edges.hasNext()) {
+          Edge edge = (Edge) edges.next();
+          GraphNode node = edge.getTarget();
+          if (nodes.contains(node)) {
+            Iterator nodeit=nonmerge(node, nodes).iterator();
+            for(; nodeit.hasNext(); ) {
+              GraphNode node2=(GraphNode)nodeit.next();
+              String edgelabel = "";
+              String edgedotnodeparams="";
 
-	      for(int i=0; i<namers.size(); i++) {
-		Namer name=(Namer) namers.get(i);
-		String newlabel=name.edgeLabel(edge);
-		String newoption=name.edgeOption(edge);
-		if (!newlabel.equals("")&& !edgelabel.equals(""))
-		  edgelabel+=", ";
-		edgelabel+=newlabel;
-		if (!newoption.equals(""))
-		  edgedotnodeparams+=", "+newoption;
-	      }
-	      edgelabel+=":[" + ((FEdge)edge).getExeTime() + "]";
-	      edgelabel+=":(" + ((FEdge)edge).getProbability() + "%)";
-	      Hashtable<ClassDescriptor, NewObjInfo> hashtable = ((FEdge)edge).getNewObjInfoHashtable();
-	      if(hashtable != null) {
-		Set<ClassDescriptor> keys = hashtable.keySet();
-		Iterator it_keys = keys.iterator();
-		while(it_keys.hasNext()) {
-		  ClassDescriptor cd = (ClassDescriptor)it_keys.next();
-		  NewObjInfo noi = hashtable.get(cd);
-		  edgelabel += ":{ class " + cd.getSymbol() + " | " + noi.getNewRate() + " | (" + noi.getProbability() + "%) }";
-		}
-		keys = null;
-		it_keys = null;
-	      }
-	      output.println("\t" + gn.getLabel() + " -> " + node2.getLabel() + " [" + "label=\"" + edgelabel + "\"" + edgedotnodeparams + "];");
-	    }
-	    nodeit = null;
-	  }
-	}
+              for(int i=0; i<namers.size(); i++) {
+                Namer name=(Namer) namers.get(i);
+                String newlabel=name.edgeLabel(edge);
+                String newoption=name.edgeOption(edge);
+                if (!newlabel.equals("")&& !edgelabel.equals(""))
+                  edgelabel+=", ";
+                edgelabel+=newlabel;
+                if (!newoption.equals(""))
+                  edgedotnodeparams+=", "+newoption;
+              }
+              edgelabel+=":[" + ((FEdge)edge).getExeTime() + "]";
+              edgelabel+=":(" + ((FEdge)edge).getProbability() + "%)";
+              Hashtable<ClassDescriptor, NewObjInfo> hashtable = ((FEdge)edge).getNewObjInfoHashtable();
+              if(hashtable != null) {
+                Set<ClassDescriptor> keys = hashtable.keySet();
+                Iterator it_keys = keys.iterator();
+                while(it_keys.hasNext()) {
+                  ClassDescriptor cd = (ClassDescriptor)it_keys.next();
+                  NewObjInfo noi = hashtable.get(cd);
+                  edgelabel += ":{ class " + cd.getSymbol() + " | " + noi.getNewRate() + " | (" + noi.getProbability() + "%) }";
+                }
+                keys = null;
+                it_keys = null;
+              }
+              output.println("\t" + gn.getLabel() + " -> " + node2.getLabel() + " [" + "label=\"" + edgelabel + "\"" + edgedotnodeparams + "];");
+            }
+            nodeit = null;
+          }
+        }
       edges = null;
     }
     cycleset = null;
@@ -532,16 +532,16 @@ public class SchedulingUtil {
       GraphNode gn2=(GraphNode)toprocess.iterator().next();
       toprocess.remove(gn2);
       if (!gn2.merge)
-	newset.add(gn2);
+        newset.add(gn2);
       else {
-	Iterator edges = gn2.edges();
-	while (edges.hasNext()) {
-	  Edge edge = (Edge) edges.next();
-	  GraphNode node = edge.getTarget();
-	  if (!newset.contains(node)&&nodes.contains(node))
-	    toprocess.add(node);
-	}
-	edges = null;
+        Iterator edges = gn2.edges();
+        while (edges.hasNext()) {
+          Edge edge = (Edge) edges.next();
+          GraphNode node = edge.getTarget();
+          if (!newset.contains(node)&&nodes.contains(node))
+            toprocess.add(node);
+        }
+        edges = null;
       }
     }
     toprocess = null;
@@ -570,7 +570,7 @@ public class SchedulingUtil {
       // the capital line
       output.print("{rank=source; \"Time\"; ");
       for(j = 0; j < coreNum; j++) {
-	output.print("\"core " + j + "\"; ");
+        output.print("\"core " + j + "\"; ");
       }
       output.println("}");
       // time coordinate nodes
@@ -579,260 +579,260 @@ public class SchedulingUtil {
       String[] lastTasks = new String[coreNum];
       boolean[] isTaskFinish = new boolean[coreNum];
       for(j = 0; j < coreNum; j++) {
-	lastTaskNodes[j] = "first";
-	isTaskFinish[j] = true;
-	lastTasks[j] = "";
+        lastTaskNodes[j] = "first";
+        isTaskFinish[j] = true;
+        lastTasks[j] = "";
       }
       timeNodes.add("0");
       for(j = 0; j < checkpoints.size(); j++) {
-	CheckPoint tcp = checkpoints.elementAt(j);
-	Hashtable<Integer, String> tmplastTasks = new Hashtable<Integer, String>();
-	Vector<Integer> tmpisTaskFinish = new Vector<Integer>();
-	Vector<Integer> tmpisset = new Vector<Integer>();
-	String tnode = String.valueOf(tcp.getTimepoint());
-	if(!timeNodes.contains(tnode)) {
-	  timeNodes.add(tnode);
-	}
-	Vector<Action> actions = tcp.getActions();
-	Hashtable<String, StringBuffer> tmpTaskNodes = new Hashtable<String, StringBuffer>();
-	for(int i = 0; i < actions.size(); i++) {
-	  Action taction = actions.elementAt(i);
-	  int cNum = taction.getCoreNum();
-	  if(!tmplastTasks.containsKey(cNum)) {
-	    tmplastTasks.put(cNum, lastTasks[cNum]);
-	  }
-	  if(!(tmpisset.contains(cNum))
-	     && (isTaskFinish[cNum])
-	     && !(tmpisTaskFinish.contains(cNum))) {
-	    tmpisTaskFinish.add(cNum);              // records those with task finished the first time visit it
-	  }
-	  String tmpTaskNode = "\"" + tnode + "core" + cNum + "\"";
-	  StringBuffer tmpLabel = null;
-	  boolean isfirst = false;
-	  if(!tmpTaskNodes.containsKey(tmpTaskNode)) {
-	    tmpTaskNodes.put(tmpTaskNode, new StringBuffer(tnode + ":"));
-	    isfirst = true;
-	  }
-	  tmpLabel = tmpTaskNodes.get(tmpTaskNode);
-	  switch(taction.getType()) {
-	  case Action.ADDOBJ: {
-	    if(!isfirst) {
-	      tmpLabel.append("\\n");
-	    }
-	    tmpLabel.append("(" + taction.getTransObj().getSymbol() + ")arrives;");
-	    if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
-	      output.print("\t");
-	      if(lastTaskNodes[cNum].equals("first")) {
-		output.print("\"core " + cNum + "\"->" + tmpTaskNode);
-	      } else {
-		output.print(lastTaskNodes[cNum] + "->" + tmpTaskNode);
-	      }
-	      if(tmpisTaskFinish.contains(cNum)) {
-		output.print(" [style=invis]");
-	      }
-	      output.println(";");
-	      lastTaskNodes[cNum] = tmpTaskNode;
-	    }
-	    break;
-	  }
+        CheckPoint tcp = checkpoints.elementAt(j);
+        Hashtable<Integer, String> tmplastTasks = new Hashtable<Integer, String>();
+        Vector<Integer> tmpisTaskFinish = new Vector<Integer>();
+        Vector<Integer> tmpisset = new Vector<Integer>();
+        String tnode = String.valueOf(tcp.getTimepoint());
+        if(!timeNodes.contains(tnode)) {
+          timeNodes.add(tnode);
+        }
+        Vector<Action> actions = tcp.getActions();
+        Hashtable<String, StringBuffer> tmpTaskNodes = new Hashtable<String, StringBuffer>();
+        for(int i = 0; i < actions.size(); i++) {
+          Action taction = actions.elementAt(i);
+          int cNum = taction.getCoreNum();
+          if(!tmplastTasks.containsKey(cNum)) {
+            tmplastTasks.put(cNum, lastTasks[cNum]);
+          }
+          if(!(tmpisset.contains(cNum))
+             && (isTaskFinish[cNum])
+             && !(tmpisTaskFinish.contains(cNum))) {
+            tmpisTaskFinish.add(cNum);              // records those with task finished the first time visit it
+          }
+          String tmpTaskNode = "\"" + tnode + "core" + cNum + "\"";
+          StringBuffer tmpLabel = null;
+          boolean isfirst = false;
+          if(!tmpTaskNodes.containsKey(tmpTaskNode)) {
+            tmpTaskNodes.put(tmpTaskNode, new StringBuffer(tnode + ":"));
+            isfirst = true;
+          }
+          tmpLabel = tmpTaskNodes.get(tmpTaskNode);
+          switch(taction.getType()) {
+          case Action.ADDOBJ: {
+            if(!isfirst) {
+              tmpLabel.append("\\n");
+            }
+            tmpLabel.append("(" + taction.getTransObj().getSymbol() + ")arrives;");
+            if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+              output.print("\t");
+              if(lastTaskNodes[cNum].equals("first")) {
+                output.print("\"core " + cNum + "\"->" + tmpTaskNode);
+              } else {
+                output.print(lastTaskNodes[cNum] + "->" + tmpTaskNode);
+              }
+              if(tmpisTaskFinish.contains(cNum)) {
+                output.print(" [style=invis]");
+              }
+              output.println(";");
+              lastTaskNodes[cNum] = tmpTaskNode;
+            }
+            break;
+          }
 
-	  case Action.TASKFINISH: {
-	    if(!isfirst) {
-	      tmpLabel.append("\\n");
-	    }
-	    tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
-	    /*Vector<Integer> taskparams = taction.getTaskParams();
-	       for(int ii = 0; ii < taskparams.size(); ii++) {
-	       tmpLabel.append(taskparams.elementAt(ii));
-	       if(ii < taskparams.size() - 1) {
-	       tmpLabel.append(",");
-	       }
-	       }*/
-	    tmpLabel.append(")>finishes;");
-	    if(!(lastTaskNodes[cNum].equals("first"))) {
-	      if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
-		output.print("\t");
-		output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
-		lastTaskNodes[cNum] = tmpTaskNode;
-	      }
-	      if(tmpisset.contains(cNum)) {
-		isTaskFinish[cNum] &= true;
-	      } else {
-		isTaskFinish[cNum] = true;
-		tmpisset.add(cNum);
-	      }
-	      lastTasks[cNum] = "";
-	    } else {
-	      throw new Exception("Error: unexpected task finish");
-	    }
-	    break;
-	  }
+          case Action.TASKFINISH: {
+            if(!isfirst) {
+              tmpLabel.append("\\n");
+            }
+            tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
+            /*Vector<Integer> taskparams = taction.getTaskParams();
+               for(int ii = 0; ii < taskparams.size(); ii++) {
+               tmpLabel.append(taskparams.elementAt(ii));
+               if(ii < taskparams.size() - 1) {
+               tmpLabel.append(",");
+               }
+               }*/
+            tmpLabel.append(")>finishes;");
+            if(!(lastTaskNodes[cNum].equals("first"))) {
+              if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+                output.print("\t");
+                output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
+                lastTaskNodes[cNum] = tmpTaskNode;
+              }
+              if(tmpisset.contains(cNum)) {
+                isTaskFinish[cNum] &= true;
+              } else {
+                isTaskFinish[cNum] = true;
+                tmpisset.add(cNum);
+              }
+              lastTasks[cNum] = "";
+            } else {
+              throw new Exception("Error: unexpected task finish");
+            }
+            break;
+          }
 
-	  case Action.TFWITHOBJ: {
-	    if(!isfirst) {
-	      tmpLabel.append("\\n");
-	    }
-	    tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
-	    /*Vector<Integer> taskparams = taction.getTaskParams();
-	       for(int ii = 0; ii < taskparams.size(); ii++) {
-	       tmpLabel.append(taskparams.elementAt(ii));
-	       if(ii < taskparams.size() - 1) {
-	       tmpLabel.append(",");
-	       }
-	       }*/
-	    tmpLabel.append(")>finishes;");
-	    Iterator<Entry<ClassDescriptor, Integer>> it_entry = (Iterator<Entry<ClassDescriptor, Integer>>)taction.getNObjs().entrySet().iterator();
-	    while(it_entry.hasNext()) {
-	      Entry<ClassDescriptor, Integer> entry = it_entry.next();
-	      tmpLabel.append(entry.getValue() + "(" + entry.getKey().getSymbol() + ")");
-	      if(it_entry.hasNext()) {
-		tmpLabel.append(",");
-	      } else {
-		tmpLabel.append(";");
-	      }
-	      entry = null;
-	    }
-	    it_entry = null;
-	    if(!(lastTaskNodes[cNum].equals("first"))) {
-	      if (!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
-		output.print("\t");
-		output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
-		lastTaskNodes[cNum] = tmpTaskNode;
-	      }
-	      if(tmpisset.contains(cNum)) {
-		isTaskFinish[cNum] &= true;
-	      } else {
-		isTaskFinish[cNum] = true;
-		tmpisset.add(cNum);
-	      }
-	      lastTasks[cNum] = "";
-	    } else {
-	      throw new Exception("Error: unexpected task finish");
-	    }
-	    break;
-	  }
+          case Action.TFWITHOBJ: {
+            if(!isfirst) {
+              tmpLabel.append("\\n");
+            }
+            tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
+            /*Vector<Integer> taskparams = taction.getTaskParams();
+               for(int ii = 0; ii < taskparams.size(); ii++) {
+               tmpLabel.append(taskparams.elementAt(ii));
+               if(ii < taskparams.size() - 1) {
+               tmpLabel.append(",");
+               }
+               }*/
+            tmpLabel.append(")>finishes;");
+            Iterator<Entry<ClassDescriptor, Integer>> it_entry = (Iterator<Entry<ClassDescriptor, Integer>>)taction.getNObjs().entrySet().iterator();
+            while(it_entry.hasNext()) {
+              Entry<ClassDescriptor, Integer> entry = it_entry.next();
+              tmpLabel.append(entry.getValue() + "(" + entry.getKey().getSymbol() + ")");
+              if(it_entry.hasNext()) {
+                tmpLabel.append(",");
+              } else {
+                tmpLabel.append(";");
+              }
+              entry = null;
+            }
+            it_entry = null;
+            if(!(lastTaskNodes[cNum].equals("first"))) {
+              if (!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+                output.print("\t");
+                output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
+                lastTaskNodes[cNum] = tmpTaskNode;
+              }
+              if(tmpisset.contains(cNum)) {
+                isTaskFinish[cNum] &= true;
+              } else {
+                isTaskFinish[cNum] = true;
+                tmpisset.add(cNum);
+              }
+              lastTasks[cNum] = "";
+            } else {
+              throw new Exception("Error: unexpected task finish");
+            }
+            break;
+          }
 
-	  case Action.TASKSTART: {
-	    if(!isfirst) {
-	      tmpLabel.append("\\n");
-	    }
-	    tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
-	    /*Vector<Integer> taskparams = taction.getTaskParams();
-	       for(int ii = 0; ii < taskparams.size(); ii++) {
-	       tmpLabel.append(taskparams.elementAt(ii));
-	       if(ii < taskparams.size() - 1) {
-	       tmpLabel.append(",");
-	       }
-	       }*/
-	    tmpLabel.append(")>starts;");
-	    lastTasks[cNum] = taction.getTd().getSymbol();
+          case Action.TASKSTART: {
+            if(!isfirst) {
+              tmpLabel.append("\\n");
+            }
+            tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
+            /*Vector<Integer> taskparams = taction.getTaskParams();
+               for(int ii = 0; ii < taskparams.size(); ii++) {
+               tmpLabel.append(taskparams.elementAt(ii));
+               if(ii < taskparams.size() - 1) {
+               tmpLabel.append(",");
+               }
+               }*/
+            tmpLabel.append(")>starts;");
+            lastTasks[cNum] = taction.getTd().getSymbol();
 
-	    if (!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
-	      output.print("\t");
-	      if(lastTaskNodes[cNum].equals("first")) {
-		output.print("\"core " + cNum + "\"->" + tmpTaskNode);
-	      } else {
-		output.print(lastTaskNodes[cNum] + "->" + tmpTaskNode);
-	      }
-	      if(tmpisTaskFinish.contains(cNum)) {
-		output.print(" [style=invis]");
-	      }
-	      output.println(";");
-	      lastTaskNodes[cNum] = tmpTaskNode;
-	    }
-	    isTaskFinish[cNum] &= false;
-	    break;
-	  }
+            if (!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+              output.print("\t");
+              if(lastTaskNodes[cNum].equals("first")) {
+                output.print("\"core " + cNum + "\"->" + tmpTaskNode);
+              } else {
+                output.print(lastTaskNodes[cNum] + "->" + tmpTaskNode);
+              }
+              if(tmpisTaskFinish.contains(cNum)) {
+                output.print(" [style=invis]");
+              }
+              output.println(";");
+              lastTaskNodes[cNum] = tmpTaskNode;
+            }
+            isTaskFinish[cNum] &= false;
+            break;
+          }
 
-	  case Action.TASKABORT: {
-	    if(!isfirst) {
-	      tmpLabel.append("\\n");
-	    }
-	    tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
-	    /*Vector<Integer> taskparams = taction.getTaskParams();
-	       for(int ii = 0; ii < taskparams.size(); ii++) {
-	       tmpLabel.append(taskparams.elementAt(ii));
-	       if(ii < taskparams.size() - 1) {
-	       tmpLabel.append(",");
-	       }
-	       }*/
-	    tmpLabel.append(")>aborts;");
-	    if(!(lastTaskNodes[cNum].equals("first")) &&
-	       (tmplastTasks.get(cNum).equals(taction.getTd().getSymbol()))) {
-	      if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
-		output.print("\t");
-		output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
-		lastTaskNodes[cNum] = tmpTaskNode;
-	      }
-	      if(tmpisset.contains(cNum)) {
-		isTaskFinish[cNum] &= true;
-	      } else {
-		isTaskFinish[cNum] = true;
-		tmpisset.add(cNum);
-	      }
-	      lastTasks[cNum] = "";
-	    } else {
-	      throw new Exception("Error: unexpected task aborts");
-	    }
-	    break;
-	  }
+          case Action.TASKABORT: {
+            if(!isfirst) {
+              tmpLabel.append("\\n");
+            }
+            tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
+            /*Vector<Integer> taskparams = taction.getTaskParams();
+               for(int ii = 0; ii < taskparams.size(); ii++) {
+               tmpLabel.append(taskparams.elementAt(ii));
+               if(ii < taskparams.size() - 1) {
+               tmpLabel.append(",");
+               }
+               }*/
+            tmpLabel.append(")>aborts;");
+            if(!(lastTaskNodes[cNum].equals("first")) &&
+               (tmplastTasks.get(cNum).equals(taction.getTd().getSymbol()))) {
+              if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+                output.print("\t");
+                output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
+                lastTaskNodes[cNum] = tmpTaskNode;
+              }
+              if(tmpisset.contains(cNum)) {
+                isTaskFinish[cNum] &= true;
+              } else {
+                isTaskFinish[cNum] = true;
+                tmpisset.add(cNum);
+              }
+              lastTasks[cNum] = "";
+            } else {
+              throw new Exception("Error: unexpected task aborts");
+            }
+            break;
+          }
 
-	  case Action.TASKREMOVE: {
-	    if(!isfirst) {
-	      tmpLabel.append("\\n");
-	    }
-	    tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
-	    /*Vector<Integer> taskparams = taction.getTaskParams();
-	       for(int ii = 0; ii < taskparams.size(); ii++) {
-	       tmpLabel.append(taskparams.elementAt(ii));
-	       if(ii < taskparams.size() - 1) {
-	       tmpLabel.append(",");
-	       }
-	       }*/
-	    tmpLabel.append(")>removes;");
-	    if(!(lastTaskNodes[cNum].equals("first")) &&
-	       (tmplastTasks.get(cNum).equals(taction.getTd().getSymbol()))) {
-	      if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
-		output.print("\t");
-		output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
-		lastTaskNodes[cNum] = tmpTaskNode;
-	      }
-	      if(tmpisset.contains(cNum)) {
-		isTaskFinish[cNum] &= true;
-	      } else {
-		isTaskFinish[cNum] = true;
-		tmpisset.add(cNum);
-	      }
-	      lastTasks[cNum] = "";
-	    } else {
-	      throw new Exception("Error: unexpected task remove");
-	    }
-	    break;
-	  }
-	  }
-	}
-	Enumeration<String> keys = tmpTaskNodes.keys();
-	while(keys.hasMoreElements()) {
-	  String tmpTaskNode = keys.nextElement();
-	  output.print("\t");
-	  output.println(tmpTaskNode + "[label=\"" + tmpTaskNodes.get(tmpTaskNode).toString() + "\"]");
-	}
-	output.print("\t");
-	output.print("{rank=same; rankdir=LR; " + tnode + "; ");
-	keys = tmpTaskNodes.keys();
-	while(keys.hasMoreElements()) {
-	  String tmpTaskNode = keys.nextElement();
-	  output.print(tmpTaskNode);
-	  output.print("; ");
-	}
-	keys = null;
-	output.println("}");
-	output.print("\t");
-	tmplastTasks = null;
-	tmpisTaskFinish = null;
-	tmpisset = null;
-	actions = null;
-	tmpTaskNodes = null;
+          case Action.TASKREMOVE: {
+            if(!isfirst) {
+              tmpLabel.append("\\n");
+            }
+            tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
+            /*Vector<Integer> taskparams = taction.getTaskParams();
+               for(int ii = 0; ii < taskparams.size(); ii++) {
+               tmpLabel.append(taskparams.elementAt(ii));
+               if(ii < taskparams.size() - 1) {
+               tmpLabel.append(",");
+               }
+               }*/
+            tmpLabel.append(")>removes;");
+            if(!(lastTaskNodes[cNum].equals("first")) &&
+               (tmplastTasks.get(cNum).equals(taction.getTd().getSymbol()))) {
+              if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+                output.print("\t");
+                output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
+                lastTaskNodes[cNum] = tmpTaskNode;
+              }
+              if(tmpisset.contains(cNum)) {
+                isTaskFinish[cNum] &= true;
+              } else {
+                isTaskFinish[cNum] = true;
+                tmpisset.add(cNum);
+              }
+              lastTasks[cNum] = "";
+            } else {
+              throw new Exception("Error: unexpected task remove");
+            }
+            break;
+          }
+          }
+        }
+        Enumeration<String> keys = tmpTaskNodes.keys();
+        while(keys.hasMoreElements()) {
+          String tmpTaskNode = keys.nextElement();
+          output.print("\t");
+          output.println(tmpTaskNode + "[label=\"" + tmpTaskNodes.get(tmpTaskNode).toString() + "\"]");
+        }
+        output.print("\t");
+        output.print("{rank=same; rankdir=LR; " + tnode + "; ");
+        keys = tmpTaskNodes.keys();
+        while(keys.hasMoreElements()) {
+          String tmpTaskNode = keys.nextElement();
+          output.print(tmpTaskNode);
+          output.print("; ");
+        }
+        keys = null;
+        output.println("}");
+        output.print("\t");
+        tmplastTasks = null;
+        tmpisTaskFinish = null;
+        tmpisset = null;
+        actions = null;
+        tmpTaskNodes = null;
       }
       output.print("\t");
       output.print("\t");
@@ -841,37 +841,37 @@ public class SchedulingUtil {
       long max = 0;
       long max2 = 0;
       for(j = 1; j < timeNodes.size(); j++) {
-	next = Long.parseLong(timeNodes.elementAt(j));
-	long delta = next - prev;
-	if(max < delta) {
-	  max2 = max;
-	  max = delta;
-	} else if((max != delta) && (max2 < delta)) {
-	  max2 = delta;
-	}
-	prev = next;
+        next = Long.parseLong(timeNodes.elementAt(j));
+        long delta = next - prev;
+        if(max < delta) {
+          max2 = max;
+          max = delta;
+        } else if((max != delta) && (max2 < delta)) {
+          max2 = delta;
+        }
+        prev = next;
       }
       if(max2 == 0) {
-	max2 = 1;
+        max2 = 1;
       } else if(max/max2 > 100) {
-	max2 = max/100;
+        max2 = max/100;
       }
       output.println("\"Time\"->" + timeNodes.elementAt(0) + "[style=invis];");
       prev = Long.parseLong(timeNodes.elementAt(0));
       next = 0;
       for(j = 1; j < timeNodes.size(); j++) {
-	next = Long.parseLong(timeNodes.elementAt(j));
-	if(next - prev > max2) {
-	  do {
-	    output.print(prev + "->");
-	    prev += max2;
-	  } while(next - prev > max2);
-	  output.println(next + ";");
-	} else {
-	  output.println("{rank=same; rankdir=LR; " + prev + "; " + next + "}");
-	  output.println(prev + "->" + next + "[style=invis];");
-	}
-	prev = next;
+        next = Long.parseLong(timeNodes.elementAt(j));
+        if(next - prev > max2) {
+          do {
+            output.print(prev + "->");
+            prev += max2;
+          } while(next - prev > max2);
+          output.println(next + ";");
+        } else {
+          output.println("{rank=same; rankdir=LR; " + prev + "; " + next + "}");
+          output.println(prev + "->" + next + "[style=invis];");
+        }
+        prev = next;
       }
 
       /*for(j = 0; j < time; j++) {
@@ -910,23 +910,23 @@ public class SchedulingUtil {
       String dotnodeparams="";
 
       for(int i = 0; i < criticalPath.size(); i++) {
-	SimExecutionEdge seedge = criticalPath.elementAt(i);
-	SimExecutionNode startnode = (SimExecutionNode)seedge.getSource();
-	SimExecutionNode endnode = (SimExecutionNode)seedge.getTarget();
-	if(!nodes.contains(startnode)) {
-	  label = startnode.getCoreNum() + ":" + startnode.getTimepoint();
-	  output.println("\t" + startnode.getLabel() + " [label=\""
-	                 + label + "\" ];");
-	  nodes.addElement(startnode);
-	}
-	if(!nodes.contains(endnode)) {
-	  label = endnode.getCoreNum() + ":" + endnode.getTimepoint();
-	  output.println("\t" + endnode.getLabel() + " [label=\""
-	                 + label + "\" ];");
-	  nodes.addElement(endnode);
-	}
-	output.println("\t" + startnode.getLabel() + " -> " + endnode.getLabel()
-	               + " [" + "label=\"" + seedge.getLabel() + "\"];");
+        SimExecutionEdge seedge = criticalPath.elementAt(i);
+        SimExecutionNode startnode = (SimExecutionNode)seedge.getSource();
+        SimExecutionNode endnode = (SimExecutionNode)seedge.getTarget();
+        if(!nodes.contains(startnode)) {
+          label = startnode.getCoreNum() + ":" + startnode.getTimepoint();
+          output.println("\t" + startnode.getLabel() + " [label=\""
+                         + label + "\" ];");
+          nodes.addElement(startnode);
+        }
+        if(!nodes.contains(endnode)) {
+          label = endnode.getCoreNum() + ":" + endnode.getTimepoint();
+          output.println("\t" + endnode.getLabel() + " [label=\""
+                         + label + "\" ];");
+          nodes.addElement(endnode);
+        }
+        output.println("\t" + startnode.getLabel() + " -> " + endnode.getLabel()
+                       + " [" + "label=\"" + seedge.getLabel() + "\"];");
       }
       output.println("}");
       output.close();

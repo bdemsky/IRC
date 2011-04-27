@@ -132,7 +132,7 @@ public class AllocationSite {
 
     for( int i = 0; i < allocationDepth - 1; ++i ) {
       if( id.equals(ithOldest.get(i) ) ) {
-	return AGE_in_I;
+        return AGE_in_I;
       }
     }
 
@@ -142,7 +142,7 @@ public class AllocationSite {
   public Integer getAge(Integer id) {
     for( int i = 0; i < allocationDepth - 1; ++i ) {
       if( id.equals(ithOldest.get(i) ) ) {
-	return new Integer(i);
+        return new Integer(i);
       }
     }
 
@@ -160,7 +160,7 @@ public class AllocationSite {
 
     for( int i = 0; i < allocationDepth - 1; ++i ) {
       if( id.equals(getIthOldestShadow(i) ) ) {
-	return SHADOWAGE_in_I;
+        return SHADOWAGE_in_I;
       }
     }
 
@@ -170,7 +170,7 @@ public class AllocationSite {
   public Integer getShadowAge(Integer id) {
     for( int i = 0; i < allocationDepth - 1; ++i ) {
       if( id.equals(getIthOldestShadow(i) ) ) {
-	return new Integer(-i);
+        return new Integer(-i);
       }
     }
 

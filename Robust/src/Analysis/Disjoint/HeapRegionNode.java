@@ -197,7 +197,7 @@ public class HeapRegionNode extends RefSrcNode {
           edge.typeEquals(type)     &&
           edge.fieldEquals(field)
           ) {
-	return edge;
+        return edge;
       }
     }
 
@@ -262,11 +262,11 @@ public class HeapRegionNode extends RefSrcNode {
 
       Iterator<ReachTuple> rtItr = state.iterator();
       while( rtItr.hasNext() ) {
-	ReachTuple rt = rtItr.next();
+        ReachTuple rt = rtItr.next();
 
-	if( !rt.isOutOfContext() ) {
-	  return false;
-	}
+        if( !rt.isOutOfContext() ) {
+          return false;
+        }
       }
     }
 

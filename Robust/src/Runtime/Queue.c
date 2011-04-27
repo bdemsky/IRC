@@ -190,29 +190,29 @@ int assertQueue(struct Queue * queue) {
 
     if( i->prev == NULL ) {
       if( queue->head != i ) {
-	return 0;
+        return 0;
       }
 
       // i->prev != NULL
     } else {
       if( i->prev->next == NULL ) {
-	return 0;
+        return 0;
       } else if( i->prev->next != i ) {
-	return 0;
+        return 0;
       }
     }
 
     if( i->next == NULL ) {
       if( queue->tail != i ) {
-	return 0;
+        return 0;
       }
 
       // i->next != NULL
     } else {
       if( i->next->prev == NULL ) {
-	return 0;
+        return 0;
       } else if( i->next->prev != i ) {
-	return 0;
+        return 0;
       }
     }
 

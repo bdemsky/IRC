@@ -13,8 +13,8 @@ class HashStrings {
     int i = key.hashCode() % n;
     while (p[i] != null) {
       if (key.equals(p[i].key)) {
-	p[i] = new Pair(key, value);
-	return;
+        p[i] = new Pair(key, value);
+        return;
       }
       i = (i+1) % n;
     }
@@ -27,7 +27,7 @@ class HashStrings {
     int i = key.hashCode() % n;
     while (p[i] != null) {
       if (key.equals(p[i].key))
-	return p[i].value;
+        return p[i].value;
       i = (i+1) % n;
     }
     return null;

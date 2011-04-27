@@ -38,13 +38,13 @@ public class TypeDescriptor extends Descriptor {
     if (o instanceof TypeDescriptor) {
       TypeDescriptor t=(TypeDescriptor)o;
       if (t.type!=type)
-	return false;
+        return false;
       if ((type==CLASS)&&(!t.getSymbol().equals(getSymbol())))
-	return false;
+        return false;
       if (t.arraycount!=arraycount)
-	return false;
+        return false;
       if (t.isClassNameRef != this.isClassNameRef)
-	return false;
+        return false;
       return true;
     }
     return false;

@@ -153,20 +153,20 @@ public class FlagState extends GraphNode implements Cloneable {
     if (set) {
       int count=0;
       if (tags.containsKey(tag))
-	count=tags.get(tag).intValue();
+        count=tags.get(tag).intValue();
       if (count<KLIMIT)
-	count++;
+        count++;
       newtags1.put(tag, new Integer(count));
       return new FlagState[] {new FlagState(newset1, cd, newtags1)};
     } else {
       int count=1;
       if (tags.containsKey(tag))
-	count=tags.get(tag).intValue();
+        count=tags.get(tag).intValue();
       newtags1.put(tag, new Integer(count));
       if ((count+1)==KLIMIT)
-	return new FlagState[] {this, new FlagState(newset1, cd, newtags1)};
+        return new FlagState[] {this, new FlagState(newset1, cd, newtags1)};
       else
-	return new FlagState[] {new FlagState(newset1, cd, newtags1)};
+        return new FlagState[] {new FlagState(newset1, cd, newtags1)};
     }
   }
 
@@ -179,14 +179,14 @@ public class FlagState extends GraphNode implements Cloneable {
 
       switch (tags.get(tag).intValue()) {
       case ONETAG:
-	newtags1.put(tag,new Integer(MULTITAGS));
-	return new FlagState[] {this, new FlagState(newset1, cd, newtags1)};
+        newtags1.put(tag,new Integer(MULTITAGS));
+        return new FlagState[] {this, new FlagState(newset1, cd, newtags1)};
 
       case MULTITAGS:
-	return new FlagState[] {this};
+        return new FlagState[] {this};
 
       default:
-	throw new Error();
+        throw new Error();
       }
     } else {
       newtags1.put(tag,new Integer(ONETAG));
@@ -208,26 +208,26 @@ public class FlagState extends GraphNode implements Cloneable {
     if (tags.containsKey(tag)) {
       switch(tags.get(tag).intValue()) {
       case ONETAG:
-	HashSet newset=(HashSet)flagstate.clone();
-	Hashtable<TagDescriptor,Integer> newtags=(Hashtable<TagDescriptor,Integer>)tags.clone();
-	newtags.remove(tag);
-	return new FlagState[] {new FlagState(newset,cd,newtags)};
+        HashSet newset=(HashSet)flagstate.clone();
+        Hashtable<TagDescriptor,Integer> newtags=(Hashtable<TagDescriptor,Integer>)tags.clone();
+        newtags.remove(tag);
+        return new FlagState[] {new FlagState(newset,cd,newtags)};
 
       case MULTITAGS:
-	//two possibilities - count remains 2 or becomes 1
-	//2 case
-	HashSet newset1=(HashSet)flagstate.clone();
-	Hashtable<TagDescriptor,Integer> newtags1=(Hashtable<TagDescriptor,Integer>)tags.clone();
+        //two possibilities - count remains 2 or becomes 1
+        //2 case
+        HashSet newset1=(HashSet)flagstate.clone();
+        Hashtable<TagDescriptor,Integer> newtags1=(Hashtable<TagDescriptor,Integer>)tags.clone();
 
-	//1 case
-	HashSet newset2=(HashSet)flagstate.clone();
-	Hashtable<TagDescriptor,Integer> newtags2=(Hashtable<TagDescriptor,Integer>)tags.clone();
-	newtags1.put(tag,new Integer(ONETAG));
-	return new FlagState[] {new FlagState(newset1, cd, newtags2),
-		                new FlagState(newset2, cd, newtags2)};
+        //1 case
+        HashSet newset2=(HashSet)flagstate.clone();
+        Hashtable<TagDescriptor,Integer> newtags2=(Hashtable<TagDescriptor,Integer>)tags.clone();
+        newtags1.put(tag,new Integer(ONETAG));
+        return new FlagState[] {new FlagState(newset1, cd, newtags2),
+                                new FlagState(newset2, cd, newtags2)};
 
       default:
-	throw new Error();
+        throw new Error();
       }
     } else {
       throw new Error("Invalid Operation: Can not clear a tag that doesn't exist.");
@@ -243,9 +243,9 @@ public class FlagState extends GraphNode implements Cloneable {
     StringBuffer sb = new StringBuffer(flagstate.size());
     for(int i=0; i < flags.length; i++) {
       if (get(flags[i]))
-	sb.append(1);
+        sb.append(1);
       else
-	sb.append(0);
+        sb.append(0);
     }
 
     return new String(sb);
@@ -284,9 +284,9 @@ public class FlagState extends GraphNode implements Cloneable {
     if (o instanceof FlagState) {
       FlagState fs=(FlagState)o;
       if (fs.cd!=cd)
-	return false;
+        return false;
       if(fs.byObj != this.byObj) {
-	return false;
+        return false;
       }
       return (fs.flagstate.equals(flagstate) & fs.tags.equals(tags));
     }
@@ -306,29 +306,29 @@ public class FlagState extends GraphNode implements Cloneable {
     for(Iterator it=getFlags(); it.hasNext(); ) {
       FlagDescriptor fd=(FlagDescriptor) it.next();
       if (label==null)
-	label=fd.toString();
+        label=fd.toString();
       else
-	label+=", "+fd.toString();
+        label+=", "+fd.toString();
     }
     for (Enumeration en_tags=getTags(); en_tags.hasMoreElements(); ) {
       TagDescriptor td=(TagDescriptor)en_tags.nextElement();
       switch (tags.get(td).intValue()) {
       case ONETAG:
-	if (label==null)
-	  label=td.toString()+"(1)";
-	else
-	  label+=", "+td.toString()+"(1)";
-	break;
+        if (label==null)
+          label=td.toString()+"(1)";
+        else
+          label+=", "+td.toString()+"(1)";
+        break;
 
       case MULTITAGS:
-	if (label==null)
-	  label=td.toString()+"(n)";
-	else
-	  label+=", "+td.toString()+"(n)";
-	break;
+        if (label==null)
+          label=td.toString()+"(n)";
+        else
+          label+=", "+td.toString()+"(n)";
+        break;
 
       default:
-	break;
+        break;
       }
     }
     if (label==null)
@@ -343,15 +343,15 @@ public class FlagState extends GraphNode implements Cloneable {
   public long getExeTime() {
     try {
       if(this.executeTime == -1) {
-	if(this.visited4time == -1) {
-	  this.visited4time = 0;
-	  calExeTime();
-	} else {
-	  // visited, this node is in a loop
-	  // TODO
-	  // currently set 10 as the largest time
-	  this.executeTime = FlagState.MAXTIME;
-	}
+        if(this.visited4time == -1) {
+          this.visited4time = 0;
+          calExeTime();
+        } else {
+          // visited, this node is in a loop
+          // TODO
+          // currently set 10 as the largest time
+          this.executeTime = FlagState.MAXTIME;
+        }
       }
     } catch (Exception e) {
       e.printStackTrace();
@@ -385,19 +385,19 @@ public class FlagState extends GraphNode implements Cloneable {
     if(it.hasNext()) {
       FEdge fe = (FEdge)it.next();
       while((fe != null) && (fe.getTarget().equals(this))) {
-	if(it.hasNext()) {
-	  fe = (FEdge)it.next();
-	} else {
-	  fe = null;
-	}
+        if(it.hasNext()) {
+          fe = (FEdge)it.next();
+        } else {
+          fe = null;
+        }
       }
       if(fe == null) {
-	this.executeTime = 0;
+        this.executeTime = 0;
       } else {
-	if(fe.getExeTime() == -1) {
-	  throw new Exception("Error: Uninitiate FEdge!");
-	}
-	this.executeTime = fe.getExeTime() + ((FlagState)fe.getTarget()).getExeTime();
+        if(fe.getExeTime() == -1) {
+          throw new Exception("Error: Uninitiate FEdge!");
+        }
+        this.executeTime = fe.getExeTime() + ((FlagState)fe.getTarget()).getExeTime();
       }
     } else {
       this.executeTime = 0;
@@ -406,7 +406,7 @@ public class FlagState extends GraphNode implements Cloneable {
       FEdge fe = (FEdge)it.next();
       long temp = fe.getExeTime() + ((FlagState)fe.getTarget()).getExeTime();
       if(temp < this.executeTime) {
-	this.executeTime = temp;
+        this.executeTime = temp;
       }
     }
   }
@@ -445,9 +445,9 @@ public class FlagState extends GraphNode implements Cloneable {
     for(int i = 0; i < this.edges.size(); i++) {
       next = (FEdge) this.edges.elementAt(i);
       if(this.byObj == 0) {
-	next.setExpInvokeNum((int)(Math.ceil(this.invokeNum * next.getProbability() / 100)));
+        next.setExpInvokeNum((int)(Math.ceil(this.invokeNum * next.getProbability() / 100)));
       } else {
-	next.setExpInvokeNum((int)(Math.ceil(((this.invokeNum - 1) / this.byObj + 1) * next.getProbability() / 100)));
+        next.setExpInvokeNum((int)(Math.ceil(((this.invokeNum - 1) / this.byObj + 1) * next.getProbability() / 100)));
       }
     }
 
@@ -462,22 +462,22 @@ public class FlagState extends GraphNode implements Cloneable {
       int temp = (this.byObj == 0)?next.getInvokeNumGap():next.getInvokeNumGapByObj(this.byObj);
       boolean exchange = false;
       if((temp > gap) && (next.getTask().equals(td))) {
-	exchange = true;
+        exchange = true;
       } else if(temp == gap) {
-	if(next.getProbability() > prob) {
-	  exchange = true;
-	} else if(next.getProbability() == prob) {
-	  if(!isbackedge && next.isbackedge()) {
-	    // backedge has higher priority
-	    exchange = true;
-	  }
-	}
+        if(next.getProbability() > prob) {
+          exchange = true;
+        } else if(next.getProbability() == prob) {
+          if(!isbackedge && next.isbackedge()) {
+            // backedge has higher priority
+            exchange = true;
+          }
+        }
       }
       if(exchange) {
-	index = i;
-	gap = temp;
-	prob = next.getProbability();
-	isbackedge = next.isbackedge();
+        index = i;
+        gap = temp;
+        prob = next.getProbability();
+        isbackedge = next.isbackedge();
       }
     }
     next = (FEdge) this.edges.elementAt(index);

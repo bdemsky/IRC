@@ -73,14 +73,14 @@ int RuntimeHashremovekey(struct RuntimeHash *thisvar, int key) {
       *ptr=(*ptr)->next;
 
       if (toremove->lprev!=NULL) {
-	toremove->lprev->lnext=toremove->lnext;
+        toremove->lprev->lnext=toremove->lnext;
       } else {
-	thisvar->listhead=toremove->lnext;
+        thisvar->listhead=toremove->lnext;
       }
       if (toremove->lnext!=NULL) {
-	toremove->lnext->lprev=toremove->lprev;
+        toremove->lnext->lprev=toremove->lprev;
       } else {
-	thisvar->listtail=toremove->lprev;
+        thisvar->listtail=toremove->lprev;
       }
       RUNFREE(toremove);
 
@@ -104,14 +104,14 @@ int RuntimeHashremove(struct RuntimeHash *thisvar, int key, int data) {
       *ptr=(*ptr)->next;
 
       if (toremove->lprev!=NULL) {
-	toremove->lprev->lnext=toremove->lnext;
+        toremove->lprev->lnext=toremove->lnext;
       } else {
-	thisvar->listhead=toremove->lnext;
+        thisvar->listhead=toremove->lnext;
       }
       if (toremove->lnext!=NULL) {
-	toremove->lnext->lprev=toremove->lprev;
+        toremove->lnext->lprev=toremove->lprev;
       } else {
-	thisvar->listtail=toremove->lprev;
+        thisvar->listtail=toremove->lprev;
       }
       RUNFREE(toremove);
 
@@ -155,11 +155,11 @@ int RuntimeHashadd(struct RuntimeHash * thisvar,int key, int data) {
     for(i=thisvar->size-1; i>=0; i--) {
       struct RuntimeNode *ptr;
       for(ptr=thisvar->bucket[i]; ptr!=NULL; ) {
-	struct RuntimeNode * nextptr=ptr->next;
-	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-	ptr->next=newbucket[newhashkey];
-	newbucket[newhashkey]=ptr;
-	ptr=nextptr;
+        struct RuntimeNode * nextptr=ptr->next;
+        unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+        ptr->next=newbucket[newhashkey];
+        newbucket[newhashkey]=ptr;
+        ptr=nextptr;
       }
     }
     thisvar->size=newsize;
@@ -237,11 +237,11 @@ int RuntimeHashadd_I(struct RuntimeHash * thisvar,int key, int data) {
     for(i=thisvar->size-1; i>=0; i--) {
       struct RuntimeNode *ptr;
       for(ptr=thisvar->bucket[i]; ptr!=NULL; ) {
-	struct RuntimeNode * nextptr=ptr->next;
-	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-	ptr->next=newbucket[newhashkey];
-	newbucket[newhashkey]=ptr;
-	ptr=nextptr;
+        struct RuntimeNode * nextptr=ptr->next;
+        unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+        ptr->next=newbucket[newhashkey];
+        newbucket[newhashkey]=ptr;
+        ptr=nextptr;
       }
     }
     thisvar->size=newsize;

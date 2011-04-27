@@ -41,14 +41,14 @@ public class StringBuffer {
       // Need to allocate
       char newvalue[]=new char[s.count+count+16];       //16 is DEFAULTSIZE
       for(int i=0; i<count; i++)
-	newvalue[i]=value[i];
+        newvalue[i]=value[i];
       for(int i=0; i<s.count; i++)
-	newvalue[i+count]=s.value[i+s.offset];
+        newvalue[i+count]=s.value[i+s.offset];
       value=newvalue;
       count+=s.count;
     } else {
       for(int i=0; i<s.count; i++) {
-	value[i+count]=s.value[i+s.offset];
+        value[i+count]=s.value[i+s.offset];
       }
       count+=s.count;
     }
@@ -62,7 +62,7 @@ public class StringBuffer {
     if (i>value.length) {
       char newvalue[]=new char[i];
       for(int ii=0; ii<count; ii++)
-	newvalue[ii]=value[ii];
+        newvalue[ii]=value[ii];
       value=newvalue;
     }
   }
@@ -72,14 +72,14 @@ public class StringBuffer {
       // Need to allocate
       char newvalue[]=new char[s.count+count+16];       //16 is DEFAULTSIZE
       for(int i=0; i<count; i++)
-	newvalue[i]=value[i];
+        newvalue[i]=value[i];
       for(int i=0; i<s.count; i++)
-	newvalue[i+count]=s.value[i];
+        newvalue[i+count]=s.value[i];
       value=newvalue;
       count+=s.count;
     } else {
       for(int i=0; i<s.count; i++) {
-	value[i+count]=s.value[i];
+        value[i+count]=s.value[i];
       }
       count+=s.count;
     }

@@ -53,14 +53,14 @@ void CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
     lpair->islastlock=1;
     while(1) {
       if (VAR(___this___)->tid==0) {
-	if (CAS32(&VAR(___this___)->tid, 0, self)==0) {
-	  return;
-	}
+        if (CAS32(&VAR(___this___)->tid, 0, self)==0) {
+          return;
+        }
       }
       {
 #ifdef PRECISE_GC
-	if (unlikely(needtocollect))
-	  checkcollect((struct garbagelist *)___params___);
+        if (unlikely(needtocollect))
+          checkcollect((struct garbagelist *)___params___);
 #endif
       }
     }
@@ -103,8 +103,8 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
   while(1) {
     if (VAR(___this___)->tid==0) {
       if (CAS32(&VAR(___this___)->tid, 0, self)==0) {
-	BARRIER();
-	return;
+        BARRIER();
+        return;
       }
     }
 #ifdef PRECISE_GC

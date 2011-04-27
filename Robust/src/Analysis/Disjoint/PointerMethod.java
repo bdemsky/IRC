@@ -25,37 +25,37 @@ public class PointerMethod {
       toprocess.remove(fn);
       HashSet<FlatNode> myset=new HashSet<FlatNode>();
       if (!analysisCares(fn)) {
-	for(int i=0; i<fn.numPrev(); i++) {
-	  if (map.containsKey(fn.getPrev(i)))
-	    myset.addAll(map.get(fn.getPrev(i)));
-	}
+        for(int i=0; i<fn.numPrev(); i++) {
+          if (map.containsKey(fn.getPrev(i)))
+            myset.addAll(map.get(fn.getPrev(i)));
+        }
       } else {
-	myset.add(fn);
+        myset.add(fn);
       }
       if (!map.containsKey(fn)||!map.get(fn).equals(myset)) {
-	map.put(fn, myset);
-	for(int i=0; i<fn.numNext(); i++) {
-	  toprocess.add(fn.getNext(i));
-	}
+        map.put(fn, myset);
+        for(int i=0; i<fn.numNext(); i++) {
+          toprocess.add(fn.getNext(i));
+        }
       }
     }
     for(Iterator<FlatNode> it=map.keySet().iterator(); it.hasNext(); ) {
       FlatNode fn=it.next();
       if (analysisCares(fn)) {
-	HashSet<FlatNode> myset=new HashSet<FlatNode>();
-	for(int i=0; i<fn.numPrev(); i++) {
-	  if (map.containsKey(fn.getPrev(i)))
-	    myset.addAll(map.get(fn.getPrev(i)));
-	}
-	if (!prevmap.containsKey(fn))
-	  prevmap.put(fn, new Vector());
-	for(Iterator<FlatNode> it2=myset.iterator(); it2.hasNext(); ) {
-	  FlatNode fnprev=it2.next();
-	  if (!nextmap.containsKey(fnprev))
-	    nextmap.put(fnprev, new Vector());
-	  nextmap.get(fnprev).add(fn);
-	  prevmap.get(fn).add(fnprev);
-	}
+        HashSet<FlatNode> myset=new HashSet<FlatNode>();
+        for(int i=0; i<fn.numPrev(); i++) {
+          if (map.containsKey(fn.getPrev(i)))
+            myset.addAll(map.get(fn.getPrev(i)));
+        }
+        if (!prevmap.containsKey(fn))
+          prevmap.put(fn, new Vector());
+        for(Iterator<FlatNode> it2=myset.iterator(); it2.hasNext(); ) {
+          FlatNode fnprev=it2.next();
+          if (!nextmap.containsKey(fnprev))
+            nextmap.put(fnprev, new Vector());
+          nextmap.get(fnprev).add(fn);
+          prevmap.get(fn).add(fnprev);
+        }
       }
     }
   }

@@ -120,13 +120,13 @@ public class FlatFlagActionNode extends FlatNode {
     else {
       HashSet temps=new HashSet();
       for(Iterator it=tempflagpairs.keySet().iterator(); it.hasNext(); ) {
-	TempFlagPair tfp=(TempFlagPair)it.next();
-	temps.add(tfp.getTemp());
+        TempFlagPair tfp=(TempFlagPair)it.next();
+        temps.add(tfp.getTemp());
       }
       for(Iterator it=temptagpairs.keySet().iterator(); it.hasNext(); ) {
-	TempTagPair ttp=(TempTagPair)it.next();
-	temps.add(ttp.getTemp());
-	temps.add(ttp.getTagTemp());
+        TempTagPair ttp=(TempTagPair)it.next();
+        temps.add(ttp.getTemp());
+        temps.add(ttp.getTagTemp());
       }
       return (TempDescriptor[])temps.toArray(new TempDescriptor [temps.size()]);
     }

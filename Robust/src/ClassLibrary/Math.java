@@ -73,9 +73,9 @@ public class Math {
     double d = y - x;
     if( d == 0.5 ) {
       if( ((int)y)%2 == 0 ) {
-	return y;
+        return y;
       } else {
-	return y - 1.0;
+        return y - 1.0;
       }
     } else if( d < 0.5 ) {
       return y;

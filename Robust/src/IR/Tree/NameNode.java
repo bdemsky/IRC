@@ -107,9 +107,9 @@ public class NameNode extends ExpressionNode {
     eval = null;
     if(fd != null ) {
       if(fd.isFinal() && fd.isStatic()) {
-	eval = fd.getExpressionNode().evaluate();
+        eval = fd.getExpressionNode().evaluate();
       } else if(fd.isEnum()) {
-	eval = Long.valueOf((long)fd.enumValue());
+        eval = Long.valueOf((long)fd.enumValue());
       }
     } else if(en!= null) {
       eval = en.evaluate();

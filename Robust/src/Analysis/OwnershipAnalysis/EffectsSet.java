@@ -32,7 +32,7 @@ public class EffectsSet {
     if (newSet != null) {
       HashSet<EffectsKey> aSet = readTable.get(idx);
       if (aSet == null) {
-	aSet = new HashSet<EffectsKey>();
+        aSet = new HashSet<EffectsKey>();
       }
       aSet.addAll(newSet);
       readTable.put(idx, aSet);
@@ -45,7 +45,7 @@ public class EffectsSet {
     if (newSet != null) {
       HashSet<EffectsKey> aSet = writeTable.get(idx);
       if (aSet == null) {
-	aSet = new HashSet<EffectsKey>();
+        aSet = new HashSet<EffectsKey>();
       }
       aSet.addAll(newSet);
       writeTable.put(idx, aSet);
@@ -58,7 +58,7 @@ public class EffectsSet {
     if (newSet != null) {
       HashSet<EffectsKey> aSet = strongUpdateTable.get(idx);
       if (aSet == null) {
-	aSet = new HashSet<EffectsKey>();
+        aSet = new HashSet<EffectsKey>();
       }
       aSet.addAll(newSet);
       strongUpdateTable.put(idx, aSet);
@@ -119,13 +119,13 @@ public class EffectsSet {
       Set<EffectsKey> effectSet = readTable.get(idx);
       String keyStr = "{";
       if (effectSet != null) {
-	Iterator<EffectsKey> effectIter = effectSet.iterator();
-	while (effectIter.hasNext()) {
-	  EffectsKey key = effectIter.next();
-	  keyStr += " " + key;
-	}
+        Iterator<EffectsKey> effectIter = effectSet.iterator();
+        while (effectIter.hasNext()) {
+          EffectsKey key = effectIter.next();
+          keyStr += " " + key;
+        }
       } else {
-	keyStr = "null";
+        keyStr = "null";
       }
       System.out.println("param" + idx + " R=" + keyStr);
     }
@@ -138,13 +138,13 @@ public class EffectsSet {
       Set<EffectsKey> effectSet = writeTable.get(idx);
       String keyStr = "{";
       if (effectSet != null) {
-	Iterator<EffectsKey> effectIter = effectSet.iterator();
-	while (effectIter.hasNext()) {
-	  EffectsKey key = effectIter.next();
-	  keyStr += " " + key;
-	}
+        Iterator<EffectsKey> effectIter = effectSet.iterator();
+        while (effectIter.hasNext()) {
+          EffectsKey key = effectIter.next();
+          keyStr += " " + key;
+        }
       } else {
-	keyStr = "null";
+        keyStr = "null";
       }
       System.out.println("param" + idx + " W=" + keyStr);
     }

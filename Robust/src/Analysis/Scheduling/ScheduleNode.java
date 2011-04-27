@@ -122,12 +122,12 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       // insert tomerge in accent order
       int j = mergedcids.size() - 1;
       for(; j > 0; j--) {
-	int tmp = mergedcids.elementAt(j-1);
-	if(tmp > tomerge) {
-	  mergedcids.setElementAt(tmp, j);
-	} else {
-	  break;
-	}
+        int tmp = mergedcids.elementAt(j-1);
+        if(tmp > tomerge) {
+          mergedcids.setElementAt(tmp, j);
+        } else {
+          break;
+        }
       }
       mergedcids.setElementAt(tomerge, j);
     }
@@ -140,9 +140,9 @@ public class ScheduleNode extends GraphNode implements Cloneable {
   public long getExeTime() {
     if(this.executionTime == -1) {
       try {
-	calExeTime();
+        calExeTime();
       } catch (Exception e) {
-	e.printStackTrace();
+        e.printStackTrace();
       }
     }
     return this.executionTime;
@@ -166,22 +166,22 @@ public class ScheduleNode extends GraphNode implements Cloneable {
     if (o instanceof ScheduleNode) {
       ScheduleNode fs=(ScheduleNode)o;
       if(fs.gid == this.gid) {
-	if(fs.uid != this.uid) {
-	  return false;
-	}
-	if(fs.cid != this.cid) {
-	  return false;
-	}
+        if(fs.uid != this.uid) {
+          return false;
+        }
+        if(fs.cid != this.cid) {
+          return false;
+        }
       }
       if ((fs.executionTime != this.executionTime)) {
-	return false;
+        return false;
       }
       if(fs.classNodes != null) {
-	if(!fs.classNodes.equals(classNodes)) {
-	  return false;
-	}
+        if(!fs.classNodes.equals(classNodes)) {
+          return false;
+        }
       } else if(classNodes != null) {
-	return false;
+        return false;
       }
       return true;
     }
@@ -235,25 +235,25 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       ScheduleEdge se = null;
       switch(temp.getType()) {
       case ScheduleEdge.NEWEDGE: {
-	se = new ScheduleEdge(o,
-	                      "new",
-	                      temp.getFstate(),
-	                      ScheduleEdge.NEWEDGE,
-	                      gid);
-	se.setProbability(temp.getProbability());
-	se.setNewRate(temp.getNewRate());
-	break;
+        se = new ScheduleEdge(o,
+                              "new",
+                              temp.getFstate(),
+                              ScheduleEdge.NEWEDGE,
+                              gid);
+        se.setProbability(temp.getProbability());
+        se.setNewRate(temp.getNewRate());
+        break;
       }
 
       case ScheduleEdge.TRANSEDGE: {
-	se = new ScheduleEdge(o,
-	                      "transmit",
-	                      temp.getFstate(),
-	                      ScheduleEdge.TRANSEDGE,
-	                      gid);
-	se.setProbability(temp.getProbability());
-	se.setNewRate(temp.getNewRate());
-	break;
+        se = new ScheduleEdge(o,
+                              "transmit",
+                              temp.getFstate(),
+                              ScheduleEdge.TRANSEDGE,
+                              gid);
+        se.setProbability(temp.getProbability());
+        se.setNewRate(temp.getNewRate());
+        break;
       }
       }
       se.setSourceCNode(cn2cn.get(temp.getSourceCNode()));
@@ -291,10 +291,10 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       scheduleEdges = targetSEdges;
     } else {
       if(targetCNodes.size() != 0) {
-	classNodes.addAll(targetCNodes);
+        classNodes.addAll(targetCNodes);
       }
       if(targetSEdges.size() != 0) {
-	scheduleEdges.addAll(targetSEdges);
+        scheduleEdges.addAll(targetSEdges);
       }
     }
     targetCNodes = null;
@@ -321,40 +321,40 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       Queue<FlagState> toiterate = new LinkedList<FlagState>();
       toiterate.add(sfs);
       while(!toiterate.isEmpty()) {
-	FlagState tmpfs = toiterate.poll();
-	long ttime = tmpfs.getExeTime();
-	Iterator it_inedges = tmpfs.inedges();
-	while(it_inedges.hasNext()) {
-	  FEdge fEdge = (FEdge)it_inedges.next();
-	  FlagState temp = (FlagState)fEdge.getSource();
-	  long time = fEdge.getExeTime() + ttime;
-	  if(temp.getExeTime() > time) {
-	    temp.setExeTime(time);
-	    toiterate.add(temp);
-	  }
-	}
-	it_inedges = null;
+        FlagState tmpfs = toiterate.poll();
+        long ttime = tmpfs.getExeTime();
+        Iterator it_inedges = tmpfs.inedges();
+        while(it_inedges.hasNext()) {
+          FEdge fEdge = (FEdge)it_inedges.next();
+          FlagState temp = (FlagState)fEdge.getSource();
+          long time = fEdge.getExeTime() + ttime;
+          if(temp.getExeTime() > time) {
+            temp.setExeTime(time);
+            toiterate.add(temp);
+          }
+        }
+        it_inedges = null;
       }
       toiterate = null;
 
       // redirct internal ScheduleEdge from tcn to scn
       for(int i = 0; i < targetSEdges.size(); ++i) {
-	ScheduleEdge tmpse = targetSEdges.elementAt(i);
-	if(tmpse.getSourceCNode().equals(tcn)) {
-	  tmpse.setSourceCNode(scn);
-	}
+        ScheduleEdge tmpse = targetSEdges.elementAt(i);
+        if(tmpse.getSourceCNode().equals(tcn)) {
+          tmpse.setSourceCNode(scn);
+        }
       }
 
       // redirect external ScheduleEdges to this ScheduleNode
       // and scn if it is originally from tcn
       Iterator it_edges = sn.edges();
       while(it_edges.hasNext()) {
-	ScheduleEdge tse = (ScheduleEdge)it_edges.next();
-	tse.setSource(this);
-	if(tse.getSourceCNode().equals(tcn)) {
-	  tse.setSourceCNode(scn);
-	}
-	this.edges.addElement(tse);
+        ScheduleEdge tse = (ScheduleEdge)it_edges.next();
+        tse.setSource(this);
+        if(tse.getSourceCNode().equals(tcn)) {
+          tse.setSourceCNode(scn);
+        }
+        this.edges.addElement(tse);
       }
       it_edges = null;
 
@@ -363,10 +363,10 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       // As all tasks inside one ScheduleNode are executed sequentially,
       // simply add the execution time of all the ClassNodes inside one ScheduleNode.
       if(this.executionTime == -1) {
-	throw new Exception("Error: ScheduleNode without initiate execution time when analysising.");
+        throw new Exception("Error: ScheduleNode without initiate execution time when analysising.");
       }
       if(this.executionTime < sn.getExeTime()) {
-	this.executionTime = sn.getExeTime();
+        this.executionTime = sn.getExeTime();
       }
     } else if(ScheduleEdge.NEWEDGE == se.getType()) {
       targetSEdges = null;
@@ -377,16 +377,16 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       this.removeEdge(se);
       Iterator it_edges = sn.edges();
       while(it_edges.hasNext()) {
-	ScheduleEdge tse = (ScheduleEdge)it_edges.next();
-	tse.setSource(this);
-	this.edges.addElement(tse);
+        ScheduleEdge tse = (ScheduleEdge)it_edges.next();
+        tse.setSource(this);
+        this.edges.addElement(tse);
       }
       it_edges = null;
 
       // As all tasks inside one ScheduleNode are executed sequentially,
       // simply add the execution time of all the ClassNodes inside one ScheduleNode.
       if(this.executionTime == -1) {
-	this.executionTime = 0;
+        this.executionTime = 0;
       }
       this.executionTime += ((ScheduleNode)se.getTarget()).getExeTime();
     }
@@ -405,10 +405,10 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       scheduleEdges = targetSEdges;
     } else {
       if(targetCNodes.size() != 0) {
-	classNodes.addAll(targetCNodes);
+        classNodes.addAll(targetCNodes);
       }
       if(targetSEdges.size() != 0) {
-	scheduleEdges.addAll(targetSEdges);
+        scheduleEdges.addAll(targetSEdges);
       }
     }
     targetCNodes = null;
@@ -457,11 +457,11 @@ public class ScheduleNode extends GraphNode implements Cloneable {
     Vector<ScheduleEdge> toremove = new Vector<ScheduleEdge>();
     if(it_innersEdges != null) {
       while(it_innersEdges.hasNext()) {
-	ScheduleEdge tse = (ScheduleEdge)it_innersEdges.next();
-	if((cd.equals(tse.getSourceCNode())) || (cd.equals(tse.getTargetCNode()))) {
-	  // related edge
-	  toremove.addElement(tse);
-	}
+        ScheduleEdge tse = (ScheduleEdge)it_innersEdges.next();
+        if((cd.equals(tse.getSourceCNode())) || (cd.equals(tse.getTargetCNode()))) {
+          // related edge
+          toremove.addElement(tse);
+        }
       }
     }
     it_innersEdges = null;
@@ -469,13 +469,13 @@ public class ScheduleNode extends GraphNode implements Cloneable {
     for(int i = 0; i < toremove.size(); i++) {
       ScheduleEdge tse = toremove.elementAt(i);
       if(cd.equals(tse.getSourceCNode())) {
-	// outedge
-	tse.setTarget(this);
-	sNode.addEdge(tse);
+        // outedge
+        tse.setTarget(this);
+        sNode.addEdge(tse);
       } else if(cd.equals(tse.getTargetCNode())) {
-	// inedge
-	tse.setTarget(sNode);
-	this.addEdge(tse);
+        // inedge
+        tse.setTarget(sNode);
+        this.addEdge(tse);
       }
     }
     toremove.clear();
@@ -485,11 +485,11 @@ public class ScheduleNode extends GraphNode implements Cloneable {
     while(it_exsEdges.hasNext()) {
       ScheduleEdge tse = (ScheduleEdge)it_exsEdges.next();
       if(tse.getSourceCNode().equals(cd)) {
-	toremove.add(tse);
-	//this.removeEdge(tse);
-	//sNode.addEdge(tse);
-	tse.setSource(sNode);
-	sNode.edges.addElement(tse);
+        toremove.add(tse);
+        //this.removeEdge(tse);
+        //sNode.addEdge(tse);
+        tse.setSource(sNode);
+        sNode.edges.addElement(tse);
       }
     }
     this.edges.removeAll(toremove);
@@ -501,9 +501,9 @@ public class ScheduleNode extends GraphNode implements Cloneable {
     while(it_insEdges.hasNext()) {
       ScheduleEdge tse = (ScheduleEdge)it_insEdges.next();
       if(tse.getTargetCNode().equals(cd)) {
-	toremove.add(tse);
-	tse.setTarget(sNode);
-	sNode.inedges.addElement(tse);
+        toremove.add(tse);
+        tse.setTarget(sNode);
+        sNode.inedges.addElement(tse);
       }
     }
     it_insEdges = null;

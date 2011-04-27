@@ -19,7 +19,7 @@ public class ObjectInfo {
       if ((oi.obj != obj) ||
           (oi.fs != fs) ||
           (oi.version != version)) {
-	return false;
+        return false;
       }
       return true;
     }

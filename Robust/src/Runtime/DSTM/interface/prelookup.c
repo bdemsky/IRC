@@ -66,10 +66,10 @@ void prehashInsert(unsigned int key, void *val) {
     tmp = ptr;
     while(tmp != NULL) {
       if(tmp->key == key) {
-	isFound=1;
-	tmp->val = val; //Replace value for an exsisting key
-	pthread_mutex_unlock(&pflookup.lock);
-	return;
+        isFound=1;
+        tmp->val = val; //Replace value for an exsisting key
+        pthread_mutex_unlock(&pflookup.lock);
+        return;
       }
       tmp=tmp->next;
     }
@@ -148,17 +148,17 @@ unsigned int prehashRemove(unsigned int key) {
     if (curr->key == key) {         // Find a match in the hash table
       pflookup.numelements--;  // Decrement the number of elements in the global hashtable
       if ((curr == &ptr[index]) && (curr->next == NULL)) {  // Delete the first item inside the hashtable with no linked list of prehashlistnode_t
-	curr->key = 0;
-	curr->val = NULL;
+        curr->key = 0;
+        curr->val = NULL;
       } else if ((curr == &ptr[index]) && (curr->next != NULL)) { //Delete the first item with a linked list of prehashlistnode_t  connected
-	curr->key = curr->next->key;
-	curr->val = curr->next->val;
-	node = curr->next;
-	curr->next = curr->next->next;
-	free(node);
+        curr->key = curr->next->key;
+        curr->val = curr->next->val;
+        node = curr->next;
+        curr->next = curr->next->next;
+        free(node);
       } else {                                          // Regular delete from linked listed
-	prev->next = curr->next;
-	free(curr);
+        prev->next = curr->next;
+        free(curr);
       }
       pthread_mutex_unlock(&pflookup.lock);
       return 0;
@@ -194,30 +194,30 @@ unsigned int prehashResize(unsigned int newsize) {
     do {
       unsigned int key;
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element for a given bin/index is NULL
-	break;                  //key = val =0 for element if not present within the hash table
+        break;                  //key = val =0 for element if not present within the hash table
       }
       next = curr->next;
       index = (key & mask)>>1;
       tmp=&pflookup.table[index];
       // Insert into the new table
       if(tmp->key==0) {
-	tmp->key=curr->key;
-	tmp->val=curr->val;
-	if (!isfirst)
-	  free(curr);
+        tmp->key=curr->key;
+        tmp->val=curr->val;
+        if (!isfirst)
+          free(curr);
       } /*
-	   NOTE:  Add this case if you change this...
-	   This case currently never happens because of the way things rehash....
-	   else if (isfirst) {
-	   prehashlistnode_t * newnode = calloc(1, sizeof(prehashlistnode_t));
-	   newnode->key = curr->key;
-	   newnode->val = curr->val;
-	   newnode->next = tmp->next;
-	   tmp->next=newnode;
-	   } */
+           NOTE:  Add this case if you change this...
+           This case currently never happens because of the way things rehash....
+           else if (isfirst) {
+           prehashlistnode_t * newnode = calloc(1, sizeof(prehashlistnode_t));
+           newnode->key = curr->key;
+           newnode->val = curr->val;
+           newnode->next = tmp->next;
+           tmp->next=newnode;
+           } */
       else {
-	curr->next=tmp->next;
-	tmp->next=curr;
+        curr->next=tmp->next;
+        tmp->next=curr;
       }
 
       isfirst = 0;

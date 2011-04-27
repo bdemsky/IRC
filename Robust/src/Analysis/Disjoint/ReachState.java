@@ -100,7 +100,7 @@ public class ReachState extends Canonical {
       if( hrnID.equals(rt.getHrnID() ) &&
           isOutOfContext == rt.isOutOfContext()
           ) {
-	return rt;
+        return rt;
       }
     }
 

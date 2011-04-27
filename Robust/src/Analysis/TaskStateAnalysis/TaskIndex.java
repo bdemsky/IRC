@@ -29,10 +29,10 @@ public class TaskIndex {
     if (o instanceof TaskIndex) {
       TaskIndex ti=(TaskIndex) o;
       if (ti.runtime==runtime)
-	return true;
+        return true;
 
       if (ti.index==index && ti.td==td)
-	return true;
+        return true;
     }
     return false;
   }

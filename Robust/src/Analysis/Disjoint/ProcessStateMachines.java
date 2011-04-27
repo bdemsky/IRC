@@ -41,27 +41,27 @@ public class ProcessStateMachines {
       mergeAgain=false;
       HashMap<Pair<SMFEState, FieldDescriptor>, Set<SMFEState>> revMap=buildReverse(backMap);
       for(Map.Entry<Pair<SMFEState,FieldDescriptor>, Set<SMFEState>> entry : revMap.entrySet()) {
-	if (entry.getValue().size()>1) {
-	  SMFEState first=null;
-	  for(SMFEState state : entry.getValue()) {
-	    if (removedStates.contains(state))
-	      continue;
-	    if (first==null) {
-	      first=state;
-	    } else {
-	      mergeAgain=true;
-	      System.out.println("MERGING:"+first+" and "+state);
-	      //Make sure we don't merge the initial state someplace else
-	      if (state==sm.initialState) {
-		state=first;
-		first=sm.initialState;
-	      }
-	      mergeTwoStates(first, state, backMap);
-	      removedStates.add(state);
-	      sm.fn2state.remove(state.whereDefined);
-	    }
-	  }
-	}
+        if (entry.getValue().size()>1) {
+          SMFEState first=null;
+          for(SMFEState state : entry.getValue()) {
+            if (removedStates.contains(state))
+              continue;
+            if (first==null) {
+              first=state;
+            } else {
+              mergeAgain=true;
+              System.out.println("MERGING:"+first+" and "+state);
+              //Make sure we don't merge the initial state someplace else
+              if (state==sm.initialState) {
+                state=first;
+                first=sm.initialState;
+              }
+              mergeTwoStates(first, state, backMap);
+              removedStates.add(state);
+              sm.fn2state.remove(state.whereDefined);
+            }
+          }
+        }
       }
     } while(mergeAgain);
   }
@@ -72,9 +72,9 @@ public class ProcessStateMachines {
     for(Map.Entry<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>>entry : backMap.entrySet()) {
       SMFEState state=entry.getKey();
       for(Pair<SMFEState, FieldDescriptor> pair : entry.getValue()) {
-	if (!revMap.containsKey(pair))
-	  revMap.put(pair, new HashSet<SMFEState>());
-	revMap.get(pair).add(state);
+        if (!revMap.containsKey(pair))
+          revMap.put(pair, new HashSet<SMFEState>());
+        revMap.get(pair).add(state);
       }
     }
     return revMap;
@@ -93,36 +93,36 @@ public class ProcessStateMachines {
       Effect e=entry.getKey();
       Set<SMFEState> states=entry.getValue();
       if (state1.e2states.containsKey(e)) {
-	for(SMFEState statetoadd : states) {
-	  if (!state1.e2states.get(e).add(statetoadd)) {
-	    //already added...reduce reference count
-	    statetoadd.refCount--;
-	  }
-	}
+        for(SMFEState statetoadd : states) {
+          if (!state1.e2states.get(e).add(statetoadd)) {
+            //already added...reduce reference count
+            statetoadd.refCount--;
+          }
+        }
       } else {
-	state1.e2states.put(e, states);
+        state1.e2states.put(e, states);
       }
       Set<SMFEState> states1=state1.e2states.get(e);
 
       //move now-self edges
       if (states1.contains(state2)) {
-	states1.remove(state2);
-	states1.add(state1);
+        states1.remove(state2);
+        states1.add(state1);
       }
 
       //fix up the backmap of the edges we point to
       for(SMFEState st : states1) {
-	HashSet<Pair<SMFEState, FieldDescriptor>> toRemove=new HashSet<Pair<SMFEState, FieldDescriptor>>();
-	HashSet<Pair<SMFEState, FieldDescriptor>> toAdd=new HashSet<Pair<SMFEState, FieldDescriptor>>();
-	for(Pair<SMFEState, FieldDescriptor> backpair : backMap.get(st)) {
-	  if (backpair.getFirst()==state2) {
-	    Pair<SMFEState, FieldDescriptor> newpair=new Pair<SMFEState, FieldDescriptor>(state1, backpair.getSecond());
-	    toRemove.add(backpair);
-	    toAdd.add(newpair);
-	  }
-	}
-	backMap.get(st).removeAll(toRemove);
-	backMap.get(st).addAll(toAdd);
+        HashSet<Pair<SMFEState, FieldDescriptor>> toRemove=new HashSet<Pair<SMFEState, FieldDescriptor>>();
+        HashSet<Pair<SMFEState, FieldDescriptor>> toAdd=new HashSet<Pair<SMFEState, FieldDescriptor>>();
+        for(Pair<SMFEState, FieldDescriptor> backpair : backMap.get(st)) {
+          if (backpair.getFirst()==state2) {
+            Pair<SMFEState, FieldDescriptor> newpair=new Pair<SMFEState, FieldDescriptor>(state1, backpair.getSecond());
+            toRemove.add(backpair);
+            toAdd.add(newpair);
+          }
+        }
+        backMap.get(st).removeAll(toRemove);
+        backMap.get(st).addAll(toAdd);
       }
     }
 
@@ -130,14 +130,14 @@ public class ProcessStateMachines {
     for(Pair<SMFEState,FieldDescriptor> fromStatePair : backMap.get(state2)) {
       SMFEState fromState=fromStatePair.getFirst();
       for(Map.Entry<Effect, Set<SMFEState>> fromEntry : fromState.e2states.entrySet()) {
-	Effect e=fromEntry.getKey();
-	Set<SMFEState> states=fromEntry.getValue();
-	if (states.contains(state2)) {
-	  states.remove(state2);
-	  if(states.add(state1) && !fromState.equals(state2)) {
-	    state1.refCount++;
-	  }
-	}
+        Effect e=fromEntry.getKey();
+        Set<SMFEState> states=fromEntry.getValue();
+        if (states.contains(state2)) {
+          states.remove(state2);
+          if(states.add(state1) && !fromState.equals(state2)) {
+            state1.refCount++;
+          }
+        }
       }
     }
     //Clear out unreachable state's backmap
@@ -158,15 +158,15 @@ public class ProcessStateMachines {
       FlatNode fn=fnit.next();
       SMFEState state=sm.fn2state.get(fn);
       for(Iterator<Effect> efit=state.effects.iterator(); efit.hasNext(); ) {
-	Effect e=efit.next();
-	//Is it a conflicting effecting
-	if (state.getConflicts().contains(e))
-	  continue;
-	//Does it still have transitions
-	if (state.e2states.containsKey(e))
-	  continue;
-	//If no to both, remove it
-	efit.remove();
+        Effect e=efit.next();
+        //Is it a conflicting effecting
+        if (state.getConflicts().contains(e))
+          continue;
+        //Does it still have transitions
+        if (state.e2states.containsKey(e))
+          continue;
+        //If no to both, remove it
+        efit.remove();
       }
     }
   }
@@ -177,19 +177,19 @@ public class ProcessStateMachines {
       FlatNode fn=fnit.next();
       SMFEState state=sm.fn2state.get(fn);
       if (canReachConflicts.contains(state)) {
-	for(Iterator<Effect> efit=state.e2states.keySet().iterator(); efit.hasNext(); ) {
-	  Effect e=efit.next();
-	  Set<SMFEState> stateset=state.e2states.get(e);
-	  for(Iterator<SMFEState> stit=stateset.iterator(); stit.hasNext(); ) {
-	    SMFEState tostate=stit.next();
-	    if(!canReachConflicts.contains(tostate))
-	      stit.remove();
-	  }
-	  if (stateset.isEmpty())
-	    efit.remove();
-	}
+        for(Iterator<Effect> efit=state.e2states.keySet().iterator(); efit.hasNext(); ) {
+          Effect e=efit.next();
+          Set<SMFEState> stateset=state.e2states.get(e);
+          for(Iterator<SMFEState> stit=stateset.iterator(); stit.hasNext(); ) {
+            SMFEState tostate=stit.next();
+            if(!canReachConflicts.contains(tostate))
+              stit.remove();
+          }
+          if (stateset.isEmpty())
+            efit.remove();
+        }
       } else {
-	fnit.remove();
+        fnit.remove();
       }
     }
   }
@@ -206,17 +206,17 @@ public class ProcessStateMachines {
     while(!toprocess.isEmpty()) {
       SMFEState state=toprocess.pop();
       if (!state.getConflicts().isEmpty()&&conflictStates!=null) {
-	conflictStates.add(state);
+        conflictStates.add(state);
       }
       for(Effect e : state.getEffectsAllowed()) {
-	for(SMFEState stateout : state.transitionsTo(e)) {
-	  if (!backMap.containsKey(stateout)) {
-	    toprocess.add(stateout);
-	    backMap.put(stateout, new HashSet<Pair<SMFEState,FieldDescriptor>>());
-	  }
-	  Pair<SMFEState, FieldDescriptor> p=new Pair<SMFEState, FieldDescriptor>(state, e.getField());
-	  backMap.get(stateout).add(p);
-	}
+        for(SMFEState stateout : state.transitionsTo(e)) {
+          if (!backMap.containsKey(stateout)) {
+            toprocess.add(stateout);
+            backMap.put(stateout, new HashSet<Pair<SMFEState,FieldDescriptor>>());
+          }
+          Pair<SMFEState, FieldDescriptor> p=new Pair<SMFEState, FieldDescriptor>(state, e.getField());
+          backMap.get(stateout).add(p);
+        }
       }
     }
     return backMap;
@@ -235,11 +235,11 @@ public class ProcessStateMachines {
       SMFEState state=toprocess.pop();
 
       for(Pair<SMFEState,FieldDescriptor> instatepair : backMap.get(state)) {
-	SMFEState instate=instatepair.getFirst();
-	if (!canReachConflicts.contains(instate)) {
-	  toprocess.add(instate);
-	  canReachConflicts.add(instate);
-	}
+        SMFEState instate=instatepair.getFirst();
+        if (!canReachConflicts.contains(instate)) {
+          toprocess.add(instate);
+          canReachConflicts.add(instate);
+        }
       }
     }
     return canReachConflicts;
@@ -251,9 +251,9 @@ public class ProcessStateMachines {
       StateMachineForEffects sm=bsm.getStateMachine(machinePair);
       Set<FlatSESEEnterNode> taskSet=taskAnalysis.getPossibleExecutingRBlocks(fn);
       for(FlatSESEEnterNode sese : taskSet) {
-	if (!groupMap.containsKey(sese))
-	  groupMap.put(sese, new HashSet<StateMachineForEffects>());
-	groupMap.get(sese).add(sm);
+        if (!groupMap.containsKey(sese))
+          groupMap.put(sese, new HashSet<StateMachineForEffects>());
+        groupMap.get(sese).add(sm);
       }
     }
   }
@@ -265,8 +265,8 @@ public class ProcessStateMachines {
       StateMachineForEffects sm=bsm.getStateMachine(machinePair);
       Set<FlatSESEEnterNode> taskSet=taskAnalysis.getPossibleExecutingRBlocks(fn);
       for(FlatSESEEnterNode sese : taskSet) {
-	Set<StateMachineForEffects> smgroup=groupMap.get(sese);
-	computeConflictingEffects(sm, smgroup);
+        Set<StateMachineForEffects> smgroup=groupMap.get(sese);
+        computeConflictingEffects(sm, smgroup);
       }
     }
   }
@@ -275,34 +275,34 @@ public class ProcessStateMachines {
     boolean isStall=sm.getStallorSESE().kind()!=FKind.FlatSESEEnterNode;
     for(SMFEState state : sm.getStates()) {
       for(Effect e : state.getEffectsAllowed()) {
-	Alloc a=e.getAffectedAllocSite();
-	FieldDescriptor fd=e.getField();
-	int type=e.getType();
-	boolean hasConflict=false;
-	if (!isStall&&Effect.isWrite(type)) {
-	  hasConflict=true;
-	} else {
-	  for(StateMachineForEffects othersm : smgroup) {
-	    boolean otherIsStall=othersm.getStallorSESE().kind()!=FKind.FlatSESEEnterNode;
-	    //Stall sites can't conflict with each other
-	    if (isStall&&otherIsStall) continue;
+        Alloc a=e.getAffectedAllocSite();
+        FieldDescriptor fd=e.getField();
+        int type=e.getType();
+        boolean hasConflict=false;
+        if (!isStall&&Effect.isWrite(type)) {
+          hasConflict=true;
+        } else {
+          for(StateMachineForEffects othersm : smgroup) {
+            boolean otherIsStall=othersm.getStallorSESE().kind()!=FKind.FlatSESEEnterNode;
+            //Stall sites can't conflict with each other
+            if (isStall&&otherIsStall) continue;
 
-	    int effectType=othersm.getEffects(a, fd);
-	    if (Effect.isWrite(type)&&effectType!=0) {
-	      //Original effect is a write and we have some effect on the same field/alloc site
-	      hasConflict=true;
-	      break;
-	    }
-	    if (Effect.isWrite(effectType)) {
-	      //We are a write
-	      hasConflict=true;
-	      break;
-	    }
-	  }
-	}
-	if (hasConflict) {
-	  state.addConflict(e);
-	}
+            int effectType=othersm.getEffects(a, fd);
+            if (Effect.isWrite(type)&&effectType!=0) {
+              //Original effect is a write and we have some effect on the same field/alloc site
+              hasConflict=true;
+              break;
+            }
+            if (Effect.isWrite(effectType)) {
+              //We are a write
+              hasConflict=true;
+              break;
+            }
+          }
+        }
+        if (hasConflict) {
+          state.addConflict(e);
+        }
       }
     }
   }
@@ -324,11 +324,11 @@ public class ProcessStateMachines {
       if( (effectType & Effect.read)  != 0 &&
           (effectType & Effect.write) != 0
           ) {
-	allocAndFieldRW.add(new Effect(af.getFirst(),
-	                               Effect.read,
-	                               af.getSecond()
-	                               )
-	                    );
+        allocAndFieldRW.add(new Effect(af.getFirst(),
+                                       Effect.read,
+                                       af.getSecond()
+                                       )
+                            );
       }
     }
 
@@ -337,9 +337,9 @@ public class ProcessStateMachines {
     // as... POSSIBLY EVIL!!!!!
     for( SMFEState state : sm.getStates() ) {
       for( Effect effect : state.getTransitionEffects() ) {
-	if( allocAndFieldRW.contains(effect) ) {
-	  sm.addPossiblyEvilEffect(effect);
-	}
+        if( allocAndFieldRW.contains(effect) ) {
+          sm.addPossiblyEvilEffect(effect);
+        }
       }
     }
   }

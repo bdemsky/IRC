@@ -70,7 +70,7 @@ public class ReachSet extends Canonical {
     while( stateItr.hasNext() ) {
       ReachState stateThis = stateItr.next();
       if( stateThis.equalsIgnorePreds(state) ) {
-	return stateThis;
+        return stateThis;
       }
     }
 
@@ -97,14 +97,14 @@ public class ReachSet extends Canonical {
     while( itr.hasNext() ) {
       ReachState stateThis = itr.next();
       if( strict ) {
-	if( !state.equals(stateThis) &&
-	    state.isSubset(stateThis) ) {
-	  return true;
-	}
+        if( !state.equals(stateThis) &&
+            state.isSubset(stateThis) ) {
+          return true;
+        }
       } else {
-	if( state.isSubset(stateThis) ) {
-	  return true;
-	}
+        if( state.isSubset(stateThis) ) {
+          return true;
+        }
       }
     }
 
@@ -117,7 +117,7 @@ public class ReachSet extends Canonical {
     while( itr.hasNext() ) {
       ReachState state = itr.next();
       if( state.containsTuple(rt) ) {
-	return true;
+        return true;
       }
     }
     return false;
@@ -133,7 +133,7 @@ public class ReachSet extends Canonical {
       ReachState state = itr.next();
       if( state.containsTuple(rt1) &&
           state.containsTuple(rt2) ) {
-	out.reachStates.add(state);
+        out.reachStates.add(state);
       }
     }
 
@@ -148,12 +148,12 @@ public class ReachSet extends Canonical {
     for( int i = 0; i < v.size(); ++i ) {
       ReachState s1 = v.get(i);
       for( int j = i+1; j < v.size(); ++j ) {
-	ReachState s2 = v.get(j);
-	if( s1.equals(s2) ) {
-	  assert s1.isCanonical();
-	  assert s2.isCanonical();
-	  return false;
-	}
+        ReachState s2 = v.get(j);
+        if( s1.equals(s2) ) {
+          assert s1.isCanonical();
+          assert s2.isCanonical();
+          return false;
+        }
       }
     }
     return true;
@@ -189,12 +189,12 @@ public class ReachSet extends Canonical {
       // skip this if there is a superset already
       if( hideSubsetReachability &&
           containsStrictSuperSet(state) ) {
-	continue;
+        continue;
       }
 
       s += state;
       if( i.hasNext() ) {
-	s += "\\n";
+        s += "\\n";
       }
     }
 
@@ -217,13 +217,13 @@ public class ReachSet extends Canonical {
 
       Iterator<ReachState> i = this.iterator();
       while( i.hasNext() ) {
-	ReachState state = i.next();
+        ReachState state = i.next();
 
-	if( containsStrictSuperSet(state) ) {
-	  continue;
-	}
+        if( containsStrictSuperSet(state) ) {
+          continue;
+        }
 
-	toPrint = Canonical.add(toPrint, state);
+        toPrint = Canonical.add(toPrint, state);
       }
     }
 
@@ -235,7 +235,7 @@ public class ReachSet extends Canonical {
 
       s += state;
       if( i.hasNext() ) {
-	s += "\n";
+        s += "\n";
       }
     }
 

@@ -60,12 +60,12 @@ void removetransaction(unsigned int oidarray[], unsigned int numoids) {
       int count=rl->numreaders;
       int j;
       for(j=0; count; j++) {
-	int *t_abort=rl->array[j];
-	if (t_abort!=NULL) {
-	  *t_abort=1; //It's okay to set our own abort flag...it is
-	  //too late to abort us
-	  count--;
-	}
+        int *t_abort=rl->array[j];
+        if (t_abort!=NULL) {
+          *t_abort=1; //It's okay to set our own abort flag...it is
+          //too late to abort us
+          count--;
+        }
       }
       tmp=rl;
       rl=rl->next;
@@ -86,23 +86,23 @@ void removethisreadtransaction(unsigned char* oidverread, unsigned int numoids) 
     oidverread+=(sizeof(unsigned int)+sizeof(unsigned short));
     while(rl!=NULL) {
       for(j=0; j<READERSIZE; j++) {
-	if (rl->array[j]==&t_abort) {
-	  rl->array[j]=NULL;
-	  if ((--rl->numreaders)==0) {
-	    if (first==rl) {
-	      chashRemove2(aborttable, oid);
-	      if (rl->next!=NULL)
-		chashInsert(aborttable, oid, rl->next);
-	      rl->next=freelist;
-	      freelist=rl;
-	    } else {
-	      first->next=rl->next;
-	      rl->next=freelist;
-	      freelist=rl;
-	    }
-	  }
-	  goto nextitem;
-	}
+        if (rl->array[j]==&t_abort) {
+          rl->array[j]=NULL;
+          if ((--rl->numreaders)==0) {
+            if (first==rl) {
+              chashRemove2(aborttable, oid);
+              if (rl->next!=NULL)
+                chashInsert(aborttable, oid, rl->next);
+              rl->next=freelist;
+              freelist=rl;
+            } else {
+              first->next=rl->next;
+              rl->next=freelist;
+              freelist=rl;
+            }
+          }
+          goto nextitem;
+        }
       }
       first=rl;
       rl=rl->next;
@@ -122,31 +122,31 @@ void removetransactionhash() {
     do {
       unsigned int oid=curr->key;
       if (oid==0)
-	break;
+        break;
       struct readerlist * rl=chashSearch(aborttable, oid);
       struct readerlist *first=rl;
       while(rl!=NULL) {
-	for(j=0; j<READERSIZE; j++) {
-	  if (rl->array[j]==&t_abort) {
-	    rl->array[j]=NULL;
-	    if ((--rl->numreaders)==0) {
-	      if (first==rl) {
-		chashRemove2(aborttable, oid);
-		if (rl->next!=NULL)
-		  chashInsert(aborttable, oid, rl->next);
-		rl->next=freelist;
-		freelist=rl;
-	      } else {
-		first->next=rl->next;
-		rl->next=freelist;
-		freelist=rl;
-	      }
-	    }
-	    goto nextitem;
-	  }
-	}
-	first=rl;
-	rl=rl->next;
+        for(j=0; j<READERSIZE; j++) {
+          if (rl->array[j]==&t_abort) {
+            rl->array[j]=NULL;
+            if ((--rl->numreaders)==0) {
+              if (first==rl) {
+                chashRemove2(aborttable, oid);
+                if (rl->next!=NULL)
+                  chashInsert(aborttable, oid, rl->next);
+                rl->next=freelist;
+                freelist=rl;
+              } else {
+                first->next=rl->next;
+                rl->next=freelist;
+                freelist=rl;
+              }
+            }
+            goto nextitem;
+          }
+        }
+        first=rl;
+        rl=rl->next;
       }
 nextitem:
       curr=curr->next;
@@ -166,23 +166,23 @@ void removethistransaction(unsigned int oidarray[], unsigned int numoids) {
     struct readerlist *first=rl;
     while(rl!=NULL) {
       for(j=0; j<READERSIZE; j++) {
-	if (rl->array[j]==&t_abort) {
-	  rl->array[j]=NULL;
-	  if ((--rl->numreaders)==0) {
-	    if (first==rl) {
-	      chashRemove2(aborttable, oid);
-	      if (rl->next!=NULL)
-		chashInsert(aborttable, oid, rl->next);
-	      rl->next=freelist;
-	      freelist=rl;
-	    } else {
-	      first->next=rl->next;
-	      rl->next=freelist;
-	      freelist=rl;
-	    }
-	  }
-	  goto nextitem;
-	}
+        if (rl->array[j]==&t_abort) {
+          rl->array[j]=NULL;
+          if ((--rl->numreaders)==0) {
+            if (first==rl) {
+              chashRemove2(aborttable, oid);
+              if (rl->next!=NULL)
+                chashInsert(aborttable, oid, rl->next);
+              rl->next=freelist;
+              freelist=rl;
+            } else {
+              first->next=rl->next;
+              rl->next=freelist;
+              freelist=rl;
+            }
+          }
+          goto nextitem;
+        }
       }
       first=rl;
       rl=rl->next;

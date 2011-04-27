@@ -44,14 +44,14 @@ public class TertiaryNode extends ExpressionNode {
     if(c != null) {
       Long t = this.trueExpr.evaluate();
       if(t != null) {
-	Long f = this.falseExpr.evaluate();
-	if(f != null) {
-	  if(c.intValue() > 0) {
-	    eval = t;
-	  } else {
-	    eval = f;
-	  }
-	}
+        Long f = this.falseExpr.evaluate();
+        if(f != null) {
+          if(c.intValue() > 0) {
+            eval = t;
+          } else {
+            eval = f;
+          }
+        }
       }
     }
     return eval;

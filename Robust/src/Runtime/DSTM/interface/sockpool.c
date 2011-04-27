@@ -6,16 +6,16 @@ inline int test_and_set(volatile unsigned int *addr) {
   int oldval;
   /* Note: the "xchg" instruction does not need a "lock" prefix */
   __asm__ __volatile__ ("xchgl %0, %1"
-			: "=r" (oldval), "=m" (*(addr))
-			: "0" (1), "m" (*(addr)));
+                        : "=r" (oldval), "=m" (*(addr))
+                        : "0" (1), "m" (*(addr)));
   return oldval;
 }
 inline void UnLock(volatile unsigned int *addr) {
   int oldval;
   /* Note: the "xchg" instruction does not need a "lock" prefix */
   __asm__ __volatile__ ("xchgl %0, %1"
-			: "=r" (oldval), "=m" (*(addr))
-			: "0" (0), "m" (*(addr)));
+                        : "=r" (oldval), "=m" (*(addr))
+                        : "0" (0), "m" (*(addr)));
 }
 #elif
 #   error need implementation of test_and_set
@@ -28,8 +28,8 @@ inline void Lock(volatile unsigned int *s) {
     int i=0;
     while(*s) {
       if (i++>MAXSPINS) {
-	sched_yield();
-	i=0;
+        sched_yield();
+        i=0;
       }
     }
   }
@@ -267,32 +267,32 @@ int getSock(sock_pool_t *sockpool, unsigned int mid) {
     if (sockpool[i].mid == mid) {
       int j;
       for (j = 0; j < MAX_CONN_PER_MACHINE; j++) {
-	if (sockpool[i].sd[j] != -1 && (sockpool[i].inuse[j] == 0)) {
-	  sockpool[i].inuse[j] = 1;
-	  return sockpool[i].sd[j];
-	}
-	if (sockpool[i].sd[j] == -1) {
-	  //Open Connection
-	  int sd;
-	  if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-	    printf("%s() Error: In creating socket at %s, %d\n", __func__, __FILE__, __LINE__);
-	    return -1;
-	  }
-	  struct sockaddr_in remoteAddr;
-	  bzero(&remoteAddr, sizeof(remoteAddr));
-	  remoteAddr.sin_family = AF_INET;
-	  remoteAddr.sin_port = htons(LISTEN_PORT);
-	  remoteAddr.sin_addr.s_addr = htonl(mid);
+        if (sockpool[i].sd[j] != -1 && (sockpool[i].inuse[j] == 0)) {
+          sockpool[i].inuse[j] = 1;
+          return sockpool[i].sd[j];
+        }
+        if (sockpool[i].sd[j] == -1) {
+          //Open Connection
+          int sd;
+          if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            printf("%s() Error: In creating socket at %s, %d\n", __func__, __FILE__, __LINE__);
+            return -1;
+          }
+          struct sockaddr_in remoteAddr;
+          bzero(&remoteAddr, sizeof(remoteAddr));
+          remoteAddr.sin_family = AF_INET;
+          remoteAddr.sin_port = htons(LISTEN_PORT);
+          remoteAddr.sin_addr.s_addr = htonl(mid);
 
-	  if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
-	    printf("%s(): Error %d connecting to %s:%d\n", __func__, errno, inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
-	    close(sd);
-	    return -1;
-	  }
-	  sockpool[i].sd[j] = sd;
-	  sockpool[i].inuse[j] = 1;
-	  return sockpool[i].sd[j];
-	}
+          if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
+            printf("%s(): Error %d connecting to %s:%d\n", __func__, errno, inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
+            close(sd);
+            return -1;
+          }
+          sockpool[i].sd[j] = sd;
+          sockpool[i].inuse[j] = 1;
+          return sockpool[i].sd[j];
+        }
       }
       printf("%s()->Error: Less number of MAX_CONN_PER_MACHINE\n", __func__);
       return -1;
@@ -309,8 +309,8 @@ int freeSock(sock_pool_t *sockpool, int sd) {
     int j;
     for (j = 0; j < MAX_CONN_PER_MACHINE; j++) {
       if (sockpool[i].sd[j] == sd) {
-	sockpool[i].inuse[j] = 0;
-	return 0;
+        sockpool[i].inuse[j] = 0;
+        return 0;
       }
     }
   }

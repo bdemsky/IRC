@@ -281,9 +281,9 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
     if(val==NULL) {
       //queue is null, first case
       if(*(r->pointer)!=0) {
-	// check whether pointer is already resolved, or not.
-	table->unresolvedQueue=NULL; //released lock;
-	return ADDTABLEITEM(table,r,TRUE);
+        // check whether pointer is already resolved, or not.
+        table->unresolvedQueue=NULL; //released lock;
+        return ADDTABLEITEM(table,r,TRUE);
       }
       struct Queue* queue=createQueue();
       addNewItemBack(queue,r);
@@ -411,16 +411,16 @@ int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
   if (T->item.status==READY) {
     for(; val!=NULL; val=val->next) {
       if (val==((BinItem *)b)) {
-	//ready to retire
-	retval=READY;
-	if (isParent(r)) {
-	  b->item.status=retval; //unsure if really needed at this point..
-	  be->head=NULL; // released lock
-	  return retval;
-	}
-	break;
+        //ready to retire
+        retval=READY;
+        if (isParent(r)) {
+          b->item.status=retval; //unsure if really needed at this point..
+          be->head=NULL; // released lock
+          return retval;
+        }
+        break;
       } else if (val->total!=0) {
-	break;
+        break;
       }
     }
   }
@@ -560,12 +560,12 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
     flag=(void*)LOCKXCHG((unsigned INTPTR*)&(V->array[index]), (unsigned INTPTR)flag);
     if (flag!=NULL) {
       if (isParentCoarse(r)) { //parent's retire immediately
-	atomic_dec(&V->item.total);
-	V->index--;
+        atomic_dec(&V->item.total);
+        V->index--;
       } else {
 #if defined(RCR)&&!defined(OOO_DISABLE_TASKMEMPOOL)
-	if (atomic_sub_and_test(1, &r->count))
-	  poolfreeinto(Q->rentrypool, r);
+        if (atomic_sub_and_test(1, &r->count))
+          poolfreeinto(Q->rentrypool, r);
 #endif
       }
       return READY;
@@ -604,7 +604,7 @@ int ADDSCC(MemoryQueue *Q, REntry *r) {
     if (flag!=NULL) {
 #if defined(RCR)&&!defined(OOO_DISABLE_TASKMEMPOOL)
       if (atomic_sub_and_test(1, &r->count))
-	poolfreeinto(Q->rentrypool, r);
+        poolfreeinto(Q->rentrypool, r);
 #endif
       return READY;
     } else {
@@ -683,53 +683,53 @@ void RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
     int i;
     while (ptr!=NULL) {
       if (isReadBinItem(ptr)) {
-	ReadBinItem* rptr=(ReadBinItem*)ptr;
-	if (rptr->item.status==NOTREADY) {
-	  for (i=0; i<rptr->index; i++) {
-	    resolveDependencies(rptr->array[i]);
-	    if (isParent(rptr->array[i])) {
-	      //parents go immediately
-	      atomic_dec(&rptr->item.total);
-	      atomic_dec(&T->item.total);
-	    }
-	  }
-	}
-	rptr->item.status=READY;
-	if (rptr->item.next==NULL) {
-	  break;
-	}
-	if (rptr->item.total!=0) {
-	  haveread=TRUE;
-	} else if ((BinItem*)rptr==val) {
-	  val=val->next;
-	}
+        ReadBinItem* rptr=(ReadBinItem*)ptr;
+        if (rptr->item.status==NOTREADY) {
+          for (i=0; i<rptr->index; i++) {
+            resolveDependencies(rptr->array[i]);
+            if (isParent(rptr->array[i])) {
+              //parents go immediately
+              atomic_dec(&rptr->item.total);
+              atomic_dec(&T->item.total);
+            }
+          }
+        }
+        rptr->item.status=READY;
+        if (rptr->item.next==NULL) {
+          break;
+        }
+        if (rptr->item.total!=0) {
+          haveread=TRUE;
+        } else if ((BinItem*)rptr==val) {
+          val=val->next;
+        }
       } else if(isWriteBinItem(ptr)) {
-	if (haveread)
-	  break;
-	if(ptr->status==NOTREADY) {
-	  resolveDependencies(((WriteBinItem*)ptr)->val);
-	  ptr->status=READY;
-	  if(isParent(((WriteBinItem*)ptr)->val)) {
-	    atomic_dec(&T->item.total);
-	    val=val->next;
-	  } else
-	    break;
-	} else { // write bin is already resolved
-	  val=val->next;
-	}
-	/*
-	   if(ptr->status==NOTREADY) {
-	   resolveDependencies(((WriteBinItem*)ptr)->val);
-	   }
-	   ptr->status=READY;
-	   if (isParent(((WriteBinItem*)ptr)->val)) {
-	    atomic_dec(&T->item.total);
-	    //val=val->next;
-	    val=ptr->next;
-	   } else
-	    break;
-	   }
-	 */
+        if (haveread)
+          break;
+        if(ptr->status==NOTREADY) {
+          resolveDependencies(((WriteBinItem*)ptr)->val);
+          ptr->status=READY;
+          if(isParent(((WriteBinItem*)ptr)->val)) {
+            atomic_dec(&T->item.total);
+            val=val->next;
+          } else
+            break;
+        } else { // write bin is already resolved
+          val=val->next;
+        }
+        /*
+           if(ptr->status==NOTREADY) {
+           resolveDependencies(((WriteBinItem*)ptr)->val);
+           }
+           ptr->status=READY;
+           if (isParent(((WriteBinItem*)ptr)->val)) {
+            atomic_dec(&T->item.total);
+            //val=val->next;
+            val=ptr->next;
+           } else
+            break;
+           }
+         */
       }
       ptr=ptr->next;
     }
@@ -764,21 +764,21 @@ void RESOLVECHAIN(MemoryQueue *Q) {
     if (head->next==NULL||head->total!=0) {
       //item is not finished
       if (head->status!=READY) {
-	//need to update status
-	head->status=READY;
-	if (isHashtable(head)) {
-	  RESOLVEHASHTABLE(Q, (Hashtable *) head);
-	} else if (isVector(head)) {
-	  RESOLVEVECTOR(Q, (Vector *) head);
-	} else if (isSingleItem(head)) {
-	  RESOLVESCC(Q, (SCC *)head);
-	}
-	if (head->next==NULL)
-	  break;
-	if (head->total!=0)
-	  break;
+        //need to update status
+        head->status=READY;
+        if (isHashtable(head)) {
+          RESOLVEHASHTABLE(Q, (Hashtable *) head);
+        } else if (isVector(head)) {
+          RESOLVEVECTOR(Q, (Vector *) head);
+        } else if (isSingleItem(head)) {
+          RESOLVESCC(Q, (SCC *)head);
+        }
+        if (head->next==NULL)
+          break;
+        if (head->total!=0)
+          break;
       } else
-	break;
+        break;
     }
     MemoryQueueItem* nextitem=head->next;
     CAS((unsigned INTPTR*)&(Q->head), (unsigned INTPTR)head, (unsigned INTPTR)nextitem);
@@ -801,34 +801,34 @@ void RESOLVEHASHTABLE(MemoryQueue *Q, Hashtable *T) {
     BinItem* ptr=val;
     if(ptr!=NULL&&ptr->status==NOTREADY) {
       do {
-	if (isWriteBinItem(ptr)) {
-	  if (haveread)
-	    break;
-	  resolveDependencies(((WriteBinItem*)ptr)->val);
-	  ptr->status=READY;
-	  if (isParent(((WriteBinItem*)ptr)->val)) {
-	    atomic_dec(&T->item.total);
-	    val=val->next;
-	  } else
-	    break;
-	} else if (isReadBinItem(ptr)) {
-	  int i;
-	  ReadBinItem* rptr=(ReadBinItem*)ptr;
-	  for(i=0; i<rptr->index; i++) {
-	    resolveDependencies(rptr->array[i]);
-	    if (isParent(rptr->array[i])) {
-	      atomic_dec(&rptr->item.total);
-	      atomic_dec(&T->item.total);
-	    }
-	  }
-	  if (rptr->item.next==NULL||rptr->item.total!=0) {
-	    haveread=TRUE;
-	  } else if((BinItem*)rptr==val) {
-	    val=val->next;
-	  }
-	  rptr->item.status=READY;
-	}
-	ptr=ptr->next;
+        if (isWriteBinItem(ptr)) {
+          if (haveread)
+            break;
+          resolveDependencies(((WriteBinItem*)ptr)->val);
+          ptr->status=READY;
+          if (isParent(((WriteBinItem*)ptr)->val)) {
+            atomic_dec(&T->item.total);
+            val=val->next;
+          } else
+            break;
+        } else if (isReadBinItem(ptr)) {
+          int i;
+          ReadBinItem* rptr=(ReadBinItem*)ptr;
+          for(i=0; i<rptr->index; i++) {
+            resolveDependencies(rptr->array[i]);
+            if (isParent(rptr->array[i])) {
+              atomic_dec(&rptr->item.total);
+              atomic_dec(&T->item.total);
+            }
+          }
+          if (rptr->item.next==NULL||rptr->item.total!=0) {
+            haveread=TRUE;
+          } else if((BinItem*)rptr==val) {
+            val=val->next;
+          }
+          rptr->item.status=READY;
+        }
+        ptr=ptr->next;
       } while(ptr!=NULL);
     }
     bin->head=val; // released lock;
@@ -845,18 +845,18 @@ void RESOLVEVECTOR(MemoryQueue *q, Vector *V) {
       REntry* val=NULL;
       val=(REntry*)LOCKXCHG((unsigned INTPTR*)&(tmp->array[i]), (unsigned INTPTR)val);
       if (val!=NULL) {
-	SESEcommon *seseCommon=val->seseRec;
-	resolveDependencies(val);
-	if (isParent(val)) {
-	  atomic_dec(&tmp->item.total);
+        SESEcommon *seseCommon=val->seseRec;
+        resolveDependencies(val);
+        if (isParent(val)) {
+          atomic_dec(&tmp->item.total);
 #ifdef RCR
-	  poolfreeinto(q->rentrypool,val);
+          poolfreeinto(q->rentrypool,val);
 #endif
-	}
+        }
 #if defined(RCR)&&!defined(OOO_DISABLE_TASKMEMPOOL)
-	else if (atomic_sub_and_test(1, &((REntry *)val)->count))
-	  poolfreeinto(q->rentrypool,val);
-	RELEASE_REFERENCE_TO(seseCommon);
+        else if (atomic_sub_and_test(1, &((REntry *)val)->count))
+          poolfreeinto(q->rentrypool,val);
+        RELEASE_REFERENCE_TO(seseCommon);
 #endif
       }
     }
@@ -897,8 +897,8 @@ void resolveDependencies(REntry* rentry) {
       mask=mask>>shift;
       index+=shift;
       if(atomic_sub_and_test(1, &array[index].flag)) {
-	if(atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies)))
-	  workScheduleSubmit((void *)seseCommon);
+        if(atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies)))
+          workScheduleSubmit((void *)seseCommon);
       }
     }
   } else if (type==PARENTCOARSE) {
@@ -941,10 +941,10 @@ int RESOLVEBUFFORHASHTABLE(MemoryQueue * q, Hashtable* table, SESEcommon *seseCo
     if(r->type==WRITE) {
       int key=generateKey(OBJPTRPTR_2_OBJOID(r->pointer) );
       if(q->binbuf[key]==NULL) {
-	// for multiple writes, add only the first write that hashes to the same bin
-	q->binbuf[key]=r;
+        // for multiple writes, add only the first write that hashes to the same bin
+        q->binbuf[key]=r;
       } else {
-	q->buf[i]=NULL;
+        q->buf[i]=NULL;
       }
     }
   }
@@ -954,11 +954,11 @@ int RESOLVEBUFFORHASHTABLE(MemoryQueue * q, Hashtable* table, SESEcommon *seseCo
     if(r!=NULL && r->type==READ) {
       int key=generateKey(OBJPTRPTR_2_OBJOID(r->pointer) );
       if(q->binbuf[key]==NULL) {
-	// read item that hashes to the bin which doen't contain any write
-	seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
-	if(ADDTABLEITEM(table, r, FALSE)==READY) {
-	  resolveDependencies(r);
-	}
+        // read item that hashes to the bin which doen't contain any write
+        seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
+        if(ADDTABLEITEM(table, r, FALSE)==READY) {
+          resolveDependencies(r);
+        }
       }
       q->buf[i]=NULL;
     }
@@ -970,7 +970,7 @@ int RESOLVEBUFFORHASHTABLE(MemoryQueue * q, Hashtable* table, SESEcommon *seseCo
     if(r!=NULL) {
       seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
       if(ADDTABLEITEM(table, r, FALSE)==READY) {
-	resolveDependencies(r);
+        resolveDependencies(r);
       }
     }
   }
@@ -995,7 +995,7 @@ int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon) {
       r->queue=q;
       r->isBufMode=TRUE;
       if(ADDRENTRY(q,r)==NOTREADY) {
-	localCount++;
+        localCount++;
       }
     }
     return localCount;
@@ -1007,10 +1007,10 @@ int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon) {
     if(r->type==WRITE) {
       int key=generateKey(OBJPTRPTR_2_OBJOID(r->pointer) );
       if(q->binbuf[key]==NULL) {
-	// for multiple writes, add only the first write that hashes to the same bin
-	q->binbuf[key]=r;
+        // for multiple writes, add only the first write that hashes to the same bin
+        q->binbuf[key]=r;
       } else {
-	q->buf[i]=NULL;
+        q->buf[i]=NULL;
       }
     }
   }
@@ -1020,11 +1020,11 @@ int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon) {
     if(r!=NULL && r->type==READ) {
       int key=generateKey(OBJPTRPTR_2_OBJOID(r->pointer) );
       if(q->binbuf[key]==NULL) {
-	// read item that hashes to the bin which doen't contain any write
-	seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
-	if(ADDRENTRY(q,r)==NOTREADY) {
-	  localCount++;
-	}
+        // read item that hashes to the bin which doen't contain any write
+        seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
+        if(ADDRENTRY(q,r)==NOTREADY) {
+          localCount++;
+        }
       }
       q->buf[i]=NULL;
     }
@@ -1036,7 +1036,7 @@ int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon) {
     if(r!=NULL) {
       seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
       if(ADDRENTRY(q,r)==NOTREADY) {
-	localCount++;
+        localCount++;
       }
     }
   }
@@ -1070,45 +1070,45 @@ void resolvePointer(REntry* rentry) {
     do {
       struct QueueItem* head=getHead(val);
       if(head!=NULL) {
-	REntry* rentry=(REntry*)head->objectptr;
-	if(*(rentry->pointer)==0) {
-	  // encounters following unresolved pointer
-	  table->unresolvedQueue=val; //released lock
-	  break;
-	}
-	removeItem(val,head);
+        REntry* rentry=(REntry*)head->objectptr;
+        if(*(rentry->pointer)==0) {
+          // encounters following unresolved pointer
+          table->unresolvedQueue=val; //released lock
+          break;
+        }
+        removeItem(val,head);
 
-	//now, address is resolved
+        //now, address is resolved
 
-	//check if rentry is buffer mode
-	if(rentry->isBufMode==TRUE) {
-	  if(currentSESE==0) {
-	    queue=rentry->queue;
-	    INITIALIZEBUF(queue);
-	    currentSESE=(INTPTR)rentry;
-	    ADDRENTRYTOBUF(queue,rentry);
-	  } else if(currentSESE==(INTPTR)rentry) {
-	    ADDRENTRYTOBUF(queue,rentry);
-	  } else if(currentSESE!=(INTPTR)rentry) {
-	    RESOLVEBUFFORHASHTABLE(queue,table,(SESEcommon*)rentry->seseRec);
-	    currentSESE=(INTPTR)rentry;
-	    INITIALIZEBUF(queue);
-	    ADDRENTRYTOBUF(rentry->queue,rentry);
-	  }
-	} else {
-	  if(currentSESE!=0) {
-	    //previous SESE has buf mode, need to invoke resolve buffer
-	    RESOLVEBUFFORHASHTABLE(queue,table,(SESEcommon*)rentry->seseRec);
-	    currentSESE=0;
-	  }
-	  //normal mode
-	  if(ADDTABLEITEM(table, rentry, FALSE)==READY) {
-	    resolveDependencies(rentry);
-	  }
-	}
+        //check if rentry is buffer mode
+        if(rentry->isBufMode==TRUE) {
+          if(currentSESE==0) {
+            queue=rentry->queue;
+            INITIALIZEBUF(queue);
+            currentSESE=(INTPTR)rentry;
+            ADDRENTRYTOBUF(queue,rentry);
+          } else if(currentSESE==(INTPTR)rentry) {
+            ADDRENTRYTOBUF(queue,rentry);
+          } else if(currentSESE!=(INTPTR)rentry) {
+            RESOLVEBUFFORHASHTABLE(queue,table,(SESEcommon*)rentry->seseRec);
+            currentSESE=(INTPTR)rentry;
+            INITIALIZEBUF(queue);
+            ADDRENTRYTOBUF(rentry->queue,rentry);
+          }
+        } else {
+          if(currentSESE!=0) {
+            //previous SESE has buf mode, need to invoke resolve buffer
+            RESOLVEBUFFORHASHTABLE(queue,table,(SESEcommon*)rentry->seseRec);
+            currentSESE=0;
+          }
+          //normal mode
+          if(ADDTABLEITEM(table, rentry, FALSE)==READY) {
+            resolveDependencies(rentry);
+          }
+        }
       } else {
-	table->unresolvedQueue=NULL; // set hashtable as normal-mode.
-	break;
+        table->unresolvedQueue=NULL; // set hashtable as normal-mode.
+        break;
       }
     } while(TRUE);
   } else {

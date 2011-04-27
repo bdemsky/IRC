@@ -142,21 +142,21 @@ static inline void* dqPopTopSelf(deque *p) {
     //remove if we can..steal work no matter what
     if (likely(next!=NULL)) {
       if (((dequeItem *)CAS(&(p->head),(INTPTR)ptr, (INTPTR)next))!=ptr)
-	return DQ_POP_EMPTY;
+        return DQ_POP_EMPTY;
       void * item=NULL;
       item=(void *)LOCKXCHG((unsigned INTPTR*) &(realptr->work), (unsigned INTPTR) item);
       realptr->next=NULL;
       BARRIER();
       tagpoolfreeinto(&p->objret,ptr, realptr);
       if (item==NULL&&tryagain) {
-	tryagain=0;
-	continue;
+        tryagain=0;
+        continue;
       }
       return item;
     } else {
       void * item=NULL;
       if (realptr->work!=NULL)
-	item=(void *) LOCKXCHG((unsigned INTPTR*) &(realptr->work), (unsigned INTPTR) item);
+        item=(void *) LOCKXCHG((unsigned INTPTR*) &(realptr->work), (unsigned INTPTR) item);
       return item;
     }
   }

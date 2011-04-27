@@ -77,10 +77,10 @@ void prehashInsert(unsigned int key, void *val) {
     tmp = ptr;
     while(tmp != NULL) {
       if(tmp->key == key) {
-	isFound=1;
-	tmp->val = val; //Replace value for an exsisting key
-	write_unlock(lockptr);
-	return;
+        isFound=1;
+        tmp->val = val; //Replace value for an exsisting key
+        write_unlock(lockptr);
+        return;
       }
       tmp=tmp->next;
     }
@@ -210,7 +210,7 @@ unsigned int prehashResize(unsigned int newsize) {
     do {
       unsigned int key;
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element for a given bin/index is NULL
-	break;                  //key = val =0 for element if not present within the hash table
+        break;                  //key = val =0 for element if not present within the hash table
       }
       next = curr->next;
       //index = (key & mask)>>1;
@@ -218,23 +218,23 @@ unsigned int prehashResize(unsigned int newsize) {
       tmp=&pflookup.table[index];
       // Insert into the new table
       if(tmp->key==0) {
-	tmp->key=curr->key;
-	tmp->val=curr->val;
-	if (!isfirst)
-	  free(curr);
+        tmp->key=curr->key;
+        tmp->val=curr->val;
+        if (!isfirst)
+          free(curr);
       } /*
-	   NOTE:  Add this case if you change this...
-	   This case currently never happens because of the way things rehash....
-	   else if (isfirst) {
-	   prehashlistnode_t * newnode = calloc(1, sizeof(prehashlistnode_t));
-	   newnode->key = curr->key;
-	   newnode->val = curr->val;
-	   newnode->next = tmp->next;
-	   tmp->next=newnode;
-	   } */
+           NOTE:  Add this case if you change this...
+           This case currently never happens because of the way things rehash....
+           else if (isfirst) {
+           prehashlistnode_t * newnode = calloc(1, sizeof(prehashlistnode_t));
+           newnode->key = curr->key;
+           newnode->val = curr->val;
+           newnode->next = tmp->next;
+           tmp->next=newnode;
+           } */
       else {
-	curr->next=tmp->next;
-	tmp->next=curr;
+        curr->next=tmp->next;
+        tmp->next=curr;
       }
 
       isfirst = 0;

@@ -291,7 +291,7 @@ void* dqPopBottom(deque* dq) {
     if( actualTop == currTop ) {
       // CAS succeeded
       if( oldBotNode != newBotNode ) {
-	poolfreeinto(dq->memPool, oldBotNode);
+        poolfreeinto(dq->memPool, oldBotNode);
       }
       return retVal;
 

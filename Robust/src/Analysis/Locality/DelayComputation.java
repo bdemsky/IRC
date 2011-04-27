@@ -74,31 +74,31 @@ public class DelayComputation {
       MethodDescriptor md=lb.getMethod();
       FlatMethod fm=state.getMethodFlat(md);
       if (lb.isAtomic())
-	continue;
+        continue;
 
       if (lb.getHasAtomic()) {
-	HashSet<FlatNode> cannotdelay=cannotdelaymap.get(lb);
-	HashSet<FlatNode> notreadyset=computeNotReadySet(lb, cannotdelay);
-	HashSet<FlatNode> otherset=new HashSet<FlatNode>();
-	otherset.addAll(fm.getNodeSet());
-	otherset.removeAll(notreadyset);
-	otherset.removeAll(cannotdelay);
-	if (state.MINIMIZE) {
-	  Hashtable<FlatNode, Integer> atomicmap=locality.getAtomic(lb);
-	  for(Iterator<FlatNode> fnit=otherset.iterator(); fnit.hasNext(); ) {
-	    FlatNode fn=fnit.next();
-	    if (atomicmap.get(fn).intValue()>0&&
-	        fn.kind()!=FKind.FlatAtomicEnterNode&&
-	        fn.kind()!=FKind.FlatGlobalConvNode) {
-	      //remove non-atomic flatnodes
-	      fnit.remove();
-	      notreadyset.add(fn);
-	    }
-	  }
-	}
+        HashSet<FlatNode> cannotdelay=cannotdelaymap.get(lb);
+        HashSet<FlatNode> notreadyset=computeNotReadySet(lb, cannotdelay);
+        HashSet<FlatNode> otherset=new HashSet<FlatNode>();
+        otherset.addAll(fm.getNodeSet());
+        otherset.removeAll(notreadyset);
+        otherset.removeAll(cannotdelay);
+        if (state.MINIMIZE) {
+          Hashtable<FlatNode, Integer> atomicmap=locality.getAtomic(lb);
+          for(Iterator<FlatNode> fnit=otherset.iterator(); fnit.hasNext(); ) {
+            FlatNode fn=fnit.next();
+            if (atomicmap.get(fn).intValue()>0&&
+                fn.kind()!=FKind.FlatAtomicEnterNode&&
+                fn.kind()!=FKind.FlatGlobalConvNode) {
+              //remove non-atomic flatnodes
+              fnit.remove();
+              notreadyset.add(fn);
+            }
+          }
+        }
 
-	notreadymap.put(lb, notreadyset);
-	othermap.put(lb, otherset);
+        notreadymap.put(lb, notreadyset);
+        othermap.put(lb, otherset);
       }
 
       //We now have:
@@ -117,25 +117,25 @@ public class DelayComputation {
       FlatNode fn=fnit.next();
       Hashtable<TempDescriptor, Set<TempFlatPair>> tempmap=fnmap.get(fn);
       if (fn.kind()==FKind.FlatSetElementNode) {
-	FlatSetElementNode fsen=(FlatSetElementNode) fn;
-	Set<TempFlatPair> tfpset=tempmap.get(fsen.getDst());
-	if (tfpset!=null) {
-	  for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
-	    TempFlatPair tfp=tfpit.next();
-	    if (storeset.contains(tfp.f))
-	      writeset.add(tfp.f);
-	  }
-	}
+        FlatSetElementNode fsen=(FlatSetElementNode) fn;
+        Set<TempFlatPair> tfpset=tempmap.get(fsen.getDst());
+        if (tfpset!=null) {
+          for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
+            TempFlatPair tfp=tfpit.next();
+            if (storeset.contains(tfp.f))
+              writeset.add(tfp.f);
+          }
+        }
       } else if (fn.kind()==FKind.FlatSetFieldNode) {
-	FlatSetFieldNode fsfn=(FlatSetFieldNode) fn;
-	Set<TempFlatPair> tfpset=tempmap.get(fsfn.getDst());
-	if (tfpset!=null) {
-	  for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
-	    TempFlatPair tfp=tfpit.next();
-	    if (storeset.contains(tfp.f))
-	      writeset.add(tfp.f);
-	  }
-	}
+        FlatSetFieldNode fsfn=(FlatSetFieldNode) fn;
+        Set<TempFlatPair> tfpset=tempmap.get(fsfn.getDst());
+        if (tfpset!=null) {
+          for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
+            TempFlatPair tfp=tfpit.next();
+            if (storeset.contains(tfp.f))
+              writeset.add(tfp.f);
+          }
+        }
       }
     }
     return writeset;
@@ -175,8 +175,8 @@ public class DelayComputation {
       List<TempDescriptor> writes=Arrays.asList(fn.writesTemps());
       tempset.addAll(writes);
       if (!recordset.contains(fn)) {
-	List<TempDescriptor> reads=Arrays.asList(fn.readsTemps());
-	tempset.addAll(reads);
+        List<TempDescriptor> reads=Arrays.asList(fn.readsTemps());
+        tempset.addAll(reads);
       }
     }
 
@@ -204,19 +204,19 @@ public class DelayComputation {
     for(Iterator<FlatNode> fnit=secondpart.iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       if (recordset.contains(fn))
-	continue;
+        continue;
       TempDescriptor readset[]=fn.readsTemps();
       for(int i=0; i<readset.length; i++) {
-	TempDescriptor rtmp=readset[i];
-	Set<FlatNode> fnset=reachingdefs.get(fn).get(rtmp);
-	for(Iterator<FlatNode> fnit2=fnset.iterator(); fnit2.hasNext(); ) {
-	  FlatNode fn2=fnit2.next();
-	  if (secondpart.contains(fn2))
-	    continue;
-	  //otherwise we mark this as live in
-	  liveinto.add(rtmp);
-	  break;
-	}
+        TempDescriptor rtmp=readset[i];
+        Set<FlatNode> fnset=reachingdefs.get(fn).get(rtmp);
+        for(Iterator<FlatNode> fnit2=fnset.iterator(); fnit2.hasNext(); ) {
+          FlatNode fn2=fnit2.next();
+          if (secondpart.contains(fn2))
+            continue;
+          //otherwise we mark this as live in
+          liveinto.add(rtmp);
+          break;
+        }
       }
     }
     return liveinto;
@@ -245,23 +245,23 @@ public class DelayComputation {
       //Look for reaching defs for all live variables that are in the secondpart
 
       for(Iterator<TempDescriptor> tmpit=tempset.iterator(); tmpit.hasNext(); ) {
-	TempDescriptor tmp=tmpit.next();
-	Set<FlatNode> fnset=reachmap.get(tmp);
-	boolean outsidenode=false;
-	boolean insidenode=false;
+        TempDescriptor tmp=tmpit.next();
+        Set<FlatNode> fnset=reachmap.get(tmp);
+        boolean outsidenode=false;
+        boolean insidenode=false;
 
-	for(Iterator<FlatNode> fnit2=fnset.iterator(); fnit2.hasNext(); ) {
-	  FlatNode fn2=fnit2.next();
-	  if (secondpart.contains(fn2)) {
-	    insidenode=true;
-	  } else if (!atomicnodes.contains(fn2)) {
-	    outsidenode=true;
-	  }
-	  if (outsidenode&&insidenode) {
-	    liveset.add(tmp);
-	    break;
-	  }
-	}
+        for(Iterator<FlatNode> fnit2=fnset.iterator(); fnit2.hasNext(); ) {
+          FlatNode fn2=fnit2.next();
+          if (secondpart.contains(fn2)) {
+            insidenode=true;
+          } else if (!atomicnodes.contains(fn2)) {
+            outsidenode=true;
+          }
+          if (outsidenode&&insidenode) {
+            liveset.add(tmp);
+            break;
+          }
+        }
       }
     }
     return liveset;
@@ -290,19 +290,19 @@ public class DelayComputation {
       //Look for reaching defs for all live variables that are in the secondpart
 
       for(Iterator<TempDescriptor> tmpit=tempset.iterator(); tmpit.hasNext(); ) {
-	TempDescriptor tmp=tmpit.next();
-	Set<FlatNode> fnset=reachmap.get(tmp);
-	if (fnset==null) {
-	  System.out.println("null temp set for"+fn+" tmp="+tmp);
-	  System.out.println(fm.printMethod());
-	}
-	for(Iterator<FlatNode> fnit2=fnset.iterator(); fnit2.hasNext(); ) {
-	  FlatNode fn2=fnit2.next();
-	  if (secondpart.contains(fn2)) {
-	    liveset.add(tmp);
-	    break;
-	  }
-	}
+        TempDescriptor tmp=tmpit.next();
+        Set<FlatNode> fnset=reachmap.get(tmp);
+        if (fnset==null) {
+          System.out.println("null temp set for"+fn+" tmp="+tmp);
+          System.out.println(fm.printMethod());
+        }
+        for(Iterator<FlatNode> fnit2=fnset.iterator(); fnit2.hasNext(); ) {
+          FlatNode fn2=fnit2.next();
+          if (secondpart.contains(fn2)) {
+            liveset.add(tmp);
+            break;
+          }
+        }
       }
     }
     return liveset;
@@ -338,40 +338,40 @@ public class DelayComputation {
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       if (fn.kind()==FKind.FlatAtomicExitNode) {
-	Set<TempDescriptor> livetemps=livemap.get(fn);
-	Hashtable<TempDescriptor, Set<FlatNode>> tempmap=reachingdefsmap.get(fn);
+        Set<TempDescriptor> livetemps=livemap.get(fn);
+        Hashtable<TempDescriptor, Set<FlatNode>> tempmap=reachingdefsmap.get(fn);
 
-	//Iterate over the temps that are live into this node
-	for(Iterator<TempDescriptor> tmpit=livetemps.iterator(); tmpit.hasNext(); ) {
-	  TempDescriptor tmp=tmpit.next();
-	  Set<FlatNode> fnset=tempmap.get(tmp);
-	  boolean inpart1=false;
-	  boolean inpart2=false;
+        //Iterate over the temps that are live into this node
+        for(Iterator<TempDescriptor> tmpit=livetemps.iterator(); tmpit.hasNext(); ) {
+          TempDescriptor tmp=tmpit.next();
+          Set<FlatNode> fnset=tempmap.get(tmp);
+          boolean inpart1=false;
+          boolean inpart2=false;
 
-	  //iterate over the reaching definitions for the temp
-	  for(Iterator<FlatNode> fnit2=fnset.iterator(); fnit2.hasNext(); ) {
-	    FlatNode fn2=fnit2.next();
-	    if (delayedset.contains(fn2)) {
-	      inpart2=true;
-	      if (inpart1)
-		break;
-	    } else if (otherset.contains(fn2)||cannotdelayset.contains(fn2)) {
-	      inpart1=true;
-	      if (inpart2)
-		break;
-	    }
-	  }
-	  if (inpart1&&inpart2) {
-	    for(Iterator<FlatNode> fnit2=fnset.iterator(); fnit2.hasNext(); ) {
-	      FlatNode fn2=fnit2.next();
-	      if ((otherset.contains(fn2)||cannotdelayset.contains(fn2))&&
-	          locality.getAtomic(lb).get(fn2).intValue()>0) {
-		unionset.add(fn2);
-		livenodes.add(fn2);
-	      }
-	    }
-	  }
-	}
+          //iterate over the reaching definitions for the temp
+          for(Iterator<FlatNode> fnit2=fnset.iterator(); fnit2.hasNext(); ) {
+            FlatNode fn2=fnit2.next();
+            if (delayedset.contains(fn2)) {
+              inpart2=true;
+              if (inpart1)
+                break;
+            } else if (otherset.contains(fn2)||cannotdelayset.contains(fn2)) {
+              inpart1=true;
+              if (inpart2)
+                break;
+            }
+          }
+          if (inpart1&&inpart2) {
+            for(Iterator<FlatNode> fnit2=fnset.iterator(); fnit2.hasNext(); ) {
+              FlatNode fn2=fnit2.next();
+              if ((otherset.contains(fn2)||cannotdelayset.contains(fn2))&&
+                  locality.getAtomic(lb).get(fn2).intValue()>0) {
+                unionset.add(fn2);
+                livenodes.add(fn2);
+              }
+            }
+          }
+        }
       }
     }
 
@@ -385,86 +385,86 @@ public class DelayComputation {
 
       //Don't process non-atomic nodes
       if (locality.getAtomic(lb).get(fn).intValue()==0) {
-	if (!map.containsKey(fn)) {
-	  map.put(fn, new Hashtable<TempDescriptor, HashSet<FlatNode>>());
-	  //enqueue next nodes
-	  for(int i=0; i<fn.numNext(); i++)
-	    toanalyze.add(fn.getNext(i));
-	}
-	continue;
+        if (!map.containsKey(fn)) {
+          map.put(fn, new Hashtable<TempDescriptor, HashSet<FlatNode>>());
+          //enqueue next nodes
+          for(int i=0; i<fn.numNext(); i++)
+            toanalyze.add(fn.getNext(i));
+        }
+        continue;
       }
 
       Set<TempDescriptor> liveset=livemap.get(fn);
       //Do merge on incoming edges
       for(int i=0; i<fn.numPrev(); i++) {
-	FlatNode fnprev=fn.getPrev(i);
-	Hashtable<TempDescriptor, HashSet<FlatNode>> prevmap=map.get(fnprev);
-	if (prevmap!=null)
-	  for(Iterator<TempDescriptor> tmpit=prevmap.keySet().iterator(); tmpit.hasNext(); ) {
-	    TempDescriptor tmp=tmpit.next();
-	    if (!liveset.contains(tmp)) //skip dead temps
-	      continue;
-	    if (!tmptofn.containsKey(tmp))
-	      tmptofn.put(tmp, new HashSet<FlatNode>());
-	    tmptofn.get(tmp).addAll(prevmap.get(tmp));
-	  }
+        FlatNode fnprev=fn.getPrev(i);
+        Hashtable<TempDescriptor, HashSet<FlatNode>> prevmap=map.get(fnprev);
+        if (prevmap!=null)
+          for(Iterator<TempDescriptor> tmpit=prevmap.keySet().iterator(); tmpit.hasNext(); ) {
+            TempDescriptor tmp=tmpit.next();
+            if (!liveset.contains(tmp)) //skip dead temps
+              continue;
+            if (!tmptofn.containsKey(tmp))
+              tmptofn.put(tmp, new HashSet<FlatNode>());
+            tmptofn.get(tmp).addAll(prevmap.get(tmp));
+          }
       }
 
       if (delayedset.contains(fn)) {
-	if(state.STMARRAY&&!state.DUALVIEW&&derefset.contains(fn)) {
-	  //FlatElementNodes don't read anything...
-	  if (fn.kind()==FKind.FlatSetElementNode) {
-	    //check only the source read tmp
-	    TempDescriptor tmp=((FlatSetElementNode)fn).getSrc();
-	    if (tmptofn.containsKey(tmp)) {
-	      livenodes.addAll(tmptofn.get(tmp)); //Add live nodes
-	      unionset.addAll(tmptofn.get(tmp));
-	    }
-	  }
-	} else {
-	  //If the node is in the second set, check our readset
-	  TempDescriptor readset[]=fn.readsTemps();
-	  for(int i=0; i<readset.length; i++) {
-	    TempDescriptor tmp=readset[i];
-	    if (tmptofn.containsKey(tmp)) {
-	      livenodes.addAll(tmptofn.get(tmp)); //Add live nodes
-	      unionset.addAll(tmptofn.get(tmp));
-	    }
-	  }
-	}
-	//Do kills
-	TempDescriptor writeset[]=fn.writesTemps();
-	for(int i=0; i<writeset.length; i++) {
-	  TempDescriptor tmp=writeset[i];
-	  tmptofn.remove(tmp);
-	}
+        if(state.STMARRAY&&!state.DUALVIEW&&derefset.contains(fn)) {
+          //FlatElementNodes don't read anything...
+          if (fn.kind()==FKind.FlatSetElementNode) {
+            //check only the source read tmp
+            TempDescriptor tmp=((FlatSetElementNode)fn).getSrc();
+            if (tmptofn.containsKey(tmp)) {
+              livenodes.addAll(tmptofn.get(tmp)); //Add live nodes
+              unionset.addAll(tmptofn.get(tmp));
+            }
+          }
+        } else {
+          //If the node is in the second set, check our readset
+          TempDescriptor readset[]=fn.readsTemps();
+          for(int i=0; i<readset.length; i++) {
+            TempDescriptor tmp=readset[i];
+            if (tmptofn.containsKey(tmp)) {
+              livenodes.addAll(tmptofn.get(tmp)); //Add live nodes
+              unionset.addAll(tmptofn.get(tmp));
+            }
+          }
+        }
+        //Do kills
+        TempDescriptor writeset[]=fn.writesTemps();
+        for(int i=0; i<writeset.length; i++) {
+          TempDescriptor tmp=writeset[i];
+          tmptofn.remove(tmp);
+        }
       } else {
-	//If the node is in the first set, search over what we write
-	//We write -- our reads are done
-	TempDescriptor writeset[]=fn.writesTemps();
-	for(int i=0; i<writeset.length; i++) {
-	  TempDescriptor tmp=writeset[i];
-	  HashSet<FlatNode> set=new HashSet<FlatNode>();
-	  tmptofn.put(tmp,set);
-	  set.add(fn);
-	}
-	if (fn.numNext()>1) {
-	  Set<FlatNode> branchset=branchmap.get((FlatCondBranch)fn);
-	  for(Iterator<FlatNode> brit=branchset.iterator(); brit.hasNext(); ) {
-	    FlatNode brfn=brit.next();
-	    if (unionset.contains(brfn)) {
-	      //This branch is important--need to remember how it goes
-	      livenodes.add(fn);
-	      unionset.add(fn);
-	    }
-	  }
-	}
+        //If the node is in the first set, search over what we write
+        //We write -- our reads are done
+        TempDescriptor writeset[]=fn.writesTemps();
+        for(int i=0; i<writeset.length; i++) {
+          TempDescriptor tmp=writeset[i];
+          HashSet<FlatNode> set=new HashSet<FlatNode>();
+          tmptofn.put(tmp,set);
+          set.add(fn);
+        }
+        if (fn.numNext()>1) {
+          Set<FlatNode> branchset=branchmap.get((FlatCondBranch)fn);
+          for(Iterator<FlatNode> brit=branchset.iterator(); brit.hasNext(); ) {
+            FlatNode brfn=brit.next();
+            if (unionset.contains(brfn)) {
+              //This branch is important--need to remember how it goes
+              livenodes.add(fn);
+              unionset.add(fn);
+            }
+          }
+        }
       }
       if (!map.containsKey(fn)||!map.get(fn).equals(tmptofn)) {
-	map.put(fn, tmptofn);
-	//enqueue next ndoes
-	for(int i=0; i<fn.numNext(); i++)
-	  toanalyze.add(fn.getNext(i));
+        map.put(fn, tmptofn);
+        //enqueue next ndoes
+        for(int i=0; i<fn.numNext(); i++)
+          toanalyze.add(fn.getNext(i));
       }
     }
     return livenodes;
@@ -488,14 +488,14 @@ public class DelayComputation {
     while(!nodes.isEmpty()) {
       FlatNode fn2=nodes.pop();
       if (visited.contains(fn2))
-	continue;
+        continue;
       visited.add(fn2);
       for (int j=0; j<fn2.numNext(); j++) {
-	FlatNode fn2next=fn2.getNext(j);
-	if (delayset.contains(fn2next)||atomictable.get(fn2next).intValue()==0) {
-	  reachable.add(fn2next);
-	} else
-	  nodes.push(fn2next);
+        FlatNode fn2next=fn2.getNext(j);
+        if (delayset.contains(fn2next)||atomictable.get(fn2next).intValue()==0) {
+          reachable.add(fn2next);
+        } else
+          nodes.push(fn2next);
       }
     }
     return reachable;
@@ -540,7 +540,7 @@ public class DelayComputation {
       boolean isatomic=atomictable.get(fn).intValue()>0;
 
       if (!isatomic)
-	continue;
+        continue;
       boolean isnodelay=false;
 
       /* Compute incoming nodelay sets */
@@ -550,234 +550,234 @@ public class DelayComputation {
       HashSet<FieldDescriptor> nodelayfieldrdset=new HashSet<FieldDescriptor>();
       HashSet<TypeDescriptor> nodelayarrayrdset=new HashSet<TypeDescriptor>();
       for(int i=0; i<fn.numNext(); i++) {
-	if (nodelaytemps.containsKey(fn.getNext(i)))
-	  nodelaytempset.addAll(nodelaytemps.get(fn.getNext(i)));
-	//do field/array write sets
-	if (nodelayfieldswr.containsKey(fn.getNext(i)))
-	  nodelayfieldwrset.addAll(nodelayfieldswr.get(fn.getNext(i)));
-	if (nodelayarrayswr.containsKey(fn.getNext(i)))
-	  nodelayarraywrset.addAll(nodelayarrayswr.get(fn.getNext(i)));
-	//do read sets
-	if (nodelayfieldsrd.containsKey(fn.getNext(i)))
-	  nodelayfieldrdset.addAll(nodelayfieldsrd.get(fn.getNext(i)));
-	if (nodelayarraysrd.containsKey(fn.getNext(i)))
-	  nodelayarrayrdset.addAll(nodelayarraysrd.get(fn.getNext(i)));
+        if (nodelaytemps.containsKey(fn.getNext(i)))
+          nodelaytempset.addAll(nodelaytemps.get(fn.getNext(i)));
+        //do field/array write sets
+        if (nodelayfieldswr.containsKey(fn.getNext(i)))
+          nodelayfieldwrset.addAll(nodelayfieldswr.get(fn.getNext(i)));
+        if (nodelayarrayswr.containsKey(fn.getNext(i)))
+          nodelayarraywrset.addAll(nodelayarrayswr.get(fn.getNext(i)));
+        //do read sets
+        if (nodelayfieldsrd.containsKey(fn.getNext(i)))
+          nodelayfieldrdset.addAll(nodelayfieldsrd.get(fn.getNext(i)));
+        if (nodelayarraysrd.containsKey(fn.getNext(i)))
+          nodelayarrayrdset.addAll(nodelayarraysrd.get(fn.getNext(i)));
       }
 
       /* Check our temp write set */
 
       TempDescriptor writeset[]=fn.writesTemps();
       for(int i=0; i<writeset.length; i++) {
-	TempDescriptor tmp=writeset[i];
-	if (nodelaytempset.contains(tmp)) {
-	  //We are writing to a nodelay temp
-	  //Therefore we are nodelay
-	  isnodelay=true;
-	  //Kill temp we wrote to
-	  nodelaytempset.remove(tmp);
-	}
+        TempDescriptor tmp=writeset[i];
+        if (nodelaytempset.contains(tmp)) {
+          //We are writing to a nodelay temp
+          //Therefore we are nodelay
+          isnodelay=true;
+          //Kill temp we wrote to
+          nodelaytempset.remove(tmp);
+        }
       }
 
       //See if flatnode is definitely no delay
       if (fn.kind()==FKind.FlatCall) {
-	FlatCall fcall=(FlatCall)fn;
-	MethodDescriptor mdcall=fcall.getMethod();
-	if (!mdcall.getClassDesc().getSymbol().equals("System")||
-	    (!mdcall.getSymbol().equals("println")&&!mdcall.getSymbol().equals("printString")))
-	  isnodelay=true;
+        FlatCall fcall=(FlatCall)fn;
+        MethodDescriptor mdcall=fcall.getMethod();
+        if (!mdcall.getClassDesc().getSymbol().equals("System")||
+            (!mdcall.getSymbol().equals("println")&&!mdcall.getSymbol().equals("printString")))
+          isnodelay=true;
       }
 
       //Delay branches if possible
       if (fn.kind()==FKind.FlatCondBranch) {
-	Set<FlatNode> branchset=revbranchmap.get((FlatCondBranch)fn);
-	for(Iterator<FlatNode> brit=branchset.iterator(); brit.hasNext(); ) {
-	  FlatNode branchnode=brit.next();
-	  if (cannotdelay.contains(branchnode)||(state.STMARRAY&&!state.DUALVIEW&&derefset.contains(branchnode))) {
-	    isnodelay=true;
-	    break;
-	  }
-	}
+        Set<FlatNode> branchset=revbranchmap.get((FlatCondBranch)fn);
+        for(Iterator<FlatNode> brit=branchset.iterator(); brit.hasNext(); ) {
+          FlatNode branchnode=brit.next();
+          if (cannotdelay.contains(branchnode)||(state.STMARRAY&&!state.DUALVIEW&&derefset.contains(branchnode))) {
+            isnodelay=true;
+            break;
+          }
+        }
       }
 
       //Check for field conflicts
       if (fn.kind()==FKind.FlatSetFieldNode) {
-	FieldDescriptor fd=((FlatSetFieldNode)fn).getField();
-	//write conflicts
-	if (nodelayfieldwrset.contains(fd))
-	  isnodelay=true;
-	//read
-	if (nodelayfieldrdset.contains(fd))
-	  isnodelay=true;
+        FieldDescriptor fd=((FlatSetFieldNode)fn).getField();
+        //write conflicts
+        if (nodelayfieldwrset.contains(fd))
+          isnodelay=true;
+        //read
+        if (nodelayfieldrdset.contains(fd))
+          isnodelay=true;
       }
 
       if (fn.kind()==FKind.FlatFieldNode) {
-	FieldDescriptor fd=((FlatFieldNode)fn).getField();
-	//write conflicts
-	if (nodelayfieldwrset.contains(fd))
-	  isnodelay=true;
+        FieldDescriptor fd=((FlatFieldNode)fn).getField();
+        //write conflicts
+        if (nodelayfieldwrset.contains(fd))
+          isnodelay=true;
       }
       //Check for array conflicts
       if (fn.kind()==FKind.FlatSetElementNode) {
-	TypeDescriptor td=((FlatSetElementNode)fn).getDst().getType();
-	//check for write conflicts
-	if (nodelayarraywrset.contains(td))
-	  isnodelay=true;
-	//check for read conflicts
-	if (nodelayarrayrdset.contains(td))
-	  isnodelay=true;
+        TypeDescriptor td=((FlatSetElementNode)fn).getDst().getType();
+        //check for write conflicts
+        if (nodelayarraywrset.contains(td))
+          isnodelay=true;
+        //check for read conflicts
+        if (nodelayarrayrdset.contains(td))
+          isnodelay=true;
       }
       if (fn.kind()==FKind.FlatElementNode) {
-	TypeDescriptor td=((FlatElementNode)fn).getSrc().getType();
-	//check for write conflicts
-	if (nodelayarraywrset.contains(td))
-	  isnodelay=true;
+        TypeDescriptor td=((FlatElementNode)fn).getSrc().getType();
+        //check for write conflicts
+        if (nodelayarraywrset.contains(td))
+          isnodelay=true;
       }
 
       //If we are no delay, then the temps we read are no delay
       if (isnodelay) {
-	/* Add our read set */
-	TempDescriptor readset[]=fn.readsTemps();
-	for(int i=0; i<readset.length; i++) {
-	  TempDescriptor tmp=readset[i];
-	  nodelaytempset.add(tmp);
-	}
-	cannotdelay.add(fn);
+        /* Add our read set */
+        TempDescriptor readset[]=fn.readsTemps();
+        for(int i=0; i<readset.length; i++) {
+          TempDescriptor tmp=readset[i];
+          nodelaytempset.add(tmp);
+        }
+        cannotdelay.add(fn);
 
-	if (branchmap.containsKey(fn)) {
-	  Set<FlatCondBranch> fcbset=branchmap.get(fn);
-	  for(Iterator<FlatCondBranch> fcbit=fcbset.iterator(); fcbit.hasNext(); ) {
-	    FlatCondBranch fcb=fcbit.next();
-	    //enqueue flatcondbranch node for reanalysis
-	    if (!cannotdelay.contains(fcb)) {
-	      cannotdelay.add(fcb);
-	      toanalyze.add(fcb);
-	    }
-	  }
-	}
-	/* Do we write to fields */
-	if (fn.kind()==FKind.FlatSetFieldNode) {
-	  nodelayfieldwrset.add(((FlatSetFieldNode)fn).getField());
-	}
-	/* Do we read from fields */
-	if (fn.kind()==FKind.FlatFieldNode) {
-	  nodelayfieldrdset.add(((FlatFieldNode)fn).getField());
-	}
-	/* Do we write to arrays */
-	if (fn.kind()==FKind.FlatSetElementNode) {
-	  //have to do expansion
-	  nodelayarraywrset.addAll(typeanalysis.expand(((FlatSetElementNode)fn).getDst().getType()));
-	}
-	/* Do we read from arrays */
-	if (fn.kind()==FKind.FlatElementNode) {
-	  //have to do expansion
-	  nodelayarrayrdset.addAll(typeanalysis.expand(((FlatElementNode)fn).getSrc().getType()));
-	}
+        if (branchmap.containsKey(fn)) {
+          Set<FlatCondBranch> fcbset=branchmap.get(fn);
+          for(Iterator<FlatCondBranch> fcbit=fcbset.iterator(); fcbit.hasNext(); ) {
+            FlatCondBranch fcb=fcbit.next();
+            //enqueue flatcondbranch node for reanalysis
+            if (!cannotdelay.contains(fcb)) {
+              cannotdelay.add(fcb);
+              toanalyze.add(fcb);
+            }
+          }
+        }
+        /* Do we write to fields */
+        if (fn.kind()==FKind.FlatSetFieldNode) {
+          nodelayfieldwrset.add(((FlatSetFieldNode)fn).getField());
+        }
+        /* Do we read from fields */
+        if (fn.kind()==FKind.FlatFieldNode) {
+          nodelayfieldrdset.add(((FlatFieldNode)fn).getField());
+        }
+        /* Do we write to arrays */
+        if (fn.kind()==FKind.FlatSetElementNode) {
+          //have to do expansion
+          nodelayarraywrset.addAll(typeanalysis.expand(((FlatSetElementNode)fn).getDst().getType()));
+        }
+        /* Do we read from arrays */
+        if (fn.kind()==FKind.FlatElementNode) {
+          //have to do expansion
+          nodelayarrayrdset.addAll(typeanalysis.expand(((FlatElementNode)fn).getSrc().getType()));
+        }
 
-	//See if flatnode is definitely no delay
-	if (fn.kind()==FKind.FlatCall) {
-	  //Have to deal with fields/arrays
-	  FlatCall fcall=(FlatCall)fn;
-	  MethodDescriptor mdcall=fcall.getMethod();
-	  nodelayfieldwrset.addAll(gft.getFieldsAll(mdcall));
-	  nodelayarraywrset.addAll(typeanalysis.expandSet(gft.getArraysAll(mdcall)));
-	  //Have to deal with field/array reads
-	  nodelayfieldrdset.addAll(gft.getFieldsRdAll(mdcall));
-	  nodelayarrayrdset.addAll(typeanalysis.expandSet(gft.getArraysRdAll(mdcall)));
-	}
+        //See if flatnode is definitely no delay
+        if (fn.kind()==FKind.FlatCall) {
+          //Have to deal with fields/arrays
+          FlatCall fcall=(FlatCall)fn;
+          MethodDescriptor mdcall=fcall.getMethod();
+          nodelayfieldwrset.addAll(gft.getFieldsAll(mdcall));
+          nodelayarraywrset.addAll(typeanalysis.expandSet(gft.getArraysAll(mdcall)));
+          //Have to deal with field/array reads
+          nodelayfieldrdset.addAll(gft.getFieldsRdAll(mdcall));
+          nodelayarrayrdset.addAll(typeanalysis.expandSet(gft.getArraysRdAll(mdcall)));
+        }
       } else {
-	//Need to know which objects to lock on
-	Set<TempDescriptor> oldtemps=oldtempmap.get(fn);
-	switch(fn.kind()) {
-	case FKind.FlatSetFieldNode: {
-	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
-	  if (oldtemps.contains(fsfn.getDst())) {
-	    nodelaytempset.add(fsfn.getDst());
-	  }
-	  break;
-	}
+        //Need to know which objects to lock on
+        Set<TempDescriptor> oldtemps=oldtempmap.get(fn);
+        switch(fn.kind()) {
+        case FKind.FlatSetFieldNode: {
+          FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+          if (oldtemps.contains(fsfn.getDst())) {
+            nodelaytempset.add(fsfn.getDst());
+          }
+          break;
+        }
 
-	case FKind.FlatSetElementNode: {
-	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	  if (oldtemps.contains(fsen.getDst())) {
-	    nodelaytempset.add(fsen.getDst());
-	    //Word Array support requires index
-	    if (state.STMARRAY&&!state.DUALVIEW) {
-	      nodelaytempset.add(fsen.getIndex());
-	      derefset.add(fsen);
-	    }
-	  }
-	  break;
-	}
+        case FKind.FlatSetElementNode: {
+          FlatSetElementNode fsen=(FlatSetElementNode)fn;
+          if (oldtemps.contains(fsen.getDst())) {
+            nodelaytempset.add(fsen.getDst());
+            //Word Array support requires index
+            if (state.STMARRAY&&!state.DUALVIEW) {
+              nodelaytempset.add(fsen.getIndex());
+              derefset.add(fsen);
+            }
+          }
+          break;
+        }
 
-	case FKind.FlatFieldNode: {
-	  FlatFieldNode ffn=(FlatFieldNode)fn;
-	  if (oldtemps.contains(ffn.getSrc())&&
-	      dcopts.getFields().contains(ffn.getField())) {
-	    nodelaytempset.add(ffn.getSrc());
-	  }
-	  break;
-	}
+        case FKind.FlatFieldNode: {
+          FlatFieldNode ffn=(FlatFieldNode)fn;
+          if (oldtemps.contains(ffn.getSrc())&&
+              dcopts.getFields().contains(ffn.getField())) {
+            nodelaytempset.add(ffn.getSrc());
+          }
+          break;
+        }
 
-	case FKind.FlatElementNode: {
-	  FlatElementNode fen=(FlatElementNode)fn;
-	  if (oldtemps.contains(fen.getSrc())&&
-	      dcopts.getArrays().contains(fen.getSrc().getType())) {
-	    nodelaytempset.add(fen.getSrc());
-	    //Word Array support requires index
-	    if (state.STMARRAY&&!state.DUALVIEW) {
-	      nodelaytempset.add(fen.getIndex());
-	      derefset.add(fen);
-	    }
-	  }
-	  break;
-	}
-	}
+        case FKind.FlatElementNode: {
+          FlatElementNode fen=(FlatElementNode)fn;
+          if (oldtemps.contains(fen.getSrc())&&
+              dcopts.getArrays().contains(fen.getSrc().getType())) {
+            nodelaytempset.add(fen.getSrc());
+            //Word Array support requires index
+            if (state.STMARRAY&&!state.DUALVIEW) {
+              nodelaytempset.add(fen.getIndex());
+              derefset.add(fen);
+            }
+          }
+          break;
+        }
+        }
       }
 
       boolean changed=false;
       //See if we need to propagate changes
       if (!nodelaytemps.containsKey(fn)||
           !nodelaytemps.get(fn).equals(nodelaytempset)) {
-	nodelaytemps.put(fn, nodelaytempset);
-	changed=true;
+        nodelaytemps.put(fn, nodelaytempset);
+        changed=true;
       }
 
       //See if we need to propagate changes
       if (!nodelayfieldswr.containsKey(fn)||
           !nodelayfieldswr.get(fn).equals(nodelayfieldwrset)) {
-	nodelayfieldswr.put(fn, nodelayfieldwrset);
-	changed=true;
+        nodelayfieldswr.put(fn, nodelayfieldwrset);
+        changed=true;
       }
 
       //See if we need to propagate changes
       if (!nodelayfieldsrd.containsKey(fn)||
           !nodelayfieldsrd.get(fn).equals(nodelayfieldrdset)) {
-	nodelayfieldsrd.put(fn, nodelayfieldrdset);
-	changed=true;
+        nodelayfieldsrd.put(fn, nodelayfieldrdset);
+        changed=true;
       }
 
       //See if we need to propagate changes
       if (!nodelayarrayswr.containsKey(fn)||
           !nodelayarrayswr.get(fn).equals(nodelayarraywrset)) {
-	nodelayarrayswr.put(fn, nodelayarraywrset);
-	changed=true;
+        nodelayarrayswr.put(fn, nodelayarraywrset);
+        changed=true;
       }
 
       //See if we need to propagate changes
       if (!nodelayarraysrd.containsKey(fn)||
           !nodelayarraysrd.get(fn).equals(nodelayarrayrdset)) {
-	nodelayarraysrd.put(fn, nodelayarrayrdset);
-	changed=true;
+        nodelayarraysrd.put(fn, nodelayarrayrdset);
+        changed=true;
       }
 
       if (changed)
-	for(int i=0; i<fn.numPrev(); i++)
-	  toanalyze.add(fn.getPrev(i));
+        for(int i=0; i<fn.numPrev(); i++)
+          toanalyze.add(fn.getPrev(i));
     } //end of while loop
 
     if (lb.getHasAtomic()) {
       if (state.STMARRAY&&!state.DUALVIEW)
-	derefmap.put(lb, derefset);
+        derefmap.put(lb, derefset);
       cannotdelaymap.put(lb, cannotdelay);
     }
   } //end of method
@@ -811,13 +811,13 @@ public class DelayComputation {
       boolean isatomic=atomictable.get(fn).intValue()>0;
 
       if (!isatomic)
-	continue;
+        continue;
 
       //Compute initial notready set
       HashSet<TempDescriptor> notreadyset=new HashSet<TempDescriptor>();
       for(int i=0; i<fn.numPrev(); i++) {
-	if (notreadymap.containsKey(fn.getPrev(i)))
-	  notreadyset.addAll(notreadymap.get(fn.getPrev(i)));
+        if (notreadymap.containsKey(fn.getPrev(i)))
+          notreadyset.addAll(notreadymap.get(fn.getPrev(i)));
       }
 
       //Are we ready
@@ -826,148 +826,148 @@ public class DelayComputation {
       //Test our read set first
       TempDescriptor readset[]=fn.readsTemps();
       for(int i=0; i<readset.length; i++) {
-	TempDescriptor tmp=readset[i];
-	if (notreadyset.contains(tmp)) {
-	  notready=true;
-	  break;
-	}
+        TempDescriptor tmp=readset[i];
+        if (notreadyset.contains(tmp)) {
+          notready=true;
+          break;
+        }
       }
 
       if (!notready&&!cannotdelay.contains(fn)) {
-	switch(fn.kind()) {
-	case FKind.FlatFieldNode: {
-	  FlatFieldNode ffn=(FlatFieldNode)fn;
-	  if (!dcopts.getFields().contains(ffn.getField())) {
-	    break;
-	  }
-	  TempDescriptor tmp=ffn.getSrc();
-	  Set<TempFlatPair> tfpset=dcopts.getMap(lb).get(fn).get(tmp);
-	  if (tfpset!=null) {
-	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
-	      TempFlatPair tfp=tfpit.next();
-	      if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
-		//if a source didn't need a translation and we are
-		//accessing it, it did...so therefore we are note
-		//ready
-		notready=true;
-		break;
-	      }
-	    }
-	  }
-	  break;
-	}
+        switch(fn.kind()) {
+        case FKind.FlatFieldNode: {
+          FlatFieldNode ffn=(FlatFieldNode)fn;
+          if (!dcopts.getFields().contains(ffn.getField())) {
+            break;
+          }
+          TempDescriptor tmp=ffn.getSrc();
+          Set<TempFlatPair> tfpset=dcopts.getMap(lb).get(fn).get(tmp);
+          if (tfpset!=null) {
+            for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
+              TempFlatPair tfp=tfpit.next();
+              if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
+                //if a source didn't need a translation and we are
+                //accessing it, it did...so therefore we are note
+                //ready
+                notready=true;
+                break;
+              }
+            }
+          }
+          break;
+        }
 
-	case FKind.FlatSetFieldNode: {
-	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
-	  TempDescriptor tmp=fsfn.getDst();
-	  Hashtable<TempDescriptor, Set<TempFlatPair>> tmpmap=dcopts.getMap(lb).get(fn);
-	  Set<TempFlatPair> tfpset=tmpmap!=null?tmpmap.get(tmp):null;
+        case FKind.FlatSetFieldNode: {
+          FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+          TempDescriptor tmp=fsfn.getDst();
+          Hashtable<TempDescriptor, Set<TempFlatPair>> tmpmap=dcopts.getMap(lb).get(fn);
+          Set<TempFlatPair> tfpset=tmpmap!=null?tmpmap.get(tmp):null;
 
-	  if (tfpset!=null) {
-	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
-	      TempFlatPair tfp=tfpit.next();
-	      if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
-		//if a source didn't need a translation and we are
-		//accessing it, it did...so therefore we are note
-		//ready
-		notready=true;
-		break;
-	      }
-	    }
-	  }
-	  break;
-	}
+          if (tfpset!=null) {
+            for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
+              TempFlatPair tfp=tfpit.next();
+              if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
+                //if a source didn't need a translation and we are
+                //accessing it, it did...so therefore we are note
+                //ready
+                notready=true;
+                break;
+              }
+            }
+          }
+          break;
+        }
 
-	case FKind.FlatElementNode: {
-	  FlatElementNode fen=(FlatElementNode)fn;
-	  if (!dcopts.getArrays().contains(fen.getSrc().getType())) {
-	    break;
-	  }
-	  TempDescriptor tmp=fen.getSrc();
-	  Set<TempFlatPair> tfpset=dcopts.getMap(lb).get(fn).get(tmp);
-	  if (tfpset!=null) {
-	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
-	      TempFlatPair tfp=tfpit.next();
-	      if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
-		//if a source didn't need a translation and we are
-		//accessing it, it did...so therefore we are note
-		//ready
-		notready=true;
-		break;
-	      }
-	    }
-	  }
-	  break;
-	}
+        case FKind.FlatElementNode: {
+          FlatElementNode fen=(FlatElementNode)fn;
+          if (!dcopts.getArrays().contains(fen.getSrc().getType())) {
+            break;
+          }
+          TempDescriptor tmp=fen.getSrc();
+          Set<TempFlatPair> tfpset=dcopts.getMap(lb).get(fn).get(tmp);
+          if (tfpset!=null) {
+            for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
+              TempFlatPair tfp=tfpit.next();
+              if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
+                //if a source didn't need a translation and we are
+                //accessing it, it did...so therefore we are note
+                //ready
+                notready=true;
+                break;
+              }
+            }
+          }
+          break;
+        }
 
-	case FKind.FlatSetElementNode: {
-	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	  TempDescriptor tmp=fsen.getDst();
-	  Set<TempFlatPair> tfpset=dcopts.getMap(lb).get(fn).get(tmp);
-	  if (tfpset!=null) {
-	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
-	      TempFlatPair tfp=tfpit.next();
-	      if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
-		//if a source didn't need a translation and we are
-		//accessing it, it did...so therefore we are note
-		//ready
-		notready=true;
-		break;
-	      }
-	    }
-	  }
-	  break;
-	}
-	}
+        case FKind.FlatSetElementNode: {
+          FlatSetElementNode fsen=(FlatSetElementNode)fn;
+          TempDescriptor tmp=fsen.getDst();
+          Set<TempFlatPair> tfpset=dcopts.getMap(lb).get(fn).get(tmp);
+          if (tfpset!=null) {
+            for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
+              TempFlatPair tfp=tfpit.next();
+              if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
+                //if a source didn't need a translation and we are
+                //accessing it, it did...so therefore we are note
+                //ready
+                notready=true;
+                break;
+              }
+            }
+          }
+          break;
+        }
+        }
       }
 
       if (!notready) {
-	//See if we depend on a conditional branch that is not ready
-	Set<FlatCondBranch> branchset=branchmap.get(fn);
-	if (branchset!=null)
-	  for(Iterator<FlatCondBranch> branchit=branchset.iterator(); branchit.hasNext(); ) {
-	    FlatCondBranch fcb=branchit.next();
-	    if (notreadynodes.contains(fcb)) {
-	      //if we depend on a branch that isn't ready, we aren't ready
-	      notready=true;
-	      break;
-	    }
-	  }
+        //See if we depend on a conditional branch that is not ready
+        Set<FlatCondBranch> branchset=branchmap.get(fn);
+        if (branchset!=null)
+          for(Iterator<FlatCondBranch> branchit=branchset.iterator(); branchit.hasNext(); ) {
+            FlatCondBranch fcb=branchit.next();
+            if (notreadynodes.contains(fcb)) {
+              //if we depend on a branch that isn't ready, we aren't ready
+              notready=true;
+              break;
+            }
+          }
       }
 
 
       //Fix up things based on our status
       if (notready) {
-	if (fn.kind()==FKind.FlatCondBranch&&!notreadynodes.contains(fn)) {
-	  //enqueue everything in our dependence set
-	  Set<FlatNode> branchdepset=revbranchmap.get((FlatCondBranch)fn);
-	  toanalyze.addAll(branchdepset);
-	}
+        if (fn.kind()==FKind.FlatCondBranch&&!notreadynodes.contains(fn)) {
+          //enqueue everything in our dependence set
+          Set<FlatNode> branchdepset=revbranchmap.get((FlatCondBranch)fn);
+          toanalyze.addAll(branchdepset);
+        }
 
-	//add us to the list
-	notreadynodes.add(fn);
+        //add us to the list
+        notreadynodes.add(fn);
 
-	//Add our writes
-	TempDescriptor writeset[]=fn.writesTemps();
-	for(int i=0; i<writeset.length; i++) {
-	  TempDescriptor tmp=writeset[i];
-	  notreadyset.add(tmp);
-	}
+        //Add our writes
+        TempDescriptor writeset[]=fn.writesTemps();
+        for(int i=0; i<writeset.length; i++) {
+          TempDescriptor tmp=writeset[i];
+          notreadyset.add(tmp);
+        }
       } else {
-	//Kill our writes
-	TempDescriptor writeset[]=fn.writesTemps();
-	for(int i=0; i<writeset.length; i++) {
-	  TempDescriptor tmp=writeset[i];
-	  notreadyset.remove(tmp);
-	}
+        //Kill our writes
+        TempDescriptor writeset[]=fn.writesTemps();
+        for(int i=0; i<writeset.length; i++) {
+          TempDescriptor tmp=writeset[i];
+          notreadyset.remove(tmp);
+        }
       }
 
       //See if we need to propagate changes
       if (!notreadymap.containsKey(fn)||
           !notreadymap.get(fn).equals(notreadyset)) {
-	notreadymap.put(fn, notreadyset);
-	for(int i=0; i<fn.numNext(); i++)
-	  toanalyze.add(fn.getNext(i));
+        notreadymap.put(fn, notreadyset);
+        for(int i=0; i<fn.numNext(); i++)
+          toanalyze.add(fn.getNext(i));
       }
     } //end of while
     return notreadynodes;
@@ -981,11 +981,11 @@ public class DelayComputation {
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       if (fn.kind()!=FKind.FlatCondBranch)
-	continue;
+        continue;
       FlatCondBranch fcb=(FlatCondBranch)fn;
       //only worry about fcb inside of transactions
       if (locality.getAtomic(lb).get(fcb).intValue()==0)
-	continue;
+        continue;
       FlatNode postdom=postdt.idom(fcb);
 
       //Reverse the mapping
@@ -1003,20 +1003,20 @@ public class DelayComputation {
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       if (fn.kind()!=FKind.FlatCondBranch)
-	continue;
+        continue;
       FlatCondBranch fcb=(FlatCondBranch)fn;
       //only worry about fcb inside of transactions
       if (locality.getAtomic(lb).get(fcb).intValue()==0)
-	continue;
+        continue;
       FlatNode postdom=postdt.idom(fcb);
 
       //Reverse the mapping
       Set<FlatNode> fnset=computeBranchSet(lb, fcb, postdom);
       for(Iterator<FlatNode>fnit2=fnset.iterator(); fnit2.hasNext(); ) {
-	FlatNode fn2=fnit2.next();
-	if (!condmap.containsKey(fn2))
-	  condmap.put(fn2,new HashSet<FlatCondBranch>());
-	condmap.get(fn2).add(fcb);
+        FlatNode fn2=fnit2.next();
+        if (!condmap.containsKey(fn2))
+          condmap.put(fn2,new HashSet<FlatCondBranch>());
+        condmap.get(fn2).add(fcb);
       }
     }
     return condmap;
@@ -1033,16 +1033,16 @@ public class DelayComputation {
 
       //already examined or exit node
       if (visited.contains(fn)||fn==last)
-	continue;
+        continue;
 
       //out of transaction
       if (locality.getAtomic(lb).get(fn).intValue()==0)
-	continue;
+        continue;
 
       visited.add(fn);
       for(int i=0; i<fn.numNext(); i++) {
-	FlatNode fnext=fn.getNext(i);
-	toanalyze.add(fnext);
+        FlatNode fnext=fn.getNext(i);
+        toanalyze.add(fnext);
       }
     }
     return visited;

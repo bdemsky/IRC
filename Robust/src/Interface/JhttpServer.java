@@ -37,9 +37,9 @@ public class JhttpServer extends Thread {
     // infinite loop
     while (true) {
       try {
-	startWorker(server.accept());
+        startWorker(server.accept());
       } catch (Exception e) {
-	System.err.println(e);
+        System.err.println(e);
       }
     }
   }

@@ -42,7 +42,7 @@ public class TaintSet extends Canonical {
     HashSet<Taint> taintset=new HashSet<Taint>();
     for(Taint t : taints) {
       if (t.getWhereDefined()!=fn) {
-	t=t.reTaint(fn);
+        t=t.reTaint(fn);
       }
       taintset.add(t);
     }
@@ -133,7 +133,7 @@ public class TaintSet extends Canonical {
     while( tItr.hasNext() ) {
       Taint tThis = tItr.next();
       if( tThis.equalsIgnorePreds(t) ) {
-	return tThis;
+        return tThis;
       }
     }
 
@@ -166,7 +166,7 @@ public class TaintSet extends Canonical {
 
       s += t.toString();
       if( tItr.hasNext() ) {
-	s += ",\\n";
+        s += ",\\n";
       }
     }
     s += "]";

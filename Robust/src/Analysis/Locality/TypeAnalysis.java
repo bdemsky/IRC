@@ -55,10 +55,10 @@ public class TypeAnalysis {
       TypeDescriptor td=it.next();
       Set<TypeDescriptor> set=transmap.get(td);
       for(Iterator<TypeDescriptor> it2=set.iterator(); it2.hasNext(); ) {
-	TypeDescriptor type=it2.next();
-	if (!namemap.containsKey(type))
-	  namemap.put(type, new HashSet<TypeDescriptor>());
-	namemap.get(type).addAll(set);
+        TypeDescriptor type=it2.next();
+        if (!namemap.containsKey(type))
+          namemap.put(type, new HashSet<TypeDescriptor>());
+        namemap.get(type).addAll(set);
       }
     }
   }
@@ -73,17 +73,17 @@ public class TypeAnalysis {
       transmap.get(td).add(td);
 
       while(!tovisit.isEmpty()) {
-	TypeDescriptor type=tovisit.iterator().next();
-	tovisit.remove(type);
-	//Is type a supertype of td...if not skip along
-	if (!typeutil.isSuperorType(type,td))
-	  continue;
-	//Check if we have seen it before
-	if (!transmap.get(td).contains(type)) {
-	  //If not, add to set and continue processing
-	  transmap.get(td).add(type);
-	  tovisit.add(type);
-	}
+        TypeDescriptor type=tovisit.iterator().next();
+        tovisit.remove(type);
+        //Is type a supertype of td...if not skip along
+        if (!typeutil.isSuperorType(type,td))
+          continue;
+        //Check if we have seen it before
+        if (!transmap.get(td).contains(type)) {
+          //If not, add to set and continue processing
+          transmap.get(td).add(type);
+          tovisit.add(type);
+        }
       }
     }
   }
@@ -99,9 +99,9 @@ public class TypeAnalysis {
       TypeDescriptor td=it.next();
       Set<TypeDescriptor> etdset=expand(td);
       if (etdset==null)
-	expandedSet.add(td);
+        expandedSet.add(td);
       else
-	expandedSet.addAll(etdset);
+        expandedSet.addAll(etdset);
     }
     return expandedSet;
   }
@@ -122,82 +122,82 @@ public class TypeAnalysis {
       FlatNode fn=fnit.next();
       switch(fn.kind()) {
       case FKind.FlatOpNode: {
-	FlatOpNode fon=(FlatOpNode)fn;
-	if(fon.getOp().getOp()==Operation.ASSIGN) {
-	  addMapping(fon.getLeft().getType(),fon.getDest().getType());
-	}
-	break;
+        FlatOpNode fon=(FlatOpNode)fn;
+        if(fon.getOp().getOp()==Operation.ASSIGN) {
+          addMapping(fon.getLeft().getType(),fon.getDest().getType());
+        }
+        break;
       }
 
       case FKind.FlatNew: {
-	FlatNew fnew=(FlatNew)fn;
-	roottypes.add(fnew.getType());
-	break;
+        FlatNew fnew=(FlatNew)fn;
+        roottypes.add(fnew.getType());
+        break;
       }
 
       case FKind.FlatCastNode: {
-	FlatCastNode fcn=(FlatCastNode)fn;
-	addMapping(fcn.getSrc().getType(), fcn.getDst().getType());
-	break;
+        FlatCastNode fcn=(FlatCastNode)fn;
+        addMapping(fcn.getSrc().getType(), fcn.getDst().getType());
+        break;
       }
 
       case FKind.FlatFieldNode: {
-	FlatFieldNode ffn=(FlatFieldNode)fn;
-	addMapping(ffn.getField().getType(), ffn.getDst().getType());
-	break;
+        FlatFieldNode ffn=(FlatFieldNode)fn;
+        addMapping(ffn.getField().getType(), ffn.getDst().getType());
+        break;
       }
 
       case FKind.FlatSetFieldNode: {
-	FlatSetFieldNode fsfn=(FlatSetFieldNode) fn;
-	addMapping(fsfn.getSrc().getType(), fsfn.getField().getType());
-	break;
+        FlatSetFieldNode fsfn=(FlatSetFieldNode) fn;
+        addMapping(fsfn.getSrc().getType(), fsfn.getField().getType());
+        break;
       }
 
       case FKind.FlatElementNode: {
-	FlatElementNode fen=(FlatElementNode)fn;
-	addMapping(fen.getSrc().getType().dereference(), fen.getDst().getType());
-	break;
+        FlatElementNode fen=(FlatElementNode)fn;
+        addMapping(fen.getSrc().getType().dereference(), fen.getDst().getType());
+        break;
       }
 
       case FKind.FlatSetElementNode: {
-	FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	addMapping(fsen.getSrc().getType(), fsen.getDst().getType().dereference());
-	break;
+        FlatSetElementNode fsen=(FlatSetElementNode)fn;
+        addMapping(fsen.getSrc().getType(), fsen.getDst().getType().dereference());
+        break;
       }
 
       case FKind.FlatCall: {
-	FlatCall fc=(FlatCall)fn;
-	if (fc.getReturnTemp()!=null) {
-	  addMapping(fc.getMethod().getReturnType(), fc.getReturnTemp().getType());
-	}
-	MethodDescriptor callmd=fc.getMethod();
-	if (fc.getThis()!=null) {
-	  //complicated...need to deal with virtual dispatch here
-	  Set methods=cg.getMethods(callmd);
-	  for(Iterator mdit=methods.iterator(); mdit.hasNext(); ) {
-	    MethodDescriptor md2=(MethodDescriptor)mdit.next();
-	    if (fc.getThis()!=null) {
-	      TypeDescriptor ttype=new TypeDescriptor(md2.getClassDesc());
-	      if (!typeutil.isSuperorType(fc.getThis().getType(),ttype)&&
-	          !typeutil.isSuperorType(ttype,fc.getThis().getType()))
-		continue;
-	      addMapping(fc.getThis().getType(), ttype);
-	    }
-	  }
-	}
-	for(int i=0; i<fc.numArgs(); i++) {
-	  TempDescriptor arg=fc.getArg(i);
-	  TypeDescriptor ptype=callmd.getParamType(i);
-	  addMapping(arg.getType(), ptype);
-	}
-	break;
+        FlatCall fc=(FlatCall)fn;
+        if (fc.getReturnTemp()!=null) {
+          addMapping(fc.getMethod().getReturnType(), fc.getReturnTemp().getType());
+        }
+        MethodDescriptor callmd=fc.getMethod();
+        if (fc.getThis()!=null) {
+          //complicated...need to deal with virtual dispatch here
+          Set methods=cg.getMethods(callmd);
+          for(Iterator mdit=methods.iterator(); mdit.hasNext(); ) {
+            MethodDescriptor md2=(MethodDescriptor)mdit.next();
+            if (fc.getThis()!=null) {
+              TypeDescriptor ttype=new TypeDescriptor(md2.getClassDesc());
+              if (!typeutil.isSuperorType(fc.getThis().getType(),ttype)&&
+                  !typeutil.isSuperorType(ttype,fc.getThis().getType()))
+                continue;
+              addMapping(fc.getThis().getType(), ttype);
+            }
+          }
+        }
+        for(int i=0; i<fc.numArgs(); i++) {
+          TempDescriptor arg=fc.getArg(i);
+          TypeDescriptor ptype=callmd.getParamType(i);
+          addMapping(arg.getType(), ptype);
+        }
+        break;
       }
 
       //both inputs and output
       case FKind.FlatReturnNode: {
-	FlatReturnNode frn=(FlatReturnNode) fn;
-	if (frn.getReturnTemp()!=null)
-	  addMapping(frn.getReturnTemp().getType(), md.getReturnType());
+        FlatReturnNode frn=(FlatReturnNode) fn;
+        if (frn.getReturnTemp()!=null)
+          addMapping(frn.getReturnTemp().getType(), md.getReturnType());
       }
       }
     }
