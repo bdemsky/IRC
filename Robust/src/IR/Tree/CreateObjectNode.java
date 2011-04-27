@@ -59,11 +59,11 @@ public class CreateObjectNode extends ExpressionNode {
   public ExpressionNode getArg(int i) {
     return (ExpressionNode) argumentlist.get(i);
   }
-  
+
   public void addArrayInitializer(ArrayInitializerNode ain) {
-   this.ain = ain; 
+    this.ain = ain;
   }
-  
+
   public ArrayInitializerNode getArrayInitializer() {
     return this.ain;
   }
@@ -100,7 +100,7 @@ public class CreateObjectNode extends ExpressionNode {
   public int kind() {
     return Kind.CreateObjectNode;
   }
-  
+
   public Long evaluate() {
     eval = null;
     return eval; //null;

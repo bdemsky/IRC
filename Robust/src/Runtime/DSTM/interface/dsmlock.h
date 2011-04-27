@@ -1,7 +1,7 @@
 #ifndef _DSMLOCK_H_
 #define _DSMLOCK_H_
 
-#define CFENCE   asm volatile("":::"memory");
+#define CFENCE   asm volatile ("" ::: "memory");
 #define RW_LOCK_BIAS             0x01000000
 #define atomic_read(v)          (*v)
 #define RW_LOCK_UNLOCKED          { RW_LOCK_BIAS }
@@ -9,7 +9,7 @@
 #define LOCK_PREFIX \
   ".section .smp_locks,\"a\"\n"   \
   "  .align 4\n"                  \
-  "  .long 661f\n"             /* address */\
+  "  .long 661f\n"             /* address */ \
   ".previous\n"                   \
   "661:\n\tlock; "
 

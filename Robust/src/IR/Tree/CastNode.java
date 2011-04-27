@@ -44,7 +44,7 @@ public class CastNode extends ExpressionNode  {
   public int kind() {
     return Kind.CastNode;
   }
-  
+
   public Long evaluate() {
     eval = exp.evaluate();
     return eval;

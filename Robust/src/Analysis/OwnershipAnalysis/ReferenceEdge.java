@@ -23,8 +23,8 @@ public class ReferenceEdge {
 
   public ReferenceEdge(OwnershipNode src,
                        HeapRegionNode dst,
-		       TypeDescriptor type,
-		       String field,
+                       TypeDescriptor type,
+                       String field,
                        boolean isInitialParam,
                        ReachabilitySet beta) {
 
@@ -49,14 +49,14 @@ public class ReferenceEdge {
 
 
   public ReferenceEdge copy() {
-	  ReferenceEdge copy= new ReferenceEdge(src,
-                             dst,
-			     type,
-			     field,
-                             isInitialParam,
-                             beta);
-	  copy.setTaintIdentifier(this.taintIdentifier);
-	  return copy;
+    ReferenceEdge copy= new ReferenceEdge(src,
+                                          dst,
+                                          type,
+                                          field,
+                                          isInitialParam,
+                                          beta);
+    copy.setTaintIdentifier(this.taintIdentifier);
+    return copy;
   }
 
 
@@ -71,11 +71,11 @@ public class ReferenceEdge {
 
     ReferenceEdge edge = (ReferenceEdge) o;
 
-    if( !typeEquals( edge.type ) ) {
+    if( !typeEquals(edge.type) ) {
       return false;
     }
 
-    if( !fieldEquals( edge.field ) ) {
+    if( !fieldEquals(edge.field) ) {
       return false;
     }
 
@@ -136,7 +136,7 @@ public class ReferenceEdge {
     return type;
   }
 
-  public void setType( TypeDescriptor td ) {
+  public void setType(TypeDescriptor td) {
     type = td;
   }
 
@@ -144,34 +144,34 @@ public class ReferenceEdge {
     return field;
   }
 
-  public void setField( String s ) {
+  public void setField(String s) {
     field = s;
   }
 
 
-  public boolean typeEquals( TypeDescriptor td ) {
+  public boolean typeEquals(TypeDescriptor td) {
     if( type == null && td == null ) {
       return true;
     }
     if( type == null ) {
       return false;
     }
-    return type.equals( td );
+    return type.equals(td);
   }
 
-  public boolean fieldEquals( String s ) {
+  public boolean fieldEquals(String s) {
     if( field == null && s == null ) {
       return true;
     }
     if( field == null ) {
       return false;
     }
-    return field.equals( s );
+    return field.equals(s);
   }
 
-  public boolean typeAndFieldEquals( ReferenceEdge e ) {
-    return typeEquals ( e.getType()  ) &&
-           fieldEquals( e.getField() );
+  public boolean typeAndFieldEquals(ReferenceEdge e) {
+    return typeEquals(e.getType()  ) &&
+           fieldEquals(e.getField() );
   }
 
 
@@ -211,7 +211,7 @@ public class ReferenceEdge {
 
 
   public String toGraphEdgeString(boolean hideSubsetReachability,
-				  boolean hideEdgeTaints) {
+                                  boolean hideEdgeTaints) {
     String edgeLabel = "";
 
     if (type != null) {
@@ -228,12 +228,12 @@ public class ReferenceEdge {
 
     if( !hideEdgeTaints ) {
       edgeLabel += "*taint*=" + Integer.toBinaryString(taintIdentifier)
-	+ "\\n*SESE*=" + Integer.toBinaryString(SESEtaintIdentifier)
-	+ "\\n";
+                   + "\\n*SESE*=" + Integer.toBinaryString(SESEtaintIdentifier)
+                   + "\\n";
     }
 
     edgeLabel += beta.toStringEscapeNewline(hideSubsetReachability);
-      
+
     return edgeLabel;
   }
 
@@ -244,39 +244,39 @@ public class ReferenceEdge {
 
     return new String("("+src+"->"+type+" "+field+"->"+dst+")");
   }
-  
-  public void tainedBy(Integer paramIdx){
-	  int newTaint=(int) Math.pow(2, paramIdx.intValue());
-	  taintIdentifier=taintIdentifier | newTaint;
+
+  public void tainedBy(Integer paramIdx) {
+    int newTaint=(int) Math.pow(2, paramIdx.intValue());
+    taintIdentifier=taintIdentifier | newTaint;
   }
-  
-  public void setTaintIdentifier(int newTaint){
-	  taintIdentifier=newTaint;
+
+  public void setTaintIdentifier(int newTaint) {
+    taintIdentifier=newTaint;
   }
-  
-  public void unionTaintIdentifier(int newTaint){
-	  taintIdentifier=taintIdentifier | newTaint;
+
+  public void unionTaintIdentifier(int newTaint) {
+    taintIdentifier=taintIdentifier | newTaint;
   }
-  
-  public void minusTaintIdentifier(int removedTaint){
-	  taintIdentifier = taintIdentifier & (~removedTaint);
+
+  public void minusTaintIdentifier(int removedTaint) {
+    taintIdentifier = taintIdentifier & (~removedTaint);
   }
-  
-  public int getTaintIdentifier(){
-	  return taintIdentifier;
+
+  public int getTaintIdentifier() {
+    return taintIdentifier;
   }
-  
-  public int getSESETaintIdentifier(){
-	  return SESEtaintIdentifier;
+
+  public int getSESETaintIdentifier() {
+    return SESEtaintIdentifier;
   }
-  
-  public void setSESETaintIdentifier(int newTaint){
-	  SESEtaintIdentifier=newTaint;
+
+  public void setSESETaintIdentifier(int newTaint) {
+    SESEtaintIdentifier=newTaint;
   }
-  
-  public void unionSESETaintIdentifier(int newTaint){
-	  SESEtaintIdentifier=SESEtaintIdentifier | newTaint;
+
+  public void unionSESETaintIdentifier(int newTaint) {
+    SESEtaintIdentifier=SESEtaintIdentifier | newTaint;
   }
-  
-  
+
+
 }

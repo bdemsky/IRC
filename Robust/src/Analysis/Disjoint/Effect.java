@@ -72,11 +72,11 @@ public class Effect {
     }
 
     Effect in = (Effect) o;
-    
-    if (affectedAllocSite.equals(in.getAffectedAllocSite()) 
-        && type == in.getType() 
+
+    if (affectedAllocSite.equals(in.getAffectedAllocSite())
+        && type == in.getType()
         && ((field!=null&&field.equals(in.getField()))||
-	    (field==null&&in.getField()==null))) {
+            (field==null&&in.getField()==null))) {
       return true;
     } else {
       return false;

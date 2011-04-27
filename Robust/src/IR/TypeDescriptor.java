@@ -30,7 +30,7 @@ public class TypeDescriptor extends Descriptor {
   private int type;
   ClassDescriptor class_desc;
   boolean isClassNameRef = false;
-  
+
   private Vector<AnnotationDescriptor> annotationSet;
   private TypeExtension typeExtension;
 
@@ -44,7 +44,7 @@ public class TypeDescriptor extends Descriptor {
       if (t.arraycount!=arraycount)
 	return false;
       if (t.isClassNameRef != this.isClassNameRef)
-        return false;
+	return false;
       return true;
     }
     return false;
@@ -59,11 +59,11 @@ public class TypeDescriptor extends Descriptor {
       return false;
     return true;
   }
-  
+
   public boolean isClassNameRef() {
     return this.isClassNameRef;
   }
-  
+
   public void setClassNameRef() {
     this.isClassNameRef = true;
   }
@@ -79,14 +79,14 @@ public class TypeDescriptor extends Descriptor {
     if (arraycount!=0||!isClass())
       return false;
     return (name.equals("bytewrapper")||
-	    name.equals("booleanwrapper")||
-	    name.equals("shortwrapper")||
-	    name.equals("intwrapper")||
-	    name.equals("longwrapper")||
-	    name.equals("charwrapper")||
-	    name.equals("floatwrapper")||
-	    name.equals("doublewrapper")||
-	    name.equals("Objectwrapper"));
+            name.equals("booleanwrapper")||
+            name.equals("shortwrapper")||
+            name.equals("intwrapper")||
+            name.equals("longwrapper")||
+            name.equals("charwrapper")||
+            name.equals("floatwrapper")||
+            name.equals("doublewrapper")||
+            name.equals("Objectwrapper"));
   }
 
   public TypeDescriptor makeArray(State state) {
@@ -150,7 +150,7 @@ public class TypeDescriptor extends Descriptor {
       return "float";
     else if (isOffset())
       return "short";
-    else 
+    else
       throw new Error("Error Type: "+type);
   }
 
@@ -267,12 +267,12 @@ public class TypeDescriptor extends Descriptor {
   public boolean isEnum() {
     if(this.type != CLASS) {
       return false;
-    } else if(this.class_desc != null){
+    } else if(this.class_desc != null) {
       return this.class_desc.isEnum();
     }
     return false;
   }
-  
+
   public boolean isClass() {
     return (type==CLASS && !isEnum());
   }
@@ -338,7 +338,7 @@ public class TypeDescriptor extends Descriptor {
     }
     for(int i=0; i<arraycount; i++)
       str+="[]";
-    return str;    
+    return str;
   }
 
   private static String decodeInt(int type) {
@@ -368,21 +368,21 @@ public class TypeDescriptor extends Descriptor {
       return "offset";
     else throw new Error();
   }
-  
-  public void addAnnotationMarker(AnnotationDescriptor an){
+
+  public void addAnnotationMarker(AnnotationDescriptor an) {
     annotationSet.add(an);
   }
-  
-  public Vector<AnnotationDescriptor> getAnnotationMarkers(){
+
+  public Vector<AnnotationDescriptor> getAnnotationMarkers() {
     return annotationSet;
   }
-  
-  public void setExtension(TypeExtension te){
+
+  public void setExtension(TypeExtension te) {
     typeExtension=te;
   }
-  
-  public TypeExtension getExtension(){
+
+  public TypeExtension getExtension() {
     return typeExtension;
   }
-  
+
 }

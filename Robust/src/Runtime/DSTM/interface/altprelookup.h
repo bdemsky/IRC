@@ -17,8 +17,8 @@ typedef struct prehashlistnode {
 
 
 struct prelockarray {
-   volatile unsigned int lock;
-   int buf[15];
+  volatile unsigned int lock;
+  int buf[15];
 };
 
 #define PRENUMLOCKS 16

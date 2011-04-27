@@ -26,7 +26,7 @@ public class ProcessStateMachines {
   }
 
   private void merge() {
-    for(Pair<FlatNode, TempDescriptor> machinepair: bsm.getAllMachineNames()) {
+    for(Pair<FlatNode, TempDescriptor> machinepair : bsm.getAllMachineNames()) {
       StateMachineForEffects sm=bsm.getStateMachine(machinepair);
       merge(sm);
     }
@@ -40,10 +40,10 @@ public class ProcessStateMachines {
     do {
       mergeAgain=false;
       HashMap<Pair<SMFEState, FieldDescriptor>, Set<SMFEState>> revMap=buildReverse(backMap);
-      for(Map.Entry<Pair<SMFEState,FieldDescriptor>, Set<SMFEState>> entry:revMap.entrySet()) {
+      for(Map.Entry<Pair<SMFEState,FieldDescriptor>, Set<SMFEState>> entry : revMap.entrySet()) {
 	if (entry.getValue().size()>1) {
 	  SMFEState first=null;
-	  for(SMFEState state:entry.getValue()) {
+	  for(SMFEState state : entry.getValue()) {
 	    if (removedStates.contains(state))
 	      continue;
 	    if (first==null) {
@@ -69,9 +69,9 @@ public class ProcessStateMachines {
 
   private HashMap<Pair<SMFEState, FieldDescriptor>, Set<SMFEState>> buildReverse(HashMap<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>> backMap) {
     HashMap<Pair<SMFEState, FieldDescriptor>, Set<SMFEState>> revMap=new HashMap<Pair<SMFEState, FieldDescriptor>, Set<SMFEState>>();
-    for(Map.Entry<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>>entry:backMap.entrySet()) {
+    for(Map.Entry<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>>entry : backMap.entrySet()) {
       SMFEState state=entry.getKey();
-      for(Pair<SMFEState, FieldDescriptor> pair:entry.getValue()) {
+      for(Pair<SMFEState, FieldDescriptor> pair : entry.getValue()) {
 	if (!revMap.containsKey(pair))
 	  revMap.put(pair, new HashSet<SMFEState>());
 	revMap.get(pair).add(state);
@@ -89,11 +89,11 @@ public class ProcessStateMachines {
     backMap.get(state1).addAll(backMap.get(state2));
 
     //merge outgoing transitions
-    for(Map.Entry<Effect, Set<SMFEState>> entry:state2.e2states.entrySet()) {
+    for(Map.Entry<Effect, Set<SMFEState>> entry : state2.e2states.entrySet()) {
       Effect e=entry.getKey();
       Set<SMFEState> states=entry.getValue();
       if (state1.e2states.containsKey(e)) {
-	for(SMFEState statetoadd:states) {
+	for(SMFEState statetoadd : states) {
 	  if (!state1.e2states.get(e).add(statetoadd)) {
 	    //already added...reduce reference count
 	    statetoadd.refCount--;
@@ -111,10 +111,10 @@ public class ProcessStateMachines {
       }
 
       //fix up the backmap of the edges we point to
-      for(SMFEState st:states1) {
+      for(SMFEState st : states1) {
 	HashSet<Pair<SMFEState, FieldDescriptor>> toRemove=new HashSet<Pair<SMFEState, FieldDescriptor>>();
 	HashSet<Pair<SMFEState, FieldDescriptor>> toAdd=new HashSet<Pair<SMFEState, FieldDescriptor>>();
-	for(Pair<SMFEState, FieldDescriptor> backpair:backMap.get(st)) {
+	for(Pair<SMFEState, FieldDescriptor> backpair : backMap.get(st)) {
 	  if (backpair.getFirst()==state2) {
 	    Pair<SMFEState, FieldDescriptor> newpair=new Pair<SMFEState, FieldDescriptor>(state1, backpair.getSecond());
 	    toRemove.add(backpair);
@@ -127,16 +127,16 @@ public class ProcessStateMachines {
     }
 
     //Fix up our new incoming edges
-    for(Pair<SMFEState,FieldDescriptor> fromStatePair:backMap.get(state2)) {
+    for(Pair<SMFEState,FieldDescriptor> fromStatePair : backMap.get(state2)) {
       SMFEState fromState=fromStatePair.getFirst();
-      for(Map.Entry<Effect, Set<SMFEState>> fromEntry:fromState.e2states.entrySet()) {
+      for(Map.Entry<Effect, Set<SMFEState>> fromEntry : fromState.e2states.entrySet()) {
 	Effect e=fromEntry.getKey();
 	Set<SMFEState> states=fromEntry.getValue();
 	if (states.contains(state2)) {
 	  states.remove(state2);
-    if(states.add(state1) && !fromState.equals(state2)) {
-      state1.refCount++; 
-    }
+	  if(states.add(state1) && !fromState.equals(state2)) {
+	    state1.refCount++;
+	  }
 	}
       }
     }
@@ -146,7 +146,7 @@ public class ProcessStateMachines {
 
 
   private void prune() {
-    for(Pair<FlatNode, TempDescriptor> machinepair: bsm.getAllMachineNames()) {
+    for(Pair<FlatNode, TempDescriptor> machinepair : bsm.getAllMachineNames()) {
       StateMachineForEffects sm=bsm.getStateMachine(machinepair);
       pruneNonConflictingStates(sm);
       pruneEffects(sm);
@@ -154,10 +154,10 @@ public class ProcessStateMachines {
   }
 
   private void pruneEffects(StateMachineForEffects sm) {
-    for(Iterator<FlatNode> fnit=sm.fn2state.keySet().iterator(); fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=sm.fn2state.keySet().iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       SMFEState state=sm.fn2state.get(fn);
-      for(Iterator<Effect> efit=state.effects.iterator();efit.hasNext();) {
+      for(Iterator<Effect> efit=state.effects.iterator(); efit.hasNext(); ) {
 	Effect e=efit.next();
 	//Is it a conflicting effecting
 	if (state.getConflicts().contains(e))
@@ -173,14 +173,14 @@ public class ProcessStateMachines {
 
   private void pruneNonConflictingStates(StateMachineForEffects sm) {
     Set<SMFEState> canReachConflicts=buildConflictsAndMap(sm);
-    for(Iterator<FlatNode> fnit=sm.fn2state.keySet().iterator(); fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=sm.fn2state.keySet().iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       SMFEState state=sm.fn2state.get(fn);
       if (canReachConflicts.contains(state)) {
-	for(Iterator<Effect> efit=state.e2states.keySet().iterator(); efit.hasNext();) {
+	for(Iterator<Effect> efit=state.e2states.keySet().iterator(); efit.hasNext(); ) {
 	  Effect e=efit.next();
 	  Set<SMFEState> stateset=state.e2states.get(e);
-	  for(Iterator<SMFEState> stit=stateset.iterator(); stit.hasNext();) {
+	  for(Iterator<SMFEState> stit=stateset.iterator(); stit.hasNext(); ) {
 	    SMFEState tostate=stit.next();
 	    if(!canReachConflicts.contains(tostate))
 	      stit.remove();
@@ -193,7 +193,7 @@ public class ProcessStateMachines {
       }
     }
   }
-  
+
   private HashMap<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>> buildBackMap(StateMachineForEffects sm) {
     return buildBackMap(sm, null);
   }
@@ -208,8 +208,8 @@ public class ProcessStateMachines {
       if (!state.getConflicts().isEmpty()&&conflictStates!=null) {
 	conflictStates.add(state);
       }
-      for(Effect e:state.getEffectsAllowed()) {
-	for(SMFEState stateout:state.transitionsTo(e)) {
+      for(Effect e : state.getEffectsAllowed()) {
+	for(SMFEState stateout : state.transitionsTo(e)) {
 	  if (!backMap.containsKey(stateout)) {
 	    toprocess.add(stateout);
 	    backMap.put(stateout, new HashSet<Pair<SMFEState,FieldDescriptor>>());
@@ -222,7 +222,7 @@ public class ProcessStateMachines {
     return backMap;
   }
 
-  
+
   private Set<SMFEState> buildConflictsAndMap(StateMachineForEffects sm) {
     Set<SMFEState> conflictStates=new HashSet<SMFEState>();
     HashMap<SMFEState, Set<Pair<SMFEState,FieldDescriptor>>> backMap=buildBackMap(sm, conflictStates);
@@ -234,7 +234,7 @@ public class ProcessStateMachines {
     while(!toprocess.isEmpty()) {
       SMFEState state=toprocess.pop();
 
-      for(Pair<SMFEState,FieldDescriptor> instatepair:backMap.get(state)) {
+      for(Pair<SMFEState,FieldDescriptor> instatepair : backMap.get(state)) {
 	SMFEState instate=instatepair.getFirst();
 	if (!canReachConflicts.contains(instate)) {
 	  toprocess.add(instate);
@@ -244,13 +244,13 @@ public class ProcessStateMachines {
     }
     return canReachConflicts;
   }
-  
+
   private void groupStateMachines() {
-    for(Pair<FlatNode, TempDescriptor> machinePair: bsm.getAllMachineNames()) {
+    for(Pair<FlatNode, TempDescriptor> machinePair : bsm.getAllMachineNames()) {
       FlatNode fn=machinePair.getFirst();
       StateMachineForEffects sm=bsm.getStateMachine(machinePair);
       Set<FlatSESEEnterNode> taskSet=taskAnalysis.getPossibleExecutingRBlocks(fn);
-      for(FlatSESEEnterNode sese:taskSet) {
+      for(FlatSESEEnterNode sese : taskSet) {
 	if (!groupMap.containsKey(sese))
 	  groupMap.put(sese, new HashSet<StateMachineForEffects>());
 	groupMap.get(sese).add(sm);
@@ -260,21 +260,21 @@ public class ProcessStateMachines {
 
   private void computeConflictEffects() {
     //Loop through all state machines
-    for(Pair<FlatNode, TempDescriptor> machinePair: bsm.getAllMachineNames()) {
+    for(Pair<FlatNode, TempDescriptor> machinePair : bsm.getAllMachineNames()) {
       FlatNode fn=machinePair.getFirst();
       StateMachineForEffects sm=bsm.getStateMachine(machinePair);
       Set<FlatSESEEnterNode> taskSet=taskAnalysis.getPossibleExecutingRBlocks(fn);
-      for(FlatSESEEnterNode sese:taskSet) {
+      for(FlatSESEEnterNode sese : taskSet) {
 	Set<StateMachineForEffects> smgroup=groupMap.get(sese);
 	computeConflictingEffects(sm, smgroup);
       }
     }
   }
-  
+
   private void computeConflictingEffects(StateMachineForEffects sm, Set<StateMachineForEffects> smgroup) {
     boolean isStall=sm.getStallorSESE().kind()!=FKind.FlatSESEEnterNode;
-    for(SMFEState state:sm.getStates()) {
-      for(Effect e:state.getEffectsAllowed()) {
+    for(SMFEState state : sm.getStates()) {
+      for(Effect e : state.getEffectsAllowed()) {
 	Alloc a=e.getAffectedAllocSite();
 	FieldDescriptor fd=e.getField();
 	int type=e.getType();
@@ -282,7 +282,7 @@ public class ProcessStateMachines {
 	if (!isStall&&Effect.isWrite(type)) {
 	  hasConflict=true;
 	} else {
-	  for(StateMachineForEffects othersm:smgroup) {
+	  for(StateMachineForEffects othersm : smgroup) {
 	    boolean otherIsStall=othersm.getStallorSESE().kind()!=FKind.FlatSESEEnterNode;
 	    //Stall sites can't conflict with each other
 	    if (isStall&&otherIsStall) continue;
@@ -309,37 +309,37 @@ public class ProcessStateMachines {
 
 
   private void protectAgainstEvilTasks() {
-    for( Pair<FlatNode, TempDescriptor> machinepair: bsm.getAllMachineNames() ) {
-      StateMachineForEffects sm = bsm.getStateMachine( machinepair );
-      protectAgainstEvilTasks( sm );
+    for( Pair<FlatNode, TempDescriptor> machinepair : bsm.getAllMachineNames() ) {
+      StateMachineForEffects sm = bsm.getStateMachine(machinepair);
+      protectAgainstEvilTasks(sm);
     }
   }
 
-  private void protectAgainstEvilTasks( StateMachineForEffects sm ) {
+  private void protectAgainstEvilTasks(StateMachineForEffects sm) {
     // first identify the set of <Alloc, Field> pairs for which this
     // traverser will both read and write, remember the read effect
     Set<Effect> allocAndFieldRW = new HashSet<Effect>();
-    for( Pair<Alloc, FieldDescriptor> af: sm.effectsMap.keySet() ) {
-      Integer effectType = sm.effectsMap.get( af );
+    for( Pair<Alloc, FieldDescriptor> af : sm.effectsMap.keySet() ) {
+      Integer effectType = sm.effectsMap.get(af);
       if( (effectType & Effect.read)  != 0 &&
           (effectType & Effect.write) != 0
           ) {
-        allocAndFieldRW.add( new Effect( af.getFirst(),
-                                         Effect.read,
-                                         af.getSecond()
-                                         )
-                             );
+	allocAndFieldRW.add(new Effect(af.getFirst(),
+	                               Effect.read,
+	                               af.getSecond()
+	                               )
+	                    );
       }
     }
 
     // next check the state machine: if an effect that initiates
     // a transition is in the allocAndFieldRW set, then mark it
     // as... POSSIBLY EVIL!!!!!
-    for( SMFEState state: sm.getStates() ) {
-      for( Effect effect: state.getTransitionEffects() ) {
-        if( allocAndFieldRW.contains( effect ) ) {
-          sm.addPossiblyEvilEffect( effect );
-        }
+    for( SMFEState state : sm.getStates() ) {
+      for( Effect effect : state.getTransitionEffects() ) {
+	if( allocAndFieldRW.contains(effect) ) {
+	  sm.addPossiblyEvilEffect(effect);
+	}
       }
     }
   }

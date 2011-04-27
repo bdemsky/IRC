@@ -28,7 +28,7 @@ public class FlagInfo {
    *	pairs. */
 
   private void getFlagsfromClasses() {
-    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
+    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext(); ) {
       ClassDescriptor cd = (ClassDescriptor)it_classes.next();
       Vector vFlags=new Vector();
       FlagDescriptor flag[];
@@ -37,7 +37,7 @@ public class FlagInfo {
       /* Adding the flags of the super class */
       ClassDescriptor tmp=cd;
       while(tmp!=null) {
-	for(Iterator it_cflags=tmp.getFlags(); it_cflags.hasNext();) {
+	for(Iterator it_cflags=tmp.getFlags(); it_cflags.hasNext(); ) {
 	  FlagDescriptor fd = (FlagDescriptor)it_cflags.next();
 	  vFlags.add(fd);
 	}

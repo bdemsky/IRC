@@ -41,7 +41,7 @@ public class String {
     this.count=length;
     this.offset=0;
   }
-  
+
   public String(byte str[], String encoding) {
     int length = this.count;
     if (length>(str.length))
@@ -53,7 +53,7 @@ public class String {
     this.count=length;
     this.offset=0;
   }
-  
+
   public String(char str[], int offset, int length) {
     if (length>(str.length-offset))
       length=str.length-offset;
@@ -115,7 +115,7 @@ public class String {
   public int lastIndexOf(char ch) {
     return this.lastindexOf((int)ch, count - 1);
   }
-  
+
   public static String concat2(String s1, String s2) {
     if (s1==null)
       return "null".concat(s2);
@@ -204,10 +204,10 @@ public class String {
     return -1;
   }
 
-	public int indexOfIgnoreCase(String str, int fromIndex) {
-		if (fromIndex < 0) 
-			fromIndex = 0;
-	}
+  public int indexOfIgnoreCase(String str, int fromIndex) {
+    if (fromIndex < 0)
+      fromIndex = 0;
+  }
 
   public int lastIndexOf(String str, int fromIndex) {
     int k=count-str.count;
@@ -255,11 +255,11 @@ public class String {
       str[i]=(byte)value[i+offset];
     return str;
   }
-  
+
   public void getChars(char dst[], int dstBegin) {
     getChars(0, count, dst, dstBegin);
   }
-  
+
   public void getChars(int srcBegin, int srcEnd, char dst[], int dstBegin) {
     if((srcBegin < 0) || (srcEnd > count) || (srcBegin > srcEnd)) {
       // FIXME
@@ -345,7 +345,7 @@ public class String {
     s.value=chararray;
     return s;
   }
-  
+
   public static native int convertdoubletochar(double val, char [] chararray);
 
   public static String valueOf(long x) {
@@ -437,64 +437,63 @@ public class String {
     int cnt =0;
 
     // skip first spaces
-    for(i = 0; i< count;i++) {
-      if(value[i+offset] != '\n' && value[i+offset] != '\t' && value[i+offset] != ' ') 
-	  break;
+    for(i = 0; i< count; i++) {
+      if(value[i+offset] != '\n' && value[i+offset] != '\t' && value[i+offset] != ' ')
+	break;
     }
 
     int oldi=i;
 
     while(i<count) {
       if(value[i+offset] == '\n' || value[i+offset] == '\t' || value[i+offset] == ' ') {
-	  String t=new String();
-	  t.value=value;
-	  t.offset=oldi;
-	  t.count=i-oldi;
-	  splitted.addElement(t);
-
-	  // skip extra spaces
-	  while( i < count && ( value[i+offset] == '\n' || value[i+offset] == '\t' || value[i+offset] == ' ')) {
-	      i++;
-	  }
-	  oldi=i;
-      } else {
-	  i++;
-      }
-    }
-
-    if(i!=oldi) {
 	String t=new String();
 	t.value=value;
 	t.offset=oldi;
 	t.count=i-oldi;
 	splitted.addElement(t);
+
+	// skip extra spaces
+	while( i < count && ( value[i+offset] == '\n' || value[i+offset] == '\t' || value[i+offset] == ' ')) {
+	  i++;
+	}
+	oldi=i;
+      } else {
+	i++;
+      }
     }
-    
+
+    if(i!=oldi) {
+      String t=new String();
+      t.value=value;
+      t.offset=oldi;
+      t.count=i-oldi;
+      splitted.addElement(t);
+    }
+
     return splitted;
   }
 
-  public boolean contains(String str)
-  {
+  public boolean contains(String str) {
     int i,j;
     char[] strChar = str.toCharArray();
     int cnt;
 
     for(i = 0; i < count; i++) {
       if(value[i] == strChar[0]) {
-        cnt=0;
-        for(j=0; j < str.length() && i+j < count;j++) {
-          if(value[i+j] == strChar[j])
-            cnt++;
-        }
-        if(cnt == str.length())
-          return true;
+	cnt=0;
+	for(j=0; j < str.length() && i+j < count; j++) {
+	  if(value[i+j] == strChar[j])
+	    cnt++;
+	}
+	if(cnt == str.length())
+	  return true;
       }
     }
 
     return false;
 
   }
-  
+
   public String trim() {
     int len = count;
     int st = 0;
@@ -507,9 +506,9 @@ public class String {
     while ((st < len) && (val[off + len - 1] <= ' ')) {
       len--;
     }
-    return ((st > 0) || (len < count)) ? substring(st, len) : this;
+    return ((st > 0) || (len < count))?substring(st, len):this;
   }
-  
+
   public boolean matches(String regex) {
     System.println("String.matches() is not fully supported");
     return this.equals(regex);

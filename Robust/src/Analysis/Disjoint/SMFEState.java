@@ -8,7 +8,7 @@ import IR.Flat.*;
 
 //////////////////////////////////////////////
 //
-//  SMFEState is part of a 
+//  SMFEState is part of a
 //  (S)tate (M)achine (F)or (E)ffects.
 //
 //  StateMachineForEffects describes an intial
@@ -30,13 +30,13 @@ public class SMFEState {
   //  optimizations and whatnot, we need an alternate
   //  system of unique IDs
 
-  // uniquely identifies this state  
+  // uniquely identifies this state
   protected int id;
   protected int iHashCode;
 
   // all possible effects in this state
   protected Set<Effect> effects;
-  
+
   //TODO Jim! get me the list of conflicts!
   protected Set<Effect> conflicts;
 
@@ -49,34 +49,34 @@ public class SMFEState {
   protected int refCount;
 
   protected FlatNode whereDefined;
-  
-  public SMFEState( FlatNode fnWhereDefined, int id ) {
+
+  public SMFEState(FlatNode fnWhereDefined, int id) {
     this.id         = id;
     this.iHashCode  = fnWhereDefined.hashCode();
     this.whereDefined=fnWhereDefined;
-    
+
     effects         = new HashSet<Effect>();
     conflicts       = new HashSet<Effect>();
     e2states        = new Hashtable< Effect, Set<SMFEState> >();
     refCount        = 0;
   }
 
-  public void addEffect( Effect e ) {
-    effects.add( e );
+  public void addEffect(Effect e) {
+    effects.add(e);
   }
 
   // the given effect allows the transition to the new state
-  public void addTransition( Effect    effect,
-                             SMFEState stateTo
-                             ) {
+  public void addTransition(Effect effect,
+                            SMFEState stateTo
+                            ) {
 
-    Set<SMFEState> states = e2states.get( effect );
+    Set<SMFEState> states = e2states.get(effect);
     if( states == null ) {
       states = new HashSet<SMFEState>();
-      e2states.put( effect, states );
+      e2states.put(effect, states);
     }
     if (!states.contains(stateTo)) {
-      states.add( stateTo );
+      states.add(stateTo);
       stateTo.refCount++;
     }
   }
@@ -92,7 +92,7 @@ public class SMFEState {
   public Set<Effect> getEffectsAllowed() {
     return effects;
   }
-  
+
   public void addConflict(Effect e) {
     conflicts.add(e);
   }
@@ -100,15 +100,15 @@ public class SMFEState {
   public Set<Effect> getConflicts() {
     return conflicts;
   }
-  
+
   public Set<Effect> getTransitionEffects() {
     return this.e2states.keySet();
   }
 
   // some subset of the above effects may transition to
   // other states
-  public Set<SMFEState> transitionsTo( Effect e ) {
-    Set<SMFEState> statesOut = e2states.get( e );
+  public Set<SMFEState> transitionsTo(Effect e) {
+    Set<SMFEState> statesOut = e2states.get(e);
     if( statesOut == null ) {
       statesOut = new HashSet<SMFEState>();
     }
@@ -119,7 +119,7 @@ public class SMFEState {
   // other states
   public Set<SMFEState> transitionsTo() {
     Set<SMFEState> statesOut = new HashSet<SMFEState>();
-    for(Map.Entry<Effect, Set<SMFEState>> entry:e2states.entrySet()) {
+    for(Map.Entry<Effect, Set<SMFEState>> entry : e2states.entrySet()) {
       statesOut.addAll(entry.getValue());
     }
     return statesOut;
@@ -130,7 +130,7 @@ public class SMFEState {
   }
 
 
-  public boolean equals( Object o ) {
+  public boolean equals(Object o) {
     if( o == null ) {
       return false;
     }
@@ -150,7 +150,7 @@ public class SMFEState {
 
 
   public String toStringDOT() {
-    
+
     // first create the state as a node in DOT graph
     String s = "  "+id+"[shape=box,";
     if (conflicts.size()>0 ) {
@@ -162,15 +162,15 @@ public class SMFEState {
 
       Iterator<Effect> eItr = effects.iterator();
       while( eItr.hasNext() ) {
-        Effect e = eItr.next();
+	Effect e = eItr.next();
 	if (conflicts.contains(e)) {
 	  s += "["+e.toString()+"]";
 	} else {
 	  s += e.toString();
 	}
-        if( eItr.hasNext() ) {
-          s += "\\n";
-        }
+	if( eItr.hasNext() ) {
+	  s += "\\n";
+	}
       }
     }
 
@@ -179,16 +179,16 @@ public class SMFEState {
     // then each transition is an edge
     Iterator<Effect> eItr = e2states.keySet().iterator();
     while( eItr.hasNext() ) {
-      Effect         e      = eItr.next();
-      Set<SMFEState> states = e2states.get( e );
+      Effect e      = eItr.next();
+      Set<SMFEState> states = e2states.get(e);
 
       Iterator<SMFEState> sItr = states.iterator();
       while( sItr.hasNext() ) {
-        SMFEState state = sItr.next();
+	SMFEState state = sItr.next();
 
-        s += "\n  "+
-          id+" -> "+state.id+
-          "[label=\""+e+", RC="+refCount+"\"";
+	s += "\n  "+
+	     id+" -> "+state.id+
+	     "[label=\""+e+", RC="+refCount+"\"";
 	if (conflicts.contains(e))
 	  s+=",style=dashed";
 	s+="];";

@@ -1,4 +1,5 @@
 public class doublewrapper {
-    public doublewrapper() {}
-    double value;
+  public doublewrapper() {
+  }
+  double value;
 }

@@ -17,8 +17,8 @@ public class CoreSimulator {
   int coreNum;
   long activeTime;
 
-  public CoreSimulator(RuntimeSchedule schedule, 
-	               int coreNum) {
+  public CoreSimulator(RuntimeSchedule schedule,
+                       int coreNum) {
     super();
     reset();
     this.rSchedule = schedule;
@@ -64,8 +64,8 @@ public class CoreSimulator {
     return targetCSimulator.get(fstate);
   }
 
-  public void setTargetCSimulator(Hashtable<FlagState, 
-	                          Queue<Integer>> targetCSimulator) {
+  public void setTargetCSimulator(Hashtable<FlagState,
+                                  Queue<Integer>> targetCSimulator) {
     this.targetCSimulator = targetCSimulator;
   }
 
@@ -76,8 +76,8 @@ public class CoreSimulator {
     return allyCSimulator.get(fstate);
   }
 
-  public void setAllyCSimulator(Hashtable<FlagState, 
-	                        Vector<Integer>> allyCSimulator) {
+  public void setAllyCSimulator(Hashtable<FlagState,
+                                Vector<Integer>> allyCSimulator) {
     this.allyCSimulator = allyCSimulator;
   }
 
@@ -125,9 +125,9 @@ public class CoreSimulator {
     }
   }
 
-  public void addObject(ObjectSimulator newObj, 
-	                FlagState fs, 
-	                int version) {
+  public void addObject(ObjectSimulator newObj,
+                        FlagState fs,
+                        int version) {
     if(this.tasks == null) {
       return;
     }
@@ -146,8 +146,8 @@ public class CoreSimulator {
 	ObjectSimulator obj = paraQueues.elementAt(i).poll();
 	obj.setHold(false);
 	boolean remove = false;
-	if((this.targetFState != null) 
-		&& (this.targetFState.containsKey(obj.getCurrentFS()))) {
+	if((this.targetFState != null)
+	   && (this.targetFState.containsKey(obj.getCurrentFS()))) {
 	  if(transObjs == null) {
 	    transObjs = new Vector<ObjectSimulator>();
 	  }
@@ -161,27 +161,27 @@ public class CoreSimulator {
 	if(allycores != null) {
 	  obj.setShared(true);
 	  //for(int k = 0; k < allycores.size(); ++k) {
-	    //Integer allyCore = allycores.elementAt(k);
-	    if(transObjs == null) {
-	      transObjs = new Vector<ObjectSimulator>();
-	    }
-	    if(!transObjs.contains(obj)) {
-	      transObjs.add(obj);
-	    }
-	    remove = false;
+	  //Integer allyCore = allycores.elementAt(k);
+	  if(transObjs == null) {
+	    transObjs = new Vector<ObjectSimulator>();
+	  }
+	  if(!transObjs.contains(obj)) {
+	    transObjs.add(obj);
+	  }
+	  remove = false;
 	  //}
 	  allycores = null;
 	}
 	// check if need to transfer to other cores
 	Queue<Integer> targetcores = this.getTargetCores(obj.getCurrentFS());
 	if(targetcores != null) {
-	    if(transObjs == null) {
-		transObjs = new Vector<ObjectSimulator>();
-	    }
-	    if(!transObjs.contains(obj)) {
-		transObjs.add(obj);
-	    }
-	    remove = true;
+	  if(transObjs == null) {
+	    transObjs = new Vector<ObjectSimulator>();
+	  }
+	  if(!transObjs.contains(obj)) {
+	    transObjs.add(obj);
+	  }
+	  remove = true;
 	}
 	for(int j = 0; j < this.tasks.size(); j++) {
 	  this.tasks.elementAt(j).refreshPara(obj, remove);

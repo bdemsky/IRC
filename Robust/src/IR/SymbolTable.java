@@ -7,7 +7,7 @@ public class SymbolTable {
   private Hashtable table;
   private SymbolTable parent;
   private HashSet valueset;
-  
+
   private Vector<SymbolTable> parentIFs;
 
   public SymbolTable() {
@@ -46,9 +46,9 @@ public class SymbolTable {
       hs=new HashSet();
     if(this.parentIFs != null) {
       for(int i = 0; i < this.parentIFs.size(); i++) {
-        if(this.parentIFs.elementAt(i).contains(name)) {
-          hs.addAll((HashSet)(this.parentIFs.elementAt(i).getPSet(name)));
-        }
+	if(this.parentIFs.elementAt(i).contains(name)) {
+	  hs.addAll((HashSet)(this.parentIFs.elementAt(i).getPSet(name)));
+	}
       }
     }
     if (table.containsKey(name)) {
@@ -71,17 +71,17 @@ public class SymbolTable {
 
   public Descriptor get(String name) {
     Descriptor d = getFromSameScope(name);
-    if (d == null){
+    if (d == null) {
       if(parent != null) {
-        d = parent.get(name);
+	d = parent.get(name);
       }
       if((d == null) && (this.parentIFs != null)) {
-        for(int i = 0; i < this.parentIFs.size(); i++) {
-          d = this.parentIFs.elementAt(i).get(name);
-          if(d != null) {
-            return d;
-          }
-        }
+	for(int i = 0; i < this.parentIFs.size(); i++) {
+	  d = this.parentIFs.elementAt(i).get(name);
+	  if(d != null) {
+	    return d;
+	  }
+	}
       }
     }
     return d;
@@ -95,7 +95,7 @@ public class SymbolTable {
       return null;
 
   }
-  
+
   public Enumeration getNames() {
     return table.keys();
   }
@@ -120,7 +120,7 @@ public class SymbolTable {
       hs=new HashSet();
     if (this.parentIFs != null) {
       for(int i = 0; i < this.parentIFs.size(); i++) {
-        hs.addAll(this.parentIFs.elementAt(i).getAllValueSet());
+	hs.addAll(this.parentIFs.elementAt(i).getAllValueSet());
       }
     }
     hs.addAll(valueset);
@@ -142,7 +142,7 @@ public class SymbolTable {
   public void setParent(SymbolTable parent) {
     this.parent = parent;
   }
-  
+
   public Vector<SymbolTable> getParentIFs() {
     return this.parentIFs;
   }

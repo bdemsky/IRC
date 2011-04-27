@@ -25,7 +25,7 @@ public class TypeAnalysis {
   HashSet<TypeDescriptor> roottypes;
   Hashtable<TypeDescriptor, Set<TypeDescriptor>> transmap;
   Hashtable<TypeDescriptor, Set<TypeDescriptor>> namemap;
-  
+
   public TypeAnalysis(LocalityAnalysis locality, State state, TypeUtil typeutil, CallGraph cg) {
     this.state=state;
     this.locality=locality;
@@ -37,24 +37,24 @@ public class TypeAnalysis {
     roottypes=new HashSet<TypeDescriptor>();
     doAnalysis();
   }
-  
+
   /* We use locality bindings to get calleable methods.  This could be
    * changed to use the callgraph starting from the main method. */
 
   void doAnalysis() {
     Set<LocalityBinding> localityset=locality.getLocalityBindings();
-    for(Iterator<LocalityBinding> lb=localityset.iterator();lb.hasNext();) {
+    for(Iterator<LocalityBinding> lb=localityset.iterator(); lb.hasNext(); ) {
       computeTypes(lb.next().getMethod());
     }
     computeTrans();
     computeOtherNames();
   }
-  
+
   void computeOtherNames() {
-    for(Iterator<TypeDescriptor> it=transmap.keySet().iterator();it.hasNext();) {
+    for(Iterator<TypeDescriptor> it=transmap.keySet().iterator(); it.hasNext(); ) {
       TypeDescriptor td=it.next();
       Set<TypeDescriptor> set=transmap.get(td);
-      for(Iterator<TypeDescriptor> it2=set.iterator();it2.hasNext();) {
+      for(Iterator<TypeDescriptor> it2=set.iterator(); it2.hasNext(); ) {
 	TypeDescriptor type=it2.next();
 	if (!namemap.containsKey(type))
 	  namemap.put(type, new HashSet<TypeDescriptor>());
@@ -62,16 +62,16 @@ public class TypeAnalysis {
       }
     }
   }
-  
+
   void computeTrans() {
     //Idea: for each type we want to know all of the possible types it could be called
-    for(Iterator<TypeDescriptor> it=roottypes.iterator();it.hasNext();) {
+    for(Iterator<TypeDescriptor> it=roottypes.iterator(); it.hasNext(); ) {
       TypeDescriptor td=it.next();
       HashSet<TypeDescriptor> tovisit=new HashSet<TypeDescriptor>();
       transmap.put(td, new HashSet<TypeDescriptor>());
       tovisit.add(td);
       transmap.get(td).add(td);
-      
+
       while(!tovisit.isEmpty()) {
 	TypeDescriptor type=tovisit.iterator().next();
 	tovisit.remove(type);
@@ -87,7 +87,7 @@ public class TypeAnalysis {
       }
     }
   }
-  
+
   public Set<TypeDescriptor> expand(TypeDescriptor td) {
     Set<TypeDescriptor> expandset=namemap.get(td);
     return expandset;
@@ -95,7 +95,7 @@ public class TypeAnalysis {
 
   public Set<TypeDescriptor> expandSet(Set<TypeDescriptor> tdset) {
     HashSet<TypeDescriptor> expandedSet=new HashSet<TypeDescriptor>();
-    for(Iterator<TypeDescriptor> it=tdset.iterator();it.hasNext();) {
+    for(Iterator<TypeDescriptor> it=tdset.iterator(); it.hasNext(); ) {
       TypeDescriptor td=it.next();
       Set<TypeDescriptor> etdset=expand(td);
       if (etdset==null)
@@ -118,7 +118,7 @@ public class TypeAnalysis {
 
   void computeTypes(MethodDescriptor md) {
     FlatMethod fm=state.getMethodFlat(md);
-    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       switch(fn.kind()) {
       case FKind.FlatOpNode: {
@@ -128,36 +128,43 @@ public class TypeAnalysis {
 	}
 	break;
       }
+
       case FKind.FlatNew: {
 	FlatNew fnew=(FlatNew)fn;
 	roottypes.add(fnew.getType());
 	break;
       }
+
       case FKind.FlatCastNode: {
 	FlatCastNode fcn=(FlatCastNode)fn;
 	addMapping(fcn.getSrc().getType(), fcn.getDst().getType());
 	break;
       }
+
       case FKind.FlatFieldNode: {
 	FlatFieldNode ffn=(FlatFieldNode)fn;
 	addMapping(ffn.getField().getType(), ffn.getDst().getType());
 	break;
       }
+
       case FKind.FlatSetFieldNode: {
 	FlatSetFieldNode fsfn=(FlatSetFieldNode) fn;
 	addMapping(fsfn.getSrc().getType(), fsfn.getField().getType());
 	break;
       }
+
       case FKind.FlatElementNode: {
 	FlatElementNode fen=(FlatElementNode)fn;
 	addMapping(fen.getSrc().getType().dereference(), fen.getDst().getType());
 	break;
       }
+
       case FKind.FlatSetElementNode: {
 	FlatSetElementNode fsen=(FlatSetElementNode)fn;
 	addMapping(fsen.getSrc().getType(), fsen.getDst().getType().dereference());
 	break;
       }
+
       case FKind.FlatCall: {
 	FlatCall fc=(FlatCall)fn;
 	if (fc.getReturnTemp()!=null) {
@@ -167,25 +174,26 @@ public class TypeAnalysis {
 	if (fc.getThis()!=null) {
 	  //complicated...need to deal with virtual dispatch here
 	  Set methods=cg.getMethods(callmd);
-	  for(Iterator mdit=methods.iterator();mdit.hasNext();) {
+	  for(Iterator mdit=methods.iterator(); mdit.hasNext(); ) {
 	    MethodDescriptor md2=(MethodDescriptor)mdit.next();
 	    if (fc.getThis()!=null) {
 	      TypeDescriptor ttype=new TypeDescriptor(md2.getClassDesc());
 	      if (!typeutil.isSuperorType(fc.getThis().getType(),ttype)&&
-		  !typeutil.isSuperorType(ttype,fc.getThis().getType()))
+	          !typeutil.isSuperorType(ttype,fc.getThis().getType()))
 		continue;
 	      addMapping(fc.getThis().getType(), ttype);
 	    }
 	  }
 	}
-	for(int i=0;i<fc.numArgs();i++) {
+	for(int i=0; i<fc.numArgs(); i++) {
 	  TempDescriptor arg=fc.getArg(i);
 	  TypeDescriptor ptype=callmd.getParamType(i);
 	  addMapping(arg.getType(), ptype);
 	}
 	break;
       }
-	//both inputs and output
+
+      //both inputs and output
       case FKind.FlatReturnNode: {
 	FlatReturnNode frn=(FlatReturnNode) fn;
 	if (frn.getReturnTemp()!=null)

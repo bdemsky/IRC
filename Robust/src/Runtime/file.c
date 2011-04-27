@@ -55,7 +55,7 @@ int CALL01(___FileOutputStream______nativeOpen_____AR_B, struct ArrayObject * __
 int CALL01(___FileOutputStream______nativeAppend_____AR_B, struct ArrayObject * ___filename___) {
 #ifdef MULTICORE
   return 0;
-#else  
+#else
   int length=VAR(___filename___)->___length___;
   char* filename= (((char *)&VAR(___filename___)->___length___)+sizeof(int));
   int fd=open(filename, O_WRONLY|O_CREAT|O_APPEND, S_IRWXU);

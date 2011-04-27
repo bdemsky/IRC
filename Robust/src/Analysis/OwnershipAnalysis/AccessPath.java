@@ -15,7 +15,7 @@ public class AccessPath {
   public AccessPath() {
   }
 
-  public boolean equals( Object o ) {
+  public boolean equals(Object o) {
     if( o == null ) {
       return false;
     }
@@ -26,13 +26,13 @@ public class AccessPath {
 
     return true;
     /*
-    VariableSourceToken vst = (VariableSourceToken) o;
+       VariableSourceToken vst = (VariableSourceToken) o;
 
-    // the reference vars have no bearing on equality
-    return    sese.equals( vst.sese    ) &&
+       // the reference vars have no bearing on equality
+       return    sese.equals( vst.sese    ) &&
            addrVar.equals( vst.addrVar ) &&
            seseAge.equals( vst.seseAge );
-    */
+     */
   }
 
   public int hashCode() {
@@ -46,12 +46,12 @@ public class AccessPath {
 
   public String toStringForDOT() {
     /*
-    if( disjointId != null ) {
-      return "disjoint "+disjointId+"\\n"+toString()+"\\n"+getType().toPrettyString();
-    } else {
-      return                              toString()+"\\n"+getType().toPrettyString();
-    }
-    */
+       if( disjointId != null ) {
+       return "disjoint "+disjointId+"\\n"+toString()+"\\n"+getType().toPrettyString();
+       } else {
+       return                              toString()+"\\n"+getType().toPrettyString();
+       }
+     */
     return "do";
-  }  
+  }
 }

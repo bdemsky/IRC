@@ -65,7 +65,7 @@ public class JavaCallGraph extends BaseCallGraph {
       if (fm==null)
 	continue;
       analyzeMethod(md, fm);
-      for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+      for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
 	FlatNode fn=fnit.next();
 	if (fn.kind()==FKind.FlatCall) {
 	  FlatCall fcall=(FlatCall)fn;
@@ -75,7 +75,7 @@ public class JavaCallGraph extends BaseCallGraph {
 	    MethodDescriptor methodd=fcall.getMethod();
 
 	    if (methodd.getClassDesc()==tu.getClass(TypeUtil.ThreadClass)&&
-		methodd.getSymbol().equals("start")&&methodd.numParameters()==0&&!methodd.getModifiers().isStatic()) {
+	        methodd.getSymbol().equals("start")&&methodd.numParameters()==0&&!methodd.getModifiers().isStatic()) {
 	      //Have call to start
 	      HashSet ns=new HashSet();
 	      ns.addAll(callees);
@@ -85,7 +85,7 @@ public class JavaCallGraph extends BaseCallGraph {
 	    }
 	  }
 
-	  for(Iterator mdit=callees.iterator();mdit.hasNext();) {
+	  for(Iterator mdit=callees.iterator(); mdit.hasNext(); ) {
 	    MethodDescriptor callee=(MethodDescriptor)mdit.next();
 	    if (!discovered.contains(callee)) {
 	      discovered.add(callee);

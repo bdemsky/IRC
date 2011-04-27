@@ -32,9 +32,9 @@ public class ConflictEdge {
   public int getType() {
     return type;
   }
-  
-  public boolean isCoarseEdge(){
-    if(type==ConflictGraph.COARSE_GRAIN_EDGE){
+
+  public boolean isCoarseEdge() {
+    if(type==ConflictGraph.COARSE_GRAIN_EDGE) {
       return true;
     }
     return false;

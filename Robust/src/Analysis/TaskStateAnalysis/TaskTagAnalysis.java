@@ -35,7 +35,7 @@ public class TaskTagAnalysis {
     this.fsresults=new Hashtable<ClassDescriptor, Set<TagState>>();
 
 
-    for(Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator(); taskit.hasNext();) {
+    for(Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator(); taskit.hasNext(); ) {
       TaskDescriptor td=(TaskDescriptor)taskit.next();
       tasktable.put(td, new TaskQueue(td));
     }
@@ -45,14 +45,14 @@ public class TaskTagAnalysis {
 
   private void doOutput() {
     try {
-      for(Iterator<TagDescriptor> tagit=tsresults.keySet().iterator(); tagit.hasNext();) {
+      for(Iterator<TagDescriptor> tagit=tsresults.keySet().iterator(); tagit.hasNext(); ) {
 	TagDescriptor tag=tagit.next();
 	Set<TagState> set=tsresults.get(tag);
 	File dotfile_flagstates= new File("tag"+tag.getSymbol()+".dot");
 	FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,false);
 	TagState.DOTVisitor.visit(dotstream,set);
       }
-      for(Iterator<ClassDescriptor> cdit=fsresults.keySet().iterator(); cdit.hasNext();) {
+      for(Iterator<ClassDescriptor> cdit=fsresults.keySet().iterator(); cdit.hasNext(); ) {
 	ClassDescriptor cd=cdit.next();
 	Set<TagState> set=fsresults.get(cd);
 	File dotfile_flagstates= new File("class"+cd.getSymbol()+".dot");
@@ -70,7 +70,7 @@ public class TaskTagAnalysis {
       TagState ts=toprocess.iterator().next();
       toprocess.remove(ts);
       //Loop through each task
-      for(Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator(); taskit.hasNext();) {
+      for(Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator(); taskit.hasNext(); ) {
 	TaskDescriptor td=(TaskDescriptor)taskit.next();
 	TaskQueue tq=tasktable.get(td);
 	processTask(td, tq, ts);
@@ -80,7 +80,7 @@ public class TaskTagAnalysis {
 
   private void processTask(TaskDescriptor td, TaskQueue tq, TagState ts) {
     Set<FlagState> flagset=ts.getFS();
-    for(Iterator<FlagState> fsit=flagset.iterator(); fsit.hasNext();) {
+    for(Iterator<FlagState> fsit=flagset.iterator(); fsit.hasNext(); ) {
       FlagState fs=fsit.next();
       FlagTagState fts=new FlagTagState(ts, fs);
       for(int i=0; i<td.numParameters(); i++) {
@@ -114,7 +114,7 @@ public class TaskTagAnalysis {
       Hashtable<TempDescriptor, Wrapper> prevtable=maintable.get(fn);
 
       //Iterator through the Tags
-      for(Iterator<TempDescriptor> tmpit=prevtable.keySet().iterator(); tmpit.hasNext();) {
+      for(Iterator<TempDescriptor> tmpit=prevtable.keySet().iterator(); tmpit.hasNext(); ) {
 	TempDescriptor tmp=tmpit.next();
 	Wrapper prevtag=prevtable.get(tmp);
 	if (prevtag instanceof ObjWrapper)
@@ -124,7 +124,7 @@ public class TaskTagAnalysis {
 	  TagWrapper currtag=(TagWrapper) table.get(tmp);
 	  tagtable.put((TagWrapper)prevtag, currtag);
 	  assert(currtag.initts.equals(((TagWrapper)prevtag).initts));
-	  for(Iterator<TagState> tagit=((TagWrapper)prevtag).ts.iterator(); tagit.hasNext();) {
+	  for(Iterator<TagState> tagit=((TagWrapper)prevtag).ts.iterator(); tagit.hasNext(); ) {
 	    TagState tag=tagit.next();
 	    if (!currtag.ts.contains(tag)) {
 	      currtag.ts.add(tag);
@@ -138,7 +138,7 @@ public class TaskTagAnalysis {
       }
 
       //Iterator through the Objects
-      for(Iterator<TempDescriptor> tmpit=prevtable.keySet().iterator(); tmpit.hasNext();) {
+      for(Iterator<TempDescriptor> tmpit=prevtable.keySet().iterator(); tmpit.hasNext(); ) {
 	TempDescriptor tmp=tmpit.next();
 	Wrapper obj=prevtable.get(tmp);
 	if (obj instanceof TagWrapper)
@@ -152,12 +152,12 @@ public class TaskTagAnalysis {
 	}
 	ObjWrapper currobj=(ObjWrapper) table.get(tmp);
 	assert(currobj.initfs.equals(prevobj.initfs));
-	for(Iterator<TagWrapper> tagit=prevobj.tags.iterator(); tagit.hasNext();) {
+	for(Iterator<TagWrapper> tagit=prevobj.tags.iterator(); tagit.hasNext(); ) {
 	  TagWrapper tprev=tagit.next();
 	  TagWrapper t=tagtable.get(tprev);
 	  currobj.tags.add(t);
 	}
-	for(Iterator<FlagState> flagit=prevobj.fs.iterator(); flagit.hasNext();) {
+	for(Iterator<FlagState> flagit=prevobj.fs.iterator(); flagit.hasNext(); ) {
 	  FlagState fs=flagit.next();
 	  currobj.fs.add(fs);
 	}
@@ -179,19 +179,19 @@ public class TaskTagAnalysis {
   private void setFlag(ObjWrapper ow, FlagDescriptor fd, boolean value) {
     HashSet<FlagState> newstate=new HashSet<FlagState>();
     Hashtable<FlagState, FlagState> flagmap=new Hashtable<FlagState, FlagState>();
-    for(Iterator<FlagState> flagit=ow.fs.iterator(); flagit.hasNext();) {
+    for(Iterator<FlagState> flagit=ow.fs.iterator(); flagit.hasNext(); ) {
       FlagState fs=flagit.next();
       FlagState fsnew=canonical(fs.setFlag(fd, value));
       newstate.add(fsnew);
       flagmap.put(fs, fsnew);
     }
 
-    for(Iterator<TagWrapper> tagit=ow.tags.iterator(); tagit.hasNext();) {
+    for(Iterator<TagWrapper> tagit=ow.tags.iterator(); tagit.hasNext(); ) {
       TagWrapper tw=tagit.next();
       HashSet<TagState> newstates=new HashSet<TagState>();
-      for(Iterator<TagState> tgit=tw.ts.iterator(); tgit.hasNext();) {
+      for(Iterator<TagState> tgit=tw.ts.iterator(); tgit.hasNext(); ) {
 	TagState ts=tgit.next();
-	for(Iterator<FlagState> flagit=ts.getFS().iterator(); flagit.hasNext();) {
+	for(Iterator<FlagState> flagit=ts.getFS().iterator(); flagit.hasNext(); ) {
 	  FlagState fs=flagit.next();
 	  if (flagmap.containsKey(fs)) {
 	    if (flagmap.get(fs).equals(fs)) {
@@ -231,18 +231,18 @@ public class TaskTagAnalysis {
     HashSet<FlagState> newfsstates=new HashSet<FlagState>();
     Hashtable<FlagState, FlagState[]> flagmap=new Hashtable<FlagState, FlagState[]>();
     //Change the flag states
-    for(Iterator<FlagState> fsit=ow.fs.iterator(); fsit.hasNext();) {
+    for(Iterator<FlagState> fsit=ow.fs.iterator(); fsit.hasNext(); ) {
       FlagState fs=fsit.next();
       FlagState[] fsnew=canonical(fs.setTag(tag, value));
       flagmap.put(fs, fsnew);
       newfsstates.addAll(Arrays.asList(fsnew));
     }
-    for(Iterator<TagWrapper> tagit=ow.tags.iterator(); tagit.hasNext();) {
+    for(Iterator<TagWrapper> tagit=ow.tags.iterator(); tagit.hasNext(); ) {
       TagWrapper tw=tagit.next();
       HashSet<TagState> newstates=new HashSet<TagState>();
-      for(Iterator<TagState> tgit=tw.ts.iterator(); tgit.hasNext();) {
+      for(Iterator<TagState> tgit=tw.ts.iterator(); tgit.hasNext(); ) {
 	TagState ts=tgit.next();
-	for(Iterator<FlagState> flagit=ts.getFS().iterator(); flagit.hasNext();) {
+	for(Iterator<FlagState> flagit=ts.getFS().iterator(); flagit.hasNext(); ) {
 	  FlagState fs=flagit.next();
 	  if (flagmap.containsKey(fs)) {
 	    FlagState[] fmap=flagmap.get(fs);
@@ -272,9 +272,9 @@ public class TaskTagAnalysis {
 
     {
       HashSet<TagState> newstates=new HashSet<TagState>();
-      for(Iterator<TagState> tgit=twnew.ts.iterator(); tgit.hasNext();) {
+      for(Iterator<TagState> tgit=twnew.ts.iterator(); tgit.hasNext(); ) {
 	TagState ts=tgit.next();
-	for(Iterator<FlagState> flagit=newfsstates.iterator(); flagit.hasNext();) {
+	for(Iterator<FlagState> flagit=newfsstates.iterator(); flagit.hasNext(); ) {
 	  FlagState fsnew=flagit.next();
 	  //Can do strong update here because these must
 	  //be parameter objects...therefore all
@@ -300,7 +300,7 @@ public class TaskTagAnalysis {
 
   private void evalTaskExitNode(FlatFlagActionNode fn, Hashtable<TempDescriptor, Wrapper> table) {
     //Process clears first
-    for(Iterator<TempTagPair> it_ttp=fn.getTempTagPairs(); it_ttp.hasNext();) {
+    for(Iterator<TempTagPair> it_ttp=fn.getTempTagPairs(); it_ttp.hasNext(); ) {
       TempTagPair ttp=it_ttp.next();
       TempDescriptor tmp=ttp.getTemp();
       TagDescriptor tag=ttp.getTag();
@@ -313,7 +313,7 @@ public class TaskTagAnalysis {
     }
 
     //Do the flags next
-    for(Iterator<TempFlagPair> it_tfp=fn.getTempFlagPairs(); it_tfp.hasNext();) {
+    for(Iterator<TempFlagPair> it_tfp=fn.getTempFlagPairs(); it_tfp.hasNext(); ) {
       TempFlagPair tfp=it_tfp.next();
       TempDescriptor tmp=tfp.getTemp();
       FlagDescriptor fd=tfp.getFlag();
@@ -323,7 +323,7 @@ public class TaskTagAnalysis {
     }
 
     //Process sets last
-    for(Iterator it_ttp=fn.getTempTagPairs(); it_ttp.hasNext();) {
+    for(Iterator it_ttp=fn.getTempTagPairs(); it_ttp.hasNext(); ) {
       TempTagPair ttp=(TempTagPair)it_ttp.next();
       TempDescriptor tmp=ttp.getTemp();
       TagDescriptor tag=ttp.getTag();
@@ -357,7 +357,7 @@ public class TaskTagAnalysis {
     ow.fs.add(fs);
     table.put(fntemp, ow);
     //Do the flags first
-    for(Iterator<TempFlagPair> it_tfp=fn.getTempFlagPairs(); it_tfp.hasNext();) {
+    for(Iterator<TempFlagPair> it_tfp=fn.getTempFlagPairs(); it_tfp.hasNext(); ) {
       TempFlagPair tfp=it_tfp.next();
       TempDescriptor tmp=tfp.getTemp();
       FlagDescriptor fd=tfp.getFlag();
@@ -366,7 +366,7 @@ public class TaskTagAnalysis {
       setFlag(ow, fd, newflagstate);
     }
     //Process sets next
-    for(Iterator it_ttp=fn.getTempTagPairs(); it_ttp.hasNext();) {
+    for(Iterator it_ttp=fn.getTempTagPairs(); it_ttp.hasNext(); ) {
       TempTagPair ttp=(TempTagPair)it_ttp.next();
       TempDescriptor tmp=ttp.getTemp();
       TagDescriptor tag=ttp.getTag();
@@ -379,7 +379,7 @@ public class TaskTagAnalysis {
       else
 	throw new Error("Can't clear tag in newly allocated object");
     }
-    for(Iterator<FlagState> fsit=ow.fs.iterator(); fsit.hasNext();) {
+    for(Iterator<FlagState> fsit=ow.fs.iterator(); fsit.hasNext(); ) {
       FlagState fs2=fsit.next();
       fs2.addAllocatingTask(td);
       TagState ts2=new TagState(fs2.getClassDescriptor());
@@ -420,7 +420,7 @@ public class TaskTagAnalysis {
 
   public void recordtagchange(TagWrapper tw, TaskDescriptor td) {
     TagState init=tw.initts;
-    for(Iterator<TagState> tsit=tw.ts.iterator(); tsit.hasNext();) {
+    for(Iterator<TagState> tsit=tw.ts.iterator(); tsit.hasNext(); ) {
       TagState ts=tsit.next();
       if (init==null) {
 	ts.addSource(td);
@@ -442,7 +442,7 @@ public class TaskTagAnalysis {
   }
 
   private void recordobj(ObjWrapper ow, TaskDescriptor td) {
-    for(Iterator<TagWrapper> twit=ow.tags.iterator(); twit.hasNext();) {
+    for(Iterator<TagWrapper> twit=ow.tags.iterator(); twit.hasNext(); ) {
       TagWrapper tw=twit.next();
       recordtagchange(tw, td);
     }
@@ -453,7 +453,7 @@ public class TaskTagAnalysis {
   }
 
   private void processFlatReturnNode(FlatReturnNode fr, Hashtable<TempDescriptor, Wrapper> table, TaskDescriptor td) {
-    for(Iterator<TempDescriptor> tmpit=table.keySet().iterator(); tmpit.hasNext();) {
+    for(Iterator<TempDescriptor> tmpit=table.keySet().iterator(); tmpit.hasNext(); ) {
       TempDescriptor tmp=tmpit.next();
       Wrapper w=table.get(tmp);
       if (w instanceof TagWrapper) {
@@ -472,14 +472,14 @@ public class TaskTagAnalysis {
     if (table1.keySet().size()!=table2.keySet().size())
       return false;
 
-    for(Iterator<TempDescriptor> tmpit=table1.keySet().iterator(); tmpit.hasNext();) {
+    for(Iterator<TempDescriptor> tmpit=table1.keySet().iterator(); tmpit.hasNext(); ) {
       TempDescriptor tmp=tmpit.next();
       if (table2.containsKey(tmp)) {
 	emap.put(table1.get(tmp), table2.get(tmp));
       } else return false;
     }
 
-    for(Iterator<TempDescriptor> tmpit=table1.keySet().iterator(); tmpit.hasNext();) {
+    for(Iterator<TempDescriptor> tmpit=table1.keySet().iterator(); tmpit.hasNext(); ) {
       TempDescriptor tmp=tmpit.next();
       Wrapper w1=table1.get(tmp);
       Wrapper w2=table2.get(tmp);
@@ -496,7 +496,7 @@ public class TaskTagAnalysis {
 	  return false;
 	if (t1.tags.size()!=t2.tags.size())
 	  return false;
-	for(Iterator<TagWrapper> twit=t1.tags.iterator(); twit.hasNext();) {
+	for(Iterator<TagWrapper> twit=t1.tags.iterator(); twit.hasNext(); ) {
 	  TagWrapper tw1=twit.next();
 	  if (!t2.tags.contains(emap.get(tw1)))
 	    return false;
@@ -605,7 +605,7 @@ public class TaskTagAnalysis {
 
   private static boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs) {
     if (tel!=null) {
-      for (int i=0; i<tel.numTags() ; i++) {
+      for (int i=0; i<tel.numTags(); i++) {
 	switch (fs.getTagCount(tel.getType(i))) {
 	case FlagState.ONETAG:
 	case FlagState.MULTITAGS:

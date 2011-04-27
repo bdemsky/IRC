@@ -22,24 +22,24 @@ unsigned int prehashCreate(unsigned int size, float loadfactor) {
   pflookup.numelements = 0; // Initial number of elements in the hash
   pflookup.loadfactor = loadfactor;
   pflookup.threshold=loadfactor*size;
-  
-  //Initilize 
-  for(i=0;i<PRENUMLOCKS;i++){
+
+  //Initilize
+  for(i=0; i<PRENUMLOCKS; i++) {
     pflookup.larray[i].lock=RW_LOCK_BIAS;
   }
 
   /*
-  //Intiliaze and set prefetch table mutex attribute
-  pthread_mutexattr_init(&pflookup.prefetchmutexattr);
-  //NOTE:PTHREAD_MUTEX_RECURSIVE is currently inside a #if_def UNIX98 in the pthread.h file
-  //Therefore use PTHREAD_MUTEX_RECURSIVE_NP instead
-  pthread_mutexattr_settype(&pflookup.prefetchmutexattr, PTHREAD_MUTEX_RECURSIVE_NP);
+     //Intiliaze and set prefetch table mutex attribute
+     pthread_mutexattr_init(&pflookup.prefetchmutexattr);
+     //NOTE:PTHREAD_MUTEX_RECURSIVE is currently inside a #if_def UNIX98 in the pthread.h file
+     //Therefore use PTHREAD_MUTEX_RECURSIVE_NP instead
+     pthread_mutexattr_settype(&pflookup.prefetchmutexattr, PTHREAD_MUTEX_RECURSIVE_NP);
 
-  //Initialize mutex var
-  pthread_mutex_init(&pflookup.lock, &pflookup.prefetchmutexattr);
-  //pthread_mutex_init(&pflookup.lock, NULL);
-  pthread_cond_init(&pflookup.cond, NULL);
-  */
+     //Initialize mutex var
+     pthread_mutex_init(&pflookup.lock, &pflookup.prefetchmutexattr);
+     //pthread_mutex_init(&pflookup.lock, NULL);
+     pthread_cond_init(&pflookup.cond, NULL);
+   */
 
   return 0;
 }
@@ -51,7 +51,7 @@ unsigned int prehashFunction(unsigned int key) {
 
 //Store oids and their pointers into hash
 void prehashInsert(unsigned int key, void *val) {
-  
+
   int isFound=0;
   prehashlistnode_t *ptr, *tmp, *node;
 
@@ -75,19 +75,19 @@ void prehashInsert(unsigned int key, void *val) {
     atomic_inc(&pflookup.numelements);
   } else {
     tmp = ptr;
-    while(tmp != NULL) { 
+    while(tmp != NULL) {
       if(tmp->key == key) {
-        isFound=1;
-        tmp->val = val;//Replace value for an exsisting key
-        write_unlock(lockptr);
-        return;
+	isFound=1;
+	tmp->val = val; //Replace value for an exsisting key
+	write_unlock(lockptr);
+	return;
       }
       tmp=tmp->next;
     }
     if(!isFound) { //Insert new key and value into the chain of linked list for the given bin
       node = calloc(1, sizeof(prehashlistnode_t));
       node->key = key;
-      node->val = val ;
+      node->val = val;
       node->next = ptr->next;
       ptr->next=node;
       atomic_inc(&pflookup.numelements);
@@ -100,14 +100,14 @@ void prehashInsert(unsigned int key, void *val) {
 // Search for an address for a given oid
 void *prehashSearch(unsigned int key) {
   int index;
- 
+
   unsigned int keyindex=key>>1;
   volatile unsigned int * lockptr=&pflookup.larray[keyindex&PRELOCKMASK].lock;
   while(!read_trylock(lockptr)) {
     sched_yield();
   }
   prehashlistnode_t *node = &pflookup.table[keyindex&pflookup.mask];
- 
+
   do {
     if(node->key == key) {
       void * tmp=node->val;
@@ -166,24 +166,24 @@ unsigned int prehashRemove(unsigned int key) {
   write_unlock(lockptr);
   return 1;
 }
- 
+
 unsigned int prehashResize(unsigned int newsize) {
   prehashlistnode_t *node, *ptr;  // curr and next keep track of the current and the next chashlistnodes in a linked list
   unsigned int oldsize;
   int i,index;
   unsigned int mask;
 
-  for(i=0;i<PRENUMLOCKS;i++) {
+  for(i=0; i<PRENUMLOCKS; i++) {
     volatile unsigned int * lockptr=&pflookup.larray[i].lock;
-    
+
     while(!write_trylock(lockptr)) {
       sched_yield();
     }
   }
-  
+
   if (pflookup.numelements < pflookup.threshold) {
     //release lock and return
-    for(i=0;i<PRENUMLOCKS;i++) {
+    for(i=0; i<PRENUMLOCKS; i++) {
       volatile unsigned int * lockptr=&pflookup.larray[i].lock;
       write_unlock(lockptr);
     }
@@ -223,15 +223,15 @@ unsigned int prehashResize(unsigned int newsize) {
 	if (!isfirst)
 	  free(curr);
       } /*
-         NOTE:  Add this case if you change this...                                                        
-         This case currently never happens because of the way things rehash....                            
-else if (isfirst) {
-	prehashlistnode_t * newnode = calloc(1, sizeof(prehashlistnode_t));
-	newnode->key = curr->key;
-	newnode->val = curr->val;
-	newnode->next = tmp->next;
-	tmp->next=newnode;
-	} */
+	   NOTE:  Add this case if you change this...
+	   This case currently never happens because of the way things rehash....
+	   else if (isfirst) {
+	   prehashlistnode_t * newnode = calloc(1, sizeof(prehashlistnode_t));
+	   newnode->key = curr->key;
+	   newnode->val = curr->val;
+	   newnode->next = tmp->next;
+	   tmp->next=newnode;
+	   } */
       else {
 	curr->next=tmp->next;
 	tmp->next=curr;
@@ -243,7 +243,7 @@ else if (isfirst) {
   }
 
   free(ptr);            //Free the memory of the old hash table
-  for(i=0;i<PRENUMLOCKS;i++) {
+  for(i=0; i<PRENUMLOCKS; i++) {
     volatile unsigned int * lockptr=&pflookup.larray[i].lock;
     write_unlock(lockptr);
   }
@@ -253,52 +253,52 @@ else if (isfirst) {
 //Note: This is based on the implementation of the inserting a key in the first position of the hashtable
 void prehashClear() {
   /*
-#ifdef CACHE
-  int i, isFirstBin;
-  prehashlistnode_t *ptr, *prev, *curr;
+   #ifdef CACHE
+     int i, isFirstBin;
+     prehashlistnode_t *ptr, *prev, *curr;
 
-  pthread_mutex_lock(&pflookup.lock);
+     pthread_mutex_lock(&pflookup.lock);
 
-  ptr = pflookup.table;
-  for(i = 0; i < pflookup.size; i++) {
-    prev = &ptr[i];
-    isFirstBin = 1;
-    while(prev->next != NULL) {
+     ptr = pflookup.table;
+     for(i = 0; i < pflookup.size; i++) {
+     prev = &ptr[i];
+     isFirstBin = 1;
+     while(prev->next != NULL) {
       isFirstBin = 0;
       curr = prev->next;
       prev->next = curr->next;
       free(curr);
-    }
-    if(isFirstBin == 1) {
+     }
+     if(isFirstBin == 1) {
       prev->key = 0;
       prev->next = NULL;
-    }
-  }
-  {
-    int stale;
-    pthread_mutex_unlock(&pflookup.lock);
-    pthread_mutex_lock(&prefetchcache_mutex);
-    if (pNodeInfo.newstale==NULL) {
+     }
+     }
+     {
+     int stale;
+     pthread_mutex_unlock(&pflookup.lock);
+     pthread_mutex_lock(&prefetchcache_mutex);
+     if (pNodeInfo.newstale==NULL) {
       //transfer the list wholesale;
       pNodeInfo.oldstale=pNodeInfo.oldptr;
       pNodeInfo.newstale=pNodeInfo.newptr;
-    } else {
+     } else {
       //merge the two lists
       pNodeInfo.newstale->prev=pNodeInfo.oldptr;
       pNodeInfo.newstale=pNodeInfo.newptr;
-    }
-    stale=STALL_THRESHOLD-pNodeInfo.stale_count;
-    
-    if (stale>0&&stale>pNodeInfo.stall)
+     }
+     stale=STALL_THRESHOLD-pNodeInfo.stale_count;
+
+     if (stale>0&&stale>pNodeInfo.stall)
       pNodeInfo.stall=stale;
 
-    pNodeInfo.stale_count+=pNodeInfo.os_count;
-    pNodeInfo.oldptr=getObjStr(DEFAULT_OBJ_STORE_SIZE);
-    pNodeInfo.newptr=pNodeInfo.oldptr;
-    pNodeInfo.os_count=1;
-    pthread_mutex_unlock(&prefetchcache_mutex);
-  }
-#endif
-  */
+     pNodeInfo.stale_count+=pNodeInfo.os_count;
+     pNodeInfo.oldptr=getObjStr(DEFAULT_OBJ_STORE_SIZE);
+     pNodeInfo.newptr=pNodeInfo.oldptr;
+     pNodeInfo.os_count=1;
+     pthread_mutex_unlock(&prefetchcache_mutex);
+     }
+   #endif
+   */
 }
 

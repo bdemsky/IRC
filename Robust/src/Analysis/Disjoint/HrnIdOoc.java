@@ -12,7 +12,7 @@ public class HrnIdOoc {
   protected Integer id;
   protected Boolean ooc;
 
-  public HrnIdOoc( Integer id, Boolean ooc ) {
+  public HrnIdOoc(Integer id, Boolean ooc) {
     this.id  = id;
     this.ooc = ooc;
   }
@@ -25,7 +25,7 @@ public class HrnIdOoc {
     return ooc;
   }
 
-  public boolean equals( Object o ) {
+  public boolean equals(Object o) {
     if( o == null ) {
       return false;
     }
@@ -36,9 +36,9 @@ public class HrnIdOoc {
 
     HrnIdOoc hio = (HrnIdOoc) o;
 
-    return 
-      id.equals( hio.id )  &&
-      ooc.equals( hio.ooc );
+    return
+      id.equals(hio.id)  &&
+      ooc.equals(hio.ooc);
   }
 
   public int hashCode() {

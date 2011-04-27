@@ -20,7 +20,7 @@ class FIFO {
     return start==end+1 || (start==0 && end==backing.length-1);
   }
   private int size() {
-    return ((end<start) ? end+backing.length : end)-start;
+    return ((end<start)?end+backing.length:end)-start;
   }
   public void put(java_cup.runtime.Symbol o) {
     if (isFull()) {

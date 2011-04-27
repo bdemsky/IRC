@@ -29,18 +29,18 @@ public class ChangeSet extends Canonical {
 
   public static ChangeSet factory() {
     ChangeSet out = new ChangeSet();
-    out = (ChangeSet) Canonical.makeCanonical( out );
+    out = (ChangeSet) Canonical.makeCanonical(out);
     return out;
   }
 
-  public static ChangeSet factory( ChangeTuple ct ) {
+  public static ChangeSet factory(ChangeTuple ct) {
     assert ct != null;
     assert ct.isCanonical();
     ChangeSet out = new ChangeSet();
-    out.changeTuples.add( ct );
-    out = (ChangeSet) Canonical.makeCanonical( out );
+    out.changeTuples.add(ct);
+    out = (ChangeSet) Canonical.makeCanonical(out);
     return out;
-  }  
+  }
 
   protected ChangeSet() {
     changeTuples = new HashSet<ChangeTuple>();
@@ -58,13 +58,13 @@ public class ChangeSet extends Canonical {
     return changeTuples.isEmpty();
   }
 
-  public boolean isSubset( ChangeSet ctsIn ) {
+  public boolean isSubset(ChangeSet ctsIn) {
     assert ctsIn != null;
-    return ctsIn.changeTuples.containsAll( this.changeTuples );
+    return ctsIn.changeTuples.containsAll(this.changeTuples);
   }
 
 
-  public boolean equalsSpecific( Object o ) {
+  public boolean equalsSpecific(Object o) {
     if( o == null ) {
       return false;
     }
@@ -74,7 +74,7 @@ public class ChangeSet extends Canonical {
     }
 
     ChangeSet cts = (ChangeSet) o;
-    return changeTuples.equals( cts.changeTuples );
+    return changeTuples.equals(cts.changeTuples);
   }
 
   public int hashCodeSpecific() {

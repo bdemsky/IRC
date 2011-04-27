@@ -16,8 +16,7 @@ public class VectorIterator extends Iterator {
    * @return True if the end of the list has not yet been
    *         reached.
    */
-  public boolean hasNext()
-  {
+  public boolean hasNext() {
     return pos < size;
   }
 
@@ -26,8 +25,7 @@ public class VectorIterator extends Iterator {
    *
    * @return The next object.
    */
-  public Object next()
-  {
+  public Object next() {
     if (pos == size) {
       return null;  //since we can't throw anything...
     }

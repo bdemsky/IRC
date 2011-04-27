@@ -11,12 +11,12 @@ public class MethodContext {
   private Set aliasedParameterIndices;
 
 
-  public MethodContext( Descriptor d ) {
+  public MethodContext(Descriptor d) {
     descMethodOrTask = d;
     aliasedParameterIndices = new HashSet();
   }
 
-  public MethodContext( Descriptor d, Set a ) {
+  public MethodContext(Descriptor d, Set a) {
     descMethodOrTask = d;
     aliasedParameterIndices = a;
   }
@@ -28,7 +28,7 @@ public class MethodContext {
 
   public Set getAliasedParamIndices() {
     return aliasedParameterIndices;
-  }  
+  }
 
 
   public boolean equals(Object o) {
@@ -42,13 +42,13 @@ public class MethodContext {
 
     MethodContext mc = (MethodContext) o;
 
-    return mc.descMethodOrTask.equals( descMethodOrTask ) &&
-      mc.aliasedParameterIndices.equals( aliasedParameterIndices );
+    return mc.descMethodOrTask.equals(descMethodOrTask) &&
+           mc.aliasedParameterIndices.equals(aliasedParameterIndices);
   }
-  
+
   public int hashCode() {
-    return descMethodOrTask.hashCode() ^ 
-      aliasedParameterIndices.hashCode();
+    return descMethodOrTask.hashCode() ^
+           aliasedParameterIndices.hashCode();
   }
 
 
@@ -72,14 +72,14 @@ public class MethodContext {
   public String toString() {
     if( descMethodOrTask instanceof TaskDescriptor ) {
       return descMethodOrTask.getSymbol()+
-	     descMethodOrTask.getNum()+
-	     getAliasString();
+             descMethodOrTask.getNum()+
+             getAliasString();
 
     } else {
       MethodDescriptor md = (MethodDescriptor) descMethodOrTask;
       return md.getClassMethodName()+
-	     md.getNum()+
-	     getAliasString();
+             md.getNum()+
+             getAliasString();
     }
   }
 }

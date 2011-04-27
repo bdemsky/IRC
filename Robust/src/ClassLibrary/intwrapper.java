@@ -1,4 +1,5 @@
 public class intwrapper {
-  public intwrapper() {}
+  public intwrapper() {
+  }
   int value;
 }

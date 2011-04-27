@@ -90,7 +90,7 @@ public class LocalityBinding {
 	st+="[either] ";
       else if (isglobalthis.equals(LocalityAnalysis.CONFLICT))
 	st+="[conflict] ";
-      else 
+      else
 	st+="[this="+isglobalthis+"]";
     }
     for(int i=0; i<isglobal.length; i++)
@@ -184,7 +184,7 @@ public class LocalityBinding {
       if (isglobal[i]!=null)
 	hashcode=hashcode*31+(isglobal[i].intValue());
     }
-    hashcode=hashcode*31+(isatomic ? 1 : 0);
+    hashcode=hashcode*31+(isatomic?1:0);
     return hashcode;
   }
 }

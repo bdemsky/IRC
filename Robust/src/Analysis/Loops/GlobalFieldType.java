@@ -22,7 +22,7 @@ public class GlobalFieldType {
   Hashtable<MethodDescriptor, Set<TypeDescriptor>> arraysrd;
   HashSet<MethodDescriptor> containsAtomic;
   HashSet<MethodDescriptor> containsBarrier;
-  
+
   public GlobalFieldType(CallGraph cg, State st, MethodDescriptor root) {
     this.cg=cg;
     this.st=st;
@@ -45,7 +45,7 @@ public class GlobalFieldType {
       toprocess.remove(md);
       analyzeMethod(md);
       Set callees=cg.getCalleeSet(md);
-      for(Iterator it=callees.iterator();it.hasNext();) {
+      for(Iterator it=callees.iterator(); it.hasNext(); ) {
 	MethodDescriptor md2=(MethodDescriptor)it.next();
 	if (!discovered.contains(md2)) {
 	  discovered.add(md2);
@@ -55,9 +55,9 @@ public class GlobalFieldType {
       if (md.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&
           md.getSymbol().equals("start")&&!md.getModifiers().isStatic()&&
           md.numParameters()==0) {
-	//start -> run link	
+	//start -> run link
 	MethodDescriptor runmd=null;
-	for(Iterator methodit=md.getClassDesc().getMethodTable().getSet("run").iterator(); methodit.hasNext();) {
+	for(Iterator methodit=md.getClassDesc().getMethodTable().getSet("run").iterator(); methodit.hasNext(); ) {
 	  MethodDescriptor mdrun=(MethodDescriptor) methodit.next();
 	  if (mdrun.numParameters()!=0||mdrun.getModifiers().isStatic())
 	    continue;
@@ -66,7 +66,7 @@ public class GlobalFieldType {
 	}
 	if (runmd!=null) {
 	  Set runmethodset=cg.getMethods(runmd);
-	  for(Iterator it=runmethodset.iterator();it.hasNext();) {
+	  for(Iterator it=runmethodset.iterator(); it.hasNext(); ) {
 	    MethodDescriptor md2=(MethodDescriptor)it.next();
 	    if (!discovered.contains(md2)) {
 	      discovered.add(md2);
@@ -79,10 +79,10 @@ public class GlobalFieldType {
     boolean changed=true;
     while(changed) {
       changed=false;
-      for(Iterator it=discovered.iterator();it.hasNext();) {
+      for(Iterator it=discovered.iterator(); it.hasNext(); ) {
 	MethodDescriptor md=(MethodDescriptor)it.next();
 	Set callees=cg.getCalleeSet(md);
-	for(Iterator cit=callees.iterator();cit.hasNext();) {
+	for(Iterator cit=callees.iterator(); cit.hasNext(); ) {
 	  MethodDescriptor md2=(MethodDescriptor)cit.next();
 	  if (fields.get(md).addAll(fields.get(md2)))
 	    changed=true;
@@ -131,7 +131,7 @@ public class GlobalFieldType {
 
   public boolean containsAtomicAll(MethodDescriptor md) {
     Set methodset=cg.getMethods(md);
-    for(Iterator it=methodset.iterator();it.hasNext();) {
+    for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (containsAtomic.contains(md2))
 	return true;
@@ -141,18 +141,18 @@ public class GlobalFieldType {
 
   public boolean containsBarrierAll(MethodDescriptor md) {
     Set methodset=cg.getMethods(md);
-    for(Iterator it=methodset.iterator();it.hasNext();) {
+    for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (containsBarrier.contains(md2))
 	return true;
     }
     return false;
   }
-  
+
   public Set<FieldDescriptor> getFieldsAll(MethodDescriptor md) {
     HashSet<FieldDescriptor> s=new HashSet<FieldDescriptor>();
     Set methodset=cg.getMethods(md);
-    for(Iterator it=methodset.iterator();it.hasNext();) {
+    for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (fields.containsKey(md2))
 	s.addAll(fields.get(md2));
@@ -163,7 +163,7 @@ public class GlobalFieldType {
   public Set<TypeDescriptor> getArraysAll(MethodDescriptor md) {
     HashSet<TypeDescriptor> s=new HashSet<TypeDescriptor>();
     Set methodset=cg.getMethods(md);
-    for(Iterator it=methodset.iterator();it.hasNext();) {
+    for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (arrays.containsKey(md2))
 	s.addAll(arrays.get(md2));
@@ -174,7 +174,7 @@ public class GlobalFieldType {
   public Set<FieldDescriptor> getFieldsRdAll(MethodDescriptor md) {
     HashSet<FieldDescriptor> s=new HashSet<FieldDescriptor>();
     Set methodset=cg.getMethods(md);
-    for(Iterator it=methodset.iterator();it.hasNext();) {
+    for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (fieldsrd.containsKey(md2))
 	s.addAll(fieldsrd.get(md2));
@@ -185,7 +185,7 @@ public class GlobalFieldType {
   public Set<TypeDescriptor> getArraysRdAll(MethodDescriptor md) {
     HashSet<TypeDescriptor> s=new HashSet<TypeDescriptor>();
     Set methodset=cg.getMethods(md);
-    for(Iterator it=methodset.iterator();it.hasNext();) {
+    for(Iterator it=methodset.iterator(); it.hasNext(); ) {
       MethodDescriptor md2=(MethodDescriptor)it.next();
       if (arraysrd.containsKey(md2))
 	s.addAll(arraysrd.get(md2));
@@ -198,9 +198,9 @@ public class GlobalFieldType {
     arrays.put(md, new HashSet<TypeDescriptor>());
     fieldsrd.put(md, new HashSet<FieldDescriptor>());
     arraysrd.put(md, new HashSet<TypeDescriptor>());
-    
+
     FlatMethod fm=st.getMethodFlat(md);
-    for(Iterator it=fm.getNodeSet().iterator();it.hasNext();) {
+    for(Iterator it=fm.getNodeSet().iterator(); it.hasNext(); ) {
       FlatNode fn=(FlatNode)it.next();
       if (fn.kind()==FKind.FlatSetElementNode) {
 	FlatSetElementNode fsen=(FlatSetElementNode)fn;

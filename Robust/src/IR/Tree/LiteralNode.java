@@ -60,10 +60,10 @@ public class LiteralNode extends ExpressionNode {
   public int kind() {
     return Kind.LiteralNode;
   }
-  
+
   public Long evaluate() {
     eval = null;
-    if(this.type.isChar() || this.type.isInt()) { 
+    if(this.type.isChar() || this.type.isInt()) {
       eval = Long.parseLong(this.value.toString());
     }
     return eval;

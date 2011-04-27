@@ -1,39 +1,39 @@
 /* StringTokenizer -- breaks a String into tokens
    Copyright (C) 1998, 1999, 2001, 2002, 2005  Free Software Foundation, Inc.
 
-This file is part of GNU Classpath.
+   This file is part of GNU Classpath.
 
-GNU Classpath is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
-any later version.
+   GNU Classpath is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
 
-GNU Classpath is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-General Public License for more details.
+   GNU Classpath is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with GNU Classpath; see the file COPYING.  If not, write to the
-Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301 USA.
+   You should have received a copy of the GNU General Public License
+   along with GNU Classpath; see the file COPYING.  If not, write to the
+   Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301 USA.
 
-Linking this library statically or dynamically with other modules is
-making a combined work based on this library.  Thus, the terms and
-conditions of the GNU General Public License cover the whole
-combination.
+   Linking this library statically or dynamically with other modules is
+   making a combined work based on this library.  Thus, the terms and
+   conditions of the GNU General Public License cover the whole
+   combination.
 
-As a special exception, the copyright holders of this library give you
-permission to link this library with independent modules to produce an
-executable, regardless of the license terms of these independent
-modules, and to copy and distribute the resulting executable under
-terms of your choice, provided that you also meet, for each linked
-independent module, the terms and conditions of the license of that
-module.  An independent module is a module which is not derived from
-or based on this library.  If you modify this library, you may extend
-this exception to your version of the library, but you are not
-obligated to do so.  If you do not wish to do so, delete this
-exception statement from your version. */
+   As a special exception, the copyright holders of this library give you
+   permission to link this library with independent modules to produce an
+   executable, regardless of the license terms of these independent
+   modules, and to copy and distribute the resulting executable under
+   terms of your choice, provided that you also meet, for each linked
+   independent module, the terms and conditions of the license of that
+   module.  An independent module is a module which is not derived from
+   or based on this library.  If you modify this library, you may extend
+   this exception to your version of the library, but you are not
+   obligated to do so.  If you do not wish to do so, delete this
+   exception statement from your version. */
 
 
 //package java.util;
@@ -97,8 +97,7 @@ public class StringTokenizer //implements Enumeration<Object>
    * @param str The string to split
    * @throws NullPointerException if str is null
    */
-  public StringTokenizer(String str)
-  {
+  public StringTokenizer(String str) {
     //this(str, " \t\n\r\f", false);
     StringTokenizer(str, " \t\n\r\f", false);
   }
@@ -112,8 +111,7 @@ public class StringTokenizer //implements Enumeration<Object>
    * @param delim a string containing all delimiter characters
    * @throws NullPointerException if either argument is null
    */
-  public StringTokenizer(String str, String delim)
-  {
+  public StringTokenizer(String str, String delim) {
     //this(str, delim, false);
     StringTokenizer(str, delim, false);
   }
@@ -130,8 +128,7 @@ public class StringTokenizer //implements Enumeration<Object>
    * @param returnDelims tells, if you want to get the delimiters
    * @throws NullPointerException if str or delim is null
    */
-  public StringTokenizer(String str, String delim, boolean returnDelims)
-  {
+  public StringTokenizer(String str, String delim, boolean returnDelims) {
     len = str.length();
     this.str = str;
     this.delim = delim;
@@ -144,13 +141,11 @@ public class StringTokenizer //implements Enumeration<Object>
    *
    * @return true if the next call of nextToken() will succeed
    */
-  public boolean hasMoreTokens()
-  {
-    if (! retDelims)
-      {
-        while (pos < len && delim.indexOf(str.charAt(pos)) >= 0)
-          pos++;
-      }
+  public boolean hasMoreTokens() {
+    if (!retDelims) {
+      while (pos < len && delim.indexOf(str.charAt(pos)) >= 0)
+	pos++;
+    }
     return pos < len;
   }
 
@@ -165,8 +160,7 @@ public class StringTokenizer //implements Enumeration<Object>
    * @throws NoSuchElementException if there are no more tokens
    * @throws NullPointerException if delim is null
    */
-  public String nextToken(String delim) //throws NoSuchElementException
-  {
+  public String nextToken(String delim) { //throws NoSuchElementException
     this.delim = delim;
     return nextToken();
   }
@@ -177,23 +171,20 @@ public class StringTokenizer //implements Enumeration<Object>
    * @return the next token with respect to the current delimiter characters
    * @throws NoSuchElementException if there are no more tokens
    */
-  public String nextToken() //throws NoSuchElementException
-  {
-    if (pos < len && delim.indexOf(str.charAt(pos)) >= 0)
-      {
-        if (retDelims)
-          return str.substring(pos, ++pos);
-        while (++pos < len && delim.indexOf(str.charAt(pos)) >= 0)
-          ;
-      }
-    if (pos < len)
-      {
-        int start = pos;
-        while (++pos < len && delim.indexOf(str.charAt(pos)) < 0)
-          ;
-        
-        return str.substring(start, pos);
-      }
+  public String nextToken() { //throws NoSuchElementException
+    if (pos < len && delim.indexOf(str.charAt(pos)) >= 0) {
+      if (retDelims)
+	return str.substring(pos, ++pos);
+      while (++pos < len && delim.indexOf(str.charAt(pos)) >= 0)
+	;
+    }
+    if (pos < len) {
+      int start = pos;
+      while (++pos < len && delim.indexOf(str.charAt(pos)) < 0)
+	;
+
+      return str.substring(start, pos);
+    }
 
     //throw new NoSuchElementException();
     System.printString("StringTokenizer: No such element");
@@ -207,8 +198,7 @@ public class StringTokenizer //implements Enumeration<Object>
    * @return true, if the next call of nextElement() will succeed
    * @see #hasMoreTokens()
    */
-  public boolean hasMoreElements()
-  {
+  public boolean hasMoreElements() {
     return hasMoreTokens();
   }
 
@@ -220,8 +210,7 @@ public class StringTokenizer //implements Enumeration<Object>
    * @throws NoSuchElementException if there are no more tokens
    * @see #nextToken()
    */
-  public Object nextElement() //throws NoSuchElementException
-  {
+  public Object nextElement() { //throws NoSuchElementException
     return nextToken();
   }
 
@@ -232,8 +221,7 @@ public class StringTokenizer //implements Enumeration<Object>
    * @return the number of times <code>nextTokens()</code> will succeed
    * @see #nextToken()
    */
-  public int countTokens()
-  {
+  public int countTokens() {
     int count = 0;
     int delimiterCount = 0;
     boolean tokenFound = false; // Set when a non-delimiter is found
@@ -242,27 +230,23 @@ public class StringTokenizer //implements Enumeration<Object>
     // Note for efficiency, we count up the delimiters rather than check
     // retDelims every time we encounter one.  That way, we can
     // just do the conditional once at the end of the method
-    while (tmpPos < len)
+    while (tmpPos < len) {
+      if (delim.indexOf(str.charAt(tmpPos++)) >= 0) {
+	if (tokenFound) {
+	  // Got to the end of a token
+	  count++;
+	  tokenFound = false;
+	}
+	delimiterCount++;     // Increment for this delimiter
+      } else
       {
-        if (delim.indexOf(str.charAt(tmpPos++)) >= 0)
-          {
-            if (tokenFound)
-              {
-                // Got to the end of a token
-                count++;
-                tokenFound = false;
-              }
-            delimiterCount++; // Increment for this delimiter
-          }
-        else
-          {
-            tokenFound = true;
-            // Get to the end of the token
-            while (tmpPos < len
-                   && delim.indexOf(str.charAt(tmpPos)) < 0)
-              ++tmpPos;
-          }
+	tokenFound = true;
+	// Get to the end of the token
+	while (tmpPos < len
+	       && delim.indexOf(str.charAt(tmpPos)) < 0)
+	  ++tmpPos;
       }
+    }
 
     // Make sure to count the last token
     if (tokenFound)

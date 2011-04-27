@@ -43,13 +43,13 @@ public class TokenTuple extends Canonical {
   }
 
   private void fixStuff() {
-      //This is an evil hack...we should fix this stuff elsewhere...
-      if (!isMultiObject) {
-	  arity=ARITY_ONE;
-      } else {
-	  if (arity==ARITY_ONEORMORE)
-	      arity=ARITY_ZEROORMORE;
-      }
+    //This is an evil hack...we should fix this stuff elsewhere...
+    if (!isMultiObject) {
+      arity=ARITY_ONE;
+    } else {
+      if (arity==ARITY_ONEORMORE)
+	arity=ARITY_ZEROORMORE;
+    }
   }
 
 
@@ -122,7 +122,7 @@ public class TokenTuple extends Canonical {
   }
 
   public int hashCode() {
-      return (token.intValue() << 2) ^ arity;
+    return (token.intValue() << 2) ^ arity;
   }
 
 

@@ -32,27 +32,27 @@ public class ChangeTuple extends Canonical
   protected ReachState toMatch;
   protected ReachState toAdd;
 
-  public static ChangeTuple factory( ReachState toMatch,
-                                     ReachState toAdd ) {
+  public static ChangeTuple factory(ReachState toMatch,
+                                    ReachState toAdd) {
     // we don't care about the predicates hanging on
     // change tuple states, so always set them to empty
     // to ensure change tuple sets work out
     ReachState toMatchNoPreds =
-      ReachState.factory( toMatch.reachTuples,
-                          ExistPredSet.factory()
-                          );
+      ReachState.factory(toMatch.reachTuples,
+                         ExistPredSet.factory()
+                         );
     ReachState toAddNoPreds =
-      ReachState.factory( toAdd.reachTuples,
-                          ExistPredSet.factory()
-                          );
-    ChangeTuple out = new ChangeTuple( toMatchNoPreds,
-                                       toAddNoPreds );
-    out = (ChangeTuple) Canonical.makeCanonical( out );
+      ReachState.factory(toAdd.reachTuples,
+                         ExistPredSet.factory()
+                         );
+    ChangeTuple out = new ChangeTuple(toMatchNoPreds,
+                                      toAddNoPreds);
+    out = (ChangeTuple) Canonical.makeCanonical(out);
     return out;
   }
 
-  protected ChangeTuple( ReachState toMatch,
-                         ReachState toAdd ) {
+  protected ChangeTuple(ReachState toMatch,
+                        ReachState toAdd) {
     this.toMatch = toMatch;
     this.toAdd   = toAdd;
   }
@@ -63,21 +63,21 @@ public class ChangeTuple extends Canonical
   public ReachState getStateToAdd() {
     return toAdd;
   }
-  
 
-  public boolean equalsSpecific( Object o ) {
+
+  public boolean equalsSpecific(Object o) {
     if( o == null ) {
       return false;
     }
-    
+
     if( !(o instanceof ChangeTuple) ) {
       return false;
     }
 
     ChangeTuple ct = (ChangeTuple) o;
     return
-      toMatch.equals( ct.toMatch ) &&
-      toAdd.equals( ct.toAdd );
+      toMatch.equals(ct.toMatch) &&
+      toAdd.equals(ct.toAdd);
   }
 
   public int hashCodeSpecific() {

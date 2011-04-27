@@ -17,20 +17,20 @@ public class Delta {
   HashMap<AllocNode, Boolean> addOldNodes;
 
   public Delta check() {
-    for(Map.Entry<AllocNode, MySet<Edge>> entry:heapedgeadd.entrySet()) {
+    for(Map.Entry<AllocNode, MySet<Edge>> entry : heapedgeadd.entrySet()) {
       AllocNode node=entry.getKey();
       if (node==null)
 	throw new Error("null node key");
-      for(Edge e:entry.getValue())
+      for(Edge e : entry.getValue())
 	if (e.src!=node)
 	  throw new Error(e.src+" is not equal to "+node);
     }
 
-    for(Map.Entry<TempDescriptor, MySet<Edge>> entry:varedgeadd.entrySet()) {
+    for(Map.Entry<TempDescriptor, MySet<Edge>> entry : varedgeadd.entrySet()) {
       TempDescriptor tmp=entry.getKey();
       if (tmp==null)
 	throw new Error("null temp key");
-      for(Edge e:entry.getValue())
+      for(Edge e : entry.getValue())
 	if (e.srcvar!=tmp)
 	  throw new Error(e.srcvar+" is not equal to "+tmp);
     }
@@ -43,7 +43,7 @@ public class Delta {
 
   /* Init is set for false for delta propagations inside of one basic block.
    */
-  
+
   public Delta(PPoint block, boolean init) {
     this.init=init;
     this.baseheapedge=new HashMap<AllocNode, MySet<Edge>>();
@@ -100,13 +100,13 @@ public class Delta {
     newdelta.heapedgeremove=heapedgeremove;
     //Update variable edge mappings
     newdelta.varedgeadd=new HashMap<TempDescriptor, MySet<Edge>>();
-    for(Map.Entry<TempDescriptor, MySet<Edge>> entry:varedgeadd.entrySet()) {
+    for(Map.Entry<TempDescriptor, MySet<Edge>> entry : varedgeadd.entrySet()) {
       TempDescriptor origTmp=entry.getKey();
       TempDescriptor newTmp=tmpMap.get(entry.getKey());
       MySet<Edge> edgeset=entry.getValue();
       if (!edgeset.isEmpty()) {
 	newdelta.varedgeadd.put(newTmp, new MySet<Edge>());
-	for(Edge e:edgeset) {
+	for(Edge e : edgeset) {
 	  newdelta.varedgeadd.get(newTmp).add(e.rewrite(origTmp, newTmp));
 	}
       }
@@ -132,16 +132,16 @@ public class Delta {
     newdelta.addOldNodes=addOldNodes;
     newdelta.baseOldNodes=baseOldNodes;
 
-    for (Map.Entry<AllocNode, MySet<Edge>> entry:heapedgeadd.entrySet()) {
+    for (Map.Entry<AllocNode, MySet<Edge>> entry : heapedgeadd.entrySet()) {
       newdelta.heapedgeadd.put(entry.getKey(), new MySet<Edge>(entry.getValue()));
     }
 
-    for (Map.Entry<TempDescriptor, MySet<Edge>> entry:varedgeadd.entrySet()) {
+    for (Map.Entry<TempDescriptor, MySet<Edge>> entry : varedgeadd.entrySet()) {
       newdelta.varedgeadd.put(entry.getKey(), new MySet<Edge>(entry.getValue()));
     }
 
 
-    for(Edge e:edges) {
+    for(Edge e : edges) {
       if (e.srcvar!=null) {
 	if (!newdelta.varedgeadd.containsKey(e.srcvar)) {
 	  newdelta.varedgeadd.put(e.srcvar, new MySet<Edge>());
@@ -219,7 +219,7 @@ public class Delta {
   }
 
   public void removeEdges(MySet<Edge> eset) {
-    for(Edge e:eset) {
+    for(Edge e : eset) {
       removeEdge(e);
     }
   }

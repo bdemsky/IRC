@@ -76,7 +76,7 @@ public class Main {
     boolean isDistributeInfo = false;
     boolean isDisAll = false;
     int startnum = 0;
-    
+
 
     for(int i=0; i<args.length; i++) {
       String option=args[i];
@@ -92,7 +92,7 @@ public class Main {
 	state.FASTCHECK=true;
       else if (option.equals("-selfloop"))
 	state.selfloops.add(args[++i]);
-	  else if (option.equals("-outputdir"))
+      else if (option.equals("-outputdir"))
 	state.outputdir = args[++i];
       else if (option.equals("-excprefetch"))
 	state.excprefetch.add(args[++i]);
@@ -105,8 +105,8 @@ public class Main {
 	++i;
 	state.CORENUM = Integer.parseInt(args[i]);
       } else if(option.equals("-numcore4gc")) {
-        ++i;
-        state.CORENUM4GC = Integer.parseInt(args[i]);
+	++i;
+	state.CORENUM4GC = Integer.parseInt(args[i]);
       } else if (option.equals("-mainclass"))
 	state.main=args[++i];
       else if (option.equals("-trueprob")) {
@@ -120,7 +120,7 @@ public class Main {
       else if (option.equals("-printschedulesim"))
 	State.PRINTSCHEDULESIM=true;
       else if (option.equals("-printcriticalpath"))
-	  State.PRINTCRITICALPATH=true;
+	State.PRINTCRITICALPATH=true;
       else if (option.equals("-struct"))
 	state.structfile=args[++i];
       else if (option.equals("-conscheck"))
@@ -153,15 +153,15 @@ public class Main {
 	state.FLATIRGRAPH=true;
 	state.FLATIRGRAPHLIBMETHODS=true;
       } else if (option.equals("-bamboocompiletime")) {
-        state.BAMBOOCOMPILETIME = true;
+	state.BAMBOOCOMPILETIME = true;
       } else if (option.equals("-multicore"))
 	state.MULTICORE=true;
       else if (option.equals("-multicoregc"))
-        state.MULTICOREGC=true;
+	state.MULTICOREGC=true;
       else if (option.equals("-mgc")) {
-        state.MGC = true;
+	state.MGC = true;
       } else if (option.equals("-objectlockdebug")) {
-        state.OBJECTLOCKDEBUG = true;
+	state.OBJECTLOCKDEBUG = true;
       } else if (option.equals("-ownership"))
 	state.OWNERSHIP=true;
       else if (option.equals("-ownallocdepth")) {
@@ -175,7 +175,7 @@ public class Main {
 	state.OWNERSHIPALIASFILE=args[++i];
       } else if (option.equals("-ownaliasfiletab")) {
 	state.OWNERSHIPALIASFILE=args[++i];
-        state.OWNERSHIPALIASTAB=true;      
+	state.OWNERSHIPALIASTAB=true;
       } else if (option.equals("-owndebugcallee")) {
 	state.OWNERSHIPDEBUGCALLEE=args[++i];
       } else if (option.equals("-owndebugcaller")) {
@@ -191,14 +191,14 @@ public class Main {
 
       } else if (option.equals("-disjoint-write-dots")) {
 	state.DISJOINTWRITEDOTS = true;
-        String arg = args[++i];
+	String arg = args[++i];
 	if( arg.equals("all") ) {
 	  state.DISJOINTWRITEALL = true;
 	} else if( arg.equals("final") ) {
-          state.DISJOINTWRITEALL = false;
-        } else {
-          throw new Error("disjoint-write-dots requires argument <all/final>");
-        }
+	  state.DISJOINTWRITEALL = false;
+	} else {
+	  throw new Error("disjoint-write-dots requires argument <all/final>");
+	}
 
       } else if (option.equals("-disjoint-write-initial-contexts")) {
 	state.DISJOINTWRITEINITCONTEXTS = true;
@@ -208,79 +208,76 @@ public class Main {
 
       } else if (option.equals("-disjoint-alias-file")) {
 	state.DISJOINTALIASFILE = args[++i];
-        String arg = args[++i];
+	String arg = args[++i];
 	if( arg.equals("normal") ) {
 	  state.DISJOINTALIASTAB = false;
 	} else if( arg.equals("tabbed") ) {
-          state.DISJOINTALIASTAB = true;
-        } else {
-          throw new Error("disjoint-alias-file requires arguments: <filename> <normal/tabbed>");
-        }
+	  state.DISJOINTALIASTAB = true;
+	} else {
+	  throw new Error("disjoint-alias-file requires arguments: <filename> <normal/tabbed>");
+	}
 
       } else if (option.equals("-disjoint-debug-callsite")) {
 	state.DISJOINTDEBUGCALLEE=args[++i];
 	state.DISJOINTDEBUGCALLER=args[++i];
 	state.DISJOINTDEBUGCALLVISITTOSTART=Integer.parseInt(args[++i]);
 	state.DISJOINTDEBUGCALLNUMVISITS=Integer.parseInt(args[++i]);
-        String arg = args[++i];
+	String arg = args[++i];
 	if( arg.equals("true") ) {
 	  state.DISJOINTDEBUGCALLSTOPAFTER = true;
 	} else if( arg.equals("false") ) {
-          state.DISJOINTDEBUGCALLSTOPAFTER = false;
-        } else {
-          throw new Error("disjoint-debug-callsite requires arguments:\n"+
-                          "  <callee symbol> <caller symbol> <# visit to start> <# visits to capture> <T/F stop after>");
-        }
-      
+	  state.DISJOINTDEBUGCALLSTOPAFTER = false;
+	} else {
+	  throw new Error("disjoint-debug-callsite requires arguments:\n"+
+	                  "  <callee symbol> <caller symbol> <# visit to start> <# visits to capture> <T/F stop after>");
+	}
+
       } else if (option.equals("-disjoint-debug-snap-method")) {
 	state.DISJOINTSNAPSYMBOL=args[++i];
-        state.DISJOINTSNAPVISITTOSTART=Integer.parseInt(args[++i]);
+	state.DISJOINTSNAPVISITTOSTART=Integer.parseInt(args[++i]);
 	state.DISJOINTSNAPNUMVISITS=Integer.parseInt(args[++i]);
-        String arg = args[++i];
+	String arg = args[++i];
 	if( arg.equals("true") ) {
 	  state.DISJOINTSNAPSTOPAFTER = true;
 	} else if( arg.equals("false") ) {
-          state.DISJOINTSNAPSTOPAFTER = false;
-        } else {
-          throw new Error("disjoint-debug-snap-method requires arguments:\n"+
-                          "  <method symbol> <# visit to start> <# visits to snap> <T/F stop after>");
-        }
+	  state.DISJOINTSNAPSTOPAFTER = false;
+	} else {
+	  throw new Error("disjoint-debug-snap-method requires arguments:\n"+
+	                  "  <method symbol> <# visit to start> <# visits to snap> <T/F stop after>");
+	}
 
-      } else if( option.equals( "-disjoint-release-mode" ) ) {
-        state.DISJOINTRELEASEMODE = true;        
+      } else if( option.equals("-disjoint-release-mode") ) {
+	state.DISJOINTRELEASEMODE = true;
 
-      } else if( option.equals( "-disjoint-dvisit-stack" ) ) {
-        state.DISJOINTDVISITSTACK         = true;      
-        state.DISJOINTDVISITPQUE          = false;
-        state.DISJOINTDVISITSTACKEESONTOP = false;
+      } else if( option.equals("-disjoint-dvisit-stack") ) {
+	state.DISJOINTDVISITSTACK         = true;
+	state.DISJOINTDVISITPQUE          = false;
+	state.DISJOINTDVISITSTACKEESONTOP = false;
 
-      } else if( option.equals( "-disjoint-dvisit-pqueue" ) ) {
-        state.DISJOINTDVISITPQUE          = true;
-        state.DISJOINTDVISITSTACK         = false;
-        state.DISJOINTDVISITSTACKEESONTOP = false;
+      } else if( option.equals("-disjoint-dvisit-pqueue") ) {
+	state.DISJOINTDVISITPQUE          = true;
+	state.DISJOINTDVISITSTACK         = false;
+	state.DISJOINTDVISITSTACKEESONTOP = false;
 
-      } else if( option.equals( "-disjoint-dvisit-stack-callees-on-top" ) ) {
-        state.DISJOINTDVISITSTACKEESONTOP = true;
-        state.DISJOINTDVISITPQUE          = false;
-        state.DISJOINTDVISITSTACK         = false;      
+      } else if( option.equals("-disjoint-dvisit-stack-callees-on-top") ) {
+	state.DISJOINTDVISITSTACKEESONTOP = true;
+	state.DISJOINTDVISITPQUE          = false;
+	state.DISJOINTDVISITSTACK         = false;
 
-      } else if( option.equals( "-disjoint-desire-determinism" ) ) {
-        state.DISJOINTDETERMINISM = true;
+      } else if( option.equals("-disjoint-desire-determinism") ) {
+	state.DISJOINTDETERMINISM = true;
 
-        // when asking analysis for a deterministic result, force
-        // a stack-based visiting scheme, because the priority queue
-        // requires a non-deterministic topological sort
-        state.DISJOINTDVISITSTACKEESONTOP = true;
-        state.DISJOINTDVISITPQUE          = false;
-        state.DISJOINTDVISITSTACK         = false;
+	// when asking analysis for a deterministic result, force
+	// a stack-based visiting scheme, because the priority queue
+	// requires a non-deterministic topological sort
+	state.DISJOINTDVISITSTACKEESONTOP = true;
+	state.DISJOINTDVISITPQUE          = false;
+	state.DISJOINTDVISITSTACK         = false;
 
 
-      } else if( option.equals( "-disjoint-debug-scheduling" ) ) {
-        state.DISJOINTDEBUGSCHEDULING = true;
-      }
-      
-
-      else if (option.equals("-optional"))
+      } else if( option.equals("-disjoint-debug-scheduling") ) {
+	state.DISJOINTDEBUGSCHEDULING = true;
+      } else if (option.equals("-optional"))
 	state.OPTIONAL=true;
       else if (option.equals("-optimize"))
 	state.OPTIMIZE=true;
@@ -299,14 +296,13 @@ public class Main {
       else if (option.equals("-distributioninfo"))
 	isDistributeInfo=true;
       else if (option.equals("-disall"))
-        isDisAll=true;
+	isDisAll=true;
       else if (option.equals("-disstart"))
-        startnum = Integer.parseInt(args[++i]);
+	startnum = Integer.parseInt(args[++i]);
       else if (option.equals("-useprofile")) {
 	state.USEPROFILE=true;
 	state.profilename = args[++i];
-      }
-      else if (option.equals("-thread"))
+      } else if (option.equals("-thread"))
 	state.THREAD=true;
       else if (option.equals("-dsm"))
 	state.DSM=true;
@@ -327,34 +323,34 @@ public class Main {
 
       else if (option.equals("-methodeffects")) {
 	state.METHODEFFECTS=true;
-	
+
       } else if (option.equals("-coreprof")) {
 	state.COREPROF=true;
 
       } else if (option.equals("-ooojava")) {
 	state.OOOJAVA  = true;
 	state.DISJOINT = true;
-	state.OOO_NUMCORES   = Integer.parseInt( args[++i] );
-	state.OOO_MAXSESEAGE = Integer.parseInt( args[++i] );
+	state.OOO_NUMCORES   = Integer.parseInt(args[++i]);
+	state.OOO_MAXSESEAGE = Integer.parseInt(args[++i]);
 
-      } else if (option.equals("-ooodebug") ){ 
+      } else if (option.equals("-ooodebug") ) {
 	state.OOODEBUG  = true;
-      } else if (option.equals("-rcr")){      
+      } else if (option.equals("-rcr")) {
 	state.RCR = true;
 	state.KEEP_RG_FOR_ALL_PROGRAM_POINTS=true;
-      } else if (option.equals("-rcr_debug")){
+      } else if (option.equals("-rcr_debug")) {
 	state.RCR_DEBUG = true;
 	state.KEEP_RG_FOR_ALL_PROGRAM_POINTS=true;
-      } else if (option.equals("-rcr_debug_verbose")){
+      } else if (option.equals("-rcr_debug_verbose")) {
 	state.RCR_DEBUG_VERBOSE = true;
 	state.KEEP_RG_FOR_ALL_PROGRAM_POINTS=true;
-      } else if (option.equals("-nostalltr")){
-	state.NOSTALLTR = true;     
-      } else if (option.equals("-ssjava")){
-	state.SSJAVA = true;     
-      } else if (option.equals("-printlinenum")){
+      } else if (option.equals("-nostalltr")) {
+	state.NOSTALLTR = true;
+      } else if (option.equals("-ssjava")) {
+	state.SSJAVA = true;
+      } else if (option.equals("-printlinenum")) {
 	state.LINENUM=true;
-      }else if (option.equals("-help")) {      
+      } else if (option.equals("-help")) {
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
 	System.out.println("-dir outputdirectory -- output code in outputdirectory");
@@ -405,7 +401,7 @@ public class Main {
 	sourcefiles.add(args[i]);
       }
     }
-    
+
     //add default classpath
     if (state.classpath.size()==1)
       state.classpath.add(ClassLibraryPrefix);
@@ -422,22 +418,22 @@ public class Main {
       BuildIR bir=new BuildIR(state);
       tu=new TypeUtil(state, bir);
       SemanticCheck sc=new SemanticCheck(state,tu);
-      
-      for(int i=0;i<sourcefiles.size();i++)
+
+      for(int i=0; i<sourcefiles.size(); i++)
 	loadClass(state, bir, sourcefiles.get(i));
-      
+
       //Stuff the runtime wants to see
-      
+
       if (state.TASK) {
 	sc.getClass(null, "TagDescriptor");
       }
-      
+
       sc.semanticCheck();
       State.logEvent("Done Semantic Checking");
-      
+
       tu.createFullTable();
       State.logEvent("Done Creating TypeUtil");
-      
+
       bf=new BuildFlat(state,tu);
       bf.buildFlat();
       State.logEvent("Done Building Flat");
@@ -447,28 +443,28 @@ public class Main {
       tu=jb.getTypeUtil();
       bf=jb.getBuildFlat();
     }
-    
+
     SafetyAnalysis sa=null;
     PrefetchAnalysis pa=null;
-    OoOJavaAnalysis  oooa=null;
+    OoOJavaAnalysis oooa=null;
     if (state.INLINEATOMIC) {
       Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
       while(classit.hasNext()) {
-        ClassDescriptor cn=(ClassDescriptor)classit.next();
-        Iterator methodit=cn.getMethods();
-        while(methodit.hasNext()) {
+	ClassDescriptor cn=(ClassDescriptor)classit.next();
+	Iterator methodit=cn.getMethods();
+	while(methodit.hasNext()) {
 	  // do inlining
-          MethodDescriptor md=(MethodDescriptor)methodit.next();
-          FlatMethod fm=state.getMethodFlat(md);
+	  MethodDescriptor md=(MethodDescriptor)methodit.next();
+	  FlatMethod fm=state.getMethodFlat(md);
 	  Inliner.inlineAtomic(state, tu, fm, state.inlineatomicdepth);
 	}
       }
     }
 
     CallGraph callgraph=jb!=null?jb:(state.TASK?new BaseCallGraph(state, tu):new JavaCallGraph(state, tu));
-    
+
     // SSJava
-    if(state.SSJAVA){
+    if(state.SSJAVA) {
       ssjava.doCheck();
       State.logEvent("Done SSJava Checking");
     }
@@ -481,21 +477,21 @@ public class Main {
       localCSE lcse=new localCSE(gft, tu);
       LoopOptimize lo=null;
       if (!state.NOLOOP)
-	  lo=new LoopOptimize(gft, tu);
+	lo=new LoopOptimize(gft, tu);
       Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
       while(classit.hasNext()) {
-        ClassDescriptor cn=(ClassDescriptor)classit.next();
-        Iterator methodit=cn.getMethods();
-        while(methodit.hasNext()) {
-          /* Classify parameters */
-          MethodDescriptor md=(MethodDescriptor)methodit.next();
-          FlatMethod fm=state.getMethodFlat(md);
+	ClassDescriptor cn=(ClassDescriptor)classit.next();
+	Iterator methodit=cn.getMethods();
+	while(methodit.hasNext()) {
+	  /* Classify parameters */
+	  MethodDescriptor md=(MethodDescriptor)methodit.next();
+	  FlatMethod fm=state.getMethodFlat(md);
 	  if (fm==null)
 	    continue;
 	  cp.optimize(fm);
 	  dc.optimize(fm);
 	  if (!state.NOLOOP)
-	      lo.optimize(fm);
+	    lo.optimize(fm);
 	  cp.optimize(fm);
 	  dc.optimize(fm);
 	  lcse.doAnalysis(fm);
@@ -504,7 +500,7 @@ public class Main {
 	  dc.optimize(fm);
 	  cp.optimize(fm);
 	  dc.optimize(fm);
-        }
+	}
       }
       State.logEvent("Done Optimizing");
     }
@@ -515,14 +511,14 @@ public class Main {
                                          state.FLATIRGRAPHUSERMETHODS,
                                          state.FLATIRGRAPHLIBMETHODS);
     }
-    
+
     if (state.OWNERSHIP) {
       Liveness liveness = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state, tu, callgraph);
       OwnershipAnalysis oa = new OwnershipAnalysis(state,
                                                    tu,
                                                    callgraph,
-						   liveness,
+                                                   liveness,
                                                    ar,
                                                    state.OWNERSHIPALLOCDEPTH,
                                                    state.OWNERSHIPWRITEDOTS,
@@ -532,13 +528,13 @@ public class Main {
     }
 
     if (state.DISJOINT && !state.OOOJAVA) {
-      Liveness         l  = new Liveness();
+      Liveness l  = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state, tu, callgraph);
       DisjointAnalysis da = new DisjointAnalysis(state, tu, callgraph, l, ar, null, null);
     }
 
     if (state.OOOJAVA) {
-      Liveness         l   = new Liveness();
+      Liveness l   = new Liveness();
       ArrayReferencees ar  = new ArrayReferencees(state, tu, callgraph);
       oooa = new OoOJavaAnalysis(state, tu, callgraph, l, ar);
     }
@@ -575,69 +571,69 @@ public class Main {
       if (state.SCHEDULING) {
 	// Use ownership analysis to get alias information
 	Liveness liveness = new Liveness();
-        ArrayReferencees ar = new ArrayReferencees(state, tu, callgraph);
-	OwnershipAnalysis oa = null;/*new OwnershipAnalysis(state,
-	                                             tu,
-	                                             callGraph,
-                                                 liveness,
-                                                 ar,
-	                                             state.OWNERSHIPALLOCDEPTH,
-	                                             state.OWNERSHIPWRITEDOTS,
-	                                             state.OWNERSHIPWRITEALL,
-	                                             state.OWNERSHIPALIASFILE);*/
-	
+	ArrayReferencees ar = new ArrayReferencees(state, tu, callgraph);
+	OwnershipAnalysis oa = null; /*new OwnershipAnalysis(state,
+				                     tu,
+				                     callGraph,
+				                 liveness,
+				                 ar,
+				                     state.OWNERSHIPALLOCDEPTH,
+				                     state.OWNERSHIPWRITEDOTS,
+				                     state.OWNERSHIPWRITEALL,
+				                     state.OWNERSHIPALIASFILE);*/
+
 	// synthesis a layout according to target multicore processor
 	MCImplSynthesis mcImplSynthesis = new MCImplSynthesis(state,
-		                                              ta,
-		                                              oa);
+	                                                      ta,
+	                                                      oa);
 	if(isDistributeInfo) {
-	    mcImplSynthesis.distribution(isDisAll, startnum);
+	  mcImplSynthesis.distribution(isDisAll, startnum);
 	} else {
-	    double timeStartAnalysis = (double) System.nanoTime();
-	    mcImplSynthesis.setScheduleThreshold(20);
-	    mcImplSynthesis.setProbThreshold(0);
-	    mcImplSynthesis.setGenerateThreshold(30);
-	    Vector<Schedule> scheduling = mcImplSynthesis.synthesis();
-	    
-	    double timeEndAnalysis = (double) System.nanoTime();
-        if(state.BAMBOOCOMPILETIME) {
-          double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
-          System.err.println("The analysis took" + dt +  "sec.");
-          System.exit(0);
-        }
+	  double timeStartAnalysis = (double) System.nanoTime();
+	  mcImplSynthesis.setScheduleThreshold(20);
+	  mcImplSynthesis.setProbThreshold(0);
+	  mcImplSynthesis.setGenerateThreshold(30);
+	  Vector<Schedule> scheduling = mcImplSynthesis.synthesis();
 
-	// generate multicore codes
-	if(state.MULTICORE) {
-	  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state,
-							bf.getMap(),
-							tu,
-							sa,
-							scheduling,
-							mcImplSynthesis.getCoreNum(),
-							state.CORENUM4GC, callgraph);
-	  bcm.setOwnershipAnalysis(oa);
-	  bcm.buildCode();
-	}
-	scheduling.clear();
-	scheduling = null;
+	  double timeEndAnalysis = (double) System.nanoTime();
+	  if(state.BAMBOOCOMPILETIME) {
+	    double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow(10.0, 9.0) );
+	    System.err.println("The analysis took" + dt +  "sec.");
+	    System.exit(0);
+	  }
+
+	  // generate multicore codes
+	  if(state.MULTICORE) {
+	    BuildCodeMultiCore bcm=new BuildCodeMultiCore(state,
+	                                                  bf.getMap(),
+	                                                  tu,
+	                                                  sa,
+	                                                  scheduling,
+	                                                  mcImplSynthesis.getCoreNum(),
+	                                                  state.CORENUM4GC, callgraph);
+	    bcm.setOwnershipAnalysis(oa);
+	    bcm.buildCode();
+	  }
+	  scheduling.clear();
+	  scheduling = null;
 	}
       }
     }
-    
+
     if (state.MGC) {
       // generate multicore codes
       if(state.MULTICORE) {
-        BuildCodeMGC bcmgc=new BuildCodeMGC(state,
-                                            bf.getMap(),
-                                            tu,
-                                            sa,
-                                            state.CORENUM,
-                                            state.CORENUM,
-                                            state.CORENUM4GC, callgraph);
-        bcmgc.buildCode();
+	BuildCodeMGC bcmgc=new BuildCodeMGC(state,
+	                                    bf.getMap(),
+	                                    tu,
+	                                    sa,
+	                                    state.CORENUM,
+	                                    state.CORENUM,
+	                                    state.CORENUM4GC, callgraph);
+	bcmgc.buildCode();
       }
     }
-  
+
     if(!state.MULTICORE) {
       BuildCode bc;
 
@@ -651,16 +647,16 @@ public class Main {
 	GenerateConversions gc=new GenerateConversions(la, state);
 	bc=new BuildCodeTran(state, bf.getMap(), tu, la, pa, callgraph);
       } else {
-        if( state.OOOJAVA ) {
-          bc=new BuildOoOJavaCode(state, bf.getMap(), tu, sa, oooa, callgraph);
-        } else {
-          bc=new BuildCode(state, bf.getMap(), tu, sa, callgraph, jb);
-        }
+	if( state.OOOJAVA ) {
+	  bc=new BuildOoOJavaCode(state, bf.getMap(), tu, sa, oooa, callgraph);
+	} else {
+	  bc=new BuildCode(state, bf.getMap(), tu, sa, callgraph, jb);
+	}
       }
 
       bc.buildCode();
       State.logEvent("Done With BuildCode");
-	
+
     }
 
     System.out.println("Lines="+state.lines);
@@ -692,7 +688,7 @@ public class Main {
       g = new Parse.Parser(l);
       ParseNode p=null;
       try {
-	p=(ParseNode) g./*debug_*/parse().value;
+	p=(ParseNode) g./*debug_*/ parse().value;
       } catch (Exception e) {
 	System.err.println("Error parsing file:"+sourcefile);
 	e.printStackTrace();

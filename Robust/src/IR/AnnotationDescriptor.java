@@ -46,8 +46,8 @@ public class AnnotationDescriptor extends Descriptor {
   public String getMarker() {
     return marker;
   }
-  
-  public String getData(){
+
+  public String getData() {
     return data;
   }
 
@@ -55,9 +55,9 @@ public class AnnotationDescriptor extends Descriptor {
     if (o instanceof AnnotationDescriptor) {
       AnnotationDescriptor a = (AnnotationDescriptor) o;
       if (a.getType() != type)
-        return false;
+	return false;
       if (!a.getMarker().equals(getMarker()))
-        return false;
+	return false;
 
       return true;
     }

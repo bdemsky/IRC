@@ -37,34 +37,34 @@ public class AllocSite extends Canonical implements Alloc {
   public static final int SHADOWAGE_oldest        = -102;
   public static final int SHADOWAGE_summary       = -103;
 
-  protected Integer         id;
-  protected int             allocationDepth;
+  protected Integer id;
+  protected int allocationDepth;
   protected Vector<Integer> ithOldest;
-  protected Integer         summary;
-  protected FlatNew         flatNew;
-  protected String          disjointId;
-  protected boolean         isFlagged;
+  protected Integer summary;
+  protected FlatNew flatNew;
+  protected String disjointId;
+  protected boolean isFlagged;
 
 
-  public static AllocSite factory( int     allocationDepth, 
-                                   FlatNew flatNew, 
-                                   String  disjointId,
-                                   boolean markAsFlagged
-                                   ) {
-    AllocSite out = new AllocSite( allocationDepth,
-                                   flatNew,
-                                   disjointId,
-                                   markAsFlagged );
-    out = (AllocSite) Canonical.makeCanonical( out );
+  public static AllocSite factory(int allocationDepth,
+                                  FlatNew flatNew,
+                                  String disjointId,
+                                  boolean markAsFlagged
+                                  ) {
+    AllocSite out = new AllocSite(allocationDepth,
+                                  flatNew,
+                                  disjointId,
+                                  markAsFlagged);
+    out = (AllocSite) Canonical.makeCanonical(out);
     return out;
   }
 
 
-  protected AllocSite( int     allocationDepth, 
-                       FlatNew flatNew, 
-                       String  disjointId,
-                       boolean markAsFlagged
-                       ) {
+  protected AllocSite(int allocationDepth,
+                      FlatNew flatNew,
+                      String disjointId,
+                      boolean markAsFlagged
+                      ) {
 
     assert allocationDepth >= 1;
 
@@ -74,9 +74,9 @@ public class AllocSite extends Canonical implements Alloc {
 
     // mark this allocation site as being flagged
     // for the analysis if
-    // 1) we have a non-null disjointID (a named flagged site) 
+    // 1) we have a non-null disjointID (a named flagged site)
     // OR
-    // 2) the type is a class with Bamboo-parameter flags 
+    // 2) the type is a class with Bamboo-parameter flags
     // OR
     // 3) a client wants to programmatically flag this site,
     // such as the OoOJava method effects analysis
@@ -95,13 +95,13 @@ public class AllocSite extends Canonical implements Alloc {
     }
 
 
-    ithOldest = new Vector<Integer>( allocationDepth );
+    ithOldest = new Vector<Integer>(allocationDepth);
     id        = generateUniqueAllocSiteID();
   }
 
   static public Integer generateUniqueAllocSiteID() {
     ++uniqueIDcount;
-    return new Integer( uniqueIDcount );
+    return new Integer(uniqueIDcount);
   }
 
   public int getUniqueAllocSiteID() {
@@ -117,37 +117,37 @@ public class AllocSite extends Canonical implements Alloc {
     return allocationDepth;
   }
 
-  public void setIthOldest( int i, Integer id ) {
+  public void setIthOldest(int i, Integer id) {
     assert i  >= 0;
     assert i  <  allocationDepth;
     assert id != null;
 
-    ithOldest.add( i, id );
+    ithOldest.add(i, id);
   }
 
-  public Integer getIthOldest( int i ) {
+  public Integer getIthOldest(int i) {
     assert i >= 0;
     assert i <  allocationDepth;
 
-    return ithOldest.get( i );
+    return ithOldest.get(i);
   }
 
-  public Integer getIthOldestShadow( int i ) {
+  public Integer getIthOldestShadow(int i) {
     assert i >= 0;
     assert i <  allocationDepth;
 
-    return -ithOldest.get( i );
+    return -ithOldest.get(i);
   }
 
   public Integer getOldest() {
-    return ithOldest.get( allocationDepth - 1 );
+    return ithOldest.get(allocationDepth - 1);
   }
 
   public Integer getOldestShadow() {
-    return -ithOldest.get( allocationDepth - 1 );
+    return -ithOldest.get(allocationDepth - 1);
   }
 
-  public void setSummary( Integer id ) {
+  public void setSummary(Integer id) {
     assert id != null;
     summary = id;
   }
@@ -172,18 +172,18 @@ public class AllocSite extends Canonical implements Alloc {
     return isFlagged;
   }
 
-  public int getAgeCategory( Integer id ) {
+  public int getAgeCategory(Integer id) {
 
-    if( id.equals( summary ) ) {
+    if( id.equals(summary) ) {
       return AGE_summary;
     }
 
-    if( id.equals( getOldest() ) ) {
+    if( id.equals(getOldest() ) ) {
       return AGE_oldest;
     }
 
     for( int i = 0; i < allocationDepth - 1; ++i ) {
-      if( id.equals( ithOldest.get( i ) ) ) {
+      if( id.equals(ithOldest.get(i) ) ) {
 	return AGE_in_I;
       }
     }
@@ -191,27 +191,27 @@ public class AllocSite extends Canonical implements Alloc {
     return AGE_notInThisSite;
   }
 
-  public Integer getAge( Integer id ) {
+  public Integer getAge(Integer id) {
     for( int i = 0; i < allocationDepth; ++i ) {
-      if( id.equals( ithOldest.get( i ) ) ) {
-	return new Integer( i );
+      if( id.equals(ithOldest.get(i) ) ) {
+	return new Integer(i);
       }
     }
 
     return null;
   }
 
-  public int getShadowAgeCategory( Integer id ) {
-    if( id.equals( -summary ) ) {
+  public int getShadowAgeCategory(Integer id) {
+    if( id.equals(-summary) ) {
       return SHADOWAGE_summary;
     }
 
-    if( id.equals( getOldestShadow() ) ) {
+    if( id.equals(getOldestShadow() ) ) {
       return SHADOWAGE_oldest;
     }
 
     for( int i = 0; i < allocationDepth - 1; ++i ) {
-      if( id.equals( getIthOldestShadow( i ) ) ) {
+      if( id.equals(getIthOldestShadow(i) ) ) {
 	return SHADOWAGE_in_I;
       }
     }
@@ -219,29 +219,29 @@ public class AllocSite extends Canonical implements Alloc {
     return SHADOWAGE_notInThisSite;
   }
 
-  public Integer getShadowAge( Integer id ) {
+  public Integer getShadowAge(Integer id) {
     for( int i = 0; i < allocationDepth - 1; ++i ) {
-      if( id.equals( getIthOldestShadow( i ) ) ) {
-	return new Integer( -i );
+      if( id.equals(getIthOldestShadow(i) ) ) {
+	return new Integer(-i);
       }
     }
 
     return null;
   }
 
-  public Integer getShadowIDfromID( Integer id ) {
-    int ageCat = getAgeCategory( id );
+  public Integer getShadowIDfromID(Integer id) {
+    int ageCat = getAgeCategory(id);
     switch( ageCat ) {
-      
+
     case AGE_summary:
     case AGE_oldest:
     case AGE_in_I:
       return -id;
-      
+
     case AGE_notInThisSite:
     default:
-      System.out.println( toStringWithIDs() );
-      throw new Error( "ID "+id+" not from this site." );
+      System.out.println(toStringWithIDs() );
+      throw new Error("ID "+id+" not from this site.");
     }
   }
 
@@ -259,32 +259,32 @@ public class AllocSite extends Canonical implements Alloc {
   public String toStringVerbose() {
     if( disjointId == null ) {
       return "allocSite"+id+" "+
-        flatNew.getType().toPrettyString();
+             flatNew.getType().toPrettyString();
     }
     return "allocSite "+disjointId+" ("+id+") "+
-      flatNew.getType().toPrettyString();
+           flatNew.getType().toPrettyString();
   }
 
   public String toStringForDOT() {
     if( disjointId != null ) {
       return "disjoint "+disjointId+"\\n"+toString()+
-        "\\n"+getType().toPrettyString();
+             "\\n"+getType().toPrettyString();
     } else {
-      return                              toString()+
-        "\\n"+getType().toPrettyString();
+      return toString()+
+             "\\n"+getType().toPrettyString();
     }
   }
 
   public String toStringWithIDs() {
     String s = "allocSite"+id+" ";
     for( int i = 0; i < ithOldest.size(); ++i ) {
-      s += i+"("+ithOldest.get( i )+") ";
+      s += i+"("+ithOldest.get(i)+") ";
     }
     s += "summary("+summary+")";
     return s;
   }
 
-  public boolean equalsSpecific( Object o ) {
+  public boolean equalsSpecific(Object o) {
     if( o == null ) {
       return false;
     }
@@ -300,5 +300,5 @@ public class AllocSite extends Canonical implements Alloc {
 
   public int hashCodeSpecific() {
     return id.hashCode();
-  }  
+  }
 }

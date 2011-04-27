@@ -396,8 +396,8 @@ public class BuildCodeTran extends BuildCode {
   protected void generateTempStructs(FlatMethod fm, LocalityBinding lb) {
     MethodDescriptor md=fm.getMethod();
     TaskDescriptor task=fm.getTask();
-    Set<TempDescriptor> saveset=lb!=null ? locality.getTempSet(lb) : null;
-    ParamsObject objectparams=md!=null ? new ParamsObject(md,tag++) : new ParamsObject(task, tag++);
+    Set<TempDescriptor> saveset=lb!=null?locality.getTempSet(lb):null;
+    ParamsObject objectparams=md!=null?new ParamsObject(md,tag++):new ParamsObject(task, tag++);
     if (lb!=null) {
       paramstable.put(lb, objectparams);
       backuptable.put(lb, new Hashtable<TempDescriptor, TempDescriptor>());
@@ -426,7 +426,7 @@ public class BuildCodeTran extends BuildCode {
 	objectparams.addPrim(temp);
     }
 
-    TempObject objecttemps=md!=null ? new TempObject(objectparams,md,tag++) : new TempObject(objectparams, task, tag++);
+    TempObject objecttemps=md!=null?new TempObject(objectparams,md,tag++):new TempObject(objectparams, task, tag++);
     if (lb!=null)
       tempstable.put(lb, objecttemps);
     else if (md!=null)
@@ -586,7 +586,7 @@ public class BuildCodeTran extends BuildCode {
   protected void generateMethodParam(ClassDescriptor cn, MethodDescriptor md, LocalityBinding lb, PrintWriter output) {
     /* Output parameter structure */
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-      ParamsObject objectparams=(ParamsObject) paramstable.get(lb!=null ? lb : md);
+      ParamsObject objectparams=(ParamsObject) paramstable.get(lb!=null?lb:md);
       if ((state.DSM||state.SINGLETM)&&lb!=null)
 	output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
       else
@@ -681,8 +681,8 @@ public class BuildCodeTran extends BuildCode {
       System.out.println(fm.printMethod());
     MethodDescriptor md=fm.getMethod();
     TaskDescriptor task=fm.getTask();
-    ClassDescriptor cn=md!=null ? md.getClassDesc() : null;
-    ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? lb : md!=null ? md : task);
+    ClassDescriptor cn=md!=null?md.getClassDesc():null;
+    ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null?lb:md!=null?md:task);
 
     HashSet<AtomicRecord> arset=null;
     branchanalysis=null;
@@ -786,8 +786,8 @@ public class BuildCodeTran extends BuildCode {
     localsprefixaddr="&"+localsprefix;
     localsprefixderef=localsprefix+".";
 
-    generateHeader(fm, lb, md!=null ? md : task,output);
-    TempObject objecttemp=(TempObject) tempstable.get(lb!=null ? lb : md!=null ? md : task);
+    generateHeader(fm, lb, md!=null?md:task,output);
+    TempObject objecttemp=(TempObject) tempstable.get(lb!=null?lb:md!=null?md:task);
 
     if (state.DELAYCOMP&&!lb.isAtomic()&&lb.getHasAtomic()) {
       for(Iterator<AtomicRecord> arit=arset.iterator(); arit.hasNext(); ) {
@@ -1161,7 +1161,7 @@ public class BuildCodeTran extends BuildCode {
   protected String generateTemp(FlatMethod fm, TempDescriptor td) {
     MethodDescriptor md=fm.getMethod();
     TaskDescriptor task=fm.getTask();
-    TempObject objecttemps=(TempObject) tempstable.get(currlb!=null ? currlb : md!=null ? md : task);
+    TempObject objecttemps=(TempObject) tempstable.get(currlb!=null?currlb:md!=null?md:task);
 
     if (objecttemps.isLocalPrim(td)||objecttemps.isParamPrim(td)) {
       return td.getSafeSymbol();
@@ -1358,7 +1358,7 @@ public class BuildCodeTran extends BuildCode {
       fieldoffset.add(newfieldoffset);
     }
 
-    int base=(tuplecount>0) ? ((Short)endoffset.get(tuplecount-1)).intValue() : 0;
+    int base=(tuplecount>0)?((Short)endoffset.get(tuplecount-1)).intValue():0;
     base+=pp.desc.size()-breakindex;
     endoffset.add(new Short((short)base));
   }
@@ -1550,7 +1550,7 @@ public class BuildCodeTran extends BuildCode {
 
   protected void generateFlatCall(FlatMethod fm, FlatCall fc, PrintWriter output) {
     MethodDescriptor md=fc.getMethod();
-    ParamsObject objectparams=(ParamsObject)paramstable.get(currlb!=null ? locality.getBinding(currlb, fc) : md);
+    ParamsObject objectparams=(ParamsObject)paramstable.get(currlb!=null?locality.getBinding(currlb, fc):md);
     ClassDescriptor cn=md.getClassDesc();
 
     // if the called method is a static block or a static method or a constructor
@@ -1586,9 +1586,9 @@ public class BuildCodeTran extends BuildCode {
       }
       if((md.getSymbol().equals("MonitorEnter") || md.getSymbol().equals("MonitorExit")) && fc.getThis().getSymbol().equals("classobj")) {
 	// call MonitorEnter/MonitorExit on a class obj
-    output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
-         + md.getSafeMethodDescriptor() + "((struct ___Object___*)(((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[" 
-        + fc.getThis().getType().getClassDesc().getId() + "]));");
+	output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
+	               + md.getSafeMethodDescriptor() + "((struct ___Object___*)(((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))["
+	               + fc.getThis().getType().getClassDesc().getId() + "]));");
 	return;
       }
     }
@@ -2198,7 +2198,7 @@ public class BuildCodeTran extends BuildCode {
    * task referenced by the Descriptor des. */
   protected void generateHeader(FlatMethod fm, LocalityBinding lb, Descriptor des, PrintWriter output) {
     /* Print header */
-    ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? lb : des);
+    ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null?lb:des);
     MethodDescriptor md=null;
     TaskDescriptor task=null;
     if (des instanceof MethodDescriptor)
@@ -2206,7 +2206,7 @@ public class BuildCodeTran extends BuildCode {
     else
       task=(TaskDescriptor) des;
 
-    ClassDescriptor cn=md!=null ? md.getClassDesc() : null;
+    ClassDescriptor cn=md!=null?md.getClassDesc():null;
 
     if (md!=null&&md.getReturnType()!=null) {
       if (state.MGC && md.getReturnType().isClass() && md.getReturnType().getClassDesc().isEnum()) {

@@ -19,11 +19,11 @@ extern pthread_key_t memorytopkey;
 #endif
 
 #ifdef PRECISE_GC
-#define ATOMICLOCK if (pthread_mutex_trylock(&atomiclock)!=0) {	\
-    stopforgc((struct garbagelist *) &___locals___);		\
-    pthread_mutex_lock(&atomiclock);				\
-    restartaftergc();						\
-  }
+#define ATOMICLOCK if (pthread_mutex_trylock(&atomiclock)!=0) { \
+    stopforgc((struct garbagelist *) &___locals___);            \
+    pthread_mutex_lock(&atomiclock);                            \
+    restartaftergc();                                           \
+}
 
 #define ATOMICUNLOCK pthread_mutex_unlock(&atomiclock)
 #else

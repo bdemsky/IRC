@@ -3,7 +3,7 @@
 #include "structdefs.h"
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
-#include<string.h>
+#include <string.h>
 
 #ifdef TASK
 

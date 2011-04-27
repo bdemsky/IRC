@@ -10,7 +10,7 @@ public class BlockNode extends TreeNode {
   public final static int NORMAL=0;
   public final static int NOBRACES=1;
   public final static int EXPRLIST=2;
-  
+
   String label=null;
 
   public BlockNode() {
@@ -29,7 +29,7 @@ public class BlockNode extends TreeNode {
   public void addFirstBlockStatement(BlockStatementNode bsn) {
     blockstatements.insertElementAt(bsn,0);
   }
-  
+
   public void addBlockStatementAt(BlockStatementNode bsn, int i) {
     blockstatements.insertElementAt(bsn,i);
   }
@@ -87,12 +87,12 @@ public class BlockNode extends TreeNode {
   public int kind() {
     return Kind.BlockNode;
   }
-  
-  public void setLabel(String l){
+
+  public void setLabel(String l) {
     label=l;
   }
-  
-  public String getLabel(){
+
+  public String getLabel() {
     return label;
   }
 

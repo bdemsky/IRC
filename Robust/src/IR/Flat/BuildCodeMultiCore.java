@@ -56,13 +56,13 @@ public class BuildCodeMultiCore extends BuildCode {
   Hashtable<FlatNew, Vector<FlatNew>> m_aliasFNTbl;
   Hashtable<FlatNew, Vector<Integer>> m_aliaslocksTbl4FN;
 
-  public BuildCodeMultiCore(State st, 
-	                    Hashtable temptovar, 
-	                    TypeUtil typeutil, 
-	                    SafetyAnalysis sa, 
-	                    Vector<Schedule> scheduling, 
-	                    int coreNum, 
-			    int gcoreNum, CallGraph callgraph) {
+  public BuildCodeMultiCore(State st,
+                            Hashtable temptovar,
+                            TypeUtil typeutil,
+                            SafetyAnalysis sa,
+                            Vector<Schedule> scheduling,
+                            int coreNum,
+                            int gcoreNum, CallGraph callgraph) {
     super(st, temptovar, typeutil, sa, callgraph);
     this.scheduling = scheduling;
     this.coreNum = coreNum; // # of the active cores
@@ -131,14 +131,14 @@ public class BuildCodeMultiCore extends BuildCode {
       e.printStackTrace();
       System.exit(-1);
     }
-    
+
     /* Fix field safe symbols due to shadowing */
     FieldShadow.handleFieldShadow(state);
 
     /* Build the virtual dispatch tables */
 
     buildVirtualTables(outvirtual);
-    
+
     /* Tag the methods that are invoked by static blocks */
     tagMethodInvokedByStaticBlock();
 
@@ -151,7 +151,7 @@ public class BuildCodeMultiCore extends BuildCode {
 
     /* Output Structures */
     outputStructs(outstructs);
-    
+
     outglobaldefs.println("#ifndef __GLOBALDEF_H_");
     outglobaldefs.println("#define __GLOBALDEF_H_");
     outglobaldefs.println("");
@@ -232,7 +232,7 @@ public class BuildCodeMultiCore extends BuildCode {
       boolean comma = false;
       outtaskdefs.println("struct parameterwrapper ** objectqueues[][NUMCLASSES] = {");
       boolean needcomma = false;
-      for(int i = 0; i < numqueues.length ; ++i) {
+      for(int i = 0; i < numqueues.length; ++i) {
 	if(needcomma) {
 	  outtaskdefs.println(",");
 	} else {
@@ -278,7 +278,7 @@ public class BuildCodeMultiCore extends BuildCode {
       /* parameter queue arrays for all the tasks*/
       outtaskdefs.println("struct parameterwrapper *** paramqueues[] = {");
       needcomma = false;
-      for(int i = 0; i < this.coreNum ; ++i) {
+      for(int i = 0; i < this.coreNum; ++i) {
 	if(needcomma) {
 	  outtaskdefs.println(",");
 	} else {
@@ -339,8 +339,8 @@ public class BuildCodeMultiCore extends BuildCode {
       /* Record number of total cores */
       outstructs.println("#define NUMCORES "+this.tcoreNum);
       /* Record number of active cores */
-      outstructs.println("#define NUMCORESACTIVE "+this.coreNum); // this.coreNum 
-                                      // can be reset by the scheduling analysis
+      outstructs.println("#define NUMCORESACTIVE "+this.coreNum); // this.coreNum
+      // can be reset by the scheduling analysis
       /* Record number of garbage collection cores */
       outstructs.println("#ifdef MULTICORE_GC");
       outstructs.println("#define NUMCORES4GC "+this.gcoreNum);
@@ -365,7 +365,7 @@ public class BuildCodeMultiCore extends BuildCode {
        }*/
 
     outputInitStaticAndGlobalMethod(outmethod);
-    
+
     /* Close files */
     outmethodheader.println("#endif");
     outmethodheader.close();
@@ -373,11 +373,11 @@ public class BuildCodeMultiCore extends BuildCode {
     outstructs.println("#endif");
     outstructs.close();
   }
-  
+
   private void outputInitStaticAndGlobalMethod(PrintWriter outmethod) {
     outmethod.println("void initStaticAndGlobal() {");
     outmethod.println("  int i;");
-    
+
     if (state.MULTICOREGC) {
       outmethod.println("  global_defs_p->size="+globaldefscount+";");
       outmethod.println("  global_defs_p->next=NULL;");
@@ -385,7 +385,7 @@ public class BuildCodeMultiCore extends BuildCode {
       outmethod.println("    ((struct garbagelist *)global_defs_p)->array[i]=NULL;");
       outmethod.println("  }");
     }
-    
+
     outputStaticBlocks(outmethod);
     outputClassObjects(outmethod);
 
@@ -396,8 +396,8 @@ public class BuildCodeMultiCore extends BuildCode {
    * passed in (when PRECISE GC is enabled) and (2) function
    * prototypes for the tasks */
 
-  protected void generateTaskStructs(PrintWriter output, 
-	                           PrintWriter headersout) {
+  protected void generateTaskStructs(PrintWriter output,
+                                     PrintWriter headersout) {
     /* Cycle through tasks */
     for(int i = 0; i < this.scheduling.size(); ++i) {
       Schedule tmpschedule = this.scheduling.elementAt(i);
@@ -462,12 +462,12 @@ public class BuildCodeMultiCore extends BuildCode {
 
   /* This method outputs code for each task. */
 
-  protected void outputTaskCode(PrintWriter outtaskdefs, 
-	                          PrintWriter outmethod, 
-	                          PrintWriter outtask, 
-	                          Iterator[] taskits, 
-	                          int[] numtasks,
-                              int[][] numqueues) {
+  protected void outputTaskCode(PrintWriter outtaskdefs,
+                                PrintWriter outmethod,
+                                PrintWriter outtask,
+                                Iterator[] taskits,
+                                int[] numtasks,
+                                int[][] numqueues) {
     /* Compile task based program */
     outtaskdefs.println("#include \"task.h\"");
     outtaskdefs.println("#include \"methodheaders.h\"");
@@ -543,7 +543,7 @@ public class BuildCodeMultiCore extends BuildCode {
     outtask.println("#include \"structdefs.h\"");
     outtask.println("#include \"Queue.h\"");
     outtask.println("#include <string.h>");
-	outtask.println("#include \"runtime_arch.h\"");
+    outtask.println("#include \"runtime_arch.h\"");
     //outtask.println("#ifdef RAW");
     //outtask.println("#include <raw.h>");
     //outtask.println("#endif");
@@ -648,8 +648,8 @@ public class BuildCodeMultiCore extends BuildCode {
     output.println();
   }
 
-  protected void generateTaskMethod(FlatMethod fm, 
-				  PrintWriter output) {
+  protected void generateTaskMethod(FlatMethod fm,
+                                    PrintWriter output) {
     /*if (State.PRINTFLAT)
         System.out.println(fm.printMethod());*/
     TaskDescriptor task=fm.getTask();
@@ -677,7 +677,7 @@ public class BuildCodeMultiCore extends BuildCode {
       if (type.isNull())
 	output.println("   void * "+td.getSafeSymbol()+";");
       else if (state.MGC && type.isClass() && type.getClassDesc().isEnum()) {
-        output.println("   int " + td.getSafeSymbol()+";");
+	output.println("   int " + td.getSafeSymbol()+";");
       } else if (type.isClass()||type.isArray())
 	output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
       else
@@ -713,41 +713,41 @@ public class BuildCodeMultiCore extends BuildCode {
 
     /* generate print information for RAW version */
     output.println("#ifdef MULTICORE");
-	if(this.state.RAW) {
-		output.println("{");
-		output.println("int tmpsum = 0;");
-		output.println("char * taskname = \"" + task.getSymbol() + "\";");
-		output.println("int tmplen = " + task.getSymbol().length() + ";");
-		output.println("int tmpindex = 1;");
-		output.println("for(;tmpindex < tmplen; tmpindex++) {");
-		output.println("   tmpsum = tmpsum * 10 + *(taskname + tmpindex) - '0';");
-		output.println("}");
-	}
+    if(this.state.RAW) {
+      output.println("{");
+      output.println("int tmpsum = 0;");
+      output.println("char * taskname = \"" + task.getSymbol() + "\";");
+      output.println("int tmplen = " + task.getSymbol().length() + ";");
+      output.println("int tmpindex = 1;");
+      output.println("for(;tmpindex < tmplen; tmpindex++) {");
+      output.println("   tmpsum = tmpsum * 10 + *(taskname + tmpindex) - '0';");
+      output.println("}");
+    }
     output.println("#ifdef RAWPATH");
-	if(this.state.RAW) {
-		output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
-		output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);"); 
-	} else {
-		//output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
-		output.println("printf(\"(%x,%x) Process %x(%d): task %s\\n\", udn_tile_coord_x(), udn_tile_coord_y(), corenum, corenum, \"" + task.getSymbol() + "\");");
-		//output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
-	}
-	//output.println("BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());");
+    if(this.state.RAW) {
+      output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
+      output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
+    } else {
+      //output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
+      output.println("printf(\"(%x,%x) Process %x(%d): task %s\\n\", udn_tile_coord_x(), udn_tile_coord_y(), corenum, corenum, \"" + task.getSymbol() + "\");");
+      //output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
+    }
+    //output.println("BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());");
     output.println("#endif");
     output.println("#ifdef DEBUG");
-	if(this.state.RAW) {
-		output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
-		output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
-	} else {
-		//output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
-		output.println("printf(\"(%x,%x) Process %x(%d): task %s\\n\", udn_tile_coord_x(), udn_tile_coord_y(), corenum, corenum, \"" + task.getSymbol() + "\");");
-		//output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
-	}
+    if(this.state.RAW) {
+      output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
+      output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
+    } else {
+      //output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
+      output.println("printf(\"(%x,%x) Process %x(%d): task %s\\n\", udn_tile_coord_x(), udn_tile_coord_y(), corenum, corenum, \"" + task.getSymbol() + "\");");
+      //output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
+    }
     output.println("#endif");
-	if(this.state.RAW) {
-		output.println("}");
-	}
-	output.println("#endif");
+    if(this.state.RAW) {
+      output.println("}");
+    }
+    output.println("#endif");
 
     for(int i = 0; i < fm.numParameters(); ++i) {
       TempDescriptor temp = fm.getParameter(i);
@@ -821,11 +821,11 @@ public class BuildCodeMultiCore extends BuildCode {
   }
 
   /** This method outputs TaskDescriptor information */
-  protected void generateTaskDescriptor(PrintWriter output, 
-	                              PrintWriter outtask, 
-	                              FlatMethod fm, 
-	                              TaskDescriptor task, 
-	                              Vector[] qnames) {
+  protected void generateTaskDescriptor(PrintWriter output,
+                                        PrintWriter outtask,
+                                        FlatMethod fm,
+                                        TaskDescriptor task,
+                                        Vector[] qnames) {
     int num = this.currentSchedule.getCoreNum();
 
     output.println("/* TaskDescriptor information for task " + task.getSymbol() + " on core " + num + "*/");
@@ -955,9 +955,9 @@ public class BuildCodeMultiCore extends BuildCode {
   /** This method generates header information for the task
    *  referenced by the Descriptor des. */
 
-  protected void generateTaskHeader(FlatMethod fm, 
-	                          Descriptor des, 
-	                          PrintWriter output) {
+  protected void generateTaskHeader(FlatMethod fm,
+                                    Descriptor des,
+                                    PrintWriter output) {
     /* Print header */
     ParamsObject objectparams=(ParamsObject)paramstable.get(des);
     TaskDescriptor task=(TaskDescriptor) des;
@@ -992,11 +992,11 @@ public class BuildCodeMultiCore extends BuildCode {
     } else output.println(") {");
   }
 
-  protected void generateFlagOrAnd(FlatFlagActionNode ffan, 
-	                           FlatMethod fm, 
-	                           TempDescriptor temp,
-                                   PrintWriter output, 
-                                   int ormask, 
+  protected void generateFlagOrAnd(FlatFlagActionNode ffan,
+                                   FlatMethod fm,
+                                   TempDescriptor temp,
+                                   PrintWriter output,
+                                   int ormask,
                                    int andmask) {
     if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT) {
       output.println("flagorandinit("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
@@ -1014,17 +1014,17 @@ public class BuildCodeMultiCore extends BuildCode {
 	output.println("}");
       }
       if(ffan.getTaskType()==FlatFlagActionNode.TASKEXIT) {
-	  // generate codes for profiling, recording which task exit it is
-	  output.println("#ifdef PROFILE");
-	  output.println("setTaskExitIndex(" + ffan.getTaskExitIndex() + ");");
-	  output.println("#endif");
+	// generate codes for profiling, recording which task exit it is
+	output.println("#ifdef PROFILE");
+	output.println("setTaskExitIndex(" + ffan.getTaskExitIndex() + ");");
+	output.println("#endif");
       }
     }
   }
 
-  protected void generateObjectDistribute(FlatFlagActionNode ffan, 
-	                                      FlatMethod fm, 
-	                                      TempDescriptor temp,
+  protected void generateObjectDistribute(FlatFlagActionNode ffan,
+                                          FlatMethod fm,
+                                          TempDescriptor temp,
                                           PrintWriter output) {
     ClassDescriptor cd = temp.getType().getClassDesc();
     Vector<FlagState> initfstates = null;
@@ -1133,18 +1133,18 @@ public class BuildCodeMultiCore extends BuildCode {
 		                 ", " + qinfo.length + ");");
 		  output.println("}");
 		} /*else {
-		  // TODO
-		  // really needed?
-		  output.println("/* possibly needed by multi-parameter tasks on this core*//*");
-		  output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
-		}*/  // deleted 09/07/06, multi-param tasks are pinned to one core now
+		     // TODO
+		     // really needed?
+		     output.println("/* possibly needed by multi-parameter tasks on this core*//*");
+		     output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
+		     }*/                                                                                                                                                                                                                           // deleted 09/07/06, multi-param tasks are pinned to one core now
 	      } else {
 		/*if(!isolate) {
-		  // TODO
-		  // Is it possible to decide the actual queues?
-		  output.println("/* possibly needed by multi-parameter tasks on this core*//*");
-		  output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
-		}*/ // deleted 09/07/06, multi-param tasks are pinned to one core now
+		   // TODO
+		   // Is it possible to decide the actual queues?
+		   output.println("/* possibly needed by multi-parameter tasks on this core*//*");
+		   output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
+		   }*/                                                                                                                                                                                                                                                      // deleted 09/07/06, multi-param tasks are pinned to one core now
 		output.println("/* transfer to core " + targetcore.toString() + "*/");
 		output.println("{");
 		// enqueue this object and its destinations for later process
@@ -1159,13 +1159,13 @@ public class BuildCodeMultiCore extends BuildCode {
 		} else {
 		  tmpinfo.fs = tmpFState;
 		}
-		  qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
-		  output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
-		  output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
-		  output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
-		  output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
-		  output.println("tmpObjInfo->length = " + qinfo.length + ";");
-		  output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
+		qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
+		output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
+		output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
+		output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
+		output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
+		output.println("tmpObjInfo->length = " + qinfo.length + ";");
+		output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
 		output.println("}");
 	      }
 	      output.println("break;");
@@ -1173,11 +1173,11 @@ public class BuildCodeMultiCore extends BuildCode {
 	    output.println("}");
 	  } else {
 	    /*if(!isolate) {
-	      // TODO
-	      // Is it possible to decide the actual queues?
-	      output.println("/* possibly needed by multi-parameter tasks on this core*//*");
-	      output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
-	    }*/ // deleted 09/07/06, multi-param tasks are pinned to one core now
+	       // TODO
+	       // Is it possible to decide the actual queues?
+	       output.println("/* possibly needed by multi-parameter tasks on this core*//*");
+	       output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
+	       }*/                                                                                                                                                                                                                                                                     // deleted 09/07/06, multi-param tasks are pinned to one core now
 	    output.println("/* transfer to core " + targetcore.toString() + "*/");
 	    output.println("{");
 	    // enqueue this object and its destinations for later process
@@ -1192,13 +1192,13 @@ public class BuildCodeMultiCore extends BuildCode {
 	    } else {
 	      tmpinfo.fs = tmpFState;
 	    }
-	      qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
-	      output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
-	      output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
-	      output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
-	      output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
-	      output.println("tmpObjInfo->length = " + qinfo.length + ";");
-	      output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
+	    qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
+	    output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
+	    output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
+	    output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
+	    output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
+	    output.println("tmpObjInfo->length = " + qinfo.length + ";");
+	    output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
 	    output.println("}");
 	  }
 	  output.println("/* increase index*/");
@@ -1213,10 +1213,10 @@ public class BuildCodeMultiCore extends BuildCode {
 	                   ", " + qinfo.length + ");");
 	    output.println("}");
 	  } /*else {
-	    // TODO
-	    // really needed?
-	    output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
-	  }*/ // deleted 09/07/06, multi-param tasks are pinned to one core now
+	       // TODO
+	       // really needed?
+	       output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
+	       }*/                                                                                                                                        // deleted 09/07/06, multi-param tasks are pinned to one core now
 	}
 
 	// codes for multi-params tasks
@@ -1225,27 +1225,27 @@ public class BuildCodeMultiCore extends BuildCode {
 	  // need to be send to other cores
 	  Vector<Integer> targetcores = this.currentSchedule.getAllyCores(tmpFState);
 	  output.println("/* send the shared object to possible queues on other cores*/");
-	  // TODO, temporary solution, send to mostly the first two 
-	  int upperbound = targetcores.size() > 2? 2: targetcores.size();
+	  // TODO, temporary solution, send to mostly the first two
+	  int upperbound = targetcores.size() > 2?2:targetcores.size();
 	  for(int k = 0; k < upperbound; ++k) {
 	    // TODO
 	    // add the information of exactly which queue
 	    int targetcore = targetcores.elementAt(k).intValue();
 	    if(!sendto.contains(targetcore)) {
-	    // previously not sended to this target core
-	    // enqueue this object and its destinations for later process
-	    output.println("{");
-	    // all the possible queues
-	    QueueInfo qinfo = null;
-	    TranObjInfo tmpinfo = new TranObjInfo();
-	    tmpinfo.name = generateTemp(fm, temp);
-	    tmpinfo.targetcore = targetcore;
-	    FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
-	    if(targetFS != null) {
-	      tmpinfo.fs = targetFS;
-	    } else {
-	      tmpinfo.fs = tmpFState;
-	    }
+	      // previously not sended to this target core
+	      // enqueue this object and its destinations for later process
+	      output.println("{");
+	      // all the possible queues
+	      QueueInfo qinfo = null;
+	      TranObjInfo tmpinfo = new TranObjInfo();
+	      tmpinfo.name = generateTemp(fm, temp);
+	      tmpinfo.targetcore = targetcore;
+	      FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
+	      if(targetFS != null) {
+		tmpinfo.fs = targetFS;
+	      } else {
+		tmpinfo.fs = tmpFState;
+	      }
 	      qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
 	      output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
 	      output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
@@ -1266,10 +1266,10 @@ public class BuildCodeMultiCore extends BuildCode {
     }
   }
 
-  protected QueueInfo outputqueues(FlagState tmpFState, 
-	                         int num, 
-	                         PrintWriter output, 
-	                         boolean isEnqueue) {
+  protected QueueInfo outputqueues(FlagState tmpFState,
+                                   int num,
+                                   PrintWriter output,
+                                   boolean isEnqueue) {
     // queue array
     QueueInfo qinfo = new QueueInfo();
     qinfo.qname  = "queues_" + tmpFState.getLabel() + "_" + tmpFState.getiuid();
@@ -1303,9 +1303,9 @@ public class BuildCodeMultiCore extends BuildCode {
     return qinfo;
   }
 
-  protected QueueInfo outputtransqueues(FlagState tmpFState, 
-	                              int targetcore, 
-	                              PrintWriter output) {
+  protected QueueInfo outputtransqueues(FlagState tmpFState,
+                                        int targetcore,
+                                        PrintWriter output) {
     // queue array
     QueueInfo qinfo = new QueueInfo();
     qinfo.qname  = "queues_" + tmpFState.getLabel() + "_" + tmpFState.getiuid();
@@ -1347,11 +1347,11 @@ public class BuildCodeMultiCore extends BuildCode {
     public String qname;
   }
 
-  protected String generateTempFlagName(FlatMethod fm, 
-	                              TempDescriptor td) {
+  protected String generateTempFlagName(FlatMethod fm,
+                                        TempDescriptor td) {
     MethodDescriptor md=fm.getMethod();
     TaskDescriptor task=fm.getTask();
-    TempObject objecttemps=(TempObject) tempstable.get(md!=null ? md : task);
+    TempObject objecttemps=(TempObject) tempstable.get(md!=null?md:task);
 
     if (objecttemps.isLocalPrim(td)||objecttemps.isParamPrim(td)) {
       return td.getSafeSymbol() + "_oldflag";
@@ -1377,8 +1377,8 @@ public class BuildCodeMultiCore extends BuildCode {
     //output.println("freeQueue(totransobjqueue);");
   }
 
-  protected void outputAliasLockCode(FlatMethod fm, 
-	                                 PrintWriter output) {
+  protected void outputAliasLockCode(FlatMethod fm,
+                                     PrintWriter output) {
     if(this.m_oa == null) {
       return;
     }
@@ -1396,7 +1396,7 @@ public class BuildCodeMultiCore extends BuildCode {
       for( int j = i + 1; j < fm.numParameters(); ++j ) {
 	common = this.m_oa.createsPotentialAliases(td, i, j);
 	if(!common.isEmpty()) {
-      // ith parameter and jth parameter has alias, create lock to protect them
+	  // ith parameter and jth parameter has alias, create lock to protect them
 	  if(aliasSets.elementAt(i) == null) {
 	    aliasSets.setElementAt(new Vector<Integer>(), i);
 	  }
@@ -1412,7 +1412,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	AllocationSite as = (AllocationSite)allocSites[j];
 	common = this.m_oa.createsPotentialAliases(td, i, as);
 	if( !common.isEmpty() ) {
-      // ith parameter and allocationsite as has alias
+	  // ith parameter and allocationsite as has alias
 	  if(aliasFNSets.elementAt(i) == null) {
 	    aliasFNSets.setElementAt(new Vector<FlatNew>(), i);
 	  }
@@ -1431,7 +1431,7 @@ public class BuildCodeMultiCore extends BuildCode {
 
 	common = this.m_oa.createsPotentialAliases(td, as1, as2);
 	if( !common.isEmpty() ) {
-      // as1 and as2 has alias
+	  // as1 and as2 has alias
 	  if(!aliasFNTbl.containsKey(as1.getFlatNew())) {
 	    aliasFNTbl.put(as1.getFlatNew(), new Vector<FlatNew>());
 	  }
@@ -1555,54 +1555,54 @@ public class BuildCodeMultiCore extends BuildCode {
     // create locks
     if(numlock > 0) {
       output.println("int aliaslocks[" + numlock + "];");
-      output.println("int tmpi = 0;");      
+      output.println("int tmpi = 0;");
       // associate locks with parameters
       int lockindex = 0;
       for(int i = 0; i < this.m_aliasSets.size(); i++) {
-        Vector<Integer> toadd = this.m_aliasSets.elementAt(i);
+	Vector<Integer> toadd = this.m_aliasSets.elementAt(i);
 
-        output.println("int tmplen_" + lockindex + " = " + toadd.size());
-        output.println("void * tmpptrs_" + lockindex + "[] = {");
-        for(int j = 0; j < toadd.size(); j++) {
-          int para = toadd.elementAt(j).intValue();
-          output.print(generateTemp(fm, fm.getParameter(para)));
-          if(j < toadd.size() - 1) {
-            output.print(", ");
-          } else {
-            output.println("};");
-          }
-        }
-        output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", tmplen_" + lockindex + ", lockRedirectTbl);");
+	output.println("int tmplen_" + lockindex + " = " + toadd.size());
+	output.println("void * tmpptrs_" + lockindex + "[] = {");
+	for(int j = 0; j < toadd.size(); j++) {
+	  int para = toadd.elementAt(j).intValue();
+	  output.print(generateTemp(fm, fm.getParameter(para)));
+	  if(j < toadd.size() - 1) {
+	    output.print(", ");
+	  } else {
+	    output.println("};");
+	  }
+	}
+	output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", tmplen_" + lockindex + ", lockRedirectTbl);");
 
-        for(int j = 0; j < toadd.size(); j++) {
-          int para = toadd.elementAt(j).intValue();
-          output.println("addAliasLock("  + generateTemp(fm, fm.getParameter(para)) + ", aliaslocks[" + i + "]);");
-        }
-        // check if this lock is also associated with any FlatNew nodes
-        if(this.m_aliasFNTbl4Para.containsKey(toadd.elementAt(0))) {
-          if(this.m_aliaslocksTbl4FN == null) {
-            this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
-          }
-          Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(toadd.elementAt(0));
-          for(int j = 0; j < tmpv.size(); j++) {
-            FlatNew fn = tmpv.elementAt(j);
-            if(!this.m_aliaslocksTbl4FN.containsKey(fn)) {
-              this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
-            }
-            this.m_aliaslocksTbl4FN.get(fn).add(i);
-          }
-          this.m_aliasFNTbl4Para.remove(toadd.elementAt(0));
-        }
-        lockindex++;
+	for(int j = 0; j < toadd.size(); j++) {
+	  int para = toadd.elementAt(j).intValue();
+	  output.println("addAliasLock("  + generateTemp(fm, fm.getParameter(para)) + ", aliaslocks[" + i + "]);");
+	}
+	// check if this lock is also associated with any FlatNew nodes
+	if(this.m_aliasFNTbl4Para.containsKey(toadd.elementAt(0))) {
+	  if(this.m_aliaslocksTbl4FN == null) {
+	    this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
+	  }
+	  Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(toadd.elementAt(0));
+	  for(int j = 0; j < tmpv.size(); j++) {
+	    FlatNew fn = tmpv.elementAt(j);
+	    if(!this.m_aliaslocksTbl4FN.containsKey(fn)) {
+	      this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
+	    }
+	    this.m_aliaslocksTbl4FN.get(fn).add(i);
+	  }
+	  this.m_aliasFNTbl4Para.remove(toadd.elementAt(0));
+	}
+	lockindex++;
       }
-      
+
       Object[] key = this.m_aliasFNTbl4Para.keySet().toArray();
       for(int i = 0; i < key.length; i++) {
 	int para = ((Integer)key[i]).intValue();
 
 	output.println("void * tmpptrs_" + lockindex + "[] = {" + generateTemp(fm, fm.getParameter(para)) + "};");
 	output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", 1, lockRedirectTbl);");
-	
+
 	output.println("addAliasLock(" + generateTemp(fm, fm.getParameter(para)) + ", aliaslocks[" + lockindex + "]);");
 	Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(para);
 	for(int j = 0; j < tmpv.size(); j++) {
@@ -1617,15 +1617,15 @@ public class BuildCodeMultiCore extends BuildCode {
 	}
 	lockindex++;
       }
-      
+
       // check m_aliasFNTbl for locks associated with FlatNew nodes
       Object[] FNkey = this.m_aliasFNTbl.keySet().toArray();
       for(int i = 0; i < FNkey.length; i++) {
 	FlatNew fn = (FlatNew)FNkey[i];
 	Vector<FlatNew> tmpv = this.m_aliasFNTbl.get(fn);
-	
+
 	output.println("aliaslocks[tmpi++] = (int)(RUNMALLOC(sizeof(int)));");
-	
+
 	if(this.m_aliaslocksTbl4FN == null) {
 	  this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
 	}
@@ -1645,9 +1645,9 @@ public class BuildCodeMultiCore extends BuildCode {
     }
   }
 
-  protected void generateFlatReturnNode(FlatMethod fm, 
-	                                FlatReturnNode frn, 
-	                                PrintWriter output) {
+  protected void generateFlatReturnNode(FlatMethod fm,
+                                        FlatReturnNode frn,
+                                        PrintWriter output) {
     if (frn.getReturnTemp()!=null) {
       if (frn.getReturnTemp().getType().isPtr())
 	output.println("return (struct "+fm.getMethod().getReturnType().getSafeSymbol()+"*)"+generateTemp(fm, frn.getReturnTemp())+";");
@@ -1672,8 +1672,8 @@ public class BuildCodeMultiCore extends BuildCode {
     }
   }
 
-  protected void generateFlatNew(FlatMethod fm, 
-	                         FlatNew fn,
+  protected void generateFlatNew(FlatMethod fm,
+                                 FlatNew fn,
                                  PrintWriter output) {
     if (fn.getType().isArray()) {
       int arrayid = state.getArrayNumber(fn.getType())
@@ -1715,12 +1715,12 @@ public class BuildCodeMultiCore extends BuildCode {
       }
     }
     // generate codes for profiling, recording how many new objects are created
-    if(!fn.getType().isArray() && 
-	    (fn.getType().getClassDesc() != null) 
-	    && (fn.getType().getClassDesc().hasFlags())) {
-	output.println("#ifdef PROFILE");
-	output.println("addNewObjInfo(\"" + fn.getType().getClassDesc().getSymbol() + "\");");
-	output.println("#endif");
+    if(!fn.getType().isArray() &&
+       (fn.getType().getClassDesc() != null)
+       && (fn.getType().getClassDesc().hasFlags())) {
+      output.println("#ifdef PROFILE");
+      output.println("addNewObjInfo(\"" + fn.getType().getClassDesc().getSymbol() + "\");");
+      output.println("#endif");
     }
   }
 
@@ -1730,8 +1730,8 @@ public class BuildCodeMultiCore extends BuildCode {
     public FlagState fs;
   }
 
-  protected boolean contains(Vector<TranObjInfo> sendto, 
-	                   TranObjInfo t) {
+  protected boolean contains(Vector<TranObjInfo> sendto,
+                             TranObjInfo t) {
     if(sendto.size() == 0) {
       return false;
     }

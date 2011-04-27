@@ -12,9 +12,9 @@ extern unsigned int myIpAddr;
 extern char bigarray[16*1024*1024];
 extern int bigindex;
 #define LOGEVENT(x) { \
-  int tmp=bigindex++;                         \
-  bigarray[tmp]=x;                            \
-  }
+    int tmp=bigindex ++;                         \
+    bigarray[tmp]=x;                            \
+}
 #else
 #define LOGEVENT(x)
 #endif
@@ -123,14 +123,14 @@ int updatePrefetchCache(trans_req_data_t *tdata) {
   int retval;
   char oidType;
   /*//TODO comment it for now because objects read are already in the prefetch cache
-  oidType = 'R';
-  if(tdata->f.numread > 0) {
-    if((retval = copyToCache(tdata->f.numread, (unsigned int *)(tdata->objread), oidType)) != 0) {
+     oidType = 'R';
+     if(tdata->f.numread > 0) {
+     if((retval = copyToCache(tdata->f.numread, (unsigned int *)(tdata->objread), oidType)) != 0) {
       printf("%s(): Error in copying objects read at %s, %d\n", __func__, __FILE__, __LINE__);
       return -1;
-    }
-  }
-  */
+     }
+     }
+   */
   if(tdata->f.nummod > 0) {
     oidType = 'M';
     if((retval = copyToCache(tdata->f.nummod, tdata->oidmod, oidType)) != 0) {
@@ -150,7 +150,7 @@ int copyToCache(int numoid, unsigned int *oidarray, char oidType) {
     //  oid = *((unsigned int *)(objread+(sizeof(unsigned int)+
     //                                    sizeof(unsigned short))*i));
     //} else {
-      oid = oidarray[i];
+    oid = oidarray[i];
     //}
     pthread_mutex_lock(&prefetchcache_mutex);
     objheader_t * header;

@@ -80,11 +80,11 @@ public class DeltaLocation extends CompositeLocation {
     if (locTuple.size() != 0) {
       int tupleSize = locTuple.size();
       for (int i = 0; i < tupleSize; i++) {
-        Location locElement = locTuple.at(i);
-        if (i != 0) {
-          rtr += ",";
-        }
-        rtr += locElement;
+	Location locElement = locTuple.at(i);
+	if (i != 0) {
+	  rtr += ",";
+	}
+	rtr += locElement;
       }
     } else {
       rtr += "LOC_REF";

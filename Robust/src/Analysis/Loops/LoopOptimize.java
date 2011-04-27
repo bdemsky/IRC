@@ -25,7 +25,7 @@ public class LoopOptimize {
     map=new Hashtable<FlatNode, FlatNode>();
     clonemap=new Hashtable<FlatNode, FlatNode>();
     dooptimize(fm);
-  } 
+  }
 
   private FlatNode ntooremap(FlatNode fn) {
     while(ntoomap.containsKey(fn)) {
@@ -46,7 +46,7 @@ public class LoopOptimize {
     recurse(fm, root);
   }
   private void recurse(FlatMethod fm, Loops parent) {
-    for(Iterator lpit=parent.nestedLoops().iterator();lpit.hasNext();) {
+    for(Iterator lpit=parent.nestedLoops().iterator(); lpit.hasNext(); ) {
       Loops child=(Loops)lpit.next();
       processLoop(fm, child);
       recurse(fm, child);
@@ -75,7 +75,7 @@ public class LoopOptimize {
     if (tohoist.size()==0)
       return;
 
-    for(int i=0;i<tohoist.size();i++) {
+    for(int i=0; i<tohoist.size(); i++) {
       FlatNode fn=tohoist.elementAt(i);
       TempDescriptor[] writes=fn.writesTemps();
 
@@ -93,7 +93,7 @@ public class LoopOptimize {
       FlatNode fnnew=fn.clone(tnone);
       fnnew.rewriteUse(t);
 
-      for(int j=0;j<writes.length;j++) {
+      for(int j=0; j<writes.length; j++) {
 	if (writes[j]!=null) {
 	  TempDescriptor cp=writes[j].createNew();
 	  t.addPair(writes[j],cp);
@@ -129,15 +129,15 @@ public class LoopOptimize {
 
     /* The chain is built at this point. */
     FlatNode[] prevarray=new FlatNode[entrance.numPrev()];
-    for(int i=0;i<entrance.numPrev();i++) {
+    for(int i=0; i<entrance.numPrev(); i++) {
       prevarray[i]=entrance.getPrev(i);
     }
-    for(int i=0;i<prevarray.length;i++) {
+    for(int i=0; i<prevarray.length; i++) {
       FlatNode prev=prevarray[i];
 
       if (!lelements.contains(ntooremap(prev))) {
 	//need to fix this edge
-	for(int j=0;j<prev.numNext();j++) {
+	for(int j=0; j<prev.numNext(); j++) {
 	  if (prev.getNext(j)==entrance)
 	    prev.setNext(j, first);
 	}
@@ -161,7 +161,7 @@ public class LoopOptimize {
 
     TempMap t=new TempMap();
     /* Copy the nodes */
-    for(Iterator it=lelements.iterator();it.hasNext();) {
+    for(Iterator it=lelements.iterator(); it.hasNext(); ) {
       FlatNode fn=(FlatNode)it.next();
       FlatNode nfn=otonremap(fn);
 
@@ -188,17 +188,17 @@ public class LoopOptimize {
 
     /* Store initial in set for loop header */
     FlatNode[] prevarray=new FlatNode[entrance.numPrev()];
-    for(int i=0;i<entrance.numPrev();i++) {
+    for(int i=0; i<entrance.numPrev(); i++) {
       prevarray[i]=entrance.getPrev(i);
     }
     FlatNode first=copytable.get(entrance);
 
     /* Copy the internal edges */
-    for(Iterator it=lelements.iterator();it.hasNext();) {
+    for(Iterator it=lelements.iterator(); it.hasNext(); ) {
       FlatNode fn=(FlatNode)it.next();
       fn=otonremap(fn);
       FlatNode copyend=copyendtable.get(fn);
-      for(int i=0;i<fn.numNext();i++) {
+      for(int i=0; i<fn.numNext(); i++) {
 	FlatNode nnext=fn.getNext(i);
 	if (nnext==entrance) {
 	  /* Back to loop header...point to old graph */
@@ -215,12 +215,12 @@ public class LoopOptimize {
     }
 
     /* Splice header in using original in set */
-    for(int i=0;i<prevarray.length;i++) {
+    for(int i=0; i<prevarray.length; i++) {
       FlatNode prev=prevarray[i];
 
       if (!lelements.contains(ntooremap(prev))) {
 	//need to fix this edge
-	for(int j=0;j<prev.numNext();j++) {
+	for(int j=0; j<prev.numNext(); j++) {
 	  if (prev.getNext(j)==entrance) {
 	    prev.setNext(j, first);
 	  }
@@ -229,7 +229,7 @@ public class LoopOptimize {
     }
 
     /* Splice out loop invariant stuff */
-    for(Iterator it=lelements.iterator();it.hasNext();) {
+    for(Iterator it=lelements.iterator(); it.hasNext(); ) {
       FlatNode fn=(FlatNode)it.next();
       FlatNode nfn=otonremap(fn);
       if (tohoist.contains(fn)) {

@@ -160,14 +160,14 @@ public class LinkedList {
     LinkedListElement e = head;
     while (e != null) {
       if (e.element == o) {
-        if (e.prev != null) {
-          e.prev.next = e.next;
-        }
-        if (e.next != null) {
-          e.next.prev = e.prev;
-        }
-        size--;
-        return true;
+	if (e.prev != null) {
+	  e.prev.next = e.next;
+	}
+	if (e.next != null) {
+	  e.next.prev = e.prev;
+	}
+	size--;
+	return true;
       }
       e = e.next;
     }

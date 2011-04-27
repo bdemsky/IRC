@@ -12,7 +12,7 @@ public class FlatBackEdge extends FlatNode {
     return "backedge";
   }
   public FlatNode clone(TempMap t) {
-    return new FlatBackEdge();  
+    return new FlatBackEdge();
   }
 
   public int kind() {

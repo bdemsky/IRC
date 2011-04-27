@@ -9,7 +9,7 @@ public class NTuple<T> {
 
   private List<T> elements;
 
-  public NTuple(T... elements) {
+  public NTuple(T...elements) {
     this.elements = Arrays.asList(elements);
   }
 

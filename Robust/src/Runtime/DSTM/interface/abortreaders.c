@@ -36,7 +36,7 @@ void addtransaction(unsigned int oid) {
     }
   }
   rl->numreaders++;
-  for(i=0;i<READERSIZE;i++) {
+  for(i=0; i<READERSIZE; i++) {
     if (rl->array[i]==NULL) {
       rl->array[i]=&t_abort;
       pthread_mutex_unlock(&aborttablelock);
@@ -50,7 +50,7 @@ void addtransaction(unsigned int oid) {
 void removetransaction(unsigned int oidarray[], unsigned int numoids) {
   int i,j;
   pthread_mutex_lock(&aborttablelock);
-  for(i=0;i<numoids;i++) {
+  for(i=0; i<numoids; i++) {
     unsigned int oid=oidarray[i];
     struct readerlist *rl=chashRemove2(aborttable, oid);
     struct readerlist *tmp;
@@ -59,11 +59,11 @@ void removetransaction(unsigned int oidarray[], unsigned int numoids) {
     do {
       int count=rl->numreaders;
       int j;
-      for(j=0;count;j++) {
+      for(j=0; count; j++) {
 	int *t_abort=rl->array[j];
 	if (t_abort!=NULL) {
-	  *t_abort=1;//It's okay to set our own abort flag...it is
-			 //too late to abort us
+	  *t_abort=1; //It's okay to set our own abort flag...it is
+	  //too late to abort us
 	  count--;
 	}
       }
@@ -79,19 +79,19 @@ void removetransaction(unsigned int oidarray[], unsigned int numoids) {
 void removethisreadtransaction(unsigned char* oidverread, unsigned int numoids) {
   int i,j;
   pthread_mutex_lock(&aborttablelock);
-  for(i=0;i<numoids;i++) {
+  for(i=0; i<numoids; i++) {
     unsigned int oid=*((unsigned int *)oidverread);
     struct readerlist * rl=chashSearch(aborttable, oid);
     struct readerlist *first=rl;
     oidverread+=(sizeof(unsigned int)+sizeof(unsigned short));
     while(rl!=NULL) {
-      for(j=0;j<READERSIZE;j++) {
+      for(j=0; j<READERSIZE; j++) {
 	if (rl->array[j]==&t_abort) {
 	  rl->array[j]=NULL;
 	  if ((--rl->numreaders)==0) {
 	    if (first==rl) {
 	      chashRemove2(aborttable, oid);
-	      if (rl->next!=NULL) 
+	      if (rl->next!=NULL)
 		chashInsert(aborttable, oid, rl->next);
 	      rl->next=freelist;
 	      freelist=rl;
@@ -107,7 +107,7 @@ void removethisreadtransaction(unsigned char* oidverread, unsigned int numoids) 
       first=rl;
       rl=rl->next;
     }
-  nextitem:
+nextitem:
     ;
   }
   pthread_mutex_unlock(&aborttablelock);
@@ -117,7 +117,7 @@ void removetransactionhash() {
   chashlistnode_t *ptr=c_table;
   int i,j;
   pthread_mutex_lock(&aborttablelock);
-  for(i=0;i<c_size;i++) {
+  for(i=0; i<c_size; i++) {
     chashlistnode_t *curr=&ptr[i];
     do {
       unsigned int oid=curr->key;
@@ -126,13 +126,13 @@ void removetransactionhash() {
       struct readerlist * rl=chashSearch(aborttable, oid);
       struct readerlist *first=rl;
       while(rl!=NULL) {
-	for(j=0;j<READERSIZE;j++) {
+	for(j=0; j<READERSIZE; j++) {
 	  if (rl->array[j]==&t_abort) {
 	    rl->array[j]=NULL;
 	    if ((--rl->numreaders)==0) {
 	      if (first==rl) {
 		chashRemove2(aborttable, oid);
-		if (rl->next!=NULL) 
+		if (rl->next!=NULL)
 		  chashInsert(aborttable, oid, rl->next);
 		rl->next=freelist;
 		freelist=rl;
@@ -148,7 +148,7 @@ void removetransactionhash() {
 	first=rl;
 	rl=rl->next;
       }
-    nextitem:
+nextitem:
       curr=curr->next;
     } while(curr!=NULL);
   }
@@ -159,19 +159,19 @@ void removetransactionhash() {
 void removethistransaction(unsigned int oidarray[], unsigned int numoids) {
   int i,j;
   pthread_mutex_lock(&aborttablelock);
-  for(i=0;i<numoids;i++) {
+  for(i=0; i<numoids; i++) {
     unsigned int oid=oidarray[i];
     struct readerlist * rl=chashSearch(aborttable, oid);
-    
+
     struct readerlist *first=rl;
     while(rl!=NULL) {
-      for(j=0;j<READERSIZE;j++) {
+      for(j=0; j<READERSIZE; j++) {
 	if (rl->array[j]==&t_abort) {
 	  rl->array[j]=NULL;
 	  if ((--rl->numreaders)==0) {
 	    if (first==rl) {
 	      chashRemove2(aborttable, oid);
-	      if (rl->next!=NULL) 
+	      if (rl->next!=NULL)
 		chashInsert(aborttable, oid, rl->next);
 	      rl->next=freelist;
 	      freelist=rl;
@@ -187,7 +187,7 @@ void removethistransaction(unsigned int oidarray[], unsigned int numoids) {
       first=rl;
       rl=rl->next;
     }
-  nextitem:
+nextitem:
     ;
   }
   pthread_mutex_unlock(&aborttablelock);

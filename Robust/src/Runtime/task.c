@@ -44,11 +44,11 @@ int main(int argc, char **argv) {
   processOptions();
   initializeexithandler();
   /* Create table for failed tasks */
-  failedtasks=genallocatehashtable((unsigned int(*) (void *)) &hashCodetpd,
-                                   (int(*) (void *,void *)) &comparetpd);
+  failedtasks=genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd,
+                                   (int (*)(void *,void *)) &comparetpd);
   /* Create queue of active tasks */
-  activetasks=genallocatehashtable((unsigned int(*) (void *)) &hashCodetpd,
-                                   (int(*) (void *,void *)) &comparetpd);
+  activetasks=genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd,
+                                   (int (*)(void *,void *)) &comparetpd);
 
   /* Process task information */
   processtasks();
@@ -317,7 +317,7 @@ void flagorand(void * ptr, int ormask, int andmask) {
 	flag=obj->fses[offset];
 	obj->fses[offset++]=(flag|ormask)&andmask;
       }
-      qsort(&obj->fses[oldoffset], sizeof(int), counter, (int(*) (const void *, const void *)) &flagcomp);
+      qsort(&obj->fses[oldoffset], sizeof(int), counter, (int (*)(const void *, const void *)) &flagcomp);
     }
     enqueueoptional(obj, 0, NULL, NULL, 0);
   } else
@@ -343,7 +343,7 @@ bool intflagorand(void * ptr, int ormask, int andmask) {
 	flag=obj->fses[offset];
 	obj->fses[offset++]=(flag|ormask)&andmask;
       }
-      qsort(&obj->fses[oldoffset], sizeof(int), counter, (int(*) (const void *, const void *)) &flagcomp);
+      qsort(&obj->fses[oldoffset], sizeof(int), counter, (int (*)(const void *, const void *)) &flagcomp);
     }
     enqueueoptional(obj, 0, NULL, NULL, 0);
   } else
@@ -402,14 +402,14 @@ void enqueueObject(void *vptr) {
       /* Check tags */
       if (parameter->numbertags>0) {
 	if (tagptr==NULL)
-	  goto nextloop; //that means the object has no tag but that param needs tag
+	  goto nextloop;  //that means the object has no tag but that param needs tag
 	else if(tagptr->type==TAGTYPE) { //one tag
 	  struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
 	  for(i=0; i<parameter->numbertags; i++) {
 	    //slotid is parameter->tagarray[2*i];
 	    int tagid=parameter->tagarray[2*i+1];
 	    if (tagid!=tagptr->flag)
-	      goto nextloop; /*We don't have this tag */
+	      goto nextloop;  /*We don't have this tag */
 	  }
 	} else { //multiple tags
 	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
@@ -452,11 +452,11 @@ int checktags(struct ___Object___ * currobj, struct fsanalysiswrapper * fswrappe
   struct ___Object___ * tagptr = currobj->___tags___;
   if(fswrapper->numtags>0) {
     if (tagptr==NULL)
-      return 0; //that means the object has no tag but that param
+      return 0;  //that means the object has no tag but that param
     //needs tag
     else if(tagptr->type==TAGTYPE) { //one tag
       if(fswrapper->numtags!=1)
-	return 0; //we don't have the right number of tags
+	return 0;  //we don't have the right number of tags
       struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
       if (fswrapper->tags[0]!=tagptr->flag)
 	return 0;
@@ -466,7 +466,7 @@ int checktags(struct ___Object___ * currobj, struct fsanalysiswrapper * fswrappe
       int foundtag=0;
 
       if(ao->___length___!=fswrapper->numtags)
-	return 0; //we don't have the right number of tags
+	return 0;  //we don't have the right number of tags
       for(tag_counter=0; tag_counter<fswrapper->numtags; tag_counter++) {
 	int tagid=fswrapper->tags[tag_counter];
 	int j;
@@ -1219,7 +1219,7 @@ parameterpresent:
 	  }
 	  /* Actually call task */
 #ifdef PRECISE_GC
-	                                                                    ((int *)taskpointerarray)[0]=currtpd->numParameters;
+	  ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
 #ifdef OPTIONAL
@@ -1232,10 +1232,10 @@ parameterpresent:
 #endif
 	  if(debugtask) {
 	    printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
-	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
+	    ((void (*)(void **))currtpd->task->taskptr)(taskpointerarray);
 	    printf("EXIT %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 	  } else
-	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
+	    ((void (*)(void **))currtpd->task->taskptr)(taskpointerarray);
 
 #ifdef OPTIONAL
 	  for(i=0; i<numparams; i++) {

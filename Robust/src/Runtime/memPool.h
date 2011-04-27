@@ -3,7 +3,7 @@
 
 //////////////////////////////////////////////////////////
 //
-//  A memory pool implements POOLCREATE, POOLALLOC and 
+//  A memory pool implements POOLCREATE, POOLALLOC and
 //  POOLFREE to improve memory allocation by reusing records.
 //
 //  This implementation uses a lock-free singly-linked list
@@ -48,7 +48,7 @@ typedef struct MemPool_t {
   // only invoke this on items that are
   // actually new, saves time for reused
   // items
-  void(*initFreshlyAllocated)(void*);
+  void (*initFreshlyAllocated)(void*);
 
 #ifdef MEMPOOL_DETECT_MISUSE
   int allocSize;
@@ -65,21 +65,21 @@ typedef struct MemPool_t {
 
 // the memory pool must always have at least one
 // item in it
-static MemPool* poolcreate( int itemSize, 
-                            void(*initializer)(void*) 
-                            ) {
+static MemPool* poolcreate(int itemSize,
+                           void (*initializer)(void*)
+                           ) {
 
-  MemPool* p  = RUNMALLOC( sizeof( MemPool ) );
+  MemPool* p  = RUNMALLOC(sizeof( MemPool ) );
   p->itemSize = itemSize;
-  
+
   p->initFreshlyAllocated = initializer;
 
 #ifdef MEMPOOL_DETECT_MISUSE
   // when detecting misuse, round the item size
   // up to a page and add a page, so whatever
   // allocated memory you get, you can use a
-  // page-aligned subset as the record  
-  pageSize = sysconf( _SC_PAGESIZE );
+  // page-aligned subset as the record
+  pageSize = sysconf(_SC_PAGESIZE);
 
   if( itemSize % pageSize == 0 ) {
     // if the item size is already an exact multiple
@@ -99,10 +99,10 @@ static MemPool* poolcreate( int itemSize,
 #else
 
   // normal version
-  p->head = RUNMALLOC( p->itemSize );
+  p->head = RUNMALLOC(p->itemSize);
 
   if( p->initFreshlyAllocated != NULL ) {
-    p->initFreshlyAllocated( p->head );
+    p->initFreshlyAllocated(p->head);
   }
 
   p->head->next = NULL;
@@ -116,26 +116,26 @@ static MemPool* poolcreate( int itemSize,
 
 #ifdef MEMPOOL_DETECT_MISUSE
 
-static inline void poolfreeinto( MemPool* p, void* ptr ) {
+static inline void poolfreeinto(MemPool* p, void* ptr) {
   // don't actually return memory to the pool, just lock
   // it up tight so first code to touch it badly gets caught
   // also, mprotect automatically protects full pages
-  if( mprotect( ptr, p->protectSize, PROT_NONE ) != 0 ) {
+  if( mprotect(ptr, p->protectSize, PROT_NONE) != 0 ) {
 
     switch( errno ) {
-      
+
     case ENOMEM: {
-      printf( "mprotect failed, ENOMEM.\n" );
+      printf("mprotect failed, ENOMEM.\n");
     } break;
 
     default:
-      printf( "mprotect failed, errno=%d.\n", errno );
-    } 
+      printf("mprotect failed, errno=%d.\n", errno);
+    }
 
-    printf( "itemSize is 0x%x, allocSize is 0x%x, protectSize is 0x%x.\n", (INTPTR)p->itemSize, (INTPTR)p->allocSize, (INTPTR)p->protectSize );
-    printf( "Intended to protect 0x%x to 0x%x,\n\n", (INTPTR)ptr, (INTPTR)ptr + (INTPTR)(p->protectSize) );
+    printf("itemSize is 0x%x, allocSize is 0x%x, protectSize is 0x%x.\n", (INTPTR)p->itemSize, (INTPTR)p->allocSize, (INTPTR)p->protectSize);
+    printf("Intended to protect 0x%x to 0x%x,\n\n", (INTPTR)ptr, (INTPTR)ptr + (INTPTR)(p->protectSize) );
 
-    exit( -1 );
+    exit(-1);
   }
 }
 
@@ -143,7 +143,7 @@ static inline void poolfreeinto( MemPool* p, void* ptr ) {
 
 
 // normal version
-static inline void poolfreeinto( MemPool* p, void* ptr ) {
+static inline void poolfreeinto(MemPool* p, void* ptr) {
   MemPoolItem* tailNew = (MemPoolItem*) ptr;
   tailNew->next = NULL;
   CFENCE;
@@ -156,12 +156,12 @@ static inline void poolfreeinto( MemPool* p, void* ptr ) {
 
 #ifdef MEMPOOL_DETECT_MISUSE
 
-static inline void* poolalloc( MemPool* p ) {
+static inline void* poolalloc(MemPool* p) {
   // put the memory we intend to expose to client
   // on a page-aligned boundary, always return
   // new memory
 
-  INTPTR nonAligned = (INTPTR) RUNMALLOC( p->allocSize );
+  INTPTR nonAligned = (INTPTR) RUNMALLOC(p->allocSize);
 
   void* newRec = (void*)((nonAligned + pageSize-1) & ~(pageSize-1));
 
@@ -169,7 +169,7 @@ static inline void* poolalloc( MemPool* p ) {
   //printf( "itemSize is 0x%x, allocSize is 0x%x, protectSize is 0x%x.\n", (INTPTR)p->itemSize, (INTPTR)p->allocSize, (INTPTR)p->protectSize );
   //printf( "Allocation returned 0x%x to 0x%x,\n",   (INTPTR)nonAligned, (INTPTR)nonAligned + (INTPTR)(p->allocSize) );
   //printf( "Intend to use       0x%x to 0x%x,\n\n", (INTPTR)newRec,     (INTPTR)newRec     + (INTPTR)(p->itemSize)  );
-  
+
   // intentionally touch the top of the new, aligned record in terms of the
   // pages that will be locked when it eventually is free'd
   INTPTR topOfRec = (INTPTR)newRec;
@@ -177,7 +177,7 @@ static inline void* poolalloc( MemPool* p ) {
   ((char*)topOfRec)[0] = 0x1;
 
   if( p->initFreshlyAllocated != NULL ) {
-    p->initFreshlyAllocated( newRec );
+    p->initFreshlyAllocated(newRec);
   }
 
   return newRec;
@@ -186,7 +186,7 @@ static inline void* poolalloc( MemPool* p ) {
 #else
 
 // normal version
-static inline void* poolalloc( MemPool* p ) {
+static inline void* poolalloc(MemPool* p) {
 
   // to protect CAS in poolfree from dereferencing
   // null, treat the queue as empty when there is
@@ -202,16 +202,16 @@ static inline void* poolalloc( MemPool* p ) {
     // only one item, so don't take from pool
     void *newRec=RUNMALLOC(p->itemSize);
     if( p->initFreshlyAllocated != NULL ) {
-      p->initFreshlyAllocated( newRec );
+      p->initFreshlyAllocated(newRec);
     }
     return newRec;
   }
- 
+
   p->head = next;
 
-  asm volatile( "prefetcht0 (%0)" :: "r" (next));
+  asm volatile ( "prefetcht0 (%0)" :: "r" (next));
   next=(MemPoolItem*)(((char *)next)+CACHELINESIZE);
-  asm volatile( "prefetcht0 (%0)" :: "r" (next));
+  asm volatile ( "prefetcht0 (%0)" :: "r" (next));
 
   return (void*)headCurrent;
 }
@@ -219,7 +219,7 @@ static inline void* poolalloc( MemPool* p ) {
 
 
 
-static void pooldestroy( MemPool* p ) {
+static void pooldestroy(MemPool* p) {
 
 #ifndef MEMPOOL_DETECT_MISUSE
   MemPoolItem* i = p->head;
@@ -227,12 +227,12 @@ static void pooldestroy( MemPool* p ) {
 
   while( i != NULL ) {
     n = i->next;
-    free( i );
+    free(i);
     i = n;
   }
 #endif
 
-  free( p );
+  free(p);
 }
 
 

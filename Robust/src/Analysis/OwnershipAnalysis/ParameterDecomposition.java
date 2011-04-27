@@ -20,9 +20,9 @@ public class ParameterDecomposition {
 
   // info needed to use OwnershipGraph.resolveMethodCall()
   // to do the parameter decomp mapping itself
-  protected FlatCall       fcInCaller;
-  protected FlatMethod     fmPossible;
-  protected MethodContext  mcCallSite;
+  protected FlatCall fcInCaller;
+  protected FlatMethod fmPossible;
+  protected MethodContext mcCallSite;
   protected OwnershipGraph ogCallee;
   protected OwnershipGraph ogCaller;
 
@@ -39,12 +39,12 @@ public class ParameterDecomposition {
   protected Hashtable<Integer, Set<TypeDescriptor> > pi2r_td;
 
 
-  public ParameterDecomposition( OwnershipAnalysis oa,
-				 FlatCall          fc,
-				 FlatMethod        fm,
-				 MethodContext     mc,
-				 OwnershipGraph    cee,
-				 OwnershipGraph    cer ) {
+  public ParameterDecomposition(OwnershipAnalysis oa,
+                                FlatCall fc,
+                                FlatMethod fm,
+                                MethodContext mc,
+                                OwnershipGraph cee,
+                                OwnershipGraph cer) {
     oa.checkAnalysisComplete();
     this.oa = oa;
 
@@ -59,10 +59,10 @@ public class ParameterDecomposition {
     // make copies of the graphs so that resolveMethodCall can
     // destroy the graph while calculating the stuff we want
     this.ogCallee = new OwnershipGraph();
-    this.ogCallee.merge( cee );
+    this.ogCallee.merge(cee);
 
     this.ogCaller = new OwnershipGraph();
-    this.ogCaller.merge( cer );
+    this.ogCaller.merge(cer);
 
     allocOutputStructs();
 
@@ -70,18 +70,18 @@ public class ParameterDecomposition {
   }
 
   /*
-  public ParameterDecomposition( ParameterDecomposition pd,
-				 FlatCall fc ) {
-    this.oa = pd.oa;
+     public ParameterDecomposition( ParameterDecomposition pd,
+                                 FlatCall fc ) {
+     this.oa = pd.oa;
 
-    // the call site should be calling the caller of
-    // the input parameter decomposition object
-    assert fc.getMethod() == pd.mdCaller;
+     // the call site should be calling the caller of
+     // the input parameter decomposition object
+     assert fc.getMethod() == pd.mdCaller;
 
-    mdCallee = pd.mdCaller;
-    mdCaller = getCaller( fc );
-  }
-  */
+     mdCallee = pd.mdCaller;
+     mdCaller = getCaller( fc );
+     }
+   */
 
   protected void allocOutputStructs() {
     pi2a_id = new Hashtable<Integer, Set<Integer>        >();
@@ -93,100 +93,100 @@ public class ParameterDecomposition {
   }
 
   protected void computeDecompositon() {
-    MethodDescriptor mdCallee = (MethodDescriptor) mcCallSite.getDescriptor();    
+    MethodDescriptor mdCallee = (MethodDescriptor) mcCallSite.getDescriptor();
 
-    ogCaller.resolveMethodCall( fcInCaller,
-				mdCallee.isStatic(),
-				fmPossible,
-				ogCallee,
-				mcCallSite,
-				this );
+    ogCaller.resolveMethodCall(fcInCaller,
+                               mdCallee.isStatic(),
+                               fmPossible,
+                               ogCallee,
+                               mcCallSite,
+                               this);
   }
 
   // called by resolveMethodCall in decomp mode
   // to report mapping results
-  protected void mapRegionToParamObject( HeapRegionNode hrn, Integer paramIndex ) {
+  protected void mapRegionToParamObject(HeapRegionNode hrn, Integer paramIndex) {
 
     // extract region's intergraph ID
-    Set<Integer> hrnIDs = pi2a_id.get( paramIndex );
+    Set<Integer> hrnIDs = pi2a_id.get(paramIndex);
     if( hrnIDs == null ) {
       hrnIDs = new HashSet<Integer>();
     }
-    hrnIDs.add( hrn.getID() );
-    pi2a_id.put( paramIndex, hrnIDs );
+    hrnIDs.add(hrn.getID() );
+    pi2a_id.put(paramIndex, hrnIDs);
 
     // the regions allocation site (if any)
     AllocationSite as = hrn.getAllocationSite();
     if( as != null ) {
-      Set<AllocationSite> asSet = pi2a_as.get( paramIndex );
+      Set<AllocationSite> asSet = pi2a_as.get(paramIndex);
       if( asSet == null ) {
 	asSet = new HashSet<AllocationSite>();
       }
-      asSet.add( as );
-      pi2a_as.put( paramIndex, asSet );
+      asSet.add(as);
+      pi2a_as.put(paramIndex, asSet);
 
       // and if there is an allocation site, grab type
-      Set<TypeDescriptor> tdSet = pi2a_td.get( paramIndex );
+      Set<TypeDescriptor> tdSet = pi2a_td.get(paramIndex);
       if( tdSet == null ) {
 	tdSet = new HashSet<TypeDescriptor>();
       }
-      tdSet.add( as.getType() );
-      pi2a_td.put( paramIndex, tdSet );      
+      tdSet.add(as.getType() );
+      pi2a_td.put(paramIndex, tdSet);
     }
   }
 
-  protected void mapRegionToParamReachable( HeapRegionNode hrn, Integer paramIndex ) {
+  protected void mapRegionToParamReachable(HeapRegionNode hrn, Integer paramIndex) {
 
     // extract region's intergraph ID
-    Set<Integer> hrnIDs = pi2r_id.get( paramIndex );
+    Set<Integer> hrnIDs = pi2r_id.get(paramIndex);
     if( hrnIDs == null ) {
       hrnIDs = new HashSet<Integer>();
     }
-    hrnIDs.add( hrn.getID() );
-    pi2r_id.put( paramIndex, hrnIDs );
+    hrnIDs.add(hrn.getID() );
+    pi2r_id.put(paramIndex, hrnIDs);
 
     // the regions allocation site (if any)
     AllocationSite as = hrn.getAllocationSite();
     if( as != null ) {
-      Set<AllocationSite> asSet = pi2r_as.get( paramIndex );
+      Set<AllocationSite> asSet = pi2r_as.get(paramIndex);
       if( asSet == null ) {
 	asSet = new HashSet<AllocationSite>();
       }
-      asSet.add( as );
-      pi2r_as.put( paramIndex, asSet );
+      asSet.add(as);
+      pi2r_as.put(paramIndex, asSet);
 
       // and if there is an allocation site, grab type
-      Set<TypeDescriptor> tdSet = pi2r_td.get( paramIndex );
+      Set<TypeDescriptor> tdSet = pi2r_td.get(paramIndex);
       if( tdSet == null ) {
 	tdSet = new HashSet<TypeDescriptor>();
       }
-      tdSet.add( as.getType() );
-      pi2r_td.put( paramIndex, tdSet );      
+      tdSet.add(as.getType() );
+      pi2r_td.put(paramIndex, tdSet);
     }
   }
 
 
-  // this family of "gets" returns, for some 
+  // this family of "gets" returns, for some
   // parameter index, all of the associated data
   // that parameter might decompose into
-  public Set<Integer> getParamObject_hrnIDs( Integer paramIndex ) {
-    Set<Integer> hrnIDs = pi2a_id.get( paramIndex );
+  public Set<Integer> getParamObject_hrnIDs(Integer paramIndex) {
+    Set<Integer> hrnIDs = pi2a_id.get(paramIndex);
     if( hrnIDs == null ) {
       hrnIDs = new HashSet<Integer>();
     }
     return hrnIDs;
   }
 
-  public Set<AllocationSite> getParamObject_allocSites( Integer paramIndex ) {
-    Set<AllocationSite> asSet = pi2a_as.get( paramIndex );
+  public Set<AllocationSite> getParamObject_allocSites(Integer paramIndex) {
+    Set<AllocationSite> asSet = pi2a_as.get(paramIndex);
     if( asSet == null ) {
       asSet = new HashSet<AllocationSite>();
     }
     return asSet;
   }
 
-  public Set<TypeDescriptor> getParamObject_TypeDescs( Integer paramIndex ) {
-    Set<TypeDescriptor> tdSet = pi2a_td.get( paramIndex );
+  public Set<TypeDescriptor> getParamObject_TypeDescs(Integer paramIndex) {
+    Set<TypeDescriptor> tdSet = pi2a_td.get(paramIndex);
     if( tdSet == null ) {
       tdSet = new HashSet<TypeDescriptor>();
     }
@@ -194,24 +194,24 @@ public class ParameterDecomposition {
   }
 
 
-  public Set<Integer> getParamReachable_hrnIDs( Integer paramIndex ) {
-    Set<Integer> hrnIDs = pi2r_id.get( paramIndex );
+  public Set<Integer> getParamReachable_hrnIDs(Integer paramIndex) {
+    Set<Integer> hrnIDs = pi2r_id.get(paramIndex);
     if( hrnIDs == null ) {
       hrnIDs = new HashSet<Integer>();
     }
     return hrnIDs;
   }
 
-  public Set<AllocationSite> getParamReachable_allocSites( Integer paramIndex ) {
-    Set<AllocationSite> asSet = pi2r_as.get( paramIndex );
+  public Set<AllocationSite> getParamReachable_allocSites(Integer paramIndex) {
+    Set<AllocationSite> asSet = pi2r_as.get(paramIndex);
     if( asSet == null ) {
       asSet = new HashSet<AllocationSite>();
     }
     return asSet;
   }
 
-  public Set<TypeDescriptor> getParamReachable_TypeDescs( Integer paramIndex ) {
-    Set<TypeDescriptor> tdSet = pi2r_td.get( paramIndex );
+  public Set<TypeDescriptor> getParamReachable_TypeDescs(Integer paramIndex) {
+    Set<TypeDescriptor> tdSet = pi2r_td.get(paramIndex);
     if( tdSet == null ) {
       tdSet = new HashSet<TypeDescriptor>();
     }

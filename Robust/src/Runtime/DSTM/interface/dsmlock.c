@@ -40,7 +40,7 @@ static inline void atomic_add(int i, volatile int *v) {
 inline int read_trylock(volatile int  *lock) {
   atomic_dec(lock);
   if (atomic_read(lock) >= 0)
-    return 1; //can aquire a new read lock
+    return 1;  //can aquire a new read lock
   atomic_inc(lock);
   return 0; //failure
 }

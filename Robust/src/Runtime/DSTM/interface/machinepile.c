@@ -38,7 +38,7 @@ void insertPile(int mid, unsigned int oid, int siteid, short numoffset, short *o
 	objnode->offset = offset;
 	objnode->oid = oid;
 	objnode->numoffset = numoffset;
-    objnode->siteid = siteid;
+	objnode->siteid = siteid;
 	objnode->next = *tmp;
 	*tmp = objnode;
 	return;
@@ -66,7 +66,7 @@ void insertPile(int mid, unsigned int oid, int siteid, short numoffset, short *o
 	  objnode->offset = offset;
 	  objnode->oid = oid;
 	  objnode->numoffset = numoffset;
-      objnode->siteid = siteid;
+	  objnode->siteid = siteid;
 	  objnode->next = *tmp;
 	  *tmp = objnode;
 	  return;

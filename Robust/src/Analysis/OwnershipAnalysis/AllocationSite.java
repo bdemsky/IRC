@@ -39,7 +39,7 @@ public class AllocationSite {
   public static final int SHADOWAGE_in_I          = -101;
   public static final int SHADOWAGE_oldest        = -102;
   public static final int SHADOWAGE_summary       = -103;
-  
+
   private boolean flag=false;
 
 
@@ -195,19 +195,19 @@ public class AllocationSite {
     if( disjointId != null ) {
       return "disjoint "+disjointId+"\\n"+toString()+"\\n"+getType().toPrettyString();
     } else {
-      return                              toString()+"\\n"+getType().toPrettyString();
+      return toString()+"\\n"+getType().toPrettyString();
     }
   }
-  
-  public void setFlag(boolean flag){
-	  this.flag=flag;
+
+  public void setFlag(boolean flag) {
+    this.flag=flag;
   }
-  
-  public boolean getFlag(){
-	  return flag;
+
+  public boolean getFlag() {
+    return flag;
   }
-  
-  public int getID(){
-	  return id;
+
+  public int getID() {
+    return id;
   }
 }

@@ -15,10 +15,10 @@ public class StringBuffer {
     count=0;
   }
 
-    public StringBuffer(int i) {
-	value=new char[i];
-	count=0;
-    }
+  public StringBuffer(int i) {
+    value=new char[i];
+    count=0;
+  }
 
   public int length() {
     return count;
@@ -55,17 +55,17 @@ public class StringBuffer {
     return this;
   }
 
-    public void ensureCapacity(int i) {
-	int size=2*count;
-	if (i>size)
-	    size=i;
-	if (i>value.length) {
-	    char newvalue[]=new char[i];
-	    for(int ii=0;ii<count;ii++)
-		newvalue[ii]=value[ii];
-	    value=newvalue;
-	}
+  public void ensureCapacity(int i) {
+    int size=2*count;
+    if (i>size)
+      size=i;
+    if (i>value.length) {
+      char newvalue[]=new char[i];
+      for(int ii=0; ii<count; ii++)
+	newvalue[ii]=value[ii];
+      value=newvalue;
     }
+  }
 
   public StringBuffer append(StringBuffer s) {
     if ((s.count+count)>value.length) {
@@ -85,11 +85,11 @@ public class StringBuffer {
     }
     return this;
   }
-  
+
   public int indexOf(String str) {
     return indexOf(str, 0);
   }
-  
+
   public synchronized int indexOf(String str, int fromIndex) {
     String vstr = new String(value, 0, count);
     return vstr.indexOf(str, fromIndex);
@@ -98,7 +98,7 @@ public class StringBuffer {
   public String toString() {
     return new String(this);
   }
-  
+
   public synchronized StringBuffer replace(int start, int end, String str) {
     if (start < 0) {
       // FIXME
@@ -127,14 +127,14 @@ public class StringBuffer {
     count = newCount;
     return this;
   }
-  
+
   void expandCapacity(int minimumCapacity) {
     int newCapacity = (value.length + 1) * 2;
     if (newCapacity < 0) {
-      newCapacity = 0x7fffffff/*Integer.MAX_VALUE*/;
+      newCapacity = 0x7fffffff /*Integer.MAX_VALUE*/;
     } else if (minimumCapacity > newCapacity) {
       newCapacity = minimumCapacity;
-    }   
+    }
     char newValue[] = new char[newCapacity];
     System.arraycopy(value, 0, newValue, 0, count);
     value = newValue;

@@ -38,7 +38,7 @@ public class ArrayAccessNode extends ExpressionNode {
     else
       return left.getType().dereference();
   }
-  
+
   public Long evaluate() {
     eval = null;
     return eval; //null;

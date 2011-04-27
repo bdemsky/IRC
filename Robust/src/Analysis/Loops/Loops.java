@@ -11,28 +11,28 @@ import java.util.Set;
  *
  *
  * @author  Brian Demsky <bdemsky@mit.edu>
- * @version $Id: Loops.java,v 1.1 2009/03/27 00:59:36 bdemsky Exp $
+ * @version $Id: Loops.java,v 1.2 2011/04/27 20:34:22 bdemsky Exp $
  */
 
 public interface Loops {
 
-    /** Returns entrances to the Loop.
-     *  This is a <code>Set</code> of <code>HCodeElement</code>s.*/
-    public Set loopEntrances();
+  /** Returns entrances to the Loop.
+   *  This is a <code>Set</code> of <code>HCodeElement</code>s.*/
+  public Set loopEntrances();
 
-    /** Returns elements of this loops and all nested loop.
-     *  This is a <code>Set</code> of <code>HCodeElement</code>s.*/
-    public Set loopIncElements();
-    
-    /** Returns elements of this loop not in any nested loop.
-     *  This is a <code>Set</code> of <code>HCodeElement</code>s.*/
-    public Set loopExcElements();
-    
-    /** Returns a <code>Set</code> containing <code>Loops</code> that are
-     *  nested.*/
-    public Set nestedLoops();
-    
-    /** Returns the loop immediately nesting this loop.
-     *  If this is the highest level loop, returns a null pointer.*/
-    public Loops parentLoop();
+  /** Returns elements of this loops and all nested loop.
+   *  This is a <code>Set</code> of <code>HCodeElement</code>s.*/
+  public Set loopIncElements();
+
+  /** Returns elements of this loop not in any nested loop.
+   *  This is a <code>Set</code> of <code>HCodeElement</code>s.*/
+  public Set loopExcElements();
+
+  /** Returns a <code>Set</code> containing <code>Loops</code> that are
+   *  nested.*/
+  public Set nestedLoops();
+
+  /** Returns the loop immediately nesting this loop.
+   *  If this is the highest level loop, returns a null pointer.*/
+  public Loops parentLoop();
 }

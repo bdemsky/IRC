@@ -10,13 +10,13 @@ SRC=tmp${MAINCLASS}.java \
 	Node.java \
 	AStarPathFinder.java 
 
-FLAGS1=-dsm -transstats -optimize -mainclass ${MAINCLASS}
-FLAGS2=-dsm -transstats -dsmcaching -optimize -mainclass ${MAINCLASS}
-FLAGS3=-dsm -dsmcaching -transstats -prefetch -optimize -mainclass ${MAINCLASS} -excprefetch BarrierServer.updateAge -excprefetch RainForest.main -excprefetch GameMap.hasRock -excprefetch GameMap.hasTree -trueprob 0.90
+FLAGS1=-dsm -transstats -optimize -mainclass ${MAINCLASS} -32bit
+FLAGS2=-dsm -transstats -dsmcaching -optimize -mainclass ${MAINCLASS} -32bit
+FLAGS3=-dsm -dsmcaching -transstats -prefetch -optimize -mainclass ${MAINCLASS} -excprefetch BarrierServer.updateAge -excprefetch RainForest.main -excprefetch GameMap.hasRock -excprefetch GameMap.hasTree -trueprob 0.90 -32bit
 
-FLAGSNPNC=-dsm -optimize -mainclass ${MAINCLASS}
-FLAGSNPC=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS}
-FLAGSP=-dsm -dsmcaching -prefetch -optimize -mainclass ${MAINCLASS} -excprefetch BarrierServer.updateAge -excprefetch RainForest.main -excprefetch GameMap.hasRock -excprefetch GameMap.hasTree -trueprob 0.90
+FLAGSNPNC=-dsm -optimize -mainclass ${MAINCLASS} -32bit
+FLAGSNPC=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS} -32bit
+FLAGSP=-dsm -dsmcaching -prefetch -optimize -mainclass ${MAINCLASS} -excprefetch BarrierServer.updateAge -excprefetch RainForest.main -excprefetch GameMap.hasRock -excprefetch GameMap.hasTree -trueprob 0.90 -32bit
 
 
 default:

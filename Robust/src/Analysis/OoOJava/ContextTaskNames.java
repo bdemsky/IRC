@@ -34,16 +34,16 @@ public class ContextTaskNames {
   }
 
 
-  public void addNeededStaticName( SESEandAgePair p ) {
-    needStaticNameInCode.add( p );
+  public void addNeededStaticName(SESEandAgePair p) {
+    needStaticNameInCode.add(p);
   }
 
   public Set<SESEandAgePair> getNeededStaticNames() {
     return needStaticNameInCode;
   }
 
-  public void addDynamicVar( TempDescriptor td ) {
-    dynamicVars.add( td );
+  public void addDynamicVar(TempDescriptor td) {
+    dynamicVars.add(td);
   }
 
   public Set<TempDescriptor> getDynamicVarSet() {

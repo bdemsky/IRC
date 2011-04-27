@@ -32,16 +32,16 @@ public class ReachSet extends Canonical {
 
   public static ReachSet factory() {
     ReachSet out = new ReachSet();
-    out = (ReachSet) Canonical.makeCanonical( out );
+    out = (ReachSet) Canonical.makeCanonical(out);
     return out;
   }
 
-  public static ReachSet factory( ReachState state ) {
+  public static ReachSet factory(ReachState state) {
     assert state != null;
     assert state.isCanonical();
     ReachSet out = new ReachSet();
-    out.reachStates.add( state );
-    out = (ReachSet) Canonical.makeCanonical( out );
+    out.reachStates.add(state);
+    out = (ReachSet) Canonical.makeCanonical(out);
     return out;
   }
 
@@ -63,33 +63,33 @@ public class ReachSet extends Canonical {
   }
 
   // this should be a hash table so we can do this by key
-  public ReachState containsIgnorePreds( ReachState state ) {
+  public ReachState containsIgnorePreds(ReachState state) {
     assert state != null;
 
     Iterator<ReachState> stateItr = this.reachStates.iterator();
     while( stateItr.hasNext() ) {
       ReachState stateThis = stateItr.next();
-      if( stateThis.equalsIgnorePreds( state ) ) {
+      if( stateThis.equalsIgnorePreds(state) ) {
 	return stateThis;
       }
     }
-    
+
     return null;
   }
 
-  public boolean containsSuperSet( ReachState state ) {
-    return containsSuperSet( state, false );
+  public boolean containsSuperSet(ReachState state) {
+    return containsSuperSet(state, false);
   }
 
-  public boolean containsStrictSuperSet( ReachState state ) {
-    return containsSuperSet( state, true );
+  public boolean containsStrictSuperSet(ReachState state) {
+    return containsSuperSet(state, true);
   }
 
-  public boolean containsSuperSet( ReachState state,
-                                   boolean    strict ) {
+  public boolean containsSuperSet(ReachState state,
+                                  boolean strict) {
     assert state != null;
 
-    if( !strict && reachStates.contains( state ) ) {
+    if( !strict && reachStates.contains(state) ) {
       return true;
     }
 
@@ -97,80 +97,80 @@ public class ReachSet extends Canonical {
     while( itr.hasNext() ) {
       ReachState stateThis = itr.next();
       if( strict ) {
-        if( !state.equals( stateThis ) &&
-            state.isSubset( stateThis ) ) {
-          return true;
-        }
+	if( !state.equals(stateThis) &&
+	    state.isSubset(stateThis) ) {
+	  return true;
+	}
       } else {
-        if( state.isSubset( stateThis ) ) {
-          return true;
-        }
+	if( state.isSubset(stateThis) ) {
+	  return true;
+	}
       }
     }
-    
-    return false;    
+
+    return false;
   }
 
 
-  public boolean containsTuple( ReachTuple rt ) {
+  public boolean containsTuple(ReachTuple rt) {
     Iterator<ReachState> itr = iterator();
     while( itr.hasNext() ) {
       ReachState state = itr.next();
-      if( state.containsTuple( rt ) ) {
+      if( state.containsTuple(rt) ) {
 	return true;
       }
     }
     return false;
   }
 
-  public ReachSet getStatesWithBoth( ReachTuple rt1, 
-                                     ReachTuple rt2 ) {
+  public ReachSet getStatesWithBoth(ReachTuple rt1,
+                                    ReachTuple rt2) {
 
     ReachSet out = new ReachSet();
 
     Iterator<ReachState> itr = iterator();
     while( itr.hasNext() ) {
       ReachState state = itr.next();
-      if( state.containsTuple( rt1 ) &&
-          state.containsTuple( rt2 ) ) {
-        out.reachStates.add( state );
+      if( state.containsTuple(rt1) &&
+          state.containsTuple(rt2) ) {
+	out.reachStates.add(state);
       }
     }
 
-    out = (ReachSet) Canonical.makeCanonical( out );
+    out = (ReachSet) Canonical.makeCanonical(out);
     return out;
   }
 
   // used to assert each state in the set is
   // unique
   public boolean containsNoDuplicates() {
-    Vector<ReachState> v = new Vector( reachStates );
+    Vector<ReachState> v = new Vector(reachStates);
     for( int i = 0; i < v.size(); ++i ) {
-      ReachState s1 = v.get( i );
+      ReachState s1 = v.get(i);
       for( int j = i+1; j < v.size(); ++j ) {
-        ReachState s2 = v.get( j );
-        if( s1.equals( s2 ) ) {
-          assert s1.isCanonical();
-          assert s2.isCanonical();
-          return false;
-        }
+	ReachState s2 = v.get(j);
+	if( s1.equals(s2) ) {
+	  assert s1.isCanonical();
+	  assert s2.isCanonical();
+	  return false;
+	}
       }
     }
     return true;
   }
 
 
-  public boolean equalsSpecific( Object o ) {
+  public boolean equalsSpecific(Object o) {
     if( o == null ) {
       return false;
     }
-    
+
     if( !(o instanceof ReachSet) ) {
       return false;
     }
 
     ReachSet rs = (ReachSet) o;
-    return reachStates.equals( rs.reachStates );
+    return reachStates.equals(rs.reachStates);
   }
 
 
@@ -179,7 +179,7 @@ public class ReachSet extends Canonical {
   }
 
 
-  public String toStringEscNewline( boolean hideSubsetReachability ) {
+  public String toStringEscNewline(boolean hideSubsetReachability) {
     String s = "[";
 
     Iterator<ReachState> i = this.iterator();
@@ -188,8 +188,8 @@ public class ReachSet extends Canonical {
 
       // skip this if there is a superset already
       if( hideSubsetReachability &&
-          containsStrictSuperSet( state ) ) {
-        continue;
+          containsStrictSuperSet(state) ) {
+	continue;
       }
 
       s += state;
@@ -201,29 +201,29 @@ public class ReachSet extends Canonical {
     s += "]";
     return s;
   }
-  
+
 
   public String toString() {
-    return toString( false );
+    return toString(false);
   }
 
-  public String toString( boolean hideSubsetReachability ) {
+  public String toString(boolean hideSubsetReachability) {
 
     ReachSet toPrint = this;
-    
+
     if( hideSubsetReachability ) {
       // make a new reach set with subset states removed
       toPrint = ReachSet.factory();
 
       Iterator<ReachState> i = this.iterator();
       while( i.hasNext() ) {
-        ReachState state = i.next();
+	ReachState state = i.next();
 
-        if( containsStrictSuperSet( state ) ) {
-          continue;
-        }
+	if( containsStrictSuperSet(state) ) {
+	  continue;
+	}
 
-        toPrint = Canonical.add( toPrint, state );
+	toPrint = Canonical.add(toPrint, state);
       }
     }
 

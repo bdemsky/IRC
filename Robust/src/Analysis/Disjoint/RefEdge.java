@@ -16,7 +16,7 @@ public class RefEdge {
   protected ReachSet beta;
   protected ReachSet betaNew;
 
-  protected RefSrcNode     src;
+  protected RefSrcNode src;
   protected HeapRegionNode dst;
 
   // existence predicates must be true in a caller
@@ -31,14 +31,14 @@ public class RefEdge {
   // read or write through this edge
   protected TaintSet taints;
 
-  
-  public RefEdge( RefSrcNode     src,
-                  HeapRegionNode dst,
-                  TypeDescriptor type,
-                  String         field,
-                  ReachSet       beta,
-                  ExistPredSet   preds,
-                  TaintSet       taints ) {
+
+  public RefEdge(RefSrcNode src,
+                 HeapRegionNode dst,
+                 TypeDescriptor type,
+                 String field,
+                 ReachSet beta,
+                 ExistPredSet preds,
+                 TaintSet taints) {
 
     assert src  != null;
     assert dst  != null;
@@ -74,18 +74,18 @@ public class RefEdge {
 
 
   public RefEdge copy() {
-    RefEdge copy = new RefEdge( src,
-                                dst,
-                                type,
-                                field,
-                                beta,
-                                preds,
-                                taints );
+    RefEdge copy = new RefEdge(src,
+                               dst,
+                               type,
+                               field,
+                               beta,
+                               preds,
+                               taints);
     return copy;
   }
 
 
-  public boolean equals( Object o ) {
+  public boolean equals(Object o) {
     if( o == null ) {
       return false;
     }
@@ -93,14 +93,14 @@ public class RefEdge {
     if( !(o instanceof RefEdge) ) {
       return false;
     }
-    
+
     RefEdge edge = (RefEdge) o;
-    
-    if( !typeEquals( edge.type ) ) {
+
+    if( !typeEquals(edge.type) ) {
       return false;
     }
 
-    if( !fieldEquals( edge.field ) ) {
+    if( !fieldEquals(edge.field) ) {
       return false;
     }
 
@@ -119,15 +119,15 @@ public class RefEdge {
   // fixed point, so use this method to determine if
   // an edge is "equal" to some previous visit, basically
   // and taints!
-  public boolean equalsIncludingBetaPredsTaints( RefEdge edge ) {
-    return equals( edge ) && 
-      beta.equals( edge.beta ) &&
-      preds.equals( edge.preds ) &&
-      taints.equals( edge.taints );
+  public boolean equalsIncludingBetaPredsTaints(RefEdge edge) {
+    return equals(edge) &&
+           beta.equals(edge.beta) &&
+           preds.equals(edge.preds) &&
+           taints.equals(edge.taints);
   }
 
-  public boolean equalsPreds( RefEdge edge ) {
-    return preds.equals( edge.preds );
+  public boolean equalsPreds(RefEdge edge) {
+    return preds.equals(edge.preds);
   }
 
 
@@ -148,7 +148,7 @@ public class RefEdge {
     if( field != null ) {
       hash += field.hashCode()*7;
     }
-    
+
     hash += src.hashCode()*11;
     hash += dst.hashCode();
 
@@ -160,7 +160,7 @@ public class RefEdge {
     return src;
   }
 
-  public void setSrc( RefSrcNode rsn ) {
+  public void setSrc(RefSrcNode rsn) {
     assert rsn != null;
     src = rsn;
   }
@@ -169,7 +169,7 @@ public class RefEdge {
     return dst;
   }
 
-  public void setDst( HeapRegionNode hrn ) {
+  public void setDst(HeapRegionNode hrn) {
     assert hrn != null;
     dst = hrn;
   }
@@ -179,7 +179,7 @@ public class RefEdge {
     return type;
   }
 
-  public void setType( TypeDescriptor td ) {
+  public void setType(TypeDescriptor td) {
     assert td != null;
     type = td;
   }
@@ -188,28 +188,28 @@ public class RefEdge {
     return field;
   }
 
-  public void setField( String s ) {
+  public void setField(String s) {
     field = s;
   }
 
 
-  public boolean typeEquals( TypeDescriptor td ) {
-    return type.equals( td );
+  public boolean typeEquals(TypeDescriptor td) {
+    return type.equals(td);
   }
 
-  public boolean fieldEquals( String s ) {
+  public boolean fieldEquals(String s) {
     if( field == null && s == null ) {
       return true;
     }
     if( field == null ) {
       return false;
     }
-    return field.equals( s );
+    return field.equals(s);
   }
 
-  public boolean typeAndFieldEquals( RefEdge e ) {
-    return typeEquals ( e.getType()  ) &&
-           fieldEquals( e.getField() );
+  public boolean typeAndFieldEquals(RefEdge e) {
+    return typeEquals(e.getType()  ) &&
+           fieldEquals(e.getField() );
   }
 
 
@@ -217,7 +217,7 @@ public class RefEdge {
     return beta;
   }
 
-  public void setBeta( ReachSet beta ) {
+  public void setBeta(ReachSet beta) {
     assert beta != null;
     this.beta = beta;
   }
@@ -226,11 +226,11 @@ public class RefEdge {
     return betaNew;
   }
 
-  public void setBetaNew( ReachSet beta ) {
+  public void setBetaNew(ReachSet beta) {
     assert beta != null;
     this.betaNew = beta;
   }
-  
+
   public void applyBetaNew() {
     assert betaNew != null;
     beta    = betaNew;
@@ -242,7 +242,7 @@ public class RefEdge {
     return preds;
   }
 
-  public void setPreds( ExistPredSet preds ) {
+  public void setPreds(ExistPredSet preds) {
     this.preds = preds;
   }
 
@@ -251,31 +251,31 @@ public class RefEdge {
     return taints;
   }
 
-  public void setTaints( TaintSet taints ) {
+  public void setTaints(TaintSet taints) {
     this.taints = taints;
   }
- 
 
-  public String toStringDOT( boolean hideReach,
-                             boolean hideSubsetReach,
-                             boolean hidePreds,
-                             boolean hideEdgeTaints,
-                             String  otherAttributes ) {
-    String s = 
+
+  public String toStringDOT(boolean hideReach,
+                            boolean hideSubsetReach,
+                            boolean hidePreds,
+                            boolean hideEdgeTaints,
+                            String otherAttributes) {
+    String s =
       "[label=\""+
       type.toPrettyString()+"\\n"+
       field;
     if( !hideReach ) {
-      s += "\\n"+beta.toStringEscNewline( hideSubsetReach );
+      s += "\\n"+beta.toStringEscNewline(hideSubsetReach);
     }
 
     if( !hidePreds ) {
       s += "\\n"+preds.toStringEscNewline();
     }
 
-    if( !hideEdgeTaints ) {      
+    if( !hideEdgeTaints ) {
       if( !taints.isEmpty() ) {
-        s += "\\n"+taints.toStringEscNewline();
+	s += "\\n"+taints.toStringEscNewline();
       }
     }
 
@@ -283,12 +283,12 @@ public class RefEdge {
   }
 
   public String toString() {
-    return new String( "("+src+
-                       "->"+type.toPrettyString()+
-                       " "+field+
-                       "->"+dst+")"
-                       );
-  }  
+    return new String("("+src+
+                      "->"+type.toPrettyString()+
+                      " "+field+
+                      "->"+dst+")"
+                      );
+  }
 
   public String toStringAndBeta() {
     return toString()+beta.toString();

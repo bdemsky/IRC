@@ -28,7 +28,7 @@ public class FlatIRGraph {
   }
 
   private void graphTasks() throws java.io.IOException {
-    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator(); it_tasks.hasNext();) {
+    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator(); it_tasks.hasNext(); ) {
       TaskDescriptor td = (TaskDescriptor)it_tasks.next();
       FlatMethod fm = state.getMethodFlat(td);
       writeFlatIRGraph(fm,"task"+td.getSymbol());
@@ -36,9 +36,9 @@ public class FlatIRGraph {
   }
 
   private void graphMethods() throws java.io.IOException {
-    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
+    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext(); ) {
       ClassDescriptor cd = (ClassDescriptor)it_classes.next();
-      for(Iterator it_methods=cd.getMethods(); it_methods.hasNext();) {
+      for(Iterator it_methods=cd.getMethods(); it_methods.hasNext(); ) {
 	MethodDescriptor md = (MethodDescriptor)it_methods.next();
 	FlatMethod fm = state.getMethodFlat(md);
 	writeFlatIRGraph(fm,cd.getSymbol()+"."+md.getSymbol());

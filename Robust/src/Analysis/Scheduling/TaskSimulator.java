@@ -70,8 +70,8 @@ public class TaskSimulator {
     }
   }
 
-  public TaskSimulator(TaskDescriptor td, 
-	               CoreSimulator cs) {
+  public TaskSimulator(TaskDescriptor td,
+                       CoreSimulator cs) {
     super();
     this.td = td;
     this.paraQueues = null;
@@ -105,10 +105,10 @@ public class TaskSimulator {
     return this.objVersionTbl.get(os).intValue();
   }
 
-  public void enquePara(ObjectSimulator obj, 
-	                FlagState fs, 
-	                int version, 
-	                boolean inherent) {
+  public void enquePara(ObjectSimulator obj,
+                        FlagState fs,
+                        int version,
+                        boolean inherent) {
     ClassDescriptor cd = obj.getCd();
     int paraNum = td.numParameters();
     for(int i = 0; i < paraNum; i++) {
@@ -146,8 +146,8 @@ public class TaskSimulator {
     }
   }
 
-  public void refreshPara(ObjectSimulator obj, 
-	                  boolean remove) {
+  public void refreshPara(ObjectSimulator obj,
+                          boolean remove) {
     ClassDescriptor cd = obj.getCd();
     int paraNum = td.numParameters();
     for(int i = 0; i < paraNum; i++) {
@@ -216,34 +216,34 @@ public class TaskSimulator {
     for(int i = 0; i < paraQueues.size(); i++) {
       ObjectSimulator tpara = paraQueues.elementAt(i).peek();
       if(tpara == null) {
-        // the parameter is already removed, delete this task too
-        finishTime = 800;
-        this.currentRun.setFinishTime(finishTime);
-        this.currentRun.setExetype(2);
-        for(int j = 0; j < i; ++j) {
-          tpara = this.paraQueues.elementAt(j).poll();
-          if(tpara.isShared() && tpara.isHold()) {
-            tpara.setHold(false);
-          }
-          this.paraQueues.elementAt(j).add(tpara);
-        }
-        return;
+	// the parameter is already removed, delete this task too
+	finishTime = 800;
+	this.currentRun.setFinishTime(finishTime);
+	this.currentRun.setExetype(2);
+	for(int j = 0; j < i; ++j) {
+	  tpara = this.paraQueues.elementAt(j).poll();
+	  if(tpara.isShared() && tpara.isHold()) {
+	    tpara.setHold(false);
+	  }
+	  this.paraQueues.elementAt(j).add(tpara);
+	}
+	return;
       }
       if(tpara.isShared()) {
 	if(tpara.isHold()) {
 	  // shared object held by other tasks
 	  finishTime = 800;           // TODO currenly assume the effort on requesting locks are only 800
 	  /*this.currentRun.setFinishTime(finishTime);
-	  this.currentRun.setExetype(1);
-	  paraQueues.elementAt(i).poll();
-	  paraQueues.elementAt(i).add(tpara);
-	  for(int j = 0; j < i; ++j) {
-	    tpara = this.paraQueues.elementAt(j).poll();
-	    if(tpara.isShared() && tpara.isHold()) {
+	     this.currentRun.setExetype(1);
+	     paraQueues.elementAt(i).poll();
+	     paraQueues.elementAt(i).add(tpara);
+	     for(int j = 0; j < i; ++j) {
+	     tpara = this.paraQueues.elementAt(j).poll();
+	     if(tpara.isShared() && tpara.isHold()) {
 	      tpara.setHold(false);
-	    }
-	    this.paraQueues.elementAt(j).add(tpara);
-	  }*/
+	     }
+	     this.paraQueues.elementAt(j).add(tpara);
+	     }*/
 	  // remove it instead
 	  this.currentRun.setFinishTime(finishTime);
 	  this.currentRun.setExetype(2);
@@ -296,16 +296,16 @@ public class TaskSimulator {
       finishTime += toexecute.getExeTime();
       // TODO for test
       if(ftime == 0) {
-        ftime = toexecute.getExeTime();
+	ftime = toexecute.getExeTime();
       } else if(ftime != toexecute.getExeTime()) {
-        //System.err.println("error for simulation: " + td.getSymbol());
+	//System.err.println("error for simulation: " + td.getSymbol());
       }
       // TODO for test
       /*if(td.getSymbol().equals("addIYLM")) {
-        System.err.println("# " + i + " time: " + toexecute.getExeTime());
-      }*/
-      if((toexecute.getNewObjInfoHashtable() != null) 
-	      && (toexecute.getNewObjInfoHashtable().size() > 0)) {
+         System.err.println("# " + i + " time: " + toexecute.getExeTime());
+         }*/
+      if((toexecute.getNewObjInfoHashtable() != null)
+         && (toexecute.getNewObjInfoHashtable().size() > 0)) {
 	// have new objects
 	Iterator it = toexecute.getNewObjInfoHashtable().keySet().iterator();
 	int invokeNum = toexecute.getInvokeNum();
@@ -327,9 +327,9 @@ public class TaskSimulator {
     finishTime /= paraQueues.size();
 //  TODO for test
     /*if(td.getSymbol().equals("addIYLM")) {
-      System.err.println("total time: " + finishTime);
-      System.err.println("=====");
-    }*/
+       System.err.println("total time: " + finishTime);
+       System.err.println("=====");
+       }*/
     this.currentRun.setFinishTime(finishTime);
     this.currentRun.setExetype(0);
   }

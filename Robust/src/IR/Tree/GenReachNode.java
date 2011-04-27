@@ -3,7 +3,7 @@ package IR.Tree;
 public class GenReachNode extends BlockStatementNode {
   String graphName;
 
-  public GenReachNode( String graphName ) {
+  public GenReachNode(String graphName) {
     assert graphName != null;
     this.graphName = graphName;
   }

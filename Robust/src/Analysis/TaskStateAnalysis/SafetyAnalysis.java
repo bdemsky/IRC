@@ -46,7 +46,7 @@ public class SafetyAnalysis {
 
   private Hashtable<FlagState, Set<EGTaskNode>> buildMap(ClassDescriptor cd) {
     Hashtable<FlagState, Set<EGTaskNode>> table=new Hashtable<FlagState, Set<EGTaskNode>>();
-    for(Iterator it=((Set)executiongraph.get(cd)).iterator(); it.hasNext();) {
+    for(Iterator it=((Set)executiongraph.get(cd)).iterator(); it.hasNext(); ) {
       EGTaskNode node=(EGTaskNode)it.next();
       if (node.getFS()!=null) {
 	if (!table.containsKey(node.getFS()))
@@ -75,7 +75,7 @@ public class SafetyAnalysis {
 
   private Hashtable<FlagState, Set<FlagState>> buildUseMap(ClassDescriptor cd) {
     Hashtable<FlagState, Set<FlagState>> table=new Hashtable<FlagState, Set<FlagState>>();
-    for(Iterator it=((Set)executiongraph.get(cd)).iterator(); it.hasNext();) {
+    for(Iterator it=((Set)executiongraph.get(cd)).iterator(); it.hasNext(); ) {
       EGTaskNode node=(EGTaskNode)it.next();
       if (node.getFS()!=null) {
 	if (!table.containsKey(node.getPostFS()))
@@ -120,7 +120,7 @@ public class SafetyAnalysis {
     Hashtable<TaskIndex, Set<OptionalTaskDescriptor>>  timap=new Hashtable<TaskIndex, Set<OptionalTaskDescriptor>>();
     Set<TaskIndex> tiselfloops=new HashSet<TaskIndex>();
 
-    for(Iterator<EGTaskNode> egit=egset.iterator(); egit.hasNext();) {
+    for(Iterator<EGTaskNode> egit=egset.iterator(); egit.hasNext(); ) {
       EGTaskNode egnode=egit.next();
       Set<OptionalTaskDescriptor> setotd;
       if (egnode.isOptional()) {
@@ -149,7 +149,7 @@ public class SafetyAnalysis {
 	  else
 	    oldsetotd=new HashSet<OptionalTaskDescriptor>();
 	  setotd=new HashSet<OptionalTaskDescriptor>();
-	  for(Iterator<OptionalTaskDescriptor> otdit=oldsetotd.iterator(); otdit.hasNext();) {
+	  for(Iterator<OptionalTaskDescriptor> otdit=oldsetotd.iterator(); otdit.hasNext(); ) {
 	    OptionalTaskDescriptor oldotd=otdit.next();
 	    Predicate newp=combinePredicates(oldotd.predicate, p);
 	    OptionalTaskDescriptor newotd=new OptionalTaskDescriptor(oldotd.td, oldotd.getIndex(), oldotd.enterflagstates, newp);
@@ -173,7 +173,7 @@ public class SafetyAnalysis {
 	else
 	  setotd=new HashSet<OptionalTaskDescriptor>();
       }
-      TaskIndex ti=egnode.isRuntime() ? new TaskIndex() : new TaskIndex(egnode.getTD(), egnode.getIndex());
+      TaskIndex ti=egnode.isRuntime()?new TaskIndex():new TaskIndex(egnode.getTD(), egnode.getIndex());
       if (!ti.runtime) {
 	//runtime edges don't do anything...don't have to take
 	//them, can't predict when we can.
@@ -208,7 +208,7 @@ public class SafetyAnalysis {
 
     //Combine all options
     HashSet<OptionalTaskDescriptor> set=new HashSet<OptionalTaskDescriptor>();
-    for(Iterator<Set<OptionalTaskDescriptor>> it=timap.values().iterator(); it.hasNext();) {
+    for(Iterator<Set<OptionalTaskDescriptor>> it=timap.values().iterator(); it.hasNext(); ) {
       Set<OptionalTaskDescriptor> otdset=it.next();
       set.addAll(otdset);
     }
@@ -226,9 +226,9 @@ public class SafetyAnalysis {
 
   private HashSet createIntersection(Set A, Set B, ClassDescriptor cd) {
     HashSet result = new HashSet();
-    for(Iterator b_it = B.iterator(); b_it.hasNext();) {
+    for(Iterator b_it = B.iterator(); b_it.hasNext(); ) {
       OptionalTaskDescriptor otd_b = (OptionalTaskDescriptor)b_it.next();
-      for(Iterator a_it = A.iterator(); a_it.hasNext();) {
+      for(Iterator a_it = A.iterator(); a_it.hasNext(); ) {
 	OptionalTaskDescriptor otd_a = (OptionalTaskDescriptor)a_it.next();
 	if(otd_a.td==otd_b.td&&
 	   otd_a.getIndex()==otd_b.getIndex()) {
@@ -260,12 +260,12 @@ public class SafetyAnalysis {
 
     Set<FlatNode> nodeset=fm.getNodeSet();
 
-    for(Iterator<FlatNode> nodeit=nodeset.iterator(); nodeit.hasNext();) {
+    for(Iterator<FlatNode> nodeit=nodeset.iterator(); nodeit.hasNext(); ) {
       FlatNode fn=nodeit.next();
       if (fn.kind()==FKind.FlatFlagActionNode) {
 	FlatFlagActionNode ffan=(FlatFlagActionNode)fn;
 	if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
-	  for(Iterator it_tfp=ffan.getTempFlagPairs(); it_tfp.hasNext();) {
+	  for(Iterator it_tfp=ffan.getTempFlagPairs(); it_tfp.hasNext(); ) {
 	    TempFlagPair tfp=(TempFlagPair)it_tfp.next();
 	    TempDescriptor tempd = tfp.getTemp();
 	    if(tempd!=tmp)
@@ -300,7 +300,7 @@ public class SafetyAnalysis {
     result.flags.putAll(A.flags);
     result.tags.putAll(A.tags);
     Collection c = B.vardescriptors;
-    for(Iterator varit = c.iterator(); varit.hasNext();) {    //maybe change that
+    for(Iterator varit = c.iterator(); varit.hasNext(); ) {    //maybe change that
       VarDescriptor vd = (VarDescriptor)varit.next();
       if(result.vardescriptors.contains(vd))
 	System.out.println("Already in ");
@@ -309,7 +309,7 @@ public class SafetyAnalysis {
       }
     }
     Collection vardesc = result.vardescriptors;
-    for(Iterator varit = vardesc.iterator(); varit.hasNext();) {
+    for(Iterator varit = vardesc.iterator(); varit.hasNext(); ) {
       VarDescriptor vd = (VarDescriptor)varit.next();
       HashSet bflags = B.flags.get(vd);
       if( bflags == null ) {
@@ -356,11 +356,11 @@ public class SafetyAnalysis {
 	FlatFlagActionNode ffan=(FlatFlagActionNode)fn1;
 	if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
 	  HashSet tempset = new HashSet();
-	  for(Iterator it_fs = otd.enterflagstates.iterator(); it_fs.hasNext();) {
+	  for(Iterator it_fs = otd.enterflagstates.iterator(); it_fs.hasNext(); ) {
 	    FlagState fstemp = (FlagState)it_fs.next();
 	    Vector<FlagState> processed=new Vector<FlagState>();
 
-	    for(Iterator it_tfp=ffan.getTempFlagPairs(); it_tfp.hasNext();) {
+	    for(Iterator it_tfp=ffan.getTempFlagPairs(); it_tfp.hasNext(); ) {
 	      TempFlagPair tfp=(TempFlagPair)it_tfp.next();
 	      if (tfp.getTemp()==temp)
 		fstemp=fstemp.setFlag(tfp.getFlag(),ffan.getFlagChange(tfp));
@@ -369,14 +369,14 @@ public class SafetyAnalysis {
 	    processed.add(fstemp);
 	    //Process clears first
 
-	    for(Iterator it_ttp=ffan.getTempTagPairs(); it_ttp.hasNext();) {
+	    for(Iterator it_ttp=ffan.getTempTagPairs(); it_ttp.hasNext(); ) {
 	      TempTagPair ttp=(TempTagPair)it_ttp.next();
 
 	      if (temp==ttp.getTemp()) {
 		Vector<FlagState> oldprocess=processed;
 		processed=new Vector<FlagState>();
 
-		for (Enumeration en=oldprocess.elements(); en.hasMoreElements();) {
+		for (Enumeration en=oldprocess.elements(); en.hasMoreElements(); ) {
 		  FlagState fsworking=(FlagState)en.nextElement();
 		  if (!ffan.getTagChange(ttp)) {
 		    processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
@@ -385,14 +385,14 @@ public class SafetyAnalysis {
 	      }
 	    }
 	    //Process sets next
-	    for(Iterator it_ttp=ffan.getTempTagPairs(); it_ttp.hasNext();) {
+	    for(Iterator it_ttp=ffan.getTempTagPairs(); it_ttp.hasNext(); ) {
 	      TempTagPair ttp=(TempTagPair)it_ttp.next();
 
 	      if (temp==ttp.getTemp()) {
 		Vector<FlagState> oldprocess=processed;
 		processed=new Vector<FlagState>();
 
-		for (Enumeration en=oldprocess.elements(); en.hasMoreElements();) {
+		for (Enumeration en=oldprocess.elements(); en.hasMoreElements(); ) {
 		  FlagState fsworking=(FlagState)en.nextElement();
 		  if (ffan.getTagChange(ttp)) {
 		    processed.addAll(Arrays.asList(fsworking.setTag(ttp.getTag())));
@@ -433,25 +433,25 @@ public class SafetyAnalysis {
 	FlagState fs = (FlagState)fses.nextElement();
 	System.out.println("\t"+fs.getTextLabel()+"\n\tSafe tasks to execute :\n");
 	HashSet availabletasks = (HashSet)hashtbtemp.get(fs);
-	for(Iterator otd_it = availabletasks.iterator(); otd_it.hasNext();) {
+	for(Iterator otd_it = availabletasks.iterator(); otd_it.hasNext(); ) {
 	  OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
 	  System.out.println("\t\tTASK "+otd.td.getSymbol()+" UID : "+otd.getuid()+"\n");
 	  System.out.println("\t\twith flags :");
-	  for(Iterator myfses = otd.enterflagstates.iterator(); myfses.hasNext();) {
+	  for(Iterator myfses = otd.enterflagstates.iterator(); myfses.hasNext(); ) {
 	    System.out.println("\t\t\t"+((FlagState)myfses.next()).getTextLabel());
 	  }
 	  System.out.println("\t\tand exitflags :");
-	  for(Iterator fseshash = otd.exitfses.iterator(); fseshash.hasNext();) {
+	  for(Iterator fseshash = otd.exitfses.iterator(); fseshash.hasNext(); ) {
 	    HashSet temphs = (HashSet)fseshash.next();
 	    System.out.println("");
-	    for(Iterator exfses = temphs.iterator(); exfses.hasNext();) {
+	    for(Iterator exfses = temphs.iterator(); exfses.hasNext(); ) {
 	      System.out.println("\t\t\t"+((FlagState)exfses.next()).getTextLabel());
 	    }
 	  }
 	  Predicate predicate = otd.predicate;
 	  System.out.println("\t\tPredicate constraints :");
 	  Collection c = predicate.vardescriptors;
-	  for(Iterator varit = c.iterator(); varit.hasNext();) {
+	  for(Iterator varit = c.iterator(); varit.hasNext(); ) {
 	    VarDescriptor vard = (VarDescriptor)varit.next();
 	    System.out.println("\t\t\tClass "+vard.getType().getClassDesc().getSymbol());
 	  }
@@ -461,25 +461,25 @@ public class SafetyAnalysis {
 
       System.out.println("\n\n\n\tOptionaltaskdescriptors contains : ");
       Collection c_otd = optionaltaskdescriptors.get(cdtemp).values();
-      for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext();) {
+      for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext(); ) {
 	OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
 	System.out.println("\t\tTASK "+otd.td.getSymbol()+" UID : "+otd.getuid()+"\n");
 	System.out.println("\t\twith flags :");
-	for(Iterator myfses = otd.enterflagstates.iterator(); myfses.hasNext();) {
+	for(Iterator myfses = otd.enterflagstates.iterator(); myfses.hasNext(); ) {
 	  System.out.println("\t\t\t"+((FlagState)myfses.next()).getTextLabel());
 	}
 	System.out.println("\t\tand exitflags :");
-	for(Iterator fseshash = otd.exitfses.iterator(); fseshash.hasNext();) {
+	for(Iterator fseshash = otd.exitfses.iterator(); fseshash.hasNext(); ) {
 	  HashSet temphs = (HashSet)fseshash.next();
 	  System.out.println("");
-	  for(Iterator exfses = temphs.iterator(); exfses.hasNext();) {
+	  for(Iterator exfses = temphs.iterator(); exfses.hasNext(); ) {
 	    System.out.println("\t\t\t"+((FlagState)exfses.next()).getTextLabel());
 	  }
 	}
 	Predicate predicate = otd.predicate;
 	System.out.println("\t\tPredicate contains :");
 	Collection c = predicate.vardescriptors;
-	for(Iterator varit = c.iterator(); varit.hasNext();) {
+	for(Iterator varit = c.iterator(); varit.hasNext(); ) {
 	  VarDescriptor vard = (VarDescriptor)varit.next();
 	  System.out.println("\t\t\tClass "+vard.getType().getClassDesc().getSymbol());
 	  HashSet temphash = predicate.flags.get(vard.getName());
@@ -547,7 +547,7 @@ public class SafetyAnalysis {
   private void traverse(java.io.PrintWriter output, Collection v) {
     EGTaskNode tn;
 
-    for(Iterator it1 = v.iterator(); it1.hasNext();) {
+    for(Iterator it1 = v.iterator(); it1.hasNext(); ) {
       tn = (EGTaskNode)it1.next();
       output.println("\t"+tn.getLabel()+" [label=\""+tn.getTextLabel()+"\"");
       if (tn.isOptional()) {
@@ -559,7 +559,7 @@ public class SafetyAnalysis {
 	output.println(", shape=octagon");
       output.println("];");
 
-      for(Iterator it2 = tn.edges(); it2.hasNext();) {
+      for(Iterator it2 = tn.edges(); it2.hasNext(); ) {
 	EGTaskNode tn2 = (EGTaskNode)((Edge)it2.next()).getTarget();
 	output.println("\t"+tn.getLabel()+" -> "+tn2.getLabel()+";");
       }

@@ -54,7 +54,7 @@ public class ConflictNode {
   public static final int STALLSITE = 1;
 
   public ConflictNode(String id, int nodeType, TempDescriptor var, FlatNode stallSite,
-      ClassDescriptor cd) {
+                      ClassDescriptor cd) {
     this(id, var, nodeType);
     this.stallSite = stallSite;
     this.cd = cd;
@@ -86,10 +86,10 @@ public class ConflictNode {
   }
 
   public Taint getTaint(Alloc as) {
-    for (Iterator iterator = taintSet.iterator(); iterator.hasNext();) {
+    for (Iterator iterator = taintSet.iterator(); iterator.hasNext(); ) {
       Taint t = (Taint) iterator.next();
       if (t.getAllocSite().equals(as)) {
-        return t;
+	return t;
       }
     }
     return null;
@@ -163,7 +163,7 @@ public class ConflictNode {
 
   public Set<FlatNew> getFlatNewSet() {
     Set<FlatNew> fnSet = new HashSet<FlatNew>();
-    for (Iterator iterator = allocSet.iterator(); iterator.hasNext();) {
+    for (Iterator iterator = allocSet.iterator(); iterator.hasNext(); ) {
       Alloc as = (Alloc) iterator.next();
       FlatNew fn = as.getFlatNew();
       fnSet.add(fn);
@@ -240,25 +240,25 @@ public class ConflictNode {
 
   public boolean IsValidToPrune() {
 
-    for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
+    for (Iterator iterator = edgeSet.iterator(); iterator.hasNext(); ) {
       ConflictEdge edge = (ConflictEdge) iterator.next();
 
       if (edge.getVertexU() == edge.getVertexV()) {
-        // self-conflict, need to generate traverser
-        return false;
+	// self-conflict, need to generate traverser
+	return false;
       } else {
 
-        if (edge.getVertexU() == this) {
-          if (edge.getVertexV().isInVarNode()) {
-            // has a conflict with invar, need to generate traverser
-            return false;
-          }
-        } else {
-          if (edge.getVertexU().isInVarNode()) {
-            // has a conflict with invar, need to generate traverser
-            return false;
-          }
-        }
+	if (edge.getVertexU() == this) {
+	  if (edge.getVertexV().isInVarNode()) {
+	    // has a conflict with invar, need to generate traverser
+	    return false;
+	  }
+	} else {
+	  if (edge.getVertexU().isInVarNode()) {
+	    // has a conflict with invar, need to generate traverser
+	    return false;
+	  }
+	}
       }
     }
     return true;

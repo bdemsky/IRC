@@ -3,7 +3,7 @@
 
 //////////////////////////////////////////////////////////
 //
-//  A memory pool implements POOLCREATE, POOLALLOC and 
+//  A memory pool implements POOLCREATE, POOLALLOC and
 //  POOLFREE to improve memory allocation by reusing records.
 //
 //  This implementation uses a lock-free singly-linked list
@@ -64,7 +64,7 @@ typedef struct deque_t {
 // the memory pool must always have at least one
 // item in it
 static void dqInit(deque *q) {
-  q->head       = calloc( 1, sizeof(dequeItem) );
+  q->head       = calloc(1, sizeof(dequeItem) );
   q->head->next = NULL;
   q->tail       = q->head;
   q->objret.itemSize=sizeof(dequeItem);
@@ -73,7 +73,7 @@ static void dqInit(deque *q) {
   q->objret.tail=q->objret.head;
 }
 
-static inline void tagpoolfreeinto( sqMemPool* p, void* ptr, void *realptr ) {
+static inline void tagpoolfreeinto(sqMemPool* p, void* ptr, void *realptr) {
   // set up the now unneeded record to as the tail of the
   // free list by treating its first bytes as next pointer,
   sqMemPoolItem* tailNew = (sqMemPoolItem*) realptr;
@@ -83,7 +83,7 @@ static inline void tagpoolfreeinto( sqMemPool* p, void* ptr, void *realptr ) {
   tailCurrent->next=(sqMemPoolItem *) ptr;
 }
 
-static inline void* tagpoolalloc( sqMemPool* p ) {
+static inline void* tagpoolalloc(sqMemPool* p) {
   // to protect CAS in poolfree from dereferencing
   // null, treat the queue as empty when there is
   // only one item.  The dequeue operation is only
@@ -95,16 +95,16 @@ static inline void* tagpoolalloc( sqMemPool* p ) {
   int i;
   if(next == NULL) {
     // only one item, so don't take from pool
-    sqMemPoolItem * newitem=(sqMemPoolItem *) RUNMALLOC( p->itemSize );
+    sqMemPoolItem * newitem=(sqMemPoolItem *) RUNMALLOC(p->itemSize);
     ((dequeItem *)newitem)->next=NULL;
     return newitem;
   }
   p->head = next;
 
   sqMemPoolItem* realNext=(sqMemPoolItem *) EXTRACTPTR((INTPTR)next);
-  asm volatile( "prefetcht0 (%0)" :: "r" (realNext));
+  asm volatile ( "prefetcht0 (%0)" :: "r" (realNext));
   realNext=(sqMemPoolItem*)(((char *)realNext)+CACHELINESIZE);
-  asm volatile( "prefetcht0 (%0)" :: "r" (realNext));
+  asm volatile ( "prefetcht0 (%0)" :: "r" (realNext));
 
   return (void*)headCurrent;
 }
@@ -122,7 +122,7 @@ static inline void* tagpoolalloc( sqMemPool* p ) {
 // otherwise someone did CAS before you, so try again (the return
 // value is the old value you will pass next time.)
 
-static inline void dqPushBottom( deque* p, void* work ) {
+static inline void dqPushBottom(deque* p, void* work) {
   dequeItem *ptr=(dequeItem *) tagpoolalloc(&p->objret);
   dequeItem *realptr=(dequeItem *) EXTRACTPTR((unsigned INTPTR)ptr);
   ptr=(dequeItem *) (((unsigned INTPTR)ptr)+INCREMENTTAG);
@@ -136,29 +136,29 @@ static inline void dqPushBottom( deque* p, void* work ) {
 static inline void* dqPopTopSelf(deque *p) {
   int tryagain=1;
   while(1) {
-  dequeItem *ptr=p->head;
-  dequeItem *realptr=(dequeItem *) EXTRACTPTR((INTPTR)ptr);
-  dequeItem *next=realptr->next;
-  //remove if we can..steal work no matter what
-  if (likely(next!=NULL)) {
-    if (((dequeItem *)CAS(&(p->head),(INTPTR)ptr, (INTPTR)next))!=ptr)
-      return DQ_POP_EMPTY;
-    void * item=NULL;
-    item=(void *)LOCKXCHG((unsigned INTPTR*) &(realptr->work), (unsigned INTPTR) item);
-    realptr->next=NULL;
-    BARRIER();
-    tagpoolfreeinto(&p->objret,ptr, realptr);
-    if (item==NULL&&tryagain) {
-      tryagain=0;
-      continue;
+    dequeItem *ptr=p->head;
+    dequeItem *realptr=(dequeItem *) EXTRACTPTR((INTPTR)ptr);
+    dequeItem *next=realptr->next;
+    //remove if we can..steal work no matter what
+    if (likely(next!=NULL)) {
+      if (((dequeItem *)CAS(&(p->head),(INTPTR)ptr, (INTPTR)next))!=ptr)
+	return DQ_POP_EMPTY;
+      void * item=NULL;
+      item=(void *)LOCKXCHG((unsigned INTPTR*) &(realptr->work), (unsigned INTPTR) item);
+      realptr->next=NULL;
+      BARRIER();
+      tagpoolfreeinto(&p->objret,ptr, realptr);
+      if (item==NULL&&tryagain) {
+	tryagain=0;
+	continue;
+      }
+      return item;
+    } else {
+      void * item=NULL;
+      if (realptr->work!=NULL)
+	item=(void *) LOCKXCHG((unsigned INTPTR*) &(realptr->work), (unsigned INTPTR) item);
+      return item;
     }
-    return item;
-  } else {
-    void * item=NULL;
-    if (realptr->work!=NULL)
-      item=(void *) LOCKXCHG((unsigned INTPTR*) &(realptr->work), (unsigned INTPTR) item);
-    return item;
-  }
   }
 }
 

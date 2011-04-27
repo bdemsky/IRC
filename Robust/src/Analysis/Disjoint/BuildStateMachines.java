@@ -26,7 +26,7 @@ public class BuildStateMachines {
   // map a task or stall site (both a FlatNode) to a variable
   // and then finally to a state machine
   protected Hashtable< FlatNode, Hashtable<TempDescriptor, StateMachineForEffects>> fn2var2smfe;
-  
+
   // remember all the FlatNode/TempDescriptor pairs that have a state machines
   // for easy retrieval of all machines
   protected Set<Pair<FlatNode, TempDescriptor>> allMachineNamePairs;
@@ -42,17 +42,17 @@ public class BuildStateMachines {
   }
 
   public StateMachineForEffects getStateMachine(FlatNode fn, TempDescriptor var) {
-    Hashtable<TempDescriptor, StateMachineForEffects> var2smfe = fn2var2smfe.get( fn );
+    Hashtable<TempDescriptor, StateMachineForEffects> var2smfe = fn2var2smfe.get(fn);
     if( var2smfe == null ) {
       var2smfe = new Hashtable<TempDescriptor, StateMachineForEffects>();
-      fn2var2smfe.put( fn, var2smfe );
+      fn2var2smfe.put(fn, var2smfe);
     }
-    
-    StateMachineForEffects smfe = var2smfe.get( var );
+
+    StateMachineForEffects smfe = var2smfe.get(var);
     if( smfe == null ) {
-      smfe = new StateMachineForEffects( fn );
-      var2smfe.put( var, smfe );
-      allMachineNamePairs.add( new Pair<FlatNode, TempDescriptor>( fn, var ) );
+      smfe = new StateMachineForEffects(fn);
+      var2smfe.put(var, smfe);
+      allMachineNamePairs.add(new Pair<FlatNode, TempDescriptor>(fn, var) );
     }
 
     return smfe;
@@ -64,9 +64,9 @@ public class BuildStateMachines {
   }
 
 
-  public void addToStateMachine( Taint t, 
-                                 Effect e, 
-                                 FlatNode currentProgramPoint ) {
+  public void addToStateMachine(Taint t,
+                                Effect e,
+                                FlatNode currentProgramPoint) {
     FlatNode taskOrStallSite;
     if( t.isStallSiteTaint() ) {
       taskOrStallSite = t.getStallSite();
@@ -76,20 +76,20 @@ public class BuildStateMachines {
 
     TempDescriptor var = t.getVar();
 
-    StateMachineForEffects smfe = getStateMachine( taskOrStallSite, var );
+    StateMachineForEffects smfe = getStateMachine(taskOrStallSite, var);
 
     FlatNode whereDefined = t.getWhereDefined();
 
-    smfe.addEffect( whereDefined, e );
+    smfe.addEffect(whereDefined, e);
 
     // reads of pointers make a transition
     if( e.getType() == Effect.read &&
         ((e.getField()!=null && e.getField().getType().isPtr())
-	 ||(e.getField()==null && e.getAffectedAllocSite().getFlatNew().getType().dereference().isPtr()))) {
-      
-      smfe.addTransition( whereDefined, 
-                          currentProgramPoint,
-                          e );
+         ||(e.getField()==null && e.getAffectedAllocSite().getFlatNew().getType().dereference().isPtr()))) {
+
+      smfe.addTransition(whereDefined,
+                         currentProgramPoint,
+                         e);
     }
   }
 
@@ -103,21 +103,21 @@ public class BuildStateMachines {
     Iterator<FlatNode> fnItr = fn2var2smfe.keySet().iterator();
     while( fnItr.hasNext() ) {
       FlatNode fn = fnItr.next();
-      
-      Hashtable<TempDescriptor, StateMachineForEffects> 
-        var2smfe = fn2var2smfe.get( fn );
-        
+
+      Hashtable<TempDescriptor, StateMachineForEffects>
+      var2smfe = fn2var2smfe.get(fn);
+
       Iterator<TempDescriptor> varItr = var2smfe.keySet().iterator();
       while( varItr.hasNext() ) {
-        TempDescriptor var = varItr.next();
+	TempDescriptor var = varItr.next();
 
-        StateMachineForEffects smfe = var2smfe.get( var );
+	StateMachineForEffects smfe = var2smfe.get(var);
 
-        smfe.writeAsDOT( prefix+"statemachine_"+fn.toString()+var.toString() );
+	smfe.writeAsDOT(prefix+"statemachine_"+fn.toString()+var.toString() );
       }
     }
   }
-  //TODO JIM! Give me the REAALL number here. 
+  //TODO JIM! Give me the REAALL number here.
   public int getTotalNumOfWeakGroups() {
     // TODO Auto-generated method stub
     return 1;

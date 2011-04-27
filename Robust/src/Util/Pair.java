@@ -24,6 +24,6 @@ public class Pair<A,B> {
       return false;
     Pair t=(Pair)o;
     return a.equals(t.a)&&(((b!=null)&&(t.b!=null)&&b.equals(t.b))||
-			   ((b==null)&&(t.b==null)));
+                           ((b==null)&&(t.b==null)));
   }
 }

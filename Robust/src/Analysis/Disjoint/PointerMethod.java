@@ -25,7 +25,7 @@ public class PointerMethod {
       toprocess.remove(fn);
       HashSet<FlatNode> myset=new HashSet<FlatNode>();
       if (!analysisCares(fn)) {
-	for(int i=0;i<fn.numPrev();i++) {
+	for(int i=0; i<fn.numPrev(); i++) {
 	  if (map.containsKey(fn.getPrev(i)))
 	    myset.addAll(map.get(fn.getPrev(i)));
 	}
@@ -34,22 +34,22 @@ public class PointerMethod {
       }
       if (!map.containsKey(fn)||!map.get(fn).equals(myset)) {
 	map.put(fn, myset);
-	for(int i=0;i<fn.numNext();i++) {
+	for(int i=0; i<fn.numNext(); i++) {
 	  toprocess.add(fn.getNext(i));
 	}
       }
     }
-    for(Iterator<FlatNode> it=map.keySet().iterator();it.hasNext();) {
+    for(Iterator<FlatNode> it=map.keySet().iterator(); it.hasNext(); ) {
       FlatNode fn=it.next();
       if (analysisCares(fn)) {
 	HashSet<FlatNode> myset=new HashSet<FlatNode>();
-	for(int i=0;i<fn.numPrev();i++) {
-          if (map.containsKey(fn.getPrev(i)))
-            myset.addAll(map.get(fn.getPrev(i)));
+	for(int i=0; i<fn.numPrev(); i++) {
+	  if (map.containsKey(fn.getPrev(i)))
+	    myset.addAll(map.get(fn.getPrev(i)));
 	}
 	if (!prevmap.containsKey(fn))
 	  prevmap.put(fn, new Vector());
-	for(Iterator<FlatNode> it2=myset.iterator();it2.hasNext();) {
+	for(Iterator<FlatNode> it2=myset.iterator(); it2.hasNext(); ) {
 	  FlatNode fnprev=it2.next();
 	  if (!nextmap.containsKey(fnprev))
 	    nextmap.put(fnprev, new Vector());
@@ -64,7 +64,7 @@ public class PointerMethod {
     Vector<FlatNode> vfn=nextmap.get(fn);
     if (vfn==null)
       return 0;
-    else 
+    else
       return vfn.size();
   }
 
@@ -100,13 +100,16 @@ public class PointerMethod {
     case FKind.FlatGenReachNode:
     case FKind.FlatExit:
       return true;
+
     case FKind.FlatCastNode:
       FlatCastNode fcn=(FlatCastNode)fn;
       TypeDescriptor td=fcn.getType();
       return td.isPtr();
+
     case FKind.FlatOpNode:
       FlatOpNode fon = (FlatOpNode) fn;
       return fon.getOp().getOp()==Operation.ASSIGN&&fon.getLeft().getType().isPtr();
+
     default:
       return false;
     }

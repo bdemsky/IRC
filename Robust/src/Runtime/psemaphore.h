@@ -7,17 +7,17 @@
 
 typedef struct psemaphore_t {
   pthread_mutex_t lock;
-  pthread_cond_t  cond;
-  int             signaled;
-  int             tag;
+  pthread_cond_t cond;
+  int signaled;
+  int tag;
 } psemaphore;
 
 
-void psem_init ( psemaphore* sem );
-void psem_take ( psemaphore* sem, struct garbagelist* gl );
-void psem_give_tag ( psemaphore* sem, int tag );
-void psem_give ( psemaphore* sem);
-void psem_reset( psemaphore* sem );
+void psem_init(psemaphore* sem);
+void psem_take(psemaphore* sem, struct garbagelist* gl);
+void psem_give_tag(psemaphore* sem, int tag);
+void psem_give(psemaphore* sem);
+void psem_reset(psemaphore* sem);
 
 
 #endif // ___PSEMAPHORE_H__

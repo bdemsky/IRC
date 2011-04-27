@@ -1,6 +1,6 @@
 package Analysis.Disjoint;
 
-// a CanonicalOperation defines an operation on 
+// a CanonicalOperation defines an operation on
 // Canonical objects.  The Canonical class maps
 // an op to its result, so when you ask the
 // Canonical static methods to do an op that is
@@ -46,18 +46,18 @@ public class CanonicalOp {
   protected int opCode;
   protected Canonical operand1;
   protected Canonical operand2;
-  protected int       operand3;
+  protected int operand3;
 
-  public CanonicalOp( int       opc,
-                      Canonical op1, 
-                      Canonical op2 ) {
+  public CanonicalOp(int opc,
+                     Canonical op1,
+                     Canonical op2) {
     this( opc, op1, op2, PRIM_OP_UNUSED );
   }
 
-  public CanonicalOp( int       opc,
-                      Canonical op1, 
-                      Canonical op2,
-                      int       op3 ) {
+  public CanonicalOp(int opc,
+                     Canonical op1,
+                     Canonical op2,
+                     int op3) {
     assert op1.isCanonical();
     assert op2.isCanonical();
     opCode   = opc;
@@ -65,23 +65,23 @@ public class CanonicalOp {
     operand2 = op2;
     operand3 = op3;
   }
-  
+
   public int hashCode() {
     return opCode ^
-      (operand1.getCanonicalValue() << 2) ^
-      (operand2.getCanonicalValue() << 1) ^
-      (operand3 << 3);
+           (operand1.getCanonicalValue() << 2) ^
+           (operand2.getCanonicalValue() << 1) ^
+           (operand3 << 3);
   }
 
-  public boolean equals( Object o ) {
+  public boolean equals(Object o) {
     if( o == null ) {
       return false;
     }
 
     CanonicalOp co = (CanonicalOp) o;
     return opCode == co.opCode &&
-      (operand1.getCanonicalValue() == co.operand1.getCanonicalValue()) &&
-      (operand2.getCanonicalValue() == co.operand2.getCanonicalValue()) &&
-      operand3 == co.operand3;
+           (operand1.getCanonicalValue() == co.operand1.getCanonicalValue()) &&
+           (operand2.getCanonicalValue() == co.operand2.getCanonicalValue()) &&
+           operand3 == co.operand3;
   }
 }

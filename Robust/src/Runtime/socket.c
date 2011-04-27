@@ -43,8 +43,8 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
 #endif
 
   {
-  int flag = 1;
-  setsockopt(___fd___, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
+    int flag = 1;
+    setsockopt(___fd___, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
   }
   if (rc<0) goto error;
 
@@ -159,36 +159,36 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct A
   h=gethostbyname(str);
   free(str);
 
-	if (h != NULL) {
-		for (n=0; h->h_addr_list[n]; n++) /* do nothing */ ;
+  if (h != NULL) {
+    for (n=0; h->h_addr_list[n]; n++) /* do nothing */;
 
 #ifdef PRECISE_GC
-  arraybytearray=allocate_newarray(___params___,BYTEARRAYARRAYTYPE,n);
+    arraybytearray=allocate_newarray(___params___,BYTEARRAYARRAYTYPE,n);
 #else
-  arraybytearray=allocate_newarray(BYTEARRAYARRAYTYPE,n);
+    arraybytearray=allocate_newarray(BYTEARRAYARRAYTYPE,n);
 #endif
-  for(i=0; i<n; i++) {
-    struct ArrayObject *bytearray;
+    for(i=0; i<n; i++) {
+      struct ArrayObject *bytearray;
 #ifdef PRECISE_GC
-    {
-      INTPTR ptrarray[]={1, (INTPTR) ___params___, (INTPTR)arraybytearray};
-      bytearray=allocate_newarray(&ptrarray,BYTEARRAYTYPE,h->h_length);
-      arraybytearray=(struct ArrayObject *) ptrarray[2];
-    }
+      {
+	INTPTR ptrarray[]={1, (INTPTR) ___params___, (INTPTR)arraybytearray};
+	bytearray=allocate_newarray(&ptrarray,BYTEARRAYTYPE,h->h_length);
+	arraybytearray=(struct ArrayObject *) ptrarray[2];
+      }
 #else
-    bytearray=allocate_newarray(BYTEARRAYTYPE,h->h_length);
+      bytearray=allocate_newarray(BYTEARRAYTYPE,h->h_length);
 #endif
-    ((void **)&((&arraybytearray->___length___)[1]))[i]=bytearray;
-    {
-      int ha=ntohl(*(int *)h->h_addr_list[i]);
-      (&bytearray->___length___)[1]=ha;
+      ((void **)&((&arraybytearray->___length___)[1]))[i]=bytearray;
+      {
+	int ha=ntohl(*(int *)h->h_addr_list[i]);
+	(&bytearray->___length___)[1]=ha;
+      }
     }
+
+    return arraybytearray;
+  } else {
+    return NULL;
   }
-
-  return arraybytearray;
-	} else {
-		return NULL;
-	}
 #endif
 }
 #endif

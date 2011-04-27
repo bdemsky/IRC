@@ -15,14 +15,14 @@ import IR.TypeDescriptor;
 import IR.Tree.SESENode;
 
 public class FlatSESEEnterNode extends FlatNode {
-  
+
   // SESE class identifiers should be numbered
   // sequentially from 0 to 1-(total # SESE's)
   private static int identifier=0;
 
-  private   int               id;
-  protected FlatSESEExitNode  exit;
-  protected SESENode          treeNode;
+  private int id;
+  protected FlatSESEExitNode exit;
+  protected SESENode treeNode;
 
   // a leaf tasks simply has no children, ever
   protected static final int ISLEAF_UNINIT = 1;
@@ -41,7 +41,7 @@ public class FlatSESEEnterNode extends FlatNode {
   // all children tasks, INCLUDING those that are reachable
   // by calling methods
   protected Set<FlatSESEEnterNode> children;
-  
+
   // all possible parents
   protected Set<FlatSESEEnterNode> parents;
 
@@ -49,7 +49,7 @@ public class FlatSESEEnterNode extends FlatNode {
   // parent or children of an SESE for various analysis,
   // and by local it is one SESE nested within another
   // in a single method context
-  protected Set<FlatSESEEnterNode> localChildren;  
+  protected Set<FlatSESEEnterNode> localChildren;
   protected FlatSESEEnterNode localParent;
 
 
@@ -61,7 +61,7 @@ public class FlatSESEEnterNode extends FlatNode {
   // code gen for issuing this task
   protected Set<TempDescriptor> readyInVars;
   protected Set<TempDescriptor> staticInVars;
-  protected Set<TempDescriptor> dynamicInVars;  
+  protected Set<TempDescriptor> dynamicInVars;
   protected Set<SESEandAgePair> staticInVarSrcs;
   protected Hashtable<TempDescriptor, VariableSourceToken> staticInVar2src;
 
@@ -71,7 +71,7 @@ public class FlatSESEEnterNode extends FlatNode {
   // to know how to acquire those values before it can truly exit
   protected Set<TempDescriptor> readyOutVars;
   protected Set<TempDescriptor> staticOutVars;
-  protected Set<TempDescriptor> dynamicOutVars;  
+  protected Set<TempDescriptor> dynamicOutVars;
   protected Set<SESEandAgePair> staticOutVarSrcs;
   protected Hashtable<TempDescriptor, VariableSourceToken> staticOutVar2src;
 
@@ -80,7 +80,7 @@ public class FlatSESEEnterNode extends FlatNode {
   // get the oldest age of this task that other contexts
   // have a static name for when tracking variables
   protected Integer oldestAgeToTrack;
-  
+
 
   // a subset of the in-set variables that shouuld be traversed during
   // the dynamic coarse grained conflict strategy, remember them here so
@@ -89,13 +89,13 @@ public class FlatSESEEnterNode extends FlatNode {
 
 
   // scope info for this SESE
-  protected FlatMethod       fmEnclosing;
+  protected FlatMethod fmEnclosing;
   protected MethodDescriptor mdEnclosing;
-  protected ClassDescriptor  cdEnclosing;
+  protected ClassDescriptor cdEnclosing;
 
   // structures that allow SESE to appear as
   // a normal method to code generation
-  protected FlatMethod       fmBogus;
+  protected FlatMethod fmBogus;
   protected MethodDescriptor mdBogus;
 
   // used during code generation to calculate an offset
@@ -103,10 +103,10 @@ public class FlatSESEEnterNode extends FlatNode {
   // first field in a sequence of pointers to other SESE
   // records which is relevant to garbage collection
   protected String firstDepRecField;
-  protected int    numDepRecs;
-  
+  protected int numDepRecs;
 
-  public FlatSESEEnterNode( SESENode sn ) {
+
+  public FlatSESEEnterNode(SESENode sn) {
     this.id              = identifier++;
     treeNode             = sn;
     children             = new HashSet<FlatSESEEnterNode>();
@@ -123,14 +123,14 @@ public class FlatSESEEnterNode extends FlatNode {
     staticOutVars        = new HashSet<TempDescriptor>();
     dynamicOutVars       = new HashSet<TempDescriptor>();
     staticOutVarSrcs     = new HashSet<SESEandAgePair>();
-    oldestAgeToTrack     = new Integer( 0 );
+    oldestAgeToTrack     = new Integer(0);
 
     staticInVar2src  = new Hashtable<TempDescriptor, VariableSourceToken>();
     staticOutVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
 
     inVarsForDynamicCoarseConflictResolution = new Vector<TempDescriptor>();
-    
-    
+
+
     fmEnclosing = null;
     mdEnclosing = null;
     cdEnclosing = null;
@@ -150,7 +150,7 @@ public class FlatSESEEnterNode extends FlatNode {
   public void rewriteDef() {
   }
 
-  public void setFlatExit( FlatSESEExitNode fsexn ) {
+  public void setFlatExit(FlatSESEExitNode fsexn) {
     exit = fsexn;
   }
 
@@ -186,29 +186,29 @@ public class FlatSESEEnterNode extends FlatNode {
     return id;
   }
 
-  public String getPrettyIdentifier() {    
-    if(isCallerProxySESE){
+  public String getPrettyIdentifier() {
+    if(isCallerProxySESE) {
       return "proxy";
-    }    
+    }
     if( treeNode != null && treeNode.getID() != null ) {
       return treeNode.getID();
-    }     
+    }
     return ""+id;
   }
 
   public String toString() {
     return "sese "+getPrettyIdentifier()+" enter";
   }
-  
+
   public String toPrettyString() {
     return "sese "+getPrettyIdentifier()+getIdentifier();
   }
 
 
-  public void mustTrackAtLeastAge( Integer age ) {
+  public void mustTrackAtLeastAge(Integer age) {
     if( age > oldestAgeToTrack ) {
-      oldestAgeToTrack = new Integer( age );
-    }    
+      oldestAgeToTrack = new Integer(age);
+    }
   }
 
   public Integer getOldestAgeToTrack() {
@@ -216,15 +216,15 @@ public class FlatSESEEnterNode extends FlatNode {
   }
 
 
-  public void addParent( FlatSESEEnterNode parent ) {
-    parents.add( parent );
+  public void addParent(FlatSESEEnterNode parent) {
+    parents.add(parent);
   }
 
   public Set<FlatSESEEnterNode> getParents() {
     return parents;
   }
 
-  public void setLocalParent( FlatSESEEnterNode parent ) {
+  public void setLocalParent(FlatSESEEnterNode parent) {
     localParent = parent;
   }
 
@@ -232,20 +232,20 @@ public class FlatSESEEnterNode extends FlatNode {
     return localParent;
   }
 
-  public void addChild( FlatSESEEnterNode child ) {
-    children.add( child );
+  public void addChild(FlatSESEEnterNode child) {
+    children.add(child);
   }
 
-  public void addChildren( Set<FlatSESEEnterNode> batch ) {
-    children.addAll( batch );
+  public void addChildren(Set<FlatSESEEnterNode> batch) {
+    children.addAll(batch);
   }
 
   public Set<FlatSESEEnterNode> getChildren() {
     return children;
   }
 
-  public void addLocalChild( FlatSESEEnterNode child ) {
-    localChildren.add( child );
+  public void addLocalChild(FlatSESEEnterNode child) {
+    localChildren.add(child);
   }
 
   public Set<FlatSESEEnterNode> getLocalChildren() {
@@ -254,21 +254,21 @@ public class FlatSESEEnterNode extends FlatNode {
 
 
 
-  public void addInVar( TempDescriptor td ) {
+  public void addInVar(TempDescriptor td) {
     if (!inVars.contains(td))
-      inVars.add( td );
+      inVars.add(td);
   }
 
-  public void addOutVar( TempDescriptor td ) {
-    outVars.add( td );
+  public void addOutVar(TempDescriptor td) {
+    outVars.add(td);
   }
 
-  public void addInVarSet( Set<TempDescriptor> s ) {
+  public void addInVarSet(Set<TempDescriptor> s) {
     inVars.addAll(s);
   }
 
-  public void addOutVarSet( Set<TempDescriptor> s ) {
-    outVars.addAll( s );
+  public void addOutVarSet(Set<TempDescriptor> s) {
+    outVars.addAll(s);
   }
 
   public Set<TempDescriptor> getInVarSet() {
@@ -306,7 +306,7 @@ public class FlatSESEEnterNode extends FlatNode {
       FlatNode fn=tovisit.iterator().next();
       tovisit.remove(fn);
       visited.add(fn);
-      
+
       if (fn!=exit) {
 	for(int i=0; i<fn.numNext(); i++) {
 	  FlatNode nn=fn.getNext(i);
@@ -322,41 +322,41 @@ public class FlatSESEEnterNode extends FlatNode {
     return outVars;
   }
 
-  public void addStaticInVarSrc( SESEandAgePair p ) {
-    staticInVarSrcs.add( p );
+  public void addStaticInVarSrc(SESEandAgePair p) {
+    staticInVarSrcs.add(p);
   }
 
   public Set<SESEandAgePair> getStaticInVarSrcs() {
     return staticInVarSrcs;
   }
 
-  public void addReadyInVar( TempDescriptor td ) {
-    readyInVars.add( td );
+  public void addReadyInVar(TempDescriptor td) {
+    readyInVars.add(td);
   }
 
   public Set<TempDescriptor> getReadyInVarSet() {
     return readyInVars;
   }
 
-  public void addStaticInVar( TempDescriptor td ) {
-    staticInVars.add( td );
+  public void addStaticInVar(TempDescriptor td) {
+    staticInVars.add(td);
   }
 
   public Set<TempDescriptor> getStaticInVarSet() {
     return staticInVars;
   }
 
-  public void putStaticInVar2src( TempDescriptor staticInVar,
-				  VariableSourceToken vst ) {
-    staticInVar2src.put( staticInVar, vst );
+  public void putStaticInVar2src(TempDescriptor staticInVar,
+                                 VariableSourceToken vst) {
+    staticInVar2src.put(staticInVar, vst);
   }
 
-  public VariableSourceToken getStaticInVarSrc( TempDescriptor staticInVar ) {
-    return staticInVar2src.get( staticInVar );
+  public VariableSourceToken getStaticInVarSrc(TempDescriptor staticInVar) {
+    return staticInVar2src.get(staticInVar);
   }
 
-  public void addDynamicInVar( TempDescriptor td ) {
-    dynamicInVars.add( td );
+  public void addDynamicInVar(TempDescriptor td) {
+    dynamicInVars.add(td);
   }
 
   public Set<TempDescriptor> getDynamicInVarSet() {
@@ -365,41 +365,41 @@ public class FlatSESEEnterNode extends FlatNode {
 
 
 
-  public void addReadyOutVar( TempDescriptor td ) {
-    readyOutVars.add( td );
+  public void addReadyOutVar(TempDescriptor td) {
+    readyOutVars.add(td);
   }
 
   public Set<TempDescriptor> getReadyOutVarSet() {
     return readyOutVars;
   }
 
-  public void addStaticOutVarSrc( SESEandAgePair p ) {
-    staticOutVarSrcs.add( p );
+  public void addStaticOutVarSrc(SESEandAgePair p) {
+    staticOutVarSrcs.add(p);
   }
 
   public Set<SESEandAgePair> getStaticOutVarSrcs() {
     return staticOutVarSrcs;
   }
 
-  public void addStaticOutVar( TempDescriptor td ) {
-    staticOutVars.add( td );
+  public void addStaticOutVar(TempDescriptor td) {
+    staticOutVars.add(td);
   }
 
   public Set<TempDescriptor> getStaticOutVarSet() {
     return staticOutVars;
   }
 
-  public void putStaticOutVar2src( TempDescriptor staticOutVar,
-				  VariableSourceToken vst ) {
-    staticOutVar2src.put( staticOutVar, vst );
+  public void putStaticOutVar2src(TempDescriptor staticOutVar,
+                                  VariableSourceToken vst) {
+    staticOutVar2src.put(staticOutVar, vst);
   }
 
-  public VariableSourceToken getStaticOutVarSrc( TempDescriptor staticOutVar ) {
-    return staticOutVar2src.get( staticOutVar );
+  public VariableSourceToken getStaticOutVarSrc(TempDescriptor staticOutVar) {
+    return staticOutVar2src.get(staticOutVar);
   }
 
-  public void addDynamicOutVar( TempDescriptor td ) {
-    dynamicOutVars.add( td );
+  public void addDynamicOutVar(TempDescriptor td) {
+    dynamicOutVars.add(td);
   }
 
   public Set<TempDescriptor> getDynamicOutVarSet() {
@@ -409,26 +409,46 @@ public class FlatSESEEnterNode extends FlatNode {
 
 
 
-  public void setfmEnclosing( FlatMethod fm ) { fmEnclosing = fm; }
-  public FlatMethod getfmEnclosing() { return fmEnclosing; }
+  public void setfmEnclosing(FlatMethod fm) {
+    fmEnclosing = fm;
+  }
+  public FlatMethod getfmEnclosing() {
+    return fmEnclosing;
+  }
 
-  public void setmdEnclosing( MethodDescriptor md ) { mdEnclosing = md; }
-  public MethodDescriptor getmdEnclosing() { return mdEnclosing; }
+  public void setmdEnclosing(MethodDescriptor md) {
+    mdEnclosing = md;
+  }
+  public MethodDescriptor getmdEnclosing() {
+    return mdEnclosing;
+  }
 
-  public void setcdEnclosing( ClassDescriptor cd ) { cdEnclosing = cd; }
-  public ClassDescriptor getcdEnclosing() { return cdEnclosing; }
+  public void setcdEnclosing(ClassDescriptor cd) {
+    cdEnclosing = cd;
+  }
+  public ClassDescriptor getcdEnclosing() {
+    return cdEnclosing;
+  }
 
-  public void setfmBogus( FlatMethod fm ) { fmBogus = fm; }
-  public FlatMethod getfmBogus() { return fmBogus; }
+  public void setfmBogus(FlatMethod fm) {
+    fmBogus = fm;
+  }
+  public FlatMethod getfmBogus() {
+    return fmBogus;
+  }
 
-  public void setmdBogus( MethodDescriptor md ) { mdBogus = md; }
-  public MethodDescriptor getmdBogus() { return mdBogus; }
+  public void setmdBogus(MethodDescriptor md) {
+    mdBogus = md;
+  }
+  public MethodDescriptor getmdBogus() {
+    return mdBogus;
+  }
 
   public String getSESEmethodName() {
     assert cdEnclosing != null;
     assert mdBogus != null;
 
-    return 
+    return
       cdEnclosing.getSafeSymbol()+
       mdBogus.getSafeSymbol()+
       "_"+
@@ -448,7 +468,7 @@ public class FlatSESEEnterNode extends FlatNode {
       "_SESErec";
   }
 
-  public boolean equals( Object o ) {
+  public boolean equals(Object o) {
     if( o == null ) {
       return false;
     }
@@ -464,10 +484,10 @@ public class FlatSESEEnterNode extends FlatNode {
   public int hashCode() {
     return 31*id;
   }
-  
 
 
-  public void setFirstDepRecField( String field ) {
+
+  public void setFirstDepRecField(String field) {
     firstDepRecField = field;
   }
 
@@ -482,17 +502,17 @@ public class FlatSESEEnterNode extends FlatNode {
   public int getNumDepRecs() {
     return numDepRecs;
   }
-  
+
   public Vector<TempDescriptor> getInVarsForDynamicCoarseConflictResolution() {
     return inVarsForDynamicCoarseConflictResolution;
   }
-  
+
   public void addInVarForDynamicCoarseConflictResolution(TempDescriptor inVar) {
     if (!inVarsForDynamicCoarseConflictResolution.contains(inVar))
       inVarsForDynamicCoarseConflictResolution.add(inVar);
   }
-  
-  public void setIsLeafSESE( boolean isLeaf ) {
+
+  public void setIsLeafSESE(boolean isLeaf) {
     if( isLeaf ) {
       isLeafSESE = ISLEAF_TRUE;
     } else {
@@ -502,7 +522,7 @@ public class FlatSESEEnterNode extends FlatNode {
 
   public boolean getIsLeafSESE() {
     if( isLeafSESE == ISLEAF_UNINIT ) {
-      throw new Error( "isLeafSESE uninitialized" );
+      throw new Error("isLeafSESE uninitialized");
     }
 
     return isLeafSESE == ISLEAF_TRUE;

@@ -12,9 +12,9 @@ pthread_cond_t qcond;
 extern char bigarray[16*1024*1024];
 extern int bigindex;
 #define LOGEVENT(x) { \
-    int tmp=bigindex++;				\
-    bigarray[tmp]=x;				\
-  }
+    int tmp=bigindex++;                         \
+    bigarray[tmp]=x;                            \
+}
 #else
 #define LOGEVENT(x)
 #endif
@@ -102,7 +102,7 @@ int numavailable() {
 
 void incmulttail(int num) {
   int i;
-  for(i=0;i<num;i++) {
+  for(i=0; i<num; i++) {
     int tmpoffset=tailoffset+*((int *)(memory+tailoffset));
     if (tmpoffset>QSIZE)
       tailoffset=0;

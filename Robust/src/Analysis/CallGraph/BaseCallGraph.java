@@ -25,7 +25,8 @@ public class BaseCallGraph implements CallGraph {
   // MethodDescriptor maps to HashSet<MethodDescriptor or TaskDescriptor>
   protected Hashtable mapCallee2CallerSet;
 
-  protected BaseCallGraph() {}
+  protected BaseCallGraph() {
+  }
 
   protected TypeUtil typeUtil;
 
@@ -54,7 +55,7 @@ public class BaseCallGraph implements CallGraph {
   //  that call the given method
   public Set getCallerSet(MethodDescriptor md) {
     Set s = (Set) mapCallee2CallerSet.get(md);
-    
+
     if( s == null ) {
       return new HashSet();
     }
@@ -91,18 +92,18 @@ public class BaseCallGraph implements CallGraph {
 	Stack<ClassDescriptor> possInterfaces=new Stack<ClassDescriptor>();
 	ClassDescriptor tmpcd=cn;
 	while(tmpcd!=null) {
-	  for(Iterator supit=tmpcd.getSuperInterfaces();supit.hasNext();) {
+	  for(Iterator supit=tmpcd.getSuperInterfaces(); supit.hasNext(); ) {
 	    possInterfaces.add((ClassDescriptor)supit.next());
 	  }
 	  tmpcd=tmpcd.getSuperDesc();
 	}
 	while(!possInterfaces.isEmpty()) {
 	  ClassDescriptor IFdesc=possInterfaces.pop();
-	  for(Iterator supit=IFdesc.getSuperInterfaces();supit.hasNext();) {
+	  for(Iterator supit=IFdesc.getSuperInterfaces(); supit.hasNext(); ) {
 	    possInterfaces.add((ClassDescriptor)supit.next());
 	  }
 	  Set possiblematches=IFdesc.getMethodTable().getSet(md.getSymbol());
-	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
+	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
 	    MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
 	    if (md.matches(matchmd)) {
 	      if (!mapVirtual2ImplementationSet.containsKey(matchmd))
@@ -112,12 +113,12 @@ public class BaseCallGraph implements CallGraph {
 	    }
 	  }
 	}
-	
+
 
 	ClassDescriptor superdesc=cn.getSuperDesc();
 	if (superdesc!=null) {
 	  Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
-	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
+	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
 	    MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
 	    if (md.matches(matchmd)) {
 	      if (!mapVirtual2ImplementationSet.containsKey(matchmd))
@@ -142,7 +143,7 @@ public class BaseCallGraph implements CallGraph {
     ns.add(md);
     Set s=(Set)mapVirtual2ImplementationSet.get(md);
     if (s!=null)
-      for(Iterator it=s.iterator(); it.hasNext();) {
+      for(Iterator it=s.iterator(); it.hasNext(); ) {
 	MethodDescriptor md2=(MethodDescriptor)it.next();
 	ns.addAll(getMethods(md2));
       }
@@ -174,7 +175,7 @@ public class BaseCallGraph implements CallGraph {
     found.add(d);
     Set s=(Set)mapCaller2CalleeSet.get(d);
     if (s!=null)
-      for(Iterator it=s.iterator(); it.hasNext();) {
+      for(Iterator it=s.iterator(); it.hasNext(); ) {
 	MethodDescriptor md=(MethodDescriptor)it.next();
 	if( !found.contains(md) ) {
 	  ns.addAll(getMoreMethodCalls(found, md));
@@ -199,7 +200,7 @@ public class BaseCallGraph implements CallGraph {
       Set s=(Set)mapCaller2CalleeSet.get(md);
 
       if (s!=null) {
-	for(Iterator it=s.iterator(); it.hasNext();) {
+	for(Iterator it=s.iterator(); it.hasNext(); ) {
 	  MethodDescriptor md2=(MethodDescriptor)it.next();
 	  if( !callable.contains(md2) ) {
 	    callable.add(md2);
@@ -210,11 +211,11 @@ public class BaseCallGraph implements CallGraph {
     }
     return callable;
   }
-  
-  // Returns a set of methods containing SESEs and located at the first   
-  // in transitive call chain starting from d 
+
+  // Returns a set of methods containing SESEs and located at the first
+  // in transitive call chain starting from d
   public Set getFirstReachableMethodContainingSESE(Descriptor d,
-      Set<MethodDescriptor> methodsContainingSESEs) {
+                                                   Set<MethodDescriptor> methodsContainingSESEs) {
     HashSet tovisit = new HashSet();
     tovisit.add(d);
     HashSet callable = new HashSet();
@@ -224,22 +225,22 @@ public class BaseCallGraph implements CallGraph {
       Set s = (Set) mapCaller2CalleeSet.get(md);
 
       if (s != null) {
-        for (Iterator it = s.iterator(); it.hasNext();) {
-          MethodDescriptor md2 = (MethodDescriptor) it.next();
-          if (!callable.contains(md2)) {
-            callable.add(md2);
-            if (!methodsContainingSESEs.contains(md2)) {
-              // if current method has sese, do not need to go down
-              tovisit.add(md2);
-            }
-          }
-        }
+	for (Iterator it = s.iterator(); it.hasNext(); ) {
+	  MethodDescriptor md2 = (MethodDescriptor) it.next();
+	  if (!callable.contains(md2)) {
+	    callable.add(md2);
+	    if (!methodsContainingSESEs.contains(md2)) {
+	      // if current method has sese, do not need to go down
+	      tovisit.add(md2);
+	    }
+	  }
+	}
       }
     }
 //    callable.retainAll(methodsContainingSESEs);
     return callable;
   }
-  
+
 
   private void buildGraph() {
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
@@ -276,9 +277,9 @@ public class BaseCallGraph implements CallGraph {
       if (fn.kind()==FKind.FlatCall) {
 	FlatCall fc=(FlatCall)fn;
 	MethodDescriptor calledmethod=fc.getMethod();
-	Set methodsthatcouldbecalled=fc.getThis()==null ? getMethods(calledmethod) :
+	Set methodsthatcouldbecalled=fc.getThis()==null?getMethods(calledmethod):
 	                              getMethods(calledmethod, fc.getThis().getType());
-	
+
 	// add caller -> callee maps
 	if( !mapCaller2CalleeSet.containsKey(caller) ) {
 	  mapCaller2CalleeSet.put(caller, new HashSet() );

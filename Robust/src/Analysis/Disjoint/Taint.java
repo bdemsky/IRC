@@ -32,7 +32,7 @@ public class Taint extends Canonical {
   // a stall site and live variable or
   // an sese (rblock) and an in-set var
   // only one identifer will be non-null
-  
+
   // identify an sese (rblock) + inset var
   protected FlatSESEEnterNode sese;
 
@@ -42,7 +42,7 @@ public class Taint extends Canonical {
   // either type of taint includes a var
   // and allocation site
   protected TempDescriptor var;
-  protected Alloc      allocSite;
+  protected Alloc allocSite;
 
   // taints have a new, possibly null element which is
   // the FlatNode at which the tainted reference was
@@ -57,55 +57,55 @@ public class Taint extends Canonical {
 
   public Taint reTaint(FlatNode fn) {
     Taint out=new Taint(sese, stallSite, var, allocSite, fn, preds);
-    out = (Taint) Canonical.makeCanonical( out );
+    out = (Taint) Canonical.makeCanonical(out);
     return out;
   }
 
-  public static Taint factory( FlatSESEEnterNode sese,
-                               TempDescriptor    insetVar,
-                               Alloc         as,
-                               FlatNode          whereDefined,
-                               ExistPredSet      eps ) {
-    Taint out = new Taint( sese, null, insetVar, as, whereDefined, eps );
-    out = (Taint) Canonical.makeCanonical( out );
+  public static Taint factory(FlatSESEEnterNode sese,
+                              TempDescriptor insetVar,
+                              Alloc as,
+                              FlatNode whereDefined,
+                              ExistPredSet eps) {
+    Taint out = new Taint(sese, null, insetVar, as, whereDefined, eps);
+    out = (Taint) Canonical.makeCanonical(out);
     return out;
   }
 
-  public static Taint factory( FlatNode       stallSite,
-                               TempDescriptor var,
-                               Alloc      as,
-                               FlatNode       whereDefined,
-                               ExistPredSet   eps ) {
-    Taint out = new Taint( null, stallSite, var, as, whereDefined, eps );
-    out = (Taint) Canonical.makeCanonical( out );
+  public static Taint factory(FlatNode stallSite,
+                              TempDescriptor var,
+                              Alloc as,
+                              FlatNode whereDefined,
+                              ExistPredSet eps) {
+    Taint out = new Taint(null, stallSite, var, as, whereDefined, eps);
+    out = (Taint) Canonical.makeCanonical(out);
     return out;
   }
 
-  public static Taint factory( FlatSESEEnterNode sese,
-                               FlatNode          stallSite,
-                               TempDescriptor    var,
-                               Alloc         as,
-                               FlatNode          whereDefined,
-                               ExistPredSet      eps ) {
-    Taint out = new Taint( sese, stallSite, var, as, whereDefined, eps );
-    out = (Taint) Canonical.makeCanonical( out );
+  public static Taint factory(FlatSESEEnterNode sese,
+                              FlatNode stallSite,
+                              TempDescriptor var,
+                              Alloc as,
+                              FlatNode whereDefined,
+                              ExistPredSet eps) {
+    Taint out = new Taint(sese, stallSite, var, as, whereDefined, eps);
+    out = (Taint) Canonical.makeCanonical(out);
     return out;
   }
 
-  protected Taint( FlatSESEEnterNode sese,
-                   FlatNode          stallSite,
-                   TempDescriptor    v,
-                   Alloc         as,
-                   FlatNode          fnDefined,
-                   ExistPredSet      eps ) {
-    assert 
+  protected Taint(FlatSESEEnterNode sese,
+                  FlatNode stallSite,
+                  TempDescriptor v,
+                  Alloc as,
+                  FlatNode fnDefined,
+                  ExistPredSet eps) {
+    assert
       (sese == null && stallSite != null) ||
-      (sese != null && stallSite == null);
-      
+    (sese != null && stallSite == null);
+
     assert v   != null;
     assert as  != null;
     assert eps != null;
-    
+
     this.sese      = sese;
     this.stallSite = stallSite;
     this.var       = v;
@@ -114,11 +114,11 @@ public class Taint extends Canonical {
     this.preds     = eps;
   }
 
-  protected Taint( Taint t ) {
-    this( t.sese, 
-          t.stallSite, 
-          t.var, 
-          t.allocSite, 
+  protected Taint(Taint t) {
+    this( t.sese,
+          t.stallSite,
+          t.var,
+          t.allocSite,
           t.fnDefined,
           t.preds );
   }
@@ -155,16 +155,16 @@ public class Taint extends Canonical {
     return preds;
   }
 
-  public boolean equalsSpecific( Object o ) {
-    if( !equalsIgnorePreds( o ) ) {
+  public boolean equalsSpecific(Object o) {
+    if( !equalsIgnorePreds(o) ) {
       return false;
     }
-        
+
     Taint t = (Taint) o;
-    return preds.equals( t.preds );
+    return preds.equals(t.preds);
   }
 
-  public boolean equalsIgnorePreds( Object o ) {
+  public boolean equalsIgnorePreds(Object o) {
     if( o == null ) {
       return false;
     }
@@ -177,37 +177,37 @@ public class Taint extends Canonical {
 
     boolean seseEqual;
     if( sese == null ) {
-      seseEqual = (t.sese == null);      
+      seseEqual = (t.sese == null);
     } else {
-      seseEqual = sese.equals( t.sese );
+      seseEqual = sese.equals(t.sese);
     }
 
     boolean stallSiteEqual;
     if( stallSite == null ) {
       stallSiteEqual = (t.stallSite == null);
     } else {
-      stallSiteEqual = stallSite.equals( t.stallSite );
+      stallSiteEqual = stallSite.equals(t.stallSite);
     }
 
     boolean fnDefinedEqual;
     if( fnDefined == null ) {
       fnDefinedEqual = (t.fnDefined == null);
     } else {
-      fnDefinedEqual = fnDefined.equals( t.fnDefined );
+      fnDefinedEqual = fnDefined.equals(t.fnDefined);
     }
 
-    return 
-      seseEqual                      && 
+    return
+      seseEqual                      &&
       stallSiteEqual                 &&
       fnDefinedEqual                 &&
-      var      .equals( t.var  )     &&
-      allocSite.equals( t.allocSite );
+      var.equals(t.var)     &&
+      allocSite.equals(t.allocSite);
   }
 
   public int hashCodeSpecific() {
     int hash = allocSite.hashCode();
     hash = hash ^ var.hashCode();
-  
+
     if( sese != null ) {
       hash = hash ^ sese.hashCode();
     }
@@ -238,7 +238,7 @@ public class Taint extends Canonical {
       f += ", "+fnDefined;
     }
 
-    return 
+    return
       "("+s+
       "-"+var+
       ", "+allocSite.toStringBrief()+

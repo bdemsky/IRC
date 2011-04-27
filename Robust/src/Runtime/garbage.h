@@ -21,8 +21,8 @@ struct pointerblock {
   if ((!(((unsigned int)orig)&0x1))) { \
     if (orig>=curr_heapbase&&orig<curr_heaptop) { \
       void *copy; \
-      if (gc_createcopy(orig,&copy)) \
-	enqueue(copy);\
+      if (gc_createcopy(orig,&copy))                                                                           \
+	enqueue(copy);                                              \
       dst=copy; \
     } \
   }
@@ -30,38 +30,38 @@ struct pointerblock {
 #define ENQUEUE(orig, dst) \
   if (orig>=curr_heapbase&&orig<curr_heaptop) { \
     void *copy; \
-    if (gc_createcopy(orig,&copy)) \
-      enqueue(copy);\
+    if (gc_createcopy(orig,&copy))                                                                       \
+      enqueue(copy);                                          \
     dst=copy; \
   }
 #define SENQUEUE(orig, dst) \
   { \
     void *copy; \
-    if (gc_createcopy(orig,&copy)) \
-      enqueue(copy);\
+    if (gc_createcopy(orig,&copy))                                                                       \
+      enqueue(copy);                                          \
     dst=copy; \
   }
 #elif defined(FASTCHECK)
 #define ENQUEUE(orig, dst) \
   if (((unsigned int)orig)!=1) { \
     void *copy; \
-    if (gc_createcopy(orig,&copy)) \
-      enqueue(copy);\
+    if (gc_createcopy(orig,&copy))                                                                       \
+      enqueue(copy);                                          \
     dst=copy; }
 #else
 #define ENQUEUE(orig, dst) \
   if (orig!=NULL) { \
     void *copy; \
-    if (gc_createcopy(orig,&copy)) \
-      enqueue(copy); \
+    if (gc_createcopy(orig,&copy))                                                                       \
+      enqueue(copy);                                           \
     dst=copy; \
   }
 #endif
 
-struct garbagelist {  
+struct garbagelist {
   int size;
-  struct garbagelist *next;  
-  void * array[]; 
+  struct garbagelist *next;
+  void * array[];
 };
 
 extern void * curr_heapbase;
@@ -76,7 +76,7 @@ extern void * to_heaptop;
 struct listitem {
   struct listitem * prev;
   struct listitem * next;
-  struct garbagelist * stackptr;  
+  struct garbagelist * stackptr;
 #ifdef THREADS
   struct lockvector * lvector;
 #endif

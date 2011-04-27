@@ -20,7 +20,7 @@ public class Modifiers {
 
   // java annotation can be intermixed freely with modifiers
   // so Modifiers  maintains the list of annotations for later usage
-  Vector<AnnotationDescriptor> annotations;  
+  Vector<AnnotationDescriptor> annotations;
   private int value;
 
   public Modifiers() {
@@ -31,12 +31,12 @@ public class Modifiers {
   public Modifiers(int v) {
     value=v;
   }
-  
-  public void addAnnotation(AnnotationDescriptor an){
+
+  public void addAnnotation(AnnotationDescriptor an) {
     annotations.add(an);
   }
-  
-  public Vector<AnnotationDescriptor> getAnnotations(){
+
+  public Vector<AnnotationDescriptor> getAnnotations() {
     return annotations;
   }
 
@@ -49,7 +49,7 @@ public class Modifiers {
   public boolean isAtomic() {
     return ((value&ATOMIC)!=0);
   }
-  
+
   public boolean isAbstract() {
     return ((value&ABSTRACT)!=0);
   }
@@ -69,11 +69,11 @@ public class Modifiers {
   public boolean isFinal() {
     return ((value&FINAL)!=0);
   }
-  
+
   public boolean isVolatile() {
     return ((value&VOLATILE)!= 0);
   }
-  
+
   public boolean isTransient() {
     return ((value & TRANSIENT) != 0);
   }

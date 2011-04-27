@@ -50,12 +50,12 @@ public class ExecutionGraph {
     while (it.hasNext()) {
       FlagState fs = it.next();
       if(fs.isSourceNode()) {
-	for (Iterator allocit = ((Vector)fs.getAllocatingTasks()).iterator(); allocit.hasNext();) {
+	for (Iterator allocit = ((Vector)fs.getAllocatingTasks()).iterator(); allocit.hasNext(); ) {
 	  TaskDescriptor alloctask=(TaskDescriptor)allocit.next();
 	  EGTaskNode srcnode=new EGTaskNode(alloctask.getSymbol(),alloctask, fs);
 	  nodes.add(srcnode);
 	  srcnode.setSource();
-	  for (Iterator edges = fs.edges(); edges.hasNext();) {
+	  for (Iterator edges = fs.edges(); edges.hasNext(); ) {
 	    FEdge edge = (FEdge)edges.next();
 	    EGTaskNode targetnode=getNode(edge, map, nodes);
 	    EGEdge newedge=new EGEdge(fs, targetnode);
@@ -63,10 +63,10 @@ public class ExecutionGraph {
 	  }
 	}
       }
-      for(Iterator init=fs.inedges(); init.hasNext();) {
+      for(Iterator init=fs.inedges(); init.hasNext(); ) {
 	FEdge inedge=(FEdge)init.next();
 	EGTaskNode srcnode=getNode(inedge, map, nodes);
-	for(Iterator outit=fs.edges(); outit.hasNext();) {
+	for(Iterator outit=fs.edges(); outit.hasNext(); ) {
 	  FEdge outedge=(FEdge)outit.next();
 	  EGTaskNode dstnode=getNode(outedge, map, nodes);
 	  EGEdge newedge=new EGEdge(fs,dstnode);
@@ -98,7 +98,7 @@ public class ExecutionGraph {
   private void test(Hashtable graph) {
     System.out.println("\nGraph contains :");
     Collection c = graph.values();
-    for ( Iterator it = c.iterator(); it.hasNext();) {
+    for ( Iterator it = c.iterator(); it.hasNext(); ) {
       EGTaskNode tn = (EGTaskNode)it.next();
       System.out.println(tn.getTextLabel()+" ID "+tn.getLabel()+" FS "+tn.getFSName());
     }
@@ -128,13 +128,13 @@ public class ExecutionGraph {
   private void traverse(java.io.PrintWriter output, Set v) {
     EGTaskNode tn;
 
-    for(Iterator it1 = v.iterator(); it1.hasNext();) {
+    for(Iterator it1 = v.iterator(); it1.hasNext(); ) {
       tn = (EGTaskNode)it1.next();
       output.println("\t"+tn.getLabel()+" [label=\""+tn.getTextLabel()+"\"");
       if (tn.isMultipleParams()) output.println(", color=blue");
       output.println("];");
 
-      for(Iterator it2 = tn.edges(); it2.hasNext();) {
+      for(Iterator it2 = tn.edges(); it2.hasNext(); ) {
 	output.println("\t"+tn.getLabel()+" -> "+((EGTaskNode)((EGEdge)it2.next()).getTarget()).getLabel()+";");
       }
     }

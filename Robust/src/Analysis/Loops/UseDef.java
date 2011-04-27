@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.Iterator;
 import Analysis.Liveness;
 
-public class UseDef{
+public class UseDef {
   Hashtable<TempFlatPair, Set<FlatNode>> defs;
   Hashtable<TempFlatPair, Set<FlatNode>> uses;
 
@@ -48,45 +48,45 @@ public class UseDef{
       toanalyze.remove(fn);
       HashSet<TempFlatPair> s=new HashSet<TempFlatPair>();
       Set<TempDescriptor> liveset=livemap.get(fn);
-      for(int i=0;i<fn.numPrev();i++) {
+      for(int i=0; i<fn.numPrev(); i++) {
 	FlatNode prev=fn.getPrev(i);
 	Set<TempFlatPair> prevs=tmp.get(prev);
 	if (prevs!=null) {
-	  nexttfp:
-	  for(Iterator<TempFlatPair> tfit=prevs.iterator();tfit.hasNext();) {
+nexttfp:
+	  for(Iterator<TempFlatPair> tfit=prevs.iterator(); tfit.hasNext(); ) {
 	    TempFlatPair tfp=tfit.next();
 	    if (!liveset.contains(tfp.t))
 	      continue;
-	    for(int j=0;j<fnwrites.length;j++) {
+	    for(int j=0; j<fnwrites.length; j++) {
 	      if (tfp.t==fnwrites[j])
 		continue nexttfp;
 	    }
 	    s.add(tfp);
 	  }
 	}
-	for(int j=0;j<fnwrites.length;j++) {
+	for(int j=0; j<fnwrites.length; j++) {
 	  TempFlatPair tfp=new TempFlatPair(fnwrites[j], fn);
 	  s.add(tfp);
 	}
       }
       if (!tmp.containsKey(fn)||
-	  !tmp.get(fn).equals(s)) {
+          !tmp.get(fn).equals(s)) {
 	tmp.put(fn,s);
-	for(int i=0;i<fn.numNext();i++)
+	for(int i=0; i<fn.numNext(); i++)
 	  toanalyze.add(fn.getNext(i));
       }
     }
     Set<FlatNode> fset=fm.getNodeSet();
     defs=new Hashtable<TempFlatPair, Set<FlatNode>>();
     uses=new Hashtable<TempFlatPair, Set<FlatNode>>();
-    for(Iterator<FlatNode> fnit=fset.iterator();fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=fset.iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       TempDescriptor[] fnreads=fn.readsTemps();
       Set<TempFlatPair> tfpset=tmp.get(fn);
-      
-      for(int i=0;i<fnreads.length;i++) {
+
+      for(int i=0; i<fnreads.length; i++) {
 	TempDescriptor readt=fnreads[i];
-	for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
 	  TempFlatPair tfp=tfpit.next();
 	  if (tfp.t==readt) {
 	    //have use

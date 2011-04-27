@@ -14,7 +14,7 @@ void errorhandler(int sig, struct sigcontext ctx) {
     sigset_t toclear;
     sigemptyset(&toclear);
     sigaddset(&toclear, sig);
-    sigprocmask(SIG_UNBLOCK, &toclear,NULL); 
+    sigprocmask(SIG_UNBLOCK, &toclear,NULL);
 #ifdef TRANSSTATS
     numTransAbort++;
 #endif
@@ -28,12 +28,12 @@ void errorhandler(int sig, struct sigcontext ctx) {
 }
 
 
-/* 
+/*
  * returns 0 when read set objects are consistent
  * returns 1 when objects are inconsistent
  */
 int checktrans() {
- /* Create info to keep track of numelements */ 
+  /* Create info to keep track of numelements */
   unsigned int size = c_size;
   chashlistnode_t *ptr = c_table;
   int i;
@@ -45,16 +45,16 @@ int checktrans() {
     /* Inner loop to traverse the linked list of the cache lookupTable */
     while(curr != NULL) {
       if (curr->key == 0)
-        break;
+	break;
       objheader_t *headeraddr=(objheader_t*) curr->val;
       unsigned int machinenum;
       objheader_t *tmp;
-      
+
       if (STATUS(headeraddr) & NEW) {
 	//new objects cannot be stale
       } else if ((tmp=mhashSearch(curr->key)) != NULL) {
-      //memory barrier
-      CFENCE;
+	//memory barrier
+	CFENCE;
 	if (tmp->version!=headeraddr->version) {
 	  //version mismatch
 	  deletehead(head);
@@ -62,23 +62,23 @@ int checktrans() {
 	}
       } else {
 	machinenum = lhashSearch(curr->key);
-        head = createList(head, headeraddr, machinenum, c_numelements);
+	head = createList(head, headeraddr, machinenum, c_numelements);
       }
 
       curr = curr->next;
     }
   }
   /* Send oid and versions for checking */
-  if(head == NULL) 
+  if(head == NULL)
     return 0;
-  
+
   int retval = verify(head);
   deletehead(head);
   return retval==0;
 }
 
 nodeElem_t * createList(nodeElem_t *head, objheader_t *headeraddr, unsigned int mid,
-    unsigned int c_numelements) {
+                        unsigned int c_numelements) {
 
   nodeElem_t *ptr, *tmp;
   int found = 0, offset = 0;
@@ -87,17 +87,17 @@ nodeElem_t * createList(nodeElem_t *head, objheader_t *headeraddr, unsigned int 
   while(tmp != NULL) {
     if(tmp->mid == mid) {
       if (STATUS(headeraddr) & DIRTY) {
-        offset = (sizeof(unsigned int) + sizeof(short)) * tmp->nummod;
-        *((unsigned int *)(((char *)tmp->objmod) + offset))=OID(headeraddr);
-        offset += sizeof(unsigned int);
-        *((unsigned short *)(((char *)tmp->objmod) + offset)) = headeraddr->version;
-        tmp->nummod++;
+	offset = (sizeof(unsigned int) + sizeof(short)) * tmp->nummod;
+	*((unsigned int *)(((char *)tmp->objmod) + offset))=OID(headeraddr);
+	offset += sizeof(unsigned int);
+	*((unsigned short *)(((char *)tmp->objmod) + offset)) = headeraddr->version;
+	tmp->nummod++;
       } else {
-        offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
-        *((unsigned int *)(((char *)tmp->objread) + offset))=OID(headeraddr);
-        offset += sizeof(unsigned int);
-        *((unsigned short *)(((char *)tmp->objread) + offset)) = headeraddr->version;
-        tmp->numread++;
+	offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
+	*((unsigned int *)(((char *)tmp->objread) + offset))=OID(headeraddr);
+	offset += sizeof(unsigned int);
+	*((unsigned short *)(((char *)tmp->objread) + offset)) = headeraddr->version;
+	tmp->numread++;
       }
       found = 1;
       break;
@@ -134,12 +134,12 @@ nodeElem_t * createList(nodeElem_t *head, objheader_t *headeraddr, unsigned int 
 
 nodeElem_t * makehead(unsigned int numelements) {
   nodeElem_t *head;
-  //Create the first element 
+  //Create the first element
   if((head = calloc(1, sizeof(nodeElem_t))) == NULL) {
     printf("Calloc error %s %d\n", __func__, __LINE__);
     return NULL;
   }
-  
+
   if ((head->objmod = calloc(numelements,sizeof(unsigned int) + sizeof(unsigned short))) == NULL) {
     printf("Calloc error %s %d\n", __func__, __LINE__);
     free(head);
@@ -192,9 +192,9 @@ int verify(nodeElem_t *pile) {
   int pilecount = 0;
   while(pile != NULL) {
     /* send total bytes */
-    tosend[pilecount].control = CHECK_OBJECTS;  
-    tosend[pilecount].numread = pile->numread;  
-    tosend[pilecount].nummod = pile->nummod;  
+    tosend[pilecount].control = CHECK_OBJECTS;
+    tosend[pilecount].numread = pile->numread;
+    tosend[pilecount].nummod = pile->nummod;
     int sd = 0;
     if((sd = getSock2WithLock(transRequestSockPool, pile->mid)) < 0) {
       printf("Error: Getting a socket descriptor at %s(), %s(), %d\n", __FILE__, __func__, __LINE__);
@@ -219,7 +219,7 @@ int verify(nodeElem_t *pile) {
     }
     pilecount++;
     pile = pile->next;
-  }// end of pile processing
+  } // end of pile processing
 
   int checkObj = 0;
   int countConsistent = 0;
@@ -232,8 +232,8 @@ int verify(nodeElem_t *pile) {
       recv_data(sd, &control, sizeof(char));
       getReplyCtrl[i] = control;
       if(control == OBJ_INCONSISTENT) { /* Inconsistent */
-        checkObj = 1;
-        break;
+	checkObj = 1;
+	break;
       }
       countConsistent++;
     }
@@ -293,10 +293,10 @@ void print_trace() {
   size = backtrace(array, 100);
   strings = backtrace_symbols(array, size);
 
-  printf ("Obtained %zd stack frames.\n", size);
+  printf("Obtained %zd stack frames.\n", size);
   for (i = 0; i < size; i++)
-    printf ("%s\n", strings[i]);
-  free (strings);
+    printf("%s\n", strings[i]);
+  free(strings);
 }
 
 void checkObjVersion(struct readstruct * readbuffer, int sd, unsigned int numread, unsigned int nummod) {
@@ -332,21 +332,21 @@ void checkObjVersion(struct readstruct * readbuffer, int sd, unsigned int numrea
       return;
     } else {
       if(is_write_locked(STATUSPTR(header))) { //object write locked
-        control = OBJ_INCONSISTENT;
-        send_data(sd, &control, sizeof(char));
-        return;
+	control = OBJ_INCONSISTENT;
+	send_data(sd, &control, sizeof(char));
+	return;
       }
       CFENCE;
       //compare versions
       if(version == header->version)
-        v_match++;
+	v_match++;
       else {
-        control = OBJ_INCONSISTENT;
-        send_data(sd, &control, sizeof(char));
-        return;
+	control = OBJ_INCONSISTENT;
+	send_data(sd, &control, sizeof(char));
+	return;
       }
     }
-  } // end of objects read 
+  } // end of objects read
 
   for(i=0; i<nummod; i++) {
     //unsigned int oid = objmod[i].oid;
@@ -363,17 +363,17 @@ void checkObjVersion(struct readstruct * readbuffer, int sd, unsigned int numrea
       return;
     } else {
       if(is_write_locked(STATUSPTR(header))) { //object write locked
-        control = OBJ_INCONSISTENT;
-        send_data(sd, &control, sizeof(char));
-        return;
+	control = OBJ_INCONSISTENT;
+	send_data(sd, &control, sizeof(char));
+	return;
       }
       //compare versions
       if(version == header->version)
-        v_match++;
+	v_match++;
       else {
-        control = OBJ_INCONSISTENT;
-        send_data(sd, &control, sizeof(char));
-        return;
+	control = OBJ_INCONSISTENT;
+	send_data(sd, &control, sizeof(char));
+	return;
       }
     }
   } // end of objects modified

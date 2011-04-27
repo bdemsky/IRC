@@ -34,41 +34,41 @@ public class TaintSet extends Canonical {
 
   public static TaintSet factory(HashSet<Taint> taints) {
     TaintSet out = new TaintSet(taints);
-    out = (TaintSet) Canonical.makeCanonical( out );
+    out = (TaintSet) Canonical.makeCanonical(out);
     return out;
   }
 
   public TaintSet reTaint(FlatNode fn) {
     HashSet<Taint> taintset=new HashSet<Taint>();
-    for(Taint t:taints) {
+    for(Taint t : taints) {
       if (t.getWhereDefined()!=fn) {
 	t=t.reTaint(fn);
       }
       taintset.add(t);
     }
-    
+
     TaintSet out=new TaintSet(taintset);
-    out = (TaintSet) Canonical.makeCanonical( out );
+    out = (TaintSet) Canonical.makeCanonical(out);
     return out;
   }
 
   public static TaintSet factory() {
     TaintSet out = new TaintSet();
-    out = (TaintSet) Canonical.makeCanonical( out );
+    out = (TaintSet) Canonical.makeCanonical(out);
     return out;
   }
 
-  public static TaintSet factory( Taint t ) {
+  public static TaintSet factory(Taint t) {
     assert t != null;
     assert t.isCanonical();
-    TaintSet out = new TaintSet();    
-    out.taints.add( t );
-    out = (TaintSet) Canonical.makeCanonical( out );
+    TaintSet out = new TaintSet();
+    out.taints.add(t);
+    out = (TaintSet) Canonical.makeCanonical(out);
     return out;
   }
 
-  public static TaintSet factory( TaintSet     ts,
-                                  ExistPredSet preds ) {
+  public static TaintSet factory(TaintSet ts,
+                                 ExistPredSet preds) {
     assert ts != null;
     assert ts.isCanonical();
 
@@ -77,33 +77,33 @@ public class TaintSet extends Canonical {
     Iterator<Taint> tItr = ts.iterator();
     while( tItr.hasNext() ) {
       Taint t    = tItr.next();
-      Taint tOut = Taint.factory( t.sese,
-                                  t.stallSite,
-                                  t.var,
-                                  t.allocSite,
-                                  t.fnDefined,
-                                  preds );
-      out.taints.add( tOut );
+      Taint tOut = Taint.factory(t.sese,
+                                 t.stallSite,
+                                 t.var,
+                                 t.allocSite,
+                                 t.fnDefined,
+                                 preds);
+      out.taints.add(tOut);
     }
 
-    out = (TaintSet) Canonical.makeCanonical( out );
+    out = (TaintSet) Canonical.makeCanonical(out);
     return out;
   }
 
   public TaintSet add(Taint t) {
     return Canonical.addPTR(this, t);
     /*    TaintSet newt=new TaintSet();
-    newt.taints.addAll(taints);
-    newt.taints.add(t);
-    return (TaintSet) Canonical.makeCanonical(newt);*/
+       newt.taints.addAll(taints);
+       newt.taints.add(t);
+       return (TaintSet) Canonical.makeCanonical(newt);*/
   }
 
   public TaintSet merge(TaintSet ts) {
     return Canonical.unionPTR(this, ts);
     /*    TaintSet newt=new TaintSet();
-    newt.taints.addAll(taints);
-    newt.taints.addAll(ts.taints);
-    return (TaintSet) Canonical.makeCanonical(newt);*/
+       newt.taints.addAll(taints);
+       newt.taints.addAll(ts.taints);
+       return (TaintSet) Canonical.makeCanonical(newt);*/
   }
 
   protected TaintSet() {
@@ -126,21 +126,21 @@ public class TaintSet extends Canonical {
     return taints.isEmpty();
   }
 
-  public Taint containsIgnorePreds( Taint t ) {
+  public Taint containsIgnorePreds(Taint t) {
     assert t != null;
 
     Iterator<Taint> tItr = taints.iterator();
     while( tItr.hasNext() ) {
       Taint tThis = tItr.next();
-      if( tThis.equalsIgnorePreds( t ) ) {
-        return tThis;
+      if( tThis.equalsIgnorePreds(t) ) {
+	return tThis;
       }
     }
 
     return null;
   }
 
-  public boolean equalsSpecific( Object o ) {
+  public boolean equalsSpecific(Object o) {
     if( o == null ) {
       return false;
     }
@@ -150,9 +150,9 @@ public class TaintSet extends Canonical {
     }
 
     TaintSet ts = (TaintSet) o;
-    return taints.equals( ts.taints );
+    return taints.equals(ts.taints);
   }
-  
+
   public int hashCodeSpecific() {
     return taints.hashCode();
   }
@@ -166,13 +166,13 @@ public class TaintSet extends Canonical {
 
       s += t.toString();
       if( tItr.hasNext() ) {
-        s += ",\\n";
+	s += ",\\n";
       }
     }
     s += "]";
     return s;
   }
-  
+
   public String toString() {
     return taints.toString();
   }

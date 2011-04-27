@@ -118,7 +118,7 @@ int invalidateObj(trans_req_data_t *tdata, int pilecount, char finalresponse, in
   int retval;
   int i;
   int nummod=0;
-  for(i=0;i<pilecount;i++) {
+  for(i=0; i<pilecount; i++) {
     nummod+=tdata[i].f.nummod;
   }
   bzero(&clientaddr, sizeof(clientaddr));
@@ -149,7 +149,7 @@ int sendUdpMsg(trans_req_data_t *tdata, int pilecount, int nummod, struct sockad
   offset += sizeof(unsigned int);
 
   while(nummod>0) {
-    int numtosend=nummod>maxObjsPerMsg?maxObjsPerMsg:nummod;
+    int numtosend=nummod>maxObjsPerMsg ? maxObjsPerMsg : nummod;
     int localoffset=offset;
     int sentmsgs=0;
     *((short *)(writeBuffer+offset)) = (short) (sizeof(unsigned int) * numtosend);
@@ -157,12 +157,12 @@ int sendUdpMsg(trans_req_data_t *tdata, int pilecount, int nummod, struct sockad
 
     for(; j < pilecount; j++) {
       for(; i < tdata[j].f.nummod; i++) {
-        *((unsigned int *) (writeBuffer+localoffset)) = tdata[j].oidmod[i];  //copy objects
-        localoffset += sizeof(unsigned int);
-        if ((++sentmsgs)==numtosend) {
-          i++;
-          goto send;
-        }
+	*((unsigned int *) (writeBuffer+localoffset)) = tdata[j].oidmod[i];  //copy objects
+	localoffset += sizeof(unsigned int);
+	if ((++sentmsgs)==numtosend) {
+	  i++;
+	  goto send;
+	}
       }
       i=0;
     }
@@ -199,9 +199,9 @@ int invalidateFromPrefetchCache(char *buffer) {
       objheader_t *header;
       /* Lookup Objects in prefetch cache and remove them */
       if(((header = prehashSearch(oid)) != NULL)) {
-        //Keep invalid objects
-        STATUS(header)=DIRTY;
-        //prehashRemove(oid);
+	//Keep invalid objects
+	STATUS(header)=DIRTY;
+	//prehashRemove(oid);
       }
       offset += sizeof(unsigned int);
     }

@@ -21,7 +21,7 @@ public class Schedule {
   private Hashtable<TaskDescriptor, Vector<FlagState>> td2fs;
 
   public Schedule(int coreNum,
-	          int gid) {
+                  int gid) {
     this.gid = gid;
     this.coreNum = coreNum;
     this.tasks = null;
@@ -33,7 +33,7 @@ public class Schedule {
   }
 
   public int getGid() {
-      return gid;
+    return gid;
   }
 
   public int getCoreNum() {
@@ -84,8 +84,8 @@ public class Schedule {
     return this.td2fs.get(td);
   }
 
-  public void addTargetCore(FlagState fstate, 
-	                    Integer targetCore) {
+  public void addTargetCore(FlagState fstate,
+                            Integer targetCore) {
     if(this.targetCores == null) {
       this.targetCores = new Hashtable<FlagState, Queue<Integer>>();
     }
@@ -96,9 +96,9 @@ public class Schedule {
                                                       // which reflects probabilities.
   }
 
-  public void addTargetCore(FlagState fstate, 
-	                    Integer targetCore, 
-	                    FlagState tfstate) {
+  public void addTargetCore(FlagState fstate,
+                            Integer targetCore,
+                            FlagState tfstate) {
     if(this.targetCores == null) {
       this.targetCores = new Hashtable<FlagState, Queue<Integer>>();
     }
@@ -112,8 +112,8 @@ public class Schedule {
     this.targetFState.put(fstate, tfstate);
   }
 
-  public void addAllyCore(FlagState fstate, 
-	                  Integer targetCore) {
+  public void addAllyCore(FlagState fstate,
+                          Integer targetCore) {
     if(this.allyCores == null) {
       this.allyCores = new Hashtable<FlagState, Vector<Integer>>();
     }
@@ -121,12 +121,12 @@ public class Schedule {
       this.allyCores.put(fstate, new Vector<Integer>());
     }
     if((this.coreNum != targetCore.intValue()) && (!this.allyCores.get(fstate).contains(targetCore))) {
-      this.allyCores.get(fstate).add(targetCore); 
+      this.allyCores.get(fstate).add(targetCore);
     }
   }
 
-  public void addFState4TD(TaskDescriptor td, 
-	                   FlagState fstate) {
+  public void addFState4TD(TaskDescriptor td,
+                           FlagState fstate) {
     if(this.td2fs == null) {
       this.td2fs = new Hashtable<TaskDescriptor, Vector<FlagState>>();
     }
@@ -154,7 +154,7 @@ public class Schedule {
       this.td2num.put(task, this.td2num.get(task).intValue()+1);
     }
   }
-  
+
   public int getTaskNum(TaskDescriptor task) {
     return this.td2num.get(task);
   }

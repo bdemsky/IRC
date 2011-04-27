@@ -38,7 +38,7 @@ public class FlatMethod extends FlatNode {
     }
     ret+="(";
     boolean first=true;
-    for(int i=0;i<numParameters();i++) {
+    for(int i=0; i<numParameters(); i++) {
       if (first) {
 	first=false;
       } else
@@ -96,9 +96,9 @@ public class FlatMethod extends FlatNode {
 
   public void check() {
     Set<FlatNode> set=getNodeSet();
-    for(Iterator<FlatNode> setit=set.iterator();setit.hasNext();) {
+    for(Iterator<FlatNode> setit=set.iterator(); setit.hasNext(); ) {
       FlatNode fn=setit.next();
-      for(int i=0;i<fn.numPrev();i++) {
+      for(int i=0; i<fn.numPrev(); i++) {
 	FlatNode fnprev=fn.getPrev(i);
 	if (!set.contains(fnprev)) {
 	  System.out.println(fn+" has unreachable parent:"+i+"  "+fnprev);
@@ -183,7 +183,7 @@ public class FlatMethod extends FlatNode {
       visited.add(current_node);
       if (nodetolabel.containsKey(current_node)) {
 	st+="L"+nodetolabel.get(current_node)+":\n";
-	for(int i=0;i<current_node.numPrev();i++) {
+	for(int i=0; i<current_node.numPrev(); i++) {
 	  st+="i="+i+" "+current_node.getPrev(i);
 	}
 	st+="\n";

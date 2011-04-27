@@ -39,7 +39,7 @@ public class LoopInvariant {
   }
 
   public void recurse(Loops parent) {
-    for(Iterator lpit=parent.nestedLoops().iterator();lpit.hasNext();) {
+    for(Iterator lpit=parent.nestedLoops().iterator(); lpit.hasNext(); ) {
       Loops child=(Loops)lpit.next();
       processLoop(child, child.nestedLoops().size()==0);
       recurse(child);
@@ -58,12 +58,12 @@ public class LoopInvariant {
 
     HashSet<FieldDescriptor> fields=new HashSet<FieldDescriptor>();
     HashSet<TypeDescriptor> types=new HashSet<TypeDescriptor>();
-    
+
     if (!isLeaf) {
-      unsafe=true; 
+      unsafe=true;
     } else {
       /* Check whether it is safe to reuse values. */
-      for(Iterator elit=elements.iterator();elit.hasNext();) {
+      for(Iterator elit=elements.iterator(); elit.hasNext(); ) {
 	FlatNode fn=(FlatNode)elit.next();
 	if (fn.kind()==FKind.FlatAtomicEnterNode||
 	    fn.kind()==FKind.FlatAtomicExitNode) {
@@ -90,15 +90,15 @@ public class LoopInvariant {
 	}
       }
     }
-    
+
     HashSet dominatorset=unsafe?null:computeAlways(l);
 
     /* Compute loop invariants */
     table.put(entrance, new Vector<FlatNode>());
     while(changed) {
       changed=false;
-      nextfn:
-      for(Iterator tpit=toprocess.iterator();tpit.hasNext();) {
+nextfn:
+      for(Iterator tpit=toprocess.iterator(); tpit.hasNext(); ) {
 	FlatNode fn=(FlatNode)tpit.next();
 	switch(fn.kind()) {
 	case FKind.FlatOpNode:
@@ -123,10 +123,10 @@ public class LoopInvariant {
 	      checkNode(fn,elements))
 	    continue nextfn;
 	  TypeDescriptor td=((FlatElementNode)fn).getSrc().getType();
-	  for(Iterator<TypeDescriptor> tdit=types.iterator();tdit.hasNext();) {
+	  for(Iterator<TypeDescriptor> tdit=types.iterator(); tdit.hasNext(); ) {
 	    TypeDescriptor td2=tdit.next();
 	    if (typeutil.isSuperorType(td,td2)||
-		typeutil.isSuperorType(td2,td)) {
+	        typeutil.isSuperorType(td2,td)) {
 	      continue nextfn;
 	    }
 	  }
@@ -150,7 +150,7 @@ public class LoopInvariant {
 	}
 	//mark to hoist
 	if (hoisted.add(fn))
-	    changed=true;
+	  changed=true;
 	table.get(entrance).add(fn);
       }
     }
@@ -165,7 +165,7 @@ public class LoopInvariant {
     assert entrances.size()==1;
     FlatNode entrance=(FlatNode)entrances.iterator().next();
     boolean first=true;
-    for (int i=0;i<entrance.numPrev();i++) {
+    for (int i=0; i<entrance.numPrev(); i++) {
       FlatNode incoming=entrance.getPrev(i);
       if (elements.contains(incoming)) {
 	HashSet domset=new HashSet();
@@ -179,7 +179,7 @@ public class LoopInvariant {
 	  dominatorset=domset;
 	  first=false;
 	} else {
-	  for(Iterator it=dominatorset.iterator();it.hasNext();) {
+	  for(Iterator it=dominatorset.iterator(); it.hasNext(); ) {
 	    FlatNode fn=(FlatNode)it.next();
 	    if (!domset.contains(fn))
 	      it.remove();
@@ -192,11 +192,11 @@ public class LoopInvariant {
 
   public boolean checkNode(FlatNode fn, Set elements) {
     //Can hoist if all variables are loop invariant
-    TempDescriptor[]uses=fn.readsTemps();
-    for(int i=0;i<uses.length;i++) {
+    TempDescriptor[] uses=fn.readsTemps();
+    for(int i=0; i<uses.length; i++) {
       TempDescriptor t=uses[i];
       Set<FlatNode> defset=usedef.defMap(fn, t);
-      for(Iterator<FlatNode> defit=defset.iterator();defit.hasNext();) {
+      for(Iterator<FlatNode> defit=defset.iterator(); defit.hasNext(); ) {
 	FlatNode def=defit.next();
 	if (elements.contains(def)&&defset.size()>1)
 	  return true;

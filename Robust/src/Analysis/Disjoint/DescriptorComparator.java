@@ -7,7 +7,7 @@ import java.io.*;
 
 public class DescriptorComparator implements Comparator {
 
-  public int compare( Object o1, Object o2  ) {
+  public int compare(Object o1, Object o2) {
 
     assert o1 instanceof Descriptor;
     assert o2 instanceof Descriptor;
@@ -17,5 +17,5 @@ public class DescriptorComparator implements Comparator {
 
     return d1.getNum() - d2.getNum();
   }
-  
+
 }

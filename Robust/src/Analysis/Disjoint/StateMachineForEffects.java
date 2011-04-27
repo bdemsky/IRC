@@ -20,10 +20,10 @@ public class StateMachineForEffects {
   public final static FlatNode startNode=new FlatNop();
   protected HashMap<Pair<Alloc, FieldDescriptor>, Integer> effectsMap;
 
-  // states in the machine are uniquely identified 
+  // states in the machine are uniquely identified
   // by a flat node (program point)
   protected Hashtable<FlatNode, SMFEState> fn2state;
-  
+
   //TODO Jim! Jim! Give me the weakly connected group number here!
   protected Hashtable<FlatNode, Integer> fn2weaklyConnectedGroupID;
 
@@ -42,10 +42,10 @@ public class StateMachineForEffects {
   protected Set<Effect> possiblyEvilEffects;
 
 
-  public StateMachineForEffects( FlatNode fnInitial ) {
+  public StateMachineForEffects(FlatNode fnInitial) {
     fn2state = new Hashtable<FlatNode, SMFEState>();
     effectsMap = new HashMap<Pair<Alloc, FieldDescriptor>, Integer>();
-    initialState = getState( startNode );
+    initialState = getState(startNode);
     this.fn=fnInitial;
     possiblyEvilEffects = new HashSet<Effect>();
   }
@@ -61,7 +61,7 @@ public class StateMachineForEffects {
   }
 
   public boolean isEmpty() {
-    for(FlatNode fn:fn2state.keySet()) {
+    for(FlatNode fn : fn2state.keySet()) {
       SMFEState state=fn2state.get(fn);
       if (!state.getConflicts().isEmpty())
 	return false;
@@ -77,11 +77,11 @@ public class StateMachineForEffects {
       return type.intValue();
   }
 
-  public void addEffect( FlatNode fnState, Effect e ) {
+  public void addEffect(FlatNode fnState, Effect e) {
     if (fnState==null)
       fnState=startNode;
-    SMFEState state = getState( fnState );
-    state.addEffect( e );
+    SMFEState state = getState(fnState);
+    state.addEffect(e);
     Pair<Alloc, FieldDescriptor> p=new Pair<Alloc, FieldDescriptor>(e.getAffectedAllocSite(), e.getField());
     int type=e.getType();
     if (!effectsMap.containsKey(p))
@@ -90,17 +90,17 @@ public class StateMachineForEffects {
       effectsMap.put(p, new Integer(type|effectsMap.get(p).intValue()));
   }
 
-  public void addTransition( FlatNode fnFrom,
-                             FlatNode fnTo,
-                             Effect e ) {
+  public void addTransition(FlatNode fnFrom,
+                            FlatNode fnTo,
+                            Effect e) {
     if (fnFrom==null)
       fnFrom=startNode;
-    
-    assert fn2state.containsKey( fnFrom );
-    SMFEState stateFrom = getState( fnFrom );
-    SMFEState stateTo   = getState( fnTo );
-    
-    stateFrom.addTransition( e, stateTo );
+
+    assert fn2state.containsKey(fnFrom);
+    SMFEState stateFrom = getState(fnFrom);
+    SMFEState stateTo   = getState(fnTo);
+
+    stateFrom.addTransition(e, stateTo);
   }
 
   public SMFEState getInitialState() {
@@ -108,23 +108,23 @@ public class StateMachineForEffects {
   }
 
 
-  protected SMFEState getState( FlatNode fn ) {
-    SMFEState state = fn2state.get( fn );
+  protected SMFEState getState(FlatNode fn) {
+    SMFEState state = fn2state.get(fn);
     if( state == null ) {
-      state = new SMFEState( fn ,id++ );
-      fn2state.put( fn, state );
+      state = new SMFEState(fn,id++);
+      fn2state.put(fn, state);
     }
     return state;
   }
-  
+
   public Integer getWeaklyConnectedGroupID(FlatNode fn) {
     //TODO stubby stubby!
     return 0;
   }
 
 
-  public void addPossiblyEvilEffect( Effect e ) {
-    possiblyEvilEffects.add( e );
+  public void addPossiblyEvilEffect(Effect e) {
+    possiblyEvilEffects.add(e);
   }
 
   public Set<Effect> getPossiblyEvilEffects() {
@@ -132,26 +132,26 @@ public class StateMachineForEffects {
   }
 
 
-  public void writeAsDOT( String graphName ) {
-    graphName = graphName.replaceAll( "[\\W]", "" );
+  public void writeAsDOT(String graphName) {
+    graphName = graphName.replaceAll("[\\W]", "");
 
     try {
-      BufferedWriter bw = 
-        new BufferedWriter( new FileWriter( graphName+".dot" ) );
+      BufferedWriter bw =
+        new BufferedWriter(new FileWriter(graphName+".dot") );
 
-      bw.write( "digraph "+graphName+" {\n" );
+      bw.write("digraph "+graphName+" {\n");
 
       Iterator<FlatNode> fnItr = fn2state.keySet().iterator();
       while( fnItr.hasNext() ) {
-        SMFEState state = fn2state.get( fnItr.next() );
-        bw.write( state.toStringDOT()+"\n" );
+	SMFEState state = fn2state.get(fnItr.next() );
+	bw.write(state.toStringDOT()+"\n");
       }
 
-      bw.write( "}\n" );
+      bw.write("}\n");
       bw.close();
-      
+
     } catch( IOException e ) {
-      throw new Error( "Error writing out DOT graph "+graphName );
+      throw new Error("Error writing out DOT graph "+graphName);
     }
   }
 

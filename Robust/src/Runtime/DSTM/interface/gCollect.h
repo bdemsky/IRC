@@ -30,7 +30,7 @@ typedef struct prefetchNodeInfo {
   objstr_t *newstale;
   int stale_count;
   int stall;
-  
+
 } prefetchNodeInfo_t;
 
 /********************************

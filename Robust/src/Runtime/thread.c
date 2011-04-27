@@ -75,7 +75,7 @@ void threadexit() {
 #else
   struct lockvector *lptr=&lvector;
 #endif
-  for(lptr->index--;lptr->index>=0;lptr->index--) {
+  for(lptr->index--; lptr->index>=0; lptr->index--) {
     if (lptr->locks[lptr->index].islastlock) {
       struct ___Object___ *ll=lptr->locks[lptr->index].object;
       ll->tid=0;
@@ -138,7 +138,7 @@ void threadhandler(int sig) {
   printf("We just took sig=%d\n",sig);
   printf("signal\n");
   printf("To get stack trace, set breakpoint in threadhandler in gdb\n");
-  
+
   threadexit();
 }
 #else
@@ -162,10 +162,10 @@ void threadhandler(int sig, struct sigcontext ctx) {
     perror("backtrace_symbols");
     exit(EXIT_FAILURE);
   }
-  
+
   for (j = 0; j < nptrs; j++)
     printf("%s\n", strings[j]);
-  
+
   threadexit();
 }
 #endif
@@ -250,7 +250,7 @@ void initializethreads() {
   lockedobjs=calloc(1, sizeof(struct objlist));
   objlockscope = calloc(1, sizeof(objlockstate_t));
   pthread_mutex_init(&lockedobjstore, NULL);
-  { 
+  {
     int i;
     for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {
       typesCausingAbort[i].numaccess = 0;
@@ -392,13 +392,13 @@ void initthread(struct ___Thread___ * ___this___) {
     perror("arraystack");
 #endif
 #endif
- ___Thread____NNR____staticStart____L___Thread___((struct ___Thread____NNR____staticStart____L___Thread____params *)p);
- objstrDelete(t_cache);
- objstrDelete(t_reserve);
- t_chashDelete();
- free(newobjs);
+  ___Thread____NNR____staticStart____L___Thread___((struct ___Thread____NNR____staticStart____L___Thread____params *)p);
+  objstrDelete(t_cache);
+  objstrDelete(t_reserve);
+  t_chashDelete();
+  free(newobjs);
 #ifdef STMSTATS
- free(lockedobjs);
+  free(lockedobjs);
 #endif
 #endif
   ___this___=(struct ___Thread___ *) p[2];
@@ -464,7 +464,7 @@ int CALL12(___Thread______nativeGetStatus____I, int ___mid___, struct ___Thread_
   return getStatus(___mid___);
 }
 #endif
-#else 
+#else
 #ifdef D___Thread______nativeGetStatus____I
 int CALL12(___Thread______nativeGetStatus____I, int ___mid___, struct ___Thread___ * ___this___, int ___mid___) {
   return 0;
@@ -545,7 +545,7 @@ void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
   pthread_mutex_lock(&joinlock);
   while(!VAR(___this___)->___finished___) {
 #ifdef PRECISE_GC
-  stopforgc((struct garbagelist *)___params___);
+    stopforgc((struct garbagelist *)___params___);
 #endif
     pthread_cond_wait(&joincond, &joinlock);
 #ifdef PRECISE_GC
@@ -617,9 +617,9 @@ void initDSMthread(int *ptr) {
   list=&litem;
   pthread_mutex_unlock(&gclistlock);
 
-  ((void(*) (void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(p);
+  ((void (*)(void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(p);
 #else
-  ((void(*) (void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(oid);
+  ((void (*)(void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(oid);
 #endif
   threadData = calloc(1, sizeof(unsigned int));
   *((unsigned int *) threadData) = oid;
@@ -671,7 +671,7 @@ void startDSMthread(int oid, int objType) {
   ptr[0]=oid;
   ptr[1]=objType;
   pthread_key_create(&oidval, globalDestructor);
-  
+
   do {
     retval=pthread_create(&thread, &nattr, (void * (*)(void *)) &initDSMthread,  ptr);
     if (retval!=0)

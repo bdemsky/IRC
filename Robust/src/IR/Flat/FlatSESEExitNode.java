@@ -6,7 +6,7 @@ public class FlatSESEExitNode extends FlatNode {
   protected SESENode treeNode;
   FlatSESEEnterNode enter;
 
-  public FlatSESEExitNode( SESENode sn ) {
+  public FlatSESEExitNode(SESENode sn) {
     treeNode = sn;
   }
   public void rewriteUse() {
@@ -17,7 +17,7 @@ public class FlatSESEExitNode extends FlatNode {
     return treeNode;
   }
 
-  public void setFlatEnter( FlatSESEEnterNode fsen ) {
+  public void setFlatEnter(FlatSESEEnterNode fsen) {
     enter = fsen;
   }
 

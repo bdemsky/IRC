@@ -38,11 +38,11 @@ public class ScheduleEdge extends Edge {
   /** Class Constructor
    *
    */
-  public ScheduleEdge(ScheduleNode target, 
-	              String label, 
-	              FlagState fstate, 
-	              int type, 
-	              int gid) {
+  public ScheduleEdge(ScheduleNode target,
+                      String label,
+                      FlagState fstate,
+                      int type,
+                      int gid) {
     super(target);
     this.uid = ScheduleEdge.nodeID++;
     this.gid = gid;

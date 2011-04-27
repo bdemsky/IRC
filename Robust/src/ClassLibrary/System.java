@@ -1,13 +1,13 @@
-public class System {  
+public class System {
   public static void printInt(int x) {
     String s=String.valueOf(x);
     printString(s);
   }
 
-    public static native void gc();
+  public static native void gc();
 
   public static native long currentTimeMillis();
-  
+
   public static native long microTimes();
 
   public static native long getticks();
@@ -33,7 +33,7 @@ public class System {
   public static void println(long o) {
     System.printString(""+o+"\n");
   }
-  
+
   public static void println() {
     System.printString("\n");
   }

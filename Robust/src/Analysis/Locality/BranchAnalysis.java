@@ -53,7 +53,7 @@ public class BranchAnalysis {
   public Set<FlatNode> getTargets() {
     HashSet<FlatNode> targets=new HashSet<FlatNode>();
     Collection<Set<FlatNode>> groups=groupmap.values();
-    for(Iterator<Set<FlatNode>> setit=groups.iterator();setit.hasNext();) {
+    for(Iterator<Set<FlatNode>> setit=groups.iterator(); setit.hasNext(); ) {
       Set<FlatNode> group=setit.next();
       targets.addAll(table.get(group));
     }
@@ -97,7 +97,7 @@ public class BranchAnalysis {
       } else {
 	Vector<FlatNode> exits=getJumps(fn);
 	output.println("switch(RESTOREBRANCH()) {");
-	for(int i=0;i<exits.size();i++) {
+	for(int i=0; i<exits.size(); i++) {
 	  output.println("case "+i+":");
 	  output.println("goto L"+nodetolabels.get(exits.get(i))+";");
 	}
@@ -111,7 +111,7 @@ public class BranchAnalysis {
     fnmap=computeMap(transset, nodeset, storeset);
     groupmap=new Hashtable<FlatNode, Set<FlatNode>>();
 
-    for(Iterator<FlatNode> fnit=transset.iterator();fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=transset.iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       if ((fn.numNext()>1&&storeset.contains(fn))||fn.kind()==FKind.FlatBackEdge||fn.kind()==FKind.FlatNop) {
 	FlatNode[] children=fnmap.get(fn);
@@ -121,7 +121,7 @@ public class BranchAnalysis {
 	  groupmap.put(fn, new HashSet<FlatNode>());
 	  groupmap.get(fn).add(fn);
 	}
-	for(int i=0;i<children.length;i++) {
+	for(int i=0; i<children.length; i++) {
 	  FlatNode child=children[i];
 	  if ((child.numNext()>1&&storeset.contains(child))||child.kind()==FKind.FlatBackEdge||child.kind()==FKind.FlatNop) {
 	    mergegroups(fn, child, groupmap);
@@ -131,14 +131,14 @@ public class BranchAnalysis {
     }
     //now we have groupings...
     Collection<Set<FlatNode>> groups=groupmap.values();
-    for(Iterator<Set<FlatNode>> setit=groups.iterator();setit.hasNext();) {
+    for(Iterator<Set<FlatNode>> setit=groups.iterator(); setit.hasNext(); ) {
       Set<FlatNode> group=setit.next();
       Vector<FlatNode> exits=new Vector<FlatNode>();
       table.put(group, exits);
-      for(Iterator<FlatNode> fnit=group.iterator();fnit.hasNext();) {
+      for(Iterator<FlatNode> fnit=group.iterator(); fnit.hasNext(); ) {
 	FlatNode fn=fnit.next();
 	FlatNode[] nextnodes=fnmap.get(fn);
-	for(int i=0;i<nextnodes.length;i++) {
+	for(int i=0; i<nextnodes.length; i++) {
 	  FlatNode nextnode=nextnodes[i];
 	  if (!group.contains(nextnode)) {
 	    //outside edge
@@ -162,7 +162,7 @@ public class BranchAnalysis {
     }
     if (groupmap.get(fn1)!=groupmap.get(fn2)) {
       groupmap.get(fn1).addAll(groupmap.get(fn2));
-      for(Iterator<FlatNode> fnit=groupmap.get(fn2).iterator();fnit.hasNext();) {
+      for(Iterator<FlatNode> fnit=groupmap.get(fn2).iterator(); fnit.hasNext(); ) {
 	FlatNode fn3=fnit.next();
 	groupmap.put(fn3, groupmap.get(fn1));
       }
@@ -179,13 +179,13 @@ public class BranchAnalysis {
       toprocess.remove(fn);
       Set<Object[]> incomingtuples=new HashSet<Object[]>();
 
-      for(int i=0;i<fn.numPrev();i++) {
+      for(int i=0; i<fn.numPrev(); i++) {
 	FlatNode fprev=fn.getPrev(i);
 	if (nodeset.contains(fprev)||storeset.contains(fprev)) {
-	  for(int j=0;j<fprev.numNext();j++) {
+	  for(int j=0; j<fprev.numNext(); j++) {
 	    if (fprev.getNext(j)==fn) {
 	      Object[] pair=new Object[2];
-	      pair[0]=new Integer(j);pair[1]=fprev;
+	      pair[0]=new Integer(j); pair[1]=fprev;
 	      incomingtuples.add(pair);
 	    }
 	  }
@@ -198,7 +198,7 @@ public class BranchAnalysis {
 
       if (nodeset.contains(fn)||storeset.contains(fn)||fn.kind()==FKind.FlatAtomicExitNode) {
 	//nodeset contains this node
-	for(Iterator<Object[]> it=incomingtuples.iterator();it.hasNext();) {
+	for(Iterator<Object[]> it=incomingtuples.iterator(); it.hasNext(); ) {
 	  Object[] pair=it.next();
 	  int index=((Integer)pair[0]).intValue();
 	  FlatNode node=(FlatNode)pair[1];
@@ -211,9 +211,9 @@ public class BranchAnalysis {
 
       //add if we need to update
       if (!fntotuple.containsKey(fn)||
-	  !fntotuple.get(fn).equals(incomingtuples)) {
+          !fntotuple.get(fn).equals(incomingtuples)) {
 	fntotuple.put(fn,incomingtuples);
-	for(int i=0;i<fn.numNext();i++) {
+	for(int i=0; i<fn.numNext(); i++) {
 	  if (transset.contains(fn.getNext(i)))
 	    toprocess.add(fn.getNext(i));
 	}

@@ -12,28 +12,28 @@
  * University of California, Irvine
  *
  * =============================================================================
- * 
+ *
  * Unless otherwise noted, the following license applies to STAMP files:
- * 
+ *
  * Copyright (c) 2007, Stanford University
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- * 
+ *
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
  *       distribution.
- * 
+ *
  *     * Neither the name of Stanford University nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY STANFORD UNIVERSITY ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -58,17 +58,16 @@ public class Queue {
   Object[] elements;
 
   public Queue() {
-		Queue(10);
+    Queue(10);
   }
 
   /* =============================================================================
    * queue_alloc
    * =============================================================================
    */
-  public Queue (int initCapacity)
-  {
+  public Queue (int initCapacity) {
     QUEUE_GROWTH_FACTOR = 2;
-    capacity = ((initCapacity < 2) ? 2 : initCapacity);
+    capacity = ((initCapacity < 2)?2:initCapacity);
 
     elements = new Object[capacity];
     size = 0;
@@ -82,10 +81,9 @@ public class Queue {
    * =============================================================================
    */
   public boolean
-    isEmpty ()
-    {
-      return (((pop + 1) % capacity == push) ? true : false);
-    }
+  isEmpty() {
+    return (((pop + 1) % capacity == push)?true:false);
+  }
 
 
   /* =============================================================================
@@ -93,65 +91,63 @@ public class Queue {
    * =============================================================================
    */
   public void
-    queue_clear ()
-    {
-      pop  = capacity - 1;
-      push = 0;
-    }
+  queue_clear() {
+    pop  = capacity - 1;
+    push = 0;
+  }
 
   /* =============================================================================
    * queue_push
    * =============================================================================
    */
   public boolean
-    push (Object dataPtr)
-    {
-      if(pop == push) {
+  push(Object dataPtr) {
+    if(pop == push) {
 //        System.out.println("push == pop in Queue.java");
-        return false;
-      }
-
-      /* Need to resize */
-      int newPush = (push + 1) % capacity;
-      if (newPush == pop) {
-
-        int newCapacity = capacity * QUEUE_GROWTH_FACTOR;
-        Object[] newElements = new Object[newCapacity];
-
-        if (newElements == null) {
-          return false;
-        }
-
-        int dst = 0;
-        Object[] tmpelements = elements;
-        if (pop < push) {
-          int src;
-          for (src = (pop + 1); src < push; src++, dst++) {
-            newElements[dst] = elements[src];
-          }
-        } else {
-          int src;
-          for (src = (pop + 1); src < capacity; src++, dst++) {
-            newElements[dst] = elements[src];
-          }
-          for (src = 0; src < push; src++, dst++) {
-            newElements[dst] = elements[src];
-          }
-        }
-
-        //elements = null;
-        elements = newElements;
-        pop      = newCapacity - 1;
-        capacity = newCapacity;
-        push = dst;
-        newPush = push + 1; /* no need modulo */
-      }
-      size++;
-      elements[push] = dataPtr;
-      push = newPush;
-
-      return true;
+      return false;
     }
+
+    /* Need to resize */
+    int newPush = (push + 1) % capacity;
+    if (newPush == pop) {
+
+      int newCapacity = capacity * QUEUE_GROWTH_FACTOR;
+      Object[] newElements = new Object[newCapacity];
+
+      if (newElements == null) {
+	return false;
+      }
+
+      int dst = 0;
+      Object[] tmpelements = elements;
+      if (pop < push) {
+	int src;
+	for (src = (pop + 1); src < push; src++, dst++) {
+	  newElements[dst] = elements[src];
+	}
+      } else {
+	int src;
+	for (src = (pop + 1); src < capacity; src++, dst++) {
+	  newElements[dst] = elements[src];
+	}
+	for (src = 0; src < push; src++, dst++) {
+	  newElements[dst] = elements[src];
+	}
+      }
+
+      //elements = null;
+      elements = newElements;
+      pop      = newCapacity - 1;
+      capacity = newCapacity;
+      push = dst;
+      newPush = push + 1;   /* no need modulo */
+    }
+    size++;
+    elements[push] = dataPtr;
+    push = newPush;
+
+    return true;
+  }
 
 
   /* =============================================================================
@@ -159,22 +155,20 @@ public class Queue {
    * =============================================================================
    */
   public Object
-    pop ()
-    {
-      int newPop = (pop + 1) % capacity;
-      if (newPop == push) {
-        return null;
-      }
-
-      //Object dataPtr = queuePtr.elements[newPop];
-      //queuePtr.pop = newPop;
-      Object dataPtr = elements[newPop];
-      pop = newPop;
-      size--;
-      return dataPtr;
+  pop() {
+    int newPop = (pop + 1) % capacity;
+    if (newPop == push) {
+      return null;
     }
-  public int size()
-  {
+
+    //Object dataPtr = queuePtr.elements[newPop];
+    //queuePtr.pop = newPop;
+    Object dataPtr = elements[newPop];
+    pop = newPop;
+    size--;
+    return dataPtr;
+  }
+  public int size() {
     return size;
   }
 

@@ -68,7 +68,7 @@ public class GenerateConversions {
 	  continue;
 
 	Set<TempNodePair> prevset=nodetotnpair.get(fnprev);
-	for(Iterator<TempNodePair> it=prevset.iterator(); it.hasNext();) {
+	for(Iterator<TempNodePair> it=prevset.iterator(); it.hasNext(); ) {
 	  TempNodePair tnp=it.next();
 	  if (fn.kind()==FKind.FlatGlobalConvNode&&
 	      ((FlatGlobalConvNode)fn).getLocality()!=lb) {
@@ -109,11 +109,11 @@ public class GenerateConversions {
 	    ((FlatGlobalConvNode)fn).getLocality()==lb) {
 	  /*If globalconvnode, make sure we have the right
 	   * locality. */
-	  for(Iterator<TempDescriptor> writeit=writes.iterator(); writeit.hasNext();) {
+	  for(Iterator<TempDescriptor> writeit=writes.iterator(); writeit.hasNext(); ) {
 	    TempDescriptor wrtmp=writeit.next();
 	    if (state.SINGLETM) {
 	      if (wrtmp.getType().isPtr()&&
-		  (nodetemptab.get(wrtmp)!=LocalityAnalysis.SCRATCH)) {
+	          (nodetemptab.get(wrtmp)!=LocalityAnalysis.SCRATCH)) {
 		TempNodePair tnp=new TempNodePair(wrtmp);
 		tempset.add(tnp);
 	      }
@@ -134,7 +134,7 @@ public class GenerateConversions {
     }
     //Place Convert to Oid nodes
     toprocess=fm.getNodeSet();
-    for(Iterator<FlatNode> it=toprocess.iterator(); it.hasNext();) {
+    for(Iterator<FlatNode> it=toprocess.iterator(); it.hasNext(); ) {
       FlatNode fn=it.next();
       if (atomictab.get(fn).intValue()==0&&fn.numPrev()>0&&
           atomictab.get(fn.getPrev(0)).intValue()>0) {
@@ -142,17 +142,17 @@ public class GenerateConversions {
 	assert(fn.kind()==FKind.FlatAtomicExitNode);
 	//insert calls here...
 	Set<TempDescriptor> tempset=nodetoconvs2.get(fn);
-	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext();) {
+	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext(); ) {
 	  TempDescriptor tmpd=tempit.next();
 	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tmpd, lb, false, nodetoconvs.get(fn).contains(tmpd));
 
 	  //This loop makes sure that we have accurate atomic information for the new node
-	  for(Iterator<LocalityBinding> lbit=locality.getMethodBindings(lb.getMethod()).iterator();lbit.hasNext();) {
+	  for(Iterator<LocalityBinding> lbit=locality.getMethodBindings(lb.getMethod()).iterator(); lbit.hasNext(); ) {
 	    LocalityBinding fixlb=lbit.next();
 	    locality.getAtomic(fixlb).put(fgcn, locality.getAtomic(fixlb).get(fn.getPrev(0)));
 	    locality.getNodeTempInfo(fixlb).put(fgcn, (Hashtable<TempDescriptor, Integer>)locality.getNodeTempInfo(fixlb).get(fn).clone());
 	  }
-	  
+
 	  fgcn.setAtomicEnter(((FlatAtomicExitNode)fn).getAtomicEnter());
 
 	  FlatNode[] prevarray=new FlatNode[fn.numPrev()];
@@ -207,7 +207,7 @@ public class GenerateConversions {
 	  for(int i=0; i<readtemps.length; i++) {
 	    TempDescriptor tmp=readtemps[i];
 	    if (tmp.getType().isPtr()&&
-		pretemptab.get(tmp).intValue()!=LocalityAnalysis.SCRATCH) {
+	        pretemptab.get(tmp).intValue()!=LocalityAnalysis.SCRATCH) {
 	      transtemps.add(tmp);
 	    }
 	  }
@@ -228,7 +228,7 @@ public class GenerateConversions {
       }
     }
     toprocess=fm.getNodeSet();
-    for(Iterator<FlatNode> it=toprocess.iterator(); it.hasNext();) {
+    for(Iterator<FlatNode> it=toprocess.iterator(); it.hasNext(); ) {
       FlatNode fn=it.next();
       if (atomictab.get(fn).intValue()>0&&
           atomictab.get(fn.getPrev(0)).intValue()==0) {
@@ -237,11 +237,11 @@ public class GenerateConversions {
 
 	//insert calls here...
 	Set<TempDescriptor> tempset=nodetotranstemps.get(fn);
-	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext();) {
+	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext(); ) {
 	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tempit.next(), lb, true);
 	  fgcn.setAtomicEnter((FlatAtomicEnterNode)fn);
 	  //This loop makes sure that we have accurate atomic information for the new node
-	  for(Iterator<LocalityBinding> lbit=locality.getMethodBindings(lb.getMethod()).iterator();lbit.hasNext();) {
+	  for(Iterator<LocalityBinding> lbit=locality.getMethodBindings(lb.getMethod()).iterator(); lbit.hasNext(); ) {
 	    LocalityBinding fixlb=lbit.next();
 	    locality.getAtomic(fixlb).put(fgcn, locality.getAtomic(fixlb).get(fn));
 	    locality.getNodeTempInfo(fixlb).put(fgcn, (Hashtable<TempDescriptor, Integer>)locality.getNodeTempInfo(fixlb).get(fn).clone());

@@ -31,11 +31,11 @@ public class DCWrapper {
     this.typeanalysis=typeanalysis;
     this.gft=gft;
     Set<LocalityBinding> localityset=locality.getLocalityBindings();
-    for(Iterator<LocalityBinding> lbit=localityset.iterator();lbit.hasNext();) {
+    for(Iterator<LocalityBinding> lbit=localityset.iterator(); lbit.hasNext(); ) {
       processlb(lbit.next());
     }
   }
-  
+
   Hashtable<LocalityBinding, Set<FlatNode>> transmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
   Hashtable<LocalityBinding, Set<FlatNode>> recordmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
   Hashtable<LocalityBinding, Set<FlatNode>> othermap=new Hashtable<LocalityBinding, Set<FlatNode>>();
@@ -43,13 +43,13 @@ public class DCWrapper {
   Hashtable<LocalityBinding, HashSet<FlatNode>> cannotdelaymap=new Hashtable<LocalityBinding, HashSet<FlatNode>>();
   Hashtable<LocalityBinding, Set<FlatNode>> derefmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
   Hashtable<LocalityBinding, Set<FlatNode>> convmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
-  
+
   public DiscoverConflicts getConflicts() {
     DiscoverConflicts dc=new DiscoverConflicts(locality, state, typeanalysis, cannotdelaymap, false, false, state.READSET?gft:null);
     dc.doAnalysis();
     return dc;
   }
-  
+
   public Hashtable<LocalityBinding, HashSet<FlatNode>> getCannotDelayMap() {
     return cannotdelaymap;
   }
@@ -110,7 +110,7 @@ public class DCWrapper {
     convmap.put(lb, convset);
     if (lb.isAtomic()||!lb.getHasAtomic())
       return;
-    
+
     Set<FlatNode> recordset=delaycomp.livecode(lb);
     Set<FlatNode> cannotdelay=delaycomp.getCannotDelay(lb);
     Set<FlatNode> otherset=delaycomp.getOther(lb);
@@ -135,10 +135,10 @@ public class DCWrapper {
 
 
     FlatMethod fm=state.getMethodFlat(lb.getMethod());
-    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       if (fn.kind()==FKind.FlatAtomicEnterNode&&
-	  locality.getAtomic(lb).get(fn.getPrev(0)).intValue()==0) {
+          locality.getAtomic(lb).get(fn.getPrev(0)).intValue()==0) {
 	Set<FlatNode> transSet=computeTrans(lb, fn);
 	Set<FlatNode> tCheckSet=intersect(checkset, transSet);
 	Set<FlatNode> tRecordSet=intersect(recordset, transSet);
@@ -146,7 +146,7 @@ public class DCWrapper {
 	Set<FlatNode> tNotReadySet=intersect(notreadyset, transSet);
 	HashSet<FlatNode> tCannotDelay=intersect(cannotdelay, transSet);
 	Set<FlatNode> tderef=(state.STMARRAY&&!state.DUALVIEW)?intersect(derefset, transSet):null;
-	
+
 	if (checkSet(fn, tCheckSet, tRecordSet, lb)) {
 	  //We will convert this one
 	  nrecordset.addAll(tRecordSet);
@@ -190,7 +190,7 @@ public class DCWrapper {
       return false;
 
     DiscoverConflicts dc=delaycomp.getConflicts();
-    for(Iterator<FlatNode> fnit=checkset.iterator();fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=checkset.iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       //needs transread
       if (!state.READSET&&dc.getNeedTrans(lb, fn)||state.READSET&&dc.getNeedWriteTrans(lb, fn)||fn.kind()==FKind.FlatCall) {
@@ -214,7 +214,7 @@ public class DCWrapper {
       transSet.add(fn);
       if (locality.getAtomic(lb).get(fn).intValue()==0)
 	continue;
-      for(int i=0;i<fn.numNext();i++) {
+      for(int i=0; i<fn.numNext(); i++) {
 	if (!transSet.contains(fn.getNext(i)))
 	  toProcess.add(fn.getNext(i));
       }

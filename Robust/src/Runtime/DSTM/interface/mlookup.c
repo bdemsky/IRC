@@ -24,7 +24,7 @@ unsigned int mhashCreate(unsigned int size, double loadfactor) {
 
 // Assign to keys to bins inside hash table
 unsigned int mhashFunction(unsigned int key) {
-  return( key & mlookup.mask) >>1;
+  return ( key & mlookup.mask) >>1;
 }
 
 // Insert value and key mapping into the hash table
@@ -154,15 +154,15 @@ unsigned int mhashResize(unsigned int newsize) {
 	  free(curr);
       } /*
 
-         NOTE:  Add this case if you change this...                                                        
-         This case currently never happens because of the way things rehash....                            
-else if (isfirst) {
-	mhashlistnode_t *newnode = calloc(1, sizeof(mhashlistnode_t));
-	newnode->key = curr->key;
-	newnode->val = curr->val;
-	newnode->next = tmp->next;
-	tmp->next=newnode;
-	} */
+	   NOTE:  Add this case if you change this...
+	   This case currently never happens because of the way things rehash....
+	   else if (isfirst) {
+	   mhashlistnode_t *newnode = calloc(1, sizeof(mhashlistnode_t));
+	   newnode->key = curr->key;
+	   newnode->val = curr->val;
+	   newnode->next = tmp->next;
+	   tmp->next=newnode;
+	   } */
       else {
 	curr->next=tmp->next;
 	tmp->next=curr;

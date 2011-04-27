@@ -13,8 +13,8 @@ public class DeadCode {
     boolean changed=true;
     while(changed) {
       changed=false;
-      nextfn:
-      for(Iterator<FlatNode> it=fm.getNodeSet().iterator();it.hasNext();) {
+nextfn:
+      for(Iterator<FlatNode> it=fm.getNodeSet().iterator(); it.hasNext(); ) {
 	FlatNode fn=it.next();
 	switch(fn.kind()) {
 	case FKind.FlatCall:
@@ -37,12 +37,13 @@ public class DeadCode {
 	case FKind.FlatPrefetchNode:
 	case FKind.FlatSESEEnterNode:
 	case FKind.FlatSESEExitNode:
-        case FKind.FlatGenReachNode:
+	case FKind.FlatGenReachNode:
 	  if (!useful.contains(fn)) {
 	    useful.add(fn);
 	    changed=true;
-	  }	  
+	  }
 	  break;
+
 	case FKind.FlatOpNode:
 	  FlatOpNode fon=(FlatOpNode)fn;
 	  if (fon.getOp().getOp()==Operation.DIV||
@@ -53,11 +54,12 @@ public class DeadCode {
 	    }
 	    break;
 	  }
+
 	default:
 	  TempDescriptor[] writes=fn.writesTemps();
 	  if (!useful.contains(fn))
-	    for(int i=0;i<writes.length;i++) {
-	      for(Iterator<FlatNode> uit=ud.useMap(fn,writes[i]).iterator();uit.hasNext();) {
+	    for(int i=0; i<writes.length; i++) {
+	      for(Iterator<FlatNode> uit=ud.useMap(fn,writes[i]).iterator(); uit.hasNext(); ) {
 		FlatNode ufn=uit.next();
 		if (useful.contains(ufn)) {
 		  //we are useful
@@ -71,15 +73,15 @@ public class DeadCode {
       }
     }
     //get rid of useless nodes
-    for(Iterator<FlatNode> it=fm.getNodeSet().iterator();it.hasNext();) {
+    for(Iterator<FlatNode> it=fm.getNodeSet().iterator(); it.hasNext(); ) {
       FlatNode fn=it.next();
       if (!useful.contains(fn)||isuseless(fn)) {
 	//We have a useless node
 	FlatNode fnnext=fn.getNext(0);
-	for(int i=0;i<fn.numPrev();i++) {
+	for(int i=0; i<fn.numPrev(); i++) {
 	  FlatNode nprev=fn.getPrev(i);
-	      
-	  for(int j=0;j<nprev.numNext();j++) {
+
+	  for(int j=0; j<nprev.numNext(); j++) {
 	    if (nprev.getNext(j)==fn) {
 	      nprev.setnext(j, fnnext);
 	      fnnext.addPrev(nprev);

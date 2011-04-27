@@ -34,11 +34,11 @@ public class CopyPropagation {
 	//Compute intersection
 
 	Set<TempDescriptor> liveset=livetemps.get(fn);
-	for(int i=1;i<fn.numPrev();i++) {
+	for(int i=1; i<fn.numPrev(); i++) {
 	  Hashtable<TempDescriptor, TempDescriptor> tp=table.get(fn.getPrev(i));
 	  if (tp==null)
 	    continue;
-	  for(Iterator tmpit=tp.entrySet().iterator();tmpit.hasNext();) {
+	  for(Iterator tmpit=tp.entrySet().iterator(); tmpit.hasNext(); ) {
 	    Map.Entry t=(Map.Entry)tmpit.next();
 	    TempDescriptor tmp=(TempDescriptor)t.getKey();
 	    if (!liveset.contains(tmp))
@@ -53,18 +53,18 @@ public class CopyPropagation {
 	}
 
 	HashSet<TempDescriptor> toremove=new HashSet<TempDescriptor>();
-	TempDescriptor[]writes=fn.writesTemps();
-	for(int i=0;i<writes.length;i++) {
+	TempDescriptor[] writes=fn.writesTemps();
+	for(int i=0; i<writes.length; i++) {
 	  TempDescriptor tmp=writes[i];
 	  toremove.add(tmp);
-	  for(Iterator<TempDescriptor> tmpit=tab.keySet().iterator();tmpit.hasNext();) {	
+	  for(Iterator<TempDescriptor> tmpit=tab.keySet().iterator(); tmpit.hasNext(); ) {
 	    TempDescriptor tmp2=tmpit.next();
 	    if (tmp==tab.get(tmp2))
 	      toremove.add(tmp2);
 	  }
 	}
 
-	for(Iterator<TempDescriptor> tmpit=toremove.iterator();tmpit.hasNext();) {
+	for(Iterator<TempDescriptor> tmpit=toremove.iterator(); tmpit.hasNext(); ) {
 	  TempDescriptor tmp=tmpit.next();
 	  tab.put(tmp, bogustd);
 	}
@@ -78,7 +78,7 @@ public class CopyPropagation {
 	if (!table.containsKey(fn)||!table.get(fn).equals(tab)) {
 	  table.put(fn,tab);
 	  changed=true;
-	  for(int i=0;i<fn.numNext();i++) {
+	  for(int i=0; i<fn.numNext(); i++) {
 	    FlatNode nnext=fn.getNext(i);
 	    tovisit.add(nnext);
 	  }
@@ -87,19 +87,19 @@ public class CopyPropagation {
 
       Set<FlatNode> nodeset=fm.getNodeSet();
 
-      for(Iterator<FlatNode> it=fm.getNodeSet().iterator();it.hasNext();) {
+      for(Iterator<FlatNode> it=fm.getNodeSet().iterator(); it.hasNext(); ) {
 	FlatNode fn=it.next();
 	if (fn.numPrev()==0)
 	  continue;
 
 	Hashtable<TempDescriptor, TempDescriptor> tab=new Hashtable<TempDescriptor, TempDescriptor>();
-	
-	for(int i=0;i<fn.numPrev();i++) {
+
+	for(int i=0; i<fn.numPrev(); i++) {
 	  Hashtable<TempDescriptor, TempDescriptor> tp=table.get(fn.getPrev(i));
-	  for(Iterator tmpit=tp.entrySet().iterator();tmpit.hasNext();) {
+	  for(Iterator tmpit=tp.entrySet().iterator(); tmpit.hasNext(); ) {
 	    Map.Entry t=(Map.Entry)tmpit.next();
 	    TempDescriptor tmp=(TempDescriptor)t.getKey();
-	    
+
 	    if (!tab.containsKey(tmp))
 	      tab.put(tmp, tp.get(tmp));
 	    else if (tab.get(tmp)!=tp.get(tmp)) {
@@ -109,8 +109,8 @@ public class CopyPropagation {
 	}
 
 	TempMap tmap=null;
-	TempDescriptor[]reads=fn.readsTemps();
-	for(int i=0;i<reads.length;i++) {
+	TempDescriptor[] reads=fn.readsTemps();
+	for(int i=0; i<reads.length; i++) {
 	  TempDescriptor tmp=reads[i];
 	  if (tab.containsKey(tmp)&&tab.get(tmp)!=bogustd) {
 	    if (tmap==null)

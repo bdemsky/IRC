@@ -1,4 +1,5 @@
 public class charwrapper {
-    public charwrapper() {}
-    char value;
+  public charwrapper() {
+  }
+  char value;
 }

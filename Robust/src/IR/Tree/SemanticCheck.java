@@ -10,14 +10,14 @@ public class SemanticCheck {
   Stack loopstack;
   HashSet toanalyze;
   HashMap<ClassDescriptor, Integer> completed;
-  
-  //This is the class mappings for a particular file based 
-  //on the import names. Maps class to canonical class name. 
+
+  //This is the class mappings for a particular file based
+  //on the import names. Maps class to canonical class name.
   static Hashtable singleImportMap;
   public static final int NOCHECK=0;
   public static final int REFERENCE=1;
   public static final int INIT=2;
-  
+
   boolean checkAll;
 
   public boolean hasLayout(ClassDescriptor cd) {
@@ -48,10 +48,10 @@ public class SemanticCheck {
     }
     ClassDescriptor cd=typeutil.getClass(classname, toanalyze);
     checkClass(cd, fullcheck);
-    
+
     return cd;
   }
-  
+
   public void checkClass(ClassDescriptor cd) {
     checkClass(cd, INIT);
   }
@@ -60,7 +60,7 @@ public class SemanticCheck {
     if (!completed.containsKey(cd)||completed.get(cd)<fullcheck) {
       int oldstatus=completed.containsKey(cd)?completed.get(cd):0;
       completed.put(cd, fullcheck);
-      
+
       if (fullcheck>=REFERENCE&&oldstatus<INIT) {
 	//Set superclass link up
 	if (cd.getSuper()!=null) {
@@ -76,7 +76,7 @@ public class SemanticCheck {
 	    cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
 	  }
 	}
-	// Link together Field, Method tables do classes inherit these from 
+	// Link together Field, Method tables do classes inherit these from
 	// their ancestor interfaces
 	Vector<String> sifv = cd.getSuperInterface();
 	for(int i = 0; i < sifv.size(); i++) {
@@ -93,11 +93,11 @@ public class SemanticCheck {
       }
       if (oldstatus<INIT&&fullcheck>=INIT) {
 	/* Check to see that fields are well typed */
-	for(Iterator field_it=cd.getFields(); field_it.hasNext();) {
+	for(Iterator field_it=cd.getFields(); field_it.hasNext(); ) {
 	  FieldDescriptor fd=(FieldDescriptor)field_it.next();
 	  checkField(cd,fd);
 	}
-	for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
+	for(Iterator method_it=cd.getMethods(); method_it.hasNext(); ) {
 	  MethodDescriptor md=(MethodDescriptor)method_it.next();
 	  checkMethod(cd,md);
 	}
@@ -114,32 +114,32 @@ public class SemanticCheck {
     while (!toanalyze.isEmpty()) {
       Object obj = toanalyze.iterator().next();
       if (obj instanceof TaskDescriptor) {
-        toanalyze.remove(obj);
-        TaskDescriptor td = (TaskDescriptor) obj;
-        try {
-          checkTask(td);
-        } catch (Error e) {
-          System.out.println("Error in " + td);
-          throw e;
-        }
+	toanalyze.remove(obj);
+	TaskDescriptor td = (TaskDescriptor) obj;
+	try {
+	  checkTask(td);
+	} catch (Error e) {
+	  System.out.println("Error in " + td);
+	  throw e;
+	}
       } else {
-        ClassDescriptor cd = (ClassDescriptor) obj;
-        toanalyze.remove(cd);
-        //set the class mappings based on imports. 
-        singleImportMap = cd.getSingleImportMappings();
-        
-        // need to initialize typeutil object here...only place we can
-        // get class descriptors without first calling getclass
-        getClass(cd, cd.getSymbol());
-        for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
-          MethodDescriptor md = (MethodDescriptor) method_it.next();
-          try {
-            checkMethodBody(cd, md);
-          } catch (Error e) {
-            System.out.println("Error in " + md);
-            throw e;
-          }
-        }
+	ClassDescriptor cd = (ClassDescriptor) obj;
+	toanalyze.remove(cd);
+	//set the class mappings based on imports.
+	singleImportMap = cd.getSingleImportMappings();
+
+	// need to initialize typeutil object here...only place we can
+	// get class descriptors without first calling getclass
+	getClass(cd, cd.getSymbol());
+	for (Iterator method_it = cd.getMethods(); method_it.hasNext(); ) {
+	  MethodDescriptor md = (MethodDescriptor) method_it.next();
+	  try {
+	    checkMethodBody(cd, md);
+	  } catch (Error e) {
+	    System.out.println("Error in " + md);
+	    throw e;
+	  }
+	}
       }
     }
   }
@@ -308,7 +308,7 @@ public class SemanticCheck {
     ClassDescriptor superdesc=cd.getSuperDesc();
     if (superdesc!=null) {
       Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
-      for(Iterator methodit=possiblematches.iterator(); methodit.hasNext();) {
+      for(Iterator methodit=possiblematches.iterator(); methodit.hasNext(); ) {
 	MethodDescriptor matchmd=(MethodDescriptor)methodit.next();
 	if (md.matches(matchmd)) {
 	  if (matchmd.getModifiers().isFinal()) {
@@ -347,7 +347,7 @@ public class SemanticCheck {
     case Kind.IfStatementNode:
       checkIfStatementNode(md, nametable, (IfStatementNode)bsn);
       return;
-      
+
     case Kind.SwitchStatementNode:
       checkSwitchStatementNode(md, nametable, (SwitchStatementNode)bsn);
       return;
@@ -377,8 +377,8 @@ public class SemanticCheck {
       return;
 
     case Kind.ContinueBreakNode:
-	checkContinueBreakNode(md, nametable, (ContinueBreakNode) bsn);
-	return;
+      checkContinueBreakNode(md, nametable, (ContinueBreakNode) bsn);
+      return;
 
     case Kind.SESENode:
     case Kind.GenReachNode:
@@ -431,13 +431,13 @@ public class SemanticCheck {
   }
 
   void checkContinueBreakNode(Descriptor md, SymbolTable nametable, ContinueBreakNode cbn) {
-      if (loopstack.empty())
-	  throw new Error("continue/break outside of loop");
-      Object o = loopstack.peek();
-      if(o instanceof LoopNode) {
-        LoopNode ln=(LoopNode)o;
-        cbn.setLoop(ln);
-      }
+    if (loopstack.empty())
+      throw new Error("continue/break outside of loop");
+    Object o = loopstack.peek();
+    if(o instanceof LoopNode) {
+      LoopNode ln=(LoopNode)o;
+      cbn.setLoop(ln);
+    }
   }
 
   void checkReturnNode(Descriptor d, SymbolTable nametable, ReturnNode rn) {
@@ -469,29 +469,29 @@ public class SemanticCheck {
     if (isn.getFalseBlock()!=null)
       checkBlockNode(md, nametable, isn.getFalseBlock());
   }
-  
+
   void checkSwitchStatementNode(Descriptor md, SymbolTable nametable, SwitchStatementNode ssn) {
     checkExpressionNode(md, nametable, ssn.getCondition(), new TypeDescriptor(TypeDescriptor.INT));
-    
+
     BlockNode sbn = ssn.getSwitchBody();
     boolean hasdefault = false;
     for(int i = 0; i < sbn.size(); i++) {
       boolean containdefault = checkSwitchBlockNode(md, nametable, (SwitchBlockNode)sbn.get(i));
       if(hasdefault && containdefault) {
-        throw new Error("Error: duplicate default branch in switch-case statement in Method: " + md.getSymbol());
+	throw new Error("Error: duplicate default branch in switch-case statement in Method: " + md.getSymbol());
       }
       hasdefault = containdefault;
     }
   }
-  
+
   boolean checkSwitchBlockNode(Descriptor md, SymbolTable nametable, SwitchBlockNode sbn) {
     Vector<SwitchLabelNode> slnv = sbn.getSwitchConditions();
     int defaultb = 0;
     for(int i = 0; i < slnv.size(); i++) {
       if(slnv.elementAt(i).isdefault) {
-        defaultb++;
+	defaultb++;
       } else {
-        checkConstantExpressionNode(md, nametable, slnv.elementAt(i).getCondition(), new TypeDescriptor(TypeDescriptor.INT));
+	checkConstantExpressionNode(md, nametable, slnv.elementAt(i).getCondition(), new TypeDescriptor(TypeDescriptor.INT));
       }
     }
     if(defaultb > 1) {
@@ -503,21 +503,21 @@ public class SemanticCheck {
       return (defaultb > 0);
     }
   }
-  
+
   void checkConstantExpressionNode(Descriptor md, SymbolTable nametable, ExpressionNode en, TypeDescriptor td) {
     switch(en.kind()) {
     case Kind.FieldAccessNode:
       checkFieldAccessNode(md,nametable,(FieldAccessNode)en,td);
       return;
-     
+
     case Kind.LiteralNode:
       checkLiteralNode(md,nametable,(LiteralNode)en,td);
       return;
-      
+
     case Kind.NameNode:
       checkNameNode(md,nametable,(NameNode)en,td);
       return;
-      
+
     case Kind.OpNode:
       checkOpNode(md, nametable, (OpNode)en, td);
       return;
@@ -570,7 +570,7 @@ public class SemanticCheck {
     case Kind.TertiaryNode:
       checkTertiaryNode(md, nametable, (TertiaryNode)en, td);
       return;
-      
+
     case Kind.InstanceOfNode:
       checkInstanceOfNode(md, nametable, (InstanceOfNode) en, td);
       return;
@@ -578,7 +578,7 @@ public class SemanticCheck {
     case Kind.ArrayInitializerNode:
       checkArrayInitializerNode(md, nametable, (ArrayInitializerNode) en, td);
       return;
-     
+
     case Kind.ClassTypeNode:
       checkClassTypeNode(md, nametable, (ClassTypeNode) en, td);
       return;
@@ -589,7 +589,7 @@ public class SemanticCheck {
   void checkClassTypeNode(Descriptor md, SymbolTable nametable, ClassTypeNode tn, TypeDescriptor td) {
     checkTypeDescriptor(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), tn.getType());
   }
-  
+
   void checkCastNode(Descriptor md, SymbolTable nametable, CastNode cn, TypeDescriptor td) {
     /* Get type descriptor */
     if (cn.getType()==null) {
@@ -639,25 +639,25 @@ public class SemanticCheck {
     if(ltd.isClassNameRef()) {
       // the field access is using a class name directly
       if(ltd.getClassDesc().isEnum()) {
-        int value = ltd.getClassDesc().getEnumConstant(fieldname);
-        if(-1 == value) {
-          // check if this field is an enum constant
-          throw new Error(fieldname + " is not an enum constant in "+fan.printNode(0)+" in "+md);
-        }
-        fd = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC|Modifiers.FINAL), new TypeDescriptor(TypeDescriptor.INT), fieldname, null, false);
-        fd.setAsEnum();
-        fd.setEnumValue(value);
+	int value = ltd.getClassDesc().getEnumConstant(fieldname);
+	if(-1 == value) {
+	  // check if this field is an enum constant
+	  throw new Error(fieldname + " is not an enum constant in "+fan.printNode(0)+" in "+md);
+	}
+	fd = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC|Modifiers.FINAL), new TypeDescriptor(TypeDescriptor.INT), fieldname, null, false);
+	fd.setAsEnum();
+	fd.setEnumValue(value);
       } else if(fd == null) {
-        throw new Error("Could not find field "+ fieldname + " in "+fan.printNode(0)+" in "+md + " (Line: "+fan.getNumLine()+")");
+	throw new Error("Could not find field "+ fieldname + " in "+fan.printNode(0)+" in "+md + " (Line: "+fan.getNumLine()+")");
       } else if(fd.isStatic()) {
-        // check if this field is a static field
-        if(fd.getExpressionNode() != null) {
-          checkExpressionNode(md,nametable,fd.getExpressionNode(),null);
-        }
+	// check if this field is a static field
+	if(fd.getExpressionNode() != null) {
+	  checkExpressionNode(md,nametable,fd.getExpressionNode(),null);
+	}
       } else {
-        throw new Error("Dereference of the non-static field "+ fieldname + " in "+fan.printNode(0)+" in "+md);
+	throw new Error("Dereference of the non-static field "+ fieldname + " in "+fan.printNode(0)+" in "+md);
       }
-    } 
+    }
 
     if (fd==null)
       throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0)+" in "+md);
@@ -675,7 +675,7 @@ public class SemanticCheck {
       FieldDescriptor fdwr=(FieldDescriptor) ltdwr.getClassDesc().getFieldTable().get(fieldnamewr);
       fan.setField(fdwr);
       if (fdwr==null)
-	  throw new Error("Unknown field "+fieldnamewr + " in "+fan.printNode(0)+" in "+md);
+	throw new Error("Unknown field "+fieldnamewr + " in "+fan.printNode(0)+" in "+md);
     } else {
       fan.setField(fd);
     }
@@ -723,23 +723,23 @@ public class SemanticCheck {
 
     if (td!=null)
       if (!typeutil.isSuperorType(td,ln.getType())) {
-        Long l = ln.evaluate();
-        if((ln.getType().isByte() || ln.getType().isShort() 
-            || ln.getType().isChar() || ln.getType().isInt()) 
-            && (l != null) 
-            && (td.isByte() || td.isShort() || td.isChar() 
-                || td.isInt() || td.isLong())) {
-          long lnvalue = l.longValue();
-          if((td.isByte() && ((lnvalue > 127) || (lnvalue < -128))) 
-              || (td.isShort() && ((lnvalue > 32767) || (lnvalue < -32768)))
-              || (td.isChar() && ((lnvalue > 65535) || (lnvalue < 0)))
-              || (td.isInt() && ((lnvalue > 2147483647) || (lnvalue < -2147483648)))
-              || (td.isLong() && ((lnvalue > 9223372036854775807L) || (lnvalue < -9223372036854775808L)))) {
-            throw new Error("Field node returns "+ln.getType()+", but need "+td+" in "+md);
-          }
-        } else {
-          throw new Error("Field node returns "+ln.getType()+", but need "+td+" in "+md);
-        }
+	Long l = ln.evaluate();
+	if((ln.getType().isByte() || ln.getType().isShort()
+	    || ln.getType().isChar() || ln.getType().isInt())
+	   && (l != null)
+	   && (td.isByte() || td.isShort() || td.isChar()
+	       || td.isInt() || td.isLong())) {
+	  long lnvalue = l.longValue();
+	  if((td.isByte() && ((lnvalue > 127) || (lnvalue < -128)))
+	     || (td.isShort() && ((lnvalue > 32767) || (lnvalue < -32768)))
+	     || (td.isChar() && ((lnvalue > 65535) || (lnvalue < 0)))
+	     || (td.isInt() && ((lnvalue > 2147483647) || (lnvalue < -2147483648)))
+	     || (td.isLong() && ((lnvalue > 9223372036854775807L) || (lnvalue < -9223372036854775808L)))) {
+	    throw new Error("Field node returns "+ln.getType()+", but need "+td+" in "+md);
+	  }
+	} else {
+	  throw new Error("Field node returns "+ln.getType()+", but need "+td+" in "+md);
+	}
       }
   }
 
@@ -754,62 +754,62 @@ public class SemanticCheck {
     } else {
       String varname=nd.toString();
       if(varname.equals("this")) {
-        // "this"
-        nn.setVar((VarDescriptor)nametable.get("this")); 
-        return;
+	// "this"
+	nn.setVar((VarDescriptor)nametable.get("this"));
+	return;
       }
       Descriptor d=(Descriptor)nametable.get(varname);
       if (d==null) {
-        ClassDescriptor cd = null;
-        if((md instanceof MethodDescriptor) && ((MethodDescriptor)md).isStaticBlock()) {
-          // this is a static block, all the accessed fields should be static field
-          cd = ((MethodDescriptor)md).getClassDesc();
-          SymbolTable fieldtbl = cd.getFieldTable();
-          FieldDescriptor fd=(FieldDescriptor)fieldtbl.get(varname);
-          if((fd == null) || (!fd.isStatic())){
-            // no such field in the class, check if this is a class
-            if(varname.equals("this")) {
-              throw new Error("Error: access this obj in a static block");
-            }
-            cd=getClass(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), varname);
-            if(cd != null) {
-              // this is a class name
-              nn.setClassDesc(cd);
-              return;
-            } else {
-              throw new Error("Name "+varname+" should not be used in static block: "+md);
-            }
-          } else {
-            // this is a static field
-            nn.setField(fd);
-            nn.setClassDesc(cd);
-            return;
-          }
-        } else {
-          // check if the var is a static field of the class
-          if(md instanceof MethodDescriptor) {
-            cd = ((MethodDescriptor)md).getClassDesc();
-            FieldDescriptor fd = (FieldDescriptor)cd.getFieldTable().get(varname);
-            if((fd != null) && (fd.isStatic())) {
-              nn.setField(fd);
-              nn.setClassDesc(cd);
-              if (td!=null)
-                if (!typeutil.isSuperorType(td,nn.getType()))
-                  throw new Error("Field node returns "+nn.getType()+", but need "+td);
-              return;
-            } else if(fd != null) {
-              throw new Error("Name "+varname+" should not be used in " + md);
-            }
-          }
-          cd=getClass(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), varname);
-          if(cd != null) {
-            // this is a class name
-            nn.setClassDesc(cd);
-            return;
-          } else {
-            throw new Error("Name "+varname+" undefined in: "+md);
-          }
-        }
+	ClassDescriptor cd = null;
+	if((md instanceof MethodDescriptor) && ((MethodDescriptor)md).isStaticBlock()) {
+	  // this is a static block, all the accessed fields should be static field
+	  cd = ((MethodDescriptor)md).getClassDesc();
+	  SymbolTable fieldtbl = cd.getFieldTable();
+	  FieldDescriptor fd=(FieldDescriptor)fieldtbl.get(varname);
+	  if((fd == null) || (!fd.isStatic())) {
+	    // no such field in the class, check if this is a class
+	    if(varname.equals("this")) {
+	      throw new Error("Error: access this obj in a static block");
+	    }
+	    cd=getClass(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), varname);
+	    if(cd != null) {
+	      // this is a class name
+	      nn.setClassDesc(cd);
+	      return;
+	    } else {
+	      throw new Error("Name "+varname+" should not be used in static block: "+md);
+	    }
+	  } else {
+	    // this is a static field
+	    nn.setField(fd);
+	    nn.setClassDesc(cd);
+	    return;
+	  }
+	} else {
+	  // check if the var is a static field of the class
+	  if(md instanceof MethodDescriptor) {
+	    cd = ((MethodDescriptor)md).getClassDesc();
+	    FieldDescriptor fd = (FieldDescriptor)cd.getFieldTable().get(varname);
+	    if((fd != null) && (fd.isStatic())) {
+	      nn.setField(fd);
+	      nn.setClassDesc(cd);
+	      if (td!=null)
+		if (!typeutil.isSuperorType(td,nn.getType()))
+		  throw new Error("Field node returns "+nn.getType()+", but need "+td);
+	      return;
+	    } else if(fd != null) {
+	      throw new Error("Name "+varname+" should not be used in " + md);
+	    }
+	  }
+	  cd=getClass(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), varname);
+	  if(cd != null) {
+	    // this is a class name
+	    nn.setClassDesc(cd);
+	    return;
+	  } else {
+	    throw new Error("Name "+varname+" undefined in: "+md);
+	  }
+	}
       }
       if (d instanceof VarDescriptor) {
 	nn.setVar(d);
@@ -843,7 +843,7 @@ public class SemanticCheck {
   void checkOffsetNode(Descriptor md, SymbolTable nameTable, OffsetNode ofn, TypeDescriptor td) {
     TypeDescriptor ltd=ofn.td;
     checkTypeDescriptor(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null),ltd);
-    
+
     String fieldname = ofn.fieldname;
     FieldDescriptor fd=null;
     if (ltd.isArray()&&fieldname.equals("length")) {
@@ -870,14 +870,14 @@ public class SemanticCheck {
 
   void checkTertiaryNode(Descriptor md, SymbolTable nametable, TertiaryNode tn, TypeDescriptor td) {
     checkExpressionNode(md, nametable, tn.getCond(), new TypeDescriptor(TypeDescriptor.BOOLEAN));
-    checkExpressionNode(md, nametable, tn.getTrueExpr(), td );
-    checkExpressionNode(md, nametable, tn.getFalseExpr(), td );
+    checkExpressionNode(md, nametable, tn.getTrueExpr(), td);
+    checkExpressionNode(md, nametable, tn.getFalseExpr(), td);
   }
 
   void checkInstanceOfNode(Descriptor md, SymbolTable nametable, InstanceOfNode tn, TypeDescriptor td) {
     if (td!=null&&!td.isBoolean())
       throw new Error("Expecting type "+td+"for instanceof expression");
-    
+
     checkTypeDescriptor(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), tn.getExprType());
     checkExpressionNode(md, nametable, tn.getExpr(), null);
   }
@@ -893,33 +893,33 @@ public class SemanticCheck {
     for(int i = 1; i < vec_type.size(); i++) {
       TypeDescriptor tmp_type = vec_type.elementAt(i);
       if(out_type == null) {
-        if(tmp_type != null) {
-          out_type = tmp_type;
-        }
+	if(tmp_type != null) {
+	  out_type = tmp_type;
+	}
       } else if(out_type.isNull()) {
-        if(!tmp_type.isNull() ) {
-          if(!tmp_type.isArray()) {
-            throw new Error("Error: mixed type in var initializer list");
-          } else {
-            out_type = tmp_type;
-          }
-        }
+	if(!tmp_type.isNull() ) {
+	  if(!tmp_type.isArray()) {
+	    throw new Error("Error: mixed type in var initializer list");
+	  } else {
+	    out_type = tmp_type;
+	  }
+	}
       } else if(out_type.isArray()) {
-        if(tmp_type.isArray()) {
-          if(tmp_type.getArrayCount() > out_type.getArrayCount()) {
-            out_type = tmp_type;
-          }
-        } else if((tmp_type != null) && (!tmp_type.isNull())) {
-          throw new Error("Error: mixed type in var initializer list");
-        }
+	if(tmp_type.isArray()) {
+	  if(tmp_type.getArrayCount() > out_type.getArrayCount()) {
+	    out_type = tmp_type;
+	  }
+	} else if((tmp_type != null) && (!tmp_type.isNull())) {
+	  throw new Error("Error: mixed type in var initializer list");
+	}
       } else if(out_type.isInt()) {
-        if(!tmp_type.isInt()) {
-          throw new Error("Error: mixed type in var initializer list");
-        }
+	if(!tmp_type.isInt()) {
+	  throw new Error("Error: mixed type in var initializer list");
+	}
       } else if(out_type.isString()) {
-        if(!tmp_type.isString()) {
-          throw new Error("Error: mixed type in var initializer list");
-        }
+	if(!tmp_type.isString()) {
+	  throw new Error("Error: mixed type in var initializer list");
+	}
       }
     }
     if(out_type != null) {
@@ -935,7 +935,7 @@ public class SemanticCheck {
         (an.getOperation().getBaseOp().getOp()!=Operation.POSTINC&&
          an.getOperation().getBaseOp().getOp()!=Operation.POSTDEC))
       postinc=false;
-    if (!postinc)      
+    if (!postinc)
       checkExpressionNode(md, nametable, an.getSrc(),td);
     //TODO: Need check on validity of operation here
     if (!((an.getDest() instanceof FieldAccessNode)||
@@ -975,42 +975,42 @@ public class SemanticCheck {
       TypeDescriptor dt = an.getDest().getType();
       TypeDescriptor st = an.getSrc().getType();
       if(an.getSrc().kind() == Kind.ArrayInitializerNode) {
-        if(dt.getArrayCount() != st.getArrayCount()) {
-          throw new Error("Type of rside ("+an.getSrc().getType().toPrettyString()+") not compatible with type of lside ("+an.getDest().getType().toPrettyString()+")"+an.printNode(0));
-        } else {
-          do {
-            dt = dt.dereference();
-            st = st.dereference();
-          } while(dt.isArray());
-          if((st.isByte() || st.isShort() || st.isChar() || st.isInt()) 
-              && (dt.isByte() || dt.isShort() || dt.isChar() || dt.isInt() || dt.isLong())) {
-            return;
-          } else {
-            throw new Error("Type of rside ("+an.getSrc().getType().toPrettyString()+") not compatible with type of lside ("+an.getDest().getType().toPrettyString()+")"+an.printNode(0));
-          }
-        }
+	if(dt.getArrayCount() != st.getArrayCount()) {
+	  throw new Error("Type of rside ("+an.getSrc().getType().toPrettyString()+") not compatible with type of lside ("+an.getDest().getType().toPrettyString()+")"+an.printNode(0));
+	} else {
+	  do {
+	    dt = dt.dereference();
+	    st = st.dereference();
+	  } while(dt.isArray());
+	  if((st.isByte() || st.isShort() || st.isChar() || st.isInt())
+	     && (dt.isByte() || dt.isShort() || dt.isChar() || dt.isInt() || dt.isLong())) {
+	    return;
+	  } else {
+	    throw new Error("Type of rside ("+an.getSrc().getType().toPrettyString()+") not compatible with type of lside ("+an.getDest().getType().toPrettyString()+")"+an.printNode(0));
+	  }
+	}
       } else {
-        Long l = an.getSrc().evaluate();
-        if((st.isByte() || st.isShort() || st.isChar() || st.isInt()) 
-            && (l != null) 
-            && (dt.isByte() || dt.isShort() || dt.isChar() || dt.isInt() || dt.isLong())) {
-          long lnvalue = l.longValue();
-          if((dt.isByte() && ((lnvalue > 127) || (lnvalue < -128))) 
-              || (dt.isShort() && ((lnvalue > 32767) || (lnvalue < -32768)))
-              || (dt.isChar() && ((lnvalue > 65535) || (lnvalue < 0)))
-              || (dt.isInt() && ((lnvalue > 2147483647) || (lnvalue < -2147483648)))
-              || (dt.isLong() && ((lnvalue > 9223372036854775807L) || (lnvalue < -9223372036854775808L)))) {
-            throw new Error("Type of rside ("+an.getSrc().getType().toPrettyString()+") not compatible with type of lside ("+an.getDest().getType().toPrettyString()+")"+an.printNode(0));
-          }
-        } else {
-          throw new Error("Type of rside ("+an.getSrc().getType().toPrettyString()+") not compatible with type of lside ("+an.getDest().getType().toPrettyString()+")"+an.printNode(0));
-        }
+	Long l = an.getSrc().evaluate();
+	if((st.isByte() || st.isShort() || st.isChar() || st.isInt())
+	   && (l != null)
+	   && (dt.isByte() || dt.isShort() || dt.isChar() || dt.isInt() || dt.isLong())) {
+	  long lnvalue = l.longValue();
+	  if((dt.isByte() && ((lnvalue > 127) || (lnvalue < -128)))
+	     || (dt.isShort() && ((lnvalue > 32767) || (lnvalue < -32768)))
+	     || (dt.isChar() && ((lnvalue > 65535) || (lnvalue < 0)))
+	     || (dt.isInt() && ((lnvalue > 2147483647) || (lnvalue < -2147483648)))
+	     || (dt.isLong() && ((lnvalue > 9223372036854775807L) || (lnvalue < -9223372036854775808L)))) {
+	    throw new Error("Type of rside ("+an.getSrc().getType().toPrettyString()+") not compatible with type of lside ("+an.getDest().getType().toPrettyString()+")"+an.printNode(0));
+	  }
+	} else {
+	  throw new Error("Type of rside ("+an.getSrc().getType().toPrettyString()+") not compatible with type of lside ("+an.getDest().getType().toPrettyString()+")"+an.printNode(0));
+	}
       }
     }
   }
 
   void checkLoopNode(Descriptor md, SymbolTable nametable, LoopNode ln) {
-      loopstack.push(ln);
+    loopstack.push(ln);
     if (ln.getType()==LoopNode.WHILELOOP||ln.getType()==LoopNode.DOWHILELOOP) {
       checkExpressionNode(md, nametable, ln.getCondition(), new TypeDescriptor(TypeDescriptor.BOOLEAN));
       checkBlockNode(md, nametable, ln.getBody());
@@ -1033,7 +1033,7 @@ public class SemanticCheck {
 
 
   void checkCreateObjectNode(Descriptor md, SymbolTable nametable, CreateObjectNode con,
-      TypeDescriptor td) {
+                             TypeDescriptor td) {
     TypeDescriptor[] tdarray = new TypeDescriptor[con.numArgs()];
     for (int i = 0; i < con.numArgs(); i++) {
       ExpressionNode en = con.getArg(i);
@@ -1058,26 +1058,26 @@ public class SemanticCheck {
       ClassDescriptor cd = typetolookin.getClassDesc();
 
       for (int j = 0; j < fe.numEffects(); j++) {
-        FlagEffect flag = fe.getEffect(j);
-        String name = flag.getName();
-        FlagDescriptor flag_d = (FlagDescriptor) cd.getFlagTable().get(name);
-        // Make sure the flag is declared
-        if (flag_d == null)
-          throw new Error("Flag descriptor " + name + " undefined in class: " + cd.getSymbol());
-        if (flag_d.getExternal())
-          throw new Error("Attempting to modify external flag: " + name);
-        flag.setFlag(flag_d);
+	FlagEffect flag = fe.getEffect(j);
+	String name = flag.getName();
+	FlagDescriptor flag_d = (FlagDescriptor) cd.getFlagTable().get(name);
+	// Make sure the flag is declared
+	if (flag_d == null)
+	  throw new Error("Flag descriptor " + name + " undefined in class: " + cd.getSymbol());
+	if (flag_d.getExternal())
+	  throw new Error("Attempting to modify external flag: " + name);
+	flag.setFlag(flag_d);
       }
       for (int j = 0; j < fe.numTagEffects(); j++) {
-        TagEffect tag = fe.getTagEffect(j);
-        String name = tag.getName();
+	TagEffect tag = fe.getTagEffect(j);
+	String name = tag.getName();
 
-        Descriptor d = (Descriptor) nametable.get(name);
-        if (d == null)
-          throw new Error("Tag descriptor " + name + " undeclared");
-        else if (!(d instanceof TagVarDescriptor))
-          throw new Error(name + " is not a tag descriptor");
-        tag.setTag((TagVarDescriptor) d);
+	Descriptor d = (Descriptor) nametable.get(name);
+	if (d == null)
+	  throw new Error("Tag descriptor " + name + " undeclared");
+	else if (!(d instanceof TagVarDescriptor))
+	  throw new Error(name + " is not a tag descriptor");
+	tag.setTag((TagVarDescriptor) d);
       }
     }
 
@@ -1091,39 +1091,39 @@ public class SemanticCheck {
 
       Set methoddescriptorset = classtolookin.getMethodTable().getSet(typetolookin.getSymbol());
       MethodDescriptor bestmd = null;
-      NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.hasNext();) {
-        MethodDescriptor currmd = (MethodDescriptor) methodit.next();
-        /* Need correct number of parameters */
-        if (con.numArgs() != currmd.numParameters())
-          continue;
-        for (int i = 0; i < con.numArgs(); i++) {
-          if (!typeutil.isSuperorType(currmd.getParamType(i), tdarray[i]))
-            continue NextMethod;
-        }
-        /* Local allocations can't call global allocator */
-        if (!con.isGlobal() && currmd.isGlobal())
-          continue;
+NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.hasNext(); ) {
+	MethodDescriptor currmd = (MethodDescriptor) methodit.next();
+	/* Need correct number of parameters */
+	if (con.numArgs() != currmd.numParameters())
+	  continue;
+	for (int i = 0; i < con.numArgs(); i++) {
+	  if (!typeutil.isSuperorType(currmd.getParamType(i), tdarray[i]))
+	    continue NextMethod;
+	}
+	/* Local allocations can't call global allocator */
+	if (!con.isGlobal() && currmd.isGlobal())
+	  continue;
 
-        /* Method okay so far */
-        if (bestmd == null)
-          bestmd = currmd;
-        else {
-          if (typeutil.isMoreSpecific(currmd, bestmd)) {
-            bestmd = currmd;
-          } else if (con.isGlobal() && match(currmd, bestmd)) {
-            if (currmd.isGlobal() && !bestmd.isGlobal())
-              bestmd = currmd;
-            else if (currmd.isGlobal() && bestmd.isGlobal())
-              throw new Error();
-          } else if (!typeutil.isMoreSpecific(bestmd, currmd)) {
-            throw new Error("No method is most specific:" + bestmd + " and " + currmd);
-          }
+	/* Method okay so far */
+	if (bestmd == null)
+	  bestmd = currmd;
+	else {
+	  if (typeutil.isMoreSpecific(currmd, bestmd)) {
+	    bestmd = currmd;
+	  } else if (con.isGlobal() && match(currmd, bestmd)) {
+	    if (currmd.isGlobal() && !bestmd.isGlobal())
+	      bestmd = currmd;
+	    else if (currmd.isGlobal() && bestmd.isGlobal())
+	      throw new Error();
+	  } else if (!typeutil.isMoreSpecific(bestmd, currmd)) {
+	    throw new Error("No method is most specific:" + bestmd + " and " + currmd);
+	  }
 
-          /* Is this more specific than bestmd */
-        }
+	  /* Is this more specific than bestmd */
+	}
       }
       if (bestmd == null)
-        throw new Error("No method found for " + con.printNode(0) + " in " + md);
+	throw new Error("No method found for " + con.printNode(0) + " in " + md);
       con.setConstructor(bestmd);
     }
   }
@@ -1153,11 +1153,11 @@ public class SemanticCheck {
   ExpressionNode translateNameDescriptorintoExpression(NameDescriptor nd, int numLine) {
     String id=nd.getIdentifier();
     NameDescriptor base=nd.getBase();
-    if (base==null){
+    if (base==null) {
       NameNode nn=new NameNode(nd);
       nn.setNumLine(numLine);
       return nn;
-    }else{
+    } else {
       FieldAccessNode fan=new FieldAccessNode(translateNameDescriptorintoExpression(base,numLine),id);
       fan.setNumLine(numLine);
       return fan;
@@ -1179,7 +1179,7 @@ public class SemanticCheck {
       checkExpressionNode(md,nametable,en,null);
       tdarray[i]=en.getType();
       if(en.getType().isClass() && en.getType().getClassDesc().isEnum()) {
-        tdarray[i] = new TypeDescriptor(TypeDescriptor.INT);
+	tdarray[i] = new TypeDescriptor(TypeDescriptor.INT);
       }
     }
     TypeDescriptor typetolookin=null;
@@ -1196,11 +1196,11 @@ public class SemanticCheck {
 	typetolookin=new TypeDescriptor(supercd);
 	min.setSuper();
       } else if (rootname.equals("this")) {
-        if(isstatic) {
-          throw new Error("use this object in static method md = "+ md.toString());
-        }
-        ClassDescriptor cd=((MethodDescriptor)md).getClassDesc();
-        typetolookin=new TypeDescriptor(cd);
+	if(isstatic) {
+	  throw new Error("use this object in static method md = "+ md.toString());
+	}
+	ClassDescriptor cd=((MethodDescriptor)md).getClassDesc();
+	typetolookin=new TypeDescriptor(cd);
       } else if (nametable.get(rootname)!=null) {
 	//we have an expression
 	min.setExpression(translateNameDescriptorintoExpression(min.getBaseName(),min.getNumLine()));
@@ -1213,7 +1213,7 @@ public class SemanticCheck {
 	  typetolookin = nn.getType();
 	  if(!((nn.kind()== Kind.NameNode) && (((NameNode)nn).getField() == null)
 	       && (((NameNode)nn).getVar() == null) && (((NameNode)nn).getExpression() == null))) {
-	    // this is not a pure class name, need to add to 
+	    // this is not a pure class name, need to add to
 	    min.setExpression(nn);
 	  }
 	} else {
@@ -1222,8 +1222,8 @@ public class SemanticCheck {
 	  //if (min.getBaseName().getSymbol().equals("System.out"))
 	  cd=getClass(null, "System");
 	  /*else {
-            cd=getClass(min.getBaseName().getSymbol());
-	    }*/
+	     cd=getClass(min.getBaseName().getSymbol());
+	     }*/
 	  if (cd==null)
 	    throw new Error("md = "+ md.toString()+ "  "+min.getBaseName()+" undefined");
 	  typetolookin=new TypeDescriptor(cd);
@@ -1248,14 +1248,14 @@ public class SemanticCheck {
     Set methoddescriptorset=classtolookin.getMethodTable().getSet(min.getMethodName());
     MethodDescriptor bestmd=null;
 NextMethod:
-    for(Iterator methodit=methoddescriptorset.iterator(); methodit.hasNext();) {
+    for(Iterator methodit=methoddescriptorset.iterator(); methodit.hasNext(); ) {
       MethodDescriptor currmd=(MethodDescriptor)methodit.next();
       /* Need correct number of parameters */
       if (min.numArgs()!=currmd.numParameters())
 	continue;
       for(int i=0; i<min.numArgs(); i++) {
 	if (!typeutil.isSuperorType(currmd.getParamType(i),tdarray[i]))
-	  if(((!tdarray[i].isArray() &&(tdarray[i].isInt() || tdarray[i].isLong())) 
+	  if(((!tdarray[i].isArray() &&(tdarray[i].isInt() || tdarray[i].isLong()))
 	      && currmd.getParamType(i).isClass() && currmd.getParamType(i).getClassDesc().getSymbol().equals("Object"))) {
 	    // primitive parameters vs object
 	  } else {
@@ -1281,18 +1281,18 @@ NextMethod:
     if ((td!=null)&&(min.getType()!=null)&&!typeutil.isSuperorType(td,  min.getType()))
       throw new Error(min.getType()+ " is not equal to or a subclass of "+td);
     /* Check whether we need to set this parameter to implied this */
-    if (! isstatic && !bestmd.isStatic()) {
+    if (!isstatic && !bestmd.isStatic()) {
       if (min.getExpression()==null) {
 	ExpressionNode en=new NameNode(new NameDescriptor("this"));
 	min.setExpression(en);
 	checkExpressionNode(md, nametable, min.getExpression(), null);
       }
     }
-    
+
     /* Check if we need to wrap primitive paratmeters to objects */
     for(int i=0; i<min.numArgs(); i++) {
       if(!tdarray[i].isArray() && (tdarray[i].isInt() || tdarray[i].isLong())
-	 && min.getMethod().getParamType(i).isClass() && min.getMethod().getParamType(i).getClassDesc().getSymbol().equals("Object")) {
+         && min.getMethod().getParamType(i).isClass() && min.getMethod().getParamType(i).getClassDesc().getSymbol().equals("Object")) {
 	// Shall wrap this primitive parameter as a object
 	ExpressionNode exp = min.getArg(i);
 	TypeDescriptor ptd = null;
@@ -1320,7 +1320,7 @@ NextMethod:
     if (on.getRight()!=null)
       checkExpressionNode(md, nametable, on.getRight(), null);
     TypeDescriptor ltd=on.getLeft().getType();
-    TypeDescriptor rtd=on.getRight()!=null ? on.getRight().getType() : null;
+    TypeDescriptor rtd=on.getRight()!=null?on.getRight().getType():null;
     TypeDescriptor lefttype=null;
     TypeDescriptor righttype=null;
     Operation op=on.getOp();
@@ -1398,10 +1398,10 @@ NextMethod:
 	righttype=lefttype=new TypeDescriptor(TypeDescriptor.BOOLEAN);
       } else if (ltd.isPtr()||rtd.isPtr()) {
 	if (!(ltd.isPtr()&&rtd.isPtr())) {
-      if(!rtd.isEnum()) {
-        throw new Error();
-      }
-    }
+	  if(!rtd.isEnum()) {
+	    throw new Error();
+	  }
+	}
 	righttype=rtd;
 	lefttype=ltd;
       } else if (ltd.isDouble()||rtd.isDouble())
@@ -1541,5 +1541,5 @@ NextMethod:
 	throw new Error("Type of rside not compatible with type of lside"+on.printNode(0));
       }
   }
-  
+
 }

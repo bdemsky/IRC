@@ -28,18 +28,18 @@ public class WebInterface {
     taskmap = new Hashtable();
     sourcenodemap=new Hashtable();
 
-    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator(); it_tasks.hasNext();) {
+    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator(); it_tasks.hasNext(); ) {
       TaskDescriptor td=(TaskDescriptor)it_tasks.next();
       taskmap.put("/"+td.getSymbol()+".html",td);
     }
 
-    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
+    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext(); ) {
       ClassDescriptor cd=(ClassDescriptor) it_classes.next();
       if(cd.hasFlags()) {
 	Vector rootnodes=taskanalysis.getRootNodes(cd);
 
 	if(rootnodes!=null)
-	  for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
+	  for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext(); ) {
 	    FlagState root=(FlagState)it_rootnodes.next();
 	    Vector cd_nodeid=new Vector();                     //Vector is designed to contain only 2 elements: ClassDescriptor,Node label
 	    // Both the values are required to correctly resolve the rootnode.
@@ -95,7 +95,7 @@ public class WebInterface {
       //printing out the classes that are instantiated by this task
       pw.println("<br><h3>Instantiated Classes:</h3>");
       Set newstates=taganalysis.getFlagStates(td);
-      for(Iterator fsit=newstates.iterator(); fsit.hasNext();) {
+      for(Iterator fsit=newstates.iterator(); fsit.hasNext(); ) {
 	FlagState fsnew=(FlagState) fsit.next();
 	ClassDescriptor cd=fsnew.getClassDescriptor();
 	pw.println("&nbsp;&nbsp;<a href=\"/"+cd.getSymbol()+".html\">"+cd.getSymbol()+"</a><br>");
@@ -126,14 +126,14 @@ public class WebInterface {
 
   private String sourcenode(Vector cd_nodeid,OutputStream out, HTTPResponse resp) {
     Vector rootnodes=taskanalysis.getRootNodes((ClassDescriptor)cd_nodeid.elementAt(0));
-    for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
+    for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext(); ) {
       FlagState root=(FlagState)it_rootnodes.next();
       if (root.getLabel().equals((String)cd_nodeid.elementAt(1))) {
 	try {
 	  PrintWriter pw=new PrintWriter(out);
 	  pw.println("<br><br><h3>Allocating tasks for "+root.getTextLabel()+":</h3><br>");
 	  Vector tasks=root.getAllocatingTasks();
-	  for(Iterator it_tasks=tasks.iterator(); it_tasks.hasNext();) {
+	  for(Iterator it_tasks=tasks.iterator(); it_tasks.hasNext(); ) {
 	    TaskDescriptor td=(TaskDescriptor)it_tasks.next();
 	    pw.println("<br><strong>Task:&nbsp;&nbsp;&nbsp;"+td.toString()+"</strong><br>");
 	    printTask(td,pw);
@@ -232,7 +232,7 @@ public class WebInterface {
   private String indexpage(OutputStream out, HTTPResponse resp) {
 
     PrintWriter pw=new PrintWriter(out);
-    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
+    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext(); ) {
       ClassDescriptor cd=(ClassDescriptor) it_classes.next();
       if (cd.hasFlags()) {
 	if (taskanalysis.getFlagStates(cd)!=null) {

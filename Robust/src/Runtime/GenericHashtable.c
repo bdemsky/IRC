@@ -280,7 +280,7 @@ void * gennext(struct geniterator *it) {
   if(curr->inext!=NULL)
     it->ptr=curr->inext;
   else
-    it->finished=1; /* change offsetting scheme */
+    it->finished=1;  /* change offsetting scheme */
   return curr->src;
 }
 

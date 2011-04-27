@@ -35,9 +35,9 @@ public class MySet<T> extends AbstractSet<T> {
   public boolean remove(Object obj) {
     if (locked)
       throw new Error();
-    return map.remove(obj)!=null; 
+    return map.remove(obj)!=null;
   }
-  
+
   public boolean add(T obj) {
     if (locked)
       throw new Error();
@@ -71,7 +71,7 @@ public class MySet<T> extends AbstractSet<T> {
   public boolean isEmpty() {
     return map.isEmpty();
   }
-  
+
   public Iterator<T> iterator() {
     return map.keySet().iterator();
   }

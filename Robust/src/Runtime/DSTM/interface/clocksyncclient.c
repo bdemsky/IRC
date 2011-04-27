@@ -1,5 +1,5 @@
 /** This program runs the client for clock synchronization on all machines
-  Client on all machines **/
+   Client on all machines **/
 // One clock tick =  (1 / CPU processor speed in Hz) secs
 //compile:
 //    gcc -Wall -o server clocksyncclient.c
@@ -16,16 +16,15 @@
 #include <math.h>
 
 #define PORT        8500
-             /* REPLACE with your server machine name*/
+/* REPLACE with your server machine name*/
 #define DIRSIZE     64
 #define NUMITER   10000
 
 
-static __inline__ unsigned long long rdtsc(void)
-{
-    unsigned hi, lo; 
-      __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-        return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+static __inline__ unsigned long long rdtsc(void) {
+  unsigned hi, lo;
+  __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
 }
 
 int main(int argc, char **argv) {
@@ -112,7 +111,7 @@ int main(int argc, char **argv) {
     printf("%lld\n", array2[i]);
   }
 
-  for(i=0;i<(NUMITER-1);i++) {
+  for(i=0; i<(NUMITER-1); i++) {
     norm += array2[i];
   }
 
@@ -123,14 +122,14 @@ int main(int argc, char **argv) {
   long long average=(norm/(NUMITER-1));
   printf("average= %lld",(norm/(NUMITER-1)));
   long long stddev, avg1=0;
-  for(i=0;i<(NUMITER-1);i++) {
+  for(i=0; i<(NUMITER-1); i++) {
     avg1 += ((array2[i] - average) * (array2[i] - average));
   }
   float ans = (avg1/(NUMITER-1));
   float squareroot= sqrt(ans);
   float squareroot2= sqrt(avg1);
 
-  printf("stddev= %f\n", squareroot); 
+  printf("stddev= %f\n", squareroot);
   printf("error= %f\n", squareroot2/(NUMITER-1));
 
   fprintf(f1,"%lld",(norm/(NUMITER-1)));

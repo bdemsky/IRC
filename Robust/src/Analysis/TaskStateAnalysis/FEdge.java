@@ -102,11 +102,11 @@ public class FEdge extends Edge {
   }
 
   public int getTaskExitIndex() {
-      return m_taskexitindex;
+    return m_taskexitindex;
   }
 
   public void setTaskExitIndex(int taskexitindex) {
-      this.m_taskexitindex = taskexitindex;
+    this.m_taskexitindex = taskexitindex;
   }
 
   public double getProbability() {
@@ -196,14 +196,14 @@ public class FEdge extends Edge {
     }
     this.newObjInfos.put(cd, new NewObjInfo(newRate, probability));
   }
-  
+
   public void init4Simulate() {
     this.invokeNum = 0;
     this.expInvokeNum = 0;
     if(this.newObjInfos != null) {
       Iterator<NewObjInfo> it_nobjs = this.newObjInfos.values().iterator();
       while(it_nobjs.hasNext()) {
-        it_nobjs.next().invokeNum = 0;
+	it_nobjs.next().invokeNum = 0;
       }
     }
   }
@@ -219,9 +219,9 @@ public class FEdge extends Edge {
   public int getInvokeNumGap() {
     return this.expInvokeNum - this.invokeNum;
   }
-  
+
   public int getInvokeNumGapByObj(int byObj) {
-      return this.expInvokeNum - (this.invokeNum/byObj);
+    return this.expInvokeNum - (this.invokeNum/byObj);
   }
 
   public void setExpInvokeNum(int expInvokeNum) {

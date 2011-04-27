@@ -24,11 +24,11 @@ public class NameNode extends ExpressionNode {
   public ExpressionNode getExpression() {
     return en;
   }
-  
+
   public ClassDescriptor getClassDesc() {
     return this.cd;
   }
-  
+
   public void setClassDesc(ClassDescriptor cd) {
     this.cd = cd;
   }
@@ -71,16 +71,17 @@ public class NameNode extends ExpressionNode {
       return new TypeDescriptor(TypeDescriptor.TAG);
     else if(vd != null) {
       return ((VarDescriptor)vd).getType();
-    } if(cd != null) {
+    }
+    if(cd != null) {
       TypeDescriptor tp = new TypeDescriptor(cd);
       tp.setClassNameRef();
       return tp;
     } else {
       return null;
     }
-      
+
   }
-  
+
   public TypeDescriptor getClassType() {
     if(cd != null) {
       TypeDescriptor tp = new TypeDescriptor(cd);
@@ -101,15 +102,15 @@ public class NameNode extends ExpressionNode {
   public int kind() {
     return Kind.NameNode;
   }
-  
+
   public Long evaluate() {
     eval = null;
     if(fd != null ) {
       if(fd.isFinal() && fd.isStatic()) {
-        eval = fd.getExpressionNode().evaluate();
+	eval = fd.getExpressionNode().evaluate();
       } else if(fd.isEnum()) {
-        eval = Long.valueOf((long)fd.enumValue());
-      } 
+	eval = Long.valueOf((long)fd.enumValue());
+      }
     } else if(en!= null) {
       eval = en.evaluate();
     }

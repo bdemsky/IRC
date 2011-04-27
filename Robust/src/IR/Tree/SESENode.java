@@ -10,10 +10,10 @@ public class SESENode extends BlockStatementNode {
   protected SESENode end;
 
   protected FlatSESEEnterNode enter;
-  protected FlatSESEExitNode  exit;
+  protected FlatSESEExitNode exit;
 
 
-  public SESENode( String id ) {
+  public SESENode(String id) {
     this.id = id;
     start = null;
     end   = null;
@@ -25,11 +25,11 @@ public class SESENode extends BlockStatementNode {
     return id;
   }
 
-  public void setStart( SESENode n ) {
+  public void setStart(SESENode n) {
     start = n;
   }
 
-  public void setEnd( SESENode n ) {
+  public void setEnd(SESENode n) {
     end = n;
   }
 
@@ -45,11 +45,11 @@ public class SESENode extends BlockStatementNode {
     return end;
   }
 
-  public void setFlatEnter( FlatSESEEnterNode fsen ) {
+  public void setFlatEnter(FlatSESEEnterNode fsen) {
     enter = fsen;
   }
 
-  public void setFlatExit( FlatSESEExitNode fsexn ) {
+  public void setFlatExit(FlatSESEExitNode fsexn) {
     exit = fsexn;
   }
 

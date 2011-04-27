@@ -43,7 +43,7 @@ public class FlagOpNode extends FlagExpressionNode {
 
   public DNFFlag getDNF() {
     DNFFlag leftflag=left.getDNF();
-    DNFFlag rightflag=right!=null ? right.getDNF() : null;
+    DNFFlag rightflag=right!=null?right.getDNF():null;
 
     if (op.getOp()==Operation.LOGIC_NOT) {
       return leftflag.not();

@@ -64,8 +64,8 @@
 // these are useful for interpreting an INTPTR to an
 // Object at runtime to retrieve the object's type
 // or object id (OID)
-#define OBJPTRPTR_2_OBJTYPE( opp ) ((struct ___Object___*)*(opp))->type
-#define OBJPTRPTR_2_OBJOID(  opp ) ((struct ___Object___*)*(opp))->oid
+#define OBJPTRPTR_2_OBJTYPE(opp) ((struct ___Object___*)*(opp))->type
+#define OBJPTRPTR_2_OBJOID(opp) ((struct ___Object___*)*(opp))->oid
 
 
 // forwarding list elements is a linked
@@ -76,9 +76,9 @@
 // a lot of items are on the list
 #define FLIST_ITEMS_PER_ELEMENT 30
 typedef struct ForwardingListElement_t {
-  int                             numItems;
+  int numItems;
   struct ForwardingListElement_t* nextElement;
-  INTPTR                          items[FLIST_ITEMS_PER_ELEMENT];
+  INTPTR items[FLIST_ITEMS_PER_ELEMENT];
 } ForwardingListElement;
 
 struct MemPool_t;
@@ -87,30 +87,30 @@ struct MemPool_t;
 // generated SESE record to this can be used, because
 // the common structure is always the first item in a
 // customized SESE record
-typedef struct SESEcommon_t {  
+typedef struct SESEcommon_t {
 
   // the identifier for the class of sese's that
   // are instances of one particular static code block
   // IMPORTANT: the class ID must be the first field of
   // the task record so task dispatch works correctly!
   int classID;
-  volatile int    unresolvedDependencies;
+  volatile int unresolvedDependencies;
 
   // a parent waits on this semaphore when stalling on
   // this child, the child gives it at its SESE exit
   psemaphore* parentsStallSem;
 
-  
+
   // NOTE: first element is embedded in the task
   // record, so don't free it!
   //ForwardingListElement forwardList;
   struct Queue forwardList;
 
-  volatile int             doneExecuting;
-  volatile int             numRunningChildren;
+  volatile int doneExecuting;
+  volatile int numRunningChildren;
 
   struct SESEcommon_t*   parent;
-  
+
   int numMemoryQueue;
   int rentryIdx;
   int unresolvedRentryIdx;
@@ -133,7 +133,7 @@ typedef struct SESEcommon_t {
   // the lock guards the following data SESE's
   // use to coordinate with one another
   pthread_mutex_t lock;
-  pthread_cond_t  runningChildrenCond;
+  pthread_cond_t runningChildrenCond;
 } SESEcommon;
 
 // a thread-local var refers to the currently
@@ -148,8 +148,8 @@ extern __thread psemaphore runningSESEstallSem;
 
 
 
-typedef struct REntry_t{
-  // fine read:0, fine write:1, parent read:2, 
+typedef struct REntry_t {
+  // fine read:0, fine write:1, parent read:2,
   // parent write:3 coarse: 4, parent coarse:5, scc: 6
   int type;
 #ifdef RCR
@@ -184,7 +184,7 @@ struct rcrRecord {
   struct rcrRecord *next;
 };
 
-typedef struct SESEstall_t { 
+typedef struct SESEstall_t {
   SESEcommon common;
   int size;
   void * next;
@@ -199,12 +199,12 @@ typedef struct MemoryQueueItem_t {
   int total;        //total non-retired
   int status;       //NOTREADY, READY
   struct MemoryQueueItem_t *next;
-  
+
 } MemoryQueueItem;
 
 typedef struct MemoryQueue_t {
   MemoryQueueItem * head;
-  MemoryQueueItem * tail;  
+  MemoryQueueItem * tail;
   REntry * binbuf[NUMBINS];
   REntry * buf[NUMRENTRY];
   int bufcount;
@@ -259,15 +259,15 @@ void RETIRERENTRY(MemoryQueue* Q, REntry * r);
 
 
 
-static inline void ADD_FORWARD_ITEM( ForwardingListElement* e,
-                                     SESEcommon*            s ) {
+static inline void ADD_FORWARD_ITEM(ForwardingListElement* e,
+                                    SESEcommon*            s) {
   //atomic_inc( &(s->refCount) );
 }
 
-// simple mechanical allocation and 
+// simple mechanical allocation and
 // deallocation of SESE records
-void* mlpAllocSESErecord( int size );
-void  mlpFreeSESErecord( SESEcommon* seseRecord );
+void* mlpAllocSESErecord(int size);
+void  mlpFreeSESErecord(SESEcommon* seseRecord);
 
 MemoryQueue** mlpCreateMemoryQueueArray(int numMemoryQueue);
 REntry* mlpCreateFineREntry(MemoryQueue *q, int type, SESEcommon* seseToIssue, void* dynID);
@@ -294,21 +294,21 @@ int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon);
 void resolvePointer(REntry* rentry);
 #endif
 
-static inline void ADD_REFERENCE_TO( SESEcommon* seseRec ) {
-  atomic_inc( &(seseRec->refCount) );
+static inline void ADD_REFERENCE_TO(SESEcommon* seseRec) {
+  atomic_inc(&(seseRec->refCount) );
 }
 
-static inline int RELEASE_REFERENCE_TO( SESEcommon* seseRec ) {
-  if( atomic_sub_and_test( 1, &(seseRec->refCount) ) ) {
-    poolfreeinto( seseRec->parent->taskRecordMemPool, seseRec );
+static inline int RELEASE_REFERENCE_TO(SESEcommon* seseRec) {
+  if( atomic_sub_and_test(1, &(seseRec->refCount) ) ) {
+    poolfreeinto(seseRec->parent->taskRecordMemPool, seseRec);
     return 1;
   }
   return 0;
 }
 
-static inline int RELEASE_REFERENCES_TO( SESEcommon* seseRec, int refCount) {
-  if( atomic_sub_and_test( refCount, &(seseRec->refCount) ) ) {
-    poolfreeinto( seseRec->parent->taskRecordMemPool, seseRec );
+static inline int RELEASE_REFERENCES_TO(SESEcommon* seseRec, int refCount) {
+  if( atomic_sub_and_test(refCount, &(seseRec->refCount) ) ) {
+    poolfreeinto(seseRec->parent->taskRecordMemPool, seseRec);
     return 1;
   }
   return 0;
@@ -318,7 +318,7 @@ static inline int RELEASE_REFERENCES_TO( SESEcommon* seseRec, int refCount) {
 
 
 ////////////////////////////////////////////////
-// 
+//
 //  Some available debug versions of the above
 //  pool allocation-related helpers.  The lower
 //  'x' appended to names means they are not hooked
@@ -326,15 +326,15 @@ static inline int RELEASE_REFERENCES_TO( SESEcommon* seseRec, int refCount) {
 //  use them for debugging
 //
 ////////////////////////////////////////////////
-#define ADD_REFERENCE_TOx(x) atomic_inc( &((x)->refCount) ); printf("0x%x ADD 0x%x on %d\n",(INTPTR)runningSESE,(INTPTR)(x),__LINE__);
+#define ADD_REFERENCE_TOx(x) atomic_inc(&((x)->refCount) ); printf("0x%x ADD 0x%x on %d\n",(INTPTR)runningSESE,(INTPTR)(x),__LINE__);
 
-#define RELEASE_REFERENCE_TOx(x) if (atomic_sub_and_test(1, &((x)->refCount))) {poolfreeinto(x->parent->taskRecordMemPool, x);printf("0x%x REL 0x%x on %d\n",(INTPTR)runningSESE,(INTPTR)(x),__LINE__);}
+#define RELEASE_REFERENCE_TOx(x) if (atomic_sub_and_test(1, &((x)->refCount))) {poolfreeinto(x->parent->taskRecordMemPool, x); printf("0x%x REL 0x%x on %d\n",(INTPTR)runningSESE,(INTPTR)(x),__LINE__); }
 
 #define CHECK_RECORDx(x) {                                              \
     if( ((SESEcommon*)(x))->refCount < 0 ||                             \
         ((SESEcommon*)(x))->refCount < 0 ) {                            \
-      printf( "Acquired 0x%x from poolalloc, with refCount=%d\n", (INTPTR)(x), ((SESEcommon*)(x))->refCount ); } \
-  }
+      printf("Acquired 0x%x from poolalloc, with refCount=%d\n", (INTPTR)(x), ((SESEcommon*)(x))->refCount); } \
+}
 
 
 
@@ -342,7 +342,7 @@ static inline int RELEASE_REFERENCES_TO( SESEcommon* seseRec, int refCount) {
 // pass this into the poolcreate so it will run your
 // custom init code ONLY for fresh records, reused records
 // can be returned as is
-void freshTaskRecordInitializer( void* seseRecord );
-  
+void freshTaskRecordInitializer(void* seseRecord);
+
 
 #endif /* __MLP_RUNTIME__ */

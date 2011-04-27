@@ -7,7 +7,7 @@ import java.util.*;
 public class VariableNode extends RefSrcNode {
   protected TempDescriptor td;
 
-  public VariableNode( TempDescriptor td ) {
+  public VariableNode(TempDescriptor td) {
     this.td = td;
   }
 
@@ -15,7 +15,7 @@ public class VariableNode extends RefSrcNode {
     return td;
   }
 
-  public boolean equals( Object o ) {
+  public boolean equals(Object o) {
     if( o == null ) {
       return false;
     }

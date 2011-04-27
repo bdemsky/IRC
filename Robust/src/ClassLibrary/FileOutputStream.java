@@ -28,7 +28,7 @@ public class FileOutputStream extends OutputStream {
   public FileOutputStreamOpen(String pathname) {
     fd = nativeOpen(pathname.getBytes());
   }
-  
+
   public FileOutputStream(FileDescriptor fdObj) {
     fd = nativeOpen(fdObj.channel.getBytes());
   }

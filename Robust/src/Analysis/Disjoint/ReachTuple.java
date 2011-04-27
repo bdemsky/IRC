@@ -44,31 +44,31 @@ public class ReachTuple extends Canonical {
   protected boolean isOutOfContext;
 
 
-  public static ReachTuple factory( Integer hrnID,
-                                    boolean isMultiObject,
-                                    int     arity,
-                                    boolean ooc ) {
-    ReachTuple out = new ReachTuple( hrnID,
-                                     isMultiObject,
-                                     arity,
-                                     ooc );
-    out = (ReachTuple) Canonical.makeCanonical( out );
-    return out;
-  }
-  
-  public static ReachTuple factory( HeapRegionNode hrn ) {
-    ReachTuple out = new ReachTuple( hrn.getID(),
-                                     !hrn.isSingleObject(),
-                                     ARITY_ONE,
-                                     false );
-    out = (ReachTuple) Canonical.makeCanonical( out );
+  public static ReachTuple factory(Integer hrnID,
+                                   boolean isMultiObject,
+                                   int arity,
+                                   boolean ooc) {
+    ReachTuple out = new ReachTuple(hrnID,
+                                    isMultiObject,
+                                    arity,
+                                    ooc);
+    out = (ReachTuple) Canonical.makeCanonical(out);
     return out;
   }
 
-  protected ReachTuple( Integer hrnID,
-                        boolean isMultiObject,
-                        int     arity,
-                        boolean ooc ) {
+  public static ReachTuple factory(HeapRegionNode hrn) {
+    ReachTuple out = new ReachTuple(hrn.getID(),
+                                    !hrn.isSingleObject(),
+                                    ARITY_ONE,
+                                    false);
+    out = (ReachTuple) Canonical.makeCanonical(out);
+    return out;
+  }
+
+  protected ReachTuple(Integer hrnID,
+                       boolean isMultiObject,
+                       int arity,
+                       boolean ooc) {
     assert hrnID != null;
 
     this.hrnID          = hrnID;
@@ -102,7 +102,7 @@ public class ReachTuple extends Canonical {
   }
 
 
-  public boolean equalsSpecific( Object o ) {
+  public boolean equalsSpecific(Object o) {
     if( o == null ) {
       return false;
     }
@@ -113,9 +113,9 @@ public class ReachTuple extends Canonical {
 
     ReachTuple rt = (ReachTuple) o;
 
-    return hrnID.equals( rt.hrnID )       &&
-      arity          == rt.arity          &&
-      isOutOfContext == rt.isOutOfContext;
+    return hrnID.equals(rt.hrnID)       &&
+           arity          == rt.arity          &&
+           isOutOfContext == rt.isOutOfContext;
   }
 
   public int hashCodeSpecific() {

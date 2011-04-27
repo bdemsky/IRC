@@ -1,4 +1,4 @@
-public class HashMap{
+public class HashMap {
   HashEntry[] table;
   float loadFactor;
   int numItems;
@@ -22,19 +22,19 @@ public class HashMap{
     this.numItems=0;
     this.threshold=(int)(loadFactor*table.length);
   }
-  
+
   private static int computeCapacity(int capacity) {
-      int x=16;
-      while(x<capacity)
-	  x=x<<1;
-      return x;
+    int x=16;
+    while(x<capacity)
+      x=x<<1;
+    return x;
   }
 
   private static int hash(Object o, int length) {
-      int orig=o.hashCode();
-      orig=orig^(orig>>>22)^(orig>>>10);
-      orig=orig^(orig>>>8)^(orig>>4);
-      return orig&(length-1);
+    int orig=o.hashCode();
+    orig=orig^(orig>>>22)^(orig>>>10);
+    orig=orig^(orig>>>8)^(orig>>4);
+    return orig&(length-1);
   }
 
   void resize() {
@@ -55,11 +55,11 @@ public class HashMap{
     }
   }
 
-    public void clear() {
-	for(int i=0;i<table.length;i++)
-	    table[i]=null;
-	numItems=0;
-    }
+  public void clear() {
+    for(int i=0; i<table.length; i++)
+      table[i]=null;
+    numItems=0;
+  }
 
   public boolean isEmpty() {
     return numItems==0;

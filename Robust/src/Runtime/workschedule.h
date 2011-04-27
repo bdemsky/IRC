@@ -2,13 +2,13 @@
 #define __WORK_SCHEDULE__
 
 
-// initialize the work schedule system, after 
+// initialize the work schedule system, after
 // which some preliminary work units can be
-// scheduled.  Note the supplied work func 
+// scheduled.  Note the supplied work func
 // should operate on a work unit of the type
 // submitted in the function below
-void workScheduleInit( int numProcessors,
-                       void(*workFunc)(void*) );
+void workScheduleInit(int numProcessors,
+                      void (*workFunc)(void*) );
 
 // as the scheduler evolves, looks like this is
 // a better way to shut down the system
@@ -21,7 +21,7 @@ void workScheduleExit();
 // distribute work units among the worker pool
 // threads.  The workers will dynamically
 // steal from one another to load balance
-void workScheduleSubmit( void* workUnit );
+void workScheduleSubmit(void* workUnit);
 
 // once you call this begin function your main
 // thread becomes a work thread, so programs
@@ -40,7 +40,7 @@ void workScheduleBegin();
 extern int threadcount;
 extern pthread_mutex_t gclock;
 extern pthread_mutex_t gclistlock;
-extern pthread_cond_t  gccond;
+extern pthread_cond_t gccond;
 
 
 #endif /* __WORK_SCHEDULE__ */

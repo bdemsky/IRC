@@ -21,7 +21,7 @@ public class MethodDescriptor extends Descriptor {
   protected boolean isglobal;
   protected boolean isstaticblock;  // flag to indicate if this is a static block
   protected boolean isinvokedbystatic;  // flag to indicate if this method is invoked by some static block
-  
+
   protected boolean isdefaultconstructor; // flag to indicate if this is a default constructor
 
   public MethodDescriptor(Modifiers m, TypeDescriptor rt, String identifier) {
@@ -52,8 +52,8 @@ public class MethodDescriptor extends Descriptor {
     for(int i=0; i<numParameters(); i++) {
       Descriptor d1=getParameter(i);
       Descriptor d2=md.getParameter(i);
-      TypeDescriptor td1=(d1 instanceof TagVarDescriptor) ? ((TagVarDescriptor)d1).getType() : ((VarDescriptor)d1).getType();
-      TypeDescriptor td2=(d2 instanceof TagVarDescriptor) ? ((TagVarDescriptor)d2).getType() : ((VarDescriptor)d2).getType();
+      TypeDescriptor td1=(d1 instanceof TagVarDescriptor)?((TagVarDescriptor)d1).getType():((VarDescriptor)d1).getType();
+      TypeDescriptor td2=(d2 instanceof TagVarDescriptor)?((TagVarDescriptor)d2).getType():((VarDescriptor)d2).getType();
       if (!td1.equals(td2))
 	return false;
     }
@@ -82,19 +82,19 @@ public class MethodDescriptor extends Descriptor {
   public boolean isGlobal() {
     return isglobal;
   }
-  
+
   public boolean isStaticBlock() {
     return isstaticblock;
   }
-  
+
   public void setAsStaticBlock() {
     isstaticblock = true;
   }
-  
+
   public boolean isInvokedByStatic() {
     return this.isinvokedbystatic;
   }
-  
+
   public void setIsInvokedByStatic(boolean isinvokedbystatic) {
     this.isinvokedbystatic = isinvokedbystatic;
   }
@@ -125,7 +125,7 @@ public class MethodDescriptor extends Descriptor {
   public boolean isStatic() {
     return modifier.isStatic();
   }
-  
+
   public boolean isAbstract() {
     return modifier.isAbstract();
   }
@@ -212,11 +212,11 @@ public class MethodDescriptor extends Descriptor {
     st+=")";
     return st;
   }
-  
+
   public boolean isDefaultConstructor() {
     return this.isdefaultconstructor;
   }
-  
+
   public void setDefaultConstructor() {
     this.isdefaultconstructor = true;
   }

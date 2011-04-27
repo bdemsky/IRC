@@ -16,13 +16,13 @@ public class TreeNode {
   public int kind() {
     throw new Error();
   }
-  
-  public void setNumLine(int numLine){
+
+  public void setNumLine(int numLine) {
     this.numLine=numLine;
   }
-  
-  public int getNumLine(){
+
+  public int getNumLine() {
     return this.numLine;
   }
-  
+
 }

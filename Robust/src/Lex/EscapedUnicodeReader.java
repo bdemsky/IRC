@@ -13,7 +13,7 @@ public class EscapedUnicodeReader extends FilterReader {
     super(in);
   }
   public int read() throws IOException {
-    int r = (pushback==-1) ? in.read() : pushback; pushback=-1;
+    int r = (pushback==-1)?in.read():pushback; pushback=-1;
 
     if (r!='\\') {
       isEvenSlash=true;
@@ -55,7 +55,7 @@ public class EscapedUnicodeReader extends FilterReader {
   public int read(char cbuf[], int off, int len) throws IOException {
     for (int i=0; i<len; i++) {
       int c = read();
-      if (c==-1) return (i==0) ? -1 : i; // end of stream reached.
+      if (c==-1) return (i==0)?-1:i;      // end of stream reached.
       else cbuf[i+off] = (char) c;
     }
     return len;

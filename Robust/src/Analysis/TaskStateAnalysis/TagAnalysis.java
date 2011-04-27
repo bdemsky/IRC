@@ -48,27 +48,27 @@ public class TagAnalysis {
     for(int i=0; i<scc.numSCC(); i++) {
       Set component=scc.getSCC(i);
       HashSet flagset=new HashSet();
-      for(Iterator compit=component.iterator(); compit.hasNext();) {
+      for(Iterator compit=component.iterator(); compit.hasNext(); ) {
 	TagBinding tb=(TagBinding)compit.next();
 	flagset.addAll(tb.getAllocations());
-	for(Iterator edgeit=tb.edges(); edgeit.hasNext();) {
+	for(Iterator edgeit=tb.edges(); edgeit.hasNext(); ) {
 	  Edge e=(Edge)edgeit.next();
 	  TagBinding tb2=(TagBinding)e.getTarget();
 	  flagset.addAll(tb2.getAllocations());
 	}
       }
-      for(Iterator compit=component.iterator(); compit.hasNext();) {
+      for(Iterator compit=component.iterator(); compit.hasNext(); ) {
 	TagBinding tb=(TagBinding)compit.next();
 	tb.getAllocations().addAll(flagset);
       }
     }
 
     SymbolTable tasktable=state.getTaskSymbolTable();
-    for(Iterator taskit=tasktable.getDescriptorsIterator(); taskit.hasNext();) {
+    for(Iterator taskit=tasktable.getDescriptorsIterator(); taskit.hasNext(); ) {
       TaskDescriptor task=(TaskDescriptor)taskit.next();
       HashSet roottags=(HashSet)tasktotagbindings.get(task);
       HashSet taskflags=(HashSet)tasktoflagstates.get(task);
-      for(Iterator tagit=roottags.iterator(); tagit.hasNext();) {
+      for(Iterator tagit=roottags.iterator(); tagit.hasNext(); ) {
 	TagBinding tb=(TagBinding)tagit.next();
 	taskflags.addAll(tb.getAllocations());
       }
@@ -78,7 +78,7 @@ public class TagAnalysis {
   private Set computeRootSet() {
     HashSet rootset=new HashSet();
     SymbolTable tasktable=state.getTaskSymbolTable();
-    for(Iterator taskit=tasktable.getDescriptorsIterator(); taskit.hasNext();) {
+    for(Iterator taskit=tasktable.getDescriptorsIterator(); taskit.hasNext(); ) {
       TaskDescriptor task=(TaskDescriptor)taskit.next();
       HashSet roottags=new HashSet();
       HashSet taskflags=new HashSet();
@@ -93,15 +93,15 @@ public class TagAnalysis {
 
   private void computeCallsFlags(FlatMethod fm, Hashtable parammap, Set tagbindings, Set newflags) {
     Set nodeset=fm.getNodeSet();
-    for(Iterator nodeit=nodeset.iterator(); nodeit.hasNext();) {
+    for(Iterator nodeit=nodeset.iterator(); nodeit.hasNext(); ) {
       FlatNode fn=(FlatNode)nodeit.next();
       if(fn.kind()==FKind.FlatCall) {
 	FlatCall fc=(FlatCall)fn;
 	MethodDescriptor nodemd=fc.getMethod();
-	Set methodset=fc.getThis()==null ? callgraph.getMethods(nodemd) :
+	Set methodset=fc.getThis()==null?callgraph.getMethods(nodemd):
 	               callgraph.getMethods(nodemd, fc.getThis().getType());
 
-	for(Iterator methodit=methodset.iterator(); methodit.hasNext();) {
+	for(Iterator methodit=methodset.iterator(); methodit.hasNext(); ) {
 	  MethodDescriptor md=(MethodDescriptor) methodit.next();
 	  TagBinding nodetb=new TagBinding(md);
 	  for(int i=0; i<md.numParameters(); i++) {
@@ -141,7 +141,7 @@ public class TagAnalysis {
 	  }
 	  Vector<FlagState> targetFStates = ffan.getTargetFStates4NewObj(ffantemp.getType().getClassDesc());
 	  FlagState fs=new FlagState(ffantemp.getType().getClassDesc());
-	  for(Iterator it=ffan.getTempFlagPairs(); it.hasNext();) {
+	  for(Iterator it=ffan.getTempFlagPairs(); it.hasNext(); ) {
 	    TempFlagPair tfp=(TempFlagPair)it.next();
 	    if (ffan.getFlagChange(tfp))
 	      fs=fs.setFlag(tfp.getFlag(), true);
@@ -152,7 +152,7 @@ public class TagAnalysis {
 	  HashSet fsset=new HashSet();
 	  fsset.add(fs);
 
-	  for(Iterator it=ffan.getTempTagPairs(); it.hasNext();) {
+	  for(Iterator it=ffan.getTempTagPairs(); it.hasNext(); ) {
 	    HashSet oldfsset=fsset;
 	    fsset=new HashSet();
 
@@ -162,7 +162,7 @@ public class TagAnalysis {
 	      if (tag==null&&parammap!=null&&parammap.containsKey(ttp.getTagTemp())) {
 		tag=(TagDescriptor)parammap.get(ttp.getTagTemp());
 	      }
-	      for(Iterator setit=oldfsset.iterator(); setit.hasNext();) {
+	      for(Iterator setit=oldfsset.iterator(); setit.hasNext(); ) {
 		FlagState fs2=(FlagState)setit.next();
 		fsset.addAll(Arrays.asList(fs2.setTag(tag)));
 	      }
@@ -170,7 +170,7 @@ public class TagAnalysis {
 	      throw new Error("Don't clear tag in new object allocation");
 	  }
 
-	  for(Iterator setit=fsset.iterator(); setit.hasNext();) {
+	  for(Iterator setit=fsset.iterator(); setit.hasNext(); ) {
 	    FlagState fs2=(FlagState)setit.next();
 	    if (!flagmap.containsKey(fs2))
 	      flagmap.put(fs2,fs2);
@@ -189,7 +189,7 @@ public class TagAnalysis {
   private void computeTagBindings(Set roots) {
     tovisit.addAll(roots);
 
-    for(Iterator it=roots.iterator(); it.hasNext();) {
+    for(Iterator it=roots.iterator(); it.hasNext(); ) {
       TagBinding tb=(TagBinding)it.next();
       discovered.put(tb,tb);
     }
@@ -200,7 +200,7 @@ public class TagAnalysis {
       FlatMethod fm=state.getMethodFlat(md);
       /* Build map from temps -> tagdescriptors */
       Hashtable parammap=new Hashtable();
-      int offset=md.isStatic() ? 0 : 1;
+      int offset=md.isStatic()?0:1;
 
 
       for(int i=0; i<fm.numParameters(); i++) {
@@ -219,7 +219,7 @@ public class TagAnalysis {
 
       computeCallsFlags(fm, parammap, newtags, tb.getAllocations());
 
-      for(Iterator tagit=newtags.iterator(); tagit.hasNext();) {
+      for(Iterator tagit=newtags.iterator(); tagit.hasNext(); ) {
 	TagBinding newtag=(TagBinding)tagit.next();
 	Edge e=new Edge(newtag);
 	tb.addEdge(e);

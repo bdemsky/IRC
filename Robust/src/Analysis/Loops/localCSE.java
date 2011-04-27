@@ -35,7 +35,7 @@ public class localCSE {
     }
   }
   public TempDescriptor getTemp(Group g) {
-    for(Iterator it=g.set.iterator();it.hasNext();) {
+    for(Iterator it=g.set.iterator(); it.hasNext(); ) {
       LocalExpression e=(LocalExpression)it.next();
       if (e.t!=null)
 	return e.t;
@@ -46,12 +46,12 @@ public class localCSE {
   public void doAnalysis(FlatMethod fm) {
     Set nodes=fm.getNodeSet();
     HashSet<FlatNode> toanalyze=new HashSet<FlatNode>();
-    for(Iterator it=nodes.iterator();it.hasNext();) {
+    for(Iterator it=nodes.iterator(); it.hasNext(); ) {
       FlatNode fn=(FlatNode)it.next();
       if (fn.numPrev()>1)
 	toanalyze.add(fn);
     }
-    for(Iterator<FlatNode> it=toanalyze.iterator();it.hasNext();) {
+    for(Iterator<FlatNode> it=toanalyze.iterator(); it.hasNext(); ) {
       FlatNode fn=it.next();
       Hashtable<LocalExpression, Group> table=new Hashtable<LocalExpression,Group>();
       do {
@@ -80,6 +80,7 @@ public class localCSE {
 	  }
 	  break;
 	}
+
 	case FKind.FlatLiteralNode: {
 	  FlatLiteralNode fln=(FlatLiteralNode)fn;
 	  LocalExpression e=new LocalExpression(fln.getValue());
@@ -90,6 +91,7 @@ public class localCSE {
 	  table.put(dst, src);
 	  break;
 	}
+
 	case FKind.FlatFieldNode: {
 	  FlatFieldNode ffn=(FlatFieldNode) fn;
 	  Group src=getGroup(table, ffn.getSrc());
@@ -106,6 +108,7 @@ public class localCSE {
 	  table.put(dst, srcf);
 	  break;
 	}
+
 	case FKind.FlatElementNode: {
 	  FlatElementNode fen=(FlatElementNode) fn;
 	  Group src=getGroup(table, fen.getSrc());
@@ -123,6 +126,7 @@ public class localCSE {
 	  table.put(dst, srcf);
 	  break;
 	}
+
 	case FKind.FlatSetFieldNode: {
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
 	  Group dst=getGroup(table, fsfn.getDst());
@@ -136,6 +140,7 @@ public class localCSE {
 	  table.put(src, dstf);
 	  break;
 	}
+
 	case FKind.FlatSetElementNode: {
 	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
 	  Group dst=getGroup(table, fsen.getDst());
@@ -150,7 +155,8 @@ public class localCSE {
 	  table.put(src, dstf);
 	  break;
 	}
-	case FKind.FlatCall:{
+
+	case FKind.FlatCall: {
 	  //do side effects
 	  FlatCall fc=(FlatCall)fn;
 	  MethodDescriptor md=fc.getMethod();
@@ -158,9 +164,10 @@ public class localCSE {
 	  Set<TypeDescriptor> arrays=gft.getArraysAll(md);
 	  kill(table, fields, arrays, gft.containsAtomicAll(md), gft.containsBarrierAll(md));
 	}
+
 	default: {
 	  TempDescriptor[] writes=fn.writesTemps();
-	  for(int i=0;i<writes.length;i++) {
+	  for(int i=0; i<writes.length; i++) {
 	    kill(table,writes[i]);
 	  }
 	}
@@ -170,7 +177,7 @@ public class localCSE {
   }
   public void kill(Hashtable<LocalExpression, Group> tab, Set<FieldDescriptor> fields, Set<TypeDescriptor> arrays, boolean isAtomic, boolean isBarrier) {
     Set<LocalExpression> eset=tab.keySet();
-    for(Iterator<LocalExpression> it=eset.iterator();it.hasNext();) {
+    for(Iterator<LocalExpression> it=eset.iterator(); it.hasNext(); ) {
       LocalExpression e=it.next();
       if (isBarrier) {
 	//make Barriers kill everything
@@ -182,7 +189,7 @@ public class localCSE {
       } else if (e.td!=null) {
 	//have array
 	TypeDescriptor artd=e.td;
-	for(Iterator<TypeDescriptor> arit=arrays.iterator();arit.hasNext();) {
+	for(Iterator<TypeDescriptor> arit=arrays.iterator(); arit.hasNext(); ) {
 	  TypeDescriptor td=arit.next();
 	  if (typeutil.isSuperorType(artd,td)||
 	      typeutil.isSuperorType(td,artd)) {
@@ -283,7 +290,7 @@ class LocalExpression {
   public boolean equals(Object o) {
     LocalExpression e=(LocalExpression)o;
     if (!(equiv(a,e.a)&&equiv(f,e.f)&&equiv(b,e.b)&&
-	  equiv(td,e.td)&&equiv(this.obj,e.obj)))
+          equiv(td,e.td)&&equiv(this.obj,e.obj)))
       return false;
     if (op!=null)
       return op.getOp()==e.op.getOp();

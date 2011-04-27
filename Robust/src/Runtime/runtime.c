@@ -18,12 +18,12 @@
 #include "DSTM/interface_recovery/altprelookup.h"
 
 #ifdef RECOVERYSTATS
-  extern int numRecovery;
-  extern unsigned int deadMachine[8];
-  extern unsigned int sizeOfRedupedData[8];
-  extern double elapsedTime[8];
+extern int numRecovery;
+extern unsigned int deadMachine[8];
+extern unsigned int sizeOfRedupedData[8];
+extern double elapsedTime[8];
 #endif
-  
+
 #else
 #include "DSTM/interface/dstm.h"
 #include "DSTM/interface/altprelookup.h"
@@ -45,10 +45,10 @@ unsigned long long beginClock=0;
 #ifdef EVENTMONITOR
 #include "monitor.h"
 __thread int objcount=0;
-#define ASSIGNUID(x) {					\
-    int number=((objcount++)<<EVTHREADSHIFT)|threadnum;	\
-    x->objuid=number;					\
-  }
+#define ASSIGNUID(x) {                                  \
+    int number=((objcount++)<<EVTHREADSHIFT)|threadnum; \
+    x->objuid=number;                                   \
+}
 #else
 #define ASSIGNUID(x)
 #endif
@@ -157,7 +157,7 @@ void injectinstructionfailure() {
 #ifdef D___Double______nativeparsedouble____L___String___
 double CALL01(___Double______nativeparsedouble____L___String___,struct ___String___ * ___str___) {
   int length=VAR(___str___)->___count___;
-  int maxlength=(length>60)?60:length;
+  int maxlength=(length>60) ? 60 : length;
   char str[maxlength+1];
   struct ArrayObject * chararray=VAR(___str___)->___value___;
   int i;
@@ -171,9 +171,9 @@ double CALL01(___Double______nativeparsedouble____L___String___,struct ___String
 }
 #endif
 
-#ifdef D___Double______nativeparsedouble_____AR_B_I_I 
+#ifdef D___Double______nativeparsedouble_____AR_B_I_I
 double CALL23(___Double______nativeparsedouble_____AR_B_I_I, int start, int length,int start,int length,struct ArrayObject * ___str___) {
-  int maxlength=(length>60)?60:length;
+  int maxlength=(length>60) ? 60 : length;
   char str[maxlength+1];
   struct ArrayObject * bytearray=VAR(___str___);
   int i;
@@ -186,16 +186,15 @@ double CALL23(___Double______nativeparsedouble_____AR_B_I_I, int start, int leng
 }
 #endif
 
-#ifdef D___Double______doubleToRawLongBits____D 
-typedef union jvalue
-{
+#ifdef D___Double______doubleToRawLongBits____D
+typedef union jvalue {
   bool z;
-  char    c;
-  short   s;
-  int     i;
-  long long    j;
-  float   f;
-  double  d;
+  char c;
+  short s;
+  int i;
+  long long j;
+  float f;
+  double d;
 } jvalue;
 
 long long CALL11(___Double______doubleToRawLongBits____D, double dval, double dval) {
@@ -216,7 +215,7 @@ long long CALL11(___Double______doubleToRawLongBits____D, double dval, double dv
 }
 #endif
 
-#ifdef D___Double______longBitsToDouble____J 
+#ifdef D___Double______longBitsToDouble____J
 double CALL11(___Double______longBitsToDouble____J, long long lval, long long lval) {
   jvalue val;
   val.j = lval;
@@ -266,11 +265,11 @@ void deepArrayCopy(struct ___Object___ * dst, struct ___Object___ * src) {
     int elementsize=classsize[srctype];
     int size=srclength*elementsize;
     //primitives
-    memcpy(((char *)&aodst->___length___)+sizeof(int) , ((char *)&aosrc->___length___)+sizeof(int), size);
+    memcpy(((char *)&aodst->___length___)+sizeof(int), ((char *)&aosrc->___length___)+sizeof(int), size);
   } else {
     //objects
     int i;
-    for(i=0;i<srclength;i++) {
+    for(i=0; i<srclength; i++) {
       struct ___Object___ * ptr=((struct ___Object___**)(((char*) &aosrc->___length___)+sizeof(int)))[i];
       int ptrtype=((int *)ptr)[0];
       if (ptrtype>=NUMCLASSES) {
@@ -321,7 +320,7 @@ void arraycopy(struct ___Object___ *src, int srcPos, struct ___Object___ *dst, i
   } else {
     //objects
     int i;
-    for(i=0;i<length;i++) {
+    for(i=0; i<length; i++) {
       struct ___Object___ * ptr=((struct ___Object___**)(((char*) &aosrc->___length___)+sizeof(int)))[i+srcPos];
       //hit an object
       ((struct ___Object___ **)(((char*) &aodst->___length___)+sizeof(int)))[i+destPos]=ptr;
@@ -329,7 +328,7 @@ void arraycopy(struct ___Object___ *src, int srcPos, struct ___Object___ *dst, i
   }
 }
 
-void CALL35(___System______arraycopy____L___Object____I_L___Object____I_I, int ___srcPos___, int ___destPos___, int ___length___, struct ___Object___ * ___src___, int ___srcPos___, struct ___Object___ * ___dst___, int  ___destPos___, int ___length___) {
+void CALL35(___System______arraycopy____L___Object____I_L___Object____I_I, int ___srcPos___, int ___destPos___, int ___length___, struct ___Object___ * ___src___, int ___srcPos___, struct ___Object___ * ___dst___, int ___destPos___, int ___length___) {
   arraycopy(VAR(___src___), ___srcPos___, VAR(___dst___), ___destPos___, ___length___);
 }
 #endif
@@ -500,19 +499,19 @@ void CALL00(___System______gc____) {
   collect((struct garbagelist *)___params___);
 
   {
-  void * tmp=to_heapbase;
-  to_heapbase=curr_heapbase;
-  curr_heapbase=tmp;
+    void * tmp=to_heapbase;
+    to_heapbase=curr_heapbase;
+    curr_heapbase=tmp;
 
-  tmp=to_heaptop;
-  to_heaptop=curr_heaptop;
-  curr_heaptop=tmp;
+    tmp=to_heaptop;
+    to_heaptop=curr_heaptop;
+    curr_heaptop=tmp;
 
-  tmp=to_heapptr;
-  curr_heapptr=to_heapptr;
-  curr_heapgcpoint=((char *) curr_heapbase)+GCPOINT(curr_heaptop-curr_heapbase);
-  to_heapptr=to_heapbase;
-  bzero(tmp, curr_heaptop-tmp);
+    tmp=to_heapptr;
+    curr_heapptr=to_heapptr;
+    curr_heapgcpoint=((char *) curr_heapbase)+GCPOINT(curr_heaptop-curr_heapbase);
+    to_heapptr=to_heapbase;
+    bzero(tmp, curr_heaptop-tmp);
 
   }
 
@@ -524,7 +523,7 @@ void CALL00(___System______gc____) {
 
 #ifdef D___System______microTimes____
 long long CALL00(___System______microTimes____) {
-  struct timeval tv; 
+  struct timeval tv;
   long long retval;
   gettimeofday(&tv, NULL);
   retval = tv.tv_sec; /* seconds */
@@ -537,8 +536,8 @@ long long CALL00(___System______microTimes____) {
 #ifdef D___System______getticks____
 long long CALL00(___System______getticks____) {
   unsigned a, d;
-  asm("cpuid");
-  asm volatile("rdtsc" : "=a" (a), "=d" (d));
+  asm ("cpuid");
+  asm volatile ("rdtsc" : "=a" (a), "=d" (d));
   return (((ticks)a) | (((ticks)d) << 32));
 }
 #endif
@@ -559,7 +558,7 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 }
 #endif
 
-#ifdef D___RecoveryStat______printRecoveryStat____ 
+#ifdef D___RecoveryStat______printRecoveryStat____
 #ifdef RECOVERYSTATS
 void CALL00(___RecoveryStat______printRecoveryStat____) {
   printRecoveryStat();
@@ -609,21 +608,20 @@ void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Objec
 #endif
 #endif
 
-#ifdef D___Task______execution____ 
+#ifdef D___Task______execution____
 extern void* virtualtable[];
 // associated with Task.execution(). finds proper execute method and call it
-void CALL01(___Task______execution____,struct ___Task___ * ___this___)
-{
+void CALL01(___Task______execution____,struct ___Task___ * ___this___) {
   unsigned int oid;
   oid = (unsigned int) VAR(___this___);   // object id
   int type = getObjType(oid);             // object type
 
 #ifdef PRECISE_GC
-  int p[] = {1,0 , oid};
-  ((void(*) (void *))virtualtable[type*MAXCOUNT + EXECUTEMETHOD])(p);
+  int p[] = {1,0, oid};
+  ((void (*)(void *))virtualtable[type*MAXCOUNT + EXECUTEMETHOD])(p);
 #else
   // call the proper execute method
-  ((void(*) (void *))virtualtable[type*MAXCOUNT + EXECUTEMETHOD])(oid);
+  ((void (*)(void *))virtualtable[type*MAXCOUNT + EXECUTEMETHOD])(oid);
 #endif
 }
 #endif
@@ -726,7 +724,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, 
   int bookkeepsize=numlocks*2*sizeof(int);
   struct ArrayObject * v=(struct ArrayObject *)transCreateObj(ptr, sizeof(struct ArrayObject)+basesize+bookkeepsize, bookkeepsize);
   unsigned int *intptr=(unsigned int *)(((char *)v)-sizeof(objheader_t));
-  for(;numlocks>0;numlocks--) {
+  for(; numlocks>0; numlocks--) {
     intptr-=2;
     intptr[0]=1;
   }
@@ -769,7 +767,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
   int numlocks=basesize>>INDEXSHIFT;
   int bookkeepsize=(numlocks)*2*sizeof(int);
   int *tmpint=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+basesize+sizeof(objheader_t)+bookkeepsize);
-  for(;numlocks>0;numlocks--) {
+  for(; numlocks>0; numlocks--) {
     tmpint[0]=1;
     tmpint+=2;
   }
@@ -831,7 +829,7 @@ __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   return allocate_newarray_mlp(ptr, type, length, 0, 0);
 }
- __attribute__((malloc)) struct ArrayObject * allocate_newarray_mlp(void * ptr, int type, int length, int oid, int allocsite) {
+__attribute__((malloc)) struct ArrayObject * allocate_newarray_mlp(void * ptr, int type, int length, int oid, int allocsite) {
 #else
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
 #endif
@@ -961,11 +959,11 @@ void abort_task() {
 
 #ifndef SANDBOX
 #ifdef D___System______Assert____Z
- void CALL11(___System______Assert____Z, int ___status___, int ___status___) {
-   if (!___status___) {
-     printf("Assertion violation\n");
-     *((int *)(NULL)); //force stack trace error
-   }
- }
+void CALL11(___System______Assert____Z, int ___status___, int ___status___) {
+  if (!___status___) {
+    printf("Assertion violation\n");
+    *((int *)(NULL));  //force stack trace error
+  }
+}
 #endif
 #endif

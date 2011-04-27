@@ -286,7 +286,7 @@ public class FlagState extends GraphNode implements Cloneable {
       if (fs.cd!=cd)
 	return false;
       if(fs.byObj != this.byObj) {
-	  return false;
+	return false;
       }
       return (fs.flagstate.equals(flagstate) & fs.tags.equals(tags));
     }
@@ -303,14 +303,14 @@ public class FlagState extends GraphNode implements Cloneable {
 
   public String getTextLabel() {
     String label=null;
-    for(Iterator it=getFlags(); it.hasNext();) {
+    for(Iterator it=getFlags(); it.hasNext(); ) {
       FlagDescriptor fd=(FlagDescriptor) it.next();
       if (label==null)
 	label=fd.toString();
       else
 	label+=", "+fd.toString();
     }
-    for (Enumeration en_tags=getTags(); en_tags.hasMoreElements();) {
+    for (Enumeration en_tags=getTags(); en_tags.hasMoreElements(); ) {
       TagDescriptor td=(TagDescriptor)en_tags.nextElement();
       switch (tags.get(td).intValue()) {
       case ONETAG:
@@ -445,13 +445,13 @@ public class FlagState extends GraphNode implements Cloneable {
     for(int i = 0; i < this.edges.size(); i++) {
       next = (FEdge) this.edges.elementAt(i);
       if(this.byObj == 0) {
-	  next.setExpInvokeNum((int)(Math.ceil(this.invokeNum * next.getProbability() / 100)));
+	next.setExpInvokeNum((int)(Math.ceil(this.invokeNum * next.getProbability() / 100)));
       } else {
-	  next.setExpInvokeNum((int)(Math.ceil(((this.invokeNum - 1) / this.byObj + 1) * next.getProbability() / 100)));
+	next.setExpInvokeNum((int)(Math.ceil(((this.invokeNum - 1) / this.byObj + 1) * next.getProbability() / 100)));
       }
     }
 
-    // find the one with the biggest gap between its actual invoke time and 
+    // find the one with the biggest gap between its actual invoke time and
     // the expected invoke time and associated with task td
     int index = 0;
     int gap = 0;
@@ -459,7 +459,7 @@ public class FlagState extends GraphNode implements Cloneable {
     boolean isbackedge = true;
     for(int i = 0; i < this.edges.size(); i++) {
       next = ((FEdge) this.edges.elementAt(i));
-      int temp = (this.byObj == 0) ? next.getInvokeNumGap() : next.getInvokeNumGapByObj(this.byObj);
+      int temp = (this.byObj == 0)?next.getInvokeNumGap():next.getInvokeNumGapByObj(this.byObj);
       boolean exchange = false;
       if((temp > gap) && (next.getTask().equals(td))) {
 	exchange = true;
@@ -487,11 +487,11 @@ public class FlagState extends GraphNode implements Cloneable {
   }
 
   public int getByObj() {
-      return byObj;
+    return byObj;
   }
 
   public void setByObj(int byObj) {
-      this.byObj = byObj;
+    this.byObj = byObj;
   }
 
   /*public Vector<ScheduleEdge> getAllys() {

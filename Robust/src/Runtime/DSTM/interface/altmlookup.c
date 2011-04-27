@@ -20,7 +20,7 @@ unsigned int mhashCreate(unsigned int size, double loadfactor) {
   mlookup.numelements = 0;       // Initial number of elements in the hash
   mlookup.loadfactor = loadfactor;
   int i;
-  for(i=0;i<NUMLOCKS;i++)
+  for(i=0; i<NUMLOCKS; i++)
     mlookup.larray[i].lock=RW_LOCK_BIAS;
   //Initialize the pthread_mutex variable
   return 0;
@@ -28,7 +28,7 @@ unsigned int mhashCreate(unsigned int size, double loadfactor) {
 
 // Assign to keys to bins inside hash table
 unsigned int mhashFunction(unsigned int key) {
-  return( key & mlookup.mask) >>1;
+  return ( key & mlookup.mask) >>1;
 }
 
 // Insert value and key mapping into the hash table
@@ -135,17 +135,17 @@ void mhashResize(unsigned int newsize) {
   unsigned int i,index;
   unsigned int mask;
 
-  for(i=0;i<NUMLOCKS;i++) {
+  for(i=0; i<NUMLOCKS; i++) {
     volatile unsigned int * lockptr=&mlookup.larray[i].lock;
-    
+
     while(!write_trylock(lockptr)) {
       sched_yield();
     }
   }
-  
+
   if (mlookup.numelements < mlookup.threshold) {
     //release lock and return
-    for(i=0;i<NUMLOCKS;i++) {
+    for(i=0; i<NUMLOCKS; i++) {
       volatile unsigned int * lockptr=&mlookup.larray[i].lock;
       write_unlock(lockptr);
     }
@@ -154,7 +154,7 @@ void mhashResize(unsigned int newsize) {
 
   mhashlistnode_t * ptr = mlookup.table;
   unsigned int oldsize = mlookup.size;
-  
+
   if((node = calloc(newsize, sizeof(mhashlistnode_t))) == NULL) {
     printf("Calloc error %s %d\n", __FILE__, __LINE__);
     return;
@@ -186,15 +186,15 @@ void mhashResize(unsigned int newsize) {
 	  free(curr);
       } /*
 
-         NOTE:  Add this case if you change this...                                                        
-         This case currently never happens because of the way things rehash....                            
-else if (isfirst) {
-	mhashlistnode_t *newnode = calloc(1, sizeof(mhashlistnode_t));
-	newnode->key = curr->key;
-	newnode->val = curr->val;
-	newnode->next = tmp->next;
-	tmp->next=newnode;
-	} */
+	   NOTE:  Add this case if you change this...
+	   This case currently never happens because of the way things rehash....
+	   else if (isfirst) {
+	   mhashlistnode_t *newnode = calloc(1, sizeof(mhashlistnode_t));
+	   newnode->key = curr->key;
+	   newnode->val = curr->val;
+	   newnode->next = tmp->next;
+	   tmp->next=newnode;
+	   } */
       else {
 	curr->next=tmp->next;
 	tmp->next=curr;
@@ -205,38 +205,38 @@ else if (isfirst) {
   }
 
   free(ptr);
-  for(i=0;i<NUMLOCKS;i++) {
+  for(i=0; i<NUMLOCKS; i++) {
     volatile unsigned int * lockptr=&mlookup.larray[i].lock;
     write_unlock(lockptr);
   }
   return;
 }
 /*
-unsigned int *mhashGetKeys(unsigned int *numKeys) {
-  unsigned int *keys;
-  int i, keyindex;
-  mhashlistnode_t *curr;
+   unsigned int *mhashGetKeys(unsigned int *numKeys) {
+   unsigned int *keys;
+   int i, keyindex;
+   mhashlistnode_t *curr;
 
-  pthread_mutex_lock(&mlookup.locktable);
+   pthread_mutex_lock(&mlookup.locktable);
 
-  *numKeys = mlookup.numelements;
-  keys = calloc(*numKeys, sizeof(unsigned int));
+ *numKeys = mlookup.numelements;
+   keys = calloc(*numKeys, sizeof(unsigned int));
 
-  keyindex = 0;
-  for (i = 0; i < mlookup.size; i++) {
+   keyindex = 0;
+   for (i = 0; i < mlookup.size; i++) {
     if (mlookup.table[i].key != 0) {
       curr = &mlookup.table[i];
       while (curr != NULL) {
-	keys[keyindex++] = curr->key;
-	curr = curr->next;
+        keys[keyindex++] = curr->key;
+        curr = curr->next;
       }
     }
-  }
+   }
 
-  if (keyindex != *numKeys)
+   if (keyindex != *numKeys)
     printf("mhashGetKeys(): WARNING: incorrect mlookup.numelements value!\n");
 
-  pthread_mutex_unlock(&mlookup.locktable);
-  return keys;
-  }*/
+   pthread_mutex_unlock(&mlookup.locktable);
+   return keys;
+   }*/
 

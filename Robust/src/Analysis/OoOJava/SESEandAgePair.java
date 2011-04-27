@@ -8,10 +8,10 @@ import java.io.*;
 public class SESEandAgePair {
 
   private FlatSESEEnterNode sese;
-  private Integer           age;
+  private Integer age;
 
-  public SESEandAgePair( FlatSESEEnterNode sese,
-			 Integer           age ) {
+  public SESEandAgePair(FlatSESEEnterNode sese,
+                        Integer age) {
     this.sese = sese;
     this.age  = age;
   }
@@ -24,7 +24,7 @@ public class SESEandAgePair {
     return age;
   }
 
-  public boolean equals( Object o ) {
+  public boolean equals(Object o) {
     if( o == null ) {
       return false;
     }
@@ -35,8 +35,8 @@ public class SESEandAgePair {
 
     SESEandAgePair p = (SESEandAgePair) o;
 
-    return age.equals( p.age  ) &&
-          sese.equals( p.sese );
+    return age.equals(p.age) &&
+           sese.equals(p.sese);
   }
 
   public int hashCode() {
@@ -46,9 +46,9 @@ public class SESEandAgePair {
 
   public String toString() {
     return "SESE_"+
-      sese.getPrettyIdentifier()+
-      sese.getIdentifier()+
-      "_"+
-      age;
+           sese.getPrettyIdentifier()+
+           sese.getIdentifier()+
+           "_"+
+           age;
   }
 }

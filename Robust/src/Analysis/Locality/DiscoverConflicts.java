@@ -85,18 +85,18 @@ public class DiscoverConflicts {
   public Set<TypeDescriptor> getArrays() {
     return arrays;
   }
-  
+
   public void doAnalysis() {
     //Compute fields and arrays for all transactions.  Note that we
     //only look at changes to old objects
 
     Set<LocalityBinding> localityset=locality.getLocalityBindings();
-    for(Iterator<LocalityBinding> lb=localityset.iterator();lb.hasNext();) {
+    for(Iterator<LocalityBinding> lb=localityset.iterator(); lb.hasNext(); ) {
       computeModified(lb.next());
     }
     expandTypes();
     //Compute set of nodes that need transread
-    for(Iterator<LocalityBinding> lb=localityset.iterator();lb.hasNext();) {
+    for(Iterator<LocalityBinding> lb=localityset.iterator(); lb.hasNext(); ) {
       LocalityBinding l=lb.next();
       analyzeLocality(l);
     }
@@ -106,7 +106,7 @@ public class DiscoverConflicts {
 
   private void setNeedReadTrans(LocalityBinding lb) {
     HashSet<FlatNode> set=new HashSet<FlatNode>();
-    for(Iterator<TempFlatPair> it=transreadmap.get(lb).iterator();it.hasNext();) {
+    for(Iterator<TempFlatPair> it=transreadmap.get(lb).iterator(); it.hasNext(); ) {
       TempFlatPair tfp=it.next();
       set.add(tfp.f);
     }
@@ -114,34 +114,34 @@ public class DiscoverConflicts {
     if (gft!=null) {
       //need to translate write map set
       set=new HashSet<FlatNode>();
-      for(Iterator<TempFlatPair> it=writemap.get(lb).iterator();it.hasNext();) {
+      for(Iterator<TempFlatPair> it=writemap.get(lb).iterator(); it.hasNext(); ) {
 	TempFlatPair tfp=it.next();
 	set.add(tfp.f);
       }
       twritemap.put(lb, set);
     }
   }
-  
+
   private void computeneedsarrayget(LocalityBinding lb, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> fnmap) {
     //    Set<FlatNode> gwriteset=(state.READSET&&gft!=null)?twritemap.get(lb):treadmap.get(lb);
     if (state.READSET&&gft!=null) {
       if (twritemap.get(lb).size()==0) {
 	getmap.put(lb, new HashSet<FlatNode>());
-        return;
+	return;
       }
     }
 
     Set<FlatNode> gwriteset=treadmap.get(lb);
     FlatMethod fm=state.getMethodFlat(lb.getMethod());
     HashSet<FlatNode> needsget=new HashSet<FlatNode>();
-    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
       if (atomictable.get(fn).intValue()>0&&fn.kind()==FKind.FlatElementNode) {
 	FlatElementNode fen=(FlatElementNode)fn;
 	Set<TempFlatPair> tfpset=fnmap.get(fen).get(fen.getSrc());
 	if (tfpset!=null) {
-	  for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	  for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
 	    TempFlatPair tfp=tfpit.next();
 	    if (gwriteset.contains(tfp.f)) {
 	      needsget.add(fen);
@@ -158,7 +158,7 @@ public class DiscoverConflicts {
   //could effect.
   public void expandTypes() {
     Set<TypeDescriptor> expandedarrays=new HashSet<TypeDescriptor>();
-    for(Iterator<TypeDescriptor> it=arrays.iterator();it.hasNext();) {
+    for(Iterator<TypeDescriptor> it=arrays.iterator(); it.hasNext(); ) {
       TypeDescriptor td=it.next();
       expandedarrays.addAll(typeanalysis.expand(td));
     }
@@ -167,11 +167,11 @@ public class DiscoverConflicts {
 
   Hashtable<TempDescriptor, Set<TempFlatPair>> doMerge(FlatNode fn, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> tmptofnset) {
     Hashtable<TempDescriptor, Set<TempFlatPair>> table=new Hashtable<TempDescriptor, Set<TempFlatPair>>();
-    for(int i=0;i<fn.numPrev();i++) {
+    for(int i=0; i<fn.numPrev(); i++) {
       FlatNode fprev=fn.getPrev(i);
       Hashtable<TempDescriptor, Set<TempFlatPair>> tabset=tmptofnset.get(fprev);
       if (tabset!=null) {
-	for(Iterator<TempDescriptor> tmpit=tabset.keySet().iterator();tmpit.hasNext();) {
+	for(Iterator<TempDescriptor> tmpit=tabset.keySet().iterator(); tmpit.hasNext(); ) {
 	  TempDescriptor td=tmpit.next();
 	  Set<TempFlatPair> fnset=tabset.get(td);
 	  if (!table.containsKey(td))
@@ -182,7 +182,7 @@ public class DiscoverConflicts {
     }
     return table;
   }
-  
+
   public Set<FlatNode> getNeedSrcTrans(LocalityBinding lb) {
     return srcmap.get(lb);
   }
@@ -244,15 +244,15 @@ public class DiscoverConflicts {
     rightsrcmap.put(lb,rightsrctrans);
 
     //compute writes that need translation on source
-    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
       if (atomictable.get(fn).intValue()>0) {
 	Hashtable<TempDescriptor, Set<TempFlatPair>> tmap=fnmap.get(fn);
 	switch(fn.kind()) {
-	  //We might need to translate arguments to pointer comparison
-	  
-	case FKind.FlatOpNode: { 
+	//We might need to translate arguments to pointer comparison
+
+	case FKind.FlatOpNode: {
 	  FlatOpNode fon=(FlatOpNode)fn;
 	  if (fon.getOp().getOp()==Operation.EQUAL||
 	      fon.getOp().getOp()==Operation.NOTEQUAL) {
@@ -262,7 +262,7 @@ public class DiscoverConflicts {
 	    Set<TempFlatPair> righttfpset=tmap.get(fon.getRight());
 	    //handle left operand
 	    if (lefttfpset!=null) {
-	      for(Iterator<TempFlatPair> tfpit=lefttfpset.iterator();tfpit.hasNext();) {
+	      for(Iterator<TempFlatPair> tfpit=lefttfpset.iterator(); tfpit.hasNext(); ) {
 		TempFlatPair tfp=tfpit.next();
 		if (tfset.contains(tfp)||outofscope(tfp)) {
 		  leftsrctrans.add(fon);
@@ -272,7 +272,7 @@ public class DiscoverConflicts {
 	    }
 	    //handle right operand
 	    if (righttfpset!=null) {
-	      for(Iterator<TempFlatPair> tfpit=righttfpset.iterator();tfpit.hasNext();) {
+	      for(Iterator<TempFlatPair> tfpit=righttfpset.iterator(); tfpit.hasNext(); ) {
 		TempFlatPair tfp=tfpit.next();
 		if (tfset.contains(tfp)||outofscope(tfp)) {
 		  rightsrctrans.add(fon);
@@ -284,7 +284,7 @@ public class DiscoverConflicts {
 	  break;
 	}
 
-	case FKind.FlatGlobalConvNode: { 
+	case FKind.FlatGlobalConvNode: {
 	  //need to translate these if the value we read from may be a
 	  //shadow...  check this by seeing if any of the values we
 	  //may read are in the transread set or came from our caller
@@ -298,7 +298,7 @@ public class DiscoverConflicts {
 	  Set<TempFlatPair> tfpset=tmap.get(fgcn.getSrc());
 
 	  if (tfpset!=null) {
-	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
 	      TempFlatPair tfp=tfpit.next();
 	      if (tfset.contains(tfp)||outofscope(tfp)) {
 		srctrans.add(fgcn);
@@ -309,7 +309,7 @@ public class DiscoverConflicts {
 	  break;
 	}
 
-	case FKind.FlatSetFieldNode: { 
+	case FKind.FlatSetFieldNode: {
 	  //need to translate these if the value we read from may be a
 	  //shadow...  check this by seeing if any of the values we
 	  //may read are in the transread set or came from our caller
@@ -320,7 +320,7 @@ public class DiscoverConflicts {
 	    break;
 	  Set<TempFlatPair> tfpset=tmap.get(fsfn.getSrc());
 	  if (tfpset!=null) {
-	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
 	      TempFlatPair tfp=tfpit.next();
 	      if (tfset.contains(tfp)||outofscope(tfp)) {
 		srctrans.add(fsfn);
@@ -330,7 +330,8 @@ public class DiscoverConflicts {
 	  }
 	  break;
 	}
-	case FKind.FlatSetElementNode: { 
+
+	case FKind.FlatSetElementNode: {
 	  //need to translate these if the value we read from may be a
 	  //shadow...  check this by seeing if any of the values we
 	  //may read are in the transread set or came from our caller
@@ -341,7 +342,7 @@ public class DiscoverConflicts {
 	    break;
 	  Set<TempFlatPair> tfpset=tmap.get(fsen.getSrc());
 	  if (tfpset!=null) {
-	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator(); tfpit.hasNext(); ) {
 	      TempFlatPair tfp=tfpit.next();
 	      if (tfset.contains(tfp)||outofscope(tfp)) {
 		srctrans.add(fsen);
@@ -351,6 +352,7 @@ public class DiscoverConflicts {
 	  }
 	  break;
 	}
+
 	default:
 	}
       }
@@ -373,19 +375,19 @@ public class DiscoverConflicts {
 
     HashSet<FlatNode> toanalyze=new HashSet<FlatNode>();
     toanalyze.addAll(fm.getNodeSet());
-    
+
     while(!toanalyze.isEmpty()) {
       FlatNode fn=toanalyze.iterator().next();
       toanalyze.remove(fn);
       HashSet<TypeDescriptor> updatetypeset=new HashSet<TypeDescriptor>();
       HashSet<FieldDescriptor> updatefieldset=new HashSet<FieldDescriptor>();
-      
+
       //Stop if we aren't in a transaction
       if (atomictable.get(fn).intValue()==0)
 	continue;
-      
+
       //Do merge of all exits
-      for(int i=0;i<fn.numNext();i++) {
+      for(int i=0; i<fn.numNext(); i++) {
 	FlatNode fnnext=fn.getNext(i);
 	if (updatedtypemap.containsKey(fnnext)) {
 	  updatetypeset.addAll(updatedtypemap.get(fnnext));
@@ -394,7 +396,7 @@ public class DiscoverConflicts {
 	  updatefieldset.addAll(updatedfieldmap.get(fnnext));
 	}
       }
-      
+
       //process this node
       if (cannotdelaymap!=null&&cannotdelaymap.containsKey(lb)&&cannotdelaymap.get(lb).contains(fn)!=inclusive) {
 	switch(fn.kind()) {
@@ -403,19 +405,21 @@ public class DiscoverConflicts {
 	  updatefieldset.add(fsfn.getField());
 	  break;
 	}
+
 	case FKind.FlatSetElementNode: {
 	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
 	  updatetypeset.addAll(typeanalysis.expand(fsen.getDst().getType()));
 	  break;
 	}
+
 	case FKind.FlatCall: {
 	  FlatCall fcall=(FlatCall)fn;
 	  MethodDescriptor mdfc=fcall.getMethod();
-	  
+
 	  //get modified fields
 	  Set<FieldDescriptor> fields=gft.getFieldsAll(mdfc);
 	  updatefieldset.addAll(fields);
-	  
+
 	  //get modified arrays
 	  Set<TypeDescriptor> arrays=gft.getArraysAll(mdfc);
 	  updatetypeset.addAll(typeanalysis.expandSet(arrays));
@@ -423,12 +427,12 @@ public class DiscoverConflicts {
 	}
 	}
       }
-      
+
       if (!updatedtypemap.containsKey(fn)||!updatedfieldmap.containsKey(fn)||
-	  !updatedtypemap.get(fn).equals(updatetypeset)||!updatedfieldmap.get(fn).equals(updatefieldset)) {
+          !updatedtypemap.get(fn).equals(updatetypeset)||!updatedfieldmap.get(fn).equals(updatefieldset)) {
 	updatedtypemap.put(fn, updatetypeset);
 	updatedfieldmap.put(fn, updatefieldset);
-	for(int i=0;i<fn.numPrev();i++) {
+	for(int i=0; i<fn.numPrev(); i++) {
 	  toanalyze.add(fn.getPrev(i));
 	}
       }
@@ -437,12 +441,12 @@ public class DiscoverConflicts {
 
 
   /** Need to figure out which nodes need a transread to make local
-  copies.  Transread conceptually tracks conflicts.  This depends on
-  what fields/elements are accessed We iterate over all flatnodes that
-  access fields...If these accesses could conflict, we mark the source
-  tempflat pair as needing a transread */
+     copies.  Transread conceptually tracks conflicts.  This depends on
+     what fields/elements are accessed We iterate over all flatnodes that
+     access fields...If these accesses could conflict, we mark the source
+     tempflat pair as needing a transread */
 
-  
+
   HashSet<TempFlatPair> computeTranslationSet(LocalityBinding lb, FlatMethod fm, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> fnmap, Set<TempFlatPair> writeset) {
     HashSet<TempFlatPair> tfset=new HashSet<TempFlatPair>();
 
@@ -456,7 +460,7 @@ public class DiscoverConflicts {
       computeReadOnly(lb, updatedtypemap, updatedfieldmap);
     }
 
-    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       //Check whether this node matters for cannot delayed computation
       if (cannotdelaymap!=null&&cannotdelaymap.containsKey(lb)&&cannotdelaymap.get(lb).contains(fn)==inclusive)
@@ -482,7 +486,8 @@ public class DiscoverConflicts {
 	  }
 	  break;
 	}
-	case FKind.FlatFieldNode: { 
+
+	case FKind.FlatFieldNode: {
 	  FlatFieldNode ffn=(FlatFieldNode)fn;
 	  if (fields.contains(ffn.getField())) {
 	    //this could cause conflict...figure out conflict set
@@ -498,7 +503,8 @@ public class DiscoverConflicts {
 	  }
 	  break;
 	}
-	case FKind.FlatSetFieldNode: { 
+
+	case FKind.FlatSetFieldNode: {
 	  //definitely need to translate these
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
 	  Set<TempFlatPair> tfpset=tmap.get(fsfn.getDst());
@@ -510,7 +516,8 @@ public class DiscoverConflicts {
 	  }
 	  break;
 	}
-	case FKind.FlatSetElementNode: { 
+
+	case FKind.FlatSetElementNode: {
 	  //definitely need to translate these
 	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
 	  Set<TempFlatPair> tfpset=tmap.get(fsen.getDst());
@@ -522,10 +529,11 @@ public class DiscoverConflicts {
 	  }
 	  break;
 	}
+
 	case FKind.FlatCall: //assume pessimistically that calls do bad things
 	case FKind.FlatReturnNode: {
-	  TempDescriptor []readarray=fn.readsTemps();
-	  for(int i=0;i<readarray.length;i++) {
+	  TempDescriptor [] readarray=fn.readsTemps();
+	  for(int i=0; i<readarray.length; i++) {
 	    TempDescriptor rtmp=readarray[i];
 	    Set<TempFlatPair> tfpset=tmap.get(rtmp);
 	    if (tfpset!=null)
@@ -537,11 +545,12 @@ public class DiscoverConflicts {
 	  }
 	  break;
 	}
+
 	default:
 	  //do nothing
 	}
       }
-    }	
+    }
     return tfset;
   }
 
@@ -562,11 +571,11 @@ public class DiscoverConflicts {
     Hashtable<FlatNode, Set<TempDescriptor>> livetemps=Liveness.computeLiveTemps(fm);
     tovisit.add(fm);
     discovered.add(fm);
-    
+
     while(!tovisit.isEmpty()) {
       FlatNode fn=tovisit.iterator().next();
       tovisit.remove(fn);
-      for(int i=0;i<fn.numNext();i++) {
+      for(int i=0; i<fn.numNext(); i++) {
 	FlatNode fnext=fn.getNext(i);
 	if (!discovered.contains(fnext)) {
 	  discovered.add(fnext);
@@ -584,9 +593,9 @@ public class DiscoverConflicts {
 	  case FKind.FlatGlobalConvNode: {
 	    FlatGlobalConvNode fgcn=(FlatGlobalConvNode)fn;
 	    if (lb==fgcn.getLocality()&&
-		fgcn.getMakePtr()) {
+	        fgcn.getMakePtr()) {
 	      TempDescriptor[] writes=fn.writesTemps();
-	      for(int i=0;i<writes.length;i++) {
+	      for(int i=0; i<writes.length; i++) {
 		TempDescriptor wtmp=writes[i];
 		HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
 		set.add(new TempFlatPair(wtmp, fn));
@@ -595,10 +604,11 @@ public class DiscoverConflicts {
 	    }
 	    break;
 	  }
+
 	  case FKind.FlatFieldNode:
 	  case FKind.FlatElementNode: {
 	    TempDescriptor[] writes=fn.writesTemps();
-	    for(int i=0;i<writes.length;i++) {
+	    for(int i=0; i<writes.length; i++) {
 	      TempDescriptor wtmp=writes[i];
 	      HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
 	      set.add(new TempFlatPair(wtmp, fn));
@@ -606,10 +616,11 @@ public class DiscoverConflicts {
 	    }
 	    break;
 	  }
+
 	  case FKind.FlatCall:
 	  case FKind.FlatMethod: {
 	    TempDescriptor[] writes=fn.writesTemps();
-	    for(int i=0;i<writes.length;i++) {
+	    for(int i=0; i<writes.length; i++) {
 	      TempDescriptor wtmp=writes[i];
 	      HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
 	      set.add(new TempFlatPair(wtmp, fn));
@@ -617,8 +628,9 @@ public class DiscoverConflicts {
 	    }
 	    break;
 	  }
+
 	  case FKind.FlatCastNode:
-	  case FKind.FlatOpNode: 
+	  case FKind.FlatOpNode:
 	    if (fn.kind()==FKind.FlatCastNode) {
 	      FlatCastNode fcn=(FlatCastNode)fn;
 	      if (fcn.getDst().getType().isPtr()) {
@@ -642,10 +654,11 @@ public class DiscoverConflicts {
 		break;
 	      }
 	    }
+
 	  default:
 	    //Do kill computation
 	    TempDescriptor[] writes=fn.writesTemps();
-	    for(int i=0;i<writes.length;i++) {
+	    for(int i=0; i<writes.length; i++) {
 	      TempDescriptor wtmp=writes[i];
 	      ttofn.remove(writes[i]);
 	    }
@@ -656,7 +669,7 @@ public class DiscoverConflicts {
 	      !tmptofnset.get(fn).equals(ttofn)) {
 	    //enqueue nodes to process
 	    tmptofnset.put(fn, ttofn);
-	    for(int i=0;i<fn.numNext();i++) {
+	    for(int i=0; i<fn.numNext(); i++) {
 	      FlatNode fnext=fn.getNext(i);
 	      tovisit.add(fnext);
 	    }
@@ -666,7 +679,7 @@ public class DiscoverConflicts {
     }
     return tmptofnset;
   }
-  
+
   /* See what fields and arrays transactions might modify.  We only
    * look at changes to old objects. */
 
@@ -677,7 +690,7 @@ public class DiscoverConflicts {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Hashtable<FlatNode, Set<TempDescriptor>> oldtemps=computeOldTemps(lb);
-    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
       if (atomictable.get(fn).intValue()>0) {
@@ -688,17 +701,19 @@ public class DiscoverConflicts {
 	  if (oldtemp.contains(fsfn.getDst()))
 	    fields.add(fsfn.getField());
 	  break;
+
 	case FKind.FlatSetElementNode:
 	  FlatSetElementNode fsen=(FlatSetElementNode) fn;
 	  if (oldtemp.contains(fsen.getDst()))
 	    arrays.add(fsen.getDst().getType());
 	  break;
+
 	default:
 	}
       }
     }
   }
-    
+
 
   //Returns a table that maps a flatnode to a set of temporaries
   //This set of temporaries is old (meaning they may point to object
@@ -714,11 +729,11 @@ public class DiscoverConflicts {
     Hashtable<FlatNode, Set<TempDescriptor>> livetemps=Liveness.computeLiveTemps(fm);
     tovisit.add(fm);
     discovered.add(fm);
-    
+
     while(!tovisit.isEmpty()) {
       FlatNode fn=tovisit.iterator().next();
       tovisit.remove(fn);
-      for(int i=0;i<fn.numNext();i++) {
+      for(int i=0; i<fn.numNext(); i++) {
 	FlatNode fnext=fn.getNext(i);
 	if (!discovered.contains(fnext)) {
 	  discovered.add(fnext);
@@ -731,8 +746,8 @@ public class DiscoverConflicts {
 	  //Everything live is old
 	  Set<TempDescriptor> lives=livetemps.get(fn);
 	  oldtemps=new HashSet<TempDescriptor>();
-	  
-	  for(Iterator<TempDescriptor> it=lives.iterator();it.hasNext();) {
+
+	  for(Iterator<TempDescriptor> it=lives.iterator(); it.hasNext(); ) {
 	    TempDescriptor tmp=it.next();
 	    if (tmp.getType().isPtr()) {
 	      oldtemps.add(tmp);
@@ -741,18 +756,19 @@ public class DiscoverConflicts {
 	} else {
 	  oldtemps=new HashSet<TempDescriptor>();
 	  //Compute union of old temporaries
-	  for(int i=0;i<fn.numPrev();i++) {
+	  for(int i=0; i<fn.numPrev(); i++) {
 	    Set<TempDescriptor> pset=fntooldtmp.get(fn.getPrev(i));
 	    if (pset!=null)
 	      oldtemps.addAll(pset);
 	  }
-	  
+
 	  switch (fn.kind()) {
 	  case FKind.FlatNew:
 	    oldtemps.removeAll(Arrays.asList(fn.readsTemps()));
 	    break;
+
 	  case FKind.FlatOpNode:
-	  case FKind.FlatCastNode: 
+	  case FKind.FlatCastNode:
 	    if (fn.kind()==FKind.FlatCastNode) {
 	      FlatCastNode fcn=(FlatCastNode)fn;
 	      if (fcn.getDst().getType().isPtr()) {
@@ -772,9 +788,10 @@ public class DiscoverConflicts {
 		break;
 	      }
 	    }
+
 	  default: {
 	    TempDescriptor[] writes=fn.writesTemps();
-	    for(int i=0;i<writes.length;i++) {
+	    for(int i=0; i<writes.length; i++) {
 	      TempDescriptor wtemp=writes[i];
 	      if (wtemp.getType().isPtr())
 		oldtemps.add(wtemp);
@@ -783,12 +800,12 @@ public class DiscoverConflicts {
 	  }
 	}
       }
-      
+
       if (oldtemps!=null) {
 	if (!fntooldtmp.containsKey(fn)||!fntooldtmp.get(fn).equals(oldtemps)) {
 	  fntooldtmp.put(fn, oldtemps);
 	  //propagate changes
-	  for(int i=0;i<fn.numNext();i++) {
+	  for(int i=0; i<fn.numNext(); i++) {
 	    FlatNode fnext=fn.getNext(i);
 	    tovisit.add(fnext);
 	  }
@@ -806,7 +823,7 @@ class TempFlatPair {
     this.t=t;
     this.f=f;
   }
-  
+
   public int hashCode() {
     return f.hashCode()^t.hashCode();
   }

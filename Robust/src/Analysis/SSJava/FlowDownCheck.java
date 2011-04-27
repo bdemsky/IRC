@@ -61,14 +61,14 @@ public class FlowDownCheck {
     Hashtable cd2lattice = state.getCd2LocationOrder();
 
     Set cdSet = cd2lattice.keySet();
-    for (Iterator iterator = cdSet.iterator(); iterator.hasNext();) {
+    for (Iterator iterator = cdSet.iterator(); iterator.hasNext(); ) {
       ClassDescriptor cd = (ClassDescriptor) iterator.next();
-      Lattice<String> lattice = (Lattice<String>) cd2lattice.get(cd);
+      Lattice<String> lattice = (Lattice<String>)cd2lattice.get(cd);
 
       Set<String> locIdSet = lattice.getKeySet();
-      for (Iterator iterator2 = locIdSet.iterator(); iterator2.hasNext();) {
-        String locID = (String) iterator2.next();
-        id2cd.put(locID, cd);
+      for (Iterator iterator2 = locIdSet.iterator(); iterator2.hasNext(); ) {
+	String locID = (String) iterator2.next();
+	id2cd.put(locID, cd);
       }
     }
 
@@ -86,18 +86,18 @@ public class FlowDownCheck {
       ClassDescriptor cd = (ClassDescriptor) obj;
       toanalyze.remove(cd);
 //      if (cd.isClassLibrary()) {
-        // doesn't care about class libraries now
+      // doesn't care about class libraries now
 //        continue;
 //      }
       checkDeclarationInClass(cd);
-      for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
-        MethodDescriptor md = (MethodDescriptor) method_it.next();
-        try {
-          checkDeclarationInMethodBody(cd, md);
-        } catch (Error e) {
-          System.out.println("Error in " + md);
-          throw e;
-        }
+      for (Iterator method_it = cd.getMethods(); method_it.hasNext(); ) {
+	MethodDescriptor md = (MethodDescriptor) method_it.next();
+	try {
+	  checkDeclarationInMethodBody(cd, md);
+	} catch (Error e) {
+	  System.out.println("Error in " + md);
+	  throw e;
+	}
       }
     }
 
@@ -105,31 +105,31 @@ public class FlowDownCheck {
     // for a nested delta location, assigning a concrete reference to delta
     // operand
     Set<Descriptor> tdSet = td2loc.keySet();
-    for (Iterator iterator = tdSet.iterator(); iterator.hasNext();) {
+    for (Iterator iterator = tdSet.iterator(); iterator.hasNext(); ) {
       Descriptor td = (Descriptor) iterator.next();
       Location loc = td2loc.get(td);
 
       if (loc.getType() == Location.DELTA) {
-        // if it contains delta reference pointing to another location element
-        CompositeLocation compLoc = (CompositeLocation) loc;
+	// if it contains delta reference pointing to another location element
+	CompositeLocation compLoc = (CompositeLocation) loc;
 
-        Location locElement = compLoc.getTuple().at(0);
-        assert (locElement instanceof DeltaLocation);
+	Location locElement = compLoc.getTuple().at(0);
+	assert(locElement instanceof DeltaLocation);
 
-        DeltaLocation delta = (DeltaLocation) locElement;
-        Descriptor refType = delta.getRefLocationId();
-        if (refType != null) {
-          Location refLoc = td2loc.get(refType);
+	DeltaLocation delta = (DeltaLocation) locElement;
+	Descriptor refType = delta.getRefLocationId();
+	if (refType != null) {
+	  Location refLoc = td2loc.get(refType);
 
-          assert (refLoc instanceof CompositeLocation);
-          CompositeLocation refCompLoc = (CompositeLocation) refLoc;
+	  assert(refLoc instanceof CompositeLocation);
+	  CompositeLocation refCompLoc = (CompositeLocation) refLoc;
 
-          assert (refCompLoc.getTuple().at(0) instanceof DeltaLocation);
-          DeltaLocation refDelta = (DeltaLocation) refCompLoc.getTuple().at(0);
+	  assert(refCompLoc.getTuple().at(0) instanceof DeltaLocation);
+	  DeltaLocation refDelta = (DeltaLocation) refCompLoc.getTuple().at(0);
 
-          delta.addDeltaOperand(refDelta);
-          // compLoc.addLocation(refDelta);
-        }
+	  delta.addDeltaOperand(refDelta);
+	  // compLoc.addLocation(refDelta);
+	}
 
       }
     }
@@ -142,18 +142,18 @@ public class FlowDownCheck {
       ClassDescriptor cd = (ClassDescriptor) obj;
       toanalyze.remove(cd);
 //      if (cd.isClassLibrary()) {
-        // doesn't care about class libraries now
+      // doesn't care about class libraries now
 //        continue;
 //      }
       checkClass(cd);
-      for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
-        MethodDescriptor md = (MethodDescriptor) method_it.next();
-        try {
-          checkMethodBody(cd, md);
-        } catch (Error e) {
-          System.out.println("Error in " + md);
-          throw e;
-        }
+      for (Iterator method_it = cd.getMethods(); method_it.hasNext(); ) {
+	MethodDescriptor md = (MethodDescriptor) method_it.next();
+	try {
+	  checkMethodBody(cd, md);
+	} catch (Error e) {
+	  System.out.println("Error in " + md);
+	  throw e;
+	}
       }
     }
 
@@ -182,15 +182,17 @@ public class FlowDownCheck {
   }
 
   private void checkDeclarationInBlockStatementNode(MethodDescriptor md, SymbolTable nametable,
-      BlockStatementNode bsn) {
+                                                    BlockStatementNode bsn) {
 
     switch (bsn.kind()) {
     case Kind.SubBlockNode:
       checkDeclarationInSubBlockNode(md, nametable, (SubBlockNode) bsn);
       return;
+
     case Kind.DeclarationNode:
       checkDeclarationNode(md, nametable, (DeclarationNode) bsn);
       break;
+
     case Kind.LoopNode:
       checkDeclarationInLoopNode(md, nametable, (LoopNode) bsn);
       break;
@@ -204,8 +206,8 @@ public class FlowDownCheck {
       ClassDescriptor cd = md.getClassDesc();
       BlockNode bn = ln.getInitializer();
       for (int i = 0; i < bn.size(); i++) {
-        BlockStatementNode bsn = bn.get(i);
-        checkDeclarationInBlockStatementNode(md, nametable, bsn);
+	BlockStatementNode bsn = bn.get(i);
+	checkDeclarationInBlockStatementNode(md, nametable, bsn);
       }
     }
 
@@ -219,7 +221,7 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromBlockNode(MethodDescriptor md, SymbolTable nametable,
-      BlockNode bn) {
+                                                       BlockNode bn) {
     // it will return the lowest location in the block node
     CompositeLocation lowestLoc = null;
     for (int i = 0; i < bn.size(); i++) {
@@ -227,18 +229,18 @@ public class FlowDownCheck {
       CompositeLocation bLoc = checkLocationFromBlockStatementNode(md, bn.getVarTable(), bsn);
 
       if (lowestLoc == null) {
-        lowestLoc = bLoc;
+	lowestLoc = bLoc;
       } else {
-        if (CompositeLattice.isGreaterThan(lowestLoc, bLoc, md.getClassDesc())) {
-          lowestLoc = bLoc;
-        }
+	if (CompositeLattice.isGreaterThan(lowestLoc, bLoc, md.getClassDesc())) {
+	  lowestLoc = bLoc;
+	}
       }
     }
     return lowestLoc;
   }
 
   private CompositeLocation checkLocationFromBlockStatementNode(MethodDescriptor md,
-      SymbolTable nametable, BlockStatementNode bsn) {
+                                                                SymbolTable nametable, BlockStatementNode bsn) {
 
     CompositeLocation compLoc = null;
     switch (bsn.kind()) {
@@ -266,32 +268,32 @@ public class FlowDownCheck {
       compLoc = checkLocationFromSubBlockNode(md, nametable, (SubBlockNode) bsn);
       break;
 
-    // case Kind.ContinueBreakNode:
-    // checkLocationFromContinueBreakNode(md, nametable,(ContinueBreakNode)
-    // bsn);
-    // return null;
+      // case Kind.ContinueBreakNode:
+      // checkLocationFromContinueBreakNode(md, nametable,(ContinueBreakNode)
+      // bsn);
+      // return null;
     }
     return compLoc;
   }
 
   private CompositeLocation checkLocationFromLoopNode(MethodDescriptor md, SymbolTable nametable,
-      LoopNode ln) {
+                                                      LoopNode ln) {
 
     ClassDescriptor cd = md.getClassDesc();
     if (ln.getType() == LoopNode.WHILELOOP || ln.getType() == LoopNode.DOWHILELOOP) {
 
       CompositeLocation condLoc =
-          checkLocationFromExpressionNode(md, nametable, ln.getCondition(), new CompositeLocation(
-              cd));
+        checkLocationFromExpressionNode(md, nametable, ln.getCondition(), new CompositeLocation(
+                                          cd));
       addTypeLocation(ln.getCondition().getType(), (condLoc));
 
       CompositeLocation bodyLoc = checkLocationFromBlockNode(md, nametable, ln.getBody());
 
       if (!CompositeLattice.isGreaterThan(condLoc, bodyLoc, cd)) {
-        // loop condition should be higher than loop body
-        throw new Error(
-            "The location of the while-condition statement is lower than the loop body at "
-                + cd.getSourceFileName() + ":" + ln.getCondition().getNumLine());
+	// loop condition should be higher than loop body
+	throw new Error(
+	  "The location of the while-condition statement is lower than the loop body at "
+	  + cd.getSourceFileName() + ":" + ln.getCondition().getNumLine());
       }
 
       return bodyLoc;
@@ -302,12 +304,12 @@ public class FlowDownCheck {
 
       // calculate glb location of condition and update statements
       CompositeLocation condLoc =
-          checkLocationFromExpressionNode(md, bn.getVarTable(), ln.getCondition(),
-              new CompositeLocation(cd));
+        checkLocationFromExpressionNode(md, bn.getVarTable(), ln.getCondition(),
+                                        new CompositeLocation(cd));
       addTypeLocation(ln.getCondition().getType(), condLoc);
 
       CompositeLocation updateLoc =
-          checkLocationFromBlockNode(md, bn.getVarTable(), ln.getUpdate());
+        checkLocationFromBlockNode(md, bn.getVarTable(), ln.getUpdate());
 
       Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
       glbInputSet.add(condLoc);
@@ -317,14 +319,14 @@ public class FlowDownCheck {
       CompositeLocation blockLoc = checkLocationFromBlockNode(md, bn.getVarTable(), ln.getBody());
 
       if (blockLoc == null) {
-        // when there is no statement in the loop body
-        return glbLocOfForLoopCond;
+	// when there is no statement in the loop body
+	return glbLocOfForLoopCond;
       }
 
       if (!CompositeLattice.isGreaterThan(glbLocOfForLoopCond, blockLoc, cd)) {
-        throw new Error(
-            "The location of the for-condition statement is lower than the for-loop body at "
-                + cd.getSourceFileName() + ":" + ln.getCondition().getNumLine());
+	throw new Error(
+	  "The location of the for-condition statement is lower than the for-loop body at "
+	  + cd.getSourceFileName() + ":" + ln.getCondition().getNumLine());
       }
       return blockLoc;
     }
@@ -332,20 +334,20 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromSubBlockNode(MethodDescriptor md,
-      SymbolTable nametable, SubBlockNode sbn) {
+                                                          SymbolTable nametable, SubBlockNode sbn) {
     CompositeLocation compLoc = checkLocationFromBlockNode(md, nametable, sbn.getBlockNode());
     return compLoc;
   }
 
   private CompositeLocation checkLocationFromIfStatementNode(MethodDescriptor md,
-      SymbolTable nametable, IfStatementNode isn) {
+                                                             SymbolTable nametable, IfStatementNode isn) {
 
     ClassDescriptor localCD = md.getClassDesc();
     Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
 
     CompositeLocation condLoc =
-        checkLocationFromExpressionNode(md, nametable, isn.getCondition(), new CompositeLocation(
-            localCD));
+      checkLocationFromExpressionNode(md, nametable, isn.getCondition(), new CompositeLocation(
+                                        localCD));
     addTypeLocation(isn.getCondition().getType(), condLoc);
     glbInputSet.add(condLoc);
 
@@ -358,20 +360,20 @@ public class FlowDownCheck {
     if (!CompositeLattice.isGreaterThan(condLoc, locTrueBlock, localCD)) {
       // error
       throw new Error(
-          "The location of the if-condition statement is lower than the conditional block at "
-              + localCD.getSourceFileName() + ":" + isn.getCondition().getNumLine());
+        "The location of the if-condition statement is lower than the conditional block at "
+        + localCD.getSourceFileName() + ":" + isn.getCondition().getNumLine());
     }
 
     if (isn.getFalseBlock() != null) {
       CompositeLocation locFalseBlock =
-          checkLocationFromBlockNode(md, nametable, isn.getFalseBlock());
+        checkLocationFromBlockNode(md, nametable, isn.getFalseBlock());
       glbInputSet.add(locFalseBlock);
 
       if (!CompositeLattice.isGreaterThan(condLoc, locFalseBlock, localCD)) {
-        // error
-        throw new Error(
-            "The location of the if-condition statement is lower than the conditional block at "
-                + localCD.getSourceFileName() + ":" + isn.getCondition().getNumLine());
+	// error
+	throw new Error(
+	  "The location of the if-condition statement is lower than the conditional block at "
+	  + localCD.getSourceFileName() + ":" + isn.getCondition().getNumLine());
       }
 
     }
@@ -383,7 +385,7 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromDeclarationNode(MethodDescriptor md,
-      SymbolTable nametable, DeclarationNode dn) {
+                                                             SymbolTable nametable, DeclarationNode dn) {
     VarDescriptor vd = dn.getVarDescriptor();
 
     Location destLoc = td2loc.get(vd);
@@ -391,16 +393,16 @@ public class FlowDownCheck {
     ClassDescriptor localCD = md.getClassDesc();
     if (dn.getExpression() != null) {
       CompositeLocation expressionLoc =
-          checkLocationFromExpressionNode(md, nametable, dn.getExpression(), new CompositeLocation(
-              localCD));
+        checkLocationFromExpressionNode(md, nametable, dn.getExpression(), new CompositeLocation(
+                                          localCD));
       addTypeLocation(dn.getExpression().getType(), expressionLoc);
 
       if (expressionLoc != null) {
-        // checking location order
-        if (!CompositeLattice.isGreaterThan(expressionLoc, destLoc, localCD)) {
-          throw new Error("The value flow from " + expressionLoc + " to " + destLoc
-              + " does not respect location hierarchy on the assignment " + dn.printNode(0));
-        }
+	// checking location order
+	if (!CompositeLattice.isGreaterThan(expressionLoc, destLoc, localCD)) {
+	  throw new Error("The value flow from " + expressionLoc + " to " + destLoc
+	                  + " does not respect location hierarchy on the assignment " + dn.printNode(0));
+	}
       }
       return expressionLoc;
 
@@ -411,20 +413,20 @@ public class FlowDownCheck {
   }
 
   private void checkDeclarationInSubBlockNode(MethodDescriptor md, SymbolTable nametable,
-      SubBlockNode sbn) {
+                                              SubBlockNode sbn) {
     checkDeclarationInBlockNode(md, nametable, sbn.getBlockNode());
   }
 
   private CompositeLocation checkLocationFromBlockExpressionNode(MethodDescriptor md,
-      SymbolTable nametable, BlockExpressionNode ben) {
+                                                                 SymbolTable nametable, BlockExpressionNode ben) {
     CompositeLocation compLoc =
-        checkLocationFromExpressionNode(md, nametable, ben.getExpression(), null);
+      checkLocationFromExpressionNode(md, nametable, ben.getExpression(), null);
     addTypeLocation(ben.getExpression().getType(), compLoc);
     return compLoc;
   }
 
   private CompositeLocation checkLocationFromExpressionNode(MethodDescriptor md,
-      SymbolTable nametable, ExpressionNode en, CompositeLocation loc) {
+                                                            SymbolTable nametable, ExpressionNode en, CompositeLocation loc) {
 
     CompositeLocation compLoc = null;
     switch (en.kind()) {
@@ -493,30 +495,30 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromTertiaryNode(MethodDescriptor md,
-      SymbolTable nametable, TertiaryNode tn) {
+                                                          SymbolTable nametable, TertiaryNode tn) {
     ClassDescriptor cd = md.getClassDesc();
 
     CompositeLocation condLoc =
-        checkLocationFromExpressionNode(md, nametable, tn.getCond(), new CompositeLocation(cd));
+      checkLocationFromExpressionNode(md, nametable, tn.getCond(), new CompositeLocation(cd));
     addTypeLocation(tn.getCond().getType(), condLoc);
     CompositeLocation trueLoc =
-        checkLocationFromExpressionNode(md, nametable, tn.getTrueExpr(), new CompositeLocation(cd));
+      checkLocationFromExpressionNode(md, nametable, tn.getTrueExpr(), new CompositeLocation(cd));
     addTypeLocation(tn.getTrueExpr().getType(), trueLoc);
     CompositeLocation falseLoc =
-        checkLocationFromExpressionNode(md, nametable, tn.getFalseExpr(), new CompositeLocation(cd));
+      checkLocationFromExpressionNode(md, nametable, tn.getFalseExpr(), new CompositeLocation(cd));
     addTypeLocation(tn.getFalseExpr().getType(), falseLoc);
 
     // check if condLoc is higher than trueLoc & falseLoc
     if (!CompositeLattice.isGreaterThan(condLoc, trueLoc, cd)) {
       throw new Error(
-          "The location of the condition expression is lower than the true expression at "
-              + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
+        "The location of the condition expression is lower than the true expression at "
+        + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
     }
 
     if (!CompositeLattice.isGreaterThan(condLoc, falseLoc, cd)) {
       throw new Error(
-          "The location of the condition expression is lower than the true expression at "
-              + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
+        "The location of the condition expression is lower than the true expression at "
+        + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
     }
 
     // then, return glb of trueLoc & falseLoc
@@ -528,7 +530,7 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromMethodInvokeNode(MethodDescriptor md,
-      SymbolTable nametable, MethodInvokeNode min) {
+                                                              SymbolTable nametable, MethodInvokeNode min) {
 
     ClassDescriptor cd = md.getClassDesc();
 
@@ -538,41 +540,41 @@ public class FlowDownCheck {
       // callee's hierarchy
 
       for (int i = 0; i < min.numArgs(); i++) {
-        ExpressionNode en = min.getArg(i);
-        CompositeLocation callerArg1 =
-            checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(cd));
+	ExpressionNode en = min.getArg(i);
+	CompositeLocation callerArg1 =
+	  checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(cd));
 
-        ClassDescriptor calleecd = min.getMethod().getClassDesc();
-        VarDescriptor calleevd = (VarDescriptor) min.getMethod().getParameter(i);
-        Location calleeLoc1 = td2loc.get(calleevd);
+	ClassDescriptor calleecd = min.getMethod().getClassDesc();
+	VarDescriptor calleevd = (VarDescriptor) min.getMethod().getParameter(i);
+	Location calleeLoc1 = td2loc.get(calleevd);
 
-        if (!callerArg1.getLocation(cd).isTop()) {
-          // here, check if ordering relations among caller's args respect
-          // ordering relations in-between callee's args
-          for (int currentIdx = 0; currentIdx < min.numArgs(); currentIdx++) {
-            if (currentIdx != i) {// skip itself
-              ExpressionNode argExp = min.getArg(currentIdx);
-              CompositeLocation callerArg2 =
-                  checkLocationFromExpressionNode(md, nametable, argExp, new CompositeLocation(cd));
+	if (!callerArg1.getLocation(cd).isTop()) {
+	  // here, check if ordering relations among caller's args respect
+	  // ordering relations in-between callee's args
+	  for (int currentIdx = 0; currentIdx < min.numArgs(); currentIdx++) {
+	    if (currentIdx != i) { // skip itself
+	      ExpressionNode argExp = min.getArg(currentIdx);
+	      CompositeLocation callerArg2 =
+	        checkLocationFromExpressionNode(md, nametable, argExp, new CompositeLocation(cd));
 
-              VarDescriptor calleevd2 = (VarDescriptor) min.getMethod().getParameter(currentIdx);
-              Location calleeLoc2 = td2loc.get(calleevd2);
-              boolean callerResult = CompositeLattice.isGreaterThan(callerArg1, callerArg2, cd);
-              boolean calleeResult =
-                  CompositeLattice.isGreaterThan(calleeLoc1, calleeLoc2, calleecd);
+	      VarDescriptor calleevd2 = (VarDescriptor) min.getMethod().getParameter(currentIdx);
+	      Location calleeLoc2 = td2loc.get(calleevd2);
+	      boolean callerResult = CompositeLattice.isGreaterThan(callerArg1, callerArg2, cd);
+	      boolean calleeResult =
+	        CompositeLattice.isGreaterThan(calleeLoc1, calleeLoc2, calleecd);
 
-              if (calleeResult && !callerResult) {
-                // in callee, calleeLoc1 is higher than calleeLoc2
-                // then, caller should have same ordering relation in-bet
-                // callerLoc1 & callerLoc2
+	      if (calleeResult && !callerResult) {
+		// in callee, calleeLoc1 is higher than calleeLoc2
+		// then, caller should have same ordering relation in-bet
+		// callerLoc1 & callerLoc2
 
-                throw new Error("Caller doesn't respect ordering relations among method arguments:"
-                    + cd.getSourceFileName() + ":" + min.getNumLine());
-              }
+		throw new Error("Caller doesn't respect ordering relations among method arguments:"
+		                + cd.getSourceFileName() + ":" + min.getNumLine());
+	      }
 
-            }
-          }
-        }
+	    }
+	  }
+	}
 
       }
 
@@ -585,7 +587,7 @@ public class FlowDownCheck {
     for (int i = 0; i < min.numArgs(); i++) {
       ExpressionNode en = min.getArg(i);
       CompositeLocation argLoc =
-          checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(cd));
+        checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(cd));
       addTypeLocation(en.getType(), argLoc);
       argLocSet.add(argLoc);
     }
@@ -602,7 +604,7 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromArrayAccessNode(MethodDescriptor md,
-      SymbolTable nametable, ArrayAccessNode aan) {
+                                                             SymbolTable nametable, ArrayAccessNode aan) {
 
     // return glb location of array itself and index
 
@@ -611,13 +613,13 @@ public class FlowDownCheck {
     Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
 
     CompositeLocation arrayLoc =
-        checkLocationFromExpressionNode(md, nametable, aan.getExpression(), new CompositeLocation(
-            cd));
+      checkLocationFromExpressionNode(md, nametable, aan.getExpression(), new CompositeLocation(
+                                        cd));
     addTypeLocation(aan.getExpression().getType(), arrayLoc);
     glbInputSet.add(arrayLoc);
 
     CompositeLocation indexLoc =
-        checkLocationFromExpressionNode(md, nametable, aan.getIndex(), new CompositeLocation(cd));
+      checkLocationFromExpressionNode(md, nametable, aan.getIndex(), new CompositeLocation(cd));
     glbInputSet.add(indexLoc);
     addTypeLocation(aan.getIndex().getType(), indexLoc);
 
@@ -626,7 +628,7 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromCreateObjectNode(MethodDescriptor md,
-      SymbolTable nametable, CreateObjectNode con) {
+                                                              SymbolTable nametable, CreateObjectNode con) {
 
     ClassDescriptor cd = md.getClassDesc();
 
@@ -635,7 +637,7 @@ public class FlowDownCheck {
     for (int i = 0; i < con.numArgs(); i++) {
       ExpressionNode en = con.getArg(i);
       CompositeLocation argLoc =
-          checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(cd));
+        checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(cd));
       glbInputSet.add(argLoc);
       addTypeLocation(en.getType(), argLoc);
     }
@@ -657,7 +659,7 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromOpNode(MethodDescriptor md, SymbolTable nametable,
-      OpNode on) {
+                                                    OpNode on) {
 
     ClassDescriptor cd = md.getClassDesc();
     CompositeLocation leftLoc = new CompositeLocation(cd);
@@ -722,7 +724,7 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromLiteralNode(MethodDescriptor md,
-      SymbolTable nametable, LiteralNode en, CompositeLocation loc) {
+                                                         SymbolTable nametable, LiteralNode en, CompositeLocation loc) {
 
     // literal value has the top location so that value can be flowed into any
     // location
@@ -733,7 +735,7 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromNameNode(MethodDescriptor md, SymbolTable nametable,
-      NameNode nn, CompositeLocation loc) {
+                                                      NameNode nn, CompositeLocation loc) {
 
     NameDescriptor nd = nn.getName();
     if (nd.getBase() != null) {
@@ -746,18 +748,18 @@ public class FlowDownCheck {
 
       Location localLoc = null;
       if (d instanceof VarDescriptor) {
-        VarDescriptor vd = (VarDescriptor) d;
-        localLoc = td2loc.get(vd);
+	VarDescriptor vd = (VarDescriptor) d;
+	localLoc = td2loc.get(vd);
       } else if (d instanceof FieldDescriptor) {
-        FieldDescriptor fd = (FieldDescriptor) d;
-        localLoc = td2loc.get(fd);
+	FieldDescriptor fd = (FieldDescriptor) d;
+	localLoc = td2loc.get(fd);
       }
-      assert (localLoc != null);
+      assert(localLoc != null);
 
       if (localLoc instanceof CompositeLocation) {
-        loc = (CompositeLocation) localLoc;
+	loc = (CompositeLocation) localLoc;
       } else {
-        loc.addLocation(localLoc);
+	loc.addLocation(localLoc);
       }
     }
 
@@ -765,7 +767,7 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromFieldAccessNode(MethodDescriptor md,
-      SymbolTable nametable, FieldAccessNode fan, CompositeLocation loc) {
+                                                             SymbolTable nametable, FieldAccessNode fan, CompositeLocation loc) {
 
     FieldDescriptor fd = fan.getField();
     Location fieldLoc = td2loc.get(fd);
@@ -778,7 +780,7 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation checkLocationFromAssignmentNode(MethodDescriptor md,
-      SymbolTable nametable, AssignmentNode an, CompositeLocation loc) {
+                                                            SymbolTable nametable, AssignmentNode an, CompositeLocation loc) {
     ClassDescriptor cd = md.getClassDesc();
 
     boolean postinc = true;
@@ -788,7 +790,7 @@ public class FlowDownCheck {
       postinc = false;
 
     CompositeLocation destLocation =
-        checkLocationFromExpressionNode(md, nametable, an.getDest(), new CompositeLocation(cd));
+      checkLocationFromExpressionNode(md, nametable, an.getDest(), new CompositeLocation(cd));
 
     CompositeLocation srcLocation = new CompositeLocation(cd);
     if (!postinc) {
@@ -796,21 +798,21 @@ public class FlowDownCheck {
       srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, cd)) {
-        throw new Error("The value flow from " + srcLocation + " to " + destLocation
-            + " does not respect location hierarchy on the assignment " + an.printNode(0));
+	throw new Error("The value flow from " + srcLocation + " to " + destLocation
+	                + " does not respect location hierarchy on the assignment " + an.printNode(0));
       }
     } else {
       destLocation =
-          srcLocation = checkLocationFromExpressionNode(md, nametable, an.getDest(), srcLocation);
+        srcLocation = checkLocationFromExpressionNode(md, nametable, an.getDest(), srcLocation);
 
-      if (!((Set<String>) state.getCd2LocationPropertyMap().get(cd)).contains(destLocation
-          .getLocation(cd).getLocIdentifier())) {
-        throw new Error("Location " + destLocation + " is not allowed to have spinning values at "
-            + cd.getSourceFileName() + ":" + an.getNumLine());
+      if (!((Set<String>)state.getCd2LocationPropertyMap().get(cd)).contains(destLocation
+                                                                             .getLocation(cd).getLocIdentifier())) {
+	throw new Error("Location " + destLocation + " is not allowed to have spinning values at "
+	                + cd.getSourceFileName() + ":" + an.getNumLine());
       }
 
     }
-    if(an.getSrc()!=null){
+    if(an.getSrc()!=null) {
       addTypeLocation(an.getSrc().getType(), srcLocation);
     }
     addTypeLocation(an.getDest().getType(), destLocation);
@@ -819,7 +821,7 @@ public class FlowDownCheck {
   }
 
   private void assignLocationOfVarDescriptor(VarDescriptor vd, MethodDescriptor md,
-      SymbolTable nametable, TreeNode n) {
+                                             SymbolTable nametable, TreeNode n) {
 
     ClassDescriptor cd = md.getClassDesc();
     Vector<AnnotationDescriptor> annotationVec = vd.getType().getAnnotationMarkers();
@@ -827,7 +829,7 @@ public class FlowDownCheck {
     // currently enforce every variable to have corresponding location
     if (annotationVec.size() == 0) {
       throw new Error("Location is not assigned to variable " + vd.getSymbol() + " in the method "
-          + md.getSymbol() + " of the class " + cd.getSymbol());
+                      + md.getSymbol() + " of the class " + cd.getSymbol());
     }
 
     if (annotationVec.size() > 1) {
@@ -841,11 +843,11 @@ public class FlowDownCheck {
 
       // check if location is defined
       String locationID = ad.getMarker();
-      Lattice<String> lattice = (Lattice<String>) state.getCd2LocationOrder().get(cd);
+      Lattice<String> lattice = (Lattice<String>)state.getCd2LocationOrder().get(cd);
 
       if (lattice == null || (!lattice.containsKey(locationID))) {
-        throw new Error("Location " + locationID
-            + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
+	throw new Error("Location " + locationID
+	                + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
       }
 
       Location loc = new Location(cd, locationID);
@@ -855,56 +857,56 @@ public class FlowDownCheck {
     } else if (ad.getType() == AnnotationDescriptor.SINGLE_ANNOTATION) {
       if (ad.getMarker().equals(SSJavaAnalysis.DELTA)) {
 
-        CompositeLocation compLoc = new CompositeLocation(cd);
+	CompositeLocation compLoc = new CompositeLocation(cd);
 
-        if (ad.getData().length() == 0) {
-          throw new Error("Delta function of " + vd.getSymbol() + " does not have any locations: "
-              + cd.getSymbol() + ".");
-        }
+	if (ad.getData().length() == 0) {
+	  throw new Error("Delta function of " + vd.getSymbol() + " does not have any locations: "
+	                  + cd.getSymbol() + ".");
+	}
 
-        String deltaStr = ad.getData();
-        if (deltaStr.startsWith("LOC(")) {
+	String deltaStr = ad.getData();
+	if (deltaStr.startsWith("LOC(")) {
 
-          if (!deltaStr.endsWith(")")) {
-            throw new Error("The declaration of the delta location is wrong at "
-                + cd.getSourceFileName() + ":" + n.getNumLine());
-          }
-          String locationOperand = deltaStr.substring(4, deltaStr.length() - 1);
+	  if (!deltaStr.endsWith(")")) {
+	    throw new Error("The declaration of the delta location is wrong at "
+	                    + cd.getSourceFileName() + ":" + n.getNumLine());
+	  }
+	  String locationOperand = deltaStr.substring(4, deltaStr.length() - 1);
 
-          nametable.get(locationOperand);
-          Descriptor d = (Descriptor) nametable.get(locationOperand);
+	  nametable.get(locationOperand);
+	  Descriptor d = (Descriptor) nametable.get(locationOperand);
 
-          if (d instanceof VarDescriptor) {
-            VarDescriptor varDescriptor = (VarDescriptor) d;
-            DeltaLocation deltaLoc = new DeltaLocation(cd, varDescriptor);
-            // td2loc.put(vd.getType(), compLoc);
-            compLoc.addLocation(deltaLoc);
-          } else if (d instanceof FieldDescriptor) {
-            throw new Error("Applying delta operation to the field " + locationOperand
-                + " is not allowed at " + cd.getSourceFileName() + ":" + n.getNumLine());
-          }
-        } else {
-          StringTokenizer token = new StringTokenizer(deltaStr, ",");
-          DeltaLocation deltaLoc = new DeltaLocation(cd);
+	  if (d instanceof VarDescriptor) {
+	    VarDescriptor varDescriptor = (VarDescriptor) d;
+	    DeltaLocation deltaLoc = new DeltaLocation(cd, varDescriptor);
+	    // td2loc.put(vd.getType(), compLoc);
+	    compLoc.addLocation(deltaLoc);
+	  } else if (d instanceof FieldDescriptor) {
+	    throw new Error("Applying delta operation to the field " + locationOperand
+	                    + " is not allowed at " + cd.getSourceFileName() + ":" + n.getNumLine());
+	  }
+	} else {
+	  StringTokenizer token = new StringTokenizer(deltaStr, ",");
+	  DeltaLocation deltaLoc = new DeltaLocation(cd);
 
-          while (token.hasMoreTokens()) {
-            String deltaOperand = token.nextToken();
-            ClassDescriptor deltaCD = id2cd.get(deltaOperand);
-            if (deltaCD == null) {
-              // delta operand is not defined in the location hierarchy
-              throw new Error("Delta operand '" + deltaOperand + "' of declaration node '" + vd
-                  + "' is not defined by location hierarchies.");
-            }
+	  while (token.hasMoreTokens()) {
+	    String deltaOperand = token.nextToken();
+	    ClassDescriptor deltaCD = id2cd.get(deltaOperand);
+	    if (deltaCD == null) {
+	      // delta operand is not defined in the location hierarchy
+	      throw new Error("Delta operand '" + deltaOperand + "' of declaration node '" + vd
+	                      + "' is not defined by location hierarchies.");
+	    }
 
-            Location loc = new Location(deltaCD, deltaOperand);
-            deltaLoc.addDeltaOperand(loc);
-          }
-          compLoc.addLocation(deltaLoc);
+	    Location loc = new Location(deltaCD, deltaOperand);
+	    deltaLoc.addDeltaOperand(loc);
+	  }
+	  compLoc.addLocation(deltaLoc);
 
-        }
+	}
 
-        td2loc.put(vd, compLoc);
-        addTypeLocation(vd.getType(), compLoc);
+	td2loc.put(vd, compLoc);
+	addTypeLocation(vd.getType(), compLoc);
 
       }
     }
@@ -918,7 +920,7 @@ public class FlowDownCheck {
 
   private void checkClass(ClassDescriptor cd) {
     // Check to see that methods respects ss property
-    for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
+    for (Iterator method_it = cd.getMethods(); method_it.hasNext(); ) {
       MethodDescriptor md = (MethodDescriptor) method_it.next();
       checkMethodDeclaration(cd, md);
     }
@@ -926,7 +928,7 @@ public class FlowDownCheck {
 
   private void checkDeclarationInClass(ClassDescriptor cd) {
     // Check to see that fields are okay
-    for (Iterator field_it = cd.getFields(); field_it.hasNext();) {
+    for (Iterator field_it = cd.getFields(); field_it.hasNext(); ) {
       FieldDescriptor fd = (FieldDescriptor) field_it.next();
       checkFieldDeclaration(cd, fd);
     }
@@ -943,24 +945,24 @@ public class FlowDownCheck {
     // currently enforce every variable to have corresponding location
     if (annotationVec.size() == 0) {
       throw new Error("Location is not assigned to the field " + fd.getSymbol() + " of the class "
-          + cd.getSymbol());
+                      + cd.getSymbol());
     }
 
     if (annotationVec.size() > 1) {
       // variable can have at most one location
       throw new Error("Field " + fd.getSymbol() + " of class " + cd
-          + " has more than one location.");
+                      + " has more than one location.");
     }
 
     // check if location is defined
     AnnotationDescriptor ad = annotationVec.elementAt(0);
     if (ad.getType() == AnnotationDescriptor.MARKER_ANNOTATION) {
       String locationID = annotationVec.elementAt(0).getMarker();
-      Lattice<String> lattice = (Lattice<String>) state.getCd2LocationOrder().get(cd);
+      Lattice<String> lattice = (Lattice<String>)state.getCd2LocationOrder().get(cd);
 
       if (lattice == null || (!lattice.containsKey(locationID))) {
-        throw new Error("Location " + locationID
-            + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
+	throw new Error("Location " + locationID
+	                + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
       }
 
       Location localLoc = new Location(cd, locationID);
@@ -970,30 +972,30 @@ public class FlowDownCheck {
     } else if (ad.getType() == AnnotationDescriptor.SINGLE_ANNOTATION) {
       if (ad.getMarker().equals(SSJavaAnalysis.DELTA)) {
 
-        if (ad.getData().length() == 0) {
-          throw new Error("Delta function of " + fd.getSymbol() + " does not have any locations: "
-              + cd.getSymbol() + ".");
-        }
+	if (ad.getData().length() == 0) {
+	  throw new Error("Delta function of " + fd.getSymbol() + " does not have any locations: "
+	                  + cd.getSymbol() + ".");
+	}
 
-        CompositeLocation compLoc = new CompositeLocation(cd);
-        DeltaLocation deltaLoc = new DeltaLocation(cd);
+	CompositeLocation compLoc = new CompositeLocation(cd);
+	DeltaLocation deltaLoc = new DeltaLocation(cd);
 
-        StringTokenizer token = new StringTokenizer(ad.getData(), ",");
-        while (token.hasMoreTokens()) {
-          String deltaOperand = token.nextToken();
-          ClassDescriptor deltaCD = id2cd.get(deltaOperand);
-          if (deltaCD == null) {
-            // delta operand is not defined in the location hierarchy
-            throw new Error("Delta operand '" + deltaOperand + "' of field node '" + fd
-                + "' is not defined by location hierarchies.");
-          }
+	StringTokenizer token = new StringTokenizer(ad.getData(), ",");
+	while (token.hasMoreTokens()) {
+	  String deltaOperand = token.nextToken();
+	  ClassDescriptor deltaCD = id2cd.get(deltaOperand);
+	  if (deltaCD == null) {
+	    // delta operand is not defined in the location hierarchy
+	    throw new Error("Delta operand '" + deltaOperand + "' of field node '" + fd
+	                    + "' is not defined by location hierarchies.");
+	  }
 
-          Location loc = new Location(deltaCD, deltaOperand);
-          deltaLoc.addDeltaOperand(loc);
-        }
-        compLoc.addLocation(deltaLoc);
-        td2loc.put(fd, compLoc);
-        addTypeLocation(fd.getType(), compLoc);
+	  Location loc = new Location(deltaCD, deltaOperand);
+	  deltaLoc.addDeltaOperand(loc);
+	}
+	compLoc.addLocation(deltaLoc);
+	td2loc.put(fd, compLoc);
+	addTypeLocation(fd.getType(), compLoc);
 
       }
     }
@@ -1015,19 +1017,19 @@ public class FlowDownCheck {
       CompositeLocation compLoc2;
 
       if (loc1 instanceof CompositeLocation) {
-        compLoc1 = (CompositeLocation) loc1;
+	compLoc1 = (CompositeLocation) loc1;
       } else {
-        // create a bogus composite location for a single location
-        compLoc1 = new CompositeLocation(loc1.getClassDescriptor());
-        compLoc1.addLocation(loc1);
+	// create a bogus composite location for a single location
+	compLoc1 = new CompositeLocation(loc1.getClassDescriptor());
+	compLoc1.addLocation(loc1);
       }
 
       if (loc2 instanceof CompositeLocation) {
-        compLoc2 = (CompositeLocation) loc2;
+	compLoc2 = (CompositeLocation) loc2;
       } else {
-        // create a bogus composite location for a single location
-        compLoc2 = new CompositeLocation(loc2.getClassDescriptor());
-        compLoc2.addLocation(loc2);
+	// create a bogus composite location for a single location
+	compLoc2 = new CompositeLocation(loc2.getClassDescriptor());
+	compLoc2.addLocation(loc2);
       }
 
       // comparing two composite locations
@@ -1036,29 +1038,29 @@ public class FlowDownCheck {
 
       int baseCompareResult = compareBaseLocationSet(compLoc1, compLoc2, priorityCD);
       if (baseCompareResult == ComparisonResult.EQUAL) {
-        if (compareDelta(compLoc1, compLoc2) == ComparisonResult.GREATER) {
-          return true;
-        } else {
-          return false;
-        }
+	if (compareDelta(compLoc1, compLoc2) == ComparisonResult.GREATER) {
+	  return true;
+	} else {
+	  return false;
+	}
       } else if (baseCompareResult == ComparisonResult.GREATER) {
-        return true;
+	return true;
       } else {
-        return false;
+	return false;
       }
 
     }
 
     private static int compareDelta(CompositeLocation compLoc1, CompositeLocation compLoc2) {
       if (compLoc1.getNumofDelta() < compLoc2.getNumofDelta()) {
-        return ComparisonResult.GREATER;
+	return ComparisonResult.GREATER;
       } else {
-        return ComparisonResult.LESS;
+	return ComparisonResult.LESS;
       }
     }
 
     private static int compareBaseLocationSet(CompositeLocation compLoc1,
-        CompositeLocation compLoc2, ClassDescriptor priorityCD) {
+                                              CompositeLocation compLoc2, ClassDescriptor priorityCD) {
 
       // if compLoc1 is greater than compLoc2, return true
       // else return false;
@@ -1070,70 +1072,70 @@ public class FlowDownCheck {
       Location priorityLoc1 = cd2loc1.get(priorityCD);
       Location priorityLoc2 = cd2loc2.get(priorityCD);
 
-      assert (priorityLoc1.getClassDescriptor().equals(priorityLoc2.getClassDescriptor()));
+      assert(priorityLoc1.getClassDescriptor().equals(priorityLoc2.getClassDescriptor()));
 
       ClassDescriptor cd = priorityLoc1.getClassDescriptor();
-      Lattice<String> locationOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd);
+      Lattice<String> locationOrder = (Lattice<String>)state.getCd2LocationOrder().get(cd);
 
       if (priorityLoc1.getLocIdentifier().equals(priorityLoc2.getLocIdentifier())) {
-        // have the same level of local hierarchy
+	// have the same level of local hierarchy
 
-        Set<String> spinSet = (Set<String>) state.getCd2LocationPropertyMap().get(cd);
-        if (spinSet != null && spinSet.contains(priorityLoc1.getLocIdentifier())) {
-          // this location can be spinning
-          return ComparisonResult.GREATER;
-        }
+	Set<String> spinSet = (Set<String>)state.getCd2LocationPropertyMap().get(cd);
+	if (spinSet != null && spinSet.contains(priorityLoc1.getLocIdentifier())) {
+	  // this location can be spinning
+	  return ComparisonResult.GREATER;
+	}
 
       } else if (locationOrder.isGreaterThan(priorityLoc1.getLocIdentifier(),
-          priorityLoc2.getLocIdentifier())) {
-        // if priority loc of compLoc1 is higher than compLoc2
-        // then, compLoc 1 is higher than compLoc2
-        return ComparisonResult.GREATER;
+                                             priorityLoc2.getLocIdentifier())) {
+	// if priority loc of compLoc1 is higher than compLoc2
+	// then, compLoc 1 is higher than compLoc2
+	return ComparisonResult.GREATER;
       } else {
-        // if priority loc of compLoc1 is NOT higher than compLoc2
-        // then, compLoc 1 is NOT higher than compLoc2
-        return ComparisonResult.LESS;
+	// if priority loc of compLoc1 is NOT higher than compLoc2
+	// then, compLoc 1 is NOT higher than compLoc2
+	return ComparisonResult.LESS;
       }
 
       // compare base locations except priority by class descriptor
       Set<ClassDescriptor> keySet1 = cd2loc1.keySet();
       int numEqualLoc = 0;
 
-      for (Iterator iterator = keySet1.iterator(); iterator.hasNext();) {
-        ClassDescriptor cd1 = (ClassDescriptor) iterator.next();
+      for (Iterator iterator = keySet1.iterator(); iterator.hasNext(); ) {
+	ClassDescriptor cd1 = (ClassDescriptor) iterator.next();
 
-        Location loc1 = cd2loc1.get(cd1);
-        Location loc2 = cd2loc2.get(cd1);
+	Location loc1 = cd2loc1.get(cd1);
+	Location loc2 = cd2loc2.get(cd1);
 
-        if (priorityLoc1.equals(loc1)) {
-          continue;
-        }
+	if (priorityLoc1.equals(loc1)) {
+	  continue;
+	}
 
-        if (loc2 == null) {
-          // if comploc2 doesn't have corresponding location,
-          // then we determines that comploc1 is lower than comploc 2
-          return ComparisonResult.LESS;
-        }
+	if (loc2 == null) {
+	  // if comploc2 doesn't have corresponding location,
+	  // then we determines that comploc1 is lower than comploc 2
+	  return ComparisonResult.LESS;
+	}
 
-        System.out.println("lattice comparison:" + loc1.getLocIdentifier() + " ? "
-            + loc2.getLocIdentifier());
-        locationOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd1);
-        if (loc1.getLocIdentifier().equals(loc2.getLocIdentifier())) {
-          // have the same level of local hierarchy
-          numEqualLoc++;
-        } else if (!locationOrder.isGreaterThan(loc1.getLocIdentifier(), loc2.getLocIdentifier())) {
-          // if one element of composite location 1 is not higher than composite
-          // location 2
-          // then, composite loc 1 is not higher than composite loc 2
+	System.out.println("lattice comparison:" + loc1.getLocIdentifier() + " ? "
+	                   + loc2.getLocIdentifier());
+	locationOrder = (Lattice<String>)state.getCd2LocationOrder().get(cd1);
+	if (loc1.getLocIdentifier().equals(loc2.getLocIdentifier())) {
+	  // have the same level of local hierarchy
+	  numEqualLoc++;
+	} else if (!locationOrder.isGreaterThan(loc1.getLocIdentifier(), loc2.getLocIdentifier())) {
+	  // if one element of composite location 1 is not higher than composite
+	  // location 2
+	  // then, composite loc 1 is not higher than composite loc 2
 
-          System.out.println(compLoc1 + " < " + compLoc2);
-          return ComparisonResult.LESS;
-        }
+	  System.out.println(compLoc1 + " < " + compLoc2);
+	  return ComparisonResult.LESS;
+	}
 
       }
 
       if (numEqualLoc == (compLoc1.getBaseLocationSize() - 1)) {
-        return ComparisonResult.EQUAL;
+	return ComparisonResult.EQUAL;
       }
 
       System.out.println(compLoc1 + " > " + compLoc2);
@@ -1141,7 +1143,7 @@ public class FlowDownCheck {
     }
 
     public static CompositeLocation calculateGLB(ClassDescriptor cd,
-        Set<CompositeLocation> inputSet, ClassDescriptor priorityCD) {
+                                                 Set<CompositeLocation> inputSet, ClassDescriptor priorityCD) {
 
       CompositeLocation glbCompLoc = new CompositeLocation(cd);
       int maxDeltaFunction = 0;
@@ -1149,91 +1151,91 @@ public class FlowDownCheck {
       // calculate GLB of priority element first
 
       Hashtable<ClassDescriptor, Set<Location>> cd2locSet =
-          new Hashtable<ClassDescriptor, Set<Location>>();
+        new Hashtable<ClassDescriptor, Set<Location>>();
 
       // creating mapping from class to set of locations
-      for (Iterator iterator = inputSet.iterator(); iterator.hasNext();) {
-        CompositeLocation compLoc = (CompositeLocation) iterator.next();
+      for (Iterator iterator = inputSet.iterator(); iterator.hasNext(); ) {
+	CompositeLocation compLoc = (CompositeLocation) iterator.next();
 
-        int numOfDelta = compLoc.getNumofDelta();
-        if (numOfDelta > maxDeltaFunction) {
-          maxDeltaFunction = numOfDelta;
-        }
+	int numOfDelta = compLoc.getNumofDelta();
+	if (numOfDelta > maxDeltaFunction) {
+	  maxDeltaFunction = numOfDelta;
+	}
 
-        Set<Location> baseLocationSet = compLoc.getBaseLocationSet();
-        for (Iterator iterator2 = baseLocationSet.iterator(); iterator2.hasNext();) {
-          Location locElement = (Location) iterator2.next();
-          ClassDescriptor locCD = locElement.getClassDescriptor();
+	Set<Location> baseLocationSet = compLoc.getBaseLocationSet();
+	for (Iterator iterator2 = baseLocationSet.iterator(); iterator2.hasNext(); ) {
+	  Location locElement = (Location) iterator2.next();
+	  ClassDescriptor locCD = locElement.getClassDescriptor();
 
-          Set<Location> locSet = cd2locSet.get(locCD);
-          if (locSet == null) {
-            locSet = new HashSet<Location>();
-          }
-          locSet.add(locElement);
+	  Set<Location> locSet = cd2locSet.get(locCD);
+	  if (locSet == null) {
+	    locSet = new HashSet<Location>();
+	  }
+	  locSet.add(locElement);
 
-          cd2locSet.put(locCD, locSet);
+	  cd2locSet.put(locCD, locSet);
 
-        }
+	}
       }
 
       Set<Location> locSetofClass = cd2locSet.get(priorityCD);
       Set<String> locIdentifierSet = new HashSet<String>();
 
-      for (Iterator<Location> locIterator = locSetofClass.iterator(); locIterator.hasNext();) {
-        Location locElement = locIterator.next();
-        locIdentifierSet.add(locElement.getLocIdentifier());
+      for (Iterator<Location> locIterator = locSetofClass.iterator(); locIterator.hasNext(); ) {
+	Location locElement = locIterator.next();
+	locIdentifierSet.add(locElement.getLocIdentifier());
       }
 
-      Lattice<String> locOrder = (Lattice<String>) state.getCd2LocationOrder().get(priorityCD);
+      Lattice<String> locOrder = (Lattice<String>)state.getCd2LocationOrder().get(priorityCD);
       String glbLocIdentifer = locOrder.getGLB(locIdentifierSet);
 
       Location priorityGLB = new Location(priorityCD, glbLocIdentifer);
 
       Set<CompositeLocation> sameGLBLoc = new HashSet<CompositeLocation>();
 
-      for (Iterator<CompositeLocation> iterator = inputSet.iterator(); iterator.hasNext();) {
-        CompositeLocation inputComploc = iterator.next();
-        Location locElement = inputComploc.getLocation(priorityCD);
+      for (Iterator<CompositeLocation> iterator = inputSet.iterator(); iterator.hasNext(); ) {
+	CompositeLocation inputComploc = iterator.next();
+	Location locElement = inputComploc.getLocation(priorityCD);
 
-        if (locElement.equals(priorityGLB)) {
-          sameGLBLoc.add(inputComploc);
-        }
+	if (locElement.equals(priorityGLB)) {
+	  sameGLBLoc.add(inputComploc);
+	}
       }
       glbCompLoc.addLocation(priorityGLB);
       if (sameGLBLoc.size() > 0) {
-        // if more than one location shares the same priority GLB
-        // need to calculate the rest of GLB loc
+	// if more than one location shares the same priority GLB
+	// need to calculate the rest of GLB loc
 
-        Set<Location> glbElementSet = new HashSet<Location>();
+	Set<Location> glbElementSet = new HashSet<Location>();
 
-        for (Iterator<ClassDescriptor> iterator = cd2locSet.keySet().iterator(); iterator.hasNext();) {
-          ClassDescriptor localCD = iterator.next();
-          if (!localCD.equals(priorityCD)) {
-            Set<Location> localLocSet = cd2locSet.get(localCD);
-            Set<String> LocalLocIdSet = new HashSet<String>();
+	for (Iterator<ClassDescriptor> iterator = cd2locSet.keySet().iterator(); iterator.hasNext(); ) {
+	  ClassDescriptor localCD = iterator.next();
+	  if (!localCD.equals(priorityCD)) {
+	    Set<Location> localLocSet = cd2locSet.get(localCD);
+	    Set<String> LocalLocIdSet = new HashSet<String>();
 
-            for (Iterator<Location> locIterator = localLocSet.iterator(); locIterator.hasNext();) {
-              Location locElement = locIterator.next();
-              LocalLocIdSet.add(locElement.getLocIdentifier());
-            }
+	    for (Iterator<Location> locIterator = localLocSet.iterator(); locIterator.hasNext(); ) {
+	      Location locElement = locIterator.next();
+	      LocalLocIdSet.add(locElement.getLocIdentifier());
+	    }
 
-            Lattice<String> localOrder = (Lattice<String>) state.getCd2LocationOrder().get(localCD);
-            Location localGLBLoc = new Location(localCD, localOrder.getGLB(LocalLocIdSet));
-            glbCompLoc.addLocation(localGLBLoc);
-          }
-        }
+	    Lattice<String> localOrder = (Lattice<String>)state.getCd2LocationOrder().get(localCD);
+	    Location localGLBLoc = new Location(localCD, localOrder.getGLB(LocalLocIdSet));
+	    glbCompLoc.addLocation(localGLBLoc);
+	  }
+	}
       } else {
-        // if priority glb loc is lower than all of input loc
-        // assign top location to the rest of loc element
+	// if priority glb loc is lower than all of input loc
+	// assign top location to the rest of loc element
 
-        for (Iterator<ClassDescriptor> iterator = cd2locSet.keySet().iterator(); iterator.hasNext();) {
-          ClassDescriptor localCD = iterator.next();
-          if (!localCD.equals(priorityCD)) {
-            Location localGLBLoc = Location.createTopLocation(localCD);
-            glbCompLoc.addLocation(localGLBLoc);
-          }
+	for (Iterator<ClassDescriptor> iterator = cd2locSet.keySet().iterator(); iterator.hasNext(); ) {
+	  ClassDescriptor localCD = iterator.next();
+	  if (!localCD.equals(priorityCD)) {
+	    Location localGLBLoc = Location.createTopLocation(localCD);
+	    glbCompLoc.addLocation(localGLBLoc);
+	  }
 
-        }
+	}
 
       }
 

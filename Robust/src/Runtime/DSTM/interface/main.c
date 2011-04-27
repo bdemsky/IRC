@@ -16,7 +16,7 @@ int main() {
   create_objstr(size);
   createHash(&mlut, HASH_SIZE, 0.75);
 
-  for(i=0; i< 4 ; i++) {
+  for(i=0; i< 4; i++) {
     createObject(i);
   }
 

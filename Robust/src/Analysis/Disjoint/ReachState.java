@@ -39,29 +39,29 @@ public class ReachState extends Canonical {
 
   public static ReachState factory() {
     ReachState out = new ReachState();
-    out = (ReachState) Canonical.makeCanonical( out );
+    out = (ReachState) Canonical.makeCanonical(out);
     return out;
   }
 
-  public static ReachState factory( ReachTuple rt ) {
+  public static ReachState factory(ReachTuple rt) {
     assert rt != null;
     assert rt.isCanonical();
-    ReachState out = new ReachState();    
-    out.reachTuples.add( rt );
-    out = (ReachState) Canonical.makeCanonical( out );
+    ReachState out = new ReachState();
+    out.reachTuples.add(rt);
+    out = (ReachState) Canonical.makeCanonical(out);
     return out;
   }
 
-  public static ReachState factory( HashSet<ReachTuple> reachTuples,
-                                    ExistPredSet        preds
-                                    ) {
+  public static ReachState factory(HashSet<ReachTuple> reachTuples,
+                                   ExistPredSet preds
+                                   ) {
     assert reachTuples != null;
     assert preds != null;
     assert preds.isCanonical();
     ReachState out = new ReachState();
-    out.reachTuples.addAll( reachTuples );
+    out.reachTuples.addAll(reachTuples);
     out.preds = preds;
-    out = (ReachState) Canonical.makeCanonical( out );
+    out = (ReachState) Canonical.makeCanonical(out);
     return out;
   }
 
@@ -79,31 +79,31 @@ public class ReachState extends Canonical {
     return reachTuples.isEmpty();
   }
 
-  public boolean isSubset( ReachState rsIn ) {
+  public boolean isSubset(ReachState rsIn) {
     assert rsIn != null;
-    return rsIn.reachTuples.containsAll( this.reachTuples );
+    return rsIn.reachTuples.containsAll(this.reachTuples);
   }
 
-  public boolean containsTuple( ReachTuple rt ) {
+  public boolean containsTuple(ReachTuple rt) {
     assert rt != null;
-    return reachTuples.contains( rt );
+    return reachTuples.contains(rt);
   }
 
   // this should be a hash table so we can do this by key
-  public ReachTuple containsHrnID( Integer hrnID,
-                                   boolean isOutOfContext ) {
+  public ReachTuple containsHrnID(Integer hrnID,
+                                  boolean isOutOfContext) {
     assert hrnID != null;
 
     Iterator<ReachTuple> rtItr = reachTuples.iterator();
     while( rtItr.hasNext() ) {
       ReachTuple rt = rtItr.next();
-      if( hrnID.equals( rt.getHrnID() ) &&
+      if( hrnID.equals(rt.getHrnID() ) &&
           isOutOfContext == rt.isOutOfContext()
           ) {
 	return rt;
       }
     }
-    
+
     return null;
   }
 
@@ -112,7 +112,7 @@ public class ReachState extends Canonical {
   }
 
 
-  public boolean equalsSpecific( Object o ) {
+  public boolean equalsSpecific(Object o) {
     if( o == null ) {
       return false;
     }
@@ -122,20 +122,20 @@ public class ReachState extends Canonical {
     }
 
     ReachState rs = (ReachState) o;
-    return 
-      reachTuples.equals( rs.reachTuples ) &&
-      preds.equals( rs.preds );
+    return
+      reachTuples.equals(rs.reachTuples) &&
+      preds.equals(rs.preds);
   }
 
 
   public int hashCodeSpecific() {
-    return 
-      reachTuples.hashCode() ^ 
+    return
+      reachTuples.hashCode() ^
       preds.hashCode();
   }
 
 
-  public boolean equalsIgnorePreds( Object o ) {
+  public boolean equalsIgnorePreds(Object o) {
     if( o == null ) {
       return false;
     }
@@ -145,8 +145,8 @@ public class ReachState extends Canonical {
     }
 
     ReachState rs = (ReachState) o;
-    return 
-      reachTuples.equals( rs.reachTuples );
+    return
+      reachTuples.equals(rs.reachTuples);
   }
 
 

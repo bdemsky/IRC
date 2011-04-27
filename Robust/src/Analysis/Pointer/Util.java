@@ -6,7 +6,7 @@ import java.util.Set;
 public class Util {
   public static <T> MySet<T> setSubtract(Set <T> orig, Set<T> sub) {
     MySet<T> newset=new MySet<T>();
-    for(T e: orig) {
+    for(T e : orig) {
       if (!sub.contains(e))
 	newset.add(e);
     }
@@ -20,7 +20,7 @@ public class Util {
       map.get(key).addAll(toadd);
     } else {
       if (toadd!=null)
-	map.put(key, (MySet<V>) toadd.clone());
+	map.put(key, (MySet<V>)toadd.clone());
     }
   }
 

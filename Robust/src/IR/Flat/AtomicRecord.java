@@ -7,5 +7,5 @@ public class AtomicRecord {
   Set<TempDescriptor> reallivein;
   Set<TempDescriptor> liveout;
   Set<TempDescriptor> liveoutvirtualread;
-  
+
 }

@@ -92,7 +92,7 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
   BARRIER();
   VAR(___this___)->tid=0;
   BARRIER();
-  
+
   while(notifycount==VAR(___this___)->notifycount) {
 #ifdef PRECISE_GC
     if (unlikely(needtocollect))
@@ -123,7 +123,7 @@ void CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
   struct lockvector *lptr=&lvector;
 #endif
   struct lockpair *lpair=&lptr->locks[--lptr->index];
-  
+
   if (lpair->islastlock) {
     MBARRIER();
     lpair->object->tid=0;

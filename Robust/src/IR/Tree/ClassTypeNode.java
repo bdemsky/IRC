@@ -8,11 +8,11 @@ public class ClassTypeNode extends ExpressionNode {
   public ClassTypeNode(TypeDescriptor td) {
     this.td=td;
   }
-  
+
   public TypeDescriptor getTypeDesc() {
     return this.td;
   }
-  
+
   public void setTypeDesc(TypeDescriptor td) {
     this.td = td;
   }
@@ -28,7 +28,7 @@ public class ClassTypeNode extends ExpressionNode {
   public int kind() {
     return Kind.ClassTypeNode;
   }
-  
+
   public Long evaluate() {
     eval = null;
     return eval; //null;

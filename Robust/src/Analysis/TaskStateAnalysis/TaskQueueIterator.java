@@ -68,7 +68,7 @@ objloop:
       TagExpressionList tel=td.getTag(vd);
       int j;
       if (needinit) {
-	j=(tel!=null)&&tel.numTags()>0 ? tel.numTags()-1 : 0;
+	j=(tel!=null)&&tel.numTags()>0?tel.numTags()-1:0;
 	needinit=false;
       } else
 	j=0;

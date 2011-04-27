@@ -14,7 +14,7 @@ public class SwitchBlockNode extends BlockStatementNode {
   public Vector<SwitchLabelNode> getSwitchConditions() {
     return this.switch_conds;
   }
-  
+
   public BlockNode getSwitchBlockStatement() {
     return this.switch_st;
   }
@@ -27,7 +27,7 @@ public class SwitchBlockNode extends BlockStatementNode {
     result += this.switch_st.printNode(indent);
     return result;
   }
-  
+
   public int kind() {
     return Kind.SwitchBlockNode;
   }

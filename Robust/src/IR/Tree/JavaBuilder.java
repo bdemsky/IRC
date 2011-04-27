@@ -29,7 +29,7 @@ public class JavaBuilder implements CallGraph {
   HashMap<ClassDescriptor, Set<ClassDescriptor>> implementationMap=new HashMap<ClassDescriptor, Set<ClassDescriptor>>();
 
   /* Maps methods to the methods they call */
-  
+
   HashMap<MethodDescriptor, Set<MethodDescriptor>> callMap=new HashMap<MethodDescriptor, Set<MethodDescriptor>>();
 
   HashMap<MethodDescriptor, Set<MethodDescriptor>> revCallMap=new HashMap<MethodDescriptor, Set<MethodDescriptor>>();
@@ -45,9 +45,9 @@ public class JavaBuilder implements CallGraph {
       Descriptor md=(Descriptor)tovisit.iterator().next();
       tovisit.remove(md);
       Set s=getCalleeSet(md);
-      
+
       if (s!=null) {
-	for(Iterator it=s.iterator(); it.hasNext();) {
+	for(Iterator it=s.iterator(); it.hasNext(); ) {
 	  MethodDescriptor md2=(MethodDescriptor)it.next();
 	  if( !callable.contains(md2) ) {
 	    callable.add(md2);
@@ -75,7 +75,7 @@ public class JavaBuilder implements CallGraph {
     set.add(d);
     return set;
   }
-  
+
   public boolean isCalled(MethodDescriptor md) {
     return !getMethods(md).isEmpty();
   }
@@ -101,7 +101,7 @@ public class JavaBuilder implements CallGraph {
   }
 
   public Set getFirstReachableMethodContainingSESE(Descriptor d,
-      Set<MethodDescriptor> methodsContainingSESEs) {
+                                                   Set<MethodDescriptor> methodsContainingSESEs) {
     throw new Error("");
   }
 
@@ -145,11 +145,11 @@ public class JavaBuilder implements CallGraph {
     try {
       sc.checkMethodBody(md.getClassDesc(), md);
     } catch( Error e ) {
-      System.out.println( "Error in "+md );
+      System.out.println("Error in "+md);
       throw e;
     }
   }
-  
+
   public boolean isInit(ClassDescriptor cd) {
     return classStatus.get(cd)!=null&&classStatus.get(cd)>=CDINIT;
   }
@@ -157,7 +157,7 @@ public class JavaBuilder implements CallGraph {
   void initClassDesc(ClassDescriptor cd, int init) {
     if (classStatus.get(cd)==null||classStatus.get(cd)!=init) {
       if (classStatus.get(cd)==null) {
-        MethodDescriptor mdstaticinit = (MethodDescriptor)cd.getMethodTable().get("staticblocks");
+	MethodDescriptor mdstaticinit = (MethodDescriptor)cd.getMethodTable().get("staticblocks");
 	if (mdstaticinit!=null) {
 	  discovered.add(mdstaticinit);
 	  toprocess.push(mdstaticinit);
@@ -166,7 +166,7 @@ public class JavaBuilder implements CallGraph {
       classStatus.put(cd, init);
     }
   }
-  
+
   void computeFixPoint() {
     while(!toprocess.isEmpty()) {
       MethodDescriptor md=toprocess.pop();
@@ -177,10 +177,10 @@ public class JavaBuilder implements CallGraph {
     }
 
     //make sure every called method descriptor has a flat method
-    for(MethodDescriptor callmd:canCall.keySet())
+    for(MethodDescriptor callmd : canCall.keySet())
       bf.addJustFlatMethod(callmd);
   }
-  
+
   void processCall(MethodDescriptor md, FlatCall fcall) {
     MethodDescriptor callmd=fcall.getMethod();
     //make sure we have a FlatMethod for the base method...
@@ -208,14 +208,14 @@ public class JavaBuilder implements CallGraph {
     if (!invocationMap.containsKey(cn))
       invocationMap.put(cn, new HashSet<Pair<MethodDescriptor,MethodDescriptor>>());
     invocationMap.get(cn).add(new Pair<MethodDescriptor, MethodDescriptor>(md, callmd));
-    
+
     if (impSet!=null) {
-      for(ClassDescriptor cdactual:impSet) {
-	searchimp:
+      for(ClassDescriptor cdactual : impSet) {
+	searchimp :
 	while(cdactual!=null) {
 	  Set possiblematches=cdactual.getMethodTable().getSetFromSameScope(callmd.getSymbol());
-	  
-	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
+
+	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
 	    MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
 	    if (callmd.matches(matchmd)) {
 	      //Found the method that will be called
@@ -233,7 +233,7 @@ public class JavaBuilder implements CallGraph {
 	      break searchimp;
 	    }
 	  }
-	  
+
 	  //Didn't find method...look in super class
 	  cdactual=cdactual.getSuperDesc();
 	}
@@ -258,7 +258,7 @@ public class JavaBuilder implements CallGraph {
 
     Stack<ClassDescriptor> tovisit=new Stack<ClassDescriptor>();
     tovisit.add(cdnew);
-    
+
     while(!tovisit.isEmpty()) {
       ClassDescriptor cdcurr=tovisit.pop();
       if (!implementationMap.containsKey(cdcurr))
@@ -266,15 +266,15 @@ public class JavaBuilder implements CallGraph {
       if (implementationMap.get(cdcurr).add(cdnew)) {
 	//new implementation...see if it affects implementationmap
 	if (invocationMap.containsKey(cdcurr)) {
-	  for(Pair<MethodDescriptor, MethodDescriptor> mdpair:invocationMap.get(cdcurr)) {
+	  for(Pair<MethodDescriptor, MethodDescriptor> mdpair : invocationMap.get(cdcurr)) {
 	    MethodDescriptor md=mdpair.getFirst();
 	    MethodDescriptor callmd=mdpair.getSecond();
 	    ClassDescriptor cdactual=cdnew;
-	    
-	    searchimp:
+
+searchimp:
 	    while(cdactual!=null) {
 	      Set possiblematches=cdactual.getMethodTable().getSetFromSameScope(callmd.getSymbol());
-	      for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
+	      for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
 		MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
 		if (callmd.matches(matchmd)) {
 		  //Found the method that will be called
@@ -290,7 +290,7 @@ public class JavaBuilder implements CallGraph {
 		  break searchimp;
 		}
 	      }
-	      
+
 	      //Didn't find method...look in super class
 	      cdactual=cdactual.getSuperDesc();
 	    }
@@ -299,7 +299,7 @@ public class JavaBuilder implements CallGraph {
       }
       if (cdcurr.getSuperDesc()!=null)
 	tovisit.push(cdcurr.getSuperDesc());
-      for(Iterator interit=cdcurr.getSuperInterfaces();interit.hasNext();) {
+      for(Iterator interit=cdcurr.getSuperInterfaces(); interit.hasNext(); ) {
 	ClassDescriptor cdinter=(ClassDescriptor) interit.next();
 	tovisit.push(cdinter);
       }
@@ -309,15 +309,16 @@ public class JavaBuilder implements CallGraph {
   void processFlatMethod(MethodDescriptor md) {
     if (!callMap.containsKey(md))
       callMap.put(md, new HashSet<MethodDescriptor>());
-    
+
     FlatMethod fm=state.getMethodFlat(md);
-    for(FlatNode fn:fm.getNodeSet()) {
+    for(FlatNode fn : fm.getNodeSet()) {
       switch(fn.kind()) {
-      case FKind.FlatCall: {
-	FlatCall fcall=(FlatCall)fn;
-	processCall(md, fcall);
-	break;
+      case FKind.FlatCall : {
+	  FlatCall fcall=(FlatCall)fn;
+	  processCall(md, fcall);
+	  break;
       }
+
       case FKind.FlatNew: {
 	FlatNew fnew=(FlatNew)fn;
 	processNew(fnew);

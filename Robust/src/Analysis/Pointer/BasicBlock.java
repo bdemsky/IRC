@@ -69,7 +69,7 @@ public class BasicBlock {
 	exit=block;
       do {
 	if (pm.numNext(fn)!=1) {
-	  for(int i=0;i<pm.numNext(fn);i++) {
+	  for(int i=0; i<pm.numNext(fn); i++) {
 	    FlatNode fnext=pm.getNext(fn,i);
 	    if (!map.containsKey(fnext)) {
 	      BBlock newb=new BBlock();

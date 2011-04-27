@@ -49,13 +49,13 @@ public class Location  implements TypeExtension {
 
     if (loc.getClassDescriptor().equals(getClassDescriptor())) {
       if (loc.getLocIdentifier() == null || getLocIdentifier() == null) {
-        if (loc.getType() == getType()) {
-          return true;
-        }
+	if (loc.getType() == getType()) {
+	  return true;
+	}
       } else {
-        if (loc.getLocIdentifier().equals(getLocIdentifier())) {
-          return true;
-        }
+	if (loc.getLocIdentifier().equals(getLocIdentifier())) {
+	  return true;
+	}
       }
     }
 
@@ -89,8 +89,8 @@ public class Location  implements TypeExtension {
     bottomLoc.loc = "_bottom_";
     return bottomLoc;
   }
-  
-  public boolean isTop(){
+
+  public boolean isTop() {
     return type==TOP;
   }
 

@@ -71,7 +71,7 @@ public class MethodInvokeNode extends ExpressionNode {
   public void addArgument(ExpressionNode en) {
     argumentlist.add(en);
   }
-  
+
   public void setArgument(ExpressionNode en, int index) {
     argumentlist.setElementAt(en, index);
   }
@@ -102,7 +102,7 @@ public class MethodInvokeNode extends ExpressionNode {
   public int kind() {
     return Kind.MethodInvokeNode;
   }
-  
+
   public Long evaluate() {
     eval = null;
     return eval; //null;

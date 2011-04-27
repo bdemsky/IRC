@@ -21,7 +21,7 @@ void t_chashCreate(unsigned int size, double loadfactor) {
   int i;
 
   // Allocate space for the hash table
-  
+
 
   c_table = calloc(size, sizeof(chashlistnode_t));
   c_loadfactor = loadfactor;
@@ -128,7 +128,7 @@ void t_chashInsert(unsigned int key, void *val) {
       node=&c_structs->array[c_structs->num];
       c_structs->num++;
     } else {
-      //get new list                                                                
+      //get new list
       cliststruct_t *tcl=calloc(1,sizeof(cliststruct_t));
       tcl->next=c_structs;
       c_structs=tcl;
@@ -204,7 +204,7 @@ unsigned int chashResize(chashtable_t *table, unsigned int newsize) {
   int isfirst;    // Keeps track of the first element in the chashlistnode_t for each bin in hashtable
   unsigned int i,index;
   unsigned int mask;
-  
+
   ptr = table->table;
   oldsize = table->size;
 
@@ -224,7 +224,7 @@ unsigned int chashResize(chashtable_t *table, unsigned int newsize) {
     do {                      //Inner loop to go through linked lists
       unsigned int key;
       chashlistnode_t *tmp,*next;
-      
+
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
 	break;                  //key = val =0 for element if not present within the hash table
       }
@@ -238,16 +238,16 @@ unsigned int chashResize(chashtable_t *table, unsigned int newsize) {
 	if (!isfirst) {
 	  free(curr);
 	}
-      }/*
-	 NOTE:  Add this case if you change this...
-	 This case currently never happens because of the way things rehash....
-	 else if (isfirst) {
-	chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
-	newnode->key = curr->key;
-	newnode->val = curr->val;
-	newnode->next = tmp->next;
-	tmp->next=newnode;
-	} */
+      } /*
+	   NOTE:  Add this case if you change this...
+	   This case currently never happens because of the way things rehash....
+	   else if (isfirst) {
+	   chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
+	   newnode->key = curr->key;
+	   newnode->val = curr->val;
+	   newnode->next = tmp->next;
+	   tmp->next=newnode;
+	   } */
       else {
 	curr->next=tmp->next;
 	tmp->next=curr;
@@ -268,7 +268,7 @@ unsigned int t_chashResize(unsigned int newsize) {
   int isfirst;    // Keeps track of the first element in the chashlistnode_t for each bin in hashtable
   unsigned int i,index;
   unsigned int mask;
-  
+
   ptr = c_table;
   oldsize = c_size;
 
@@ -288,7 +288,7 @@ unsigned int t_chashResize(unsigned int newsize) {
     do {                      //Inner loop to go through linked lists
       unsigned int key;
       chashlistnode_t *tmp,*next;
-      
+
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
 	break;                  //key = val =0 for element if not present within the hash table
       }
@@ -299,16 +299,16 @@ unsigned int t_chashResize(unsigned int newsize) {
       if(tmp->key == 0) {
 	tmp->key = key;
 	tmp->val = curr->val;
-      }/*
-	 NOTE:  Add this case if you change this...
-	 This case currently never happens because of the way things rehash....
-	 else if (isfirst) {
-	chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
-	newnode->key = curr->key;
-	newnode->val = curr->val;
-	newnode->next = tmp->next;
-	tmp->next=newnode;
-	} */
+      } /*
+	   NOTE:  Add this case if you change this...
+	   This case currently never happens because of the way things rehash....
+	   else if (isfirst) {
+	   chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
+	   newnode->key = curr->key;
+	   newnode->val = curr->val;
+	   newnode->next = tmp->next;
+	   tmp->next=newnode;
+	   } */
       else {
 	curr->next=tmp->next;
 	tmp->next=curr;
@@ -328,7 +328,7 @@ void chashDelete(chashtable_t *ctable) {
   int i;
   chashlistnode_t *ptr = ctable->table;
 
-  for(i=0 ; i<ctable->size ; i++) {
+  for(i=0; i<ctable->size; i++) {
     chashlistnode_t * curr = ptr[i].next;
     while(curr!=NULL) {
       chashlistnode_t * next = curr->next;

@@ -19,10 +19,10 @@ typedef struct deque_t {
 } deque;
 
 
-void  dqInit      ( deque* dq );
-void  dqPushBottom( deque* dq, void* item );
-void* dqPopTop    ( deque* dq );
-void* dqPopBottom ( deque* dq );
+void  dqInit(deque* dq);
+void  dqPushBottom(deque* dq, void* item);
+void* dqPopTop(deque* dq);
+void* dqPopBottom(deque* dq);
 
 
 // pop operations may return these values
@@ -43,9 +43,15 @@ typedef struct dequeNode_t {
 } dequeNode;
 
 
-static inline int        dqDecodeTag( INTPTR E ) { return (int)        ((0xffffe00000000000 & E) >> 45); }
-static inline dequeNode* dqDecodePtr( INTPTR E ) { return (dequeNode*) ((0x00001ffffffffe00 & E) <<  3); }
-static inline int        dqDecodeIdx( INTPTR E ) { return (int)        ((0x00000000000001ff & E)      ); }
+static inline int        dqDecodeTag(INTPTR E) {
+  return (int)        ((0xffffe00000000000 & E) >> 45);
+}
+static inline dequeNode* dqDecodePtr(INTPTR E) {
+  return (dequeNode*) ((0x00001ffffffffe00 & E) <<  3);
+}
+static inline int        dqDecodeIdx(INTPTR E) {
+  return (int)        ((0x00000000000001ff & E)      );
+}
 
 
 #endif // ___DEQUE_H__

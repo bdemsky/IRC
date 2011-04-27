@@ -35,7 +35,7 @@ public class DefinitelyWrittenCheck {
     this.state = state;
     this.toanalyze = new HashSet();
     this.definitelyWrittenResults =
-        new Hashtable<FlatNode, Hashtable<Descriptor, Hashtable<FlatNode, Boolean>>>();
+      new Hashtable<FlatNode, Hashtable<Descriptor, Hashtable<FlatNode, Boolean>>>();
   }
 
   public void definitelyWrittenCheck() {
@@ -49,36 +49,36 @@ public class DefinitelyWrittenCheck {
       toanalyze.remove(cd);
 
 //      if (cd.isClassLibrary()) {
-        // doesn't care about class libraries now
+      // doesn't care about class libraries now
 //        continue;
 //      }
-      for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
-        MethodDescriptor md = (MethodDescriptor) method_it.next();
-        FlatMethod fm = state.getMethodFlat(md);
-        if (fm != null) {
-          
-        }
+      for (Iterator method_it = cd.getMethods(); method_it.hasNext(); ) {
+	MethodDescriptor md = (MethodDescriptor) method_it.next();
+	FlatMethod fm = state.getMethodFlat(md);
+	if (fm != null) {
+
+	}
 
       }
     }
 
-    
-    
-    /*
-    // creating map
-    SymbolTable classtable = state.getClassSymbolTable();
-    toanalyze.addAll(classtable.getValueSet());
-    toanalyze.addAll(state.getTaskSymbolTable().getValueSet());
-    while (!toanalyze.isEmpty()) {
-      Object obj = toanalyze.iterator().next();
-      ClassDescriptor cd = (ClassDescriptor) obj;
-      toanalyze.remove(cd);
 
-      if (cd.isClassLibrary()) {
+
+    /*
+       // creating map
+       SymbolTable classtable = state.getClassSymbolTable();
+       toanalyze.addAll(classtable.getValueSet());
+       toanalyze.addAll(state.getTaskSymbolTable().getValueSet());
+       while (!toanalyze.isEmpty()) {
+       Object obj = toanalyze.iterator().next();
+       ClassDescriptor cd = (ClassDescriptor) obj;
+       toanalyze.remove(cd);
+
+       if (cd.isClassLibrary()) {
         // doesn't care about class libraries now
         continue;
-      }
-      for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
+       }
+       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
         FlatMethod fm = state.getMethodFlat(md);
         if (fm != null) {
@@ -100,21 +100,21 @@ public class DefinitelyWrittenCheck {
           }
         }
 
-      }
-    }
+       }
+       }
 
-    // check if there is a read statement with flag=TRUE
-    toanalyze.addAll(classtable.getValueSet());
-    toanalyze.addAll(state.getTaskSymbolTable().getValueSet());
-    while (!toanalyze.isEmpty()) {
-      Object obj = toanalyze.iterator().next();
-      ClassDescriptor cd = (ClassDescriptor) obj;
-      toanalyze.remove(cd);
-      if (cd.isClassLibrary()) {
+       // check if there is a read statement with flag=TRUE
+       toanalyze.addAll(classtable.getValueSet());
+       toanalyze.addAll(state.getTaskSymbolTable().getValueSet());
+       while (!toanalyze.isEmpty()) {
+       Object obj = toanalyze.iterator().next();
+       ClassDescriptor cd = (ClassDescriptor) obj;
+       toanalyze.remove(cd);
+       if (cd.isClassLibrary()) {
         // doesn't care about class libraries now
         continue;
-      }
-      for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
+       }
+       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
         FlatMethod fm = state.getMethodFlat(md);
         try {
@@ -123,14 +123,14 @@ public class DefinitelyWrittenCheck {
           System.out.println("Error in " + md);
           throw e;
         }
-      }
-    }
-    */
+       }
+       }
+     */
 
   }
-  
 
-  
+
+
 
   private void checkMethodBody(FlatMethod fm) {
 
@@ -147,10 +147,10 @@ public class DefinitelyWrittenCheck {
 
       // if a new result, schedule forward nodes for analysis
       for (int i = 0; i < fn.numNext(); i++) {
-        FlatNode nn = fn.getNext(i);
-        if (!visited.contains(nn)) {
-          flatNodesToVisit.add(nn);
-        }
+	FlatNode nn = fn.getNext(i);
+	if (!visited.contains(nn)) {
+	  flatNodesToVisit.add(nn);
+	}
       }
     }
 
@@ -168,22 +168,22 @@ public class DefinitelyWrittenCheck {
 
       FlatOpNode fon = (FlatOpNode) fn;
       if (fon.getOp().getOp() == Operation.ASSIGN) {
-        lhs = fon.getDest();
-        rhs = fon.getLeft();
-        // read(rhs)
-        Hashtable<Descriptor, Hashtable<FlatNode, Boolean>> map = definitelyWrittenResults.get(fn);
-        if (map != null) {
-          if (map.get(rhs).get(fn).booleanValue()) {
-            // throw new Error("variable " + rhs
-            // +
-            // " was not overwritten in-between the same read statement by the out-most loop.");
-          }
-        }
+	lhs = fon.getDest();
+	rhs = fon.getLeft();
+	// read(rhs)
+	Hashtable<Descriptor, Hashtable<FlatNode, Boolean>> map = definitelyWrittenResults.get(fn);
+	if (map != null) {
+	  if (map.get(rhs).get(fn).booleanValue()) {
+	    // throw new Error("variable " + rhs
+	    // +
+	    // " was not overwritten in-between the same read statement by the out-most loop.");
+	  }
+	}
 
       }
 
     }
-      break;
+    break;
 
     case FKind.FlatFieldNode: {
 
@@ -193,26 +193,26 @@ public class DefinitelyWrittenCheck {
       fld = ffn.getField();
 
     }
-      break;
+    break;
 
     case FKind.FlatElementNode: {
 
     }
-      break;
+    break;
 
     case FKind.FlatSetFieldNode: {
     }
-      break;
+    break;
 
     case FKind.FlatSetElementNode: {
 
     }
-      break;
+    break;
 
     case FKind.FlatCall: {
 
     }
-      break;
+    break;
 
     }
 
@@ -230,55 +230,55 @@ public class DefinitelyWrittenCheck {
       Hashtable<Descriptor, Hashtable<FlatNode, Boolean>> prev = definitelyWrittenResults.get(fn);
 
       Hashtable<Descriptor, Hashtable<FlatNode, Boolean>> curr =
-          new Hashtable<Descriptor, Hashtable<FlatNode, Boolean>>();
+        new Hashtable<Descriptor, Hashtable<FlatNode, Boolean>>();
       for (int i = 0; i < fn.numPrev(); i++) {
-        FlatNode nn = fn.getPrev(i);
-        Hashtable<Descriptor, Hashtable<FlatNode, Boolean>> dwIn = definitelyWrittenResults.get(nn);
-        if (dwIn != null) {
-          mergeResults(curr, dwIn);
-        }
+	FlatNode nn = fn.getPrev(i);
+	Hashtable<Descriptor, Hashtable<FlatNode, Boolean>> dwIn = definitelyWrittenResults.get(nn);
+	if (dwIn != null) {
+	  mergeResults(curr, dwIn);
+	}
       }
 
       definitelyWritten_nodeActions(fn, curr, entrance);
 
       // if a new result, schedule forward nodes for analysis
       if (!curr.equals(prev)) {
-        definitelyWrittenResults.put(fn, curr);
+	definitelyWrittenResults.put(fn, curr);
 
-        for (int i = 0; i < fn.numNext(); i++) {
-          FlatNode nn = fn.getNext(i);
-          flatNodesToVisit.add(nn);
-        }
+	for (int i = 0; i < fn.numNext(); i++) {
+	  FlatNode nn = fn.getNext(i);
+	  flatNodesToVisit.add(nn);
+	}
       }
     }
   }
 
   private void mergeResults(Hashtable<Descriptor, Hashtable<FlatNode, Boolean>> curr,
-      Hashtable<Descriptor, Hashtable<FlatNode, Boolean>> in) {
+                            Hashtable<Descriptor, Hashtable<FlatNode, Boolean>> in) {
 
     Set<Descriptor> inKeySet = in.keySet();
-    for (Iterator iterator = inKeySet.iterator(); iterator.hasNext();) {
+    for (Iterator iterator = inKeySet.iterator(); iterator.hasNext(); ) {
       Descriptor inKey = (Descriptor) iterator.next();
       Hashtable<FlatNode, Boolean> inPair = in.get(inKey);
 
       Set<FlatNode> pairKeySet = inPair.keySet();
-      for (Iterator iterator2 = pairKeySet.iterator(); iterator2.hasNext();) {
-        FlatNode pairKey = (FlatNode) iterator2.next();
-        Boolean inFlag = inPair.get(pairKey);
+      for (Iterator iterator2 = pairKeySet.iterator(); iterator2.hasNext(); ) {
+	FlatNode pairKey = (FlatNode) iterator2.next();
+	Boolean inFlag = inPair.get(pairKey);
 
-        Hashtable<FlatNode, Boolean> currPair = curr.get(inKey);
-        if (currPair == null) {
-          currPair = new Hashtable<FlatNode, Boolean>();
-          curr.put(inKey, currPair);
-        }
+	Hashtable<FlatNode, Boolean> currPair = curr.get(inKey);
+	if (currPair == null) {
+	  currPair = new Hashtable<FlatNode, Boolean>();
+	  curr.put(inKey, currPair);
+	}
 
-        Boolean currFlag = currPair.get(pairKey);
-        // by default, flag is set by false
-        if (currFlag == null) {
-          currFlag = Boolean.FALSE;
-        }
-        currFlag = Boolean.valueOf(inFlag.booleanValue() | currFlag.booleanValue());
-        currPair.put(pairKey, currFlag);
+	Boolean currFlag = currPair.get(pairKey);
+	// by default, flag is set by false
+	if (currFlag == null) {
+	  currFlag = Boolean.FALSE;
+	}
+	currFlag = Boolean.valueOf(inFlag.booleanValue() | currFlag.booleanValue());
+	currPair.put(pairKey, currFlag);
       }
 
     }
@@ -286,21 +286,21 @@ public class DefinitelyWrittenCheck {
   }
 
   private void definitelyWritten_nodeActions(FlatNode fn,
-      Hashtable<Descriptor, Hashtable<FlatNode, Boolean>> curr, FlatNode entrance) {
+                                             Hashtable<Descriptor, Hashtable<FlatNode, Boolean>> curr, FlatNode entrance) {
 
     if (fn == entrance) {
 
       Set<Descriptor> keySet = curr.keySet();
-      for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-        Descriptor key = (Descriptor) iterator.next();
-        Hashtable<FlatNode, Boolean> pair = curr.get(key);
-        if (pair != null) {
-          Set<FlatNode> pairKeySet = pair.keySet();
-          for (Iterator iterator2 = pairKeySet.iterator(); iterator2.hasNext();) {
-            FlatNode pairKey = (FlatNode) iterator2.next();
-            pair.put(pairKey, Boolean.TRUE);
-          }
-        }
+      for (Iterator iterator = keySet.iterator(); iterator.hasNext(); ) {
+	Descriptor key = (Descriptor) iterator.next();
+	Hashtable<FlatNode, Boolean> pair = curr.get(key);
+	if (pair != null) {
+	  Set<FlatNode> pairKeySet = pair.keySet();
+	  for (Iterator iterator2 = pairKeySet.iterator(); iterator2.hasNext(); ) {
+	    FlatNode pairKey = (FlatNode) iterator2.next();
+	    pair.put(pairKey, Boolean.TRUE);
+	  }
+	}
       }
 
     } else {
@@ -312,89 +312,89 @@ public class DefinitelyWrittenCheck {
 
       case FKind.FlatOpNode: {
 
-        FlatOpNode fon = (FlatOpNode) fn;
-        lhs = fon.getDest();
-        rhs = fon.getLeft();
-        System.out.println("\nfon=" + fon);
+	FlatOpNode fon = (FlatOpNode) fn;
+	lhs = fon.getDest();
+	rhs = fon.getLeft();
+	System.out.println("\nfon=" + fon);
 
-        if (fon.getOp().getOp() == Operation.ASSIGN) {
+	if (fon.getOp().getOp() == Operation.ASSIGN) {
 
-          // read(rhs)
-          Hashtable<FlatNode, Boolean> gen = curr.get(rhs);
-          if (gen == null) {
-            gen = new Hashtable<FlatNode, Boolean>();
-            curr.put(rhs, gen);
-          }
-          System.out.println("READ LOC=" + rhs.getType().getExtension());
+	  // read(rhs)
+	  Hashtable<FlatNode, Boolean> gen = curr.get(rhs);
+	  if (gen == null) {
+	    gen = new Hashtable<FlatNode, Boolean>();
+	    curr.put(rhs, gen);
+	  }
+	  System.out.println("READ LOC=" + rhs.getType().getExtension());
 
-          Boolean currentStatus = gen.get(fn);
-          if (currentStatus == null) {
-            gen.put(fn, Boolean.FALSE);
-          }
-        }
-        // write(lhs)
-        curr.put(lhs, new Hashtable<FlatNode, Boolean>());
-        System.out.println("WRITING LOC=" + lhs.getType().getExtension());
+	  Boolean currentStatus = gen.get(fn);
+	  if (currentStatus == null) {
+	    gen.put(fn, Boolean.FALSE);
+	  }
+	}
+	// write(lhs)
+	curr.put(lhs, new Hashtable<FlatNode, Boolean>());
+	System.out.println("WRITING LOC=" + lhs.getType().getExtension());
 
       }
-        break;
+      break;
 
       case FKind.FlatLiteralNode: {
-        FlatLiteralNode fln = (FlatLiteralNode) fn;
-        lhs = fln.getDst();
+	FlatLiteralNode fln = (FlatLiteralNode) fn;
+	lhs = fln.getDst();
 
-        // write(lhs)
-        curr.put(lhs, new Hashtable<FlatNode, Boolean>());
+	// write(lhs)
+	curr.put(lhs, new Hashtable<FlatNode, Boolean>());
 
-        System.out.println("WRITING LOC=" + lhs.getType().getExtension());
+	System.out.println("WRITING LOC=" + lhs.getType().getExtension());
 
       }
-        break;
+      break;
 
       case FKind.FlatFieldNode:
       case FKind.FlatElementNode: {
 
-        FlatFieldNode ffn = (FlatFieldNode) fn;
-        lhs = ffn.getSrc();
-        fld = ffn.getField();
+	FlatFieldNode ffn = (FlatFieldNode) fn;
+	lhs = ffn.getSrc();
+	fld = ffn.getField();
 
-        // read field
-        Hashtable<FlatNode, Boolean> gen = curr.get(fld);
-        if (gen == null) {
-          gen = new Hashtable<FlatNode, Boolean>();
-          curr.put(fld, gen);
-        }
-        Boolean currentStatus = gen.get(fn);
-        if (currentStatus == null) {
-          gen.put(fn, Boolean.FALSE);
-        }
+	// read field
+	Hashtable<FlatNode, Boolean> gen = curr.get(fld);
+	if (gen == null) {
+	  gen = new Hashtable<FlatNode, Boolean>();
+	  curr.put(fld, gen);
+	}
+	Boolean currentStatus = gen.get(fn);
+	if (currentStatus == null) {
+	  gen.put(fn, Boolean.FALSE);
+	}
 
-        System.out.println("\nffn=" + ffn);
-        System.out.println("READ LOCfld=" + fld.getType().getExtension());
-        System.out.println("READ LOClhs=" + lhs.getType().getExtension());
+	System.out.println("\nffn=" + ffn);
+	System.out.println("READ LOCfld=" + fld.getType().getExtension());
+	System.out.println("READ LOClhs=" + lhs.getType().getExtension());
 
       }
-        break;
+      break;
 
       case FKind.FlatSetFieldNode:
       case FKind.FlatSetElementNode: {
 
-        FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
-        fld = fsfn.getField();
+	FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
+	fld = fsfn.getField();
 
-        // write(field)
-        curr.put(fld, new Hashtable<FlatNode, Boolean>());
+	// write(field)
+	curr.put(fld, new Hashtable<FlatNode, Boolean>());
 
-        System.out.println("\nfsfn=" + fsfn);
-        System.out.println("WRITELOC LOC=" + fld.getType().getExtension());
+	System.out.println("\nfsfn=" + fsfn);
+	System.out.println("WRITELOC LOC=" + fld.getType().getExtension());
 
       }
-        break;
+      break;
 
       case FKind.FlatCall: {
 
       }
-        break;
+      break;
 
       }
     }

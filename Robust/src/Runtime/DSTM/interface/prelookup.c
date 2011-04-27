@@ -64,19 +64,19 @@ void prehashInsert(unsigned int key, void *val) {
     pflookup.numelements++;
   } else {
     tmp = ptr;
-    while(tmp != NULL) { 
+    while(tmp != NULL) {
       if(tmp->key == key) {
-        isFound=1;
-        tmp->val = val;//Replace value for an exsisting key
-        pthread_mutex_unlock(&pflookup.lock);
-        return;
+	isFound=1;
+	tmp->val = val; //Replace value for an exsisting key
+	pthread_mutex_unlock(&pflookup.lock);
+	return;
       }
       tmp=tmp->next;
     }
     if(!isFound) { //Insert new key and value into the chain of linked list for the given bin
       node = calloc(1, sizeof(prehashlistnode_t));
       node->key = key;
-      node->val = val ;
+      node->val = val;
       node->next = ptr->next;
       ptr->next=node;
       pflookup.numelements++;
@@ -87,33 +87,33 @@ void prehashInsert(unsigned int key, void *val) {
 }
 
 /*
-void prehashInsert(unsigned int key, void *val) {
-  prehashlistnode_t *ptr,*node;
-  pthread_mutex_lock(&pflookup.lock);
+   void prehashInsert(unsigned int key, void *val) {
+   prehashlistnode_t *ptr,*node;
+   pthread_mutex_lock(&pflookup.lock);
 
-  if(pflookup.numelements > (pflookup.threshold)) {
+   if(pflookup.numelements > (pflookup.threshold)) {
     //Resize
     unsigned int newsize = pflookup.size << 1;
     prehashResize(newsize);
-  }
+   }
 
 
-  ptr = &pflookup.table[(key & pflookup.mask)>>1];
-  pflookup.numelements++;
+   ptr = &pflookup.table[(key & pflookup.mask)>>1];
+   pflookup.numelements++;
 
-  if(ptr->key==0) {
+   if(ptr->key==0) {
     ptr->key = key;
     ptr->val = val;
-  } else {                      // Insert in the beginning of linked list
+   } else {                      // Insert in the beginning of linked list
     node = calloc(1, sizeof(prehashlistnode_t));
     node->key = key;
     node->val = val ;
     node->next = ptr->next;
     ptr->next=node;
-  }
-  pthread_mutex_unlock(&pflookup.lock);
-}
-*/
+   }
+   pthread_mutex_unlock(&pflookup.lock);
+   }
+ */
 
 // Search for an address for a given oid
 INLINE void *prehashSearch(unsigned int key) {
@@ -121,7 +121,7 @@ INLINE void *prehashSearch(unsigned int key) {
   prehashlistnode_t *ptr, *node;
 
   pthread_mutex_lock(&pflookup.lock);
-  node = & pflookup.table[(key & pflookup.mask)>>1];
+  node = &pflookup.table[(key & pflookup.mask)>>1];
   do {
     if(node->key == key) {
       void * tmp=node->val;
@@ -206,15 +206,15 @@ unsigned int prehashResize(unsigned int newsize) {
 	if (!isfirst)
 	  free(curr);
       } /*
-         NOTE:  Add this case if you change this...                                                        
-         This case currently never happens because of the way things rehash....                            
-else if (isfirst) {
-	prehashlistnode_t * newnode = calloc(1, sizeof(prehashlistnode_t));
-	newnode->key = curr->key;
-	newnode->val = curr->val;
-	newnode->next = tmp->next;
-	tmp->next=newnode;
-	} */
+	   NOTE:  Add this case if you change this...
+	   This case currently never happens because of the way things rehash....
+	   else if (isfirst) {
+	   prehashlistnode_t * newnode = calloc(1, sizeof(prehashlistnode_t));
+	   newnode->key = curr->key;
+	   newnode->val = curr->val;
+	   newnode->next = tmp->next;
+	   tmp->next=newnode;
+	   } */
       else {
 	curr->next=tmp->next;
 	tmp->next=curr;
@@ -265,7 +265,7 @@ void prehashClear() {
       pNodeInfo.newstale=pNodeInfo.newptr;
     }
     stale=STALL_THRESHOLD-pNodeInfo.stale_count;
-    
+
     if (stale>0&&stale>pNodeInfo.stall)
       pNodeInfo.stall=stale;
 

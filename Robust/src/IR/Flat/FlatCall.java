@@ -20,7 +20,7 @@ public class FlatCall extends FlatNode {
     this.isSuper=isSuper;
   }
   public void rewriteUse(TempMap t) {
-    for(int i=0;i<args.length;i++)
+    for(int i=0; i<args.length; i++)
       args[i]=t.tempMap(args[i]);
     this_temp=t.tempMap(this_temp);
   }
@@ -31,9 +31,9 @@ public class FlatCall extends FlatNode {
     TempDescriptor ndst=t.tempMap(dst);
     TempDescriptor nthis=t.tempMap(this_temp);
     TempDescriptor[] nargs=new TempDescriptor[args.length];
-    for(int i=0;i<nargs.length;i++)
+    for(int i=0; i<nargs.length; i++)
       nargs[i]=t.tempMap(args[i]);
-    
+
     return new FlatCall(method, ndst, nthis, nargs);
   }
   public boolean getSuper() {
@@ -76,13 +76,13 @@ public class FlatCall extends FlatNode {
     if( i == 0 ) {
       return this_temp;
     }
-    
+
     return args[i-1];
   }
 
   // return the temp for the argument in caller that
   // becomes the given parameter
-  public TempDescriptor getArgMatchingParam(FlatMethod fm, 
+  public TempDescriptor getArgMatchingParam(FlatMethod fm,
                                             TempDescriptor tdParam) {
     // in non-static methods the "this" pointer
     // affects the matching index
@@ -93,19 +93,19 @@ public class FlatCall extends FlatNode {
     }
 
     for( int i = 0; i < fm.numParameters(); ++i ) {
-      TempDescriptor tdParamI = fm.getParameter( i );
-      
-      if( tdParamI.equals( tdParam ) ) {
+      TempDescriptor tdParamI = fm.getParameter(i);
 
-        if( method.isStatic() ) {
-          return args[i];
-        }
-        
-        if( i == 0 ) {
-          return this_temp;
-        }
-        
-        return args[i-1];
+      if( tdParamI.equals(tdParam) ) {
+
+	if( method.isStatic() ) {
+	  return args[i];
+	}
+
+	if( i == 0 ) {
+	  return this_temp;
+	}
+
+	return args[i-1];
       }
     }
 

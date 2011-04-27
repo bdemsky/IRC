@@ -45,7 +45,7 @@ public class TaskAnalysis {
     /** Iterate through the classes used in the program to build
      * the table of flags
      */
-    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
+    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext(); ) {
 
       ClassDescriptor cd = (ClassDescriptor)it_classes.next();
       Vector vFlags=new Vector();
@@ -56,7 +56,7 @@ public class TaskAnalysis {
       /* Adding the flags of the super class */
       ClassDescriptor tmp=cd;
       while(tmp!=null) {
-	for(Iterator it_cflags=tmp.getFlags(); it_cflags.hasNext();) {
+	for(Iterator it_cflags=tmp.getFlags(); it_cflags.hasNext(); ) {
 	  FlagDescriptor fd = (FlagDescriptor)it_cflags.next();
 	  vFlags.add(fd);
 	}
@@ -67,14 +67,14 @@ public class TaskAnalysis {
       if (vFlags.size()!=0) {
 	flag=new FlagDescriptor[vFlags.size()];
 
-	for(int i=0; i < vFlags.size() ; i++) {
+	for(int i=0; i < vFlags.size(); i++) {
 	  if (((FlagDescriptor)vFlags.get(i)).getExternal()) {
 	    flag[ctr]=(FlagDescriptor)vFlags.get(i);
 	    vFlags.remove(flag[ctr]);
 	    ctr++;
 	  }
 	}
-	for(int i=0; i < vFlags.size() ; i++) {
+	for(int i=0; i < vFlags.size(); i++) {
 	  flag[i+ctr]=(FlagDescriptor)vFlags.get(i);
 	}
 	extern_flags.put(cd,new Integer(ctr));
@@ -97,7 +97,7 @@ public class TaskAnalysis {
     int externs;
     toprocess=new LinkedList<FlagState>();
 
-    for(Iterator it_classes=(Iterator)flags.keys(); it_classes.hasNext();) {
+    for(Iterator it_classes=(Iterator)flags.keys(); it_classes.hasNext(); ) {
       ClassDescriptor cd=(ClassDescriptor)it_classes.next();
       externs=((Integer)extern_flags.get(cd)).intValue();
       FlagDescriptor[] fd=(FlagDescriptor[])flags.get(cd);
@@ -151,7 +151,7 @@ public class TaskAnalysis {
     ClassDescriptor cd=fs.getClassDescriptor();
     Hashtable<FlagState,FlagState> sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
 
-    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator(); it_tasks.hasNext();) {
+    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator(); it_tasks.hasNext(); ) {
       TaskDescriptor td = (TaskDescriptor)it_tasks.next();
       String taskname=td.getSymbol();
 
@@ -192,7 +192,7 @@ public class TaskAnalysis {
 
 
       Set newstates=taganalysis.getFlagStates(td);
-      for(Iterator fsit=newstates.iterator(); fsit.hasNext();) {
+      for(Iterator fsit=newstates.iterator(); fsit.hasNext(); ) {
 	FlagState fsnew=(FlagState) fsit.next();
 	System.out.println("SOURCE:"+fsnew);
 
@@ -239,7 +239,7 @@ public class TaskAnalysis {
 	      initFStates.addElement(fs);
 	    }
 	    Vector<FlagState> targetFStates = ffan.getTargetFStates(fs);
-	    for(Enumeration en=fsv_taskexit.elements(); en.hasMoreElements();) {
+	    for(Enumeration en=fsv_taskexit.elements(); en.hasMoreElements(); ) {
 	      FlagState fs_taskexit=(FlagState)en.nextElement();
 	      if (!sourcenodes.containsKey(fs_taskexit)) {
 		toprocess.add(fs_taskexit);
@@ -306,7 +306,7 @@ public class TaskAnalysis {
   private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs) {
 
     if (tel!=null) {
-      for (int i=0; i<tel.numTags() ; i++) {
+      for (int i=0; i<tel.numTags(); i++) {
 	switch (fs.getTagCount(tel.getType(i))) {
 	case FlagState.ONETAG:
 	case FlagState.MULTITAGS:
@@ -327,7 +327,7 @@ public class TaskAnalysis {
 
     //Process the flag changes
 
-    for(Iterator it_tfp=ffan.getTempFlagPairs(); it_tfp.hasNext();) {
+    for(Iterator it_tfp=ffan.getTempFlagPairs(); it_tfp.hasNext(); ) {
       TempFlagPair tfp=(TempFlagPair)it_tfp.next();
       if (temp==tfp.getTemp())
 	fstemp=fstemp.setFlag(tfp.getFlag(),ffan.getFlagChange(tfp));
@@ -338,14 +338,14 @@ public class TaskAnalysis {
     processed.add(fstemp);
 
     //Process clears first
-    for(Iterator it_ttp=ffan.getTempTagPairs(); it_ttp.hasNext();) {
+    for(Iterator it_ttp=ffan.getTempTagPairs(); it_ttp.hasNext(); ) {
       TempTagPair ttp=(TempTagPair)it_ttp.next();
 
       if (temp==ttp.getTemp()) {
 	Vector<FlagState> oldprocess=processed;
 	processed=new Vector<FlagState>();
 
-	for (Enumeration en=oldprocess.elements(); en.hasMoreElements();) {
+	for (Enumeration en=oldprocess.elements(); en.hasMoreElements(); ) {
 	  FlagState fsworking=(FlagState)en.nextElement();
 	  if (!ffan.getTagChange(ttp)) {
 	    processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
@@ -354,14 +354,14 @@ public class TaskAnalysis {
       }
     }
     //Process sets next
-    for(Iterator it_ttp=ffan.getTempTagPairs(); it_ttp.hasNext();) {
+    for(Iterator it_ttp=ffan.getTempTagPairs(); it_ttp.hasNext(); ) {
       TempTagPair ttp=(TempTagPair)it_ttp.next();
 
       if (temp==ttp.getTemp()) {
 	Vector<FlagState> oldprocess=processed;
 	processed=new Vector<FlagState>();
 
-	for (Enumeration en=oldprocess.elements(); en.hasMoreElements();) {
+	for (Enumeration en=oldprocess.elements(); en.hasMoreElements(); ) {
 	  FlagState fsworking=(FlagState)en.nextElement();
 	  if (ffan.getTagChange(ttp)) {
 	    processed.addAll(Arrays.asList(fsworking.setTag(ttp.getTag())));
@@ -416,12 +416,12 @@ public class TaskAnalysis {
     boolean BoolValTable[]=new boolean[externs];
 
 
-    for(int i=0; i < externs ; i++) {
+    for(int i=0; i < externs; i++) {
       BoolValTable[i]=fs.get(fd[i]);
     }
 
     for(int k=0; k<noOfIterations; k++) {
-      for(int j=0; j < externs ; j++) {
+      for(int j=0; j < externs; j++) {
 	if ((k% (1<<j)) == 0)
 	  BoolValTable[j]=(!BoolValTable[j]);
       }

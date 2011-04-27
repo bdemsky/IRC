@@ -29,11 +29,11 @@ public class NameDescriptor extends Descriptor {
     else
       return nd.getRoot();
   }
-  
+
   public String getPathFromRootToHere() {
     return getPathFromRootToHere(identifier);
   }
-  
+
   public String getPathFromRootToHere(String id) {
     String path = id;
     NameDescriptor temp = this.nd;
@@ -41,10 +41,10 @@ public class NameDescriptor extends Descriptor {
       path =  temp.identifier + "." + path;
       temp = temp.nd;
     }
-    
+
     return path;
   }
- 
+
   public String toString() {
     if (nd==null)
       return identifier;

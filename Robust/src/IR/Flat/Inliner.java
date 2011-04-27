@@ -27,7 +27,7 @@ public class Inliner {
 	atomicval++;
       else if(fn.kind()==FKind.FlatAtomicExitNode)
 	atomicval--;
-      for(int i=0;i<fn.numNext();i++) {
+      for(int i=0; i<fn.numNext(); i++) {
 	FlatNode fnext=fn.getNext(i);
 	if (!visited.contains(fnext)) {
 	  atomictable.put(fnext, new Integer(atomicval));
@@ -46,10 +46,10 @@ public class Inliner {
     System.out.println("Inlining methods into "+fm.getMethod());
     recursive(state, typeutil, atomicset, depth, new Stack<MethodDescriptor>());
   }
-  
+
 
   public static void recursive(State state, TypeUtil typeutil, Set<FlatNode> fnset, int depth, Stack<MethodDescriptor> toexclude) {
-    for(Iterator<FlatNode> fnit=fnset.iterator();fnit.hasNext();) {
+    for(Iterator<FlatNode> fnit=fnset.iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
       if (fn.kind()==FKind.FlatCall) {
 	FlatCall fc=(FlatCall)fn;
@@ -61,7 +61,7 @@ public class Inliner {
 	Set<FlatNode> inlinefnset=inline(fc, typeutil, state);
 	if (inlinefnset==null)
 	  continue;
-	
+
 	toexclude.push(md);
 	if (depth>1)
 	  recursive(state, typeutil, inlinefnset, depth-1, toexclude);
@@ -93,7 +93,7 @@ public class Inliner {
       HashSet<FlatNode> newnodes=new HashSet<FlatNode>();
 
       //Build the clones
-      for(Iterator<FlatNode> fnit=nodeset.iterator();fnit.hasNext();) {
+      for(Iterator<FlatNode> fnit=nodeset.iterator(); fnit.hasNext(); ) {
 	FlatNode fn=fnit.next();
 	if (fn.kind()==FKind.FlatReturnNode) {
 	  //Convert FlatReturn node into move
@@ -122,7 +122,7 @@ public class Inliner {
 	  last.addNext(fon);
 	  last=fon;
 	}
-	for(int j=0;j<fc.numArgs();i++,j++) {
+	for(int j=0; j<fc.numArgs(); i++,j++) {
 	  FlatOpNode fon=new FlatOpNode(fm.getParameter(i), fc.getArg(j), null, new Operation(Operation.ASSIGN));
 	  newnodes.add(fon);
 	  last.addNext(fon);
@@ -131,13 +131,13 @@ public class Inliner {
       }
 
       //Add the edges
-      for(Iterator<FlatNode> fnit=nodeset.iterator();fnit.hasNext();) {
+      for(Iterator<FlatNode> fnit=nodeset.iterator(); fnit.hasNext(); ) {
 	FlatNode fn=fnit.next();
 	FlatNode fnclone=flatmap.get(fn);
 
 	if (fn.kind()!=FKind.FlatReturnNode) {
 	  //don't build old edges out of a flat return node
-	  for(int i=0;i<fn.numNext();i++) {
+	  for(int i=0; i<fn.numNext(); i++) {
 	    FlatNode fnnext=fn.getNext(i);
 	    FlatNode fnnextclone=flatmap.get(fnnext);
 	    fnclone.setNewNext(i, fnnextclone);
@@ -149,9 +149,9 @@ public class Inliner {
       }
 
       //Add edges to beginning of move chain
-      for(int i=0;i<fc.numPrev();i++) {
+      for(int i=0; i<fc.numPrev(); i++) {
 	FlatNode fnprev=fc.getPrev(i);
-	for(int j=0;j<fnprev.numNext();j++) {
+	for(int j=0; j<fnprev.numNext(); j++) {
 	  if (fnprev.getNext(j)==fc) {
 	    //doing setnewnext to avoid changing the node we are
 	    //iterating over
@@ -171,13 +171,13 @@ public class Inliner {
     Set subclasses=typeutil.getSubClasses(thiscd);
     if (subclasses==null)
       return true;
-    for(Iterator classit=subclasses.iterator(); classit.hasNext();) {
+    for(Iterator classit=subclasses.iterator(); classit.hasNext(); ) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
       Set possiblematches=cd.getMethodTable().getSet(md.getSymbol());
-      for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
-        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-        if (md.matches(matchmd))
-          return false;
+      for(Iterator matchit=possiblematches.iterator(); matchit.hasNext(); ) {
+	MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+	if (md.matches(matchmd))
+	  return false;
       }
     }
     return true;

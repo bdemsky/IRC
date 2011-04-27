@@ -23,7 +23,7 @@ public class HeapRegionNode extends OwnershipNode {
   protected ReachabilitySet alphaNew;
 
   protected String description;
-  
+
   protected String globalIdentifier;
 
 
@@ -31,9 +31,9 @@ public class HeapRegionNode extends OwnershipNode {
   public HeapRegionNode(Integer id,
                         boolean isSingleObject,
                         boolean isFlagged,
-			boolean isParameter,
+                        boolean isParameter,
                         boolean isNewSummary,
-			TypeDescriptor type,
+                        TypeDescriptor type,
                         AllocationSite allocSite,
                         ReachabilitySet alpha,
                         String description,
@@ -57,9 +57,9 @@ public class HeapRegionNode extends OwnershipNode {
     return new HeapRegionNode(id,
                               isSingleObject,
                               isFlagged,
-			      isParameter,
+                              isParameter,
                               isNewSummary,
-			      type,
+                              type,
                               allocSite,
                               alpha,
                               description,
@@ -153,14 +153,14 @@ public class HeapRegionNode extends OwnershipNode {
 
   public ReferenceEdge getReferenceFrom(OwnershipNode on,
                                         TypeDescriptor type,
-					String field) {
+                                        String field) {
     assert on != null;
 
     Iterator<ReferenceEdge> itrEdge = referencers.iterator();
     while( itrEdge.hasNext() ) {
       ReferenceEdge edge = itrEdge.next();
       if( edge.getSrc().equals(on) &&
-	  edge.typeEquals(type) &&
+          edge.typeEquals(type) &&
           edge.fieldEquals(field) ) {
 	return edge;
       }
@@ -172,7 +172,7 @@ public class HeapRegionNode extends OwnershipNode {
 
   public TypeDescriptor getType() {
     return type;
-  }  
+  }
 
   public AllocationSite getAllocationSite() {
     return allocSite;
@@ -214,7 +214,7 @@ public class HeapRegionNode extends OwnershipNode {
     return s;
   }
 
-  public String getAlphaString( boolean hideSubsetReachability ) {
+  public String getAlphaString(boolean hideSubsetReachability) {
     return alpha.toStringEscapeNewline(hideSubsetReachability);
   }
 
@@ -227,22 +227,22 @@ public class HeapRegionNode extends OwnershipNode {
     return new String(description);
     //return new String( description+" ID "+getIDString() );
   }
-  
-  public String getGloballyUniqueIdentifier(){
-	  return globalIdentifier;
+
+  public String getGloballyUniqueIdentifier() {
+    return globalIdentifier;
   }
-  
-	public long getGloballyUniqueIntegerIdentifier() {
-		String fristpart = globalIdentifier;
-		fristpart = fristpart.replaceAll("FN", "1");
-		fristpart = fristpart.replaceAll("FM", "2");
-		int idx = fristpart.indexOf(".");
-		String endpart = fristpart.substring(idx + 1);
-		endpart = endpart.replaceAll("S", "1");
-		endpart = endpart.replaceAll("P", "2");
-		endpart = endpart.replaceAll("A", "3");
-		endpart = endpart.replace(".", "");
-		String modified = fristpart.substring(0, idx) + endpart;
-		return Long.parseLong(modified);
-	}
+
+  public long getGloballyUniqueIntegerIdentifier() {
+    String fristpart = globalIdentifier;
+    fristpart = fristpart.replaceAll("FN", "1");
+    fristpart = fristpart.replaceAll("FM", "2");
+    int idx = fristpart.indexOf(".");
+    String endpart = fristpart.substring(idx + 1);
+    endpart = endpart.replaceAll("S", "1");
+    endpart = endpart.replaceAll("P", "2");
+    endpart = endpart.replaceAll("A", "3");
+    endpart = endpart.replace(".", "");
+    String modified = fristpart.substring(0, idx) + endpart;
+    return Long.parseLong(modified);
+  }
 }

@@ -2,39 +2,39 @@
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
    Free Software Foundation, Inc.
 
-This file is part of GNU Classpath.
+   This file is part of GNU Classpath.
 
-GNU Classpath is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
-any later version.
+   GNU Classpath is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
 
-GNU Classpath is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-General Public License for more details.
+   GNU Classpath is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with GNU Classpath; see the file COPYING.  If not, write to the
-Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301 USA.
+   You should have received a copy of the GNU General Public License
+   along with GNU Classpath; see the file COPYING.  If not, write to the
+   Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301 USA.
 
-Linking this library statically or dynamically with other modules is
-making a combined work based on this library.  Thus, the terms and
-conditions of the GNU General Public License cover the whole
-combination.
+   Linking this library statically or dynamically with other modules is
+   making a combined work based on this library.  Thus, the terms and
+   conditions of the GNU General Public License cover the whole
+   combination.
 
-As a special exception, the copyright holders of this library give you
-permission to link this library with independent modules to produce an
-executable, regardless of the license terms of these independent
-modules, and to copy and distribute the resulting executable under
-terms of your choice, provided that you also meet, for each linked
-independent module, the terms and conditions of the license of that
-module.  An independent module is a module which is not derived from
-or based on this library.  If you modify this library, you may extend
-this exception to your version of the library, but you are not
-obligated to do so.  If you do not wish to do so, delete this
-exception statement from your version. */
+   As a special exception, the copyright holders of this library give you
+   permission to link this library with independent modules to produce an
+   executable, regardless of the license terms of these independent
+   modules, and to copy and distribute the resulting executable under
+   terms of your choice, provided that you also meet, for each linked
+   independent module, the terms and conditions of the license of that
+   module.  An independent module is a module which is not derived from
+   or based on this library.  If you modify this library, you may extend
+   this exception to your version of the library, but you are not
+   obligated to do so.  If you do not wish to do so, delete this
+   exception statement from your version. */
 
 //package java.lang;
 
@@ -124,7 +124,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @param d the <code>double</code> to convert
    * @return the <code>String</code> representing the <code>double</code>
    */
-  public static String toString(double d)  {
+  public static String toString(double d) {
     return String.valueOf(d);
   }
 
@@ -149,30 +149,30 @@ public final class Double extends Number //implements Comparable<Double>
    */
   public static String toHexString(double d) {
     /*
-    if (isNaN(d))
-      return "NaN";
-    if (isInfinite(d))
-      return d < 0 ? "-Infinity" : "Infinity";
+       if (isNaN(d))
+       return "NaN";
+       if (isInfinite(d))
+       return d < 0 ? "-Infinity" : "Infinity";
 
-    long bits = doubleToLongBits(d);
-    StringBuilder result = new StringBuilder();
-    
-    if (bits < 0)
-      result.append('-');
-    result.append("0x");
+       long bits = doubleToLongBits(d);
+       StringBuilder result = new StringBuilder();
 
-    final int mantissaBits = 52;
-    final int exponentBits = 11;
-    long mantMask = (1L << mantissaBits) - 1;
-    long mantissa = bits & mantMask;
-    long expMask = (1L << exponentBits) - 1;
-    long exponent = (bits >>> mantissaBits) & expMask;
+       if (bits < 0)
+       result.append('-');
+       result.append("0x");
 
-    result.append(exponent == 0 ? '0' : '1');
-    result.append('.');
-    result.append(Long.toHexString(mantissa));
-    if (exponent == 0 && mantissa != 0)
-      {
+       final int mantissaBits = 52;
+       final int exponentBits = 11;
+       long mantMask = (1L << mantissaBits) - 1;
+       long mantissa = bits & mantMask;
+       long expMask = (1L << exponentBits) - 1;
+       long exponent = (bits >>> mantissaBits) & expMask;
+
+       result.append(exponent == 0 ? '0' : '1');
+       result.append('.');
+       result.append(Long.toHexString(mantissa));
+       if (exponent == 0 && mantissa != 0)
+       {
         // Treat denormal specially by inserting '0's to make
         // the length come out right.  The constants here are
         // to account for things like the '0x'.
@@ -183,25 +183,25 @@ public final class Double extends Number //implements Comparable<Double>
         int desiredLength = offset + (mantissaBits + 3) / 4;
         while (result.length() < desiredLength)
           result.insert(offset, '0');
-      }
-    result.append('p');
-    if (exponent == 0 && mantissa == 0)
-      {
+       }
+       result.append('p');
+       if (exponent == 0 && mantissa == 0)
+       {
         // Zero, so do nothing special.
-      }
-    else
-      {
+       }
+       else
+       {
         // Apply bias.
         boolean denormal = exponent == 0;
         exponent -= (1 << (exponentBits - 1)) - 1;
         // Handle denormal.
         if (denormal)
-          ++exponent;
-      }
+     ++exponent;
+       }
 
-    result.append(Long.toString(exponent));
-    return result.toString();
-    */
+       result.append(Long.toString(exponent));
+       return result.toString();
+     */
     return "0x0";
   }
 
@@ -219,7 +219,7 @@ public final class Double extends Number //implements Comparable<Double>
     return new Double(val);
   }
 
- /**
+  /**
    * Create a new <code>Double</code> object using the <code>String</code>.
    *
    * @param s the <code>String</code> to convert
@@ -287,7 +287,7 @@ public final class Double extends Number //implements Comparable<Double>
   }
 
   public static native double nativeparsedouble(String str);
-    public static native double nativeparsedouble(int start, int length, byte[] str);
+  public static native double nativeparsedouble(int start, int length, byte[] str);
 
   /**
    * Return <code>true</code> if the <code>double</code> has the same
@@ -320,8 +320,7 @@ public final class Double extends Number //implements Comparable<Double>
    *
    * @return whether this <code>Double</code> is <code>NaN</code>
    */
-  public boolean isNaN()
-  {
+  public boolean isNaN() {
     return isNaN(value);
   }
 
@@ -332,8 +331,7 @@ public final class Double extends Number //implements Comparable<Double>
    *
    * @return whether this <code>Double</code> is (-/+) infinity
    */
-  public boolean isInfinite()
-  {
+  public boolean isInfinite() {
     return isInfinite(value);
   }
 
@@ -345,8 +343,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @return the <code>String</code> representation
    * @see #toString(double)
    */
-  public String toString()
-  {
+  public String toString() {
     return toString(value);
   }
 
@@ -356,8 +353,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @return the byte value
    * @since 1.1
    */
-  public byte byteValue()
-  {
+  public byte byteValue() {
     return (byte) value;
   }
 
@@ -367,8 +363,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @return the short value
    * @since 1.1
    */
-  public short shortValue()
-  {
+  public short shortValue() {
     return (short) value;
   }
 
@@ -377,8 +372,7 @@ public final class Double extends Number //implements Comparable<Double>
    *
    * @return the int value
    */
-  public int intValue()
-  {
+  public int intValue() {
     return (int) value;
   }
 
@@ -387,8 +381,7 @@ public final class Double extends Number //implements Comparable<Double>
    *
    * @return the long value
    */
-  public long longValue()
-  {
+  public long longValue() {
     return (long) value;
   }
 
@@ -397,8 +390,7 @@ public final class Double extends Number //implements Comparable<Double>
    *
    * @return the float value
    */
-  public float floatValue()
-  {
+  public float floatValue() {
     return (float) value;
   }
 
@@ -407,8 +399,7 @@ public final class Double extends Number //implements Comparable<Double>
    *
    * @return the double value
    */
-  public double doubleValue()
-  {
+  public double doubleValue() {
     return value;
   }
 
@@ -421,8 +412,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @return this Object's hash code
    * @see #doubleToLongBits(double)
    */
-  public int hashCode()
-  {
+  public int hashCode() {
     long v = doubleToLongBits(value);
     return (int) (v ^ (v >>> 32));
   }
@@ -441,9 +431,8 @@ public final class Double extends Number //implements Comparable<Double>
    * @param obj the object to compare
    * @return whether the objects are semantically equal
    */
-  public boolean equals(Object obj)
-  {
-    if (! (obj instanceof Double))
+  public boolean equals(Object obj) {
+    if (!(obj instanceof Double))
       return false;
 
     double d = ((Double) obj).value;
@@ -470,12 +459,11 @@ public final class Double extends Number //implements Comparable<Double>
    * @return the bits of the <code>double</code>
    * @see #longBitsToDouble(long)
    */
-  public static long doubleToLongBits(double value)
-  {
+  public static long doubleToLongBits(double value) {
     if (isNaN(value))
       return 0x7ff8000000000000L;
     else
-      return /*VMDouble.*/doubleToRawLongBits(value);
+      return /*VMDouble.*/ doubleToRawLongBits(value);
   }
 
   /**
@@ -493,9 +481,9 @@ public final class Double extends Number //implements Comparable<Double>
    * @see #longBitsToDouble(long)
    */
   /*public static long doubleToRawLongBits(double value)
-  {
-    return VMDouble.doubleToRawLongBits(value);
-  }*/
+     {
+     return VMDouble.doubleToRawLongBits(value);
+     }*/
   public static native long doubleToRawLongBits(double value);
 
   /**
@@ -512,9 +500,9 @@ public final class Double extends Number //implements Comparable<Double>
    * @see #doubleToRawLongBits(double)
    */
   /*public static double longBitsToDouble(long bits)
-  {
-    return VMDouble.longBitsToDouble(bits);
-  }*/
+     {
+     return VMDouble.longBitsToDouble(bits);
+     }*/
   public static native double longBitsToDouble(long bits);
 
   /**
@@ -529,8 +517,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @return the comparison
    * @since 1.2
    */
-  public int compareTo(Double d)
-  {
+  public int compareTo(Double d) {
     return compare(value, d.value);
   }
 
@@ -544,27 +531,26 @@ public final class Double extends Number //implements Comparable<Double>
    * @return the comparison
    * @since 1.4
    */
-  public static int compare(double x, double y)
-  {
-      // handle the easy cases:
-      if (x < y)
-	  return -1;
-      if (x > y)
-	  return 1;
+  public static int compare(double x, double y) {
+    // handle the easy cases:
+    if (x < y)
+      return -1;
+    if (x > y)
+      return 1;
 
-      // handle equality respecting that 0.0 != -0.0 (hence not using x == y):
-      long lx = doubleToRawLongBits(x);
-      long ly = doubleToRawLongBits(y);
-      if (lx == ly)
-	  return 0;
+    // handle equality respecting that 0.0 != -0.0 (hence not using x == y):
+    long lx = doubleToRawLongBits(x);
+    long ly = doubleToRawLongBits(y);
+    if (lx == ly)
+      return 0;
 
-      // handle NaNs:
-      if (x != x)
-	  return (y != y) ? 0 : 1;
-      else if (y != y)
-	  return -1;
+    // handle NaNs:
+    if (x != x)
+      return (y != y)?0:1;
+    else if (y != y)
+      return -1;
 
-      // handle +/- 0.0
-      return (lx < ly) ? -1 : 1;
+    // handle +/- 0.0
+    return (lx < ly)?-1:1;
   }
 }

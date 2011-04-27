@@ -35,11 +35,11 @@ public class FlatFlagActionNode extends FlatNode {
   }
 
   public int getTaskExitIndex() {
-      return m_taskexitindex;
+    return m_taskexitindex;
   }
 
   public void setTaskExitIndex(int taskexitindex) {
-      this.m_taskexitindex = taskexitindex;
+    this.m_taskexitindex = taskexitindex;
   }
 
   public int getTaskType() {
@@ -119,11 +119,11 @@ public class FlatFlagActionNode extends FlatNode {
       return new TempDescriptor [0];
     else {
       HashSet temps=new HashSet();
-      for(Iterator it=tempflagpairs.keySet().iterator(); it.hasNext();) {
+      for(Iterator it=tempflagpairs.keySet().iterator(); it.hasNext(); ) {
 	TempFlagPair tfp=(TempFlagPair)it.next();
 	temps.add(tfp.getTemp());
       }
-      for(Iterator it=temptagpairs.keySet().iterator(); it.hasNext();) {
+      for(Iterator it=temptagpairs.keySet().iterator(); it.hasNext(); ) {
 	TempTagPair ttp=(TempTagPair)it.next();
 	temps.add(ttp.getTemp());
 	temps.add(ttp.getTagTemp());
@@ -138,14 +138,14 @@ public class FlatFlagActionNode extends FlatNode {
 
   public String toString() {
     String st="FlatFlagActionNode_";
-    for(Iterator it=tempflagpairs.keySet().iterator(); it.hasNext();) {
+    for(Iterator it=tempflagpairs.keySet().iterator(); it.hasNext(); ) {
       TempFlagPair tfp=(TempFlagPair)it.next();
-      st+=getFlagChange(tfp) ? "" : "!";
+      st+=getFlagChange(tfp)?"":"!";
       st+=tfp.getTemp()+" "+tfp.getFlag()+",";
     }
-    for(Iterator it=temptagpairs.keySet().iterator(); it.hasNext();) {
+    for(Iterator it=temptagpairs.keySet().iterator(); it.hasNext(); ) {
       TempTagPair ttp=(TempTagPair)it.next();
-      st+=getTagChange(ttp) ? "" : "!";
+      st+=getTagChange(ttp)?"":"!";
       st+=ttp.getTemp()+" "+ttp.getTag()+"("+ttp.getTagTemp()+"),";
     }
 

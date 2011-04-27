@@ -14,7 +14,7 @@ public class AllocFactory {
     boolean summary;
     FlatNew node;
     AllocSiteNode as;
-    
+
     public AllocNode(int allocsite, FlatNew node, boolean summary) {
       this.allocsite=allocsite;
       this.summary=summary;
@@ -47,11 +47,11 @@ public class AllocFactory {
     public boolean isSummary() {
       return summary;
     }
-    
+
     public int hashCode() {
       return allocsite<<1^(summary?0:1);
     }
-    
+
     public boolean equals(Object o) {
       if (o instanceof AllocNode) {
 	AllocNode an=(AllocNode)o;
@@ -75,7 +75,7 @@ public class AllocFactory {
   public static class AllocSiteNode implements Alloc {
     int allocsite;
     FlatNew node;
-    
+
     public AllocSiteNode(int allocsite, FlatNew node) {
       this.allocsite=allocsite;
       this.node=node;
@@ -96,7 +96,7 @@ public class AllocFactory {
     public int hashCode() {
       return allocsite;
     }
-    
+
     public boolean equals(Object o) {
       if (o instanceof AllocSiteNode) {
 	AllocSiteNode an=(AllocSiteNode)o;
@@ -108,7 +108,7 @@ public class AllocFactory {
     public String toStringBrief() {
       return getID();
     }
-    
+
     public String toString() {
       return getID();
     }

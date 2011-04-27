@@ -130,7 +130,7 @@ void RuntimeHashrehash(struct RuntimeHash * thisvar) {
   int i;
   for(i=thisvar->size-1; i>=0; i--) {
     struct RuntimeNode *ptr;
-    for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
+    for(ptr=thisvar->bucket[i]; ptr!=NULL; ) {
       struct RuntimeNode * nextptr=ptr->next;
       unsigned int newhashkey=(unsigned int)ptr->key % newsize;
       ptr->next=newbucket[newhashkey];
@@ -154,7 +154,7 @@ int RuntimeHashadd(struct RuntimeHash * thisvar,int key, int data) {
     int i;
     for(i=thisvar->size-1; i>=0; i--) {
       struct RuntimeNode *ptr;
-      for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
+      for(ptr=thisvar->bucket[i]; ptr!=NULL; ) {
 	struct RuntimeNode * nextptr=ptr->next;
 	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
 	ptr->next=newbucket[newhashkey];
@@ -203,7 +203,7 @@ int RuntimeHashadd(struct RuntimeHash * thisvar,int key, int data) {
   return 1;
 }
 
-#ifdef MULTICORE 
+#ifdef MULTICORE
 struct RuntimeHash * allocateRuntimeHash_I(int size) {
   struct RuntimeHash *thisvar;  //=(struct RuntimeHash *)RUNMALLOC(sizeof(struct RuntimeHash));
   if (size <= 0) {
@@ -236,7 +236,7 @@ int RuntimeHashadd_I(struct RuntimeHash * thisvar,int key, int data) {
     int i;
     for(i=thisvar->size-1; i>=0; i--) {
       struct RuntimeNode *ptr;
-      for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
+      for(ptr=thisvar->bucket[i]; ptr!=NULL; ) {
 	struct RuntimeNode * nextptr=ptr->next;
 	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
 	ptr->next=newbucket[newhashkey];

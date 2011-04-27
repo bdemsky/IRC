@@ -61,7 +61,7 @@ extern __thread struct listitem litem;
 
 typedef struct workerData_t {
   pthread_t workerThread;
-  int       id;
+  int id;
 } WorkerData;
 
 // a thread should know its worker id in any
@@ -80,7 +80,7 @@ int realnumWorkSchedWorkers;
 static WorkerData*  workerDataArray;
 static pthread_t*   workerArray;
 
-static void(*workFunc)(void*);
+static void (*workFunc)(void*);
 
 // each thread can create objects but should assign
 // globally-unique object ID's (oid) so have threads
@@ -112,14 +112,14 @@ static volatile int mainTaskRetired = FALSE;
 
 
 
-void* workerMain( void* arg ) {
+void* workerMain(void* arg) {
   void*       workUnit;
   WorkerData* myData  = (WorkerData*) arg;
   deque*      myDeque = &(deques[myData->id]);
-  int         keepRunning = TRUE;
-  int         haveWork;
-  int         lastVictim = 0;
-  int         i;
+  int keepRunning = TRUE;
+  int haveWork;
+  int lastVictim = 0;
+  int i;
 
   myWorkerID = myData->id;
 
@@ -130,7 +130,7 @@ void* workerMain( void* arg ) {
   // each thread has a single semaphore that a running
   // task should hand off to children threads it is
   // going to stall on
-  psem_init( &runningSESEstallSem );
+  psem_init(&runningSESEstallSem);
 
   // the worker threads really have no context relevant to the
   // user program, so build an empty garbage list struct to
@@ -138,14 +138,14 @@ void* workerMain( void* arg ) {
   struct garbagelist emptygarbagelist = { 0, NULL };
 
   // Add this worker to the gc list
-  pthread_mutex_lock( &gclistlock );
+  pthread_mutex_lock(&gclistlock);
   threadcount++;
   litem.prev = NULL;
   litem.next = list;
-  if( list != NULL ) 
+  if( list != NULL )
     list->prev = &litem;
   list = &litem;
-  pthread_mutex_unlock( &gclistlock );
+  pthread_mutex_unlock(&gclistlock);
 
 
   // start timing events in this thread
@@ -157,76 +157,80 @@ void* workerMain( void* arg ) {
 
     // wait for work
 #ifdef CP_EVENTID_WORKSCHEDGRAB
-    CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_BEGIN );
+    CP_LOGEVENT(CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_BEGIN);
 #endif
 
     haveWork = FALSE;
     while( !haveWork ) {
 
-      workUnit = dqPopBottom( myDeque );
+      workUnit = dqPopBottom(myDeque);
 
 
       if( workUnit != DQ_POP_EMPTY ) {
-        haveWork = TRUE;
-        goto dowork;
+	haveWork = TRUE;
+	goto dowork;
       } else {
-        // try to steal from another queue, starting
-        // with the last successful victim, don't check
-        // your own deque
+	// try to steal from another queue, starting
+	// with the last successful victim, don't check
+	// your own deque
 	int mynumWorkSchedWorkers=numWorkSchedWorkers;
-        for( i = 0; i < mynumWorkSchedWorkers - 1; ++i ) {
+	for( i = 0; i < mynumWorkSchedWorkers - 1; ++i ) {
 
-          workUnit = dqPopTop( &(deques[lastVictim]) );
-          
+	  workUnit = dqPopTop(&(deques[lastVictim]) );
+
 #ifdef SQUEUE
-          if( workUnit != DQ_POP_EMPTY ) {
+	  if( workUnit != DQ_POP_EMPTY ) {
 #else
 	  if( workUnit != DQ_POP_ABORT &&
 	      workUnit != DQ_POP_EMPTY ) {
 #endif
-            // successful steal!
-            haveWork = TRUE;
-            goto dowork;
-          }
-       
-          // choose next victim
-          lastVictim++; if( lastVictim == mynumWorkSchedWorkers ) { lastVictim = 0; }
-          
-          if( lastVictim == myWorkerID ) {
-            lastVictim++; if( lastVictim == mynumWorkSchedWorkers ) { lastVictim = 0; }
-          }
-        }
-        // end steal attempts
+	    // successful steal!
+	    haveWork = TRUE;
+	    goto dowork;
+	  }
+
+	  // choose next victim
+	  lastVictim++; if( lastVictim == mynumWorkSchedWorkers ) {
+	    lastVictim = 0;
+	  }
+
+	  if( lastVictim == myWorkerID ) {
+	    lastVictim++; if( lastVictim == mynumWorkSchedWorkers ) {
+	      lastVictim = 0;
+	    }
+	  }
+	}
+	// end steal attempts
 
 
-        // if we successfully stole work, break out of the
-        // while-not-have-work loop, otherwise we looked
-        // everywhere, so drop down to "I'm idle" code below
-        if( haveWork ) {
+	// if we successfully stole work, break out of the
+	// while-not-have-work loop, otherwise we looked
+	// everywhere, so drop down to "I'm idle" code below
+	if( haveWork ) {
 	  goto dowork;
-        }
+	}
       }
 
       // if we drop down this far, we didn't find any work,
       // so do a garbage collection, yield the processor,
       // then check if the entire system is out of work
-      if( unlikely( needtocollect ) ) {
-        checkcollect( &emptygarbagelist );
+      if( unlikely(needtocollect) ) {
+	checkcollect(&emptygarbagelist);
       }
 
       sched_yield();
 
       if( mainTaskRetired ) {
-        keepRunning = FALSE;
-        break;
+	keepRunning = FALSE;
+	break;
       }
 
     } // end the while-not-have-work loop
 
-    dowork:
+dowork:
 
 #ifdef CP_EVENTID_WORKSCHEDGRAB
-    CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_END );
+    CP_LOGEVENT(CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_END);
 #endif
 
     // when is no work left we will pop out
@@ -237,21 +241,21 @@ void* workerMain( void* arg ) {
 
 #ifdef DEBUG_DEQUE
       if( workUnit == NULL ) {
-        printf( "About to execute a null work item\n" );
+	printf("About to execute a null work item\n");
       }
 #endif
 
-      workFunc( workUnit );
+      workFunc(workUnit);
       litem.seseCommon = NULL;
     }
-  } 
+  }
 
 
   CP_EXIT();
 
 
   // remove from GC list
-  pthread_mutex_lock( &gclistlock );
+  pthread_mutex_lock(&gclistlock);
   threadcount--;
   if( litem.prev == NULL ) {
     list = litem.next;
@@ -261,15 +265,15 @@ void* workerMain( void* arg ) {
   if( litem.next != NULL ) {
     litem.next->prev = litem.prev;
   }
-  pthread_mutex_unlock( &gclistlock );
+  pthread_mutex_unlock(&gclistlock);
 
 
   return NULL;
 }
 
 
-void workScheduleInit( int numProcessors,
-                       void(*func)(void*) ) {
+void workScheduleInit(int numProcessors,
+                      void (*func)(void*) ) {
   int i, status;
   pthread_attr_t attr;
 
@@ -282,11 +286,11 @@ void workScheduleInit( int numProcessors,
   oid = 1;
 
 #ifdef RCR
-  pthread_mutex_init( &queuelock,     NULL );
+  pthread_mutex_init(&queuelock,     NULL);
 #endif
-  pthread_mutex_init( &gclock,     NULL );
-  pthread_mutex_init( &gclistlock, NULL );
-  pthread_cond_init ( &gccond,     NULL );
+  pthread_mutex_init(&gclock,     NULL);
+  pthread_mutex_init(&gclistlock, NULL);
+  pthread_cond_init(&gccond,     NULL);
 
 
   numWorkSchedWorkers = numProcessors;
@@ -295,11 +299,11 @@ void workScheduleInit( int numProcessors,
   while(1) {
     int x=2;
     //check primality
-    for(;x<oidIncrement;x++) {
+    for(; x<oidIncrement; x++) {
       //not prime
       if (oidIncrement%x==0) {
-        oidIncrement++;
-        break;
+	oidIncrement++;
+	break;
       }
     }
     //have prime
@@ -310,25 +314,25 @@ void workScheduleInit( int numProcessors,
   workFunc = func;
 
 #ifdef RCR
-  deques          = RUNMALLOC( sizeof( deque      )*numWorkSchedWorkers*2);
+  deques          = RUNMALLOC(sizeof( deque      )*numWorkSchedWorkers*2);
 #else
-  deques          = RUNMALLOC( sizeof( deque      )*numWorkSchedWorkers );
+  deques          = RUNMALLOC(sizeof( deque      )*numWorkSchedWorkers);
 #endif
-  workerDataArray = RUNMALLOC( sizeof( WorkerData )*numWorkSchedWorkers );
+  workerDataArray = RUNMALLOC(sizeof( WorkerData )*numWorkSchedWorkers);
 
 #ifdef RCR
   for( i = 0; i < numWorkSchedWorkers*2; ++i ) {
 #else
   for( i = 0; i < numWorkSchedWorkers; ++i ) {
 #endif
-    dqInit( &(deques[i]) );
+    dqInit(&(deques[i]) );
   }
 
 #ifndef COREPIN
-  
-  pthread_attr_init( &attr );
-  pthread_attr_setdetachstate( &attr, 
-                               PTHREAD_CREATE_JOINABLE );
+
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr,
+                              PTHREAD_CREATE_JOINABLE);
 
   workerDataArray[0].id = 0;
 
@@ -336,13 +340,15 @@ void workScheduleInit( int numProcessors,
 
     workerDataArray[i].id = i;
 
-    status = pthread_create( &(workerDataArray[i].workerThread), 
-                             &attr,
-                             workerMain,
-                             (void*) &(workerDataArray[i])
-                             );
+    status = pthread_create(&(workerDataArray[i].workerThread),
+                            &attr,
+                            workerMain,
+                            (void*) &(workerDataArray[i])
+                            );
 
-    if( status != 0 ) { printf( "Error\n" ); exit( -1 ); }
+    if( status != 0 ) {
+      printf("Error\n"); exit(-1);
+    }
   }
 #else
   int numCore=24;
@@ -353,37 +359,37 @@ void workScheduleInit( int numProcessors,
   workerDataArray[0].id = 0;
   CPU_ZERO(&cpuset);
   CPU_SET(0, &cpuset);
-  sched_setaffinity(syscall(SYS_gettid), sizeof(cpuset), &cpuset);  
-  
-  for(idx=1;idx<numWorkSchedWorkers;idx++){
-    int coreidx=idx%numCore;    
+  sched_setaffinity(syscall(SYS_gettid), sizeof(cpuset), &cpuset);
+
+  for(idx=1; idx<numWorkSchedWorkers; idx++) {
+    int coreidx=idx%numCore;
     pthread_attr_t* attr = &thread_attr[idx];
     pthread_attr_init(attr);
     pthread_attr_setdetachstate(attr, PTHREAD_CREATE_JOINABLE);
     CPU_ZERO(&cpuset);
     CPU_SET(coreidx, &cpuset);
     pthread_attr_setaffinity_np(attr, sizeof(cpuset), &cpuset);
-    
+
     workerDataArray[idx].id = idx;
-    
-    status = pthread_create( &(workerDataArray[idx].workerThread), 
-			     attr,
-			     workerMain,
-			     (void*) &(workerDataArray[idx])
-			     );
+
+    status = pthread_create(&(workerDataArray[idx].workerThread),
+                            attr,
+                            workerMain,
+                            (void*) &(workerDataArray[idx])
+                            );
 
   }
 #endif
 }
 
 
-void workScheduleSubmit( void* workUnit ) {
+void workScheduleSubmit(void* workUnit) {
 #ifdef CP_EVENTID_WORKSCHEDSUBMIT
-  CP_LOGEVENT( CP_EVENTID_WORKSCHEDSUBMIT, CP_EVENTTYPE_BEGIN );
+  CP_LOGEVENT(CP_EVENTID_WORKSCHEDSUBMIT, CP_EVENTTYPE_BEGIN);
 #endif
-  dqPushBottom( &(deques[myWorkerID]), workUnit );
+  dqPushBottom(&(deques[myWorkerID]), workUnit);
 #ifdef CP_EVENTID_WORKSCHEDSUBMIT
-  CP_LOGEVENT( CP_EVENTID_WORKSCHEDSUBMIT, CP_EVENTTYPE_END );
+  CP_LOGEVENT(CP_EVENTID_WORKSCHEDSUBMIT, CP_EVENTTYPE_END);
 #endif
 }
 
@@ -397,7 +403,7 @@ void workScheduleBegin() {
 
   // then wait for all other workers to exit gracefully
   for( i = 1; i < realnumWorkSchedWorkers; ++i ) {
-    pthread_join( workerDataArray[i].workerThread, NULL );
+    pthread_join(workerDataArray[i].workerThread, NULL);
   }
 
   // write all thread's events to disk

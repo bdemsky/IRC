@@ -35,7 +35,7 @@ void *objstrAlloc(objstr_t **osptr, unsigned int size) {
     size+=(8-(size&7));
   }
 
-  for(;i<3;i++) {
+  for(; i<3; i++) {
     if (OSFREE(store)>=size) {
       tmp=store->top;
       store->top +=size;
@@ -46,7 +46,7 @@ void *objstrAlloc(objstr_t **osptr, unsigned int size) {
   }
 
   {
-    unsigned int newsize=size>DEFAULT_OBJ_STORE_SIZE?size:DEFAULT_OBJ_STORE_SIZE;
+    unsigned int newsize=size>DEFAULT_OBJ_STORE_SIZE ? size : DEFAULT_OBJ_STORE_SIZE;
     objstr_t *os=(objstr_t *)calloc(1,(sizeof(objstr_t) + newsize));
     void *ptr=&os[1];
     os->next=*osptr;

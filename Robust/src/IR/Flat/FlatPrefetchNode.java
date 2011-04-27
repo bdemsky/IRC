@@ -14,7 +14,7 @@ public class FlatPrefetchNode extends FlatNode {
   public String toString() {
     String st="prefetch(";
     boolean first=true;
-    for(Iterator<PrefetchPair> it=hspp.iterator(); it.hasNext();) {
+    for(Iterator<PrefetchPair> it=hspp.iterator(); it.hasNext(); ) {
       PrefetchPair pp=it.next();
       if (!first)
 	st+=", ";

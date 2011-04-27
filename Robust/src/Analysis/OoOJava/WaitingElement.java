@@ -11,12 +11,12 @@ public class WaitingElement {
   private int status;
   private String dynID = "";
   private TempDescriptor tempDesc;
-  
+
   // if scc/coarse represents more than one waiting elements
   // ignored waiting element is inserted into a set of waiting element as a bogus element
   private boolean bogus = false;
 
-  // a set of tempDescriptors: 
+  // a set of tempDescriptors:
   // all associated with coarse conflicts for the same queue and the same sese
   private Set<TempDescriptor> tempSet;
 
@@ -101,12 +101,12 @@ public class WaitingElement {
     return hash;
 
   }
-  
-  public boolean isBogus(){
+
+  public boolean isBogus() {
     return bogus;
   }
-  
-  public void setBogus(boolean b){
+
+  public void setBogus(boolean b) {
     bogus=b;
   }
 

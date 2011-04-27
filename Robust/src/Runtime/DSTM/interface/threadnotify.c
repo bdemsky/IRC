@@ -85,8 +85,8 @@ unsigned int notifyhashInsert(unsigned int tid, notifydata_t *ndata) {
       if(tmp->threadid == tid) {
 	isFound = 1;
 	tmp->ndata = ndata;
-    pthread_mutex_unlock(&nlookup.locktable);
-    return 0;
+	pthread_mutex_unlock(&nlookup.locktable);
+	return 0;
       }
       tmp = tmp->next;
     }

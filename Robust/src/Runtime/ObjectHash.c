@@ -99,7 +99,7 @@ void ObjectHashrehash(struct ObjectHash * thisvar) {
   int i;
   for(i=thisvar->size-1; i>=0; i--) {
     struct ObjectNode *ptr;
-    for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
+    for(ptr=thisvar->bucket[i]; ptr!=NULL; ) {
       struct ObjectNode * nextptr=ptr->next;
       unsigned int newhashkey=(unsigned int)ptr->key % newsize;
       ptr->next=newbucket[newhashkey];
@@ -123,7 +123,7 @@ int ObjectHashadd(struct ObjectHash * thisvar,int key, int data, int data2, int 
     int i;
     for(i=thisvar->size-1; i>=0; i--) {
       struct ObjectNode *ptr;
-      for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
+      for(ptr=thisvar->bucket[i]; ptr!=NULL; ) {
 	struct ObjectNode * nextptr=ptr->next;
 	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
 	ptr->next=newbucket[newhashkey];
@@ -177,7 +177,7 @@ int ObjectHashadd_I(struct ObjectHash * thisvar,int key, int data, int data2, in
     int i;
     for(i=thisvar->size-1; i>=0; i--) {
       struct ObjectNode *ptr;
-      for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
+      for(ptr=thisvar->bucket[i]; ptr!=NULL; ) {
 	struct ObjectNode * nextptr=ptr->next;
 	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
 	ptr->next=newbucket[newhashkey];

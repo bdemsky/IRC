@@ -15,22 +15,21 @@
 #include <unistd.h>
 #include <math.h>
 
-#define PORT 		8500
+#define PORT            8500
 #define NUMITER     10000
-#define DIRSIZE 	1
+#define DIRSIZE         1
 
-static __inline__ unsigned long long rdtsc(void)
-{
-    unsigned hi, lo; 
-      __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-        return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+static __inline__ unsigned long long rdtsc(void) {
+  unsigned hi, lo;
+  __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
 }
 
 int main() {
   unsigned long long dir[DIRSIZE];  /* used for incomming dir name, and
-                             outgoing data */
-  int 	 sd, sd_current;
-  socklen_t 	 addrlen;
+				       outgoing data */
+  int sd, sd_current;
+  socklen_t addrlen;
   struct   sockaddr_in sin;
   struct   sockaddr_in pin;
 
@@ -63,12 +62,12 @@ int main() {
     exit(1);
   }
   /* wait for a client to talk to us */
-  addrlen = sizeof(pin); 
+  addrlen = sizeof(pin);
   if ((sd_current = accept(sd, (struct sockaddr *)&pin, &addrlen)) == -1) {
     perror("accept");
     exit(1);
   }
-  /* if you want to see the ip address and port of the client, uncomment the 
+  /* if you want to see the ip address and port of the client, uncomment the
      next two lines */
 
   /*
@@ -102,7 +101,7 @@ int main() {
     //array2[i]=rdtsc();
   }
 
-  for(i=0;i<(NUMITER-1);i++) {
+  for(i=0; i<(NUMITER-1); i++) {
     norm += array1[i];
   }
 
@@ -112,14 +111,14 @@ int main() {
   printf("average= %lld",(norm/(NUMITER-1)));
 
   long long stddev, avg1=0;
-  for(i=0;i<(NUMITER-1);i++) {
+  for(i=0; i<(NUMITER-1); i++) {
     avg1 += ((array1[i] - average) * (array1[i] - average));
   }
   float ans = (avg1/(NUMITER-1));
   float squareroot= sqrt(ans);
   float squareroot2= sqrt(avg1);
 
-  printf("stddev= %f\n", squareroot); 
+  printf("stddev= %f\n", squareroot);
   printf("error= %f\n", squareroot2/(NUMITER-1));
   fprintf(f1,"%lld\n",(norm/(NUMITER-1)));
 
@@ -128,7 +127,7 @@ int main() {
   sleep(1);
 
   /* close up both sockets */
-  close(sd_current); 
+  close(sd_current);
   close(sd);
 
 

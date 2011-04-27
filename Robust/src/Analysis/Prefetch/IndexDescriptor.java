@@ -66,7 +66,7 @@ public class IndexDescriptor extends Descriptor {
       return label;
     } else {
       ListIterator lit = getTempDesc().listIterator();
-      for(; lit.hasNext();) {
+      for(; lit.hasNext(); ) {
 	TempDescriptor td = (TempDescriptor) lit.next();
 	label += td.toString()+"+";
       }

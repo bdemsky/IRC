@@ -59,12 +59,12 @@ public class Edge {
     this.dst=dst;
     this.statuspredicate=statuspredicate;
   }
-  
+
   public Edge(TempDescriptor tmp, AllocNode dst) {
     this.srcvar=tmp;
     this.dst=dst;
   }
-  
+
   public AllocNode getDst() {
     return dst;
   }
@@ -178,7 +178,7 @@ public class Edge {
       return this;
     Edge newe=copy();
     newe.statuspredicate=mergeStatus(statuspredicate, e.statuspredicate);
-    if (e.taints!=null) { 
+    if (e.taints!=null) {
       if (newe.taints==null)
 	newe.taints=e.taints;
       else
@@ -210,7 +210,7 @@ public class Edge {
     Edge[] earray=new Edge[numedges];
     int mask=1;
     int edgeindex=0;
-    for(int count=0;count<4;count++) {
+    for(int count=0; count<4; count++) {
       if ((mask&statuspredicate)==mask) {
 	Edge e=new Edge();
 	e.fd=fd;
@@ -265,14 +265,14 @@ public class Edge {
 
   public static MySet<Edge> makeOld(MySet<Edge> old) {
     MySet<Edge> newedge=new MySet<Edge>();
-    for(Edge eold:old) {
+    for(Edge eold : old) {
       newedge.add(eold.makeOld());
     }
     return newedge;
   }
 
   public static void mergeEdgesInto(MySet<Edge> orig, MySet<Edge> merge) {
-    for(Edge e:merge) {
+    for(Edge e : merge) {
       if (orig.contains(e)) {
 	Edge old=orig.get(e);
 	e=e.merge(old);
@@ -283,7 +283,7 @@ public class Edge {
 
   public static MySet<Edge> taintAll(MySet<Edge> orig, Taint t) {
     MySet<Edge> taintedEdges=new MySet<Edge>();
-    for(Edge e:orig) {
+    for(Edge e : orig) {
       taintedEdges.add(e.addTaint(t));
     }
     return taintedEdges;
@@ -291,7 +291,7 @@ public class Edge {
 
   public static MySet<Edge> taintAll(MySet<Edge> orig, TaintSet t) {
     MySet<Edge> taintedEdges=new MySet<Edge>();
-    for(Edge e:orig) {
+    for(Edge e : orig) {
       taintedEdges.add(e.addTaintSet(t));
     }
     return taintedEdges;
@@ -304,15 +304,15 @@ public class Edge {
     }
     orig.add(e);
   }
-  
+
   public AllocNode getSrcAlloc() {
     return src;
   }
-  
+
   public AllocNode getDstAlloc() {
     return dst;
   }
-  
+
   public FieldDescriptor getFieldDesc() {
     return fd;
   }

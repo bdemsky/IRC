@@ -32,14 +32,14 @@ public class DomTree {
     if (postdominator) {
       Set<FlatNode> fnodes=fm.getNodeSet();
       Vector<FlatNode> v=new Vector<FlatNode>();
-      for(Iterator<FlatNode> fit=fnodes.iterator();fit.hasNext();) {
+      for(Iterator<FlatNode> fit=fnodes.iterator(); fit.hasNext(); ) {
 	FlatNode fn=fit.next();
 	if (fn.numNext()==0) {
 	  v.add(fn);
 	}
       }
       FlatNode[] fnarray=new FlatNode[v.size()];
-      for(int i=0;i<v.size();i++) {
+      for(int i=0; i<v.size(); i++) {
 	fnarray[i]=v.elementAt(i);
 	domtable.put(fnarray[i],fnarray[i]);
 	HashSet<FlatNode> set=new HashSet<FlatNode> ();
@@ -58,10 +58,10 @@ public class DomTree {
     boolean changed=true;
     while(changed) {
       changed=false;
-      for(int i=vec.size()-2;i>=0;i--) {
+      for(int i=vec.size()-2; i>=0; i--) {
 	FlatNode fn=vec.elementAt(i);
 	FlatNode dom=null;
-	for(int j=0;j<(postdominator?fn.numNext():fn.numPrev());j++) {
+	for(int j=0; j<(postdominator?fn.numNext():fn.numPrev()); j++) {
 	  FlatNode np=postdominator?fn.getNext(j):fn.getPrev(j);
 	  FlatNode ndom=domtable.get(np);
 	  if (ndom!=null) {
@@ -105,14 +105,14 @@ public class DomTree {
     vecindex=new Hashtable<FlatNode,Integer>();
     HashSet visited=new HashSet();
     Stack<FlatNode> stack=new Stack<FlatNode>();
-    for(int i=0;i<fm.length;i++) {
+    for(int i=0; i<fm.length; i++) {
       stack.push(fm[i]);
       visited.add(fm[i]);
     }
-    mainloop:
+mainloop:
     while(!stack.isEmpty()) {
       FlatNode fn=stack.peek();
-      for(int i=0;i<(postdominator?fn.numPrev():fn.numNext());i++) {
+      for(int i=0; i<(postdominator?fn.numPrev():fn.numNext()); i++) {
 	FlatNode next=postdominator?fn.getPrev(i):fn.getNext(i);
 	if (!visited.contains(next)) {
 	  visited.add(next);

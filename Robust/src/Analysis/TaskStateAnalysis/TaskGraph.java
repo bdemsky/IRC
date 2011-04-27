@@ -24,7 +24,7 @@ public class TaskGraph {
     this.cdtonodes=new Hashtable();
     this.alltasknodes=new Hashtable<TaskNode,TaskNode>();
 
-    for(Iterator classit=state.getClassSymbolTable().getDescriptorsIterator(); classit.hasNext();) {
+    for(Iterator classit=state.getClassSymbolTable().getDescriptorsIterator(); classit.hasNext(); ) {
       ClassDescriptor cd=(ClassDescriptor) classit.next();
       if (cd.hasFlags())
 	produceTaskNodes(cd);
@@ -34,7 +34,7 @@ public class TaskGraph {
 
 
   public void createDOTfiles() {
-    for(Iterator it_classes=(Iterator)cdtonodes.keys(); it_classes.hasNext();) {
+    for(Iterator it_classes=(Iterator)cdtonodes.keys(); it_classes.hasNext(); ) {
       ClassDescriptor cd=(ClassDescriptor) it_classes.next();
       Set tasknodes=getTaskNodes(cd);
       if (tasknodes!=null) {
@@ -76,14 +76,14 @@ public class TaskGraph {
     Hashtable<TaskNode,TaskNode> tasknodes=new Hashtable<TaskNode,TaskNode>();
     cdtonodes.put(cd, tasknodes);
 
-    for(Iterator it=fsnodes.iterator(); it.hasNext();) {
+    for(Iterator it=fsnodes.iterator(); it.hasNext(); ) {
       FlagState fs=(FlagState)it.next();
       Iterator it_inedges=fs.inedges();
       TaskNode tn,sn;
 
       if (fs.isSourceNode()) {
 	Vector src=fs.getAllocatingTasks();
-	for(Iterator it2=src.iterator(); it2.hasNext();) {
+	for(Iterator it2=src.iterator(); it2.hasNext(); ) {
 	  TaskDescriptor td=(TaskDescriptor)it2.next();
 	  sn=new TaskNode(td.getSymbol());
 	  if(fs.edges().hasNext()) {
@@ -106,7 +106,7 @@ public class TaskGraph {
   private void produceAllTaskNodes() {
     alltasknodes=new Hashtable<TaskNode,TaskNode>();
 
-    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator(); it_tasks.hasNext();) {
+    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator(); it_tasks.hasNext(); ) {
       TaskDescriptor td=(TaskDescriptor)it_tasks.next();
       TaskNode tn=new TaskNode(td.getSymbol());
       alltasknodes.put(tn,tn);
@@ -115,7 +115,7 @@ public class TaskGraph {
     alltasknodes.put(tn_runtime,tn_runtime);
 
     int ColorID=0;
-    for(Iterator classit=state.getClassSymbolTable().getDescriptorsIterator(); classit.hasNext()&&ColorID<10;) {
+    for(Iterator classit=state.getClassSymbolTable().getDescriptorsIterator(); classit.hasNext()&&ColorID<10; ) {
       ClassDescriptor cd=(ClassDescriptor) classit.next();
       Set fsnodes;
 
@@ -123,7 +123,7 @@ public class TaskGraph {
 	//
 	System.out.println("\nWorking on fses of Class: "+cd.getSymbol());
 	//
-	for(Iterator it=fsnodes.iterator(); it.hasNext();) {
+	for(Iterator it=fsnodes.iterator(); it.hasNext(); ) {
 	  FlagState fs=(FlagState)it.next();
 	  //
 	  System.out.println("Evaluating fs: "+fs.getTextLabel());
@@ -142,7 +142,7 @@ public class TaskGraph {
 	      if (allocatingtasks.iterator().hasNext())
 		System.out.println("has been allocated by "+allocatingtasks.size()+" tasks");
 	      //
-	      for(Iterator it_at=allocatingtasks.iterator(); it_at.hasNext();) {
+	      for(Iterator it_at=allocatingtasks.iterator(); it_at.hasNext(); ) {
 		TaskDescriptor allocatingtd=(TaskDescriptor)it_at.next();
 		//
 		System.out.println(allocatingtd.getSymbol());
@@ -202,7 +202,7 @@ public class TaskGraph {
 
     //  Hashtable<TaskNode,TaskNode> tasknodes=(Hashtable<TaskNode,TaskNode>)cdtonodes.get(fs.getClassDescriptor());
     tn=(TaskNode)canonicalizeTaskNode(tasknodes, tn);
-    for (Iterator it_edges=fs.edges(); it_edges.hasNext();) {
+    for (Iterator it_edges=fs.edges(); it_edges.hasNext(); ) {
       TaskNode target=new TaskNode(((FEdge)it_edges.next()).getLabel());
       target=(TaskNode)canonicalizeTaskNode(tasknodes,target);
 
@@ -216,7 +216,7 @@ public class TaskGraph {
   private void addEdges(FlagState fs, TaskNode tn,Hashtable<TaskNode,TaskNode> tasknodes,int ColorID) {
 
     tn=(TaskNode)canonicalizeTaskNode(tasknodes, tn);
-    for (Iterator it_edges=fs.edges(); it_edges.hasNext();) {
+    for (Iterator it_edges=fs.edges(); it_edges.hasNext(); ) {
       TaskNode target=new TaskNode(((FEdge)it_edges.next()).getLabel());
       target=(TaskNode)canonicalizeTaskNode(tasknodes,target);
 

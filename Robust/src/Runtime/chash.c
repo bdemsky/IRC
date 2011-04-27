@@ -164,9 +164,9 @@ void cDelete(ctable_t *ctable) {
   cnode_t *ptr, *curr, *next;
   ptr = ctable->table;
 
-  for(i=0 ; i<ctable->size ; i++) {
+  for(i=0; i<ctable->size; i++) {
     curr = &ptr[i];
-    isFirst = 1 ;
+    isFirst = 1;
     while(curr  != NULL) {
       next = curr->next;
       if(isFirst != 1) {

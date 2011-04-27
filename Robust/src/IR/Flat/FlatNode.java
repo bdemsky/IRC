@@ -55,7 +55,7 @@ public class FlatNode {
   /** This function modifies the graph */
   public void setNewNext(int i, FlatNode n) {
     if (next.size()<=i)
-	next.setSize(i+1);
+      next.setSize(i+1);
     next.set(i, n);
     n.addPrev(this);
   }
@@ -115,19 +115,19 @@ public class FlatNode {
   public void replace(FlatNode fnnew) {
     fnnew.prev.setSize(prev.size());
     fnnew.next.setSize(next.size());
-    for(int i=0;i<prev.size();i++) {
+    for(int i=0; i<prev.size(); i++) {
       FlatNode nprev=(FlatNode)prev.get(i);
       fnnew.prev.set(i,nprev);
-      for(int j=0;j<nprev.numNext();j++) {
+      for(int j=0; j<nprev.numNext(); j++) {
 	FlatNode n=nprev.getNext(j);
 	if (n==this)
 	  nprev.next.set(j, fnnew);
       }
     }
-    for(int i=0;i<next.size();i++) {
+    for(int i=0; i<next.size(); i++) {
       FlatNode nnext=(FlatNode)next.get(i);
       fnnew.next.set(i,nnext);
-      for(int j=0;j<nnext.numPrev();j++) {
+      for(int j=0; j<nnext.numPrev(); j++) {
 	FlatNode n=nnext.getPrev(j);
 	if (n==this)
 	  nnext.prev.set(j, fnnew);
@@ -136,12 +136,12 @@ public class FlatNode {
     next=null;
     prev=null;
   }
-  
-  public void setNumLine(int lineNum){
+
+  public void setNumLine(int lineNum) {
     this.numLine=lineNum;
   }
-  
-  public int getNumLine(){
+
+  public int getNumLine() {
     return this.numLine;
   }
 }

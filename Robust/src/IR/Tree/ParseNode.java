@@ -153,7 +153,7 @@ public class ParseNode implements Walkable {
   }
 
   public ParseNode getRoot() {
-    return (parent == null) ? this : parent.getRoot();
+    return (parent == null)?this:parent.getRoot();
   }
 
   public String getTerminal() {

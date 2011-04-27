@@ -38,7 +38,7 @@ public class Math {
   public static long max(long a, long b) {
     return (a>b)?a:b;
   }
-  
+
   public static double min(double a, double b) {
     return (a<b)?a:b;
   }

@@ -4,7 +4,7 @@ import IR.TypeDescriptor;
 public class FlatGenReachNode extends FlatNode {
   String graphName;
 
-  public FlatGenReachNode( String graphName ) {
+  public FlatGenReachNode(String graphName) {
     this.graphName = graphName;
   }
 
@@ -12,9 +12,13 @@ public class FlatGenReachNode extends FlatNode {
     return graphName;
   }
 
-  public FlatNode clone(TempMap t){ return new FlatGenReachNode( graphName ); }
-  public void rewriteUse(TempMap t){}
-  public void rewriteDst(TempMap t) {}
+  public FlatNode clone(TempMap t) {
+    return new FlatGenReachNode(graphName);
+  }
+  public void rewriteUse(TempMap t) {
+  }
+  public void rewriteDst(TempMap t) {
+  }
 
 
   public String toString() {

@@ -12,7 +12,7 @@ public class SwitchStatementNode extends BlockStatementNode {
   public ExpressionNode getCondition() {
     return cond;
   }
-  
+
   public BlockNode getSwitchBody() {
     return this.switch_st;
   }
@@ -20,7 +20,7 @@ public class SwitchStatementNode extends BlockStatementNode {
   public String printNode(int indent) {
     return "switch(" + cond.printNode(indent) + ") " + switch_st.printNode(indent);
   }
-  
+
   public int kind() {
     return Kind.SwitchStatementNode;
   }

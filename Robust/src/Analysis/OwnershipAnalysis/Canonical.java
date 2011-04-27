@@ -10,7 +10,7 @@ public class Canonical {
   private static Hashtable<Canonical, Canonical> canon = new Hashtable<Canonical, Canonical>();
 
   int canonicalvalue;
-    private static int canonicalcount=1;
+  private static int canonicalcount=1;
 
   public static Canonical makeCanonical(Canonical c) {
 
@@ -22,7 +22,7 @@ public class Canonical {
     return c;
   }
 
-    static Hashtable<ReachOperation, ReachOperation> unionhash=new Hashtable<ReachOperation, ReachOperation>();
-    static Hashtable<ReachOperation, ReachOperation> interhash=new Hashtable<ReachOperation, ReachOperation>();
-    static Hashtable<CanonicalWrapper, CanonicalWrapper> lookuphash=new Hashtable<CanonicalWrapper, CanonicalWrapper>();
+  static Hashtable<ReachOperation, ReachOperation> unionhash=new Hashtable<ReachOperation, ReachOperation>();
+  static Hashtable<ReachOperation, ReachOperation> interhash=new Hashtable<ReachOperation, ReachOperation>();
+  static Hashtable<CanonicalWrapper, CanonicalWrapper> lookuphash=new Hashtable<CanonicalWrapper, CanonicalWrapper>();
 }

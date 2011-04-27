@@ -67,20 +67,20 @@ public class TokenTupleSet extends Canonical {
       if( ttThis == null ) {
 	return false;
       }
-    }    
-    
+    }
+
     // then establish that anything in this set that is
-    // not in tts is a zero-arity token tuple, which is okay    
+    // not in tts is a zero-arity token tuple, which is okay
     Iterator<TokenTuple> ttItrThis = this.iterator();
     while( ttItrThis.hasNext() ) {
       TokenTuple ttThis = ttItrThis.next();
       TokenTuple ttIn   = tts.containsToken(ttThis.getToken() );
 
-      if( ttIn == null && 
-	  ttThis.getArity() != TokenTuple.ARITY_ZEROORMORE ) {
+      if( ttIn == null &&
+          ttThis.getArity() != TokenTuple.ARITY_ZEROORMORE ) {
 	return false;
       }
-    }    
+    }
 
     // if so this set contains tts with zeroes
     return true;
@@ -90,13 +90,13 @@ public class TokenTupleSet extends Canonical {
     assert ttIn != null;
     ReachOperation ro=new ReachOperation(this, ttIn);
     if (unionhash.containsKey(ro))
-	return (TokenTupleSet) unionhash.get(ro).c;
+      return (TokenTupleSet) unionhash.get(ro).c;
     else {
-	TokenTupleSet ttsOut = new TokenTupleSet(this);
-	ttsOut.tokenTuples.add(ttIn);
-	ro.c=ttsOut=ttsOut.makeCanonical();
-	unionhash.put(ro,ro);
-	return ttsOut;
+      TokenTupleSet ttsOut = new TokenTupleSet(this);
+      ttsOut.tokenTuples.add(ttIn);
+      ro.c=ttsOut=ttsOut.makeCanonical();
+      unionhash.put(ro,ro);
+      return ttsOut;
     }
   }
 
@@ -104,13 +104,13 @@ public class TokenTupleSet extends Canonical {
     assert ttsIn != null;
     ReachOperation ro=new ReachOperation(this, ttsIn);
     if (unionhash.containsKey(ro)) {
-	return (TokenTupleSet) unionhash.get(ro).c;
+      return (TokenTupleSet) unionhash.get(ro).c;
     } else {
-	TokenTupleSet ttsOut = new TokenTupleSet(this);
-	ttsOut.tokenTuples.addAll(ttsIn.tokenTuples);
-	ro.c=ttsOut=ttsOut.makeCanonical();
-	unionhash.put(ro,ro);
-	return ttsOut;
+      TokenTupleSet ttsOut = new TokenTupleSet(this);
+      ttsOut.tokenTuples.addAll(ttsIn.tokenTuples);
+      ro.c=ttsOut=ttsOut.makeCanonical();
+      unionhash.put(ro,ro);
+      return ttsOut;
     }
   }
 
@@ -172,18 +172,18 @@ public class TokenTupleSet extends Canonical {
     return tokenTuples.equals(tts.tokenTuples);
   }
 
-    boolean hashcodecomputed=false;
-    int ourhashcode=0;
+  boolean hashcodecomputed=false;
+  int ourhashcode=0;
 
 
   public int hashCode() {
-      if (hashcodecomputed)
-	  return ourhashcode;
-      else {
-	  ourhashcode=tokenTuples.hashCode();
-	  hashcodecomputed=true;
-	  return ourhashcode;
-      }
+    if (hashcodecomputed)
+      return ourhashcode;
+    else {
+      ourhashcode=tokenTuples.hashCode();
+      hashcodecomputed=true;
+      return ourhashcode;
+    }
   }
 
 

@@ -37,7 +37,7 @@ void midtoIP(unsigned int mid, char *ptr) {
 
 /********** for DEBUGGING **************/
 char ip[16];      // for debugging purpose
-char* midtoIPString(unsigned int mid){
+char* midtoIPString(unsigned int mid) {
   midtoIP(mid, ip);
   return ip;
 }

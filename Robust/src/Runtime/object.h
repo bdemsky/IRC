@@ -6,7 +6,7 @@
 
 #ifdef D___Object______nativehashCode____
 int CALL01(___Object______nativehashCode____, struct ___Object___ * ___this___);
-#endif 
+#endif
 #ifdef D___Object______hashCode____
 int CALL01(___Object______hashCode____, struct ___Object___ * ___this___);
 #endif

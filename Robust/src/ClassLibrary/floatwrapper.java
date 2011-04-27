@@ -1,4 +1,5 @@
 public class floatwrapper {
-    public floatwrapper() {}
-    float value;
+  public floatwrapper() {
+  }
+  float value;
 }

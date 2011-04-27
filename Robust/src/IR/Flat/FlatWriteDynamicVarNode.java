@@ -12,17 +12,17 @@ public class FlatWriteDynamicVarNode extends FlatNode {
 
   protected FlatNode tailNode;
   protected FlatNode headNode;
-  
+
   protected Hashtable<TempDescriptor, VSTWrapper> var2src;
 
   protected FlatSESEEnterNode enclosingSESE;
 
 
-  public FlatWriteDynamicVarNode( FlatNode t,
-				  FlatNode h,
-				  Hashtable<TempDescriptor, VSTWrapper> v2s,
-				  FlatSESEEnterNode c
-				) {
+  public FlatWriteDynamicVarNode(FlatNode t,
+                                 FlatNode h,
+                                 Hashtable<TempDescriptor, VSTWrapper> v2s,
+                                 FlatSESEEnterNode c
+                                 ) {
     tailNode      = t;
     headNode      = h;
     var2src       = v2s;
@@ -30,32 +30,32 @@ public class FlatWriteDynamicVarNode extends FlatNode {
   }
 
   public void spliceIntoIR() {
-    
-    if(tailNode instanceof FlatCondBranch){
 
-      headNode.removePrev( tailNode );
-      
-      if(tailNode.next.elementAt(0).equals(headNode)){
-        tailNode.removeNext( headNode );
-        ((FlatCondBranch)tailNode).addTrueNext(this);
-      }else{
-        tailNode.removeNext( headNode );
-        ((FlatCondBranch)tailNode).addFalseNext(this);
+    if(tailNode instanceof FlatCondBranch) {
+
+      headNode.removePrev(tailNode);
+
+      if(tailNode.next.elementAt(0).equals(headNode)) {
+	tailNode.removeNext(headNode);
+	((FlatCondBranch)tailNode).addTrueNext(this);
+      } else {
+	tailNode.removeNext(headNode);
+	((FlatCondBranch)tailNode).addFalseNext(this);
       }
-      
-      this.addNext( headNode );
-    }else{
-      tailNode.removeNext( headNode );
-      headNode.removePrev( tailNode );
-      
-      tailNode.addNext( this );
-      this.addNext( headNode );
+
+      this.addNext(headNode);
+    } else {
+      tailNode.removeNext(headNode);
+      headNode.removePrev(tailNode);
+
+      tailNode.addNext(this);
+      this.addNext(headNode);
     }
 
   }
 
-  public void addMoreVar2Src( Hashtable<TempDescriptor, VSTWrapper> more ) {
-    var2src.putAll( more );
+  public void addMoreVar2Src(Hashtable<TempDescriptor, VSTWrapper> more) {
+    var2src.putAll(more);
   }
 
   public Hashtable<TempDescriptor, VSTWrapper> getVar2src() {
@@ -75,11 +75,11 @@ public class FlatWriteDynamicVarNode extends FlatNode {
   }
 
   public FlatNode clone(TempMap t) {
-    return new FlatWriteDynamicVarNode( tailNode, 
-					headNode, 
-					var2src, 
-					enclosingSESE 
-					);
+    return new FlatWriteDynamicVarNode(tailNode,
+                                       headNode,
+                                       var2src,
+                                       enclosingSESE
+                                       );
   }
   public void rewriteUse(TempMap t) {
   }

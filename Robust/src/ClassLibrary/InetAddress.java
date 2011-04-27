@@ -13,10 +13,10 @@ public class InetAddress {
 
   public static InetAddress getByName(String hostname) {
     InetAddress[] addresses=getAllByName(hostname);
-		if (addresses != null) 
-	    return addresses[0];
-		else 
-			return null;
+    if (addresses != null)
+      return addresses[0];
+    else
+      return null;
   }
 
   public byte[] getAddress() {
@@ -43,16 +43,15 @@ public class InetAddress {
 
     byte[][] iplist = InetAddress.getHostByName(hostname.getBytes());
 
-		if (iplist != null) {
-			addresses = new InetAddress[iplist.length];
+    if (iplist != null) {
+      addresses = new InetAddress[iplist.length];
 
-			for (int i = 0; i < iplist.length; i++) {
-				addresses[i] = new InetAddress(iplist[i], hostname);
-			}
-			return addresses;
-		}
-		else 
-			return null;
+      for (int i = 0; i < iplist.length; i++) {
+	addresses[i] = new InetAddress(iplist[i], hostname);
+      }
+      return addresses;
+    } else
+      return null;
   }
 
   public static native byte[][] getHostByName(byte[] hostname);

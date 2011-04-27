@@ -19,7 +19,7 @@ public class FieldDescriptor extends Descriptor {
   private boolean isglobal;
   private boolean isenum;
   private int enumvalue;
-  
+
   private ClassDescriptor cn;
 
   public FieldDescriptor(Modifiers m, TypeDescriptor t, String identifier, ExpressionNode e, boolean isglobal) {
@@ -33,11 +33,11 @@ public class FieldDescriptor extends Descriptor {
     this.isenum = false;
     this.enumvalue = -1;
   }
-  
+
   public ClassDescriptor getClassDescriptor() {
     return this.cn;
   }
-  
+
   public void setClassDescriptor(ClassDescriptor cn) {
     this.cn = cn;
   }
@@ -48,39 +48,39 @@ public class FieldDescriptor extends Descriptor {
     } else
       return safename;
   }
-  
+
   public boolean isEnum() {
     return this.isenum;
   }
-  
+
   public int enumValue() {
     return this.enumvalue;
   }
-  
+
   public void setAsEnum() {
     this.isenum = true;
   }
-  
+
   public void setEnumValue(int value) {
     this.enumvalue = value;
   }
 
-  public ExpressionNode getExpressionNode(){
-      return en;
+  public ExpressionNode getExpressionNode() {
+    return en;
   }
 
   public boolean isFinal() {
     return modifier.isFinal();
   }
-  
+
   public boolean isStatic() {
     return modifier.isStatic();
   }
-  
+
   public boolean isVolatile() {
     return modifier.isVolatile();
   }
-  
+
   public boolean isGlobal() {
     return isglobal;
   }
@@ -89,10 +89,10 @@ public class FieldDescriptor extends Descriptor {
     return td;
   }
 
-	public void changeSafeSymbol(int id) {
-		safename+=id;
-	}
-	
+  public void changeSafeSymbol(int id) {
+    safename+=id;
+  }
+
   public String toString() {
     if (en==null)
       return modifier.toString()+td.toString()+" "+getSymbol()+";";

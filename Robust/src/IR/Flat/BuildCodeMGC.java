@@ -20,11 +20,11 @@ public class BuildCodeMGC extends BuildCode {
   int startupcorenum;    // record the core containing startup task, s
   // uppose only one core can have startup object
 
-  public BuildCodeMGC(State st, 
-                      Hashtable temptovar, 
-                      TypeUtil typeutil, 
+  public BuildCodeMGC(State st,
+                      Hashtable temptovar,
+                      TypeUtil typeutil,
                       SafetyAnalysis sa,
-                      int coreNum, 
+                      int coreNum,
                       int tcoreNum,
                       int gcoreNum, CallGraph callgraph) {
     super(st, temptovar, typeutil, sa, callgraph);
@@ -56,13 +56,13 @@ public class BuildCodeMGC extends BuildCode {
       e.printStackTrace();
       System.exit(-1);
     }
-    
+
     /* Fix field safe symbols due to shadowing */
     FieldShadow.handleFieldShadow(state);
 
     /* Build the virtual dispatch tables */
     super.buildVirtualTables(outvirtual);
-    
+
     /* Tag the methods that are invoked by static blocks */
     super.tagMethodInvokedByStaticBlock();
 
@@ -86,9 +86,9 @@ public class BuildCodeMGC extends BuildCode {
     outglobaldefsprim.println("#define __GLOBALDEFPRIM_H_");
     outglobaldefsprim.println("");
     outglobaldefsprim.println("struct global_defsprim_t {");
-    
+
     // Output the C class declarations
-    // These could mutually reference each other    
+    // These could mutually reference each other
     outclassdefs.println("#ifndef __CLASSDEF_H_");
     outclassdefs.println("#define __CLASSDEF_H_");
     super.outputClassDeclarations(outclassdefs, outglobaldefs, outglobaldefsprim);
@@ -128,17 +128,17 @@ public class BuildCodeMGC extends BuildCode {
     /* Record number of total cores */
     outstructs.println("#define NUMCORES "+this.tcoreNum);
     /* Record number of active cores */
-    outstructs.println("#define NUMCORESACTIVE "+this.coreNum); // this.coreNum 
-                                    // can be reset by the scheduling analysis
+    outstructs.println("#define NUMCORESACTIVE "+this.coreNum); // this.coreNum
+    // can be reset by the scheduling analysis
     /* Record number of garbage collection cores */
     outstructs.println("#ifdef MULTICORE_GC");
     outstructs.println("#define NUMCORES4GC "+this.gcoreNum);
     outstructs.println("#endif");
     /* Record number of core containing startup task */
     outstructs.println("#define STARTUPCORE "+this.startupcorenum);
-    
+
     if (state.main!=null) {
-    /* Generate main method */
+      /* Generate main method */
       outputMainMethod(outmethod);
     }
 
@@ -149,11 +149,11 @@ public class BuildCodeMGC extends BuildCode {
     outstructs.println("#endif");
     outstructs.close();
   }
-  
+
   protected void outputMainMethod(PrintWriter outmethod) {
     outmethod.println("int mgc_main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
-    
+
     if (state.MULTICOREGC) {
       outmethod.println("  global_defs_p->size="+globaldefscount+";");
       outmethod.println("  global_defs_p->next=NULL;");
@@ -161,10 +161,10 @@ public class BuildCodeMGC extends BuildCode {
       outmethod.println("    ((struct garbagelist *)global_defs_p)->array[i]=NULL;");
       outmethod.println("  }");
     }
-    
+
     outputStaticBlocks(outmethod);
     outputClassObjects(outmethod);
-    
+
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
     } else {
@@ -178,7 +178,7 @@ public class BuildCodeMGC extends BuildCode {
       outmethod.println("    struct ___String___ *newstring=NewString(argv[i], length);");
     }
     outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
-    outmethod.println("  }");    
+    outmethod.println("  }");
 
     MethodDescriptor md=typeutil.getMain();
     ClassDescriptor cd=typeutil.getMainClass();

@@ -10,12 +10,12 @@ public class MethodContextQWrapper implements Comparable {
   private int priority;
   private MethodContext mc;
 
-  public MethodContextQWrapper( Integer p, MethodContext m ) {
+  public MethodContextQWrapper(Integer p, MethodContext m) {
     priority = p.intValue();
     mc = m;
   }
 
-  public MethodContextQWrapper( int p, MethodContext m ) {
+  public MethodContextQWrapper(int p, MethodContext m) {
     priority = p;
     mc = m;
   }
@@ -23,8 +23,8 @@ public class MethodContextQWrapper implements Comparable {
   public MethodContext getMethodContext() {
     return mc;
   }
- 
-  public int compareTo( Object o ) throws ClassCastException {
+
+  public int compareTo(Object o) throws ClassCastException {
 
     if( !(o instanceof MethodContextQWrapper) ) {
       throw new ClassCastException();
@@ -42,9 +42,9 @@ public class MethodContextQWrapper implements Comparable {
     if( !( o instanceof MethodContextQWrapper) ) {
       return false;
     }
-    
+
     MethodContextQWrapper mcqw = (MethodContextQWrapper) o;
 
-    return mc.equals( mcqw.mc );
-  }  
+    return mc.equals(mcqw.mc);
+  }
 }

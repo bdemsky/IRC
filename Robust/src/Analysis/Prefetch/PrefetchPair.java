@@ -57,7 +57,7 @@ public class PrefetchPair {
     if(getDesc() == null)
       return label;
     ListIterator it=getDesc().listIterator();
-    for(; it.hasNext();) {
+    for(; it.hasNext(); ) {
       Object o = it.next();
       if(o instanceof FieldDescriptor) {
 	FieldDescriptor fd = (FieldDescriptor) o;
@@ -103,7 +103,7 @@ public class PrefetchPair {
    *  for a given prefetch pair else returns false*/
   public boolean containsTemp(TempDescriptor td) {
     ArrayList<Descriptor> desc = (ArrayList<Descriptor>)getDesc();
-    for(ListIterator it = desc.listIterator(); it.hasNext();) {
+    for(ListIterator it = desc.listIterator(); it.hasNext(); ) {
       Object o = it.next();
       if(o instanceof IndexDescriptor) {
 	ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)o).tddesc;
@@ -120,7 +120,7 @@ public class PrefetchPair {
   public PrefetchPair replaceTemp(TempDescriptor td, TempDescriptor[] newtd) {
     PrefetchPair npp=(PrefetchPair)clone();
     ArrayList<Descriptor> desc = (ArrayList<Descriptor>)npp.getDesc();
-    for(ListIterator it = desc.listIterator(); it.hasNext();) {
+    for(ListIterator it = desc.listIterator(); it.hasNext(); ) {
       Object currdesc = it.next();
       if(currdesc instanceof IndexDescriptor) {
 	ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)currdesc).tddesc;

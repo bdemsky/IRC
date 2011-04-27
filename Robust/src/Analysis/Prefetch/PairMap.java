@@ -56,7 +56,7 @@ public class PairMap {
     Set mapping = mappair.entrySet();
     Iterator it = mapping.iterator();
     label = "Mappings are:  ";
-    for(; it.hasNext();) {
+    for(; it.hasNext(); ) {
       Object o = it.next();
       label += o.toString() + " , ";
     }

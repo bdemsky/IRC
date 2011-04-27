@@ -21,7 +21,7 @@ public class GarbageAnalysis extends Namer {
   }
 
   public void doAnalysis() {
-    for(Iterator it=state.getClassSymbolTable().getDescriptorsIterator(); it.hasNext();) {
+    for(Iterator it=state.getClassSymbolTable().getDescriptorsIterator(); it.hasNext(); ) {
       ClassDescriptor cd=(ClassDescriptor) it.next();
       if (taskanalysis.getFlagStates(cd)==null)
 	continue;
@@ -34,7 +34,7 @@ public class GarbageAnalysis extends Namer {
     HashSet garbage=new HashSet();
     HashSet possiblegarbage=new HashSet();
 
-    for(Iterator fsit=flagstatenodes.iterator(); fsit.hasNext();) {
+    for(Iterator fsit=flagstatenodes.iterator(); fsit.hasNext(); ) {
       FlagState fs=(FlagState)fsit.next();
       if (fs.numedges()==0)
 	garbage.add(fs);

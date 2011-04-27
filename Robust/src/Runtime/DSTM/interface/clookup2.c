@@ -57,7 +57,7 @@ void chashInsert(chashtable_t *table, unsigned int key, void *val) {
   }
 
 
-  for(i=1;1;i++) {
+  for(i=1; 1; i++) {
     node = &table->table[((key+i*331) & table->mask)>>1];
     if (node->key==0) {
       node->ptr=val;
@@ -78,7 +78,7 @@ INLINE void * chashSearch(chashtable_t *table, unsigned int key) {
   if (node->key==0)
     return NULL;
 
-  for(i=1;1;i++) {
+  for(i=1; 1; i++) {
     node = &table->table[((key+i*331) & table->mask)>>1];
     ckey=node->key;
     if (ckey==key)
@@ -119,7 +119,7 @@ void chashResize(chashtable_t *table, unsigned int newsize) {
 	continue;
       }
 
-      for(bin=1;1;bin++) {
+      for(bin=1; 1; bin++) {
 	newnode = &table->table[((key+bin*331) & mask)>>1];
 	if (newnode->key==0) {
 	  newnode->key=key;

@@ -12,7 +12,7 @@ public class SwitchLabelNode extends BlockStatementNode {
   public ExpressionNode getCondition() {
     return cond;
   }
-  
+
   public boolean isDefault() {
     return this.isdefault;
   }
@@ -23,7 +23,7 @@ public class SwitchLabelNode extends BlockStatementNode {
     }
     return "case " + cond.printNode(indent) + ": ";
   }
-  
+
   public int kind() {
     return Kind.SwitchLabelNode;
   }

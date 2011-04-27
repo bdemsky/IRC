@@ -27,10 +27,10 @@ public class CodePrinter extends PrintWriter {
   public CodePrinter(OutputStream w, boolean af) {
     super(w,af);
   }
-  
+
   StringBuffer genSpacing() {
     StringBuffer sb=new StringBuffer();
-    for(int i=0;i<braceCount;i++)
+    for(int i=0; i<braceCount; i++)
       sb.append("  ");
     return sb;
   }
@@ -120,32 +120,36 @@ public class CodePrinter extends PrintWriter {
 
       switch (c) {
       case '\n': {
-        // get the cr
-        sb.append(string, lastcr, (i - lastcr) + 1);
-        super.write(sb.toString());
-        sb = genSpacing();
-        lastcr = i + 1;// skip carriage return
-        seenChar = false;
-        break;
+	// get the cr
+	sb.append(string, lastcr, (i - lastcr) + 1);
+	super.write(sb.toString());
+	sb = genSpacing();
+	lastcr = i + 1; // skip carriage return
+	seenChar = false;
+	break;
       }
+
       case '{':
-        braceCount++;
-        seenChar = true;
-        break;
+	braceCount++;
+	seenChar = true;
+	break;
+
       case '}':
-        braceCount--;
-        // fix up close brace...
-        if (!seenChar)
-          sb = genSpacing();
-        seenChar = true;
-        break;
+	braceCount--;
+	// fix up close brace...
+	if (!seenChar)
+	  sb = genSpacing();
+	seenChar = true;
+	break;
+
       case ' ':
-        // skip leading whitespace
-        if (!seenChar)
-          lastcr = i + 1;
-        break;
+	// skip leading whitespace
+	if (!seenChar)
+	  lastcr = i + 1;
+	break;
+
       default:
-        seenChar = true;
+	seenChar = true;
       }
     }
     if (lastcr < string.length) {

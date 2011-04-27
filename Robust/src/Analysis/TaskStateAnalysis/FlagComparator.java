@@ -20,7 +20,7 @@ public class FlagComparator implements Comparator {
 
   public int getFlagInt(FlagState fs) {
     int flagid=0;
-    for(Iterator flags = fs.getFlags(); flags.hasNext();) {
+    for(Iterator flags = fs.getFlags(); flags.hasNext(); ) {
       FlagDescriptor flagd = (FlagDescriptor)flags.next();
       int id=1<<((Integer)flaginfo.get(flagd)).intValue();
       flagid|=id;

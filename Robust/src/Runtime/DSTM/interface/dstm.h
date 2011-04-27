@@ -5,7 +5,7 @@
 #define MSG_NOSIGNAL 0
 #endif
 
-#define CFENCE   asm volatile("":::"memory");
+#define CFENCE   asm volatile ("" ::: "memory");
 /***********************************************************
  *       Macros
  **********************************************************/
@@ -15,8 +15,8 @@
 #define GET_PTR_EOFF(x,n) ((short *)(x + 2*sizeof(int) + (n*sizeof(unsigned int))))
 #define GET_PTR_ARRYFLD(x,n) ((short *)(x + 2*sizeof(int) + (n*sizeof(unsigned int)) + (n*sizeof(short))))
 
-#define ENDEBUG(s) { printf("Inside %s()\n", s); fflush(stdout);}
-#define EXDEBUG(s) {printf("Outside %s()\n", s); fflush(stdout);}
+#define ENDEBUG(s) { printf("Inside %s()\n", s); fflush(stdout); }
+#define EXDEBUG(s) {printf("Outside %s()\n", s); fflush(stdout); }
 /*****************************************
  *  Coordinator Messages
  ***************************************/
@@ -61,7 +61,7 @@
 #define RETRYINTERVAL 1  //N  (For MatrixMultiply, 2DFFT, 2DConv benchmarks)
 #define SHUTDOWNINTERVAL 75 //M
 #define NUM_TRY_TO_COMMIT 2
-#define MEM_ALLOC_THRESHOLD 20485760//20MB
+#define MEM_ALLOC_THRESHOLD 20485760 //20MB
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -251,9 +251,9 @@ char getCommitCountForObjMod(unsigned int *, unsigned int *, unsigned int *, int
 char getCommitCountForObjRead(unsigned int *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *,
                               int *, int *, char *, unsigned int, unsigned short);
 
-void procRestObjs(char *, char *, int , int, int, unsigned int *, unsigned int *, int *, int *, int *, int *);
+void procRestObjs(char *, char *, int, int, int, unsigned int *, unsigned int *, int *, int *, int *, int *);
 void processVerNoMatch(unsigned int *, unsigned int *, int *, int *, int *, int *, unsigned int, unsigned short);
- 
+
 /* end server portion */
 
 /* Prototypes for transactions */
@@ -270,16 +270,16 @@ void randomdelay();
 void transStart();
 //#define TRANSREAD(x,y,z) /* Use "z" which is program point at which TRANSREAD is generated, use this as transRead2(inputvalue,z) */
 #define TRANSREAD(x,y) { \
-  unsigned int inputvalue;\
-if ((inputvalue=(unsigned int)y)==0) x=NULL;\
-else { \
-chashlistnode_t * cnodetmp=&c_table[(inputvalue&c_mask)>>1];	\
-do { \
-  if (cnodetmp->key==inputvalue) {x=(void *)&((objheader_t*)cnodetmp->val)[1];break;} \
-cnodetmp=cnodetmp->next;\
- if (cnodetmp==NULL) {x=(void *)transRead2(inputvalue); asm volatile("":"=m"(c_table),"=m"(c_mask));break;} \
-} while(1);\
-}}
+    unsigned int inputvalue; \
+    if ((inputvalue=(unsigned int)y)==0) x=NULL;                                                                                              \
+         else { \
+           chashlistnode_t * cnodetmp=&c_table[(inputvalue&c_mask)>>1];    \
+           do { \
+             if (cnodetmp->key==inputvalue) {x=(void *)& ((objheader_t*)cnodetmp->val)[1]; break; } \
+             cnodetmp=cnodetmp->next; \
+             if (cnodetmp==NULL) {x=(void *)transRead2(inputvalue); asm volatile ("" : "=m" (c_table),"=m" (c_mask)); break; } \
+	   } while(1); \
+	 }}
 
 __attribute__((pure)) objheader_t *transRead(unsigned int);
 __attribute__((pure)) objheader_t *transRead2(unsigned int);

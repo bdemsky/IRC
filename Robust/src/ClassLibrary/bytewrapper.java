@@ -1,4 +1,5 @@
 public class bytewrapper {
-    public bytewrapper() {}
-    byte value;
+  public bytewrapper() {
+  }
+  byte value;
 }

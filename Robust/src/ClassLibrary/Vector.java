@@ -14,7 +14,7 @@ public class Vector {
     this.size=0;
     array=new Object[size];
   }
-  
+
   //used for internal cloning
   private Vector(int size, int capacityIncrement, Object[] array) {
     this.size = size;
@@ -22,7 +22,7 @@ public class Vector {
     this.array = new Object[array.length];
     System.arraycopy(array, 0, this.array, 0, size);
   }
-  
+
   public Vector clone() {
     return new Vector(size,capacityIncrement, array);
   }
@@ -58,7 +58,7 @@ public class Vector {
       removeElementAt(in);
       return true;
     }
-    
+
     return false;
   }
 

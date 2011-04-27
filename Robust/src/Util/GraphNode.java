@@ -39,7 +39,7 @@ public class GraphNode {
     tovisit.addAll(nodes);
     while(!tovisit.isEmpty()) {
       GraphNode gn=(GraphNode)tovisit.pop();
-      for(Iterator it=gn.edges(); it.hasNext();) {
+      for(Iterator it=gn.edges(); it.hasNext(); ) {
 	Edge edge=(Edge)it.next();
 	GraphNode target=edge.getTarget();
 	if (!nodes.contains(target)) {
@@ -60,7 +60,7 @@ public class GraphNode {
     for(int i=0; i<depth&&!tovisit.isEmpty(); i++) {
       while(!tovisit.isEmpty()) {
 	GraphNode gn=(GraphNode)tovisit.pop();
-	for(Iterator it=gn.edges(); it.hasNext();) {
+	for(Iterator it=gn.edges(); it.hasNext(); ) {
 	  Edge edge=(Edge)it.next();
 	  GraphNode target=edge.getTarget();
 	  if (!nodes.contains(target)) {
@@ -155,7 +155,7 @@ public class GraphNode {
   }
 
   public void addEdge(Vector v) {
-    for (Iterator it = v.iterator(); it.hasNext();)
+    for (Iterator it = v.iterator(); it.hasNext(); )
       addEdge((Edge)it.next());
   }
 
@@ -285,7 +285,7 @@ public class GraphNode {
 	    Edge edge = (Edge) edges.next();
 	    GraphNode node = edge.getTarget();
 	    if (nodes.contains(node)) {
-	      for(Iterator nodeit=nonmerge(node).iterator(); nodeit.hasNext();) {
+	      for(Iterator nodeit=nonmerge(node).iterator(); nodeit.hasNext(); ) {
 		GraphNode node2=(GraphNode)nodeit.next();
 		String edgelabel = "";
 		String edgedotnodeparams="";
@@ -387,7 +387,7 @@ public class GraphNode {
 	return true;
       Object [] array=s.toArray();
       GraphNode gn=(GraphNode)array[0];
-      for(Iterator it=gn.edges(); it.hasNext();) {
+      for(Iterator it=gn.edges(); it.hasNext(); ) {
 	Edge e=(Edge)it.next();
 	if (e.getTarget()==gn)
 	  return true;           /* Self Cycle */
@@ -424,7 +424,7 @@ public class GraphNode {
       dfs.sccmaprev=new HashMap();
       dfs.finishingorder=new Vector();
       boolean acyclic=dfs.go();
-      for (Iterator it = nodes.iterator(); it.hasNext();) {
+      for (Iterator it = nodes.iterator(); it.hasNext(); ) {
 	GraphNode gn = (GraphNode) it.next();
 	gn.resetscc();
       }
@@ -447,7 +447,7 @@ public class GraphNode {
 	sccmap.put(i,new HashSet());
       ((Set)sccmap.get(i)).add(gn);
       sccmaprev.put(gn,i);
-      for(Iterator edgeit=gn.inedges(); edgeit.hasNext();) {
+      for(Iterator edgeit=gn.inedges(); edgeit.hasNext(); ) {
 	Edge e=(Edge)edgeit.next();
 	GraphNode gn2=e.getSource();
 	dfsprev(gn2);

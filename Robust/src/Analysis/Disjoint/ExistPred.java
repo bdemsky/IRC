@@ -26,10 +26,10 @@ import java.io.*;
 // Existence predicates in the callee final-result
 // graph are relevant on the caller's callee-reachable
 // graph parts.  Any callee result elements with
-// predicates not satisfied in the caller are not 
+// predicates not satisfied in the caller are not
 // mapped in the call site transfer function
 
-public class ExistPred extends Canonical {  
+public class ExistPred extends Canonical {
 
   // there are several types of predicates, note that
   // there are not subclasses of the ExistPred class
@@ -41,13 +41,13 @@ public class ExistPred extends Canonical {
   public static final int TYPE_EDGE = 0x414b;
   protected int predType;
 
-  // true predicates always evaluate to true  
+  // true predicates always evaluate to true
 
   // A node existence predicate is satisfied if the heap
   // region ID defining a node is part of the given graph
   // The reach state may be null--if not the predicate is
   // satisfied when the edge exists AND it has the state.
-  protected Integer    n_hrnID;
+  protected Integer n_hrnID;
   protected ReachState ne_state;
 
   // An edge existence predicate is satisfied if the elements
@@ -57,42 +57,42 @@ public class ExistPred extends Canonical {
   // the source of an edge is *either* a variable
   // node or a heap region node
   protected TempDescriptor e_tdSrc;
-  protected Integer        e_hrnSrcID;
+  protected Integer e_hrnSrcID;
 
   // the source of an edge might be out of the callee
   // context but in the caller graph, a normal caller
   // heap region or variable, OR it might be out of the
   // caller context ALSO: an ooc node in the caller
-  protected boolean        e_srcOutCalleeContext;
-  protected boolean        e_srcOutCallerContext;
+  protected boolean e_srcOutCalleeContext;
+  protected boolean e_srcOutCallerContext;
 
   // dst is always a heap region
-  protected Integer        e_hrnDstID;
+  protected Integer e_hrnDstID;
 
   // a reference has a field name and type
   protected TypeDescriptor e_type;
-  protected String         e_field;                    
+  protected String e_field;
 
   // if the taint is non-null then the predicate
   // is true only if the edge exists AND has the
   // taint--ONLY ONE of the ne_state or e_taint
   // may be non-null for an edge predicate
-  protected Taint          e_taint;
+  protected Taint e_taint;
 
 
 
   // a static debug flag for higher abstraction code
   // to enable debug info at this level
   public static boolean debug = false;
-  
+
 
   // to make the true predicate
   public static ExistPred factory() {
     ExistPred out = new ExistPred();
-    out = (ExistPred) Canonical.makeCanonical( out );
+    out = (ExistPred) Canonical.makeCanonical(out);
     return out;
   }
-  
+
   protected ExistPred() {
     this.predType = TYPE_TRUE;
     ne_state   = null;
@@ -108,17 +108,17 @@ public class ExistPred extends Canonical {
   }
 
   // node predicates
-  public static ExistPred factory( Integer    hrnID, 
-                                   ReachState state ) {
+  public static ExistPred factory(Integer hrnID,
+                                  ReachState state) {
 
-    ExistPred out = new ExistPred( hrnID, state );
+    ExistPred out = new ExistPred(hrnID, state);
 
-    out = (ExistPred) Canonical.makeCanonical( out );
+    out = (ExistPred) Canonical.makeCanonical(out);
     return out;
   }
-  
-  protected ExistPred( Integer    hrnID, 
-                       ReachState state ) {
+
+  protected ExistPred(Integer hrnID,
+                      ReachState state) {
     assert hrnID != null;
     this.n_hrnID  = hrnID;
     this.ne_state = state;
@@ -134,45 +134,45 @@ public class ExistPred extends Canonical {
   }
 
   // edge predicates
-  public static ExistPred factory( TempDescriptor tdSrc,   
-                                   Integer        hrnSrcID, 
-                                   Integer        hrnDstID,
-                                   TypeDescriptor type,    
-                                   String         field,   
-                                   ReachState     state,
-                                   Taint          taint,
-                                   boolean        srcOutCalleeContext,
-                                   boolean        srcOutCallerContext ) {
+  public static ExistPred factory(TempDescriptor tdSrc,
+                                  Integer hrnSrcID,
+                                  Integer hrnDstID,
+                                  TypeDescriptor type,
+                                  String field,
+                                  ReachState state,
+                                  Taint taint,
+                                  boolean srcOutCalleeContext,
+                                  boolean srcOutCallerContext) {
 
-    ExistPred out = new ExistPred( tdSrc,   
-                                   hrnSrcID,
-                                   hrnDstID,
-                                   type,    
-                                   field,   
-                                   state,
-                                   taint,
-                                   srcOutCalleeContext,
-                                   srcOutCallerContext );
+    ExistPred out = new ExistPred(tdSrc,
+                                  hrnSrcID,
+                                  hrnDstID,
+                                  type,
+                                  field,
+                                  state,
+                                  taint,
+                                  srcOutCalleeContext,
+                                  srcOutCallerContext);
 
-    out = (ExistPred) Canonical.makeCanonical( out );
+    out = (ExistPred) Canonical.makeCanonical(out);
     return out;
   }
 
-  protected ExistPred( TempDescriptor tdSrc, 
-                       Integer        hrnSrcID, 
-                       Integer        hrnDstID,
-                       TypeDescriptor type,
-                       String         field,
-                       ReachState     state,
-                       Taint          taint,
-                       boolean        srcOutCalleeContext,
-                       boolean        srcOutCallerContext ) {
-    
-    assert (tdSrc == null) || (hrnSrcID == null);
+  protected ExistPred(TempDescriptor tdSrc,
+                      Integer hrnSrcID,
+                      Integer hrnDstID,
+                      TypeDescriptor type,
+                      String field,
+                      ReachState state,
+                      Taint taint,
+                      boolean srcOutCalleeContext,
+                      boolean srcOutCallerContext) {
+
+    assert(tdSrc == null) || (hrnSrcID == null);
     assert hrnDstID != null;
     assert type     != null;
-    assert (state == null) || (taint == null);
-    
+    assert(state == null) || (taint == null);
+
     // fields can be null when the edge is from
     // a variable node to a heap region!
 
@@ -185,7 +185,7 @@ public class ExistPred extends Canonical {
     this.e_hrnSrcID = hrnSrcID;
     this.e_hrnDstID = hrnDstID;
     this.e_type     = type;
-    this.e_field    = field;    
+    this.e_field    = field;
     this.ne_state   = state;
     this.e_taint    = taint;
     this.predType   = TYPE_EDGE;
@@ -193,34 +193,34 @@ public class ExistPred extends Canonical {
   }
 
   // for node or edge, check inputs
-  public static ExistPred factory( Integer        hrnID,
-                                   TempDescriptor tdSrc,   
-                                   Integer        hrnSrcID, 
-                                   Integer        hrnDstID,
-                                   TypeDescriptor type,    
-                                   String         field,   
-                                   ReachState     state,
-                                   Taint          taint,
-                                   boolean        srcOutCalleeContext,
-                                   boolean        srcOutCallerContext ) {
+  public static ExistPred factory(Integer hrnID,
+                                  TempDescriptor tdSrc,
+                                  Integer hrnSrcID,
+                                  Integer hrnDstID,
+                                  TypeDescriptor type,
+                                  String field,
+                                  ReachState state,
+                                  Taint taint,
+                                  boolean srcOutCalleeContext,
+                                  boolean srcOutCallerContext) {
     ExistPred out;
 
     if( hrnID != null ) {
-      out = new ExistPred( hrnID, state );
+      out = new ExistPred(hrnID, state);
 
     } else {
-      out = new ExistPred( tdSrc,   
-                           hrnSrcID,
-                           hrnDstID,
-                           type,    
-                           field,   
-                           state,
-                           taint,
-                           srcOutCalleeContext,
-                           srcOutCallerContext );
+      out = new ExistPred(tdSrc,
+                          hrnSrcID,
+                          hrnDstID,
+                          type,
+                          field,
+                          state,
+                          taint,
+                          srcOutCalleeContext,
+                          srcOutCallerContext);
     }
-    
-    out = (ExistPred) Canonical.makeCanonical( out );
+
+    out = (ExistPred) Canonical.makeCanonical(out);
     return out;
   }
 
@@ -229,164 +229,164 @@ public class ExistPred extends Canonical {
 
   // only consider the subest of the caller elements that
   // are reachable by callee when testing predicates--if THIS
-  // predicate is satisfied, return the predicate set of the 
+  // predicate is satisfied, return the predicate set of the
   // element that satisfied it, or null for false
-  public ExistPredSet isSatisfiedBy( ReachGraph   rg,
-                                     Set<Integer> calleeReachableNodes
-                                     ) {
+  public ExistPredSet isSatisfiedBy(ReachGraph rg,
+                                    Set<Integer> calleeReachableNodes
+                                    ) {
     if( predType == TYPE_TRUE ) {
-      return ExistPredSet.factory( ExistPred.factory() );
+      return ExistPredSet.factory(ExistPred.factory() );
     }
 
     if( predType == TYPE_NODE ) {
 
       // first find node
-      HeapRegionNode hrn = rg.id2hrn.get( n_hrnID );
+      HeapRegionNode hrn = rg.id2hrn.get(n_hrnID);
       if( hrn == null ) {
-        return null;
+	return null;
       }
 
-      if( !calleeReachableNodes.contains( n_hrnID ) ) {
-        return null;
+      if( !calleeReachableNodes.contains(n_hrnID) ) {
+	return null;
       }
 
       // when the state is null we're done!
       if( ne_state == null ) {
-        return hrn.getPreds();
+	return hrn.getPreds();
 
       } else {
-        // otherwise look for state too
+	// otherwise look for state too
 
-        // TODO: contains OR containsSuperSet OR containsWithZeroes??
-        ReachState stateCaller = hrn.getAlpha().containsIgnorePreds( ne_state );
-        
-        if( stateCaller == null ) {
-          return null;
+	// TODO: contains OR containsSuperSet OR containsWithZeroes??
+	ReachState stateCaller = hrn.getAlpha().containsIgnorePreds(ne_state);
 
-        } else {
-          // it was here, return the predicates on the state!!
-          return stateCaller.getPreds();
-        }
+	if( stateCaller == null ) {
+	  return null;
+
+	} else {
+	  // it was here, return the predicates on the state!!
+	  return stateCaller.getPreds();
+	}
       }
 
       // unreachable program point!
     }
-    
+
     if( predType == TYPE_EDGE ) {
 
       // first establish whether the source of the
       // reference edge exists
       VariableNode vnSrc = null;
       if( e_tdSrc != null ) {
-        vnSrc = rg.td2vn.get( e_tdSrc );
+	vnSrc = rg.td2vn.get(e_tdSrc);
       }
       HeapRegionNode hrnSrc = null;
       if( e_hrnSrcID != null ) {
-        hrnSrc = rg.id2hrn.get( e_hrnSrcID );
+	hrnSrc = rg.id2hrn.get(e_hrnSrcID);
       }
-      assert (vnSrc == null) || (hrnSrc == null);
-    
+      assert(vnSrc == null) || (hrnSrc == null);
+
       // the source is not present in graph
       if( vnSrc == null && hrnSrc == null ) {
-        return null;
+	return null;
       }
 
       RefSrcNode rsn;
       if( vnSrc != null ) {
-        rsn = vnSrc;
-        assert e_srcOutCalleeContext;
-        assert !e_srcOutCallerContext;
+	rsn = vnSrc;
+	assert e_srcOutCalleeContext;
+	assert !e_srcOutCallerContext;
 
       } else {
 
-        assert !(e_srcOutCalleeContext && e_srcOutCallerContext);
+	assert !(e_srcOutCalleeContext && e_srcOutCallerContext);
 
-        if( e_srcOutCalleeContext ) {
-          if( calleeReachableNodes.contains( e_hrnSrcID ) ) {
-            return null;
-          }
+	if( e_srcOutCalleeContext ) {
+	  if( calleeReachableNodes.contains(e_hrnSrcID) ) {
+	    return null;
+	  }
 
-        } else if( e_srcOutCallerContext ) {
-          if( !hrnSrc.isOutOfContext() ) {
-            return null;
-          }
+	} else if( e_srcOutCallerContext ) {
+	  if( !hrnSrc.isOutOfContext() ) {
+	    return null;
+	  }
 
-        } else {
+	} else {
 
-          if( !calleeReachableNodes.contains( e_hrnSrcID ) ) {
-            return null;
-          }
-          if( hrnSrc.isOutOfContext() ) {
-            return null;
-          }
+	  if( !calleeReachableNodes.contains(e_hrnSrcID) ) {
+	    return null;
+	  }
+	  if( hrnSrc.isOutOfContext() ) {
+	    return null;
+	  }
 
-        }
+	}
 
-        rsn = hrnSrc;
+	rsn = hrnSrc;
       }
 
       // is the destination present?
-      HeapRegionNode hrnDst = rg.id2hrn.get( e_hrnDstID );
+      HeapRegionNode hrnDst = rg.id2hrn.get(e_hrnDstID);
       if( hrnDst == null ) {
-        return null;
+	return null;
       }
 
-      if( !calleeReachableNodes.contains( e_hrnDstID ) ) {
-        return null;
+      if( !calleeReachableNodes.contains(e_hrnDstID) ) {
+	return null;
       }
 
       // is there an edge between them with the given
       // type and field?
       // TODO: type OR a subtype?
-      RefEdge edge = rsn.getReferenceTo( hrnDst, 
-                                         e_type, 
-                                         e_field );
+      RefEdge edge = rsn.getReferenceTo(hrnDst,
+                                        e_type,
+                                        e_field);
       if( edge == null ) {
-        return null;
+	return null;
       }
 
       // when the state and taint are null we're done!
-      if( ne_state == null && 
+      if( ne_state == null &&
           e_taint  == null ) {
-        return edge.getPreds();
+	return edge.getPreds();
 
       } else if( ne_state != null ) {
-        // otherwise look for state too
+	// otherwise look for state too
 
-        // TODO: contains OR containsSuperSet OR containsWithZeroes??
-        ReachState stateCaller = edge.getBeta().containsIgnorePreds( ne_state );
-        
-        if( stateCaller == null ) {
-          return null;
+	// TODO: contains OR containsSuperSet OR containsWithZeroes??
+	ReachState stateCaller = edge.getBeta().containsIgnorePreds(ne_state);
 
-        } else {
-          // it was here, return the predicates on the state!!
-          return stateCaller.getPreds();
-        }
+	if( stateCaller == null ) {
+	  return null;
+
+	} else {
+	  // it was here, return the predicates on the state!!
+	  return stateCaller.getPreds();
+	}
 
       } else {
-        // otherwise look for taint
+	// otherwise look for taint
 
-        Taint tCaller = edge.getTaints().containsIgnorePreds( e_taint );
-        
-        if( tCaller == null ) {
-          return null;
+	Taint tCaller = edge.getTaints().containsIgnorePreds(e_taint);
 
-        } else {
-          // it was here, return the predicates on the taint!!
-          return tCaller.getPreds();
-        }
+	if( tCaller == null ) {
+	  return null;
+
+	} else {
+	  // it was here, return the predicates on the taint!!
+	  return tCaller.getPreds();
+	}
       }
 
       // unreachable program point!
     }
 
-    throw new Error( "Unknown predicate type" );
+    throw new Error("Unknown predicate type");
   }
 
 
 
-  public boolean equalsSpecific( Object o ) {
+  public boolean equalsSpecific(Object o) {
     if( o == null ) {
       return false;
     }
@@ -403,73 +403,73 @@ public class ExistPred extends Canonical {
 
     if( ne_state == null ) {
       if( pred.ne_state != null ) {
-        return false;
+	return false;
       }
-    } else if( !ne_state.equals( pred.ne_state ) ) {
+    } else if( !ne_state.equals(pred.ne_state) ) {
       return false;
     }
-    
+
     if( n_hrnID == null ) {
       if( pred.n_hrnID != null ) {
-        return false;
+	return false;
       }
-    } else if( !n_hrnID.equals( pred.n_hrnID ) ) {
+    } else if( !n_hrnID.equals(pred.n_hrnID) ) {
       return false;
     }
-    
+
     if( e_tdSrc == null ) {
       if( pred.e_tdSrc != null ) {
-        return false;
+	return false;
       }
-    } else if( !e_tdSrc.equals( pred.e_tdSrc ) ) {
+    } else if( !e_tdSrc.equals(pred.e_tdSrc) ) {
       return false;
     }
 
     if( e_hrnSrcID == null ) {
       if( pred.e_hrnSrcID != null ) {
-        return false;
+	return false;
       }
     } else {
-      if( !e_hrnSrcID.equals( pred.e_hrnSrcID ) ) {
-        return false;
+      if( !e_hrnSrcID.equals(pred.e_hrnSrcID) ) {
+	return false;
       }
       if( e_srcOutCalleeContext != pred.e_srcOutCalleeContext ) {
-        return false;
+	return false;
       }
       if( e_srcOutCallerContext != pred.e_srcOutCallerContext ) {
-        return false;
+	return false;
       }
     }
 
     if( e_hrnDstID == null ) {
       if( pred.e_hrnDstID != null ) {
-        return false;
+	return false;
       }
-    } else if( !e_hrnDstID.equals( pred.e_hrnDstID ) ) {
+    } else if( !e_hrnDstID.equals(pred.e_hrnDstID) ) {
       return false;
     }
-    
+
     if( e_type == null ) {
       if( pred.e_type != null ) {
-        return false;
+	return false;
       }
-    } else if( !e_type.equals( pred.e_type ) ) {
+    } else if( !e_type.equals(pred.e_type) ) {
       return false;
     }
-    
+
     if( e_field == null ) {
       if( pred.e_field != null ) {
-        return false;
+	return false;
       }
-    } else if( !e_field.equals( pred.e_field ) ) {
+    } else if( !e_field.equals(pred.e_field) ) {
       return false;
     }
 
     if( e_taint == null ) {
       if( pred.e_taint != null ) {
-        return false;
+	return false;
       }
-    } else if( !e_taint.equals( pred.e_taint ) ) {
+    } else if( !e_taint.equals(pred.e_taint) ) {
       return false;
     }
 
@@ -486,50 +486,50 @@ public class ExistPred extends Canonical {
       int hash = n_hrnID.intValue()*17;
 
       if( ne_state != null ) {
-        hash ^= ne_state.hashCode();
+	hash ^= ne_state.hashCode();
       }
 
       return hash;
     }
-    
+
     if( predType == TYPE_EDGE ) {
-      int hash = 0; 
+      int hash = 0;
 
       hash += e_type.hashCode()*17;
 
       if( e_field != null ) {
-        hash += e_field.hashCode()*7;
+	hash += e_field.hashCode()*7;
       }
-    
+
       if( e_tdSrc != null ) {
-        hash ^= e_tdSrc.hashCode()*11;
+	hash ^= e_tdSrc.hashCode()*11;
       } else {
-        hash ^= e_hrnSrcID.hashCode()*11;
-        if( e_srcOutCalleeContext ) {
-          hash ^= 0xf1aeb;
-        }
-        if( e_srcOutCallerContext ) {
-          hash ^= 0x875d;
-        }
+	hash ^= e_hrnSrcID.hashCode()*11;
+	if( e_srcOutCalleeContext ) {
+	  hash ^= 0xf1aeb;
+	}
+	if( e_srcOutCallerContext ) {
+	  hash ^= 0x875d;
+	}
       }
 
       hash += e_hrnDstID.hashCode();
 
       if( ne_state != null ) {
-        hash ^= ne_state.hashCode();
+	hash ^= ne_state.hashCode();
       }
 
       if( e_taint != null ) {
-        hash ^= e_taint.hashCode();
+	hash ^= e_taint.hashCode();
       }
- 
+
       return hash;
     }
 
-    throw new Error( "Unknown predicate type" );
+    throw new Error("Unknown predicate type");
   }
 
-  
+
   public String toString() {
     if( predType == TYPE_TRUE ) {
       return "t";
@@ -538,42 +538,42 @@ public class ExistPred extends Canonical {
     if( predType == TYPE_NODE ) {
       String s = n_hrnID.toString();
       if( ne_state != null ) {
-        s += "w"+ne_state;
+	s += "w"+ne_state;
       }
       return s;
     }
 
     if( predType == TYPE_EDGE ) {
       String s = "(";
-    
+
       if( e_tdSrc != null ) {
-        s += e_tdSrc.toString();
+	s += e_tdSrc.toString();
       } else {
-        s += e_hrnSrcID.toString();
+	s += e_hrnSrcID.toString();
       }
 
       if( e_srcOutCalleeContext ) {
-        s += "(ooCLEEc)";
+	s += "(ooCLEEc)";
       }
 
       if( e_srcOutCallerContext ) {
-        s += "(ooCLERc)";
+	s += "(ooCLERc)";
       }
 
       s += "-->"+e_hrnDstID+")";
 
       if( ne_state != null ) {
-        s += "w"+ne_state;
+	s += "w"+ne_state;
       }
 
       if( e_taint != null ) {
-        s += "w"+e_taint;
+	s += "w"+e_taint;
       }
 
       return s;
     }
 
-    throw new Error( "Unknown predicate type" );
+    throw new Error("Unknown predicate type");
   }
-  
+
 }

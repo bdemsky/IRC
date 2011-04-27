@@ -34,7 +34,7 @@ objstr_t * getObjStr(unsigned int size) {
     tmp->prev=NULL;
     return tmp;
   } else {
-    int allocsize=(size>DEFAULT_OBJ_STORE_SIZE)?size:DEFAULT_OBJ_STORE_SIZE;
+    int allocsize=(size>DEFAULT_OBJ_STORE_SIZE) ? size : DEFAULT_OBJ_STORE_SIZE;
     return objstrCreate(allocsize);
   }
 }
@@ -141,19 +141,19 @@ void clearBlock(objstr_t *block) {
       }
     }
 
-    if(((i+1)&(pflookup.mask>>4))==0 && (i+1)<pflookup.size){
+    if(((i+1)&(pflookup.mask>>4))==0 && (i+1)<pflookup.size) {
       // try to grab new lock
       lockindex++;
       volatile unsigned int * lockptr_new=&pflookup.larray[lockindex].lock;
-      while(!write_trylock(lockptr_new)){
-        sched_yield();
+      while(!write_trylock(lockptr_new)) {
+	sched_yield();
       }
       write_unlock(lockptr_current);
-      lockptr_current=lockptr_new;      
+      lockptr_current=lockptr_new;
     }
-    
-  }// end of for (pflokup)
-  
+
+  } // end of for (pflokup)
+
   write_unlock(lockptr_current);
 }
 

@@ -35,7 +35,7 @@ public class Lexer {
 
   public java_cup.runtime.Symbol nextToken() throws java.io.IOException {
     java_cup.runtime.Symbol sym =
-      lookahead==null ? _nextToken() : lookahead.get();
+      lookahead==null?_nextToken():lookahead.get();
     last = sym;
     return sym;
   }
@@ -131,23 +131,23 @@ public class Lexer {
 
     switch (line.charAt(line_pos)) {
 
-      // White space:
+    // White space:
     case ' ':    // ASCII SP
     case '\t':    // ASCII HT
     case '\f':    // ASCII FF
     case '\n':    // LineTerminator
       return new WhiteSpace(consume());
 
-      // EOF character:
+    // EOF character:
     case '\020': // ASCII SUB
       consume();
       return new EOF();
 
-      // Comment prefix:
+    // Comment prefix:
     case '/':
       return getComment();
 
-      // else, a Token
+    // else, a Token
     default:
       return getToken();
     }
@@ -204,7 +204,7 @@ public class Lexer {
   Token getToken() throws java.io.IOException {
     // Tokens are: Identifiers, Keywords, Literals, Separators, Operators.
     switch (line.charAt(line_pos)) {
-      // Separators: (period is a special case)
+    // Separators: (period is a special case)
     case '(':
     case ')':
     case '{':
@@ -216,7 +216,7 @@ public class Lexer {
     case '@':
       return new Separator(consume());
 
-      // Operators:
+    // Operators:
     case '=':
     case '>':
     case '<':
@@ -240,7 +240,7 @@ public class Lexer {
     case '\"':
       return getStringLiteral();
 
-      // a period is a special case:
+    // a period is a special case:
     case '.':
       if (Character.digit(line.charAt(line_pos+1),10)!=-1)
 	return getNumericLiteral();
@@ -273,8 +273,8 @@ public class Lexer {
     "import", "instanceof", "int",
     "interface",
     "isavailable",
-    "locdef", "long", 
-    "native", "new", "newflag", "optional", "package", "private", "protected", "public", 
+    "locdef", "long",
+    "native", "new", "newflag", "optional", "package", "private", "protected", "public",
     "rblock", "return",
     "scratch", "sese", "short", "static", "strictfp", "super", "switch", "synchronized",
     "tag", "task", "taskexit", //keywords for failure aware computation
@@ -310,7 +310,7 @@ public class Lexer {
     // use binary search.
     for (int l=0, r=keywords.length; r > l; ) {
       int x = (l+r)/2, cmp = s.compareTo(keywords[x]);
-      if (cmp < 0) r=x;else l=x+1;
+      if (cmp < 0) r=x; else l=x+1;
       if (cmp== 0) return new Keyword(s);
     }
     // not a keyword.
@@ -387,7 +387,7 @@ public class Lexer {
       case 'D':
 	consume();
 
-	/* falls through */
+      /* falls through */
       default:
 	return new DoubleLiteral(Double.valueOf(rep).doubleValue());
       }
@@ -407,13 +407,13 @@ public class Lexer {
     char second= line.charAt(line_pos);
 
     switch(first) {
-      // single-character operators.
+    // single-character operators.
     case '~':
     case '?':
     case ':':
       return new Operator(new String(new char[] {first}));
 
-      // doubled operators
+    // doubled operators
     case '+':
     case '-':
     case '&':

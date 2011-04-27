@@ -11,7 +11,7 @@ import java.util.*;
 
 
 // This analysis finds all reachable rblocks in the
-// program and computes parent/child relations 
+// program and computes parent/child relations
 // between those rblocks
 
 // SPECIAL NOTE!
@@ -51,8 +51,8 @@ import java.util.*;
 public class RBlockRelationAnalysis {
 
   // compiler data
-  State     state;
-  TypeUtil  typeUtil;
+  State state;
+  TypeUtil typeUtil;
   CallGraph callGraph;
 
   // an implicit SESE is automatically spliced into
@@ -72,11 +72,11 @@ public class RBlockRelationAnalysis {
 
   // simply the set of every reachable SESE in the program
   protected Set<FlatSESEEnterNode> allSESEs;
-  
+
   // to support calculation of leaf SESEs (no children even
   // through method calls) for optimization during code gen
   protected Set<MethodDescriptor> methodsContainingSESEs;
-  
+
   // maps method descriptor to SESE defined inside of it
   // only contains local root SESE definitions in corresponding method
   // (has no parent in the local method context)
@@ -106,12 +106,12 @@ public class RBlockRelationAnalysis {
   //   baz();  <-- here there is no locally-defined SESE, would be null
   // }
   protected Hashtable<FlatNode, FlatSESEEnterNode> fn2localInnerSESE;
-  
+
   // indicates whether this statement might occur in a task and
   // after some child task definition such that, without looking at
   // the flat node itself, the parent might have to stall for child
   protected Hashtable<FlatNode, Boolean> fn2isPotentialStallSite;
-  
+
   HashMap<MethodDescriptor, Set<Pair<FlatCall, MethodDescriptor>>> methodmap=
     new HashMap<MethodDescriptor, Set<Pair<FlatCall, MethodDescriptor>>>();
 
@@ -132,8 +132,8 @@ public class RBlockRelationAnalysis {
     return allLocalRootSESEs;
   }
 
-  public Set<FlatSESEEnterNode> getLocalRootSESEs( FlatMethod fm ) {
-    Set<FlatSESEEnterNode> out = md2localRootSESEs.get( fm );
+  public Set<FlatSESEEnterNode> getLocalRootSESEs(FlatMethod fm) {
+    Set<FlatSESEEnterNode> out = md2localRootSESEs.get(fm);
     if( out == null ) {
       out = new HashSet<FlatSESEEnterNode>();
     }
@@ -143,7 +143,7 @@ public class RBlockRelationAnalysis {
   public Set<MethodDescriptor> getMethodsWithSESEs() {
     return methodsContainingSESEs;
   }
-  
+
   /* Returns all SESE's that this fn can be a member of
    * transitively. */
 
@@ -160,7 +160,7 @@ public class RBlockRelationAnalysis {
       FlatNode curr=toprocess.pop();
       Set<FlatSESEEnterNode> callers=fn2currentSESEs.get(curr);
       if (callers!=null) {
-	for(FlatSESEEnterNode sese:callers) {
+	for(FlatSESEEnterNode sese : callers) {
 	  if (!seseSet.contains(sese)) {
 	    seseSet.add(sese);
 	    toprocess.add(fn);
@@ -170,17 +170,17 @@ public class RBlockRelationAnalysis {
     }
     return seseSet;
   }
-  
-  public Set<FlatSESEEnterNode> getPossibleExecutingRBlocks( FlatNode fn ) {
-    Set<FlatSESEEnterNode> out = fn2currentSESEs.get( fn );
+
+  public Set<FlatSESEEnterNode> getPossibleExecutingRBlocks(FlatNode fn) {
+    Set<FlatSESEEnterNode> out = fn2currentSESEs.get(fn);
     if( out == null ) {
       out = new HashSet<FlatSESEEnterNode>();
     }
     return out;
   }
 
-  public FlatSESEEnterNode getLocalInnerRBlock( FlatNode fn ) {
-    return fn2localInnerSESE.get( fn );
+  public FlatSESEEnterNode getLocalInnerRBlock(FlatNode fn) {
+    return fn2localInnerSESE.get(fn);
   }
 
   // the "caller proxy" is a static name for whichever
@@ -193,23 +193,23 @@ public class RBlockRelationAnalysis {
     return callerProxySESE;
   }
 
-  public boolean isPotentialStallSite( FlatNode fn ) {
-    Boolean ipss = fn2isPotentialStallSite.get( fn );
-    if( ipss == null ) { 
-      return false; 
+  public boolean isPotentialStallSite(FlatNode fn) {
+    Boolean ipss = fn2isPotentialStallSite.get(fn);
+    if( ipss == null ) {
+      return false;
     }
     return ipss;
   }
 
 
-  public RBlockRelationAnalysis( State     state,
-                                 TypeUtil  typeUtil,
-                                 CallGraph callGraph ) {
+  public RBlockRelationAnalysis(State state,
+                                TypeUtil typeUtil,
+                                CallGraph callGraph) {
     this.state     = state;
     this.typeUtil  = typeUtil;
     this.callGraph = callGraph;
 
-    callerProxySESE = new FlatSESEEnterNode( null );
+    callerProxySESE = new FlatSESEEnterNode(null);
     callerProxySESE.setIsCallerProxySESE();
 
     allSESEs                = new HashSet<FlatSESEEnterNode>();
@@ -221,24 +221,24 @@ public class RBlockRelationAnalysis {
     fn2isPotentialStallSite = new Hashtable<FlatNode, Boolean>();
     fn2allSESEs             = new Hashtable< FlatNode, Set<FlatSESEEnterNode>>();
 
-    
-    MethodDescriptor mdSourceEntry = typeUtil.getMain();
-    FlatMethod       fmMain        = state.getMethodFlat( mdSourceEntry );
 
-    mainSESE = (FlatSESEEnterNode) fmMain.getNext( 0 );
-    mainSESE.setfmEnclosing( fmMain );
-    mainSESE.setmdEnclosing( fmMain.getMethod() );
-    mainSESE.setcdEnclosing( fmMain.getMethod().getClassDesc() );
-    
+    MethodDescriptor mdSourceEntry = typeUtil.getMain();
+    FlatMethod fmMain        = state.getMethodFlat(mdSourceEntry);
+
+    mainSESE = (FlatSESEEnterNode) fmMain.getNext(0);
+    mainSESE.setfmEnclosing(fmMain);
+    mainSESE.setmdEnclosing(fmMain.getMethod() );
+    mainSESE.setcdEnclosing(fmMain.getMethod().getClassDesc() );
+
 
     // add all methods transitively reachable from the
     // source's main to set to find rblocks
-    Set<MethodDescriptor> descriptorsToAnalyze = 
-      callGraph.getAllMethods( mdSourceEntry );
-    
-    descriptorsToAnalyze.add( mdSourceEntry );
+    Set<MethodDescriptor> descriptorsToAnalyze =
+      callGraph.getAllMethods(mdSourceEntry);
 
-    findRblocksAndLocalParentChildRelations( descriptorsToAnalyze );
+    descriptorsToAnalyze.add(mdSourceEntry);
+
+    findRblocksAndLocalParentChildRelations(descriptorsToAnalyze);
 
     findTransitiveParentChildRelations();
 
@@ -253,99 +253,99 @@ public class RBlockRelationAnalysis {
 
 
 
-  
-  protected void findRblocksAndLocalParentChildRelations( Set<MethodDescriptor> descriptorsToAnalyze ) {
+
+  protected void findRblocksAndLocalParentChildRelations(Set<MethodDescriptor> descriptorsToAnalyze) {
 
     Iterator<MethodDescriptor> mdItr = descriptorsToAnalyze.iterator();
     while( mdItr.hasNext() ) {
-      FlatMethod fm = state.getMethodFlat( mdItr.next() );
-      
+      FlatMethod fm = state.getMethodFlat(mdItr.next() );
+
       // start from flat method top, visit every node in
       // method exactly once, find SESE stack on every
       // control path: this will discover every reachable
       // SESE in the program, and define the local parent
       // and local children relations
       Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks =
-        new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >(); 
+        new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
 
       Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-      flatNodesToVisit.add( fm );
-    
-      Set<FlatNode> visited = new HashSet<FlatNode>();    
+      flatNodesToVisit.add(fm);
+
+      Set<FlatNode> visited = new HashSet<FlatNode>();
 
       Stack<FlatSESEEnterNode> seseStackFirst = new Stack<FlatSESEEnterNode>();
-      seseStacks.put( fm, seseStackFirst );
+      seseStacks.put(fm, seseStackFirst);
 
       while( !flatNodesToVisit.isEmpty() ) {
-        Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
-        FlatNode fn = fnItr.next();
+	Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
+	FlatNode fn = fnItr.next();
 
-        Stack<FlatSESEEnterNode> seseStack = seseStacks.get( fn );
-        assert seseStack != null;      
+	Stack<FlatSESEEnterNode> seseStack = seseStacks.get(fn);
+	assert seseStack != null;
 
-        flatNodesToVisit.remove( fn );
-        visited.add( fn );      
+	flatNodesToVisit.remove(fn);
+	visited.add(fn);
 
-        if( !seseStack.isEmpty() ) {
-          fn2localInnerSESE.put( fn, seseStack.peek() );          
-        }
+	if( !seseStack.isEmpty() ) {
+	  fn2localInnerSESE.put(fn, seseStack.peek() );
+	}
 
-        nodeActions( fn, seseStack, fm );
-      
-        for( int i = 0; i < fn.numNext(); i++ ) {
-          FlatNode nn = fn.getNext( i );
-        
-          if( !visited.contains( nn ) ) {
-            flatNodesToVisit.add( nn );
+	nodeActions(fn, seseStack, fm);
 
-            // clone stack and send along each control path
-            seseStacks.put( nn, (Stack<FlatSESEEnterNode>)seseStack.clone() );
-          }
-        }
-      }  
+	for( int i = 0; i < fn.numNext(); i++ ) {
+	  FlatNode nn = fn.getNext(i);
+
+	  if( !visited.contains(nn) ) {
+	    flatNodesToVisit.add(nn);
+
+	    // clone stack and send along each control path
+	    seseStacks.put(nn, (Stack<FlatSESEEnterNode>)seseStack.clone() );
+	  }
+	}
+      }
     }
   }
 
-  protected void nodeActions( FlatNode fn,
-                              Stack<FlatSESEEnterNode> seseStack,
-                              FlatMethod fm ) {
+  protected void nodeActions(FlatNode fn,
+                             Stack<FlatSESEEnterNode> seseStack,
+                             FlatMethod fm) {
     switch( fn.kind() ) {
-      
+
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
 
-      allSESEs.add( fsen );
-      methodsContainingSESEs.add( fm.getMethod() );
+      allSESEs.add(fsen);
+      methodsContainingSESEs.add(fm.getMethod() );
 
-      fsen.setfmEnclosing( fm );
-      fsen.setmdEnclosing( fm.getMethod() );
-      fsen.setcdEnclosing( fm.getMethod().getClassDesc() );
-      
+      fsen.setfmEnclosing(fm);
+      fsen.setmdEnclosing(fm.getMethod() );
+      fsen.setcdEnclosing(fm.getMethod().getClassDesc() );
+
       if( seseStack.empty() ) {
-        // no local parent
-        fsen.setLocalParent( null );
+	// no local parent
+	fsen.setLocalParent(null);
 
-        allLocalRootSESEs.add( fsen );
+	allLocalRootSESEs.add(fsen);
 
-        Set<FlatSESEEnterNode> seseSet = md2localRootSESEs.get( fm.getMethod() );
-        if( seseSet == null ) {
-          seseSet = new HashSet<FlatSESEEnterNode>();
-        }
-        seseSet.add( fsen );
-        md2localRootSESEs.put( fm.getMethod(), seseSet );
+	Set<FlatSESEEnterNode> seseSet = md2localRootSESEs.get(fm.getMethod() );
+	if( seseSet == null ) {
+	  seseSet = new HashSet<FlatSESEEnterNode>();
+	}
+	seseSet.add(fsen);
+	md2localRootSESEs.put(fm.getMethod(), seseSet);
 
       } else {
-        // otherwise a local parent/child relation
-        // which is also the broader parent/child
-        // relation as well
-	seseStack.peek().addLocalChild( fsen );
-	fsen.setLocalParent( seseStack.peek() );
-        
-        seseStack.peek().addChild( fsen );
-        fsen.addParent( seseStack.peek() );
+	// otherwise a local parent/child relation
+	// which is also the broader parent/child
+	// relation as well
+	seseStack.peek().addLocalChild(fsen);
+	fsen.setLocalParent(seseStack.peek() );
+
+	seseStack.peek().addChild(fsen);
+	fsen.addParent(seseStack.peek() );
       }
 
-      seseStack.push( fsen );
+      seseStack.push(fsen);
     } break;
 
     case FKind.FlatSESEExitNode: {
@@ -357,89 +357,89 @@ public class RBlockRelationAnalysis {
     case FKind.FlatReturnNode: {
       FlatReturnNode frn = (FlatReturnNode) fn;
       if( !seseStack.empty() ) {
-	throw new Error( "Error: return statement enclosed within SESE "+
-			 seseStack.peek().getPrettyIdentifier() );
+	throw new Error("Error: return statement enclosed within SESE "+
+	                seseStack.peek().getPrettyIdentifier() );
       }
     } break;
-      
+
     }
   }
 
 
-  
+
   protected void findTransitiveParentChildRelations() {
-       
-    for (Iterator<FlatSESEEnterNode> itr = allSESEs.iterator(); itr.hasNext();) {
+
+    for (Iterator<FlatSESEEnterNode> itr = allSESEs.iterator(); itr.hasNext(); ) {
       FlatSESEEnterNode fsen = itr.next();
 
       boolean hasNoNestedChildren = fsen.getLocalChildren().isEmpty();
-      boolean hasNoChildrenByCall = !hasChildrenByCall( fsen );
+      boolean hasNoChildrenByCall = !hasChildrenByCall(fsen);
 
-      fsen.setIsLeafSESE( hasNoNestedChildren && hasNoChildrenByCall );
+      fsen.setIsLeafSESE(hasNoNestedChildren && hasNoChildrenByCall);
     }
   }
 
-  protected boolean hasChildrenByCall( FlatSESEEnterNode fsen ) {
+  protected boolean hasChildrenByCall(FlatSESEEnterNode fsen) {
 
     boolean hasChildrenByCall = false;
 
     // visit every flat node in SESE body, find method calls that
     // may transitively call methods with SESEs enclosed
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add( fsen );
+    flatNodesToVisit.add(fsen);
 
     Set<FlatNode> visited = new HashSet<FlatNode>();
-    
+
     while( !flatNodesToVisit.isEmpty() ) {
       Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
       FlatNode fn = fnItr.next();
 
-      flatNodesToVisit.remove( fn );
-      visited.add( fn );
-      
+      flatNodesToVisit.remove(fn);
+      visited.add(fn);
+
       if( fn.kind() == FKind.FlatCall ) {
-        FlatCall         fc        = (FlatCall) fn;
-        MethodDescriptor mdCallee  = fc.getMethod();
-        Set              reachable = new HashSet();
+	FlatCall fc        = (FlatCall) fn;
+	MethodDescriptor mdCallee  = fc.getMethod();
+	Set reachable = new HashSet();
 
-        reachable.add( mdCallee );
-        reachable.addAll( callGraph.getAllMethods( mdCallee ) );
-        reachable.retainAll( methodsContainingSESEs );
+	reachable.add(mdCallee);
+	reachable.addAll(callGraph.getAllMethods(mdCallee) );
+	reachable.retainAll(methodsContainingSESEs);
 
-        if( !reachable.isEmpty() ) {
-          hasChildrenByCall = true;
+	if( !reachable.isEmpty() ) {
+	  hasChildrenByCall = true;
 
-          Set reachableSESEMethodSet =
-            callGraph.getFirstReachableMethodContainingSESE( mdCallee, methodsContainingSESEs );
+	  Set reachableSESEMethodSet =
+	    callGraph.getFirstReachableMethodContainingSESE(mdCallee, methodsContainingSESEs);
 
-          reachableSESEMethodSet.add( mdCallee );
-          reachableSESEMethodSet.retainAll( methodsContainingSESEs );
+	  reachableSESEMethodSet.add(mdCallee);
+	  reachableSESEMethodSet.retainAll(methodsContainingSESEs);
 
-          for( Iterator iterator = reachableSESEMethodSet.iterator(); iterator.hasNext(); ) {
-            MethodDescriptor md = (MethodDescriptor) iterator.next();
-            Set<FlatSESEEnterNode> seseSet = md2localRootSESEs.get( md );
-            if( seseSet != null ) {
-              fsen.addChildren( seseSet );
-              for( Iterator iterator2 = seseSet.iterator(); iterator2.hasNext(); ) {
-                FlatSESEEnterNode child = (FlatSESEEnterNode) iterator2.next();
-                child.addParent( fsen );
-              }            
-            }
-          }
-        }
+	  for( Iterator iterator = reachableSESEMethodSet.iterator(); iterator.hasNext(); ) {
+	    MethodDescriptor md = (MethodDescriptor) iterator.next();
+	    Set<FlatSESEEnterNode> seseSet = md2localRootSESEs.get(md);
+	    if( seseSet != null ) {
+	      fsen.addChildren(seseSet);
+	      for( Iterator iterator2 = seseSet.iterator(); iterator2.hasNext(); ) {
+		FlatSESEEnterNode child = (FlatSESEEnterNode) iterator2.next();
+		child.addParent(fsen);
+	      }
+	    }
+	  }
+	}
       }
 
       if( fn == fsen.getFlatExit() ) {
-        // don't enqueue any futher nodes
-        continue;
+	// don't enqueue any futher nodes
+	continue;
       }
 
       for( int i = 0; i < fn.numNext(); i++ ) {
-        FlatNode nn = fn.getNext( i );
+	FlatNode nn = fn.getNext(i);
 
-        if( !visited.contains( nn ) ) {
-          flatNodesToVisit.add( nn );
-        }
+	if( !visited.contains(nn) ) {
+	  flatNodesToVisit.add(nn);
+	}
       }
     }
 
@@ -454,172 +454,172 @@ public class RBlockRelationAnalysis {
       // this sese/rblock/task and mark that this rblock might be executing.
       // Important: skip the body of child rblocks, BUT DO mark the child ENTER
       // and EXIT flat nodes as the parent being the current executing rblock!
-      Hashtable<FlatNode, FlatMethod> flatNodesToVisit = 
+      Hashtable<FlatNode, FlatMethod> flatNodesToVisit =
         new Hashtable<FlatNode, FlatMethod>();
 
       for( int i = 0; i < fsen.numNext(); i++ ) {
-        FlatNode nn = fsen.getNext( i );        
-        flatNodesToVisit.put( nn, fsen.getfmEnclosing() );
+	FlatNode nn = fsen.getNext(i);
+	flatNodesToVisit.put(nn, fsen.getfmEnclosing() );
       }
-      
+
       Set<FlatNode> visited = new HashSet<FlatNode>();
-      
+
       while (!flatNodesToVisit.isEmpty()) {
-        Map.Entry me = (Map.Entry) flatNodesToVisit.entrySet().iterator().next();
-        FlatNode fn = (FlatNode) me.getKey();
-        FlatMethod fm = (FlatMethod) me.getValue();
+	Map.Entry me = (Map.Entry)flatNodesToVisit.entrySet().iterator().next();
+	FlatNode fn = (FlatNode) me.getKey();
+	FlatMethod fm = (FlatMethod) me.getValue();
 
-        flatNodesToVisit.remove(fn);
-        visited.add(fn);
+	flatNodesToVisit.remove(fn);
+	visited.add(fn);
 
-        // the "is potential stall site" strategy is to propagate
-        // "false" from the beginning of a task until you hit a
-        // child, then from the child's exit propagate "true" for
-        // the parent statements after children. When you pull a node
-        // out of the bag for traversal and it happens to be an
-        // enter or an exit node, fix the dumb propagation that
-        // your IR predecessor pushed on you
-        Boolean isPotentialStallSite = isPotentialStallSite(fn);
+	// the "is potential stall site" strategy is to propagate
+	// "false" from the beginning of a task until you hit a
+	// child, then from the child's exit propagate "true" for
+	// the parent statements after children. When you pull a node
+	// out of the bag for traversal and it happens to be an
+	// enter or an exit node, fix the dumb propagation that
+	// your IR predecessor pushed on you
+	Boolean isPotentialStallSite = isPotentialStallSite(fn);
 
-        if (fn == fsen.getFlatExit()) {
-          // don't enqueue any further nodes when you find your exit,
-          // NOR mark your own flat as a statement you are currently
-          // executing, your parent(s) will mark it
-          continue;
-        }
+	if (fn == fsen.getFlatExit()) {
+	  // don't enqueue any further nodes when you find your exit,
+	  // NOR mark your own flat as a statement you are currently
+	  // executing, your parent(s) will mark it
+	  continue;
+	}
 
-        if (fn instanceof FlatSESEExitNode) {
-          setIsPotentialStallSite(fn, false);
-          isPotentialStallSite = true;
-        }
+	if (fn instanceof FlatSESEExitNode) {
+	  setIsPotentialStallSite(fn, false);
+	  isPotentialStallSite = true;
+	}
 
-        // the purpose of this traversal is to find program
-        // points where rblock 'fsen' might be executing
-        addPossibleExecutingRBlock(fn, fsen);
+	// the purpose of this traversal is to find program
+	// points where rblock 'fsen' might be executing
+	addPossibleExecutingRBlock(fn, fsen);
 
-        if (fn instanceof FlatSESEEnterNode) {
-          // don't visit internal nodes of child,
-          // just enqueue the exit node
-          FlatSESEEnterNode child = (FlatSESEEnterNode) fn;
-          assert fsen.getChildren().contains(child);
-          assert child.getParents().contains(fsen);
-          flatNodesToVisit.put(child.getFlatExit(), fm);
-          setIsPotentialStallSite(fn, false);
+	if (fn instanceof FlatSESEEnterNode) {
+	  // don't visit internal nodes of child,
+	  // just enqueue the exit node
+	  FlatSESEEnterNode child = (FlatSESEEnterNode) fn;
+	  assert fsen.getChildren().contains(child);
+	  assert child.getParents().contains(fsen);
+	  flatNodesToVisit.put(child.getFlatExit(), fm);
+	  setIsPotentialStallSite(fn, false);
 
-          // explicitly do this to handle the case that you
-          // should mark yourself as possibly executing at
-          // your own exit, because one instance can
-          // recursively invoke another
-          addPossibleExecutingRBlock(child.getFlatExit(), fsen);
+	  // explicitly do this to handle the case that you
+	  // should mark yourself as possibly executing at
+	  // your own exit, because one instance can
+	  // recursively invoke another
+	  addPossibleExecutingRBlock(child.getFlatExit(), fsen);
 
-          continue;
-        }
+	  continue;
+	}
 
-        // if previous flat nodes have any changes,,
-        // propagate predecessor's status of stall site potential
+	// if previous flat nodes have any changes,,
+	// propagate predecessor's status of stall site potential
 
-        if (fn instanceof FlatCall) {
-          
-          // start visiting nodes in other contexts
-          FlatCall fc = (FlatCall) fn;
-          MethodDescriptor mdCallee = fc.getMethod();
+	if (fn instanceof FlatCall) {
 
-          Set<MethodDescriptor> implementations = new HashSet<MethodDescriptor>();
+	  // start visiting nodes in other contexts
+	  FlatCall fc = (FlatCall) fn;
+	  MethodDescriptor mdCallee = fc.getMethod();
 
-          if (mdCallee.isStatic()) {
-            implementations.add(mdCallee);
-          } else {
-            TypeDescriptor typeDesc = fc.getThis().getType();
-            implementations.addAll(callGraph.getMethods(mdCallee, typeDesc));
-          }
+	  Set<MethodDescriptor> implementations = new HashSet<MethodDescriptor>();
 
-          for (Iterator imps = implementations.iterator(); imps.hasNext();) {
-            MethodDescriptor mdImp = (MethodDescriptor) imps.next();
-            FlatMethod fmImp = state.getMethodFlat(mdImp);
-            
-            // keep mapping from fc's md to <fc,caller's md>
-            // later, when return node of callee becomes a potential stall site,
-            // following flat nodes of fc should be re-analyzied
-            if(!methodmap.containsKey(fmImp)){
-              methodmap.put(mdImp, new HashSet<Pair<FlatCall,MethodDescriptor>>());
-            }
-            methodmap.get(mdImp).add(new Pair<FlatCall,MethodDescriptor>(fc,fm.getMethod()));
-            
-            if ((isPotentialStallSite && !isPotentialStallSite(fmImp)) || !visited.contains(fmImp)) {
-              flatNodesToVisit.put(fmImp, fmImp);
+	  if (mdCallee.isStatic()) {
+	    implementations.add(mdCallee);
+	  } else {
+	    TypeDescriptor typeDesc = fc.getThis().getType();
+	    implementations.addAll(callGraph.getMethods(mdCallee, typeDesc));
+	  }
 
-              // propagate your IR graph predecessor's stall site potential
-              mergeIsPotentialStallSite(fmImp, isPotentialStallSite);
-            }
-            
-          }
-          // don't 'continue' out of this loop, also enqueue
-          // flat nodes that flow in the current method context
-        }
-        
-        if (fn instanceof FlatReturnNode) {
-          // if return node is potential stall site, need to inform its caller
-          if (isPotentialStallSite) {
-            Set<Pair<FlatCall, MethodDescriptor>> callset = methodmap.get(fm.getMethod());
-            if (callset != null) {
-              for (Pair<FlatCall, MethodDescriptor> fcallpair : callset) {
-                FlatCall fcall = fcallpair.getFirst();
-                MethodDescriptor mdcaller = fcallpair.getSecond();
-                for (int i = 0; i < fcall.numNext(); i++) {
-                  FlatNode nn = fcall.getNext(i);
-                  if ( visited.contains(nn) && (!isPotentialStallSite(nn)) ) {
-                    mergeIsPotentialStallSite(nn, isPotentialStallSite);
-                    FlatMethod fmcaller = state.getMethodFlat(mdcaller);
-                    flatNodesToVisit.put(nn, fmcaller);
-                  }
-                }
-              }
-            }
-          }
-        }
+	  for (Iterator imps = implementations.iterator(); imps.hasNext(); ) {
+	    MethodDescriptor mdImp = (MethodDescriptor) imps.next();
+	    FlatMethod fmImp = state.getMethodFlat(mdImp);
 
-        // note: only when current flat node has a change on the status of potential
-        // stall site, need to visit following flat nodes
-        for (int i = 0; i < fn.numNext(); i++) {
-          FlatNode nn = fn.getNext(i);
-          if ((isPotentialStallSite && !isPotentialStallSite(nn)) || !visited.contains(nn)) {
-            flatNodesToVisit.put(nn, fm);
-            mergeIsPotentialStallSite(nn, isPotentialStallSite);
-          }
-        }
+	    // keep mapping from fc's md to <fc,caller's md>
+	    // later, when return node of callee becomes a potential stall site,
+	    // following flat nodes of fc should be re-analyzied
+	    if(!methodmap.containsKey(fmImp)) {
+	      methodmap.put(mdImp, new HashSet<Pair<FlatCall,MethodDescriptor>>());
+	    }
+	    methodmap.get(mdImp).add(new Pair<FlatCall,MethodDescriptor>(fc,fm.getMethod()));
+
+	    if ((isPotentialStallSite && !isPotentialStallSite(fmImp)) || !visited.contains(fmImp)) {
+	      flatNodesToVisit.put(fmImp, fmImp);
+
+	      // propagate your IR graph predecessor's stall site potential
+	      mergeIsPotentialStallSite(fmImp, isPotentialStallSite);
+	    }
+
+	  }
+	  // don't 'continue' out of this loop, also enqueue
+	  // flat nodes that flow in the current method context
+	}
+
+	if (fn instanceof FlatReturnNode) {
+	  // if return node is potential stall site, need to inform its caller
+	  if (isPotentialStallSite) {
+	    Set<Pair<FlatCall, MethodDescriptor>> callset = methodmap.get(fm.getMethod());
+	    if (callset != null) {
+	      for (Pair<FlatCall, MethodDescriptor> fcallpair : callset) {
+		FlatCall fcall = fcallpair.getFirst();
+		MethodDescriptor mdcaller = fcallpair.getSecond();
+		for (int i = 0; i < fcall.numNext(); i++) {
+		  FlatNode nn = fcall.getNext(i);
+		  if ( visited.contains(nn) && (!isPotentialStallSite(nn)) ) {
+		    mergeIsPotentialStallSite(nn, isPotentialStallSite);
+		    FlatMethod fmcaller = state.getMethodFlat(mdcaller);
+		    flatNodesToVisit.put(nn, fmcaller);
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+
+	// note: only when current flat node has a change on the status of potential
+	// stall site, need to visit following flat nodes
+	for (int i = 0; i < fn.numNext(); i++) {
+	  FlatNode nn = fn.getNext(i);
+	  if ((isPotentialStallSite && !isPotentialStallSite(nn)) || !visited.contains(nn)) {
+	    flatNodesToVisit.put(nn, fm);
+	    mergeIsPotentialStallSite(nn, isPotentialStallSite);
+	  }
+	}
       }
     }
   }
-  
 
 
-  protected void addPossibleExecutingRBlock( FlatNode          fn,
-                                             FlatSESEEnterNode fsen ) {
 
-    Set<FlatSESEEnterNode> currentSESEs = fn2currentSESEs.get( fn );
+  protected void addPossibleExecutingRBlock(FlatNode fn,
+                                            FlatSESEEnterNode fsen) {
+
+    Set<FlatSESEEnterNode> currentSESEs = fn2currentSESEs.get(fn);
     if( currentSESEs == null ) {
       currentSESEs = new HashSet<FlatSESEEnterNode>();
     }
 
-    currentSESEs.add( fsen );
-    fn2currentSESEs.put( fn, currentSESEs );
+    currentSESEs.add(fsen);
+    fn2currentSESEs.put(fn, currentSESEs);
   }
 
-  
+
   // definitively set whether a statement is a potential stall site
   // such as a task exit is FALSE and the statement following an exit
   // is TRUE
-  protected void setIsPotentialStallSite( FlatNode   fn,
-                                          Boolean    ipss ) {
-    fn2isPotentialStallSite.put( fn, ipss );
+  protected void setIsPotentialStallSite(FlatNode fn,
+                                         Boolean ipss) {
+    fn2isPotentialStallSite.put(fn, ipss);
   }
 
 
   // Use this to OR the previous result with a new result
-  protected void mergeIsPotentialStallSite( FlatNode   fn,
-                                            Boolean    ipss ) {
-    Boolean ipssPrev = isPotentialStallSite( fn );
-    setIsPotentialStallSite( fn, ipssPrev || ipss );
+  protected void mergeIsPotentialStallSite(FlatNode fn,
+                                           Boolean ipss) {
+    Boolean ipssPrev = isPotentialStallSite(fn);
+    setIsPotentialStallSite(fn, ipssPrev || ipss);
   }
 
 
@@ -635,7 +635,7 @@ public class RBlockRelationAnalysis {
       FlatMethod fm = state.getMethodFlat(mdItr.next());
       printStatusMap(fm);
     }
-    System.exit( 0 );
+    System.exit(0);
   }
 
   protected void printStatusMap(FlatMethod fm) {
@@ -657,11 +657,11 @@ public class RBlockRelationAnalysis {
       System.out.println(fn+"[["+isPotentialStallSite(fn)+"]]");
 
       for (int i = 0; i < fn.numNext(); i++) {
-        FlatNode nn = fn.getNext(i);
+	FlatNode nn = fn.getNext(i);
 
-        if (!visited.contains(nn)) {
-          flatNodesToVisit.add(nn);
-        }
+	if (!visited.contains(nn)) {
+	  flatNodesToVisit.add(nn);
+	}
       }
     }
   }

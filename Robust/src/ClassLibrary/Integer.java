@@ -40,12 +40,12 @@ public class Integer {
   }
 
   /*
-  public int byteArrayToInt(byte [] b) {
-    int val;
-    val = b[0] << 24 + ((b[1] & 0xFF) << 16) + ((b[2] & 0xFF) << 8) + (b[3] & 0xFF);
-    return val;
-  }
-  */
+     public int byteArrayToInt(byte [] b) {
+     int val;
+     val = b[0] << 24 + ((b[1] & 0xFF) << 16) + ((b[2] & 0xFF) << 8) + (b[3] & 0xFF);
+     return val;
+     }
+   */
 
   public static int parseInt(String str) {
     return Integer.parseInt(str, 10);
@@ -109,11 +109,11 @@ public class Integer {
       return false;
     return true;
   }
-  
+
   public int compareTo(Integer i) {
     if (value == i.value)
       return 0;
     // Returns just -1 or 1 on inequality; doing math might overflow.
-    return value > i.value ? 1 : -1;
+    return value > i.value?1:-1;
   }
 }

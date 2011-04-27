@@ -131,7 +131,7 @@ void * getItem(struct Queue * queue) {
   }
   queue->head=q->next;
   if(queue->tail == q) {
-	  queue->tail = NULL;
+    queue->tail = NULL;
   }
   RUNFREE(q);
   return ptr;
@@ -163,13 +163,13 @@ void * peekItemBack(struct Queue * queue) {
 }
 
 void clearQueue(struct Queue * queue) {
-	struct QueueItem * item=queue->head;
+  struct QueueItem * item=queue->head;
   while(item!=NULL) {
-		struct QueueItem * next=item->next;
-		RUNFREE(item);
+    struct QueueItem * next=item->next;
+    RUNFREE(item);
     item=next;
   }
-	queue->head=queue->tail=NULL;
+  queue->head=queue->tail=NULL;
   return;
 }
 
@@ -190,29 +190,29 @@ int assertQueue(struct Queue * queue) {
 
     if( i->prev == NULL ) {
       if( queue->head != i ) {
-        return 0;
+	return 0;
       }
 
-    // i->prev != NULL
+      // i->prev != NULL
     } else {
       if( i->prev->next == NULL ) {
-        return 0;
+	return 0;
       } else if( i->prev->next != i ) {
-        return 0;
+	return 0;
       }
     }
 
     if( i->next == NULL ) {
       if( queue->tail != i ) {
-        return 0;
+	return 0;
       }
 
-    // i->next != NULL
+      // i->next != NULL
     } else {
       if( i->next->prev == NULL ) {
-        return 0;
+	return 0;
       } else if( i->next->prev != i ) {
-        return 0;
+	return 0;
       }
     }
 
@@ -230,8 +230,8 @@ void printQueue(struct Queue * queue) {
   struct QueueItem* i;
 
   printf("Queue empty? %d\n", isEmpty(queue));
-  
-  printf("head        ");  
+
+  printf("head        ");
   i = queue->head;
   while( i != NULL ) {
     printf("item        ");

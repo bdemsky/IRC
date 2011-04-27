@@ -24,7 +24,7 @@ extern pfcstats_t *evalPrefetch;
 
 void transStatsHandler(int sig, siginfo_t* info, void *context) {
 #ifdef TRANSSTATS
-  char filepath[200], exectime[10]; 
+  char filepath[200], exectime[10];
   struct utsname buf;
   FILE *fp, *envfp;
 
@@ -71,28 +71,28 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
 
 
 /*
-void transStatsHandler(int sig, siginfo_t* info, void *context) {
-#ifdef TRANSSTATS
-  printf("******  Transaction Stats   ******\n");
-  printf("myIpAddr = %x\n", myIpAddr);
-  printf("numTransCommit = %d\n", numTransCommit);
-  printf("numTransAbort = %d\n", numTransAbort);
-  printf("nchashSearch = %d\n", nchashSearch);
-  printf("nmhashSearch = %d\n", nmhashSearch);
-  printf("nprehashSearch = %d\n", nprehashSearch);
-  printf("ndirtyCacheObj = %d\n", ndirtyCacheObj);
-  printf("nRemoteReadSend = %d\n", nRemoteSend);
-  printf("nSoftAbort = %d\n", nSoftAbort);
-  printf("bytesSent = %d\n", bytesSent);
-  printf("bytesRecv = %d\n", bytesRecv);
-  printf("totalObjSize= %d\n", totalObjSize);
-  printf("sendRemoteReq= %d\n", sendRemoteReq);
-  printf("getResponse= %d\n", getResponse);
-  printf("**********************************\n");
-  exit(0);
-#endif
-}
-*/
+   void transStatsHandler(int sig, siginfo_t* info, void *context) {
+ #ifdef TRANSSTATS
+   printf("******  Transaction Stats   ******\n");
+   printf("myIpAddr = %x\n", myIpAddr);
+   printf("numTransCommit = %d\n", numTransCommit);
+   printf("numTransAbort = %d\n", numTransAbort);
+   printf("nchashSearch = %d\n", nchashSearch);
+   printf("nmhashSearch = %d\n", nmhashSearch);
+   printf("nprehashSearch = %d\n", nprehashSearch);
+   printf("ndirtyCacheObj = %d\n", ndirtyCacheObj);
+   printf("nRemoteReadSend = %d\n", nRemoteSend);
+   printf("nSoftAbort = %d\n", nSoftAbort);
+   printf("bytesSent = %d\n", bytesSent);
+   printf("bytesRecv = %d\n", bytesRecv);
+   printf("totalObjSize= %d\n", totalObjSize);
+   printf("sendRemoteReq= %d\n", sendRemoteReq);
+   printf("getResponse= %d\n", getResponse);
+   printf("**********************************\n");
+   exit(0);
+ #endif
+   }
+ */
 
 void handle() {
 #ifdef TRANSSTATS

@@ -41,7 +41,7 @@ public class State {
     this.classpath=new Vector();
     this.cd2locationOrderMap=new Hashtable();
     this.cd2locationPropertyMap=new Hashtable();
-    this.fn2labelMap=new Hashtable(); 
+    this.fn2labelMap=new Hashtable();
     this.lines=0;
   }
 
@@ -94,7 +94,7 @@ public class State {
   public String OWNERSHIPDEBUGCALLEE=null;
   public String OWNERSHIPDEBUGCALLER=null;
 
-  
+
   public boolean DISJOINT=false;
 
   public int DISJOINTALLOCDEPTH=1;
@@ -132,7 +132,7 @@ public class State {
   public boolean RCR_DEBUG=false;
   public boolean RCR_DEBUG_VERBOSE=false;
   public boolean NOSTALLTR=false;
-  
+
   //SSJava
   public boolean SSJAVA=false;
 
@@ -148,7 +148,7 @@ public class State {
   public boolean METHODEFFECTS=false;
   public static double TRUEPROB=0.8;
   public static boolean PRINTFLAT=false;
-  
+
   //DSM options
   public boolean DSM=false;
   public boolean DSMTASK=false;
@@ -166,7 +166,7 @@ public class State {
   public boolean DELAYCOMP=false;
   public boolean DUALVIEW=false;
   public boolean HYBRID=false;
-  
+
   // Bamboo options
   public boolean MULTICORE=false;
   public boolean MULTICOREGC=false;
@@ -185,7 +185,7 @@ public class State {
   // MGC options
   public boolean MGC=false;
   public boolean OBJECTLOCKDEBUG=false;
-  
+
   //Other options
   public String structfile;
   public String main;
@@ -259,7 +259,7 @@ public class State {
     TypeDescriptor td=new TypeDescriptor(n);
     return td;
   }
-  
+
   public static TypeDescriptor getTypeDescriptor(String n) {
     TypeDescriptor td=new TypeDescriptor(n);
     return td;
@@ -278,15 +278,15 @@ public class State {
       sclasses.add(tdn);
     }
   }
-  
+
   public int numClasses() {
     return numclasses;
   }
-  
+
   public int numInterfaces() {
     return numinterfaces;
   }
-  
+
   public int numStaticBlocks() {
     return numstaticblocks;
   }
@@ -306,7 +306,7 @@ public class State {
   public SymbolTable getTaskSymbolTable() {
     return tasks;
   }
-  
+
   public SymbolTable getSClassSymbolTable() {
     return sclasses;
   }
@@ -358,21 +358,21 @@ public class State {
     tasks.add(td);
     numtasks++;
   }
-  
-  public void addLocationOrder(ClassDescriptor cd, Lattice order){
+
+  public void addLocationOrder(ClassDescriptor cd, Lattice order) {
     cd2locationOrderMap.put(cd,order);
   }
-  
-  public Hashtable getCd2LocationOrder(){
+
+  public Hashtable getCd2LocationOrder() {
     return cd2locationOrderMap;
   }
-  
-  public void addLocationPropertySet(ClassDescriptor cd, Set<String> set){
+
+  public void addLocationPropertySet(ClassDescriptor cd, Set<String> set) {
     cd2locationPropertyMap.put(cd,set);
   }
-  
-  public Hashtable getCd2LocationPropertyMap(){
+
+  public Hashtable getCd2LocationPropertyMap() {
     return cd2locationPropertyMap;
   }
-  
+
 }

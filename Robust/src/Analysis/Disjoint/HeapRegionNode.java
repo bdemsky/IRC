@@ -25,7 +25,7 @@ public class HeapRegionNode extends RefSrcNode {
 
   // some reachability states are inherent
   // to a node by its definition
-  protected ReachSet inherent;  
+  protected ReachSet inherent;
 
   // use alpha for the current reach states
   // and alphaNew during iterative calculations
@@ -41,18 +41,18 @@ public class HeapRegionNode extends RefSrcNode {
   protected ExistPredSet preds;
 
 
-  public HeapRegionNode( Integer        id,
-                         boolean        isSingleObject,
-                         boolean        isFlagged,
-                         boolean        isNewSummary,
-                         boolean        isOutOfContext,
-                         TypeDescriptor type,
-                         AllocSite      allocSite,
-                         ReachSet       inherent,
-                         ReachSet       alpha,
-                         ExistPredSet   preds,
-                         String         description
-                         ) {
+  public HeapRegionNode(Integer id,
+                        boolean isSingleObject,
+                        boolean isFlagged,
+                        boolean isNewSummary,
+                        boolean isOutOfContext,
+                        TypeDescriptor type,
+                        AllocSite allocSite,
+                        ReachSet inherent,
+                        ReachSet alpha,
+                        ExistPredSet preds,
+                        String description
+                        ) {
 
     this.id             = id;
     this.isSingleObject = isSingleObject;
@@ -71,17 +71,17 @@ public class HeapRegionNode extends RefSrcNode {
   }
 
   public HeapRegionNode copy() {
-    return new HeapRegionNode( id,
-                               isSingleObject,
-                               isFlagged,
-                               isNewSummary,
-                               isOutOfContext,
-                               type,
-                               allocSite,
-                               inherent,
-                               alpha,
-                               preds,
-                               description );
+    return new HeapRegionNode(id,
+                              isSingleObject,
+                              isFlagged,
+                              isNewSummary,
+                              isOutOfContext,
+                              type,
+                              allocSite,
+                              inherent,
+                              alpha,
+                              preds,
+                              description);
   }
 
 
@@ -93,15 +93,15 @@ public class HeapRegionNode extends RefSrcNode {
   // alpha and preds contribute towards reaching the
   // fixed point, so use this method to determine if
   // a node is "equal" to some previous visit, basically
-  public boolean equalsIncludingAlphaAndPreds( HeapRegionNode hrn ) {
+  public boolean equalsIncludingAlphaAndPreds(HeapRegionNode hrn) {
 
-    return equals( hrn ) && 
-      alpha.equals( hrn.alpha ) && 
-      preds.equals( hrn.preds );
+    return equals(hrn) &&
+           alpha.equals(hrn.alpha) &&
+           preds.equals(hrn.preds);
   }
 
 
-  public boolean equals( Object o ) {
+  public boolean equals(Object o) {
     if( o == null ) {
       return false;
     }
@@ -112,7 +112,7 @@ public class HeapRegionNode extends RefSrcNode {
 
     HeapRegionNode hrn = (HeapRegionNode) o;
 
-    if( !id.equals( hrn.getID() ) ) {
+    if( !id.equals(hrn.getID() ) ) {
       return false;
     }
 
@@ -161,41 +161,41 @@ public class HeapRegionNode extends RefSrcNode {
   }
 
 
-  // in other words, this node is not functionally 
+  // in other words, this node is not functionally
   // part of the graph (anymore)
   public boolean isWiped() {
-    return 
+    return
       getNumReferencers() == 0 &&
       getNumReferencees() == 0;
   }
 
 
-  public void addReferencer( RefEdge edge ) {
+  public void addReferencer(RefEdge edge) {
     assert edge != null;
 
-    referencers.add( edge );
+    referencers.add(edge);
   }
 
-  public void removeReferencer( RefEdge edge ) {
+  public void removeReferencer(RefEdge edge) {
     assert edge != null;
-    assert referencers.contains( edge );
+    assert referencers.contains(edge);
 
-    referencers.remove( edge );
+    referencers.remove(edge);
   }
 
-  public RefEdge getReferenceFrom( RefSrcNode     rsn,
-                                   TypeDescriptor type,
-                                   String         field
-                                   ) {
+  public RefEdge getReferenceFrom(RefSrcNode rsn,
+                                  TypeDescriptor type,
+                                  String field
+                                  ) {
     assert rsn != null;
 
     Iterator<RefEdge> itrEdge = referencers.iterator();
     while( itrEdge.hasNext() ) {
       RefEdge edge = itrEdge.next();
 
-      if( edge.getSrc().equals( rsn ) &&
-	  edge.typeEquals( type )     &&
-          edge.fieldEquals( field ) 
+      if( edge.getSrc().equals(rsn) &&
+          edge.typeEquals(type)     &&
+          edge.fieldEquals(field)
           ) {
 	return edge;
       }
@@ -207,22 +207,22 @@ public class HeapRegionNode extends RefSrcNode {
 
   public TypeDescriptor getType() {
     return type;
-  }  
+  }
 
   public AllocSite getAllocSite() {
     return allocSite;
   }
 
-  
+
   public ReachSet getInherent() {
     return inherent;
   }
-  
+
   public ReachSet getAlpha() {
     return alpha;
   }
 
-  public void setAlpha( ReachSet alpha ) {
+  public void setAlpha(ReachSet alpha) {
     this.alpha = alpha;
   }
 
@@ -230,7 +230,7 @@ public class HeapRegionNode extends RefSrcNode {
     return alphaNew;
   }
 
-  public void setAlphaNew( ReachSet alpha ) {
+  public void setAlphaNew(ReachSet alpha) {
     this.alphaNew = alpha;
   }
 
@@ -245,7 +245,7 @@ public class HeapRegionNode extends RefSrcNode {
     return preds;
   }
 
-  public void setPreds( ExistPredSet preds ) {
+  public void setPreds(ExistPredSet preds) {
     this.preds = preds;
   }
 
@@ -262,23 +262,23 @@ public class HeapRegionNode extends RefSrcNode {
 
       Iterator<ReachTuple> rtItr = state.iterator();
       while( rtItr.hasNext() ) {
-        ReachTuple rt = rtItr.next();
+	ReachTuple rt = rtItr.next();
 
-        if( !rt.isOutOfContext() ) {
-          return false;
-        }
+	if( !rt.isOutOfContext() ) {
+	  return false;
+	}
       }
     }
 
     return true;
   }
-  
+
 
   public String getIDString() {
     String s;
 
     if( id < 0 ) {
-      s = "minus" + new Integer( -id ).toString();
+      s = "minus" + new Integer(-id).toString();
     } else {
       s = id.toString();
     }
@@ -288,13 +288,13 @@ public class HeapRegionNode extends RefSrcNode {
 
   public String getDescription() {
     return description;
-  }  
+  }
 
-  public String toStringDOT( boolean hideReach,
-                             boolean hideSubsetReach,
-                             boolean hidePreds ) {
+  public String toStringDOT(boolean hideReach,
+                            boolean hideSubsetReach,
+                            boolean hidePreds) {
     String attributes = "";
-    
+
     if( isSingleObject ) {
       attributes += "shape=box";
     } else {
@@ -317,15 +317,15 @@ public class HeapRegionNode extends RefSrcNode {
       ",label=\"ID"+getIDString()+"\\n"+
       typeStr+"\\n"+
       description;
-      
+
     if( !hideReach ) {
-      s += "\\n"+alpha.toStringEscNewline( hideSubsetReach );
+      s += "\\n"+alpha.toStringEscNewline(hideSubsetReach);
     }
 
     if( !hidePreds ) {
       s += "\\n"+preds.toStringEscNewline();
     }
-    
+
     return s+"\"]";
   }
 

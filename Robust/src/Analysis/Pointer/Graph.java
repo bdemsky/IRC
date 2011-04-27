@@ -40,19 +40,19 @@ public class Graph {
   }
 
   public void check() {
-    for(Map.Entry<AllocNode, MySet<Edge>> entry:nodeMap.entrySet()) {
+    for(Map.Entry<AllocNode, MySet<Edge>> entry : nodeMap.entrySet()) {
       AllocNode node=entry.getKey();
       if (node==null)
 	throw new Error("Null node key");
-      for(Edge e:entry.getValue())
+      for(Edge e : entry.getValue())
 	if (e.src!=node)
 	  throw new Error();
     }
-    for(Map.Entry<TempDescriptor, MySet<Edge>> entry:varMap.entrySet()) {
+    for(Map.Entry<TempDescriptor, MySet<Edge>> entry : varMap.entrySet()) {
       TempDescriptor tmp=entry.getKey();
       if (tmp==null)
 	throw new Error("Null tmp key");
-      for(Edge e:entry.getValue())
+      for(Edge e : entry.getValue())
 	if (e.srcvar!=tmp)
 	  throw new Error();
     }
@@ -110,7 +110,7 @@ public class Graph {
       return edges.get(old);
     }
   }
-  
+
   public MySet<Edge> getEdges(TempDescriptor tmp) {
     if (varMap.containsKey(tmp))
       return varMap.get(tmp);
@@ -142,14 +142,14 @@ public class Graph {
     output.println("}\n");
   }
 
-  private void outputTempEdges(PrintWriter output, HashMap<TempDescriptor, MySet<Edge>> varMap, 
-			       HashMap<TempDescriptor, MySet<Edge>> childvarMap) {
-    for(Map.Entry<TempDescriptor, MySet<Edge>> entry:varMap.entrySet()) {
+  private void outputTempEdges(PrintWriter output, HashMap<TempDescriptor, MySet<Edge>> varMap,
+                               HashMap<TempDescriptor, MySet<Edge>> childvarMap) {
+    for(Map.Entry<TempDescriptor, MySet<Edge>> entry : varMap.entrySet()) {
       TempDescriptor tmp=entry.getKey();
       if (childvarMap!=null&&childvarMap.containsKey(tmp))
 	continue;
       output.println(tmp.getSymbol()+"[shape=rectangle];");
-      for(Edge e:entry.getValue()) {
+      for(Edge e : entry.getValue()) {
 	if (e.srcvar!=tmp)
 	  throw new Error(e.srcvar +" is not equal to "+tmp);
 	AllocNode n=e.dst;
@@ -158,13 +158,13 @@ public class Graph {
     }
   }
 
-  private void outputHeapEdges(PrintWriter output, HashMap<AllocNode, MySet<Edge>> nodeMap, 
-			       HashMap<AllocNode, MySet<Edge>> childNodeMap) {
-    for(Map.Entry<AllocNode, MySet<Edge>> entry:nodeMap.entrySet()) {
+  private void outputHeapEdges(PrintWriter output, HashMap<AllocNode, MySet<Edge>> nodeMap,
+                               HashMap<AllocNode, MySet<Edge>> childNodeMap) {
+    for(Map.Entry<AllocNode, MySet<Edge>> entry : nodeMap.entrySet()) {
       AllocNode node=entry.getKey();
       if (childNodeMap!=null&&childNodeMap.containsKey(node))
 	continue;
-      for(Edge e:entry.getValue()) {
+      for(Edge e : entry.getValue()) {
 	if (e.src!=node)
 	  throw new Error(e.src+" is not equal to "+node);
 	AllocNode n=e.dst;

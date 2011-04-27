@@ -33,17 +33,17 @@ public class ExistPredSet extends Canonical {
 
   public static boolean debug = false;
 
-  
+
   public static ExistPredSet factory() {
     ExistPredSet out = new ExistPredSet();
-    out = (ExistPredSet) Canonical.makeCanonical( out );
+    out = (ExistPredSet) Canonical.makeCanonical(out);
     return out;
   }
 
-  public static ExistPredSet factory( ExistPred pred ) {
+  public static ExistPredSet factory(ExistPred pred) {
     ExistPredSet out = new ExistPredSet();
-    out.preds.add( pred );
-    out = (ExistPredSet) Canonical.makeCanonical( out );
+    out.preds.add(pred);
+    out = (ExistPredSet) Canonical.makeCanonical(out);
     return out;
   }
 
@@ -51,35 +51,35 @@ public class ExistPredSet extends Canonical {
     preds = new HashSet<ExistPred>();
   }
 
-  
+
   public Iterator<ExistPred> iterator() {
     return preds.iterator();
   }
-  
+
 
   // only consider the subest of the caller elements that
   // are reachable by callee when testing predicates
-  public ExistPredSet isSatisfiedBy( ReachGraph   rg,
-                                     Set<Integer> calleeReachableNodes
-                                     ) {
+  public ExistPredSet isSatisfiedBy(ReachGraph rg,
+                                    Set<Integer> calleeReachableNodes
+                                    ) {
     ExistPredSet predsOut = null;
-    
+
     Iterator<ExistPred> predItr = preds.iterator();
     while( predItr.hasNext() ) {
       ExistPredSet predsFromSatisfier =
-        predItr.next().isSatisfiedBy( rg,
-                                      calleeReachableNodes );
+        predItr.next().isSatisfiedBy(rg,
+                                     calleeReachableNodes);
 
       if( predsFromSatisfier != null ) {
-        if( predsOut == null ) {
-          predsOut = predsFromSatisfier;
-        } else {
-          predsOut = Canonical.join( predsOut,
-                                     predsFromSatisfier );
-        }
+	if( predsOut == null ) {
+	  predsOut = predsFromSatisfier;
+	} else {
+	  predsOut = Canonical.join(predsOut,
+	                            predsFromSatisfier);
+	}
       }
     }
-    
+
     return predsOut;
   }
 
@@ -89,7 +89,7 @@ public class ExistPredSet extends Canonical {
   }
 
 
-  public boolean equalsSpecific( Object o ) {
+  public boolean equalsSpecific(Object o) {
     if( o == null ) {
       return false;
     }
@@ -100,7 +100,7 @@ public class ExistPredSet extends Canonical {
 
     ExistPredSet eps = (ExistPredSet) o;
 
-    return preds.equals( eps.preds );
+    return preds.equals(eps.preds);
   }
 
 
@@ -117,14 +117,14 @@ public class ExistPredSet extends Canonical {
       ExistPred pred = predItr.next();
       s += pred.toString();
       if( predItr.hasNext() ) {
-        s += " ||\\n";
+	s += " ||\\n";
       }
     }
     s += "]";
     return s;
   }
 
-  
+
   public String toString() {
     String s = "P[";
     Iterator<ExistPred> predItr = preds.iterator();
@@ -132,7 +132,7 @@ public class ExistPredSet extends Canonical {
       ExistPred pred = predItr.next();
       s += pred.toString();
       if( predItr.hasNext() ) {
-        s += " || ";
+	s += " || ";
       }
     }
     s += "]";

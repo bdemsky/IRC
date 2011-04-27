@@ -19,11 +19,11 @@ public class ArrayInitializerNode extends ExpressionNode {
   public ExpressionNode getVarInitializer(int i) {
     return (ExpressionNode) varInitList.get(i);
   }
-  
+
   public void setType(TypeDescriptor type) {
     this.type = type;
   }
-  
+
   public TypeDescriptor getType() {
     return this.type;
   }
@@ -43,7 +43,7 @@ public class ArrayInitializerNode extends ExpressionNode {
   public int kind() {
     return Kind.ArrayInitializerNode;
   }
-  
+
   public Long evaluate() {
     eval = null;
     return eval; //null;
