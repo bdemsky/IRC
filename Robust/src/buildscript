@@ -601,6 +601,10 @@ elif [[ $1 = '-ooodebug-disable-task-mem-pool' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DOOO_DISABLE_TASKMEMPOOL"
 
+elif [[ $1 = '-ssjava' ]]
+then
+SSJAVA=true
+
 elif [[ $1 = '-mempool-detect-misuse' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DMEMPOOL_DETECT_MISUSE"
@@ -775,6 +779,9 @@ elif $MGCFLAG
 then
 #base multicore gc files
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
+elif $SSJAVA
+then
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/SSJava"
 else
 if $RECOVERFLAG
 then
@@ -809,6 +816,12 @@ then
 if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main \
 -dir $BUILDDIR $JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/ \
 -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ $SRCFILES
+then exit $?
+fi
+elif $SSJAVA
+then
+if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -dir $BUILDDIR -precise \
+$JAVAOPTS $SRCFILES
 then exit $?
 fi
 else
