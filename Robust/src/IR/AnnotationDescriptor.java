@@ -9,7 +9,7 @@ public class AnnotationDescriptor extends Descriptor {
   public static final int FULL_ANNOTATION = 3;
 
   private String marker;
-  private String data; // for single annotation
+  private String value; // for single annotation
   private int type;
 
   public AnnotationDescriptor(String annotationName) {
@@ -19,12 +19,12 @@ public class AnnotationDescriptor extends Descriptor {
     this.type = MARKER_ANNOTATION;
   }
 
-  public AnnotationDescriptor(String annotationName, String data) {
+  public AnnotationDescriptor(String annotationName, String value) {
     // constructor for marker annotation
     super(annotationName);
     this.marker = annotationName;
     this.type = SINGLE_ANNOTATION;
-    this.data = data;
+    this.value = value;
   }
 
   public int getType() {
@@ -47,8 +47,8 @@ public class AnnotationDescriptor extends Descriptor {
     return marker;
   }
 
-  public String getData() {
-    return data;
+  public String getValue() {
+    return value;
   }
 
   public boolean equals(Object o) {
@@ -68,7 +68,7 @@ public class AnnotationDescriptor extends Descriptor {
     if (type == MARKER_ANNOTATION) {
       return "@" + name;
     } else {
-      return "@" + name + "()";
+      return "@" + name + "(\""+getValue()+"\")";
     }
   }
 

@@ -1,4 +1,9 @@
 public class System {  
+  
+  locdef{
+    in    
+  }
+  
   public static void printInt(int x) {
     String s=String.valueOf(x);
     printString(s);
@@ -14,23 +19,23 @@ public class System {
 
   public static native void printString(String s);
 
-  public static void println(String s) {
+  public static void println(@LOC("in") String s) {
     System.printString(s+"\n");
   }
 
-  public static void println(Object o) {
+  public static void println(@LOC("in") Object o) {
     System.printString(""+o+"\n");
   }
 
-  public static void println(int o) {
+  public static void println(@LOC("in") int o) {
     System.printString(""+o+"\n");
   }
 
-  public static void println(double o) {
+  public static void println(@LOC("in") double o) {
     System.printString(""+o+"\n");
   }
 
-  public static void println(long o) {
+  public static void println(@LOC("in") long o) {
     System.printString(""+o+"\n");
   }
   
@@ -38,23 +43,23 @@ public class System {
     System.printString("\n");
   }
 
-  public static void print(String s) {
+  public static void print(@LOC("in") String s) {
     System.printString(s);
   }
 
-  public static void print(Object o) {
+  public static void print(@LOC("in") Object o) {
     System.printString(""+o);
   }
 
-  public static void print(int o) {
+  public static void print(@LOC("in") int o) {
     System.printString(""+o);
   }
 
-  public static void print(double o) {
+  public static void print(@LOC("in") double o) {
     System.printString(""+o);
   }
 
-  public static void print(long o) {
+  public static void print(@LOC("in") long o) {
     System.printString(""+o);
   }
 

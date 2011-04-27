@@ -8,6 +8,7 @@ import IR.Tree.TreeNode;
 
 public class SSJavaAnalysis {
 
+  public static final String LOC="LOC";
   public static final String DELTA = "delta";
   State state;
   FlowDownCheck flowDownChecker;

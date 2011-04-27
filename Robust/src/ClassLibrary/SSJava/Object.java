@@ -1,4 +1,9 @@
 public class Object {
+  
+  locdef{  
+    data
+  }
+  
   public native int hashCode();
 
   /* DON'T USE THIS METHOD UNLESS NECESSARY */
@@ -9,7 +14,7 @@ public class Object {
     return "Object"+hashCode();
   }
 
-  public boolean equals(Object o) {
+  public boolean equals(@LOC("data") Object o) {
     if (o==this)
       return true;
     return false;

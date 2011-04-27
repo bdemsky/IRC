@@ -856,7 +856,6 @@ public class BuildIR {
 
     ParseNode tn=pn.getChild("type");
     TypeDescriptor t=parseTypeDescriptor(tn);
-    assignAnnotationsToType(m,t);
     ParseNode vn=pn.getChild("variables").getChild("variable_declarators_list");
     ParseNodeVector pnv=vn.getChildren();
     boolean isglobal=pn.getChild("global")!=null;
@@ -915,6 +914,7 @@ public class BuildIR {
       }
 
       cn.addField(new FieldDescriptor(m, arrayt, identifier, en, isglobal));
+      assignAnnotationsToType(m,arrayt);
     }
   }
 
@@ -1384,12 +1384,7 @@ public class BuildIR {
       blockstatements.add(tdn);
     } else if (isNode(pn,"local_variable_declaration")) {
 
-      ParseNode mn=pn.getChild("modifiers");
       TypeDescriptor t=parseTypeDescriptor(pn);
-      if(mn!=null) {
-        Modifiers m=parseModifiersList(mn);
-        assignAnnotationsToType(m, t);
-      }
       ParseNode vn=pn.getChild("variable_declarators_list");
       ParseNodeVector pnv=vn.getChildren();
       for(int i=0; i<pnv.size(); i++) {
@@ -1414,6 +1409,13 @@ public class BuildIR {
 
         DeclarationNode dn=new DeclarationNode(new VarDescriptor(arrayt, identifier),en);
         dn.setNumLine(tmp.getLine());
+        
+        ParseNode mn=pn.getChild("modifiers");
+        if(mn!=null) {
+          // here, modifers parse node has the list of annotations
+          Modifiers m=parseModifiersList(mn);
+          assignAnnotationsToType(m, arrayt);
+        }
 
         blockstatements.add(dn);
       }
