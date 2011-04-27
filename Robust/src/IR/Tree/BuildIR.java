@@ -165,12 +165,20 @@ public class BuildIR {
             toanalyze.add(cn);
           cn.setSourceFileName(sourcefile);
           state.addClass(cn);
+        } else if(isNode(type_pn,"annotation_type_declaration")){
+          ClassDescriptor cn=parseAnnotationTypeDecl(type_pn);
+          if (toanalyze != null)
+            toanalyze.add(cn);
+          cn.setSourceFileName(sourcefile);
+          state.addClass(cn);
         } else {
           throw new Error(type_pn.getLabel());
         }
       }
     }
   }
+  
+  
   
   //This kind of breaks away from tradition a little bit by doing the file checks here
   // instead of in Semantic check, but doing it here is easier because we have a mapping early on
@@ -265,6 +273,44 @@ public class BuildIR {
     cn.addEnumConstant(pn.getChild("name").getTerminal());
   }
   
+  private ClassDescriptor parseAnnotationTypeDecl(ParseNode pn){
+    ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal(), true);
+    cn.setImports(mandatoryImports);
+    ParseNode modifiers=pn.getChild("modifiers");
+    if(modifiers!=null){
+      cn.setModifiers(parseModifiersList(modifiers));
+    }
+    parseAnnotationTypeBody(cn,pn.getChild("body"));
+    return cn;
+  }
+  
+  private void parseAnnotationTypeBody(ClassDescriptor cn, ParseNode pn){
+    ParseNode list_node=pn.getChild("annotation_type_element_list");
+    if(list_node!=null){
+      ParseNodeVector pnv = list_node.getChildren();
+      for (int i = 0; i < pnv.size(); i++) {
+        ParseNode element_node = pnv.elementAt(i);
+        if (isNode(element_node, "annotation_type_element_declaration")) {
+          ParseNodeVector elementProps = element_node.getChildren();
+          String identifier=null;
+          TypeDescriptor type=null;
+          Modifiers modifiers=new Modifiers();
+          for(int eidx=0; eidx<elementProps.size(); eidx++) {
+            ParseNode prop_node=elementProps.elementAt(eidx);
+            if(isNode(prop_node,"name")){
+              identifier=prop_node.getTerminal();
+            }else if(isNode(prop_node,"type")){
+              type=parseTypeDescriptor(prop_node);
+            }else if(isNode(prop_node,"modifier")){
+              modifiers=parseModifiersList(prop_node);
+            }
+          }
+          cn.addField(new FieldDescriptor(modifiers, type, identifier, null, false));
+        }
+      }
+    }
+  }
+  
   public ClassDescriptor parseInterfaceDecl(ParseNode pn, String packageName) {
     ClassDescriptor cn;
     if(packageName == null) {
@@ -308,6 +354,8 @@ public class BuildIR {
       }
     }
   }
+  
+  
   
   private void parseInterfaceConstant(ClassDescriptor cn, ParseNode pn) {
     if (pn!=null) {

@@ -164,7 +164,7 @@ non terminal ParseNode explicit_constructor_invocation;
 non terminal ParseNode location_order_declaration, location_order_list, location_order;
 // 19.9.1) Interface Declarations
 non terminal ParseNode interface_declaration;
-non terminal normal_interface_declaration, annotation_type_declaration;
+non terminal ParseNode normal_interface_declaration, annotation_type_declaration;
 non terminal ParseNode extends_interfaces_opt, extends_interfaces;
 non terminal ParseNode interface_body;
 non terminal ParseNode interface_member_declarations_opt, interface_member_declarations;
@@ -1338,7 +1338,9 @@ interface_declaration ::=
 	pn.addChild("interfacebody").addChild(body);
 	RESULT=pn;
 	:}
-       | annotation_type_declaration
+       | annotation_type_declaration:atd{:
+        RESULT=atd;
+       :}
        ;
 extends_interfaces_opt ::=
        {: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
@@ -1406,30 +1408,83 @@ abstract_method_declaration ::=
 		RESULT=pn;
 	:}
        ;
-/*
+
 annotation_type_declaration ::=
-		AT INTERFACE IDENTIFIER annotation_type_body
-	|	modifiers_at INTERFACE IDENTIFIER annotation_type_body
+		AT INTERFACE IDENTIFIER:id annotation_type_body:atb{:
+		ParseNode pn=new ParseNode("annotation_type_declaration",parser.lexer.line_num);
+		pn.addChild("name").addChild(id);
+		pn.addChild("body").addChild(atb);
+		RESULT=pn;
+
+	:}
+	|	modifiers_at:ma INTERFACE IDENTIFIER:id annotation_type_body:atb{:
+		ParseNode pn=new ParseNode("annotation_type_declaration",parser.lexer.line_num);
+		pn.addChild("name").addChild(id);
+		pn.addChild("modifiers").addChild(ma);
+		pn.addChild("body").addChild(atb);		
+		RESULT=pn;		
+	:}
 	;
 annotation_type_body ::=
-        	LBRACE annotation_type_element_declarations_opt RBRACE
+        	LBRACE annotation_type_element_declarations_opt:atedo RBRACE{:
+		RESULT=atedo;
+	:}
 	;
-annotation_type_element_declarations_opt ::=
-	|       annotation_type_element_declarations
+annotation_type_element_declarations_opt ::={:
+		RESULT=new ParseNode("empty",parser.lexer.line_num);
+        :}
+	|       annotation_type_element_declarations:ated{:
+		RESULT=ated;
+	:}
 	;
 annotation_type_element_declarations ::=
-	        annotation_type_element_declaration
-        |	annotation_type_element_declarations annotation_type_element_declaration
+	        annotation_type_element_declaration:ated{:
+		ParseNode pn=new ParseNode("annotation_type_element_list",parser.lexer.line_num);
+		pn.addChild(ated);
+		RESULT=pn;
+	:}
+        |	annotation_type_element_declarations:ateds annotation_type_element_declaration:ated{:
+		ateds.addChild(ated);
+		RESULT=ateds;	
+	:}
 	;
 annotation_type_element_declaration ::=
-        	constant_declaration
-	|	modifiers_opt type IDENTIFIER LPAREN RPAREN default_value_opt SEMICOLON
-        |	class_declaration 
-        |	enum_declaration 
-        |	interface_declaration 
-	|	SEMICOLON
+        	constant_declaration:cd {:
+		RESULT=cd;		
+	:}
+	|	modifiers_opt:mo type:type IDENTIFIER:id LPAREN RPAREN default_value_opt:dvo SEMICOLON {:
+		ParseNode pn=new ParseNode("annotation_type_element_declaration",parser.lexer.line_num);	
+		pn.addChild("modifier").addChild(mo);	
+		pn.addChild("type").addChild(type);
+		pn.addChild("name").addChild(id);
+		pn.addChild("defaultvalue").addChild(dvo);
+		RESULT=pn;
+	:}
+        |	class_declaration:cd{:
+	        RESULT=cd;
+	:} 
+        |	enum_declaration:ed{:
+		RESULT=ed;
+	:}
+        |	interface_declaration:id{:
+		RESULT=id;
+	:}
+	|	SEMICOLON{:
+		RESULT=new ParseNode("empty",parser.lexer.line_num);
+	:}
         ;
-*/
+default_value_opt ::= {:
+        	RESULT=new ParseNode("empty",parser.lexer.line_num);
+        :}
+        | 	default_value:dv{:
+		RESULT=dv;
+	:}
+        ;
+default_value ::= DEFAULT element_value:ev {:
+	      RESULT=ev;
+	:}
+        ;
+
 // 19.10) Arrays
 array_initializer ::=
 		LBRACE variable_initializers:var_init_list COMMA RBRACE {:
