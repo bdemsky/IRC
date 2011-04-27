@@ -604,6 +604,7 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DOOO_DISABLE_TASKMEMPOOL"
 elif [[ $1 = '-ssjava' ]]
 then
 SSJAVA=true
+JAVAOPTS="$JAVAOPTS -ssjava"
 
 elif [[ $1 = '-mempool-detect-misuse' ]]
 then
