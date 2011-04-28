@@ -409,6 +409,7 @@ public class Main {
       state.classpath.add(ClassLibraryPrefix);
 
     State.logEvent("Done Parsing Commands");
+    System.out.println("Classpath: "+state.classpath);
 
     SSJavaAnalysis ssjava=new SSJavaAnalysis(state);
 
