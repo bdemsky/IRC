@@ -233,6 +233,11 @@ public class Main {
           throw new Error("disjoint-debug-callsite requires arguments:\n"+
                           "  <callee symbol> <caller symbol> <# visit to start> <# visits to capture> <T/F stop after>");
         }
+        System.out.println( "Disjoint analysis is debugging when "+
+                            state.DISJOINTDEBUGCALLER+" calls "+
+                            state.DISJOINTDEBUGCALLEE+" starting after "+
+                            state.DISJOINTDEBUGCALLVISITTOSTART+" visits and running for "+
+                            state.DISJOINTDEBUGCALLNUMVISITS+ " visits." );
 
       } else if (option.equals("-disjoint-debug-snap-method")) {
         state.DISJOINTSNAPSYMBOL=args[++i];

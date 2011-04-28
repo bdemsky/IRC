@@ -1010,6 +1010,23 @@ public class DisjointAnalysis implements HeapAnalysis {
     // the final, conservative approximation of the entire method
     HashSet<FlatReturnNode> setReturns = new HashSet<FlatReturnNode>();
 
+
+
+    boolean snapThisMethod = false;
+    if( takeDebugSnapshots && d instanceof MethodDescriptor ) {
+      MethodDescriptor mdThisMethod = (MethodDescriptor)d;
+      ClassDescriptor  cdThisMethod = mdThisMethod.getClassDesc();
+      if( cdThisMethod != null ) {
+        snapThisMethod = 
+          descSymbolDebug.equals( cdThisMethod.getSymbol()+
+                                  "."+
+                                  mdThisMethod.getSymbol()
+                                  );
+      }
+    }
+
+
+
     while( !flatNodesToVisit.isEmpty() ) {
 
       FlatNode fn;
@@ -1049,9 +1066,7 @@ public class DisjointAnalysis implements HeapAnalysis {
       }
 
 
-      if( takeDebugSnapshots &&
-          d.getSymbol().equals(descSymbolDebug)
-          ) {
+      if( snapThisMethod ) {
         debugSnapshot(rg, fn, true);
       }
 
@@ -1060,9 +1075,7 @@ public class DisjointAnalysis implements HeapAnalysis {
       rg = analyzeFlatNode(d, fm, fn, setReturns, rg);
 
 
-      if( takeDebugSnapshots &&
-          d.getSymbol().equals(descSymbolDebug)
-          ) {
+      if( snapThisMethod ) {
         debugSnapshot(rg, fn, false);
         ++snapNodeCounter;
       }
@@ -1104,9 +1117,7 @@ public class DisjointAnalysis implements HeapAnalysis {
     }
 
 
-    if( takeDebugSnapshots &&
-        d.getSymbol().equals(descSymbolDebug)
-        ) {
+    if( snapThisMethod ) {
       // increment that we've visited the debug snap
       // method, and reset the node counter
       System.out.println("    @@@ debug snap at visit "+snapVisitCounter);
@@ -1481,23 +1492,38 @@ public class DisjointAnalysis implements HeapAnalysis {
       FlatMethod fmCallee = state.getMethodFlat(mdCallee);
 
 
-      if( mdCallee.getSymbol().equals("genReach") ) {
-        rg.writeGraph("genReach"+d,
-                      true,     // write labels (variables)
-                      true,     // selectively hide intermediate temp vars
-                      true,     // prune unreachable heap regions
-                      false,    // hide reachability altogether
-                      true,     // hide subset reachability states
-                      true,     // hide predicates
-                      true);    // hide edge taints
-        break;
+
+      // all this jimma jamma to debug call sites is WELL WORTH the
+      // effort, so many bugs or buggy info goes crazy through call
+      // sites
+      boolean debugCalleeMatches = false;
+      ClassDescriptor cdCallee = mdCallee.getClassDesc();
+      if( cdCallee != null ) {
+        debugCalleeMatches = 
+          state.DISJOINTDEBUGCALLEE.equals( cdCallee.getSymbol()+
+                                            "."+
+                                            mdCallee.getSymbol()
+                                            );
       }
 
+      boolean debugCallerMatches = false;
+      if( mdCaller instanceof MethodDescriptor ) {
+        ClassDescriptor cdCaller = ((MethodDescriptor)mdCaller).getClassDesc();
+        if( cdCaller != null ) {
+          debugCallerMatches = 
+            state.DISJOINTDEBUGCALLER.equals( cdCaller.getSymbol()+
+                                              "."+
+                                              mdCaller.getSymbol()
+                                              );
+        }        
+      } else {
+        // for bristlecone style tasks
+        debugCallerMatches =
+          state.DISJOINTDEBUGCALLER.equals( mdCaller.getSymbol() );
+      }
 
+      boolean debugCallSite = debugCalleeMatches && debugCallerMatches;
 
-      boolean debugCallSite =
-        mdCaller.getSymbol().equals(state.DISJOINTDEBUGCALLER) &&
-        mdCallee.getSymbol().equals(state.DISJOINTDEBUGCALLEE);
 
       boolean writeDebugDOTs = false;
       boolean stopAfter      = false;
