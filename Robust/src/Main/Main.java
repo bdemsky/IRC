@@ -83,7 +83,9 @@ public class Main {
       if (option.equals("-precise"))
         IR.Flat.BuildCode.GENERATEPRECISEGC=true;
       else if (option.equals("-jni"))
-        state.JNI=true;
+	state.JNI=true;
+      else if (option.equals("-capture-null-dereferences"))
+        state.CAPTURE_NULL_DEREFERENCES=true;
       else if (option.equals("-prefetch"))
         state.PREFETCH=true;
       else if (option.equals("-dir"))

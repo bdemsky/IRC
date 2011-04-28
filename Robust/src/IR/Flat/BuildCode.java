@@ -2669,16 +2669,18 @@ fldloop:
       // an Enum value, directly replace the field access as int
       output.println(generateTemp(fm, ffn.getDst()) + "=" + ffn.getField().enumValue() + ";");
     } else {
-      output.println("#ifdef MULTICORE_DEBUG");
-      output.println("if (" + generateTemp(fm,ffn.getSrc()) + " == NULL) {");
-      output.println("printf(\" NULL ptr error: %s, %s, %d \\n\", __FILE__, __func__, __LINE__);");
-      if(state.MULTICOREGC) {
-        output.println("failednullptr(&___locals___);");
-      } else {
-        output.println("failednullptr(NULL);");
+      if( state.CAPTURE_NULL_DEREFERENCES ) {
+        output.println("#ifdef CAPTURE_NULL_DEREFERENCES");
+        output.println("if (" + generateTemp(fm,ffn.getSrc()) + " == NULL) {");
+        output.println("printf(\" NULL ptr error: %s, %s, %d \\n\", __FILE__, __func__, __LINE__);");
+        if(state.MULTICOREGC) {
+          output.println("failednullptr(&___locals___);");
+        } else {
+          output.println("failednullptr(NULL);");
+        }
+        output.println("}");
+        output.println("#endif //CAPTURE_NULL_DEREFERENCES");
       }
-      output.println("}");
-      output.println("#endif //MULTICORE_DEBUG");
       output.println(generateTemp(fm, ffn.getDst())+"="+ generateTemp(fm,ffn.getSrc())+"->"+ ffn.getField().getSafeSymbol()+";");
     }
   }
@@ -2740,16 +2742,20 @@ fldloop:
         output.println("global_defsprim_p->" +
                        fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
     } else {
-      output.println("#ifdef MULTICORE_DEBUG");
-      output.println("if (" + generateTemp(fm,fsfn.getDst()) + " == NULL) {");
-      output.println("printf(\" NULL ptr error: %s, %s, %d \\n\", __FILE__, __func__, __LINE__);");
-      if(state.MULTICOREGC) {
-        output.println("failednullptr(&___locals___);");
-      } else {
-        output.println("failednullptr(NULL);");
+      
+      if( state.CAPTURE_NULL_DEREFERENCES ) {
+        output.println("#ifdef CAPTURE_NULL_DEREFERENCES");
+        output.println("if (" + generateTemp(fm,fsfn.getDst()) + " == NULL) {");
+        output.println("printf(\" NULL ptr error: %s, %s, %d \\n\", __FILE__, __func__, __LINE__);");
+        if(state.MULTICOREGC) {
+          output.println("failednullptr(&___locals___);");
+        } else {
+          output.println("failednullptr(NULL);");
+        }
+        output.println("}");
+        output.println("#endif //CAPTURE_NULL_DEREFERENCES");
       }
-      output.println("}");
-      output.println("#endif //MULTICORE_DEBUG");
+
       if (fsfn.getSrc().getType().isPtr()&&fsfn.getSrc().getType()!=fsfn.getField().getType())
         output.println(generateTemp(fm, fsfn.getDst())+"->"+
                        fsfn.getField().getSafeSymbol()+"=(struct "+ fsfn.getField().getType().getSafeSymbol()+"*)"+generateTemp(fm,fsfn.getSrc())+";");

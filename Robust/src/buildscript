@@ -150,6 +150,7 @@ echo -recovery compile recovery code
 echo -dsmtask support work and task class library
 echo -recoverystats print out recovery record 
 echo -src-after-pp prints source code after preprocessor to tmp.c
+echo -capture-null-dereferences generates code to warn before derefencing null
 echo -printlinenum print out line numbers in generated C codes
 echo -help help
 }
@@ -262,6 +263,10 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DJNI -I$ROBUSTROOT/Runtime/jni"
 elif [[ $1 = '-justanalyze' ]]
 then
 EXITAFTERANALYSIS=true
+elif [[ $1 = '-capture-null-dereferences' ]]
+then
+JAVAOPTS="$JAVAOPTS -capture-null-dereferences"
+EXTRAOPTIONS="$EXTRAOPTIONS -DCAPTURE_NULL_DEREFERENCES"
 elif [[ $1 = '-src-after-pp' ]]
 then
 SRCAFTERPP=true
