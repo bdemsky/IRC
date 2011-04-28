@@ -324,11 +324,11 @@ public class ProcessStateMachines {
       if( (effectType & Effect.read)  != 0 &&
           (effectType & Effect.write) != 0
           ) {
-        allocAndFieldRW.add(new Effect(af.getFirst(),
-                                       Effect.read,
-                                       af.getSecond()
-                                       )
-                            );
+        allocAndFieldRW.add( new Effect( af.getFirst(),
+                                         Effect.read,
+                                         af.getSecond(),
+                                         null )
+                             );
       }
     }
 

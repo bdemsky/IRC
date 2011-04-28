@@ -33,7 +33,7 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 
 
 USEOOO= -ooojava $(NUM_OOO_WORKERS) 2 -squeue #-ooodebug-disable-task-mem-pool
-USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -squeue 
+USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -squeue -ooodebug
 OOODEBUG= -ooodebug -printlinenum
 RCRDEBUG= -rcr_debug -printlinenum
 RCRDEBUGV= -rcr_debug_verbose -printlinenum

@@ -136,7 +136,7 @@ public class EffectsAnalysis {
       RefEdge edge          = iterator.next();
       TaintSet taintSet      = edge.getTaints();
       AllocSite affectedAlloc = edge.getDst().getAllocSite();
-      Effect effect        = new Effect(affectedAlloc, Effect.read, fld);
+      Effect    effect        = new Effect(affectedAlloc, Effect.read, fld, currentProgramPoint);
 
       for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext(); ) {
         Taint taint = taintSetIter.next();
@@ -146,10 +146,10 @@ public class EffectsAnalysis {
   }
 
   public void analyzeFlatFieldNode(Set<Edge> sources, FieldDescriptor fld, FlatNode currentProgramPoint) {
-    for (Edge edge : sources) {
-      TaintSet taintSet      = edge.getTaints();
-      Alloc affectedAlloc = edge.getDst().getAllocSite();
-      Effect effect        = new Effect(affectedAlloc, Effect.read, fld);
+    for (Edge edge:sources) {
+      TaintSet  taintSet      = edge.getTaints();
+      Alloc     affectedAlloc = edge.getDst().getAllocSite();
+      Effect    effect        = new Effect(affectedAlloc, Effect.read, fld, currentProgramPoint);
 
       if (taintSet!=null)
         for (Taint taint : taintSet.getTaints()) {
@@ -169,11 +169,11 @@ public class EffectsAnalysis {
       RefEdge edge          = iterator.next();
       TaintSet taintSet      = edge.getTaints();
       AllocSite affectedAlloc = edge.getDst().getAllocSite();
-      Effect effect        = new Effect(affectedAlloc, Effect.write, fld);
-      Effect effectSU      = null;
+      Effect    effect        = new Effect(affectedAlloc, Effect.write, fld, currentProgramPoint);
+      Effect    effectSU      = null;
 
       if (strongUpdate) {
-        effectSU = new Effect(affectedAlloc, Effect.strongupdate, fld);
+        effectSU = new Effect(affectedAlloc, Effect.strongupdate, fld, currentProgramPoint);
       }
 
       for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext(); ) {
@@ -192,7 +192,7 @@ public class EffectsAnalysis {
     for (Edge edge : dstedges) {
       TaintSet taintSet = edge.getTaints();
       Alloc affectedAlloc = edge.getDst().getAllocSite();
-      Effect effect = new Effect(affectedAlloc, Effect.write, fld);
+      Effect effect = new Effect(affectedAlloc, Effect.write, fld, currentProgramPoint);
       if (taintSet!=null)
         for (Taint taint : taintSet.getTaints()) {
           add(taint, effect, currentProgramPoint);

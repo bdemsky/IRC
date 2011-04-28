@@ -1,7 +1,9 @@
 package Analysis.Disjoint;
 
-import IR.FieldDescriptor;
-import IR.Flat.TempDescriptor;
+import java.util.*;
+
+import IR.*;
+import IR.Flat.*;
 
 public class Effect {
 
@@ -19,10 +21,70 @@ public class Effect {
   // identify a field
   protected FieldDescriptor field;
 
-  public Effect(Alloc affectedAS, int type, FieldDescriptor field) {
+  // for debugging purposes, keep the compilation
+  // unit and line number of this effect--only if state
+  // is non-null later
+  protected int             lineNumber;
+  protected ClassDescriptor compilationUnit;
+  protected static Hashtable<FlatNode, ClassDescriptor> fn2cd =
+    new Hashtable<FlatNode, ClassDescriptor>();
+
+
+  public Effect(Alloc affectedAS, int type, FieldDescriptor field, FlatNode currentProgramPoint) {
     this.affectedAllocSite = affectedAS;
     this.type = type;
     this.field = field;
+
+
+    // NOTE: this line number+compilation unit is collected for debugging,
+    // so we don't want to spend time on this unless OOODEBUG or some new
+    // option controls it.  Disjoint and Pointer analysis use this currently.
+    lineNumber      = -1;
+    compilationUnit = null;
+
+    // find the class the current program point belongs to
+    if( currentProgramPoint == null ) {
+      return;
+    }
+    Set<FlatNode> visited = new HashSet<FlatNode>();
+    Set<FlatNode> toVisit = new HashSet<FlatNode>();
+    toVisit.add( currentProgramPoint );
+    
+    while( !toVisit.isEmpty() ) {
+      FlatNode fn = toVisit.iterator().next();
+      toVisit.remove( fn );
+      visited.add( fn );
+
+      // when we find a flat method, remember every node we visited
+      // belongs to that compilation unit
+      if( fn instanceof FlatMethod ) {
+        MethodDescriptor md = ((FlatMethod)fn).getMethod();
+        if( md != null ) {
+          ClassDescriptor cd = md.getClassDesc();
+          if( cd != null ) {
+            fn2cd.put( fn, cd );
+          }
+        }
+      }
+
+      if( fn2cd.containsKey( fn ) ) {
+        compilationUnit = fn2cd.get( fn );
+
+        for( FlatNode fnKnown: visited ) {
+          fn2cd.put( fnKnown, compilationUnit );
+        }
+        
+        lineNumber = currentProgramPoint.getNumLine();
+        break;
+      }
+
+      for( int i = 0; i < fn.numPrev(); ++i ) {
+        FlatNode prev = fn.getPrev( i );
+        if( !visited.contains( prev ) ) {
+          toVisit.add( prev );
+        }
+      }
+    }
   }
 
   public static boolean isWrite(int effect) {
@@ -115,6 +177,11 @@ public class Effect {
     } else {
       s += ", " + field.toStringBrief();
     }
+
+    if( compilationUnit != null ) {
+      s += ", "+compilationUnit.getSymbol()+":"+lineNumber;
+    }
+    
     return s + ")";
   }
 

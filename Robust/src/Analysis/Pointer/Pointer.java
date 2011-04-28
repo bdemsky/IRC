@@ -216,10 +216,14 @@ nextdelta:
 
     State.logEvent("Done With Pointer Analysis");
 
-
     if (OoOJava) {
       effectsAnalysis.buildStateMachines.writeStateMachines();
       State.logEvent("Done Writing State Machines");
+
+      if( state.OOODEBUG ) {
+        effectsAnalysis.writeEffects("effects.txt");
+        State.logEvent("Done Writing Effects");
+      }
     }
   }
 
