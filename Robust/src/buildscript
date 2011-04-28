@@ -157,6 +157,7 @@ echo -help help
 
 tmpbuilddirectory="tmpbuilddirectory"
 JNI=false
+SSJAVA=false
 SRCAFTERPP=false;
 COREPROF=false;
 NUMA=false;
@@ -774,81 +775,97 @@ then
 JAVAOPTS="$JAVAOPTS -struct structfile"
 fi
 
+
+
+#########################
 # Setup class path
+#########################
 if $JNI
-then
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/classpath/ -classlibrary $ROBUSTROOT/classpath/vm/reference"
+  then
+  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/classpath/ -classlibrary $ROBUSTROOT/classpath/vm/reference"
+
 elif $MGCINTELFLAG
-then
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
+  then
+  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
+
 elif $MGCFLAG
-then
-#base multicore gc files
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
+  then
+  #base multicore gc files
+  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
+
 elif $SSJAVA
-then
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/SSJava"
+  then
+  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/SSJava"  
+
 else
-if $RECOVERFLAG
-then
-if $FASTCHECK
-then
-#fast transactions
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/FastCheck"
-else
-#base bristlecone files
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Bristlecone"
+  if $RECOVERFLAG
+    then
+    if $FASTCHECK
+      then
+      #fast transactions
+      JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/FastCheck"
+    else
+      #base bristlecone files
+      JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Bristlecone"
+    fi
+
+  elif $DSMFLAG
+    then
+    #dsm stuff
+    JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaDSM"
+
+  elif $STM
+    then
+    JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaSTM"
+
+  elif $THREADFLAG
+    then
+    #threading java stuff
+    JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread"
+  fi
+
+  #base java stuff
+  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
 fi
-elif $DSMFLAG
-then
-#dsm stuff
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaDSM"
-elif $STM
-then
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaSTM"
-elif $THREADFLAG
-then
-#threading java stuff
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread"
+
+# everyone gets this except ssjava!
+if ! $SSJAVA
+  then
+  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/"
 fi
-#base java stuff
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
-fi
+#########################
+# end classpath
+#########################
+
+
 
 # Build bristlecone/java sources
 
 if $MULTICOREFLAG
-then
-if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main \
--dir $BUILDDIR $JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/ \
--classlibrary $ROBUSTROOT/ClassLibrary/gnu/ $SRCFILES
-then exit $?
-fi
-elif $SSJAVA
-then
-if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -dir $BUILDDIR -precise \
-$JAVAOPTS $SRCFILES
-then exit $?
-fi
+  then
+  if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main \
+       -dir $BUILDDIR $JAVAOPTS $SRCFILES
+    then exit $?
+  fi
+
 else
-#if ! ${ROBUSTROOT}/ourjava -Xms5m -Xmx100m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
-if $MGCINTELFLAG
-then
-if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main $JAVAOPTS -classlibrary \
-$ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ -dir $BUILDDIR -precise \
-$SRCFILES
-then exit $?
-fi
-else
-if ! $NOJAVA
-then
-if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
-$ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ -dir $BUILDDIR -precise \
-$JAVAOPTS $SRCFILES
-then exit $?
-fi
-fi
-fi
+
+  if $MGCINTELFLAG
+    then
+    if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main $JAVAOPTS \
+         -dir $BUILDDIR -precise $SRCFILES
+      then exit $?
+    fi
+
+  else
+    if ! $NOJAVA
+      then
+      if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main \
+	   -dir $BUILDDIR -precise $JAVAOPTS $SRCFILES
+        then exit $?
+      fi
+    fi
+  fi
 fi
 
 if $EXITAFTERANALYSIS
