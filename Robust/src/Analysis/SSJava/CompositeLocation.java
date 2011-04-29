@@ -30,14 +30,13 @@ public class CompositeLocation extends Location {
     if (loc instanceof DeltaLocation) {
       type = Location.DELTA;
     }
-
     locTuple.addElement(loc);
 
   }
 
   public void addLocationSet(Set<Location> set) {
 
-    for (Iterator iterator = set.iterator(); iterator.hasNext(); ) {
+    for (Iterator iterator = set.iterator(); iterator.hasNext();) {
       Location location = (Location) iterator.next();
       locTuple.addElement(location);
     }
@@ -48,7 +47,7 @@ public class CompositeLocation extends Location {
 
     // need to get more optimization version later
     Set<Location> locSet = getBaseLocationSet();
-    for (Iterator iterator = locSet.iterator(); iterator.hasNext(); ) {
+    for (Iterator iterator = locSet.iterator(); iterator.hasNext();) {
       Location location = (Location) iterator.next();
       if (location.getClassDescriptor().equals(cd)) {
         return location;
@@ -64,7 +63,7 @@ public class CompositeLocation extends Location {
     Map<ClassDescriptor, Location> cd2loc = new Hashtable<ClassDescriptor, Location>();
 
     Set<Location> baseLocSet = getBaseLocationSet();
-    for (Iterator iterator = baseLocSet.iterator(); iterator.hasNext(); ) {
+    for (Iterator iterator = baseLocSet.iterator(); iterator.hasNext();) {
       Location location = (Location) iterator.next();
       cd2loc.put(location.getClassDescriptor(), location);
     }
@@ -136,6 +135,15 @@ public class CompositeLocation extends Location {
     }
 
     return result;
+  }
+
+  public void removieLocation(ClassDescriptor cd) {
+    for (int i = 0; i < locTuple.size(); i++) {
+      if (locTuple.at(i).getClassDescriptor().equals(cd)) {
+        locTuple.removeAt(i);
+        return;
+      }
+    }
   }
 
   public String toString() {

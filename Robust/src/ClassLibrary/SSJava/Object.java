@@ -1,7 +1,7 @@
 public class Object {
   
   locdef{  
-    data
+    in
   }
   
   public native int hashCode();
@@ -14,7 +14,7 @@ public class Object {
     return "Object"+hashCode();
   }
 
-  public boolean equals(@LOC("data") Object o) {
+  public boolean equals(@LOC("in") Object o) {
     if (o==this)
       return true;
     return false;

@@ -57,5 +57,9 @@ public class NTuple<T> {
   public int hashCode() {
     return elements.hashCode();
   }
+  
+  public void removeAt(int i){
+    elements.remove(i);
+  }
 
 }

@@ -1,76 +1,97 @@
 public class String {
-  char value[];
-  int count;
-  int offset;
-  private int cachedHashcode;
+
+  locdef{
+    data<proc,proc<c,c<in,in*,c*,proc*,data*
+  }
+
+  @LOC("data") char value[];
+  @LOC("data") int count;
+  @LOC("data") int offset;
+  @LOC("data") private int cachedHashcode;
 
   private String() {
   }
 
-  public String(char c) {
-    char[] str = new char[1];
+  public String(@LOC("in") char c) {
+    @LOC("data") char[] str = new char[1];
     str[0] = c;
     String(str);
   }
 
-  public String(char str[]) {
-    char charstr[]=new char[str.length];
-    for(int i=0; i<str.length; i++)
+  public String(@LOC("in") char str[]) {
+    @LOC("in") char charstr[]=new char[str.length];
+    for(@LOC("c") int i=0; i<str.length; i++)
       charstr[i]=str[i];
     this.value=charstr;
     this.count=str.length;
     this.offset=0;
   }
 
-  public String(byte str[]) {
-    char charstr[]=new char[str.length];
-    for(int i=0; i<str.length; i++)
+  public String(@LOC("in") byte str[]) {
+    @LOC("in") char charstr[]=new char[str.length];
+    for(@LOC("c") int i=0; i<str.length; i++)
       charstr[i]=(char)str[i];
     this.value=charstr;
     this.count=str.length;
     this.offset=0;
   }
 
-  public String(byte str[], int offset, int length) {
+  public String(@LOC("in") byte str[], @LOC("in") int offset, @LOC("in") int length) {
     if (length>(str.length-offset))
       length=str.length-offset;
-    char charstr[]=new char[length];
-    for(int i=0; i<length; i++)
+    @LOC("in") char charstr[]=new char[length];
+    for(@LOC("c")int i=0; i<length; i++)
       charstr[i]=(char)str[i+offset];
     this.value=charstr;
     this.count=length;
     this.offset=0;
   }
-  
-  public String(byte str[], String encoding) {
-    int length = this.count;
+
+  public String(@LOC("in") byte str[], @LOC("in") String encoding) {
+    @LOC("data") int length = this.count;
     if (length>(str.length))
       length=str.length;
-    char charstr[]=new char[length];
-    for(int i=0; i<length; i++)
+    @LOC("data") char charstr[]=new char[length];
+    for(@LOC("c") int i=0; i<length; i++)
       charstr[i]=(char)str[i];
     this.value=charstr;
     this.count=length;
     this.offset=0;
   }
-  
-  public String(char str[], int offset, int length) {
+
+  public String(@LOC("in") char str[], @LOC("in") int offset, @LOC("in") int length) {
     if (length>(str.length-offset))
       length=str.length-offset;
-    char charstr[]=new char[length];
-    for(int i=0; i<length; i++)
+    @LOC("in") char charstr[]=new char[length];
+    for(@LOC("c") int i=0; i<length; i++)
       charstr[i]=str[i+offset];
     this.value=charstr;
     this.count=length;
     this.offset=0;
   }
 
-  public String(String str) {
+  public String(@LOC("in") String str) {
     this.value=str.value;
     this.count=str.count;
     this.offset=str.offset;
   }
-/*
+  
+  public String concat(@LOC("in") String str) {
+    @LOC("data") String newstr=new String();
+    newstr.count=this.count+str.count;
+    @LOC("data") char charstr[]=new char[newstr.count];
+    newstr.value=charstr;
+    newstr.offset=0;
+    for(@LOC("c") int i=0; i<count; i++) {
+      charstr[i]=value[i+offset];
+    }
+    for(@LOC("c") int i=0; i<str.count; i++) {
+      charstr[i+count]=str.value[i+str.offset];
+    }
+    return newstr;
+  }
+  
+  /*
   public String(StringBuffer strbuf) {
     value=new char[strbuf.length()];
     count=strbuf.length();
@@ -78,21 +99,23 @@ public class String {
     for(int i=0; i<count; i++)
       value[i]=strbuf.value[i];
   }
-*/
-  public boolean endsWith(String suffix) {
+   */
+  
+  /*
+  public boolean endsWith(@LOC("in") String suffix) {
     return regionMatches(count - suffix.count, suffix, 0, suffix.count);
   }
 
 
-  public String substring(int beginIndex) {
+  public String substring(@LOC("in") int beginIndex) {
     return substring(beginIndex, this.count);
   }
 
-  public String subString(int beginIndex, int endIndex) {
+  public String subString(@LOC("in") int beginIndex, @LOC("in") int endIndex) {
     return substring(beginIndex, endIndex);
   }
 
-  public String substring(int beginIndex, int endIndex) {
+  public String substring(@LOC("in") int beginIndex, @LOC("in") int endIndex) {
     String str=new String();
     if (beginIndex>this.count||endIndex>this.count||beginIndex>endIndex) {
       // FIXME
@@ -104,53 +127,38 @@ public class String {
     return str;
   }
 
-  public String subString(int beginIndex) {
+  public String subString(@LOC("in") int beginIndex) {
     return this.subString(beginIndex, this.count);
   }
 
-  public int lastindexOf(int ch) {
+  public int lastindexOf(@LOC("in") int ch) {
     return this.lastindexOf(ch, count - 1);
   }
 
-  public int lastIndexOf(char ch) {
+  public int lastIndexOf(@LOC("in") char ch) {
     return this.lastindexOf((int)ch, count - 1);
   }
-  
-  public static String concat2(String s1, String s2) {
+
+  public static String concat2(@LOC("in") String s1, @LOC("in") String s2) {
     if (s1==null)
       return "null".concat(s2);
     else
       return s1.concat(s2);
   }
 
-  public String concat(String str) {
-    String newstr=new String();
-    newstr.count=this.count+str.count;
-    char charstr[]=new char[newstr.count];
-    newstr.value=charstr;
-    newstr.offset=0;
-    for(int i=0; i<count; i++) {
-      charstr[i]=value[i+offset];
-    }
-    for(int i=0; i<str.count; i++) {
-      charstr[i+count]=str.value[i+str.offset];
-    }
-    return newstr;
-  }
-
-  public int lastindexOf(int ch, int fromIndex) {
+  public int lastindexOf(@LOC("in") int ch, @LOC("in") int fromIndex) {
     for(int i=fromIndex; i>0; i--)
       if (this.charAt(i)==ch)
-	return i;
+        return i;
     return -1;
   }
 
-  public String replace(char oldch, char newch) {
+  public String replace(@LOC("in") char oldch, @LOC("in") char newch) {
     char[] buffer=new char[count];
     for(int i=0; i<count; i++) {
       char x=charAt(i);
       if (x==oldch)
-	x=newch;
+        x=newch;
       buffer[i]=x;
     }
     return new String(buffer);
@@ -161,7 +169,7 @@ public class String {
     for(int i=0; i<count; i++) {
       char x=charAt(i);
       if (x>='a'&&x<='z') {
-	x=(char) ((x-'a')+'A');
+        x=(char) ((x-'a')+'A');
       }
       buffer[i]=x;
     }
@@ -173,78 +181,78 @@ public class String {
     for(int i=0; i<count; i++) {
       char x=charAt(i);
       if (x>='A'&&x<='Z') {
-	x=(char) ((x-'A')+'a');
+        x=(char) ((x-'A')+'a');
       }
       buffer[i]=x;
     }
     return new String(buffer);
   }
 
-  public int indexOf(int ch) {
+  public int indexOf(@LOC("in") int ch) {
     return this.indexOf(ch, 0);
   }
 
-  public int indexOf(int ch, int fromIndex) {
+  public int indexOf(@LOC("in") int ch, @LOC("in") int fromIndex) {
     for(int i=fromIndex; i<count; i++)
       if (this.charAt(i)==ch)
-	return i;
+        return i;
     return -1;
   }
 
-  public int indexOf(String str) {
+  public int indexOf(@LOC("in") String str) {
     return this.indexOf(str, 0);
   }
 
-  public int indexOf(String str, int fromIndex) {
+  public int indexOf(@LOC("in") String str, @LOC("in") int fromIndex) {
     if (fromIndex<0)
       fromIndex=0;
     for(int i=fromIndex; i<=(count-str.count); i++)
       if (regionMatches(i, str, 0, str.count))
-	return i;
+        return i;
     return -1;
   }
 
-	public int indexOfIgnoreCase(String str, int fromIndex) {
-		if (fromIndex < 0) 
-			fromIndex = 0;
-	}
+  public int indexOfIgnoreCase(@LOC("in") String str, @LOC("in") int fromIndex) {
+    if (fromIndex < 0) 
+      fromIndex = 0;
+  }
 
-  public int lastIndexOf(String str, int fromIndex) {
+  public int lastIndexOf(@LOC("in") String str, @LOC("in") int fromIndex) {
     int k=count-str.count;
     if (k>fromIndex)
       k=fromIndex;
     for(; k>=0; k--) {
       if (regionMatches(k, str, 0, str.count))
-	return k;
+        return k;
     }
     return -1;
   }
 
-  public int lastIndexOf(String str) {
+  public int lastIndexOf(@LOC("in") String str) {
     return lastIndexOf(str, count-str.count);
   }
 
-  public boolean startsWith(String str) {
+  public boolean startsWith(@LOC("in") String str) {
     return regionMatches(0, str, 0, str.count);
   }
 
-  public boolean startsWith(String str, int toffset) {
+  public boolean startsWith(@LOC("in") String str, @LOC("in") int toffset) {
     return regionMatches(toffset, str, 0, str.count);
   }
 
-  public boolean regionMatches(int toffset, String other, int ooffset, int len) {
+  public boolean regionMatches(@LOC("in") int toffset, @LOC("in") String other, @LOC("in") int ooffset, @LOC("in") int len) {
     if (toffset<0 || ooffset <0 || (toffset+len)>count || (ooffset+len)>other.count)
       return false;
     for(int i=0; i<len; i++)
       if (other.value[i+other.offset+ooffset]!=
-          this.value[i+this.offset+toffset])
-	return false;
+        this.value[i+this.offset+toffset])
+        return false;
     return true;
   }
 
   public char[] toCharArray() {
-    char str[]=new char[count];
-    for(int i=0; i<count; i++)
+    @LOC("data") char str[]=new char[count];
+    for(@LOC("data") int i=0; i<count; i++)
       str[i]=value[i+offset];
     return str;
   }
@@ -255,12 +263,12 @@ public class String {
       str[i]=(byte)value[i+offset];
     return str;
   }
-  
-  public void getChars(char dst[], int dstBegin) {
+
+  public void getChars(@LOC("in") char dst[], @LOC("in") int dstBegin) {
     getChars(0, count, dst, dstBegin);
   }
-  
-  public void getChars(int srcBegin, int srcEnd, char dst[], int dstBegin) {
+
+  public void getChars(@LOC("in") int srcBegin, @LOC("in") int srcEnd, @LOC("in") char dst[],@LOC("in")  int dstBegin) {
     if((srcBegin < 0) || (srcEnd > count) || (srcBegin > srcEnd)) {
       // FIXME
       System.printString("Index error: "+srcBegin+" "+srcEnd+" "+count+"\n"+this);
@@ -272,42 +280,29 @@ public class String {
       dst[j++]=value[i+offset];
     return;
   }
-
+*/
   public int length() {
     return count;
   }
-
-  public char charAt(int i) {
+/*
+  public char charAt(@LOC("in") int i) {
     return value[i+offset];
   }
-
+*/
   public String toString() {
     return this;
   }
 
-  public static String valueOf(Object o) {
+  public static String valueOf(@LOC("in") Object o) {
     if (o==null)
       return "null";
     else
       return o.toString();
   }
-
-  public static String valueOf(boolean b) {
-    if (b)
-      return new String("true");
-    else
-      return new String("false");
-  }
-
-  public static String valueOf(char c) {
-    char ar[]=new char[1];
-    ar[0]=c;
-    return new String(ar);
-  }
-
-  public static String valueOf(int x) {
-    int length=0;
-    int tmp;
+  
+  public static String valueOf(@LOC("in") int x) {
+    @LOC("in") int length=0;
+    @LOC("in") int tmp;
     if (x<0)
       tmp=-x;
     else
@@ -317,12 +312,12 @@ public class String {
       length=length+1;
     } while(tmp!=0);
 
-    char chararray[];
+    @LOC("in") char chararray[];
     if (x<0)
       chararray=new char[length+1];
     else
       chararray=new char[length];
-    int voffset;
+    @LOC("in") int voffset;
     if (x<0) {
       chararray[0]='-';
       voffset=1;
@@ -336,8 +331,24 @@ public class String {
     } while (length!=0);
     return new String(chararray);
   }
+  
+/*
+  public static String valueOf(@LOC("in") boolean b) {
+    if (b)
+      return new String("true");
+    else
+      return new String("false");
+  }
 
-  public static String valueOf(double val) {
+  public static String valueOf(@LOC("in") char c) {
+    @LOC("data") char ar[]=new char[1];
+    ar[0]=c;
+    return new String(ar);
+  }
+
+  
+
+  public static String valueOf(@LOC("in") double val) {
     char[] chararray=new char[20];
     String s=new String();
     s.offset=0;
@@ -345,10 +356,10 @@ public class String {
     s.value=chararray;
     return s;
   }
-  
+
   public static native int convertdoubletochar(double val, char [] chararray);
 
-  public static String valueOf(long x) {
+  public static String valueOf(@LOC("in") long x) {
     int length=0;
     long tmp;
     if (x<0)
@@ -380,57 +391,57 @@ public class String {
     return new String(chararray);
   }
 
-  public int compareTo(String s) {
+  public int compareTo(@LOC("in") String s) {
     int smallerlength=count<s.count?count:s.count;
 
     for( int i = 0; i < smallerlength; i++ ) {
       int valDiff = this.charAt(i) - s.charAt(i);
       if( valDiff != 0 ) {
-	return valDiff;
+        return valDiff;
       }
     }
     return count-s.count;
   }
-
+*/
   public int hashCode() {
     if (cachedHashcode!=0)
       return cachedHashcode;
-    int hashcode=0;
-    for(int i=0; i<count; i++)
+    @LOC("data") int hashcode=0;
+    for(@LOC("c") int i=0; i<count; i++)
       hashcode=hashcode*31+value[i+offset];
     cachedHashcode=hashcode;
     return hashcode;
   }
 
-  public boolean equals(Object o) {
+  public boolean equals(@LOC("in") Object o) {
     if (o.getType()!=getType())
       return false;
-    String s=(String)o;
+    @LOC("in") String s=(String)o;
     if (s.count!=count)
       return false;
-    for(int i=0; i<count; i++) {
+    for(@LOC("c") int i=0; i<count; i++) {
       if (s.value[i+s.offset]!=value[i+offset])
-	return false;
+        return false;
     }
     return true;
   }
-
-  public boolean equalsIgnoreCase(String s) {
+  /*
+  public boolean equalsIgnoreCase(@LOC("in") String s) {
     if (s.count!=count)
       return false;
     for(int i=0; i<count; i++) {
       char l=s.value[i+s.offset];
       char r=value[i+offset];
       if (l>='a'&&l<='z')
-	l=(char)((l-'a')+'A');
+        l=(char)((l-'a')+'A');
       if (r>='a'&&r<='z')
-	r=(char)((r-'a')+'A');
+        r=(char)((r-'a')+'A');
       if (l!=r)
-	return false;
+        return false;
     }
     return true;
   }
-/*
+
   public Vector split() {
     Vector splitted = new Vector();
     int i;
@@ -469,11 +480,11 @@ public class String {
 	t.count=i-oldi;
 	splitted.addElement(t);
     }
-    
+
     return splitted;
   }
-*/
-  public boolean contains(String str)
+   
+  public boolean contains(@LOC("in") String str)
   {
     int i,j;
     char[] strChar = str.toCharArray();
@@ -494,12 +505,12 @@ public class String {
     return false;
 
   }
-  
+
   public String trim() {
     int len = count;
     int st = 0;
-    int off = offset;      /* avoid getfield opcode */
-    char[] val = value;    /* avoid getfield opcode */
+    int off = offset;      //avoid getfield opcode 
+    char[] val = value;    // avoid getfield opcode 
 
     while ((st < len) && (val[off + st] <= ' ')) {
       st++;
@@ -509,9 +520,10 @@ public class String {
     }
     return ((st > 0) || (len < count)) ? substring(st, len) : this;
   }
-  
-  public boolean matches(String regex) {
+
+  public boolean matches(@LOC("in") String regex) {
     System.println("String.matches() is not fully supported");
     return this.equals(regex);
   }
+  */
 }
