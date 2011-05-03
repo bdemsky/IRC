@@ -294,10 +294,12 @@ public class String {
   }
 
   public static String valueOf(@LOC("in") Object o) {
+    @LOC("proc") String rValue;
     if (o==null)
-      return "null";
+      rValue="null";
     else
-      return o.toString();
+      rValue=o.toString();
+    return rValue;
   }
   
   public static String valueOf(@LOC("in") int x) {

@@ -1,8 +1,10 @@
 package Analysis.SSJava;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -281,17 +283,25 @@ public class FlowDownCheck {
       ReturnNode rn) {
     ClassDescriptor cd = md.getClassDesc();
     CompositeLocation loc = new CompositeLocation(cd);
-    // TODO: by default, return node has "bottom" location no matter what it is
-    // going to return
-    // but definitely I need to consider it more!!!
-    loc.addLocation(Location.createBottomLocation(cd));
-    /*
-     * ExpressionNode returnExp = rn.getReturnExpression(); if
-     * (rn.getReturnExpression() != null) { loc =
-     * checkLocationFromExpressionNode(md, nametable, returnExp, loc); }
-     */
-    // System.out.println(rn.printNode(0) + "  has loc=" + loc);
+
+    ExpressionNode returnExp = rn.getReturnExpression();
+
+    if (rn == null || hasOnlyLiteralValue(returnExp)) {
+      // when it returns literal value, return node has "bottom" location no
+      // matter what it is going to return.
+      loc.addLocation(Location.createBottomLocation(cd));
+    } else {
+      loc = checkLocationFromExpressionNode(md, nametable, returnExp, loc);
+    }
     return loc;
+  }
+
+  private boolean hasOnlyLiteralValue(ExpressionNode returnExp) {
+    if (returnExp.kind() == Kind.LiteralNode) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   private CompositeLocation checkLocationFromLoopNode(MethodDescriptor md, SymbolTable nametable,
@@ -572,10 +582,53 @@ public class FlowDownCheck {
     return CompositeLattice.calculateGLB(cd, glbInputSet, cd);
   }
 
+  private CompositeLocation convertCompositeLocation(Location l, ClassDescriptor c) {
+    if (l instanceof CompositeLocation) {
+      return (CompositeLocation) l;
+    } else {
+      CompositeLocation returnLoc = new CompositeLocation(c);
+      returnLoc.addLocation(l);
+      return returnLoc;
+    }
+  }
+
   private CompositeLocation checkLocationFromMethodInvokeNode(MethodDescriptor md,
       SymbolTable nametable, MethodInvokeNode min) {
 
     ClassDescriptor cd = md.getClassDesc();
+
+    CompositeLocation baseLoc = null;
+    if (min.getBaseName() != null) {
+      if (nametable.contains(min.getBaseName().getSymbol())) {
+        Location loc = td2loc.get(nametable.get(min.getBaseName().getSymbol()));
+        if (loc != null) {
+          baseLoc = convertCompositeLocation(loc, cd);
+        }
+      }
+    }
+
+    Set<CompositeLocation> inputGLBSet = new HashSet<CompositeLocation>();
+    for (int i = 0; i < min.numArgs(); i++) {
+      ExpressionNode en = min.getArg(i);
+      CompositeLocation callerArg =
+          checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(cd));
+      inputGLBSet.add(callerArg);
+    }
+
+    // ex) base.method(arg1,arg2,arg3) -> the location of base should be lower
+    // than
+    // GLB(arg1,arg2,arg3)
+    CompositeLocation argGLBLoc = null;
+    if (inputGLBSet.size() > 0) {
+      argGLBLoc = CompositeLattice.calculateGLB(cd, inputGLBSet, cd);
+      if (baseLoc != null) {
+        if (!CompositeLattice.isGreaterThan(argGLBLoc, baseLoc, cd)) {
+          throw new Error("The base location of method invocation " + min.printNode(0)
+              + " is higher than its argument's location at " + cd.getSourceFileName() + "::"
+              + min.getNumLine());
+        }
+      }
+    }
 
     if (min.numArgs() > 1) {
 
@@ -625,24 +678,23 @@ public class FlowDownCheck {
 
     // all arguments should be higher than the location of return value
 
-    // first, calculate glb of arguments
-    Set<CompositeLocation> argLocSet = new HashSet<CompositeLocation>();
-    for (int i = 0; i < min.numArgs(); i++) {
-      ExpressionNode en = min.getArg(i);
-      CompositeLocation argLoc =
-          checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(cd));
-      addTypeLocation(en.getType(), argLoc);
-      argLocSet.add(argLoc);
-    }
-
-    if (argLocSet.size() > 0) {
-      CompositeLocation argGLBLoc = CompositeLattice.calculateGLB(cd, argLocSet, cd);
-      return argGLBLoc;
+    if (inputGLBSet.size() > 0) {
+      if (baseLoc != null) {
+        inputGLBSet.add(baseLoc);
+        return CompositeLattice.calculateGLB(cd, inputGLBSet, cd);
+      } else {
+        return argGLBLoc;
+      }
     } else {
       // if there are no arguments,
-      CompositeLocation returnLoc = new CompositeLocation(cd);
-      returnLoc.addLocation(Location.createTopLocation(cd));
-      return returnLoc;
+      if (baseLoc != null) {
+        return baseLoc;
+      } else {
+        // method invocation from the same class
+        CompositeLocation returnLoc = new CompositeLocation(cd);
+        returnLoc.addLocation(Location.createTopLocation(cd));
+        return returnLoc;
+      }
     }
   }
 
@@ -1056,7 +1108,6 @@ public class FlowDownCheck {
       }
     }
 
-   
   }
 
   private void addTypeLocation(TypeDescriptor type, Location loc) {
