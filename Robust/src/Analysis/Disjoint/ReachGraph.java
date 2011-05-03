@@ -2221,10 +2221,10 @@ public class ReachGraph {
   private static boolean resolveMethodDebugDOTwriteLabels     = true;
   private static boolean resolveMethodDebugDOTselectTemps     = true;
   private static boolean resolveMethodDebugDOTpruneGarbage    = true;
-  private static boolean resolveMethodDebugDOThideReach       = false;
-  private static boolean resolveMethodDebugDOThideSubsetReach = false;
+  private static boolean resolveMethodDebugDOThideReach       = true;
+  private static boolean resolveMethodDebugDOThideSubsetReach = true;
   private static boolean resolveMethodDebugDOThidePreds       = true;
-  private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
+  private static boolean resolveMethodDebugDOThideEdgeTaints  = false;
 
   static String debugGraphPrefix;
   static int debugCallSiteVisitCounter;

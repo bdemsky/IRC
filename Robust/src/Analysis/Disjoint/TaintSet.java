@@ -157,14 +157,14 @@ public class TaintSet extends Canonical {
     return taints.hashCode();
   }
 
-  public String toStringEscNewline() {
+  public String toStringEscNewline( boolean suppressPredicates ) {
     String s = "taints[";
 
     Iterator<Taint> tItr = taints.iterator();
     while( tItr.hasNext() ) {
       Taint t = tItr.next();
 
-      s += t.toString();
+      s += t.toString( suppressPredicates );
       if( tItr.hasNext() ) {
         s += ",\\n";
       }

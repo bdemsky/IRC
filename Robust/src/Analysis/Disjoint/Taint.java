@@ -223,7 +223,13 @@ public class Taint extends Canonical {
     return hash;
   }
 
+
   public String toString() {
+    return toString( false );
+  }
+
+
+  public String toString( boolean suppressPredicates ) {
 
     String s;
 
@@ -238,11 +244,16 @@ public class Taint extends Canonical {
       f += ", "+fnDefined;
     }
 
+    String p = "";
+    if( !suppressPredicates ) {
+      p += ":"+preds;
+    }
+
     return
       "("+s+
       "-"+var+
       ", "+allocSite.toStringBrief()+
       f+
-      "):"+preds;
+      ")"+p;
   }
 }

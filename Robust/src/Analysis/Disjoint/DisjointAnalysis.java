@@ -690,8 +690,8 @@ public class DisjointAnalysis implements HeapAnalysis {
     this.releaseMode             = state.DISJOINTRELEASEMODE;
     this.determinismDesired      = state.DISJOINTDETERMINISM;
 
-    this.writeFinalDOTs          = state.DISJOINTWRITEDOTS && !state.DISJOINTWRITEALL && !suppressOutput;
-    this.writeAllIncrementalDOTs = state.DISJOINTWRITEDOTS &&  state.DISJOINTWRITEALL && !suppressOutput;
+    this.writeFinalDOTs          = state.DISJOINTWRITEDOTS && !state.DISJOINTWRITEALL;
+    this.writeAllIncrementalDOTs = state.DISJOINTWRITEDOTS &&  state.DISJOINTWRITEALL;
 
     this.takeDebugSnapshots      = state.DISJOINTSNAPSYMBOL != null;
     this.descSymbolDebug         = state.DISJOINTSNAPSYMBOL;
@@ -1789,7 +1789,7 @@ public class DisjointAnalysis implements HeapAnalysis {
                     true,     // write labels (variables)
                     true,     // selectively hide intermediate temp vars
                     true,     // prune unreachable heap regions
-                    false,    // hide reachability altogether
+                    true,     // hide reachability altogether
                     true,     // hide subset reachability states
                     true,     // hide predicates
                     false);   // hide edge taints
