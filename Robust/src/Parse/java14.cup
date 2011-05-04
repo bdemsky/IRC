@@ -164,7 +164,8 @@ non terminal ParseNode explicit_constructor_invocation;
 non terminal ParseNode location_order_declaration, location_order_list, location_order;
 // 19.9.1) Interface Declarations
 non terminal ParseNode interface_declaration;
-non terminal ParseNode normal_interface_declaration, annotation_type_declaration;
+//non terminal ParseNode normal_interface_declaration
+non terminal ParseNode annotation_type_declaration;
 non terminal ParseNode extends_interfaces_opt, extends_interfaces;
 non terminal ParseNode interface_body;
 non terminal ParseNode interface_member_declarations_opt, interface_member_declarations;
@@ -288,7 +289,8 @@ non terminal ParseNode enum_body, enum_constants_opt, enum_constants, enum_const
 //non terminal ParseNode enum_arguments_opt, enum_body_declarations_opt;
 
 // annotation expressions
-non terminal ParseNode annotations_opt, annotations, annotations_at, annotation, annotation_body;
+// non terminal ParseNode annotations_opt, 
+non terminal ParseNode annotations, annotations_at, annotation, annotation_body;
 non terminal ParseNode normal_annotation_body, marker_annotation_body;
 non terminal ParseNode single_element_annotation_body;
 non terminal ParseNode annotation_type_body, annotation_type_element_declarations;
@@ -1319,12 +1321,17 @@ location_order ::=
         :}
 	|	IDENTIFIER:loc MULT{:
 	      	ParseNode pn=new ParseNode("location_property",parser.lexer.line_num);		
-		pn.addChild(loc);
+		pn.addChild("location_multi").addChild(loc);
 		RESULT=pn;
 	:}
 	|       IDENTIFIER:loc {:
 		ParseNode pn=new ParseNode("location_order",parser.lexer.line_num);
 		pn.addChild(loc);
+		RESULT=pn;
+	:}
+	|	THIS COLON IDENTIFIER:loc {:
+		ParseNode pn=new ParseNode("location_property",parser.lexer.line_num);
+		pn.addChild("location_this").addChild(loc);
 		RESULT=pn;
 	:}
         ;

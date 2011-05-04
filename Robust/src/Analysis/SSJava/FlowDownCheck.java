@@ -43,6 +43,7 @@ import IR.Tree.SubBlockNode;
 import IR.Tree.TertiaryNode;
 import IR.Tree.TreeNode;
 import Util.Lattice;
+import Util.Pair;
 
 public class FlowDownCheck {
 
@@ -915,8 +916,8 @@ public class FlowDownCheck {
       destLocation =
           srcLocation = checkLocationFromExpressionNode(md, nametable, an.getDest(), srcLocation);
 
-      if (!((Set<String>) state.getCd2LocationPropertyMap().get(cd)).contains(destLocation
-          .getLocation(cd).getLocIdentifier())) {
+      if (!((Set<String>) state.getCd2LocationPropertyMap().get(new Pair(cd, "spin")))
+          .contains(destLocation.getLocation(cd).getLocIdentifier())) {
         throw new Error("Location " + destLocation + " is not allowed to have spinning values at "
             + cd.getSourceFileName() + ":" + an.getNumLine());
       }
@@ -1188,7 +1189,8 @@ public class FlowDownCheck {
       if (priorityLoc1.getLocIdentifier().equals(priorityLoc2.getLocIdentifier())) {
         // have the same level of local hierarchy
 
-        Set<String> spinSet = (Set<String>) state.getCd2LocationPropertyMap().get(cd);
+        Set<String> spinSet =
+            (Set<String>) state.getCd2LocationPropertyMap().get(new Pair(cd, "spin"));
         if (spinSet != null && spinSet.contains(priorityLoc1.getLocIdentifier())) {
           // this location can be spinning
           return ComparisonResult.GREATER;

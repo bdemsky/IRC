@@ -1,6 +1,7 @@
 package IR.Tree;
 import IR.*;
 import Util.Lattice;
+import Util.Pair;
 
 import java.io.File;
 import java.util.*;
@@ -632,11 +633,16 @@ public class BuildIR {
     Lattice<String> locOrder =
       new Lattice<String>("_top_","_bottom_");
     Set<String> spinLocSet=new HashSet<String>();
+    String thisLoc=null;
     for (int i = 0; i < pnv.size(); i++) {
       ParseNode loc = pnv.elementAt(i);
       if(isNode(loc,"location_property")) {
-        String spinLoc=loc.getChildren().elementAt(0).getLabel();
-        spinLocSet.add(spinLoc);
+        if(loc.getFirstChild().getLabel().equals("location_multi")){
+          String spinLoc=loc.getFirstChild().getFirstChild().getLabel();
+          spinLocSet.add(spinLoc);
+        }else{
+          thisLoc=loc.getFirstChild().getFirstChild().getLabel();
+        }
       } else {
         if(loc.getChildren().size()==1){
           String locIentifier=loc.getChildren().elementAt(0).getLabel();
@@ -661,7 +667,10 @@ public class BuildIR {
                           locID + "' is not defined in the hierarchy of the class '"+cd +"'.");
         }
       }
-      state.addLocationPropertySet(cd, spinLocSet);
+      state.addLocationProperty(new Pair(cd,"spin"), spinLocSet);
+    }
+    if(thisLoc!=null){
+      state.addLocationProperty(new Pair(cd,"this"), thisLoc);
     }
     state.addLocationOrder(cd, locOrder);
   }

@@ -3,6 +3,7 @@ import IR.Tree.*;
 import IR.Flat.*;
 import IR.*;
 import Util.Lattice;
+import Util.Pair;
 
 import java.util.*;
 import Analysis.TaskStateAnalysis.*;
@@ -368,8 +369,8 @@ public class State {
     return cd2locationOrderMap;
   }
 
-  public void addLocationPropertySet(ClassDescriptor cd, Set<String> set) {
-    cd2locationPropertyMap.put(cd,set);
+  public void addLocationProperty(Pair key, Object value) {
+    cd2locationPropertyMap.put(key,value);
   }
 
   public Hashtable getCd2LocationPropertyMap() {
