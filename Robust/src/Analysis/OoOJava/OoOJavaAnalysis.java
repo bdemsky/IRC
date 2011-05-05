@@ -7,6 +7,7 @@ import Analysis.*;
 import Analysis.CallGraph.*;
 import Analysis.Disjoint.*;
 import Analysis.Pointer.*;
+import Util.*;
 import IR.*;
 import IR.Flat.*;
 
@@ -182,12 +183,13 @@ public class OoOJavaAnalysis {
       disjointAnalysisTaints =
         new Pointer(state, typeUtil, callGraph, rblockRel, liveness, buildStateMachines);
       ((Pointer) disjointAnalysisTaints).doAnalysis();
-    } else
+    } else {
       disjointAnalysisTaints =
         new DisjointAnalysis(state, typeUtil, callGraph, liveness, arrayReferencees, null,
-                             rblockRel, buildStateMachines, true);  // suppress output--this is
-                                                                    // an intermediate pass
-
+                             rblockRel, buildStateMachines, 
+                             !state.OOODEBUG // only print out in OoOJava debug mode
+                             );
+    }
     State.logEvent("OoOJavaAnalysis 5th pass completed");
 
     // 6th pass, not available analysis FOR VARIABLES!

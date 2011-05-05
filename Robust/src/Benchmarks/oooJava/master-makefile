@@ -73,9 +73,9 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # EX: (skip first 10 visits, capture the next 3, then halt)
 # -disjoint-debug-snap-method Remove 10 3 true
 
-DISJOINTDEBUG= -justanalyze -disjoint -disjoint-k 1 -enable-assertions \
-	-disjoint-write-dots final \
-	-disjoint-debug-callsite Demand.add Lateral.compute 1 1000 true
+DISJOINTDEBUG= -justanalyze -disjoint -disjoint-k 1 -enable-assertions 
+#	-disjoint-write-dots final \
+#	-disjoint-debug-callsite Demand.add Lateral.compute 1 1000 true
 #	-disjoint-desire-determinism
 #	-disjoint-debug-snap-method ComputeCenterOfMass 6 2 true
 #	-disjoint-debug-scheduling
@@ -108,7 +108,7 @@ ooo-debug: $(SOURCE_FILES) ../master-makefile
 
 
 disjoint-debug: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINTDEBUG) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINTDEBUG) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES)
 
 rcr: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 

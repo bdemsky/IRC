@@ -1300,9 +1300,6 @@ public class ReachGraph {
 
       // use this where defined flatnode to support RCR/DFJ
       FlatNode whereDefined = null;
-      if( state.RCR ) {
-        whereDefined = sese;
-      }
 
       // in-set var taints should NOT propagate back into callers
       // so give it FALSE(EMPTY) predicates
@@ -1320,9 +1317,6 @@ public class ReachGraph {
 
     // use this where defined flatnode to support RCR/DFJ
     FlatNode whereDefined = null;
-    if( state.RCR ) {
-      whereDefined = stallSite;
-    }
 
     // stall site taint should propagate back into callers
     // so give it TRUE predicates
