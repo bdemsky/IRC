@@ -680,6 +680,9 @@ public class DisjointAnalysis implements HeapAnalysis {
       doEffectsAnalysis = true;
       effectsAnalysis   = new EffectsAnalysis();
 
+      EffectsAnalysis.state              = state;
+      EffectsAnalysis.buildStateMachines = buildStateMachines;
+
       //note: instead of reachgraph's isAccessible, using the result of accessible analysis
       //since accessible gives us more accurate results
       accessible=new Accessible(state, callGraph, rra, liveness);
@@ -726,9 +729,7 @@ public class DisjointAnalysis implements HeapAnalysis {
     ReachGraph.debugCallSiteVisitCounter
       = 0; // count visits from 1, is incremented before first visit
 
-
-    EffectsAnalysis.state              = state;
-    EffectsAnalysis.buildStateMachines = buildStateMachines;
+    
 
 
     if( suppressOutput ) {
@@ -1163,6 +1164,8 @@ public class DisjointAnalysis implements HeapAnalysis {
     rgOnEnter.merge(rg);
     fn2rgAtEnter.put(fn, rgOnEnter);
 
+
+
     // use node type to decide what transfer function
     // to apply to the reachability graph
     switch( fn.kind() ) {
@@ -1176,10 +1179,10 @@ public class DisjointAnalysis implements HeapAnalysis {
                     true,     // write labels (variables)
                     true,    // selectively hide intermediate temp vars
                     true,     // prune unreachable heap regions
-                    false,    // hide reachability altogether
+                    true,    // hide reachability altogether
                     true,    // hide subset reachability states
                     true,     // hide predicates
-                    true);    // hide edge taints
+                    false);    // hide edge taints
     } break;
 
 
@@ -1496,33 +1499,42 @@ public class DisjointAnalysis implements HeapAnalysis {
       // all this jimma jamma to debug call sites is WELL WORTH the
       // effort, so many bugs or buggy info goes crazy through call
       // sites
-      boolean debugCalleeMatches = false;
-      ClassDescriptor cdCallee = mdCallee.getClassDesc();
-      if( cdCallee != null ) {
-        debugCalleeMatches = 
-          state.DISJOINTDEBUGCALLEE.equals( cdCallee.getSymbol()+
-                                            "."+
-                                            mdCallee.getSymbol()
-                                            );
-      }
+      boolean debugCallSite = false;
+      if( state.DISJOINTDEBUGCALLEE != null &&
+          state.DISJOINTDEBUGCALLER != null ) {
 
-      boolean debugCallerMatches = false;
-      if( mdCaller instanceof MethodDescriptor ) {
-        ClassDescriptor cdCaller = ((MethodDescriptor)mdCaller).getClassDesc();
-        if( cdCaller != null ) {
-          debugCallerMatches = 
-            state.DISJOINTDEBUGCALLER.equals( cdCaller.getSymbol()+
+        boolean debugCalleeMatches = false;
+        boolean debugCallerMatches = false;
+        
+        ClassDescriptor cdCallee = mdCallee.getClassDesc();
+        if( cdCallee != null ) {
+          debugCalleeMatches = 
+            state.DISJOINTDEBUGCALLEE.equals( cdCallee.getSymbol()+
                                               "."+
-                                              mdCaller.getSymbol()
+                                              mdCallee.getSymbol()
                                               );
-        }        
-      } else {
-        // for bristlecone style tasks
-        debugCallerMatches =
-          state.DISJOINTDEBUGCALLER.equals( mdCaller.getSymbol() );
+        }
+
+
+        if( mdCaller instanceof MethodDescriptor ) {
+          ClassDescriptor cdCaller = ((MethodDescriptor)mdCaller).getClassDesc();
+          if( cdCaller != null ) {
+            debugCallerMatches = 
+              state.DISJOINTDEBUGCALLER.equals( cdCaller.getSymbol()+
+                                                "."+
+                                                mdCaller.getSymbol()
+                                                );
+          }        
+        } else {
+          // for bristlecone style tasks
+          debugCallerMatches =
+            state.DISJOINTDEBUGCALLER.equals( mdCaller.getSymbol() );
+        }
+
+        debugCallSite = debugCalleeMatches && debugCallerMatches;
       }
 
-      boolean debugCallSite = debugCalleeMatches && debugCallerMatches;
+      
 
 
       boolean writeDebugDOTs = false;
