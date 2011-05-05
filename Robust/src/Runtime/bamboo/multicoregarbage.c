@@ -920,7 +920,7 @@ INLINE void gc_master(struct garbagelist * stackptr) {
   bamboo_smem_size = 0;
   bamboo_smem_zero_top = NULL;
 
-  GCPROFILE_ITEM();
+  GCPROFILE_END();
   gcflag = false;
   GC_SEND_MSG_1_TO_CLIENT(GCFINISH);
 

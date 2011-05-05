@@ -52,6 +52,7 @@ void gc_outputProfileData();
     }\
     gc_num_obj = 0; \
   }
+
 #ifdef MGC_SPEC
 // record lobj info
 #define GCPROFILE_RECORD_LOBJ() \
