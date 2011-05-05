@@ -1,5 +1,5 @@
-#ifndef MULTICORE_HELPER_H
-#define MULTICORE_HELPER_H
+#ifndef BAMBOO_MULTICORE_HELPER_H
+#define BAMBOO_MULTICORE_HELPER_H
 
 #ifdef GC_1
 // NUMCORES4GC = 1
@@ -163,4 +163,4 @@ static unsigned int gc_block2core[124] = {
 };
 #endif
 
-#endif // MULTICORE_HELPER_H
+#endif // BAMBOO_MULTICORE_HELPER_H

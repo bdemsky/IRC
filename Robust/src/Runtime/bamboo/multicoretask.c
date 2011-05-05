@@ -1,12 +1,12 @@
 #ifdef TASK
 #include "runtime.h"
 #include "multicoreruntime.h"
-#include "runtime_arch.h"
-#include "GenericHashtable.h"
+#include "multicoretaskprofile.h"
+#include "multicoretask.h"
 
 #ifndef INLINE
 #define INLINE    inline __attribute__((always_inline))
-#endif // #ifndef INLINE
+#endif 
 
 //  data structures for task invocation
 struct genhashtable * activetasks;
@@ -24,43 +24,10 @@ int enqueuetasks_I(struct parameterwrapper *parameter,
                    int * enterflags,
                    int numenterflags);
 
-INLINE void inittaskdata() {
-  int i = 0;
-  
-  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-    // startup core to initialize corestatus[]
-    for(i = 0; i < NUMCORESACTIVE; ++i) {
-#ifdef PROFILE
-      // initialize the profile data arrays
-      profilestatus[i] = 1;
-#endif // PROFILE
-    } // for(i = 0; i < NUMCORESACTIVE; ++i)
-    total_num_t6 = 0; // TODO for test
-  }
-  totransobjqueue = createQueue_I();
-  objqueue.head = NULL;
-  objqueue.tail = NULL;
-
-  currtpd = NULL;
-
-#ifdef PROFILE
-  stall = false;
-  totalexetime = -1;
-  taskInfoIndex = 0;
-  taskInfoOverflow = false;
-#ifdef PROFILE_INTERRUPT
-  interruptInfoIndex = 0;
-  interruptInfoOverflow = false;
-#endif // PROFILE_INTERRUPT
-#endif // PROFILE
-
-  for(i = 0; i < MAXTASKPARAMS; i++) {
-    runtime_locks[i].redirectlock = 0;
-    runtime_locks[i].value = 0;
-  }
-  runtime_locklen = 0;
-
-#ifndef MULTICORE_GC
+INLINE void initlocktable() {
+#ifdef MULTICORE_GC
+  // do nothing
+#else
   // create the lock table, lockresult table and obj queue
   locktable.size = 20;
   locktable.bucket =
@@ -79,6 +46,34 @@ INLINE void inittaskdata() {
 #endif
 }
 
+INLINE void dislocktable() {
+#ifdef MULTICORE_GC
+  // do nothing
+#else
+  freeRuntimeHash(lockRedirectTbl);
+  freeRuntimeHash(objRedirectLockTbl);
+  RUNFREE(locktable.bucket);
+#endif
+}
+
+INLINE void inittaskdata() {
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+    // startup core to initialize corestatus[]
+    total_num_t6 = 0; // TODO for test
+  }
+  totransobjqueue = createQueue_I();
+  objqueue.head = NULL;
+  objqueue.tail = NULL;
+  currtpd = NULL;
+  for(int i = 0; i < MAXTASKPARAMS; i++) {
+    runtime_locks[i].redirectlock = 0;
+    runtime_locks[i].value = 0;
+  }
+  runtime_locklen = 0;
+  initlocktable();
+  INIT_TASKPROFILE_DATA();
+}
+
 INLINE void distaskdata() {
   if(activetasks != NULL) {
     genfreehashtable(activetasks);
@@ -88,11 +83,7 @@ INLINE void distaskdata() {
     RUNFREE(currtpd);
     currtpd = NULL;
   }
-#ifndef MULTICORE_GC
-  freeRuntimeHash(lockRedirectTbl);
-  freeRuntimeHash(objRedirectLockTbl);
-  RUNFREE(locktable.bucket);
-#endif
+  dislocktable();
 }
 
 INLINE bool checkObjQueue() {
@@ -100,14 +91,8 @@ INLINE bool checkObjQueue() {
   struct transObjInfo * objInfo = NULL;
   int grount = 0;
 
-#ifdef PROFILE
 #ifdef ACCURATEPROFILE
-  bool isChecking = false;
-  if(!isEmpty(&objqueue)) {
-    profileTaskStart("objqueue checking");
-    isChecking = true;
-  }  // if(!isEmpty(&objqueue))
-#endif
+  PROFILE_TASK_START("objqueue checking");
 #endif
 
   while(!isEmpty(&objqueue)) {
@@ -121,14 +106,14 @@ INLINE bool checkObjQueue() {
     BAMBOO_DEBUGPRINT_REG((int)obj);
     // grab lock and flush the obj
     grount = 0;
-	struct ___Object___ * tmpobj = (struct ___Object___ *)obj;
-	while(tmpobj->lock != NULL) {
-	  tmpobj = (struct ___Object___ *)(tmpobj->lock);
-	}
+    struct ___Object___ * tmpobj = (struct ___Object___ *)obj;
+    while(tmpobj->lock != NULL) {
+      tmpobj = (struct ___Object___ *)(tmpobj->lock);
+    }
     getwritelock_I(tmpobj);
     while(!lockflag) {
       BAMBOO_WAITING_FOR_LOCK(0);
-    }   // while(!lockflag)
+    } 
     grount = lockresult;
     BAMBOO_DEBUGPRINT_REG(grount);
 
@@ -143,11 +128,9 @@ INLINE bool checkObjQueue() {
     if(grount == 1) {
       int k = 0;
       // flush the object
-#ifdef CACHEFLUSH
       BAMBOO_CACHE_FLUSH_RANGE((int)obj,sizeof(int));
-      BAMBOO_CACHE_FLUSH_RANGE((int)obj,
-		  classsize[((struct ___Object___ *)obj)->type]);
-#endif
+      BAMBOO_CACHE_FLUSH_RANGE((int)obj, 
+          classsize[((struct ___Object___ *)obj)->type]);
       // enqueue the object
       for(k = 0; k < objInfo->length; ++k) {
 		int taskindex = objInfo->queues[2 * k];
@@ -158,10 +141,10 @@ INLINE bool checkObjQueue() {
 		BAMBOO_DEBUGPRINT_REG(paramindex);
 		enqueueObject_I(obj, queues, 1);
 		BAMBOO_DEBUGPRINT_REG(hashsize(activetasks));
-      }  // for(k = 0; k < objInfo->length; ++k)
+      } 
       releasewritelock_I(tmpobj);
-      RUNFREE(objInfo->queues);
-      RUNFREE(objInfo);
+      RUNFREE_I(objInfo->queues);
+      RUNFREE_I(objInfo);
     } else {
       // can not get lock
       // put it at the end of the queue if no update version in the queue
@@ -173,31 +156,27 @@ INLINE bool checkObjQueue() {
 		if(tmpinfo->objptr == obj) {
 		  // the same object in the queue, which should be enqueued
 		  // recently. Current one is outdate, do not re-enqueue it
-		  RUNFREE(objInfo->queues);
-		  RUNFREE(objInfo);
+		  RUNFREE_I(objInfo->queues);
+		  RUNFREE_I(objInfo);
 		  goto objqueuebreak;
 		} else {
 		  prev = qitem;
-		}  // if(tmpinfo->objptr == obj)
+		} 
 		qitem = getNextQueueItem(prev);
-	  }  // while(qitem != NULL)
+	  } 
       // try to execute active tasks already enqueued first
       addNewItem_I(&objqueue, objInfo);
 objqueuebreak:
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       BAMBOO_DEBUGPRINT(0xf000);
       break;
-    }  // if(grount == 1)
+    } 
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
     BAMBOO_DEBUGPRINT(0xf000);
-  }  // while(!isEmpty(&objqueue))
+  }
 
-#ifdef PROFILE
 #ifdef ACCURATEPROFILE
-  if(isChecking) {
-    profileTaskEnd();
-  }  // if(isChecking)
-#endif
+  PROFILE_TASK_END();
 #endif
 
   BAMBOO_DEBUGPRINT(0xee02);
@@ -209,7 +188,7 @@ struct ___createstartupobject____I_locals {
   void * next;
   struct  ___StartupObject___ * ___startupobject___;
   struct ArrayObject * ___stringarray___;
-}; // struct ___createstartupobject____I_locals
+};
 
 void createstartupobject(int argc,
                          char ** argv) {
@@ -250,9 +229,7 @@ void createstartupobject(int argc,
   /* Set initialized flag for startup object */
   flagorandinit(startupobject,1,0xFFFFFFFF);
   enqueueObject(startupobject, NULL, 0);
-#ifdef CACHEFLUSH
   BAMBOO_CACHE_FLUSH_ALL();
-#endif
 }
 
 int hashCodetpd(struct taskparamdescriptor *ftd) {
@@ -493,34 +470,30 @@ void flagorand(void * ptr,
                int andmask,
                struct parameterwrapper ** queues,
                int length) {
-  {
-    int oldflag=((int *)ptr)[1];
-    int flag=ormask|oldflag;
-    flag&=andmask;
-    flagbody(ptr, flag, queues, length, false);
-  }
+  int oldflag=((int *)ptr)[2]; // the flag field is now the third one
+  int flag=ormask|oldflag;
+  flag&=andmask;
+  flagbody(ptr, flag, queues, length, false);
 }
 
 bool intflagorand(void * ptr,
                   int ormask,
                   int andmask) {
-  {
-    int oldflag=((int *)ptr)[1];
-    int flag=ormask|oldflag;
-    flag&=andmask;
-    if (flag==oldflag)   /* Don't do anything */
-      return false;
-    else {
-      flagbody(ptr, flag, NULL, 0, false);
-      return true;
-    }
+  int oldflag=((int *)ptr)[2]; // the flag field is the third one
+  int flag=ormask|oldflag;
+  flag&=andmask;
+  if (flag==oldflag)   /* Don't do anything */
+    return false;
+  else {
+    flagbody(ptr, flag, NULL, 0, false);
+    return true;
   }
 }
 
 void flagorandinit(void * ptr,
                    int ormask,
                    int andmask) {
-  int oldflag=((int *)ptr)[1];
+  int oldflag=((int *)ptr)[2]; // the flag field is the third one
   int flag=ormask|oldflag;
   flag&=andmask;
   flagbody(ptr,flag,NULL,0,true);
@@ -815,338 +788,14 @@ void addAliasLock(void * ptr,
     // originally no alias lock associated or have a different alias lock
     // flush it as the new one
 #ifdef TILERA_BME
-	while(obj->lock != NULL) {
-	  // previously have alias lock, trace the 'root' obj and redirect it
-	  obj = (struct ___Object___ *)(obj->lock);
-	} 
+    while(obj->lock != NULL) {
+      // previously have alias lock, trace the 'root' obj and redirect it
+      obj = (struct ___Object___ *)(obj->lock);
+    } 
 #endif // TILERA_BME
     obj->lock = (int *)lock;
   }
 }
-
-#ifdef PROFILE
-inline void setTaskExitIndex(int index) {
-  taskInfoArray[taskInfoIndex]->exitIndex = index;
-}
-
-inline void addNewObjInfo(void * nobj) {
-  if(taskInfoArray[taskInfoIndex]->newObjs == NULL) {
-    taskInfoArray[taskInfoIndex]->newObjs = createQueue();
-  }
-  addNewItem(taskInfoArray[taskInfoIndex]->newObjs, nobj);
-}
-#endif
-
-INLINE void processmsg_transobj_I() {
-  MSG_INDEXINC_I();
-  struct transObjInfo * transObj=RUNMALLOC_I(sizeof(struct transObjInfo));
-  int k = 0;
-#ifndef CLOSE_PRINT
-  BAMBOO_DEBUGPRINT(0xe880);
-#endif
-  if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex] /*[2]*/);
-#endif
-    BAMBOO_EXIT(0xe201);
-  }
-  // store the object and its corresponding queue info, enqueue it later
-  transObj->objptr = (void *)msgdata[msgdataindex];  //[2]
-  MSG_INDEXINC_I();
-  transObj->length = (msglength - 3) / 2;
-  transObj->queues = RUNMALLOC_I(sizeof(int)*(msglength - 3));
-  for(k = 0; k < transObj->length; ++k) {
-    transObj->queues[2*k] = msgdata[msgdataindex];   //[3+2*k];
-    MSG_INDEXINC_I();
-    transObj->queues[2*k+1] = msgdata[msgdataindex]; //[3+2*k+1];
-    MSG_INDEXINC_I();
-  }
-  // check if there is an existing duplicate item
-  {
-    struct QueueItem * qitem = getHead(&objqueue);
-    struct QueueItem * prev = NULL;
-    while(qitem != NULL) {
-      struct transObjInfo * tmpinfo =
-        (struct transObjInfo *)(qitem->objectptr);
-      if(tmpinfo->objptr == transObj->objptr) {
-		// the same object, remove outdate one
-		RUNFREE(tmpinfo->queues);
-		RUNFREE(tmpinfo);
-		removeItem(&objqueue, qitem);
-		//break;
-      } else {
-		prev = qitem;
-      }
-      if(prev == NULL) {
-		qitem = getHead(&objqueue);
-      } else {
-		qitem = getNextQueueItem(prev);
-      }
-    }
-    addNewItem_I(&objqueue, (void *)transObj);
-  }
-  ++(self_numreceiveobjs);
-#ifdef MULTICORE_GC
-  if(gcprocessing) {
-	if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-	  // set the gcprecheck to enable checking again
-	  gcprecheck = true;
-	} else {
-	  // send a update pregc information msg to the master core
-	  if(BAMBOO_CHECK_SEND_MODE()) {
-		cache_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, 
-			self_numsendobjs, self_numreceiveobjs);
-	  } else {
-		send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, 
-			self_numsendobjs, self_numreceiveobjs, true);
-	  }
-	}
-  }
-#endif 
-}
-
-#ifndef MULTICORE_GC
-INLINE void processmsg_lockrequest_I() {
-  // check to see if there is a lock exist for the required obj
-  // msgdata[1] -> lock type
-  int locktype = msgdata[msgdataindex]; //[1];
-  MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];  // obj pointer
-  MSG_INDEXINC_I();
-  int data3 = msgdata[msgdataindex];  // lock
-  MSG_INDEXINC_I();
-  int data4 = msgdata[msgdataindex];  // request core
-  MSG_INDEXINC_I();
-  // -1: redirected, 0: approved, 1: denied
-  int deny=processlockrequest(locktype, data3, data2, data4, data4, true);
-  if(deny == -1) {
-    // this lock request is redirected
-    return;
-  } else {
-    // send response msg
-    // for 32 bit machine, the size is always 4 words, cache the msg first
-    int tmp = deny==1 ? LOCKDENY : LOCKGROUNT;
-    if(BAMBOO_CHECK_SEND_MODE()) {
-	  cache_msg_4(data4, tmp, locktype, data2, data3);
-    } else {
-	  send_msg_4(data4, tmp, locktype, data2, data3, true);
-    }
-  }
-}
-
-INLINE void processmsg_lockgrount_I() {
-  MSG_INDEXINC_I();
-  if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex] /*[2]*/);
-#endif
-    BAMBOO_EXIT(0xe202);
-  }
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  int data3 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  if((lockobj == data2) && (lock2require == data3)) {
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT(0xe882);
-#endif
-    lockresult = 1;
-    lockflag = true;
-#ifndef INTERRUPT
-    reside = false;
-#endif
-  } else {
-    // conflicts on lockresults
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(data2);
-#endif
-    BAMBOO_EXIT(0xe203);
-  }
-}
-
-INLINE void processmsg_lockdeny_I() {
-  MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  int data3 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(data2);
-#endif
-    BAMBOO_EXIT(0xe204);
-  }
-  if((lockobj == data2) && (lock2require == data3)) {
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT(0xe883);
-#endif
-    lockresult = 0;
-    lockflag = true;
-#ifndef INTERRUPT
-    reside = false;
-#endif
-  } else {
-    // conflicts on lockresults
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(data2);
-#endif
-    BAMBOO_EXIT(0xe205);
-  }
-}
-
-INLINE void processmsg_lockrelease_I() {
-  int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  int data3 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  // receive lock release msg
-  processlockrelease(data1, data2, 0, false);
-}
-
-INLINE void processmsg_redirectlock_I() {
-  // check to see if there is a lock exist for the required obj
-  int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();    //msgdata[1]; // lock type
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();    //msgdata[2]; // obj pointer
-  int data3 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();    //msgdata[3]; // redirect lock
-  int data4 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();    //msgdata[4]; // root request core
-  int data5 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();    //msgdata[5]; // request core
-  int deny = processlockrequest(data1, data3, data2, data5, data4, true);
-  if(deny == -1) {
-    // this lock request is redirected
-    return;
-  } else {
-    // send response msg
-    // for 32 bit machine, the size is always 4 words, cache the msg first
-    if(BAMBOO_CHECK_SEND_MODE()) {
-	  cache_msg_4(data4, deny==1 ? REDIRECTDENY : REDIRECTGROUNT,
-				  data1, data2, data3);
-    } else {
-	  send_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT,
-				 data1, data2, data3, true);
-    }
-  }
-}
-
-INLINE void processmsg_redirectgrount_I() {
-  MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(data2);
-#endif
-    BAMBOO_EXIT(0xe206);
-  }
-  if(lockobj == data2) {
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT(0xe891);
-#endif
-    int data3 = msgdata[msgdataindex];
-    MSG_INDEXINC_I();
-    lockresult = 1;
-    lockflag = true;
-    RuntimeHashadd_I(objRedirectLockTbl, lockobj, data3);
-#ifndef INTERRUPT
-    reside = false;
-#endif
-  } else {
-    // conflicts on lockresults
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(data2);
-#endif
-    BAMBOO_EXIT(0xe207);
-  }
-}
-
-INLINE void processmsg_redirectdeny_I() {
-  MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  int data3 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(data2);
-#endif
-    BAMBOO_EXIT(0xe208);
-  }
-  if(lockobj == data2) {
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT(0xe892);
-#endif
-    lockresult = 0;
-    lockflag = true;
-#ifndef INTERRUPT
-    reside = false;
-#endif
-  } else {
-    // conflicts on lockresults
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(data2);
-#endif
-    BAMBOO_EXIT(0xe209);
-  }
-}
-
-INLINE void processmsg_redirectrelease_I() {
-  int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  int data3 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  processlockrelease(data1, data2, data3, true);
-}
-#endif // #ifndef MULTICORE_GC
-
-#ifdef PROFILE
-INLINE void processmsg_profileoutput_I() {
-  if(BAMBOO_NUM_OF_CORE == STARTUPCORE) {
-    // startup core can not receive profile output finish msg
-    BAMBOO_EXIT(0xe20a);
-  }
-#ifndef CLOSE_PRINT
-  BAMBOO_DEBUGPRINT(0xe885);
-#endif
-  stall = true;
-  totalexetime = msgdata[msgdataindex];  //[1]
-  MSG_INDEXINC_I();
-#ifdef RT_TEST
-  BAMBOO_DEBUGPRINT_REG(dot_num);
-#else
-  outputProfileData();
-#endif
-  // cache the msg first
-  if(BAMBOO_CHECK_SEND_MODE()) {
-	cache_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
-  } else {
-	send_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE, true);
-  }
-}
-
-INLINE void processmsg_profilefinish_I() {
-  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-    // non startup core can not receive profile output finish msg
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex /*1*/]);
-#endif
-    BAMBOO_EXIT(0xe20b);
-  }
-#ifndef CLOSE_PRINT
-  BAMBOO_DEBUGPRINT(0xe886);
-#endif
-  int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  profilestatus[data1] = 0;
-}
-#endif // #ifdef PROFILE
 
 int enqueuetasks(struct parameterwrapper *parameter,
                  struct parameterwrapper *prevptr,
@@ -1162,7 +811,7 @@ int enqueuetasks(struct parameterwrapper *parameter,
 
   //this add the object to parameterwrapper
   ObjectHashadd(parameter->objectset, (int) ptr, 0, (int) enterflags,
-                numenterflags, enterflags==NULL);
+      numenterflags, enterflags==NULL);
 
   /* Add enqueued object to parameter vector */
   taskpointerarray[parameter->slot]=ptr;
@@ -1215,17 +864,16 @@ backtrackinit:
 
     for(j=numiterators-1; j<numiterators; j++) {
 backtrackinc:
-      if(toiHasNext(
-			&parameter->iterators[j],taskpointerarray OPTARG(failed)))
-		toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
+      if(toiHasNext(&parameter->iterators[j],taskpointerarray OPTARG(failed)))
+        toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
       else if (j>0) {
-		/* Need to backtrack */
-		toiReset(&parameter->iterators[j]);
-		j--;
-		goto backtrackinc;
+        /* Need to backtrack */
+        toiReset(&parameter->iterators[j]);
+        j--;
+        goto backtrackinc;
       } else {
-		/* Nothing more to enqueue */
-		return retval;
+        /* Nothing more to enqueue */
+        return retval;
       }
     }
   }
@@ -1289,8 +937,8 @@ backtrackinit:
     if (!gencontains(activetasks,tpd)) {
       genputtable_I(activetasks, tpd, tpd);
     } else {
-      RUNFREE(tpd->parameterArray);
-      RUNFREE(tpd);
+      RUNFREE_I(tpd->parameterArray);
+      RUNFREE_I(tpd);
     }
 
     /* This loop iterates to the next parameter combination */
@@ -1299,17 +947,16 @@ backtrackinit:
 
     for(j=numiterators-1; j<numiterators; j++) {
 backtrackinc:
-      if(toiHasNext(
-			&parameter->iterators[j], taskpointerarray OPTARG(failed)))
-		toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
+      if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed)))
+        toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
       else if (j>0) {
-		/* Need to backtrack */
-		toiReset(&parameter->iterators[j]);
-		j--;
-		goto backtrackinc;
+        /* Need to backtrack */
+        toiReset(&parameter->iterators[j]);
+        j--;
+        goto backtrackinc;
       } else {
-		/* Nothing more to enqueue */
-		return retval;
+        /* Nothing more to enqueue */
+        return retval;
       }
     }
   }
@@ -1383,17 +1030,13 @@ void executetasks() {
 
 newtask:
   while(hashsize(activetasks)>0) {
-#ifdef MULTICORE_GC
-    if(gcflag) gc(NULL);
-#endif
+    GCCHECK(NULL);
     BAMBOO_DEBUGPRINT(0xe990);
 
     /* See if there are any active tasks */
     int i;
-#ifdef PROFILE
 #ifdef ACCURATEPROFILE
-    profileTaskStart("tpd checking");
-#endif
+    PROFILE_TASK_START("tpd checking");
 #endif
 
     busystatus = true;
@@ -1414,49 +1057,40 @@ newtask:
       int j = 0;
       bool insert = true;
       if(((struct ___Object___ *)param)->type == STARTUPTYPE) {
-		islock = false;
-		taskpointerarray[i+OFFSET]=param;
-		goto execute;
+        islock = false;
+        taskpointerarray[i+OFFSET]=param;
+        goto execute;
       }
-      /*if(((struct ___Object___ *)param)->lock == NULL) {
-		tmplock = (int)param;
-      } else {
-		struct ___Object___ * obj = (struct ___Object___ *)param;
-		while(obj->lock != NULL) {
-		  obj = (struct ___Object___ *)(obj->lock);
-		}
-		tmplock = (int)(obj);
-      }*/
-	  struct ___Object___ * obj = (struct ___Object___ *)param;
-	  while(obj->lock != NULL) {
-		obj = (struct ___Object___ *)(obj->lock);
-	  }
-	  tmplock = (int)(obj);
+      struct ___Object___ * obj = (struct ___Object___ *)param;
+      while(obj->lock != NULL) {
+        obj = (struct ___Object___ *)(obj->lock);
+      }
+      tmplock = (int)(obj);
       // insert into the locks array
       for(j = 0; j < runtime_locklen; j++) {
-		if(runtime_locks[j].value == tmplock) {
-		  insert = false;
-		  break;
-		} else if(runtime_locks[j].value > tmplock) {
-		  break;
-		}
+        if(runtime_locks[j].value == tmplock) {
+          insert = false;
+          break;
+        } else if(runtime_locks[j].value > tmplock) {
+          break;
+        }
       }
       if(insert) {
-		int h = runtime_locklen;
-		for(; h > j; h--) {
-		  runtime_locks[h].redirectlock = runtime_locks[h-1].redirectlock;
-		  runtime_locks[h].value = runtime_locks[h-1].value;
-		}
-		runtime_locks[j].value = tmplock;
-		runtime_locks[j].redirectlock = (int)param;
-		runtime_locklen++;
+        int h = runtime_locklen;
+        for(; h > j; h--) {
+          runtime_locks[h].redirectlock = runtime_locks[h-1].redirectlock;
+          runtime_locks[h].value = runtime_locks[h-1].value;
+        }
+        runtime_locks[j].value = tmplock;
+        runtime_locks[j].redirectlock = (int)param;
+        runtime_locklen++;
       }
-    }  // line 2713: for(i = 0; i < numparams; i++)
+    }  // for(i = 0; i < numparams; i++)
     // grab these required locks
     BAMBOO_DEBUGPRINT(0xe991);
 
     for(i = 0; i < runtime_locklen; i++) {
-      int * lock = (int *)(runtime_locks[i].value);//(runtime_locks[i].redirectlock);
+      int * lock = (int *)(runtime_locks[i].value);
       islock = true;
       // require locks for this parameter if it is not a startup object
       BAMBOO_DEBUGPRINT_REG((int)lock);
@@ -1465,12 +1099,12 @@ newtask:
       BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
       BAMBOO_DEBUGPRINT(0xf001);
       while(!lockflag) {
-		BAMBOO_WAITING_FOR_LOCK(0);
-	  }
+        BAMBOO_WAITING_FOR_LOCK(0);
+      }
 #ifndef INTERRUPT
       if(reside) {
-		while(BAMBOO_WAITING_FOR_LOCK(0) != -1) {
-		}
+        while(BAMBOO_WAITING_FOR_LOCK(0) != -1) {
+        }
       }
 #endif
       grount = lockresult;
@@ -1486,29 +1120,27 @@ newtask:
       BAMBOO_DEBUGPRINT(0xf000);
 
       if(grount == 0) {
-		BAMBOO_DEBUGPRINT(0xe992);
-		BAMBOO_DEBUGPRINT_REG(lock);
-		// check if has the lock already
-		// can not get the lock, try later
-		// release all grabbed locks for previous parameters
-		for(j = 0; j < i; ++j) {
-		  lock = (int*)(runtime_locks[j].value/*redirectlock*/);
-		  releasewritelock(lock);
-		}
-		genputtable(activetasks, currtpd, currtpd);
-		if(hashsize(activetasks) == 1) {
-		  // only one task right now, wait a little while before next try
-		  int halt = 10000;
-		  while(halt--) {
-		  }
-		}
-#ifdef PROFILE
+        BAMBOO_DEBUGPRINT(0xe992);
+        BAMBOO_DEBUGPRINT_REG(lock);
+        // check if has the lock already
+        // can not get the lock, try later
+        // release all grabbed locks for previous parameters		
+        for(j = 0; j < i; ++j) {
+          lock = (int*)(runtime_locks[j].value/*redirectlock*/);
+          releasewritelock(lock);
+        }
+        genputtable(activetasks, currtpd, currtpd);
+        if(hashsize(activetasks) == 1) {
+          // only one task right now, wait a little while before next try
+          int halt = 10000;
+          while(halt--) {
+          }
+        }
 #ifdef ACCURATEPROFILE
-		// fail, set the end of the checkTaskInfo
-		profileTaskEnd();
+        // fail, set the end of the checkTaskInfo
+        PROFILE_TASK_END();
 #endif
-#endif
-		goto newtask;
+        goto newtask;
       }
     }   // line 2752:  for(i = 0; i < runtime_locklen; i++)
 
@@ -1518,96 +1150,92 @@ newtask:
       void * parameter=currtpd->parameterArray[i];
 
       // flush the object
-#ifdef CACHEFLUSH
       BAMBOO_CACHE_FLUSH_RANGE((int)parameter,
-		  classsize[((struct ___Object___ *)parameter)->type]);
-#endif
+          classsize[((struct ___Object___ *)parameter)->type]);
       tmpparam = (struct ___Object___ *)parameter;
       pd=currtpd->task->descriptorarray[i];
       pw=(struct parameterwrapper *) pd->queue;
       /* Check that object is still in queue */
       {
-		if (!ObjectHashcontainskey(pw->objectset, (int) parameter)) {
-		  BAMBOO_DEBUGPRINT(0xe994);
-		  BAMBOO_DEBUGPRINT_REG(parameter);
-		  // release grabbed locks
-		  for(j = 0; j < runtime_locklen; ++j) {
-			int * lock = (int *)(runtime_locks[j].value/*redirectlock*/);
-			releasewritelock(lock);
-		  }
-		  RUNFREE(currtpd->parameterArray);
-		  RUNFREE(currtpd);
-		  currtpd = NULL;
-		  goto newtask;
-		}
-      }   // line2865
+        if (!ObjectHashcontainskey(pw->objectset, (int) parameter)) {
+          BAMBOO_DEBUGPRINT(0xe994);
+          BAMBOO_DEBUGPRINT_REG(parameter);
+          // release grabbed locks
+          for(j = 0; j < runtime_locklen; ++j) {
+            int * lock = (int *)(runtime_locks[j].value);
+            releasewritelock(lock);
+          }
+          RUNFREE(currtpd->parameterArray);
+          RUNFREE(currtpd);
+          currtpd = NULL;
+          goto newtask;
+        }
+      } 
       /* Check if the object's flags still meets requirements */
       {
-		int tmpi = 0;
-		bool ismet = false;
-		for(tmpi = 0; tmpi < pw->numberofterms; ++tmpi) {
-		  andmask=pw->intarray[tmpi*2];
-		  checkmask=pw->intarray[tmpi*2+1];
-		  if((((struct ___Object___ *)parameter)->flag&andmask)==checkmask) {
-			ismet = true;
-			break;
-		  }
-		}
-		if (!ismet) {
-		  // flags are never suitable
-		  // remove this obj from the queue
-		  int next;
-		  int UNUSED, UNUSED2;
-		  int * enterflags;
-		  BAMBOO_DEBUGPRINT(0xe995);
-		  BAMBOO_DEBUGPRINT_REG(parameter);
-		  ObjectHashget(pw->objectset, (int) parameter, (int *) &next,
-						(int *) &enterflags, &UNUSED, &UNUSED2);
-		  ObjectHashremove(pw->objectset, (int)parameter);
-		  if (enterflags!=NULL)
-			RUNFREE(enterflags);
-		  // release grabbed locks
-		  for(j = 0; j < runtime_locklen; ++j) {
-			int * lock = (int *)(runtime_locks[j].value/*redirectlock*/);
-			releasewritelock(lock);
-		  }
-		  RUNFREE(currtpd->parameterArray);
-		  RUNFREE(currtpd);
-		  currtpd = NULL;
-#ifdef PROFILE
+        int tmpi = 0;
+        bool ismet = false;
+        for(tmpi = 0; tmpi < pw->numberofterms; ++tmpi) {
+          andmask=pw->intarray[tmpi*2];
+          checkmask=pw->intarray[tmpi*2+1];
+          if((((struct ___Object___ *)parameter)->flag&andmask)==checkmask) {
+            ismet = true;
+            break;
+          }
+        }
+        if (!ismet) {
+          // flags are never suitable
+          // remove this obj from the queue
+          int next;
+          int UNUSED, UNUSED2;
+          int * enterflags;
+          BAMBOO_DEBUGPRINT(0xe995);
+          BAMBOO_DEBUGPRINT_REG(parameter);
+          ObjectHashget(pw->objectset, (int) parameter, (int *) &next,
+              (int *) &enterflags, &UNUSED, &UNUSED2);
+          ObjectHashremove(pw->objectset, (int)parameter);
+          if (enterflags!=NULL)
+            RUNFREE(enterflags);
+          // release grabbed locks
+          for(j = 0; j < runtime_locklen; ++j) {
+            int * lock = (int *)(runtime_locks[j].value/*redirectlock*/);
+            releasewritelock(lock);
+          }
+          RUNFREE(currtpd->parameterArray);
+          RUNFREE(currtpd);
+          currtpd = NULL;
 #ifdef ACCURATEPROFILE
-		  // fail, set the end of the checkTaskInfo
-		  profileTaskEnd();
+          // fail, set the end of the checkTaskInfo
+          PROFILE_TASK_END();
 #endif
-#endif
-		  goto newtask;
-		}   // line 2878: if (!ismet)
-      }   // line 2867
+          goto newtask;
+        }   //if (!ismet)
+      } 
 parameterpresent:
       ;
       /* Check that object still has necessary tags */
       for(j=0; j<pd->numbertags; j++) {
-		int slotid=pd->tagarray[2*j]+numparams;
-		struct ___TagDescriptor___ *tagd=currtpd->parameterArray[slotid];
-		if (!containstag(parameter, tagd)) {
-		  BAMBOO_DEBUGPRINT(0xe996);
-		  {
-			// release grabbed locks
-			int tmpj = 0;
-			for(tmpj = 0; tmpj < runtime_locklen; ++tmpj) {
-			  int * lock = (int *)(runtime_locks[tmpj].value/*redirectlock*/);
-			  releasewritelock(lock);
-			}
-		  }
-		  RUNFREE(currtpd->parameterArray);
-		  RUNFREE(currtpd);
-		  currtpd = NULL;
-		  goto newtask;
-		}   // line2911: if (!containstag(parameter, tagd))
-      }   // line 2808: for(j=0; j<pd->numbertags; j++)
+        int slotid=pd->tagarray[2*j]+numparams;
+        struct ___TagDescriptor___ *tagd=currtpd->parameterArray[slotid];
+        if (!containstag(parameter, tagd)) {
+          BAMBOO_DEBUGPRINT(0xe996);
+          {
+            // release grabbed locks
+            int tmpj = 0;
+            for(tmpj = 0; tmpj < runtime_locklen; ++tmpj) {
+              int * lock = (int *)(runtime_locks[tmpj].value/*redirectlock*/);
+              releasewritelock(lock);
+            }
+          }
+          RUNFREE(currtpd->parameterArray);
+          RUNFREE(currtpd);
+          currtpd = NULL;
+          goto newtask;		
+        }   
+      }   
 
       taskpointerarray[i+OFFSET]=parameter;
-    }   // line 2824: for(i=0; i<numparams; i++)
+    }   // for(i=0; i<numparams; i++)
     /* Copy the tags */
     for(; i<numtotal; i++) {
       taskpointerarray[i+OFFSET]=currtpd->parameterArray[i];
@@ -1620,67 +1248,60 @@ execute:
       ((int *)taskpointerarray)[0]=currtpd->numParameters;
       taskpointerarray[1]=NULL;
 #endif
-#ifdef PROFILE
 #ifdef ACCURATEPROFILE
       // check finish, set the end of the checkTaskInfo
-      profileTaskEnd();
+      PROFILE_TASK_END();
 #endif
-      profileTaskStart(currtpd->task->name);
-#endif
+      PROFILE_TASK_START(currtpd->task->name);
 
       BAMBOO_DEBUGPRINT(0xe997);
       ((void (*)(void **))currtpd->task->taskptr)(taskpointerarray);
 
-#ifdef PROFILE
 #ifdef ACCURATEPROFILE
       // task finish, set the end of the checkTaskInfo
-      profileTaskEnd();
+      PROFILE_TASK_END();
       // new a PostTaskInfo for the post-task execution
-      profileTaskStart("post task execution");
-#endif
+      PROFILE_TASK_START("post task execution");
 #endif
       BAMBOO_DEBUGPRINT(0xe998);
       BAMBOO_DEBUGPRINT_REG(islock);
 
       if(islock) {
-		BAMBOO_DEBUGPRINT(0xe999);
-		for(i = runtime_locklen; i>0; i--) {
-		  void * ptr = (void *)(runtime_locks[i-1].redirectlock);
-		  int * lock = (int *)(runtime_locks[i-1].value);
-		  BAMBOO_DEBUGPRINT_REG((int)ptr);
-		  BAMBOO_DEBUGPRINT_REG((int)lock);
-		  BAMBOO_DEBUGPRINT_REG(*((int*)lock+5));
+        BAMBOO_DEBUGPRINT(0xe999);
+        for(i = runtime_locklen; i>0; i--) {
+          void * ptr = (void *)(runtime_locks[i-1].redirectlock);
+          int * lock = (int *)(runtime_locks[i-1].value);
+          BAMBOO_DEBUGPRINT_REG((int)ptr);
+          BAMBOO_DEBUGPRINT_REG((int)lock);
+          BAMBOO_DEBUGPRINT_REG(*((int*)lock+5));
 #ifndef MULTICORE_GC
 #ifndef TILERA_BME
-		  if(RuntimeHashcontainskey(lockRedirectTbl, (int)lock)) {
-			int redirectlock;
-			RuntimeHashget(lockRedirectTbl, (int)lock, &redirectlock);
-			RuntimeHashremovekey(lockRedirectTbl, (int)lock);
-			releasewritelock_r(lock, (int *)redirectlock);
-		  } else -1{
+          if(RuntimeHashcontainskey(lockRedirectTbl, (int)lock)) {
+            int redirectlock;
+            RuntimeHashget(lockRedirectTbl, (int)lock, &redirectlock);
+            RuntimeHashremovekey(lockRedirectTbl, (int)lock);
+            releasewritelock_r(lock, (int *)redirectlock);
+          } else {
 #else
-		  {
+          {
 #endif
 #else
-		  {
+          {
 #endif
-			releasewritelock(lock); // ptr
-		  }
-		}
-      }     // line 3015: if(islock)
+            releasewritelock(lock); // ptr
+          }
+        }
+      }     // if(islock)
 
-#ifdef PROFILE
       // post task execution finish, set the end of the postTaskInfo
-      profileTaskEnd();
-#endif
+      PROFILE_TASK_END();
 
       // Free up task parameter descriptor
       RUNFREE(currtpd->parameterArray);
       RUNFREE(currtpd);
       currtpd = NULL;
       BAMBOO_DEBUGPRINT(0xe99a);
-    }   //
-    //} //  if (hashsize(activetasks)>0)
+    }   
   } //  while(hashsize(activetasks)>0)
   BAMBOO_DEBUGPRINT(0xe99b);
 }
@@ -1708,7 +1329,6 @@ void processtags(struct parameterdescriptor *pd,
     }
   }
 }
-
 
 void processobject(struct parameterwrapper *parameter,
                    int index,
@@ -1860,10 +1480,8 @@ void printdebug() {
   }
 }
 
-
 /* This function processes the task information to create queues for
    each parameter type. */
-
 void processtasks() {
   int i;
   if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
@@ -2020,186 +1638,4 @@ void toiNext(struct tagobjectiterator *it,
     Objnext(&it->it);
   }
 }
-
-#ifdef PROFILE
-inline void profileTaskStart(char * taskname) {
-  if(!taskInfoOverflow) {
-    TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
-    taskInfoArray[taskInfoIndex] = taskInfo;
-    taskInfo->taskName = taskname;
-    taskInfo->startTime = BAMBOO_GET_EXE_TIME();
-    taskInfo->endTime = -1;
-    taskInfo->exitIndex = -1;
-    taskInfo->newObjs = NULL;
-  }
-}
-
-inline void profileTaskEnd() {
-  if(!taskInfoOverflow) {
-    taskInfoArray[taskInfoIndex]->endTime = BAMBOO_GET_EXE_TIME();
-    taskInfoIndex++;
-    if(taskInfoIndex == TASKINFOLENGTH) {
-      taskInfoOverflow = true;
-    }
-  }
-}
-
-// output the profiling data
-void outputProfileData() {
-#ifdef USEIO
-  int i;
-  unsigned long long totaltasktime = 0;
-  unsigned long long preprocessingtime = 0;
-  unsigned long long objqueuecheckingtime = 0;
-  unsigned long long postprocessingtime = 0;
-  unsigned long long other = 0;
-  unsigned long long averagetasktime = 0;
-  int tasknum = 0;
-
-  printf("Task Name, Start Time, End Time, Duration, Exit Index(, NewObj Name, Num)+\n");
-  // output task related info
-  for(i = 0; i < taskInfoIndex; i++) {
-    TaskInfo* tmpTInfo = taskInfoArray[i];
-    unsigned long long duration = tmpTInfo->endTime - tmpTInfo->startTime;
-    printf("%s, %lld, %lld, %lld, %lld",
-           tmpTInfo->taskName, tmpTInfo->startTime, tmpTInfo->endTime,
-           duration, tmpTInfo->exitIndex);
-    // summarize new obj info
-    if(tmpTInfo->newObjs != NULL) {
-      struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
-      struct RuntimeIterator * iter = NULL;
-      while(0 == isEmpty(tmpTInfo->newObjs)) {
-		char * objtype = (char *)(getItem(tmpTInfo->newObjs));
-		if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
-		  int num = 0;
-		  RuntimeHashget(nobjtbl, (int)objtype, &num);
-		  RuntimeHashremovekey(nobjtbl, (int)objtype);
-		  num++;
-		  RuntimeHashadd(nobjtbl, (int)objtype, num);
-		} else {
-		  RuntimeHashadd(nobjtbl, (int)objtype, 1);
-		}
-		//printf(stderr, "new obj!\n");
-      }
-
-      // output all new obj info
-      iter = RuntimeHashcreateiterator(nobjtbl);
-      while(RunhasNext(iter)) {
-		char * objtype = (char *)Runkey(iter);
-		int num = Runnext(iter);
-		printf(", %s, %d", objtype, num);
-      }
-    }
-    printf("\n");
-    if(strcmp(tmpTInfo->taskName, "tpd checking") == 0) {
-      preprocessingtime += duration;
-    } else if(strcmp(tmpTInfo->taskName, "post task execution") == 0) {
-      postprocessingtime += duration;
-    } else if(strcmp(tmpTInfo->taskName, "objqueue checking") == 0) {
-      objqueuecheckingtime += duration;
-    } else {
-      totaltasktime += duration;
-      averagetasktime += duration;
-      tasknum++;
-    }
-  }
-
-  if(taskInfoOverflow) {
-    printf("Caution: task info overflow!\n");
-  }
-
-  other = totalexetime-totaltasktime-preprocessingtime-postprocessingtime;
-  averagetasktime /= tasknum;
-
-  printf("\nTotal time: %lld\n", totalexetime);
-  printf("Total task execution time: %lld (%d%%)\n", totaltasktime,
-         (int)(((double)totaltasktime/(double)totalexetime)*100));
-  printf("Total objqueue checking time: %lld (%d%%)\n",
-         objqueuecheckingtime,
-         (int)(((double)objqueuecheckingtime/(double)totalexetime)*100));
-  printf("Total pre-processing time: %lld (%d%%)\n", preprocessingtime,
-         (int)(((double)preprocessingtime/(double)totalexetime)*100));
-  printf("Total post-processing time: %lld (%d%%)\n", postprocessingtime,
-         (int)(((double)postprocessingtime/(double)totalexetime)*100));
-  printf("Other time: %lld (%d%%)\n", other,
-         (int)(((double)other/(double)totalexetime)*100));
-
-
-  printf("\nAverage task execution time: %lld\n", averagetasktime);
-
-#else
-  int i = 0;
-  int j = 0;
-
-  BAMBOO_PRINT(0xdddd);
-  // output task related info
-  for(i= 0; i < taskInfoIndex; i++) {
-    TaskInfo* tmpTInfo = taskInfoArray[i];
-    char* tmpName = tmpTInfo->taskName;
-    int nameLen = strlen(tmpName);
-    BAMBOO_PRINT(0xddda);
-    for(j = 0; j < nameLen; j++) {
-      BAMBOO_PRINT_REG(tmpName[j]);
-    }
-    BAMBOO_PRINT(0xdddb);
-    BAMBOO_PRINT_REG(tmpTInfo->startTime);
-    BAMBOO_PRINT_REG(tmpTInfo->endTime);
-    BAMBOO_PRINT_REG(tmpTInfo->exitIndex);
-    if(tmpTInfo->newObjs != NULL) {
-      struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
-      struct RuntimeIterator * iter = NULL;
-      while(0 == isEmpty(tmpTInfo->newObjs)) {
-		char * objtype = (char *)(getItem(tmpTInfo->newObjs));
-		if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
-		  int num = 0;
-		  RuntimeHashget(nobjtbl, (int)objtype, &num);
-		  RuntimeHashremovekey(nobjtbl, (int)objtype);
-		  num++;
-		  RuntimeHashadd(nobjtbl, (int)objtype, num);
-		} else {
-		  RuntimeHashadd(nobjtbl, (int)objtype, 1);
-		}
-      }
-
-      // ouput all new obj info
-      iter = RuntimeHashcreateiterator(nobjtbl);
-      while(RunhasNext(iter)) {
-		char * objtype = (char *)Runkey(iter);
-		int num = Runnext(iter);
-		int nameLen = strlen(objtype);
-		BAMBOO_PRINT(0xddda);
-		for(j = 0; j < nameLen; j++) {
-		  BAMBOO_PRINT_REG(objtype[j]);
-		}
-		BAMBOO_PRINT(0xdddb);
-		BAMBOO_PRINT_REG(num);
-	  }
-	}
-	BAMBOO_PRINT(0xdddc);
-  }
-
-  if(taskInfoOverflow) {
-	BAMBOO_PRINT(0xefee);
-  }
-
-#ifdef PROFILE_INTERRUPT
-  // output interrupt related info
-  for(i = 0; i < interruptInfoIndex; i++) {
-	InterruptInfo* tmpIInfo = interruptInfoArray[i];
-	BAMBOO_PRINT(0xddde);
-	BAMBOO_PRINT_REG(tmpIInfo->startTime);
-	BAMBOO_PRINT_REG(tmpIInfo->endTime);
-	BAMBOO_PRINT(0xdddf);
-  }
-
-  if(interruptInfoOverflow) {
-	BAMBOO_PRINT(0xefef);
-  }
-#endif // PROFILE_INTERRUPT
-
-  BAMBOO_PRINT(0xeeee);
-#endif
-}
-#endif  // #ifdef PROFILE
-
 #endif

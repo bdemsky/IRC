@@ -245,7 +245,7 @@ int RuntimeHashadd_I(struct RuntimeHash * thisvar,int key, int data) {
       }
     }
     thisvar->size=newsize;
-    RUNFREE(thisvar->bucket);
+    RUNFREE_I(thisvar->bucket);
     thisvar->bucket=newbucket;
   }
 

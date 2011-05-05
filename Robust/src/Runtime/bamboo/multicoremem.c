@@ -440,8 +440,111 @@ INLINE void setupsmemmode(void) {
 #else
   // defaultly using local mode
   bamboo_smem_mode = SMEMLOCAL;
-#endif // SMEML
-} // void setupsmemmode(void)
+#endif 
+} 
+
+INLINE void * mallocmem(int tofindb,
+                        int totest,
+                        int size,
+                        int * allocsize) {
+  void * mem = NULL;
+  // find suitable block
+  mem=gcbaseva+bamboo_smemtbl[tofindb]+((tofindb<NUMCORES4GC)?
+      (BAMBOO_SMEM_SIZE_L*tofindb):
+      (BAMBOO_LARGE_SMEM_BOUND+(tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
+  *allocsize = size;
+  // set bamboo_smemtbl
+  for(int i = tofindb; i <= totest; i++) {
+    bamboo_smemtbl[i]=(i<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
+  }
+  if(tofindb == bamboo_free_block) {
+    bamboo_free_block = totest+1;
+  }
+  return mem;
+}
+
+INLINE void * searchBlock4Mem(int* tofindb, 
+                              int* totest,
+                              int gccorenum,
+                              int isize,
+                              int * allocsize) {
+  int i=0;
+  int j=0;
+  int size = 0;
+  int bound = BAMBOO_SMEM_SIZE_L;
+  while(*totest<(gcnumblock-bamboo_reserved_smem)) {
+    bound = (*totest<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
+    int nsize = bamboo_smemtbl[*totest];
+    if((nsize==bound)||((nsize != 0)&&(*totest != *tofindb))) {
+      // a fully/partially occupied partition, can not be appended 
+      //the last continuous block is not big enough,check the next local block
+      i++;
+      if(2==i) {
+        i = 0;
+        j++;
+      }
+      *tofindb=*totest=gc_core2block[2*gccorenum+i]+(NUMCORES4GC*2)*j;
+    } else {
+      // an empty block or a partially occupied block that can be set as the 
+      // first block
+      if(*totest == *tofindb) {
+        // the first partition
+        size = bound - nsize;
+      } else if(nsize == 0) {
+        // an empty partition, can be appended
+        size += bound;
+      } 
+      if(size >= isize) {
+        // have enough space in the block, malloc
+        return mallocmem(*tofindb, *totest, size, allocsize);
+        break;
+      } else {
+        // no enough space yet, try to append next continuous block
+        *totest = *totest + 1;
+      }  
+    }
+  }
+  return NULL;
+}
+
+INLINE void * searchBlock4Mem_global(int* tofindb, 
+                                     int* totest,
+                                     int isize,
+                                     int * allocsize) {
+  int i=0;
+  int j=0;
+  int size = 0;
+  int bound = BAMBOO_SMEM_SIZE_L;
+  while(*totest<(gcnumblock-bamboo_reserved_smem)) {
+    bound = (*totest<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
+    int nsize = bamboo_smemtbl[*totest];
+    if((nsize==bound)||((nsize != 0)&&(*totest != *tofindb))) {
+      // a fully/partially occupied partition, can not be appended 
+      // set the next block as a new start
+      *totest = *totest+1;
+      *tofindb = *totest;
+    } else {
+      // an empty block or a partially occupied block that can be set as the 
+      // first block
+      if(*totest == *tofindb) {
+        // the first partition
+        size = bound - nsize;
+      } else if(nsize == 0) {
+        // an empty partition, can be appended
+        size += bound;
+      } 
+      if(size >= isize) {
+        // have enough space in the block, malloc
+        return mallocmem(*tofindb, *totest, size, allocsize);
+        break;
+      } else {
+        // no enough space yet, try to append next continuous block
+        *totest = *totest + 1;
+      }  
+    }
+  }
+  return NULL;
+}
 
 // Only allocate local mem chunks to each core.
 // If a core has used up its local shared memory, start gc.
@@ -449,80 +552,16 @@ void * localmalloc_I(int coren,
                      int isize,
                      int * allocsize) {
   void * mem = NULL;
-  int gccorenum = (coren < NUMCORES4GC) ? (coren) : (coren % NUMCORES4GC);
-  int i = 0;
-  int j = 0;
-  int tofindb = gc_core2block[2*gccorenum+i]+(NUMCORES4GC*2)*j;
+  int gccorenum = (coren<NUMCORES4GC)?(coren):(coren%NUMCORES4GC);
+  int tofindb = gc_core2block[2*gccorenum];
   int totest = tofindb;
-  int bound = BAMBOO_SMEM_SIZE_L;
-  int foundsmem = 0;
-  int size = 0;
-  do {
-    bound = (totest < NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
-    int nsize = bamboo_smemtbl[totest];
-    bool islocal = true;
-    if(nsize < bound) {
-      bool tocheck = true;
-      // have some space in the block
-      if(totest == tofindb) {
-		// the first partition
-		size = bound - nsize;
-      } else if(nsize == 0) {
-		// an empty partition, can be appended
-		size += bound;
-      } else {
-		// not an empty partition, can not be appended
-		// the last continuous block is not big enough, go to check the next
-		// local block
-		islocal = true;
-		tocheck = false;
-      } // if(totest == tofindb) else if(nsize == 0) else ...
-      if(tocheck) {
-		if(size >= isize) {
-		  // have enough space in the block, malloc
-		  foundsmem = 1;
-		  break;
-		} else {
-		  // no enough space yet, try to append next continuous block
-		  islocal = false;
-		}  // if(size > isize) else ...
-      }  // if(tocheck)
-    } // if(nsize < bound)
-    if(islocal) {
-      // no space in the block, go to check the next block
-      i++;
-      if(2==i) {
-		i = 0;
-		j++;
-      }
-      tofindb = totest = gc_core2block[2*gccorenum+i]+(NUMCORES4GC*2)*j;
-    } else {
-      totest += 1;
-    }  // if(islocal) else ...
-    if(totest > gcnumblock-1-bamboo_reserved_smem) {
-      // no more local mem, do not find suitable block
-      foundsmem = 2;
-      break;
-    }  // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
-  } while(true);
-
-  if(foundsmem == 1) {
-    // find suitable block
-    mem = gcbaseva+bamboo_smemtbl[tofindb]+((tofindb<NUMCORES4GC) ?
-          (BAMBOO_SMEM_SIZE_L*tofindb) : (BAMBOO_LARGE_SMEM_BOUND+
-          (tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
-    *allocsize = size;
-    // set bamboo_smemtbl
-    for(i = tofindb; i <= totest; i++) {
-      bamboo_smemtbl[i]=(i<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
-    }
-  } else if(foundsmem == 2) {
-    // no suitable block
+  mem = searchBlock4Mem(&tofindb, &totest, gccorenum, isize, allocsize);
+  if(mem == NULL) {
+    // no more local mem, do not find suitable block
     *allocsize = 0;
   }
-
   return mem;
-} // void * localmalloc_I(int, int, int *)
+} 
 
 #ifdef SMEMF
 // Allocate the local shared memory to each core with the highest priority,
@@ -531,98 +570,30 @@ void * localmalloc_I(int coren,
 void * fixedmalloc_I(int coren,
                      int isize,
                      int * allocsize) {
-  void * mem = NULL;
-  int i = 0;
-  int j = 0;
-  int k = 0;
-  int gccorenum = (coren < NUMCORES4GC) ? (coren) : (coren % NUMCORES4GC);
-  int ii = 1;
-  int tofindb = gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
-  int totest = tofindb;
+  void * mem;
+  int k;
+  int gccorenum = (coren<NUMCORES4GC)?(coren):(coren%NUMCORES4GC);
+  int totest, tofindb;
   int bound = BAMBOO_SMEM_SIZE_L;
   int foundsmem = 0;
   int size = 0;
-  do {
-    bound = (totest < NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
-    int nsize = bamboo_smemtbl[totest];
-    bool islocal = true;
-    if(nsize < bound) {
-      bool tocheck = true;
-      // have some space in the block
-      if(totest == tofindb) {
-		// the first partition
-		size = bound - nsize;
-      } else if(nsize == 0) {
-		// an empty partition, can be appended
-		size += bound;
-      } else {
-		// not an empty partition, can not be appended
-		// the last continuous block is not big enough, go to check the next
-		// local block
-		islocal = true;
-		tocheck = false;
-      } // if(totest == tofindb) else if(nsize == 0) else ...
-      if(tocheck) {
-		if(size >= isize) {
-		  // have enough space in the block, malloc
-		  foundsmem = 1;
-		  break;
-		} else {
-		  // no enough space yet, try to append next continuous block
-		  // TODO may consider to go to next local block?
-		  islocal = false;
-		}  // if(size > isize) else ...
-      }  // if(tocheck)
-    } // if(nsize < bound)
-    if(islocal) {
-      // no space in the block, go to check the next block
-      i++;
-      if(2==i) {
-		i = 0;
-		j++;
-      }
-      tofindb=totest=
-		gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
-    } else {
-      totest += 1;
-    }  // if(islocal) else ...
-    if(totest > gcnumblock-1-bamboo_reserved_smem) {
-      // no more local mem, do not find suitable block on local mem
-	  // try to malloc shared memory assigned to the neighbour cores
-	  do{
-		k++;
-		if(k >= NUM_CORES2TEST) {
-		  // no more memory available on either coren or its neighbour cores
-		  foundsmem = 2;
-		  goto memsearchresult;
-		}
-	  } while(core2test[gccorenum][k] == -1);
-	  i = 0;
-	  j = 0;
-	  tofindb=totest=
-		gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
-    }  // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
-  } while(true);
-
-memsearchresult:
-  if(foundsmem == 1) {
-    // find suitable block
-    mem = gcbaseva+bamboo_smemtbl[tofindb]+((tofindb<NUMCORES4GC) ?
-          (BAMBOO_SMEM_SIZE_L*tofindb) : (BAMBOO_LARGE_SMEM_BOUND+
-          (tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
-    *allocsize = size;
-    // set bamboo_smemtbl
-    for(i = tofindb; i <= totest; i++) {
-      bamboo_smemtbl[i]=(i<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
+  for(k=0; k<NUM_CORES2TEST; k++) {
+    if(core2test[gccorenum][k] == -1) {
+      // try next neighbour
+      continue;
     }
-  } else if(foundsmem == 2) {
-    // no suitable block
-    *allocsize = 0;
+    tofindb=totest=gc_core2block[2*core2test[gccorenum][k]];
+    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],
+        isize,allocsize);
+    if(mem != NULL) {
+      return mem;
+    }
   }
-
-  return mem;
-} // void * fixedmalloc_I(int, int, int *)
-#endif // #ifdef SMEMF
+  // no more memory available on either coren or its neighbour cores
+  *allocsize = 0;
+  return NULL;
+} 
+#endif 
 
 #ifdef SMEMM
 // Allocate the local shared memory to each core with the highest priority,
@@ -634,108 +605,40 @@ memsearchresult:
 void * mixedmalloc_I(int coren,
                      int isize,
                      int * allocsize) {
-  void * mem = NULL;
-  int i = 0;
-  int j = 0;
-  int k = 0;
+  void * mem;
+  int k;
   int gccorenum = (coren < NUMCORES4GC) ? (coren) : (coren % NUMCORES4GC);
-  int ii = 1;
-  int tofindb = gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
-  int totest = tofindb;
+  int totest,tofindb;
   int bound = BAMBOO_SMEM_SIZE_L;
   int foundsmem = 0;
   int size = 0;
-  do {
-    bound = (totest < NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
-    int nsize = bamboo_smemtbl[totest];
-    bool islocal = true;
-    if(nsize < bound) {
-      bool tocheck = true;
-      // have some space in the block
-      if(totest == tofindb) {
-		// the first partition
-		size = bound - nsize;
-      } else if(nsize == 0) {
-		// an empty partition, can be appended
-		size += bound;
-      } else {
-		// not an empty partition, can not be appended
-		// the last continuous block is not big enough, go to check the next
-		// local block
-		islocal = true;
-		tocheck = false;
-      } // if(totest == tofindb) else if(nsize == 0) else ...
-      if(tocheck) {
-		if(size >= isize) {
-		  // have enough space in the block, malloc
-		  foundsmem = 1;
-		  break;
-		} else {
-		  // no enough space yet, try to append next continuous block
-		  // TODO may consider to go to next local block?
-		  islocal = false;
-		}  // if(size > isize) else ...
-      }  // if(tocheck)
-    } // if(nsize < bound)
-    if(islocal) {
-      // no space in the block, go to check the next block
-      i++;
-      if(2==i) {
-		i = 0;
-		j++;
-      }
-      tofindb=totest=
-		gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
-    } else {
-      totest += 1;
-    }  // if(islocal) else ...
-    if(totest > gcnumblock-1-bamboo_reserved_smem) {
-      // no more local mem, do not find suitable block on local mem
-	  // try to malloc shared memory assigned to the neighbour cores
-	  do{
-		k++;
-		if(k >= NUM_CORES2TEST) {
-		  if(gcmem_mixed_usedmem >= gcmem_mixed_threshold) {
-			// no more memory available on either coren or its neighbour cores
-			foundsmem = 2;
-			goto memmixedsearchresult;
-		  } else {
-			// try allocate globally
-			mem = globalmalloc_I(coren, isize, allocsize);
-			return mem;
-		  }
-		}
-	  } while(core2test[gccorenum][k] == -1);
-	  i = 0;
-	  j = 0;
-	  tofindb=totest=
-		gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
-    }  // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
-  } while(true);
-
-memmixedsearchresult:
-  if(foundsmem == 1) {
-    // find suitable block
-    mem = gcbaseva+bamboo_smemtbl[tofindb]+((tofindb<NUMCORES4GC) ?
-          (BAMBOO_SMEM_SIZE_L*tofindb) : (BAMBOO_LARGE_SMEM_BOUND+
-          (tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
-    *allocsize = size;
-    // set bamboo_smemtbl
-    for(i = tofindb; i <= totest; i++) {
-      bamboo_smemtbl[i]=(i<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
+  for(k=0; k<NUM_CORES2TEST; k++) {
+    if(core2test[gccorenum][k] == -1) {
+      // try next neighbour
+      continue;
     }
-	gcmem_mixed_usedmem += size;
-	if(tofindb == bamboo_free_block) {
-      bamboo_free_block = totest+1;
+    tofindb=totest=gc_core2block[2*core2test[gccorenum][k]];
+    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],
+        isize,allocsize);
+    if(mem != NULL) {
+      gcmem_mixed_usedmem += size;
+      return mem;
     }
-  } else if(foundsmem == 2) {
-    // no suitable block
-    *allocsize = 0;
   }
-
-  return mem;
-} // void * mixedmalloc_I(int, int, int *)
-#endif // #ifdef SMEMM
+  if(gcmem_mixed_usedmem >= gcmem_mixed_threshold) {
+    // no more memory available on either coren or its neighbour cores
+    *allocsize = 0;
+    return NULL; 
+  } else {
+    // try allocate globally
+    mem = globalmalloc_I(coren, isize, allocsize);
+    if(mem != NULL) {
+      gcmem_mixed_usedmem += size;
+    }
+    return mem;
+  }
+} 
+#endif 
 
 // Allocate all the memory chunks globally, do not consider the host cores
 // When all the shared memory are used up, start gc.
@@ -743,86 +646,28 @@ void * globalmalloc_I(int coren,
                       int isize,
                       int * allocsize) {
   void * mem = NULL;
-  int tofindb = bamboo_free_block;       //0;
+  int tofindb = bamboo_free_block;
   int totest = tofindb;
   int bound = BAMBOO_SMEM_SIZE_L;
   int foundsmem = 0;
   int size = 0;
   if(tofindb > gcnumblock-1-bamboo_reserved_smem) {
-	// Out of shared memory
+    // Out of shared memory
     *allocsize = 0;
     return NULL;
   }
-  do {
-    bound = (totest < NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
-    int nsize = bamboo_smemtbl[totest];
-    bool isnext = false;
-    if(nsize < bound) {
-      bool tocheck = true;
-      // have some space in the block
-      if(totest == tofindb) {
-		// the first partition
-		size = bound - nsize;
-      } else if(nsize == 0) {
-		// an empty partition, can be appended
-		size += bound;
-      } else {
-		// not an empty partition, can not be appended
-		// the last continuous block is not big enough, start another block
-		isnext = true;
-		tocheck = false;
-      }  // if(totest == tofindb) else if(nsize == 0) else ...
-      if(tocheck) {
-		if(size >= isize) {
-		  // have enough space in the block, malloc
-		  foundsmem = 1;
-		  break;
-		}  // if(size > isize)
-      }   // if(tocheck)
-    } else {
-      isnext = true;
-    }  // if(nsize < bound) else ...
-    totest += 1;
-    if(totest > gcnumblock-1-bamboo_reserved_smem) {
-      // no more local mem, do not find suitable block
-      foundsmem = 2;
-      break;
-    }  // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
-    if(isnext) {
-      // start another block
-      tofindb = totest;
-    } // if(islocal)
-  } while(true);
-
-  if(foundsmem == 1) {
-    // find suitable block
-    mem = gcbaseva+bamboo_smemtbl[tofindb]+((tofindb<NUMCORES4GC) ?
-          (BAMBOO_SMEM_SIZE_L*tofindb) : (BAMBOO_LARGE_SMEM_BOUND+
-          (tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
-    *allocsize = size;
-    // set bamboo_smemtbl
-    for(int i = tofindb; i <= totest; i++) {
-      bamboo_smemtbl[i]=(i<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
-    }
-    if(tofindb == bamboo_free_block) {
-      bamboo_free_block = totest+1;
-    }
-  } else if(foundsmem == 2) {
-    // no suitable block
+  mem=searchBlock4Mem_global(&tofindb, &totest, isize, allocsize);
+  if(mem == NULL) {
     *allocsize = 0;
-    mem = NULL;
   }
-
   return mem;
-} // void * globalmalloc_I(int, int, int *)
-#endif // MULTICORE_GC
+} 
 
 // malloc from the shared memory
 void * smemalloc_I(int coren,
                    int size,
                    int * allocsize) {
   void * mem = NULL;
-#ifdef MULTICORE_GC
   int isize = size+(BAMBOO_CACHE_LINE_SIZE);
 
   // go through the bamboo_smemtbl for suitable partitions
@@ -862,50 +707,48 @@ void * smemalloc_I(int coren,
   }
 
   if(mem == NULL) {
-#else 
-  int toallocate = (size>(BAMBOO_SMEM_SIZE)) ? (size) : (BAMBOO_SMEM_SIZE);
-  if(toallocate > bamboo_free_smem_size) {
-	// no enough mem
-	mem = NULL;
-  } else {
-	mem = (void *)bamboo_free_smemp;
-	bamboo_free_smemp = ((void*)bamboo_free_smemp) + toallocate;
-	bamboo_free_smem_size -= toallocate;
-  }
-  *allocsize = toallocate;
-  if(mem == NULL) {
-#endif // MULTICORE_GC
     // no enough shared global memory
     *allocsize = 0;
-#ifdef MULTICORE_GC
 	if(!gcflag) {
 	  gcflag = true;
 	  if(!gcprocessing) {
-		// inform other cores to stop and wait for gc
-		gcprecheck = true;
-		for(int i = 0; i < NUMCORESACTIVE; i++) {
-		  // reuse the gcnumsendobjs & gcnumreceiveobjs
-		  gccorestatus[i] = 1;
-		  gcnumsendobjs[0][i] = 0;
-		  gcnumreceiveobjs[0][i] = 0;
-		}
-		for(int i = 0; i < NUMCORESACTIVE; i++) {
-		  if(i != BAMBOO_NUM_OF_CORE) {
-			if(BAMBOO_CHECK_SEND_MODE()) {
-			  cache_msg_1(i, GCSTARTPRE);
-			} else {
-			  send_msg_1(i, GCSTARTPRE, true);
-			}
-		  }
-		}
+      // inform other cores to stop and wait for gc
+      gcprecheck = true;
+      for(int i = 0; i < NUMCORESACTIVE; i++) {
+        // reuse the gcnumsendobjs & gcnumreceiveobjs
+        gcnumsendobjs[0][i] = 0;
+        gcnumreceiveobjs[0][i] = 0;
+      }
+      GC_SEND_MSG_1_TO_CLIENT(GCSTARTPRE);
 	  }
 	}
 	return NULL;
-#else
-    BAMBOO_EXIT(0xe103);
-#endif
   }
   return mem;
-}  // void * smemalloc_I(int, int, int)
+}
+#else
+// malloc from the shared memory
+void * smemalloc_I(int coren,
+                   int size,
+                   int * allocsize) {
+  void * mem = NULL;
+  int toallocate = (size>(BAMBOO_SMEM_SIZE)) ? (size) : (BAMBOO_SMEM_SIZE);
+  if(toallocate > bamboo_free_smem_size) {
+    // no enough mem
+    mem = NULL;
+  } else {
+    mem = (void *)bamboo_free_smemp;
+    bamboo_free_smemp = ((void*)bamboo_free_smemp) + toallocate;
+    bamboo_free_smem_size -= toallocate;
+  }
+  *allocsize = toallocate;
+  if(mem == NULL) {
+    // no enough shared global memory
+    *allocsize = 0;
+    BAMBOO_EXIT(0xe103);
+  }
+  return mem;
+} 
+#endif // MULTICORE_GC
 
 #endif // MULTICORE

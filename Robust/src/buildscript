@@ -67,7 +67,6 @@ echo "-disall  execute to collect whole distribution"
 echo "-disstart specify the start number of distribution information collection"
 echo -multicore generate multi-core version binary
 echo "-numcore set the number of cores (should be used together with -multicore), defaultly set as 1"
-echo "-cacheflush enable cache flush in raw version binary (should be used togethere with -raw)"
 echo "-interrupt generate raw version binary with interruption (should be used togethere with -raw)"
 echo "-rawpath print out execute path information for raw version (should be used together with -raw)"
 echo "-useprofile use profiling data for scheduling (should be used together with -raw)"
@@ -193,7 +192,6 @@ TILERAZLINUXFLAG=false
 TILERAMEMPROFFLAG=false
 TILERACONFIG=''
 TILERACORES=''
-CACHEFLUSHFLAG=false
 RAWCONFIG=''
 DEBUGFLAG=false
 RAWPATHFLAG=false
@@ -469,9 +467,6 @@ elif [[ $1 = '-tileraconfig' ]]
 then
 TILERACONFIG="$2"
 shift
-elif [[ $1 = '-cacheflush' ]]
-then
-CACHEFLUSHFLAG=true
 elif [[ $1 = '-rawconfig' ]]
 then
 RAWCONFIG="$2"
@@ -922,11 +917,6 @@ rm ./*
 
 export RAWRGCCFLAGS="-DTASK -DMULTICORE -DRAW"
 
-if $CACHEFLUSHFLAG
-then # print path
-RAWRGCCFLAGS="${RAWRGCCFLAGS} -DCACHEFLUSH"
-fi
-
 if $RAWPATHFLAG
 then # print path
 RAWRGCCFLAGS="${RAWRGCCFLAGS} -DRAWPATH"
@@ -1034,11 +1024,6 @@ TILERACFLAGS="${TILERACFLAGS} -DTILERA_BME"
 elif $TILERAZLINUXFLAG
 then # TILERAZLINUXFLAG
 TILERACFLAGS="${TILERACFLAGS} -DTILERA_ZLINUX"
-fi
-
-if $CACHEFLUSHFLAG
-then # print path
-TILERACFLAGS="${TILERACFLAGS} -DCACHEFLUSH"
 fi
 
 if $RAWPATHFLAG
@@ -1220,20 +1205,8 @@ cp ../Runtime/ObjectHash.h ./
 cp ../Runtime/Queue.h ./
 cp ../Runtime/runtime.h ./
 cp ../Runtime/SimpleHash.h ./
-cp $BAMBOORUNTIME/multicoretask.c ./
-cp $BAMBOORUNTIME/multicoreruntime.c ./
-cp $BAMBOORUNTIME/multicoremem.c ./
-cp $BAMBOORUNTIME/multicoregarbage.c ./
-cp $BAMBOORUNTIME/GCSharedHash.c ./
-cp $BAMBOORUNTIME/MGCHash.c ./
-cp $BAMBOORUNTIME/multicoreruntime.h ./
-cp $BAMBOORUNTIME/multicoremem.h ./
-cp $BAMBOORUNTIME/multicoregarbage.h ./
-cp $BAMBOORUNTIME/multicorecache.h ./
-cp $BAMBOORUNTIME/multicoregc.h ./
-cp $BAMBOORUNTIME/multicorehelper.h ./
-cp $BAMBOORUNTIME/GCSharedHash.h ./
-cp $BAMBOORUNTIME/MGCHash.h ./
+cp $BAMBOORUNTIME/*.c ./
+cp $BAMBOORUNTIME/*.h ./
 cp ../Tilera/Runtime/*.c ./
 cp ../Tilera/Runtime/*.h ./
 cp ../Tilera/Runtime/$TILERA_INDIR/*.c ./

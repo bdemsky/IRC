@@ -186,7 +186,7 @@ int ObjectHashadd_I(struct ObjectHash * thisvar,int key, int data, int data2, in
       }
     }
     thisvar->size=newsize;
-    RUNFREE(thisvar->bucket);
+    RUNFREE_I(thisvar->bucket);
     thisvar->bucket=newbucket;
   }
 

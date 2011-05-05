@@ -323,7 +323,7 @@ void flagorand(void * ptr, int ormask, int andmask) {
   } else
 #endif
   {
-    int oldflag=((int *)ptr)[1];
+    int oldflag=((struct ___Object___ *)ptr)->flag;
     int flag=ormask|oldflag;
     flag&=andmask;
     flagbody(ptr, flag);
@@ -349,7 +349,7 @@ bool intflagorand(void * ptr, int ormask, int andmask) {
   } else
 #endif
   {
-    int oldflag=((int *)ptr)[1];
+    int oldflag=((struct ___Object___ *)ptr)->flag;
     int flag=ormask|oldflag;
     flag&=andmask;
     if (flag==oldflag)   /* Don't do anything */
@@ -362,7 +362,7 @@ bool intflagorand(void * ptr, int ormask, int andmask) {
 }
 
 void flagorandinit(void * ptr, int ormask, int andmask) {
-  int oldflag=((int *)ptr)[1];
+  int oldflag=((struct ___Object___ *)ptr)->flag;
   int flag=ormask|oldflag;
   flag&=andmask;
   flagbody(ptr,flag);

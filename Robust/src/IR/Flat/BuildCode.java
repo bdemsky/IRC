@@ -1186,6 +1186,10 @@ public class BuildCode {
         if (type.isPtr())
           count++;
       }
+      if(state.TASK) {
+        // the lock field is also a pointer
+        count++;
+      }
       output.print(count);
       for(Iterator allit=cn.getFieldTable().getAllDescriptorsIterator(); allit.hasNext(); ) {
         FieldDescriptor fd=(FieldDescriptor)allit.next();
@@ -1198,6 +1202,11 @@ public class BuildCode {
           output.print("((unsigned INTPTR)&(((struct "+cn.getSafeSymbol() +" *)0)->"+
                        fd.getSafeSymbol()+"))");
         }
+      }
+      if(state.TASK) {
+        // output the lock field
+        output.print(", ");
+        output.print("((unsigned INTPTR)&(((struct "+cn.getSafeSymbol() +" *)0)->lock))");
       }
       output.println("};");
     }
@@ -1587,7 +1596,8 @@ fldloop:
       classdefout.println("  int ___cachedCode___;");
       if((!state.MULTICORE) || (cn.getSymbol().equals("TagDescriptor"))) {
         classdefout.println("  void * flagptr;");
-      } else if (state.MULTICORE) {
+      }
+      if (state.MULTICORE) {
         classdefout.println("  int version;");
         classdefout.println("  int * lock;"); // lock entry for this obj
         classdefout.println("  int mutex;");
@@ -2742,7 +2752,7 @@ fldloop:
         output.println("global_defsprim_p->" +
                        fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
     } else {
-      
+
       if( state.CAPTURE_NULL_DEREFERENCES ) {
         output.println("#ifdef CAPTURE_NULL_DEREFERENCES");
         output.println("if (" + generateTemp(fm,fsfn.getDst()) + " == NULL) {");

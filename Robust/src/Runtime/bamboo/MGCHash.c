@@ -341,7 +341,7 @@ unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
       curr = next;
     } while(curr!=NULL);
   }
-  RUNFREE(ptr); //Free the memory of the old hash table
+  RUNFREE_I(ptr); //Free the memory of the old hash table
   return 0;
 }
 #endif

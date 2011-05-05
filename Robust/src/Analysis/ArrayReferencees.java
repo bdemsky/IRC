@@ -70,19 +70,35 @@ public class ArrayReferencees {
   }
 
   protected void buildRelation() {
+    Set<MethodDescriptor> descriptorsToAnalyze = null;
 
+    if(state.TASK) {
+      // for Bristlecone and Bamboo, there are no main method,
+      // analyze all methods transitively reachable from tasks instead
+      Iterator it_sourceEntries = state.getTaskSymbolTable().getDescriptorsIterator();
+      while(it_sourceEntries.hasNext()) {
+        TaskDescriptor tdSourceEntry = (TaskDescriptor)it_sourceEntries.next();
+        if(descriptorsToAnalyze == null) {
+          descriptorsToAnalyze = callGraph.getAllMethods(tdSourceEntry);
+        } else {
+          descriptorsToAnalyze.addAll(callGraph.getAllMethods(tdSourceEntry));
+        }
+        //descriptorsToAnalyze.add( tdSourceEntry );
+      }
+    } else {
     // analyze all methods transitively reachable from main
     MethodDescriptor mdSourceEntry = typeUtil.getMain();
     FlatMethod       fmMain        = state.getMethodFlat( mdSourceEntry );
     
-    Set<MethodDescriptor> descriptorsToAnalyze = callGraph.getAllMethods( mdSourceEntry );
+    descriptorsToAnalyze = callGraph.getAllMethods( mdSourceEntry );
     descriptorsToAnalyze.add( mdSourceEntry );
+    }
     
     for( MethodDescriptor md: descriptorsToAnalyze ) {
       FlatMethod fm =	state.getMethodFlat( md );
       analyzeMethod( fm );
     }
-  }  
+  }
 
   protected void analyzeMethod( FlatMethod fm ) {
     Set<FlatNode> toVisit = new HashSet<FlatNode>();

@@ -1,23 +1,18 @@
-#ifndef MULTICORE_GARBAGE_H
-#define MULTICORE_GARBAGE_H
+#ifndef BAMBOO_MULTICORE_GARBAGE_H
+#define BAMBOO_MULTICORE_GARBAGE_H
+#ifdef MULTICORE_GC
+#include "multicore.h"
 #include "multicoregc.h"
 #include "multicorehelper.h"  // for mappings between core # and block #
 #include "structdefs.h"
-#include "MGCHash.h"
-#include "GCSharedHash.h"
-#ifdef GC_CACHE_ADAPT
+#include "multicoregcprofile.h"
 #include "multicorecache.h"
-#endif // GC_CACHE_ADAPT
 
-#ifndef bool
-#define bool int
-#endif
-
-#ifdef TASK
-#define BAMBOOMARKBIT 8
-#elif defined MGC
-#define BAMBOOMARKBIT 5
-#endif // TASK
+#ifdef GC_DEBUG
+#define GC_PRINTF tprintf
+#else
+#define GC_PRINTF if(0) tprintf
+#endif 
 
 // data structures for GC
 #define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE * 2)
@@ -30,50 +25,12 @@
 unsigned int gc_num_flush_dtlb;
 #endif
 
-#define NUMPTRS 120
-
-// for GC profile
-#ifdef GC_PROFILE
-#define GCINFOLENGTH 100
-
-#ifdef GC_CACHE_ADAPT
-#define GC_PROFILE_NUM_FIELD 15
-#else
-#define GC_PROFILE_NUM_FIELD 14
-#endif // GC_CACHE_ADAPT
-
-typedef struct gc_info {
-  unsigned long long time[GC_PROFILE_NUM_FIELD];
-  unsigned int index;
-} GCInfo;
-
-GCInfo * gc_infoArray[GCINFOLENGTH];
-unsigned int gc_infoIndex;
-bool gc_infoOverflow;
-unsigned long long gc_num_livespace;
-unsigned long long gc_num_freespace;
-unsigned long long gc_num_lobjspace;
-unsigned int gc_num_lobj;
-
-unsigned int gc_num_liveobj;
-unsigned int gc_num_obj;
-unsigned int gc_num_forwardobj;
-unsigned int gc_num_profiles;
-
-#ifdef MGC_SPEC
-volatile bool gc_profile_flag;
-#endif
-
-#endif // GC_PROFILE
-
 typedef enum {
   INIT = 0,           // 0
   DISCOVERED = 2,     // 2
-//  REMOTEM = 4,        // 4
-  MARKED = 4,         // 8
-  COMPACTED = 8,     // 16
-  //FLUSHED = 32,       // 32
-  END = 9            // 33
+  MARKED = 4,         // 4
+  COMPACTED = 8,      // 8
+  END = 9             // 9
 } GCOBJFLAG;
 
 typedef enum {
@@ -85,7 +42,7 @@ typedef enum {
   FLUSHPHASE,              // 0x5
 #ifdef GC_CACHE_ADAPT
   PREFINISHPHASE,          // 0x6
-#endif // GC_CACHE_ADAPT
+#endif 
   FINISHPHASE              // 0x6/0x7
 } GCPHASETYPE;
 
@@ -100,15 +57,15 @@ unsigned int gccurr_heaptop;
 struct MGCHash * gcforwardobjtbl; // cache forwarded objs in mark phase
 // for mark phase termination
 volatile unsigned int gccorestatus[NUMCORESACTIVE];//records status of each core
-                                           // 1: running gc
-                                           // 0: stall
+                                                   // 1: running gc
+                                                   // 0: stall
 volatile unsigned int gcnumsendobjs[2][NUMCORESACTIVE];//# of objects sent out
 volatile unsigned int gcnumreceiveobjs[2][NUMCORESACTIVE];//# of objects received
-volatile unsigned int gcnumsrobjs_index;//indicates which entry to record the info 
-		                                // received before phase 1 of the mark finish 
+volatile unsigned int gcnumsrobjs_index;//indicates which entry to record the  
+		                        // info received before phase 1 of the mark finish 
 						                // checking process
-								        // the info received in phase 2 must be 
-								        // recorded in the other entry
+								            // the info received in phase 2 must be 
+								            // recorded in the other entry
 volatile bool gcbusystatus;
 unsigned int gcself_numsendobjs;
 unsigned int gcself_numreceiveobjs;
@@ -175,7 +132,7 @@ unsigned int size_cachepolicytbl;
   ((((unsigned int)p)>=gcbaseva)&&(((unsigned int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
 
 #define ALIGNSIZE(s, as) \
-  (*((unsigned int*)as)) = (((s) & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE))
+  (*((unsigned int*)as))=((((unsigned int)(s-1))&(~(BAMBOO_CACHE_LINE_MASK)))+(BAMBOO_CACHE_LINE_SIZE))
 
 // mapping of pointer to block # (start from 0), here the block # is
 // the global index
@@ -217,11 +174,12 @@ unsigned int size_cachepolicytbl;
   if(s < BAMBOO_SMEM_SIZE_L) { \
     (*((unsigned int*)(o))) = (s); \
   } else { \
-    (*((unsigned int*)(o))) = ((s) - (BAMBOO_SMEM_SIZE_L)) % (BAMBOO_SMEM_SIZE); \
+    (*((unsigned int*)(o))) = ((s)-(BAMBOO_SMEM_SIZE_L))%(BAMBOO_SMEM_SIZE); \
   }
 
 // mapping of (core #, index of the block) to the global block index
-#define BLOCKINDEX2(c, n) (gc_core2block[(2*(c))+((n)%2)]+((NUMCORES4GC*2)*((n)/2)))
+#define BLOCKINDEX2(c, n) \
+  (gc_core2block[(2*(c))+((n)%2)]+((NUMCORES4GC*2)*((n)/2)))
 
 // mapping of (core #, number of the block) to the base pointer of the block
 #define BASEPTR(c, n, p) \
@@ -238,28 +196,57 @@ unsigned int size_cachepolicytbl;
 // the next core in the top of the heap
 #define NEXTTOPCORE(b) (gc_block2core[((b)+1)%(NUMCORES4GC*2)])
 
-inline bool gc(struct garbagelist * stackptr); // core coordinator routine
-inline void gc_collect(struct garbagelist* stackptr); //core collector routine
-inline void gc_nocollect(struct garbagelist* stackptr); //non-gc core collector routine
-inline void transferMarkResults_I();
-inline void gc_enqueue_I(void *ptr);
-inline void gc_lobjenqueue_I(void *ptr, unsigned int length, unsigned int host);
-inline bool gcfindSpareMem_I(unsigned int * startaddr,
+// close current block, fill the header
+#define CLOSEBLOCK(base, size) \
+  { \
+    BAMBOO_MEMSET_WH((base), '\0', BAMBOO_CACHE_LINE_SIZE); \
+    *((int*)(base)) = (size); \
+  }
+
+// check if all cores are stall now
+#define GC_CHECK_ALL_CORE_STATUS(f) \
+  { \
+    gccorestatus[BAMBOO_NUM_OF_CORE] = 0; \
+    while(f) { \
+      BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT(); \
+      if(gc_checkAllCoreStatus_I()) { \
+        BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME(); \
+        break; \
+      } \
+      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME(); \
+    } \
+  }
+
+// send a 1-word msg to all client
+#define GC_SEND_MSG_1_TO_CLIENT(m) \
+  { \
+    for(int i = 0; i < NUMCORESACTIVE; ++i) { \
+      if(BAMBOO_NUM_OF_CORE != i) { \
+        send_msg_1(i, (m), false); \
+      } \
+      gccorestatus[i] = 1; \
+    } \
+  }
+
+#define ISLOCAL(p) (hostcore(p)==BAMBOO_NUM_OF_CORE)
+
+INLINE void initmulticoregcdata();
+INLINE void dismulticoregcdata();
+INLINE bool gc_checkAllCoreStatus_I();
+INLINE bool gc(struct garbagelist * stackptr); // core coordinator routine
+INLINE void gc_collect(struct garbagelist* stackptr); //core collector routine
+INLINE void gc_nocollect(struct garbagelist* stackptr); //non-gc core collector routine
+INLINE void transferMarkResults_I();
+INLINE bool gcfindSpareMem_I(unsigned int * startaddr,
                              unsigned int * tomove,
                              unsigned int * dstcore,
                              unsigned int requiredmem,
                              unsigned int requiredcore);
 
-inline void * gc_lobjdequeue4(unsigned int * length, unsigned int * host);
-inline int gc_lobjmoreItems4();
-inline void gc_lobjqueueinit4();
-
-#ifdef GC_PROFILE
-INLINE void gc_profileStart(void);
-INLINE void gc_profileItem(void);
-INLINE void gc_profileEnd(void);
-void gc_outputProfileData();
-#endif
-
-#endif
-
+#define INITMULTICOREGCDATA() initmulticoregcdata()
+#define DISMULTICOREGCDATA() dismulticoregcdata()
+#else // MULTICORE_GC
+#define INITMULTICOREGCDATA()
+#define DISMULTICOREGCDATA()
+#endif // MULTICORE_GC
+#endif // BAMBOO_MULTICORE_GARBAGE_H

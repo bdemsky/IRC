@@ -1,13 +1,8 @@
-#ifndef MULTICORE_MEM_H
-#define MULTICORE_MEM_H
+#ifndef BABMOO_MULTICORE_MEM_H
+#define BAMBOO_MULTICORE_MEM_H
+#include "multicore.h"
 #include "Queue.h"
 #include "SimpleHash.h"
-
-#ifndef bool
-#define bool int
-#define true 1
-#define false 0
-#endif
 
 // data structures for shared memory allocation
 #ifdef TILERA_BME
@@ -34,20 +29,6 @@
 #else
 #define GC_BAMBOO_NUMCORES 62
 #endif
-/*#elif defined GC_2
-#define GC_BAMBOO_NUMCORES 3
-#elif defined GC_4
-#define GC_BAMBOO_NUMCORES 4
-#elif defined GC_8
-#define GC_BAMBOO_NUMCORES 8
-#elif defined GC_16
-#define GC_BAMBOO_NUMCORES 16
-#elif defined GC_32
-#define GC_BAMBOO_NUMCORES 32
-#elif defined GC_50
-#define GC_BAMBOO_NUMCORES 50
-#elif defined GC_62
-#define GC_BAMBOO_NUMCORES 62*/
 #endif
 
 #ifdef GC_DEBUG
@@ -111,6 +92,20 @@
 #endif // GC_DEBUG
 
 #ifdef MULTICORE_GC
+#ifdef GC_SMALLPAGESIZE
+// memory for globals
+#define BAMBOO_GLOBAL_DEFS_SIZE (1024 * 1024)
+#define BAMBOO_GLOBAL_DEFS_PRIM_SIZE (1024 * 512)
+// memory for thread queue
+#define BAMBOO_THREAD_QUEUE_SIZE (1024 * 1024)
+#else
+// memory for globals
+#define BAMBOO_GLOBAL_DEFS_SIZE (BAMBOO_SMEM_SIZE)
+#define BAMBOO_GLOBAL_DEFS_PRIM_SIZE (BAMBOO_SMEM_SIZE/2)
+// memory for thread queue
+#define BAMBOO_THREAD_QUEUE_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
+#endif // GC_SMALLPAGESIZE
+
 volatile bool gc_localheap_s;
 #include "multicoregarbage.h"
 
@@ -140,6 +135,16 @@ struct freeMemList {
                                    // only maintain 1 freemMemItem
 };
 
+// Zero out the remaining bamboo_cur_msp. Only zero out the first 4 bytes 
+// of the remaining memory
+#define BAMBOO_CLOSE_CUR_MSP() \
+  { \
+    if((bamboo_cur_msp!=0)&&(bamboo_smem_zero_top==bamboo_cur_msp) \
+        &&(bamboo_smem_size>0)) { \
+      *((int *)bamboo_cur_msp) = 0; \
+    } \
+  }
+
 // table recording the number of allocated bytes on each block
 // Note: this table resides on the bottom of the shared heap for all cores
 //       to access
@@ -162,4 +167,4 @@ volatile bool smemflag;
 volatile unsigned int bamboo_cur_msp;
 volatile int bamboo_smem_size;
 
-#endif
+#endif // BAMBOO_MULTICORE_MEM_H

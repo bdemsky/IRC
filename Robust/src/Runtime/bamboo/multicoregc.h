@@ -1,5 +1,5 @@
-#ifndef MULTICORE_GC_H
-#define MULTICORE_GC_H
+#ifndef BAMBOO_MULTICORE_GC_H
+#define BAMBOO_MULTICORE_GC_H
 
 struct garbagelist {
   int size;
@@ -13,4 +13,4 @@ struct listitem {
   struct garbagelist * stackptr;
 };
 
-#endif // MULTICORE_GC_H
+#endif // BAMBOO_MULTICORE_GC_H

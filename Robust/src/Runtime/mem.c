@@ -11,7 +11,7 @@ void * mycalloc_share(struct garbagelist * stackptr,
                       int size) {
   void * p = NULL;
   //int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
-  int isize = (size & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE);
+  int isize = ((size-1)&(~(BAMBOO_CACHE_LINE_MASK)))+(BAMBOO_CACHE_LINE_SIZE);
   int hasgc = 0;
 memalloc:
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
@@ -50,7 +50,7 @@ void * mycalloc_share(int m,
                       int size) {
   void * p = NULL;
   //int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
-  int isize = (size & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE);
+  int isize = ((size-1)&(~(BAMBOO_CACHE_LINE_MASK)))+(BAMBOO_CACHE_LINE_SIZE);
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
   if(p == NULL) {
@@ -114,13 +114,28 @@ inermycalloc_i:
       goto inermycalloc_i;
     }
 #endif
-    tprintf("macalloc_i %s %d \n", file, line);
+    tprintf("mycalloc_i %s %d \n", file, line);
     BAMBOO_EXIT(0xc004);
   }
   return p;
 }
 
 void myfree(void * ptr) {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+#ifdef MULTICORE_GC
+  if(ptr >= BAMBOO_LOCAL_HEAP_START_VA ) {
+#endif
+  BAMBOO_LOCAL_MEM_FREE(ptr);
+#ifdef MULTICORE_GC
+} else if(ptr >= BAMBOO_LOCAL_HEAP_START_VA_S) {
+  BAMBOO_LOCAL_MEM_FREE_S(ptr);
+}
+#endif
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  return;
+}
+
+void myfree_i(void * ptr) {
 #ifdef MULTICORE_GC
   if(ptr >= BAMBOO_LOCAL_HEAP_START_VA ) {
 #endif
