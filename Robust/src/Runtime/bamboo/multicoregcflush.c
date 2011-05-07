@@ -239,8 +239,7 @@ INLINE void flushPtrsInObj(void * ptr) {
   }  
 }
 
-INLINE void flush(struct garbagelist * stackptr) {
-
+void flush(struct garbagelist * stackptr) {
   BAMBOO_CACHE_MF();
 
   flushRuntimeObj(stackptr);

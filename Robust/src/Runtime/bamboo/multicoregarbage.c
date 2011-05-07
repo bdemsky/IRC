@@ -34,7 +34,7 @@ extern unsigned int gcmem_mixed_usedmem;
 
 #ifdef GC_DEBUG
 // dump whole mem in blocks
-INLINE void dumpSMem() {
+void dumpSMem() {
   int block = 0;
   int sblock = 0;
   unsigned int j = 0;
@@ -45,72 +45,70 @@ INLINE void dumpSMem() {
   printf("(%x,%x) Dump shared mem: \n",udn_tile_coord_x(),udn_tile_coord_y());
   // reserved blocks for sblocktbl
   printf("(%x,%x) ++++ reserved sblocks ++++ \n", udn_tile_coord_x(),
-      udn_tile_coord_y());
+	 udn_tile_coord_y());
   for(i=BAMBOO_BASE_VA; (unsinged int)i<(unsigned int)gcbaseva; i+= 4*16) {
     printf("(%x,%x) 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n",
-        udn_tile_coord_x(), udn_tile_coord_y(),
-        *((int *)(i)), *((int *)(i + 4)),
-        *((int *)(i + 4*2)), *((int *)(i + 4*3)),
-        *((int *)(i + 4*4)), *((int *)(i + 4*5)),
-        *((int *)(i + 4*6)), *((int *)(i + 4*7)),
-        *((int *)(i + 4*8)), *((int *)(i + 4*9)),
-        *((int *)(i + 4*10)), *((int *)(i + 4*11)),
-        *((int *)(i + 4*12)), *((int *)(i + 4*13)),
-        *((int *)(i + 4*14)), *((int *)(i + 4*15)));
+	   udn_tile_coord_x(), udn_tile_coord_y(),
+	   *((int *)(i)), *((int *)(i + 4)),
+	   *((int *)(i + 4*2)), *((int *)(i + 4*3)),
+	   *((int *)(i + 4*4)), *((int *)(i + 4*5)),
+	   *((int *)(i + 4*6)), *((int *)(i + 4*7)),
+	   *((int *)(i + 4*8)), *((int *)(i + 4*9)),
+	   *((int *)(i + 4*10)), *((int *)(i + 4*11)),
+	   *((int *)(i + 4*12)), *((int *)(i + 4*13)),
+	   *((int *)(i + 4*14)), *((int *)(i + 4*15)));
   }
   sblock = gcreservedsb;
   bool advanceblock = false;
   // remaining memory
-  for(i=gcbaseva;
-      (unsigned int)i<(unsigned int)(gcbaseva+BAMBOO_SHARED_MEM_SIZE); 
-      i+=4*16) {
+  for(i=gcbaseva; (unsigned int)i<(unsigned int)(gcbaseva+BAMBOO_SHARED_MEM_SIZE); i+=4*16) {
     advanceblock = false;
     // computing sblock # and block #, core coordinate (x,y) also
     if(j%((BAMBOO_SMEM_SIZE)/(4*16)) == 0) {
       // finished a sblock
       if(j < ((BAMBOO_LARGE_SMEM_BOUND)/(4*16))) {
-    if((j > 0) && (j%((BAMBOO_SMEM_SIZE_L)/(4*16)) == 0)) {
-      // finished a block
-      block++;
-      advanceblock = true;
-    }
+	if((j > 0) && (j%((BAMBOO_SMEM_SIZE_L)/(4*16)) == 0)) {
+	  // finished a block
+	  block++;
+	  advanceblock = true;
+	}
       } else {
-    // finished a block
-    block++;
-    advanceblock = true;
+	// finished a block
+	block++;
+	advanceblock = true;
       }
       // compute core #
       if(advanceblock) {
-    coren = gc_block2core[block%(NUMCORES4GC*2)];
+	coren = gc_block2core[block%(NUMCORES4GC*2)];
       }
       // compute core coordinate
       x = BAMBOO_COORDS_X(coren);
       y = BAMBOO_COORDS_Y(coren);
       printf("(%x,%x) ==== %d, %d : core (%d,%d), saddr %x====\n",
-         udn_tile_coord_x(), udn_tile_coord_y(),
+	     udn_tile_coord_x(), udn_tile_coord_y(),
              block, sblock++, x, y,
              (sblock-1)*(BAMBOO_SMEM_SIZE)+gcbaseva);
     }
     j++;
     printf("(%x,%x) 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n",
-        udn_tile_coord_x(), udn_tile_coord_y(),
-        *((int *)(i)), *((int *)(i + 4)),
-        *((int *)(i + 4*2)), *((int *)(i + 4*3)),
-        *((int *)(i + 4*4)), *((int *)(i + 4*5)),
-        *((int *)(i + 4*6)), *((int *)(i + 4*7)),
-        *((int *)(i + 4*8)), *((int *)(i + 4*9)),
-        *((int *)(i + 4*10)), *((int *)(i + 4*11)),
-        *((int *)(i + 4*12)), *((int *)(i + 4*13)),
-        *((int *)(i + 4*14)), *((int *)(i + 4*15)));
+	   udn_tile_coord_x(), udn_tile_coord_y(),
+	   *((int *)(i)), *((int *)(i + 4)),
+	   *((int *)(i + 4*2)), *((int *)(i + 4*3)),
+	   *((int *)(i + 4*4)), *((int *)(i + 4*5)),
+	   *((int *)(i + 4*6)), *((int *)(i + 4*7)),
+	   *((int *)(i + 4*8)), *((int *)(i + 4*9)),
+	   *((int *)(i + 4*10)), *((int *)(i + 4*11)),
+	   *((int *)(i + 4*12)), *((int *)(i + 4*13)),
+	   *((int *)(i + 4*14)), *((int *)(i + 4*15)));
   }
   printf("(%x,%x) \n", udn_tile_coord_x(), udn_tile_coord_y());
 }
 #endif
 
-INLINE void initmulticoregcdata() {
-  int i = 0;
+void initmulticoregcdata() {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     // startup core to initialize corestatus[]
+    int i;
     for(i = 0; i < NUMCORESACTIVE; ++i) {
       gccorestatus[i] = 1;
       gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
@@ -161,13 +159,13 @@ INLINE void initmulticoregcdata() {
   INIT_MULTICORE_GCPROFILE_DATA();
 }
 
-INLINE void dismulticoregcdata() {
+void dismulticoregcdata() {
   freeMGCHash(gcforwardobjtbl);
 }
 
-INLINE void initGC() {
-  int i;
+void initGC() {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+    int i;
     for(i = 0; i < NUMCORES4GC; ++i) {
       gccorestatus[i] = 1;
       gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
@@ -227,17 +225,17 @@ INLINE void initGC() {
   GCPROFILE_INIT();
 } 
 
-INLINE bool gc_checkAllCoreStatus_I() {
-  int i = 0;
+bool gc_checkAllCoreStatus_I() {
+  int i;
   for(i = 0; i < NUMCORESACTIVE; ++i) {
     if(gccorestatus[i] != 0) {
-      break;
+      return false;
     }  
   }  
-  return (i == NUMCORESACTIVE);
+  return true;
 }
 
-INLINE void checkMarkStatue() {
+INLINE void checkMarkStatus() {
   int i;
   if((!waitconfirm) ||
       (waitconfirm && (numconfirm == 0))) {
@@ -254,7 +252,7 @@ INLINE void checkMarkStatue() {
     gcnumsendobjs[entry_index][BAMBOO_NUM_OF_CORE] = gcself_numsendobjs;
     gcnumreceiveobjs[entry_index][BAMBOO_NUM_OF_CORE] = gcself_numreceiveobjs;
     // check the status of all cores
-    if(gc_checkAllCoreStatus_I()) {
+    if (gc_checkAllCoreStatus_I()) {
       // ask for confirm
       if(!waitconfirm) {
         // the first time found all cores stall
@@ -363,27 +361,27 @@ INLINE unsigned int sortLObjs() {
     // find the place to insert
     while(true) {
       if(i == 0) {
-    if(tmp_block->prev == NULL) {
-      break;
-    }
-    if(tmp_block->prev->lobjs[NUMLOBJPTRS-1] > tmp_lobj) {
-      tmp_block->lobjs[i] = tmp_block->prev->lobjs[NUMLOBJPTRS-1];
-      tmp_block->lengths[i] = tmp_block->prev->lengths[NUMLOBJPTRS-1];
-      tmp_block->hosts[i] = tmp_block->prev->hosts[NUMLOBJPTRS-1];
-      tmp_block = tmp_block->prev;
-      i = NUMLOBJPTRS-1;
-    } else {
-      break;
-    }  // if(tmp_block->prev->lobjs[NUMLOBJPTRS-1] < tmp_lobj)
+	if(tmp_block->prev == NULL) {
+	  break;
+	}
+	if(tmp_block->prev->lobjs[NUMLOBJPTRS-1] > tmp_lobj) {
+	  tmp_block->lobjs[i] = tmp_block->prev->lobjs[NUMLOBJPTRS-1];
+	  tmp_block->lengths[i] = tmp_block->prev->lengths[NUMLOBJPTRS-1];
+	  tmp_block->hosts[i] = tmp_block->prev->hosts[NUMLOBJPTRS-1];
+	  tmp_block = tmp_block->prev;
+	  i = NUMLOBJPTRS-1;
+	} else {
+	  break;
+	}  // if(tmp_block->prev->lobjs[NUMLOBJPTRS-1] < tmp_lobj)
       } else {
-    if(tmp_block->lobjs[i-1] > tmp_lobj) {
-      tmp_block->lobjs[i] = tmp_block->lobjs[i-1];
-      tmp_block->lengths[i] = tmp_block->lengths[i-1];
-      tmp_block->hosts[i] = tmp_block->hosts[i-1];
-      i--;
-    } else {
-      break;
-    }  
+	if(tmp_block->lobjs[i-1] > tmp_lobj) {
+	  tmp_block->lobjs[i] = tmp_block->lobjs[i-1];
+	  tmp_block->lengths[i] = tmp_block->lengths[i-1];
+	  tmp_block->hosts[i] = tmp_block->hosts[i-1];
+	  i--;
+	} else {
+	  break;
+	}  
       } 
     }  
     // insert it
@@ -449,8 +447,7 @@ void updateSmemTbl(unsigned int coren,
   do {
     toset = gc_core2block[2*coren+i]+(unsigned int)(NUMCORES4GC*2)*j;
     if(toset < ltopcore) {
-      bamboo_smemtbl[toset]=
-        (toset<NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+      bamboo_smemtbl[toset]=(toset<NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
 #ifdef SMEMM
       gcmem_mixed_usedmem += bamboo_smemtbl[toset];
 #endif
@@ -565,92 +562,92 @@ INLINE void moveLObjs() {
       ptr = (unsigned int)(gc_lobjdequeue4_I(&size, &host));
       ALIGNSIZE(size, &isize);
       if(remain >= isize) {
-    remain -= isize;
-    // move the large obj
-    if((unsigned int)gcheaptop < (unsigned int)(tmpheaptop+size)) {
-      memmove(tmpheaptop, gcheaptop, size);
-    } else {
-      memcpy(tmpheaptop, gcheaptop, size);
-    }
-    // fill the remaining space with -2 padding
-    BAMBOO_MEMSET_WH(tmpheaptop+size, -2, isize-size);
-
-    gcheaptop += size;
-    cpysize += isize;
-    // cache the mapping info
-    gcmappingtbl[OBJMAPPINGINDEX((unsigned int)ptr)]=(unsigned int)tmpheaptop;
-    tmpheaptop += isize;
-
-    // update bamboo_smemtbl
-    bamboo_smemtbl[b] += isize;
+	remain -= isize;
+	// move the large obj
+	if((unsigned int)gcheaptop < (unsigned int)(tmpheaptop+size)) {
+	  memmove(tmpheaptop, gcheaptop, size);
+	} else {
+	  memcpy(tmpheaptop, gcheaptop, size);
+	}
+	// fill the remaining space with -2 padding
+	BAMBOO_MEMSET_WH(tmpheaptop+size, -2, isize-size);
+	
+	gcheaptop += size;
+	cpysize += isize;
+	// cache the mapping info
+	gcmappingtbl[OBJMAPPINGINDEX((unsigned int)ptr)]=(unsigned int)tmpheaptop;
+	tmpheaptop += isize;
+	
+	// update bamboo_smemtbl
+	bamboo_smemtbl[b] += isize;
       } else {
-    // this object acrosses blocks
-    if(cpysize > 0) {
-      CLOSEBLOCK(base, cpysize+BAMBOO_CACHE_LINE_SIZE);
-      bamboo_smemtbl[b] += BAMBOO_CACHE_LINE_SIZE;
-      cpysize = 0;
-      base = tmpheaptop;
-      if(remain == 0) {
-        remain = ((tmpheaptop-gcbaseva)<(BAMBOO_LARGE_SMEM_BOUND)) ?
-          BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
-      }
-      remain -= BAMBOO_CACHE_LINE_SIZE;
-      tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
-      BLOCKINDEX(tmpheaptop, &b);
-      sb = (unsigned int)(tmpheaptop-gcbaseva)/(BAMBOO_SMEM_SIZE)+gcreservedsb;
-    } 
-
-    // move the large obj
-    if((unsigned int)gcheaptop < (unsigned int)(tmpheaptop+size)) {
-      memmove(tmpheaptop, gcheaptop, size);
-    } else {
-      memcpy(tmpheaptop, gcheaptop, size);
-    }
-    // fill the remaining space with -2 padding
-    BAMBOO_MEMSET_WH(tmpheaptop+size, -2, isize-size);
-    gcheaptop += size;
-    // cache the mapping info 
-    gcmappingtbl[OBJMAPPINGINDEX((unsigned int)ptr)]=(unsigned int)tmpheaptop;
-    tmpheaptop += isize;
-
-    // set the gcsbstarttbl and bamboo_smemtbl
-    unsigned int tmpsbs=1+(unsigned int)(isize-remain-1)/BAMBOO_SMEM_SIZE;
-    for(int k = 1; k < tmpsbs; k++) {
-      gcsbstarttbl[sb+k] = -1;
-    }
-    sb += tmpsbs;
-    bound = (b<NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
-    BLOCKINDEX(tmpheaptop-1, &tmpsbs);
-    for(; b < tmpsbs; b++) {
-      bamboo_smemtbl[b] = bound;
-      if(b==NUMCORES4GC-1) {
-        bound = BAMBOO_SMEM_SIZE;
-      }
-    }
-    if(((unsigned int)(isize-remain)%(BAMBOO_SMEM_SIZE)) == 0) {
-      gcsbstarttbl[sb] = -1;
-      remain = ((tmpheaptop-gcbaseva)<(BAMBOO_LARGE_SMEM_BOUND)) ?
-           BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
-      bamboo_smemtbl[b] = bound;
-    } else {
-      gcsbstarttbl[sb] = (int)tmpheaptop;
-      remain = tmpheaptop-gcbaseva;
-      bamboo_smemtbl[b] = remain%bound;
-      remain = bound - bamboo_smemtbl[b];
-    } 
-
-    CLOSEBLOCK(base, isize+BAMBOO_CACHE_LINE_SIZE);
-    cpysize = 0;
-    base = tmpheaptop;
-    if(remain == BAMBOO_CACHE_LINE_SIZE) {
-      // fill with 0 in case
-      BAMBOO_MEMSET_WH(tmpheaptop, '\0', remain);
-    }
-    remain -= BAMBOO_CACHE_LINE_SIZE;
-    tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
+	// this object acrosses blocks
+	if(cpysize > 0) {
+	  CLOSEBLOCK(base, cpysize+BAMBOO_CACHE_LINE_SIZE);
+	  bamboo_smemtbl[b] += BAMBOO_CACHE_LINE_SIZE;
+	  cpysize = 0;
+	  base = tmpheaptop;
+	  if(remain == 0) {
+	    remain = ((tmpheaptop-gcbaseva)<(BAMBOO_LARGE_SMEM_BOUND)) ?
+	      BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+	  }
+	  remain -= BAMBOO_CACHE_LINE_SIZE;
+	  tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
+	  BLOCKINDEX(tmpheaptop, &b);
+	  sb = (unsigned int)(tmpheaptop-gcbaseva)/(BAMBOO_SMEM_SIZE)+gcreservedsb;
+	} 
+	
+	// move the large obj
+	if((unsigned int)gcheaptop < (unsigned int)(tmpheaptop+size)) {
+	  memmove(tmpheaptop, gcheaptop, size);
+	} else {
+	  memcpy(tmpheaptop, gcheaptop, size);
+	}
+	// fill the remaining space with -2 padding
+	BAMBOO_MEMSET_WH(tmpheaptop+size, -2, isize-size);
+	gcheaptop += size;
+	// cache the mapping info 
+	gcmappingtbl[OBJMAPPINGINDEX((unsigned int)ptr)]=(unsigned int)tmpheaptop;
+	tmpheaptop += isize;
+	
+	// set the gcsbstarttbl and bamboo_smemtbl
+	unsigned int tmpsbs=1+(unsigned int)(isize-remain-1)/BAMBOO_SMEM_SIZE;
+	for(int k = 1; k < tmpsbs; k++) {
+	  gcsbstarttbl[sb+k] = -1;
+	}
+	sb += tmpsbs;
+	bound = (b<NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+	BLOCKINDEX(tmpheaptop-1, &tmpsbs);
+	for(; b < tmpsbs; b++) {
+	  bamboo_smemtbl[b] = bound;
+	  if(b==NUMCORES4GC-1) {
+	    bound = BAMBOO_SMEM_SIZE;
+	  }
+	}
+	if(((unsigned int)(isize-remain)%(BAMBOO_SMEM_SIZE)) == 0) {
+	  gcsbstarttbl[sb] = -1;
+	  remain = ((tmpheaptop-gcbaseva)<(BAMBOO_LARGE_SMEM_BOUND)) ?
+	    BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+	  bamboo_smemtbl[b] = bound;
+	} else {
+	  gcsbstarttbl[sb] = (int)tmpheaptop;
+	  remain = tmpheaptop-gcbaseva;
+	  bamboo_smemtbl[b] = remain%bound;
+	  remain = bound - bamboo_smemtbl[b];
+	} 
+	
+	CLOSEBLOCK(base, isize+BAMBOO_CACHE_LINE_SIZE);
+	cpysize = 0;
+	base = tmpheaptop;
+	if(remain == BAMBOO_CACHE_LINE_SIZE) {
+	  // fill with 0 in case
+	  BAMBOO_MEMSET_WH(tmpheaptop, '\0', remain);
+	}
+	remain -= BAMBOO_CACHE_LINE_SIZE;
+	tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
       } 
     }
-
+    
     if(cpysize > 0) {
       CLOSEBLOCK(base, cpysize+BAMBOO_CACHE_LINE_SIZE);
       bamboo_smemtbl[b] += BAMBOO_CACHE_LINE_SIZE;
@@ -675,41 +672,34 @@ INLINE void moveLObjs() {
   GCPROFILE_RECORD_SPACE();
 } 
 
-INLINE void gc_collect(struct garbagelist * stackptr) {
+void gc_collect(struct garbagelist * stackptr) {
   gcprocessing = true;
   // inform the master that this core is at a gc safe point and is ready to 
   // do gc
   send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, self_numsendobjs, 
-    self_numreceiveobjs, false);
+	     self_numreceiveobjs, false);
 
   // core collector routine
-  while(true) {
-    if(INITPHASE == gcphase) {
-      break;
-    }
-  }
+  //wait for init phase
+  WAITFORGCPHASE(INITPHASE);
+
   GC_PRINTF("Do initGC\n");
   initGC();
   CACHEADAPT_GC(true);
   //send init finish msg to core coordinator
   send_msg_2(STARTUPCORE, GCFINISHINIT, BAMBOO_NUM_OF_CORE, false);
 
-  while(true) {
-    if(MARKPHASE == gcphase) {
-      break;
-    }
-  }
+  //wait for mark phase
+  WAITFORGCPHASE(MARKPHASE);
+
   GC_PRINTF("Start mark phase\n");
   mark(true, stackptr);
   GC_PRINTF("Finish mark phase, start compact phase\n");
   compact();
   GC_PRINTF("Finish compact phase\n");
 
-  while(true) {
-    if(FLUSHPHASE == gcphase) {
-      break;
-    }
-  }
+  WAITFORGCPHASE(FLUSHPHASE);
+
   GC_PRINTF("Start flush phase\n");
   GCPROFILE_INFO_2_MASTER();
   flush(stackptr);
@@ -721,50 +711,37 @@ INLINE void gc_collect(struct garbagelist * stackptr) {
   bamboo_cur_msp = NULL;
   bamboo_smem_size = 0;
   bamboo_smem_zero_top = NULL;
-
   gcflag = false;
-  while(true) {
-    if(FINISHPHASE == gcphase) {
-      break;
-    }
-  }
+
+  WAITFORGCPHASE(FINISHPHASE);
 
   GC_PRINTF("Finish gc! \n");
 } 
 
-INLINE void gc_nocollect(struct garbagelist * stackptr) {
+void gc_nocollect(struct garbagelist * stackptr) {
   gcprocessing = true;
   // inform the master that this core is at a gc safe point and is ready to 
   // do gc
   send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, self_numsendobjs, 
     self_numreceiveobjs, false);
   
-  while(true) {
-    if(INITPHASE == gcphase) {
-      break;
-    }
-  }
+  WAITFORGCPHASE(INITPHASE);
+
   GC_PRINTF("Do initGC\n");
   initGC();
   CACHEADAPT_GC(true);
   //send init finish msg to core coordinator
   send_msg_2(STARTUPCORE, GCFINISHINIT, BAMBOO_NUM_OF_CORE, false);
 
-  while(true) {
-    if(MARKPHASE == gcphase) {
-      break;
-    }
-  }
+  WAITFORGCPHASE(MARKPHASE);
+
   GC_PRINTF("Start mark phase\n"); 
   mark(true, stackptr);
   GC_PRINTF("Finish mark phase, wait for flush\n");
 
   // non-gc core collector routine
-  while(true) {
-    if(FLUSHPHASE == gcphase) {
-      break;
-    }
-  }
+  WAITFORGCPHASE(FLUSHPHASE);
+
   GC_PRINTF("Start flush phase\n");
   GCPROFILE_INFO_2_MASTER();
   flush(stackptr);
@@ -778,45 +755,28 @@ INLINE void gc_nocollect(struct garbagelist * stackptr) {
   bamboo_smem_zero_top = NULL;
 
   gcflag = false;
-  while(true) {
-    if(FINISHPHASE == gcphase) {
-      break;
-    }
-  }
+  WAITFORGCPHASE(FINISHPHASE);
+
   GC_PRINTF("Finish gc! \n");
 }
 
-INLINE void gc_master(struct garbagelist * stackptr) {
-  gcprocessing = true;
-  tprintf("start GC !!!!!!!!!!!!! \n");
-
-  gcphase = INITPHASE;
-  int i = 0;
-  waitconfirm = false;
-  numconfirm = 0;
-  initGC();
-  GC_SEND_MSG_1_TO_CLIENT(GCSTARTINIT);
-  CACHEADAPT_GC(true);
-  GC_PRINTF("Check core status \n");
-  GC_CHECK_ALL_CORE_STATUS(true);
-  GCPROFILE_ITEM();
-  CACHEADAPT_OUTPUT_CACHE_SAMPLING();
+void master_mark(struct garbagelist *stackptr) {
+  bool isfirst = true;
 
   GC_PRINTF("Start mark phase \n");
   GC_SEND_MSG_1_TO_CLIENT(GCSTART);
   gcphase = MARKPHASE;
   // mark phase
-  bool isfirst = true;
+
   while(MARKPHASE == gcphase) {
     mark(isfirst, stackptr);
-    if(isfirst) {
-      isfirst = false;
-    }
-    
+    isfirst=false;
     // check gcstatus
-    checkMarkStatue();
+    checkMarkStatus();
   }
+}
 
+void master_getlargeobjs() {
   // send msgs to all cores requiring large objs info
   // Note: only need to ask gc cores, non-gc cores do not host any objs
   numconfirm = NUMCORES4GC - 1;
@@ -824,33 +784,34 @@ INLINE void gc_master(struct garbagelist * stackptr) {
     send_msg_1(i, GCLOBJREQUEST, false);
   }
   gcloads[BAMBOO_NUM_OF_CORE] = gccurr_heaptop;
-  while(true) {
-    if(numconfirm==0) {
-      break;
-    }
-  }   // wait for responses
+  //spin until we have all responses
+  while(numconfirm!=0)
+    ;
+
   // check the heaptop
   if(gcheaptop < gcmarkedptrbound) {
     gcheaptop = gcmarkedptrbound;
   }
   GCPROFILE_ITEM();
   GC_PRINTF("prepare to cache large objs \n");
+
   // cache all large objs
   if(!cacheLObjs()) {
     // no enough space to cache large objs
+    GC_PRINTF("Not enough space to cache large objects\n");
     BAMBOO_EXIT(0xb02e);
   }
+}
+
+void master_compact() {
   // predict number of blocks to fill for each core
   unsigned int tmpheaptop = 0;
   int numpbc = loadbalance(&tmpheaptop);
-  // TODO
+  int i;
+
   numpbc = (BAMBOO_SHARED_MEM_SIZE)/(BAMBOO_SMEM_SIZE);
   GC_PRINTF("mark phase finished \n");
-
-  //int tmptopptr = 0;
-  //BASEPTR(gctopcore, 0, &tmptopptr);
-  // TODO
-  //tmptopptr = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
+  
   tmpheaptop = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
   for(i = 0; i < NUMCORES4GC; ++i) {
     unsigned int tmpcoreptr = 0;
@@ -881,10 +842,8 @@ INLINE void gc_master(struct garbagelist * stackptr) {
   BAMBOO_CACHE_MF();
   GCPROFILE_ITEM();
   // compact phase
-  struct moveHelper * orig =
-    (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
-  struct moveHelper * to =
-    (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
+  struct moveHelper * orig = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
+  struct moveHelper * to = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
   compact_master(orig, to); 
   GCPROFILE_ITEM();
   GC_PRINTF("prepare to move large objs \n");
@@ -893,8 +852,9 @@ INLINE void gc_master(struct garbagelist * stackptr) {
   GC_PRINTF("compact phase finished \n");
   RUNFREE(orig);
   RUNFREE(to);
-  orig = to = NULL;
+}
 
+void master_updaterefs() {
   gcphase = FLUSHPHASE;
   GC_SEND_MSG_1_TO_CLIENT(GCSTARTFLUSH);
   GCPROFILE_ITEM();
@@ -905,11 +865,11 @@ INLINE void gc_master(struct garbagelist * stackptr) {
   CACHEADAPT_MASTER();
   GC_CHECK_ALL_CORE_STATUS(FLUSHPHASE==gcphase);
   GC_PRINTF("Finish flush phase \n");
+}
 
-  CACHEADAPT_PHASE_MASTER();
-
+void master_finish() {
   gcphase = FINISHPHASE;
-
+  
   // invalidate all shared mem pointers
   // put it here as it takes time to inform all the other cores to
   // finish gc and it might cause problem when some core resumes
@@ -917,11 +877,11 @@ INLINE void gc_master(struct garbagelist * stackptr) {
   bamboo_cur_msp = NULL;
   bamboo_smem_size = 0;
   bamboo_smem_zero_top = NULL;
-
+  
   GCPROFILE_END();
   gcflag = false;
   GC_SEND_MSG_1_TO_CLIENT(GCFINISH);
-
+  
   gcprocessing = false;
   if(gcflag) {
     // inform other cores to stop and wait for gc
@@ -933,16 +893,51 @@ INLINE void gc_master(struct garbagelist * stackptr) {
     }
     GC_SEND_MSG_1_TO_CLIENT(GCSTARTPRE);
   }
+}
+
+void gc_master(struct garbagelist * stackptr) {
+  tprintf("start GC !!!!!!!!!!!!! \n");
+  gcprocessing = true;
+  gcphase = INITPHASE;
+
+  waitconfirm = false;
+  numconfirm = 0;
+  initGC();
+  GC_SEND_MSG_1_TO_CLIENT(GCSTARTINIT);
+  CACHEADAPT_GC(true);
+  GC_PRINTF("Check core status \n");
+  GC_CHECK_ALL_CORE_STATUS(true);
+  GCPROFILE_ITEM();
+  CACHEADAPT_OUTPUT_CACHE_SAMPLING();
+
+  // do mark phase
+  master_mark(stackptr);
+
+  // get large objects from all cores
+  master_getlargeobjs();
+
+  // compact the heap
+  master_compact();
+  
+  // update the references
+  master_updaterefs();
+
+  // do cache adaptation
+  CACHEADAPT_PHASE_MASTER();
+
+  // do finish up stuff
+  master_finish();
+
   GC_PRINTF("gc finished   \n");
   tprintf("finish GC ! %d \n", gcflag);
 } 
 
-INLINE void pregccheck_I() {
+void pregccheck_I() {
   while(true) {
     gcnumsendobjs[0][BAMBOO_NUM_OF_CORE] = self_numsendobjs;
     gcnumreceiveobjs[0][BAMBOO_NUM_OF_CORE] = self_numreceiveobjs;
     int sumsendobj = 0;
-    int i = 0;
+    int i;
     for(i = 0; i < NUMCORESACTIVE; ++i) {
       sumsendobj += gcnumsendobjs[0][i];
     }  
@@ -954,11 +949,9 @@ INLINE void pregccheck_I() {
       // are some update pregc information coming and check it again
       gcprecheck = false;
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-      while(true) {
-        if(gcprecheck) {
-          break;
-        }
-      }
+
+      while(!gcprecheck) ;
+      
       BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     } else {
       return;
@@ -966,12 +959,10 @@ INLINE void pregccheck_I() {
   }
 }
 
-INLINE void pregcprocessing() {
-#ifdef GC_CACHE_ADAPT
-#ifdef GC_CACHE_SAMPLING
+void pregcprocessing() {
+#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)
   // disable the timer interrupt
   bamboo_mask_timer_intr();
-#endif 
 #endif
   // Zero out the remaining memory here because for the GC_CACHE_ADAPT version,
   // we need to make sure during the gcinit phase the shared heap is not 
@@ -983,25 +974,21 @@ INLINE void pregcprocessing() {
     gc_num_flush_dtlb++;
   }
 #endif
-#ifdef GC_CACHE_ADAPT
-#ifdef GC_CACHE_SAMPLING
+#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)
   // get the sampling data 
   bamboo_output_dtlb_sampling();
 #endif
-#endif
 }
 
-INLINE void postgcprocessing() {
-#ifdef GC_CACHE_ADAPT
-#ifdef GC_CACHE_SAMPLING
+void postgcprocessing() {
+#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)
   // enable the timer interrupt
   bamboo_tile_timer_set_next_event(GC_TILE_TIMER_EVENT_SETTING); 
   bamboo_unmask_timer_intr();
 #endif
-#endif
 }
 
-INLINE bool gc(struct garbagelist * stackptr) {
+bool gc(struct garbagelist * stackptr) {
   // check if do gc
   if(!gcflag) {
     gcprocessing = false;

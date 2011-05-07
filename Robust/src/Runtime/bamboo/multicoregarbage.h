@@ -50,6 +50,8 @@ volatile bool gcflag;
 volatile bool gcprocessing;
 volatile GCPHASETYPE gcphase; // indicating GC phase
 
+#define WAITFORGCPHASE(phase) while(gcphase != phase) ;
+
 volatile bool gcpreinform; // counter for stopped cores
 volatile bool gcprecheck; // indicates if there are updated pregc information
 
@@ -230,12 +232,20 @@ unsigned int size_cachepolicytbl;
 
 #define ISLOCAL(p) (hostcore(p)==BAMBOO_NUM_OF_CORE)
 
-INLINE void initmulticoregcdata();
-INLINE void dismulticoregcdata();
-INLINE bool gc_checkAllCoreStatus_I();
-INLINE bool gc(struct garbagelist * stackptr); // core coordinator routine
-INLINE void gc_collect(struct garbagelist* stackptr); //core collector routine
-INLINE void gc_nocollect(struct garbagelist* stackptr); //non-gc core collector routine
+void initmulticoregcdata();
+void dismulticoregcdata();
+bool gc_checkAllCoreStatus_I();
+bool gc(struct garbagelist * stackptr); // core coordinator routine
+void gc_collect(struct garbagelist* stackptr); //core collector routine
+void gc_nocollect(struct garbagelist* stackptr); //non-gc core collector routine
+void master_mark(struct garbagelist *stackptr);
+void master_getlargeobjs();
+void master_compact();
+void master_updaterefs();
+void master_finish();
+void gc_master(struct garbagelist * stackptr);
+
+
 INLINE void transferMarkResults_I();
 INLINE bool gcfindSpareMem_I(unsigned int * startaddr,
                              unsigned int * tomove,

@@ -26,9 +26,8 @@ INLINE bool gcfindSpareMem_I(unsigned int * startaddr,
                              unsigned int * dstcore,
                              unsigned int requiredmem,
                              unsigned int requiredcore);
-INLINE void compact();
-INLINE void compact_master(struct moveHelper * orig,
-                           struct moveHelper * to);
+void compact();
+void compact_master(struct moveHelper * orig, struct moveHelper * to);
 #endif // MULTICORE_GC
 
 #endif // BAMBOO_MULTICORE_GC_COMPACT_H

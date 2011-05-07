@@ -10,6 +10,7 @@
 int msgdata[BAMBOO_MSG_BUF_LENGTH];
 volatile int msgdataindex;
 volatile int msgdatalast;
+//BAD! BAD! BAD!  THIS SHOULD NOT BE A GLOBAL!!!!
 int msglength;
 volatile bool msgdatafull;
 int outmsgdata[BAMBOO_OUT_BUF_LENGTH];

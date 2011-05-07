@@ -6,13 +6,12 @@
 extern int corenum;
 
 INLINE bool gc_checkCoreStatus_I() {
-  int i = 0;
+  int i;
   for(i = 0; i < NUMCORES4GC; ++i) {
-    if(gccorestatus[i] != 0) {
-      break;
-    }  
+    if(gccorestatus[i] != 0)
+      return false;
   }  
-  return (i == NUMCORES4GC);
+  return true;
 }
 
 INLINE void compact2Heaptophelper_I(unsigned int coren,
@@ -99,24 +98,24 @@ INLINE void resolvePendingMoveRequest() {
     if(nosparemem) {
       // check if there are cores with spare mem
       if(gccorestatus[i] == 0) {
-    // finished working, check if it still have spare mem
-    if(gcfilledblocks[i] < gcstopblock[i]) {
-      // still have spare mem
-      nosparemem = false;
-      sourcecore = i;
-    }  
+	// finished working, check if it still have spare mem
+	if(gcfilledblocks[i] < gcstopblock[i]) {
+	  // still have spare mem
+	  nosparemem = false;
+	  sourcecore = i;
+	}  
       }
       i++;
     }  
     if(!haspending) {
       if(gccorestatus[j] != 0) {
-    // not finished, check if it has pending move requests
-    if((gcfilledblocks[j]==gcstopblock[j])&&(gcrequiredmems[j]>0)) {
-      dstcore = j;
-      haspending = true;
-    } else {
-      hasrunning = true;
-    } 
+	// not finished, check if it has pending move requests
+	if((gcfilledblocks[j]==gcstopblock[j])&&(gcrequiredmems[j]>0)) {
+	  dstcore = j;
+	  haspending = true;
+	} else {
+	  hasrunning = true;
+	} 
       } 
       j++;
     }  
@@ -131,12 +130,12 @@ INLINE void resolvePendingMoveRequest() {
                                                  &startaddr);
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       if(STARTUPCORE == dstcore) {
-    gcdstcore = sourcecore;
-    gctomove = true;
-    gcmovestartaddr = startaddr;
-    gcblock2fill = tomove;
+	gcdstcore = sourcecore;
+	gctomove = true;
+	gcmovestartaddr = startaddr;
+	gcblock2fill = tomove;
       } else {
-    send_msg_4(dstcore, GCMOVESTART, sourcecore,startaddr, tomove, false);
+	send_msg_4(dstcore, GCMOVESTART, sourcecore,startaddr, tomove, false);
       }
       gcmovepending--;
       nosparemem = true;
@@ -144,18 +143,18 @@ INLINE void resolvePendingMoveRequest() {
       noblock = true;
     }
   }  
-
+  
   if(!hasrunning && !noblock) {
     gcphase = SUBTLECOMPACTPHASE;
     compact2Heaptop();
   }
-
+  
 } 
 
 // If out of boundary of valid shared memory, return false, else return true
 INLINE bool nextSBlock(struct moveHelper * orig) {
   orig->blockbase = orig->blockbound;
-
+  
   bool sbchanged = false;
   unsigned int origptr = orig->ptr;
   unsigned int blockbase = orig->blockbase;
@@ -167,7 +166,7 @@ outernextSBlock:
   // are useless now
   if((blockbase>=bound)||(origptr>=bound)
     ||((origptr!=NULL)&&(*((int*)origptr))==0)||((*((int*)blockbase))==0)) {
-innernextSBlock:
+  innernextSBlock:
     // end of current heap block, jump to next one
     orig->numblocks++;
     BASEPTR(BAMBOO_NUM_OF_CORE, orig->numblocks, &(orig->base));
@@ -178,7 +177,7 @@ innernextSBlock:
     }
     orig->blockbase = orig->base;
     orig->sblockindex = 
-    (unsigned int)(orig->blockbase-gcbaseva)/BAMBOO_SMEM_SIZE;
+      (unsigned int)(orig->blockbase-gcbaseva)/BAMBOO_SMEM_SIZE;
     sbchanged = true;
     unsigned int blocknum = 0;
     BLOCKINDEX(orig->base, &blocknum);
@@ -382,15 +381,10 @@ INLINE bool moveobj(struct moveHelper * orig,
   
   // move to next obj
   orig->ptr += isize; 
-
-  if(((unsigned int)(orig->ptr) > (unsigned int)(orig->bound))
-    || ((unsigned int)(orig->ptr) == (unsigned int)(orig->blockbound))) {
-    if(!nextSBlock(orig)) {
-      // finished, no more data
-      return true;
-    }
-  }
-  return false;
+  
+  return ((((unsigned int)(orig->ptr) > (unsigned int)(orig->bound))
+	   || ((unsigned int)(orig->ptr) == (unsigned int)(orig->blockbound)))
+	  &&!nextSBlock(orig));
 } 
 
 // should be invoked with interrupt closed
@@ -505,12 +499,9 @@ innercompact:
 
   if(orig->ptr < gcmarkedptrbound) {
     // still have unpacked obj
-    while(true) {
-      if(gctomove) {
-        break;
-      }
-    }
-    ;
+    while(!gctomove)
+      ;
+    
     gctomove = false;
 
     to->ptr = gcmovestartaddr;
@@ -536,16 +527,14 @@ innercompact:
   return true;
 }
 
-INLINE void compact() {
+void compact() {
   if(COMPACTPHASE != gcphase) {
     BAMBOO_EXIT(0xb025);
   }
-
+  
   // initialize pointers for comapcting
-  struct moveHelper * orig = 
-    (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
-  struct moveHelper * to =
-    (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
+  struct moveHelper * orig = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
+  struct moveHelper * to = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
   if(!initOrig_Dst(orig, to)) {
     // no available data to compact
     // send compact finish msg to STARTUP core
@@ -565,8 +554,7 @@ INLINE void compact() {
   RUNFREE(to);
 } 
 
-INLINE void compact_master(struct moveHelper * orig,
-                           struct moveHelper * to) {
+void compact_master(struct moveHelper * orig, struct moveHelper * to) {
   bool finalcompact = false;
   // initialize pointers for comapcting
   initOrig_Dst(orig, to);
@@ -578,10 +566,9 @@ INLINE void compact_master(struct moveHelper * orig,
   bool localcompact = true;
   while((COMPACTPHASE == gcphase) || (SUBTLECOMPACTPHASE == gcphase)) {
     if((!finishcompact) && iscontinue) {
-      finishcompact =
-        compacthelper(orig,to,&filledblocks,&heaptopptr,&localcompact);
+      finishcompact = compacthelper(orig,to,&filledblocks,&heaptopptr,&localcompact);
     }
-
+    
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     if(gc_checkCoreStatus_I()) {
       // all cores have finished compacting
@@ -604,21 +591,15 @@ INLINE void compact_master(struct moveHelper * orig,
     if(gctomove) {
       to->ptr = gcmovestartaddr;
       to->numblocks = gcblock2fill - 1;
-      to->bound = (to->numblocks==0) ? BAMBOO_SMEM_SIZE_L :
-        BAMBOO_SMEM_SIZE_L+BAMBOO_SMEM_SIZE*to->numblocks;
+      to->bound = (to->numblocks==0) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE_L+BAMBOO_SMEM_SIZE*to->numblocks;
       BASEPTR(gcdstcore, to->numblocks, &(to->base));
       to->offset = to->ptr - to->base;
-      to->top = (to->numblocks==0)?(to->offset):
-        (to->bound-BAMBOO_SMEM_SIZE+to->offset);
+      to->top = (to->numblocks==0)?(to->offset):(to->bound-BAMBOO_SMEM_SIZE+to->offset);
       to->base = to->ptr;
       to->offset = BAMBOO_CACHE_LINE_SIZE;
       to->ptr += to->offset;  // for header
       to->top += to->offset;
-      if(gcdstcore == BAMBOO_NUM_OF_CORE) {
-        localcompact = true;
-      } else {
-        localcompact = false;
-      }
+      localcompact = (gcdstcore == BAMBOO_NUM_OF_CORE);
       gctomove = false;
       iscontinue = true;
     } else if(!finishcompact) {

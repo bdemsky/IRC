@@ -546,11 +546,8 @@ void cacheAdapt_mutator() {
 }
 
 void cacheAdapt_phase_client() {
-  while(true) {
-    if(PREFINISHPHASE == gcphase) {
-      break;
-    }
-  }
+  WAITFORGCPHASE(PREFINISHPHASE);
+
   GC_PRINTF("Start prefinish phase\n");
   // cache adapt phase
   cacheAdapt_mutator();
