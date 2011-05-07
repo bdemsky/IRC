@@ -217,14 +217,14 @@ unsigned int size_cachepolicytbl;
     } \
   }
 
-// send a 1-word msg to all client
+// send a 1-word msg to all clients
 #define GC_SEND_MSG_1_TO_CLIENT(m) \
   { \
     for(int i = 0; i < NUMCORESACTIVE; ++i) { \
+      gccorestatus[i] = 1; \
       if(BAMBOO_NUM_OF_CORE != i) { \
         send_msg_1(i, (m), false); \
       } \
-      gccorestatus[i] = 1; \
     } \
   }
 

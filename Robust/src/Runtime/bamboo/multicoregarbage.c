@@ -203,22 +203,23 @@ INLINE void initGC() {
     gcheadindex=gctailindex=gctailindex2 = 0;
     gchead=gctail=gctail2=RUNMALLOC(sizeof(struct pointerblock));
   } else {
-    gctailindex = gctailindex2 = gcheadindex = 0;
-    gctail = gctail2 = gchead;
+    gctailindex=gctailindex2=gcheadindex=0;
+    gctail=gctail2=gchead;
   }
+  gchead->next=NULL;
 
   // initialize the large obj queues
   if (gclobjhead==NULL) {
     gclobjheadindex=0;
     gclobjtailindex=0;
-    gclobjtailindex2 = 0;
+    gclobjtailindex2=0;
     gclobjhead=gclobjtail=gclobjtail2=
-    RUNMALLOC(sizeof(struct lobjpointerblock));
+      RUNMALLOC(sizeof(struct lobjpointerblock));
   } else {
-    gclobjtailindex = gclobjtailindex2 = gclobjheadindex = 0;
-    gclobjtail = gclobjtail2 = gclobjhead;
+    gclobjtailindex=gclobjtailindex2=gclobjheadindex=0;
+    gclobjtail=gclobjtail2=gclobjhead;
   }
-  gclobjhead->next = gclobjhead->prev = NULL;
+  gclobjhead->next=gclobjhead->prev=NULL;
 
   freeMGCHash(gcforwardobjtbl);
   gcforwardobjtbl = allocateMGCHash(20, 3);
@@ -253,8 +254,7 @@ INLINE void checkMarkStatue() {
     gcnumsendobjs[entry_index][BAMBOO_NUM_OF_CORE] = gcself_numsendobjs;
     gcnumreceiveobjs[entry_index][BAMBOO_NUM_OF_CORE] = gcself_numreceiveobjs;
     // check the status of all cores
-    bool allStall = gc_checkAllCoreStatus_I();
-    if(allStall) {
+    if(gc_checkAllCoreStatus_I()) {
       // ask for confirm
       if(!waitconfirm) {
         // the first time found all cores stall
@@ -677,7 +677,6 @@ INLINE void moveLObjs() {
 
 INLINE void gc_collect(struct garbagelist * stackptr) {
   gcprocessing = true;
-  tprintf("gc \n");
   // inform the master that this core is at a gc safe point and is ready to 
   // do gc
   send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, self_numsendobjs, 
@@ -735,7 +734,6 @@ INLINE void gc_collect(struct garbagelist * stackptr) {
 
 INLINE void gc_nocollect(struct garbagelist * stackptr) {
   gcprocessing = true;
-  tprintf("gc \n");
   // inform the master that this core is at a gc safe point and is ready to 
   // do gc
   send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, self_numsendobjs, 
@@ -804,7 +802,7 @@ INLINE void gc_master(struct garbagelist * stackptr) {
   GCPROFILE_ITEM();
   CACHEADAPT_OUTPUT_CACHE_SAMPLING();
 
-  GC_PRINTF("(%x,%x) Start mark phase \n");
+  GC_PRINTF("Start mark phase \n");
   GC_SEND_MSG_1_TO_CLIENT(GCSTART);
   gcphase = MARKPHASE;
   // mark phase
@@ -814,7 +812,7 @@ INLINE void gc_master(struct garbagelist * stackptr) {
     if(isfirst) {
       isfirst = false;
     }
-
+    
     // check gcstatus
     checkMarkStatue();
   }

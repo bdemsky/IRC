@@ -521,8 +521,7 @@ INLINE void processmsg_memresponse_I() {
 
 #ifdef MULTICORE_GC
 INLINE void processmsg_gcstartpre_I() {
-	// the first time to be informed to start gc
-  tprintf("pre msg \n");
+  // the first time to be informed to start gc
 	gcflag = true;
 	if(!smemflag) {
     // Zero out the remaining memory here because for the GC_CACHE_ADAPT 
@@ -843,6 +842,10 @@ msg:
   // get the incoming msgs
   if(receiveMsg(send_port_pending) == -1) {
     return -1;
+  }
+  if(BAMBOO_CHECK_SEND_MODE()) {
+    // during send, don't process the msg now
+    return -3; 
   }
 processmsg:
   // processing received msgs

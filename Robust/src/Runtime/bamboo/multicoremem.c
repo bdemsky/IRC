@@ -709,20 +709,20 @@ void * smemalloc_I(int coren,
   if(mem == NULL) {
     // no enough shared global memory
     *allocsize = 0;
-	if(!gcflag) {
-	  gcflag = true;
-	  if(!gcprocessing) {
-      // inform other cores to stop and wait for gc
-      gcprecheck = true;
-      for(int i = 0; i < NUMCORESACTIVE; i++) {
-        // reuse the gcnumsendobjs & gcnumreceiveobjs
-        gcnumsendobjs[0][i] = 0;
-        gcnumreceiveobjs[0][i] = 0;
+    if(!gcflag) {
+      gcflag = true;
+      if(!gcprocessing) {
+        // inform other cores to stop and wait for gc
+        gcprecheck = true;
+        for(int i = 0; i < NUMCORESACTIVE; i++) {
+          // reuse the gcnumsendobjs & gcnumreceiveobjs
+          gcnumsendobjs[0][i] = 0;
+          gcnumreceiveobjs[0][i] = 0;
+        }
+        GC_SEND_MSG_1_TO_CLIENT(GCSTARTPRE);
       }
-      GC_SEND_MSG_1_TO_CLIENT(GCSTARTPRE);
-	  }
-	}
-	return NULL;
+    }
+    return NULL;
   }
   return mem;
 }

@@ -8,7 +8,7 @@ task t1(StartupObject s{initialstate}) {
   //System.printString("task t1\n");
 
   int threadnum = 62; // 56;
-  int ncities = 4080;
+  int ncities = 4080*2;
   for(int i = 0; i < threadnum; ++i) {
     TestRunner tr = newflag TestRunner(ncities){run};
   }

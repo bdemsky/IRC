@@ -82,7 +82,7 @@
 #define BAMBOO_PAGE_SIZE ((unsigned int)(256 * 1024))  // (4096)
 #define BAMBOO_SMEM_SIZE ((unsigned int)(BAMBOO_PAGE_SIZE))
 #elif defined GC_SMALLPAGESIZE2
-#define BAMBOO_PAGE_SIZE ((unsigned int)(64 * 1024))  // (4096)
+#define BAMBOO_PAGE_SIZE ((unsigned int)(256 * 1024))  // (4096) 64
 #define BAMBOO_SMEM_SIZE ((unsigned int)(BAMBOO_PAGE_SIZE))
 #else
 #define BAMBOO_PAGE_SIZE ((unsigned int)(1024 * 1024))  // (4096)

@@ -73,7 +73,6 @@ INLINE unsigned int gc_dequeue_I() {
       gcspare->next = NULL;
     } 
   } 
-  int loopiter = 0;
   return gctail->ptrs[gctailindex++];
 } 
 
@@ -84,7 +83,6 @@ INLINE unsigned int gc_dequeue2_I() {
     gctail2=gctail2->next;
     gctailindex2=0;
   } 
-  int loopiter = 0;
   return gctail2->ptrs[gctailindex2++];
 }
 
@@ -411,7 +409,7 @@ INLINE void scanPtrsInObj(void * ptr,
     /* Array of primitives */
     pointer=pointerarray[OBJECTTYPE];
     //handle object class
-    unsigned int size=pointer[0];
+    int size=pointer[0];
     int i;
     for(i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
@@ -434,7 +432,7 @@ INLINE void scanPtrsInObj(void * ptr,
     {
       pointer=pointerarray[OBJECTTYPE];
       //handle object class
-      unsigned int size=pointer[0];
+      int size=pointer[0];
       int i;
       for(i=1; i<=size; i++) {
         unsigned int offset=pointer[i];
@@ -445,7 +443,7 @@ INLINE void scanPtrsInObj(void * ptr,
      }
     }
   } else {
-    unsigned int size=pointer[0];
+    int size=pointer[0];
     int i;
     for(i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
@@ -470,6 +468,7 @@ INLINE void mark(bool isfirst,
   bool sendStall = false;
   // mark phase
   while(MARKPHASE == gcphase) {
+    int counter = 0;
     while(true) {
       BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
       if(!gc_moreItems2_I()) {

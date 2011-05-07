@@ -676,7 +676,6 @@ INLINE void getprofiledata() {
 }
 
 INLINE void checkCoreStatus() {
-  bool allStall = false;
   int i = 0;
   int sumsendobj = 0;
   if((!waitconfirm) ||
@@ -686,14 +685,12 @@ INLINE void checkCoreStatus() {
     numsendobjs[BAMBOO_NUM_OF_CORE] = self_numsendobjs;
     numreceiveobjs[BAMBOO_NUM_OF_CORE] = self_numreceiveobjs;
     // check the status of all cores
-    allStall = true;
     for(i = 0; i < NUMCORESACTIVE; ++i) {
       if(corestatus[i] != 0) {
-        allStall = false;
         break;
       }
     } 
-    if(allStall) {
+    if(i == NUMCORESACTIVE) {
       // check if the sum of send objs and receive obj are the same
       // yes->check if the info is the latest; no->go on executing
       sumsendobj = 0;
@@ -716,7 +713,7 @@ INLINE void checkCoreStatus() {
             corestatus[i] = 1;
             // send status confirm msg to core i
             send_msg_1(i, STATUSCONFIRM, false);
-          }   // for(i = 1; i < NUMCORESACTIVE; ++i)
+          }   
           return;
         } else {
           // all the core status info are the latest
@@ -729,20 +726,20 @@ INLINE void checkCoreStatus() {
           disruntimedata();
           BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
           terminate();  // All done.
-        }  // if(!waitconfirm)
+        }
       } else {		
         // still some objects on the fly on the network
         // reset the waitconfirm and numconfirm
         waitconfirm = false;
         numconfirm = 0;
-      }  //  if(0 == sumsendobj)
+      }  
     } else {
       // not all cores are stall, keep on waiting
       waitconfirm = false;
       numconfirm = 0;
-    }  //  if(allStall)
+    }  
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-  }  // if((!waitconfirm) ||
+  } 
 }
 
 // main function for each core
@@ -858,6 +855,6 @@ inline void run(int argc, char** argv) {
       }
     }
   }
-} // run()
+} 
 
 #endif // MULTICORE
