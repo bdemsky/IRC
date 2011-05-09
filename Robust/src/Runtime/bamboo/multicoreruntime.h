@@ -8,6 +8,10 @@
 #include "multicoretask.h"
 #include "multicoremgc.h"
 
+//Define the following line if the base object type has pointers
+//#define OBJECTHASPOINTERS
+
+
 #ifdef MULTICORE_GC
 #define GCCHECK(p) \
   if(gcflag) gc(p)
@@ -68,6 +72,16 @@ INLINE void initlock(struct ___Object___ * v);
 #ifdef BAMBOO_MEMPROF
 INLINE void terminatememprof(void);
 #endif // BAMBOO_MEMPROF
+
+// Would probably be better to just have these print out line numbers...
+// But not going to do that without consultation
+
+//Macros for performance runs....to eliminate assertions if we don't need them
+//#define BAMBOO_ASSERT(x, y)  ;
+//#define BAMBOO_ASSERTMSG(x, y, z) ;
+
+#define BAMBOO_ASSERT(x, y) if (!x) BAMBOO_EXIT(y);
+#define BAMBOO_ASSERTMSG(x, y, z) if (!x) {GC_PRINTF(y); BAMBOO_EXIT(z);}
 
 ///////////////////////////////////////////////////////////
 

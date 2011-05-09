@@ -132,15 +132,15 @@ INLINE bool checkObjQueue() {
       BAMBOO_CACHE_FLUSH_RANGE((int)obj, 
           classsize[((struct ___Object___ *)obj)->type]);
       // enqueue the object
-      for(k = 0; k < objInfo->length; ++k) {
-		int taskindex = objInfo->queues[2 * k];
-		int paramindex = objInfo->queues[2 * k + 1];
-		struct parameterwrapper ** queues =
-		  &(paramqueues[BAMBOO_NUM_OF_CORE][taskindex][paramindex]);
-		BAMBOO_DEBUGPRINT_REG(taskindex);
-		BAMBOO_DEBUGPRINT_REG(paramindex);
-		enqueueObject_I(obj, queues, 1);
-		BAMBOO_DEBUGPRINT_REG(hashsize(activetasks));
+      for(k = 0; k < objInfo->length; k++) {
+	int taskindex = objInfo->queues[2 * k];
+	int paramindex = objInfo->queues[2 * k + 1];
+	struct parameterwrapper ** queues =
+	  &(paramqueues[BAMBOO_NUM_OF_CORE][taskindex][paramindex]);
+	BAMBOO_DEBUGPRINT_REG(taskindex);
+	BAMBOO_DEBUGPRINT_REG(paramindex);
+	enqueueObject_I(obj, queues, 1);
+	BAMBOO_DEBUGPRINT_REG(hashsize(activetasks));
       } 
       releasewritelock_I(tmpobj);
       RUNFREE_I(objInfo->queues);
@@ -347,46 +347,43 @@ void tagset(struct ___Object___ * obj,
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) tagset;
       if (ao->___cachedCode___<ao->___length___) {
-		ARRAYSET(ao, struct ___Object___*, ao->___cachedCode___++, obj);
+	ARRAYSET(ao, struct ___Object___*, ao->___cachedCode___++, obj);
       } else {
-		int i;
+	int i;
 #ifdef MULTICORE_GC
-		int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
-		struct ArrayObject * aonew=
-		  allocate_newarray(&ptrarray,OBJECTARRAYTYPE,
-							OBJECTARRAYINTERVAL+ao->___length___);
-		obj=(struct ___Object___ *)ptrarray[2];
-		tagd=(struct ___TagDescriptor___ *)ptrarray[3];
-		ao=(struct ArrayObject *)tagd->flagptr;
+	int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
+	struct ArrayObject * aonew=
+	  allocate_newarray(&ptrarray,OBJECTARRAYTYPE,
+			    OBJECTARRAYINTERVAL+ao->___length___);
+	obj=(struct ___Object___ *)ptrarray[2];
+	tagd=(struct ___TagDescriptor___ *)ptrarray[3];
+	ao=(struct ArrayObject *)tagd->flagptr;
 #else
-		struct ArrayObject * aonew=allocate_newarray(OBJECTARRAYTYPE,
-			OBJECTARRAYINTERVAL+ao->___length___);
+	struct ArrayObject * aonew=allocate_newarray(OBJECTARRAYTYPE,
+						     OBJECTARRAYINTERVAL+ao->___length___);
 #endif
-		aonew->___cachedCode___=ao->___cachedCode___+1;
-		for(i=0; i<ao->___length___; i++) {
-		  ARRAYSET(aonew, struct ___Object___*, i,
-				   ARRAYGET(ao, struct ___Object___*, i));
-		}
-		ARRAYSET(aonew, struct ___Object___ *, ao->___cachedCode___, obj);
-		tagd->flagptr=(struct ___Object___ *) aonew;
+	aonew->___cachedCode___=ao->___cachedCode___+1;
+	for(i=0; i<ao->___length___; i++) {
+	  ARRAYSET(aonew, struct ___Object___*, i,
+		   ARRAYGET(ao, struct ___Object___*, i));
+	}
+	ARRAYSET(aonew, struct ___Object___ *, ao->___cachedCode___, obj);
+	tagd->flagptr=(struct ___Object___ *) aonew;
       }
     }
   }
 }
-
+ 
 /* This function clears a tag. */
 #ifdef MULTICORE_GC
-void tagclear(void *ptr,
-              struct ___Object___ * obj,
-              struct ___TagDescriptor___ * tagd) {
+void tagclear(void *ptr, struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
-void tagclear(struct ___Object___ * obj,
-              struct ___TagDescriptor___ * tagd) {
+void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #endif
   /* We'll assume that tag is alway there.
      Need to statically check for this of course. */
   struct ___Object___ * tagptr=obj->___tags___;
-
+  
   if (tagptr->type==TAGTYPE) {
     if ((struct ___TagDescriptor___ *)tagptr==tagd)
       obj->___tags___=NULL;
@@ -397,49 +394,48 @@ void tagclear(struct ___Object___ * obj,
       struct ___TagDescriptor___ * td=
         ARRAYGET(ao, struct ___TagDescriptor___ *, i);
       if (td==tagd) {
-		ao->___cachedCode___--;
-		if (i<ao->___cachedCode___)
-		  ARRAYSET(ao, struct ___TagDescriptor___ *, i,
-			  ARRAYGET(ao,struct ___TagDescriptor___*,ao->___cachedCode___));
-		ARRAYSET(ao,struct ___TagDescriptor___ *,ao->___cachedCode___, NULL);
-		if (ao->___cachedCode___==0)
-		  obj->___tags___=NULL;
-		goto PROCESSCLEAR;
+	ao->___cachedCode___--;
+	if (i<ao->___cachedCode___)
+	  ARRAYSET(ao, struct ___TagDescriptor___ *, i,
+		   ARRAYGET(ao,struct ___TagDescriptor___*,ao->___cachedCode___));
+	ARRAYSET(ao,struct ___TagDescriptor___ *,ao->___cachedCode___, NULL);
+	if (ao->___cachedCode___==0)
+	  obj->___tags___=NULL;
+	goto PROCESSCLEAR;
       }
     }
   }
-PROCESSCLEAR:
+ PROCESSCLEAR:
   {
     struct ___Object___ *tagset=tagd->flagptr;
     if (tagset->type!=OBJECTARRAYTYPE) {
       if (tagset==obj)
-		tagd->flagptr=NULL;
+	tagd->flagptr=NULL;
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) tagset;
       int i;
       for(i=0; i<ao->___cachedCode___; i++) {
-		struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, i);
-		if (tobj==obj) {
-		  ao->___cachedCode___--;
-		  if (i<ao->___cachedCode___)
-			ARRAYSET(ao, struct ___Object___ *, i,
-				ARRAYGET(ao, struct ___Object___ *, ao->___cachedCode___));
-		  ARRAYSET(ao, struct ___Object___ *, ao->___cachedCode___, NULL);
-		  if (ao->___cachedCode___==0)
-			tagd->flagptr=NULL;
-		  goto ENDCLEAR;
-		}
+	struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, i);
+	if (tobj==obj) {
+	  ao->___cachedCode___--;
+	  if (i<ao->___cachedCode___)
+	    ARRAYSET(ao, struct ___Object___ *, i,
+		     ARRAYGET(ao, struct ___Object___ *, ao->___cachedCode___));
+	  ARRAYSET(ao, struct ___Object___ *, ao->___cachedCode___, NULL);
+	  if (ao->___cachedCode___==0)
+	    tagd->flagptr=NULL;
+	  goto ENDCLEAR;
+	}
       }
     }
   }
-ENDCLEAR:
+ ENDCLEAR:
   return;
 }
 
 /* This function allocates a new tag. */
 #ifdef MULTICORE_GC
-struct ___TagDescriptor___ * allocate_tag(void *ptr,
-                                          int index) {
+struct ___TagDescriptor___ * allocate_tag(void *ptr, int index) {
   struct ___TagDescriptor___ * v=
     (struct ___TagDescriptor___ *) FREEMALLOC((struct garbagelist *) ptr,
                                               classsize[TAGTYPE]);
@@ -455,30 +451,20 @@ struct ___TagDescriptor___ * allocate_tag(int index) {
 /* This function updates the flag for object ptr.  It or's the flag
    with the or mask and and's it with the andmask. */
 
-void flagbody(struct ___Object___ *ptr,
-              int flag,
-              struct parameterwrapper ** queues,
-              int length,
-              bool isnew);
+void flagbody(struct ___Object___ *ptr, int flag, struct parameterwrapper ** queues, int length, bool isnew);
 
 int flagcomp(const int *val1, const int *val2) {
   return (*val1)-(*val2);
 }
-
-void flagorand(void * ptr,
-               int ormask,
-               int andmask,
-               struct parameterwrapper ** queues,
-               int length) {
+ 
+void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length) {
   int oldflag=((int *)ptr)[2]; // the flag field is now the third one
   int flag=ormask|oldflag;
   flag&=andmask;
   flagbody(ptr, flag, queues, length, false);
 }
 
-bool intflagorand(void * ptr,
-                  int ormask,
-                  int andmask) {
+bool intflagorand(void * ptr, int ormask, int andmask) {
   int oldflag=((int *)ptr)[2]; // the flag field is the third one
   int flag=ormask|oldflag;
   flag&=andmask;
@@ -489,16 +475,14 @@ bool intflagorand(void * ptr,
     return true;
   }
 }
-
-void flagorandinit(void * ptr,
-                   int ormask,
-                   int andmask) {
+ 
+void flagorandinit(void * ptr, int ormask, int andmask) {
   int oldflag=((int *)ptr)[2]; // the flag field is the third one
   int flag=ormask|oldflag;
   flag&=andmask;
   flagbody(ptr,flag,NULL,0,true);
 }
-
+ 
 void flagbody(struct ___Object___ *ptr,
               int flag,
               struct parameterwrapper ** vqueues,
@@ -522,7 +506,7 @@ void flagbody(struct ___Object___ *ptr,
   ptr->flag=flag;
 
   /*Remove object from all queues */
-  for(i = 0; i < length; ++i) {
+  for(i = 0; i < length; i++) {
     flagptr = queues[i];
     ObjectHashget(flagptr->objectset, (int) ptr, (int *) &next,
                   (int *) &enterflags, &UNUSED, &UNUSED2);
@@ -536,7 +520,7 @@ void enqueueObject(void * vptr,
                    struct parameterwrapper ** vqueues,
                    int vlength) {
   struct ___Object___ *ptr = (struct ___Object___ *)vptr;
-
+  
   {
     struct parameterwrapper * parameter=NULL;
     int j;
@@ -556,48 +540,48 @@ void enqueueObject(void * vptr,
 
     /* Outer loop iterates through all parameter queues an object of
        this type could be in.  */
-    for(j = 0; j < length; ++j) {
+    for(j = 0; j < length; j++) {
       parameter = queues[j];
       /* Check tags */
       if (parameter->numbertags>0) {
-		if (tagptr==NULL)
-		  goto nextloop;  //that means the object has no tag
-		//but that param needs tag
-		else if(tagptr->type==TAGTYPE) {     //one tag
-		  for(i=0; i<parameter->numbertags; i++) {
-			//slotid is parameter->tagarray[2*i];
-			int tagid=parameter->tagarray[2*i+1];
-			if (tagid!=tagptr->flag)
-			  goto nextloop;   /*We don't have this tag */
-		  }
-		} else {   //multiple tags
-		  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
-		  for(i=0; i<parameter->numbertags; i++) {
-			//slotid is parameter->tagarray[2*i];
-			int tagid=parameter->tagarray[2*i+1];
-			int j;
-			for(j=0; j<ao->___cachedCode___; j++) {
-			  if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
-				goto foundtag;
-			}
-			goto nextloop;
-foundtag:
-			;
-		  }
-		}
+	if (tagptr==NULL)
+	  goto nextloop;  //that means the object has no tag
+	//but that param needs tag
+	else if(tagptr->type==TAGTYPE) {     //one tag
+	  for(i=0; i<parameter->numbertags; i++) {
+	    //slotid is parameter->tagarray[2*i];
+	    int tagid=parameter->tagarray[2*i+1];
+	    if (tagid!=tagptr->flag)
+	      goto nextloop;   /*We don't have this tag */
+	  }
+	} else {   //multiple tags
+	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
+	  for(i=0; i<parameter->numbertags; i++) {
+	    //slotid is parameter->tagarray[2*i];
+	    int tagid=parameter->tagarray[2*i+1];
+	    int j;
+	    for(j=0; j<ao->___cachedCode___; j++) {
+	      if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
+		goto foundtag;
+	    }
+	    goto nextloop;
+	  foundtag:
+	    ;
+	  }
+	}
       }
-
+      
       /* Check flags */
       for(i=0; i<parameter->numberofterms; i++) {
-		int andmask=parameter->intarray[i*2];
-		int checkmask=parameter->intarray[i*2+1];
-		if ((ptr->flag&andmask)==checkmask) {
-		  enqueuetasks(parameter, prevptr, ptr, NULL, 0);
-		  prevptr=parameter;
-		  break;
-		}
+	int andmask=parameter->intarray[i*2];
+	int checkmask=parameter->intarray[i*2+1];
+	if ((ptr->flag&andmask)==checkmask) {
+	  enqueuetasks(parameter, prevptr, ptr, NULL, 0);
+	  prevptr=parameter;
+	  break;
+	}
       }
-nextloop:
+    nextloop:
       ;
     }
   }
@@ -627,88 +611,86 @@ void enqueueObject_I(void * vptr,
 
     /* Outer loop iterates through all parameter queues an object of
        this type could be in.  */
-    for(j = 0; j < length; ++j) {
+    for(j = 0; j < length; j++) {
       parameter = queues[j];
       /* Check tags */
       if (parameter->numbertags>0) {
-		if (tagptr==NULL)
-		  goto nextloop;      //that means the object has no tag
-		//but that param needs tag
-		else if(tagptr->type==TAGTYPE) {   //one tag
-		  for(i=0; i<parameter->numbertags; i++) {
-			//slotid is parameter->tagarray[2*i];
-			int tagid=parameter->tagarray[2*i+1];
-			if (tagid!=tagptr->flag)
-			  goto nextloop;            /*We don't have this tag */
-		  }
-		} else {    //multiple tags
-		  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
-		  for(i=0; i<parameter->numbertags; i++) {
-			//slotid is parameter->tagarray[2*i];
-			int tagid=parameter->tagarray[2*i+1];
-			int j;
-			for(j=0; j<ao->___cachedCode___; j++) {
-			  if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
-				goto foundtag;
-			}
-			goto nextloop;
-foundtag:
-			;
-		  }
-		}
+	if (tagptr==NULL)
+	  goto nextloop;      //that means the object has no tag
+	//but that param needs tag
+	else if(tagptr->type==TAGTYPE) {   //one tag
+	  for(i=0; i<parameter->numbertags; i++) {
+	    //slotid is parameter->tagarray[2*i];
+	    int tagid=parameter->tagarray[2*i+1];
+	    if (tagid!=tagptr->flag)
+	      goto nextloop;            /*We don't have this tag */
+	  }
+	} else {    //multiple tags
+	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
+	  for(i=0; i<parameter->numbertags; i++) {
+	    //slotid is parameter->tagarray[2*i];
+	    int tagid=parameter->tagarray[2*i+1];
+	    int j;
+	    for(j=0; j<ao->___cachedCode___; j++) {
+	      if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
+		goto foundtag;
+	    }
+	    goto nextloop;
+	  foundtag:
+	    ;
+	  }
+	}
       }
-
+      
       /* Check flags */
       for(i=0; i<parameter->numberofterms; i++) {
-		int andmask=parameter->intarray[i*2];
-		int checkmask=parameter->intarray[i*2+1];
-		if ((ptr->flag&andmask)==checkmask) {
-		  enqueuetasks_I(parameter, prevptr, ptr, NULL, 0);
-		  prevptr=parameter;
-		  break;
-		}
+	int andmask=parameter->intarray[i*2];
+	int checkmask=parameter->intarray[i*2+1];
+	if ((ptr->flag&andmask)==checkmask) {
+	  enqueuetasks_I(parameter, prevptr, ptr, NULL, 0);
+	  prevptr=parameter;
+	  break;
+	}
       }
-nextloop:
+    nextloop:
       ;
     }
   }
 }
 
 
-int * getAliasLock(void ** ptrs,
-                   int length,
-                   struct RuntimeHash * tbl) {
+int * getAliasLock(void ** ptrs, int length, struct RuntimeHash * tbl) {
 #ifdef TILERA_BME
   int i = 0;
   int locks[length];
   int locklen = 0;
   // sort all the locks required by the objs in the aliased set
   for(; i < length; i++) {
-	struct ___Object___ * ptr = (struct ___Object___ *)(ptrs[i]);
-	int lock = 0;
-	int j = 0;
-	if(ptr->lock == NULL) {
-	  lock = (int)(ptr);
-	} else {
-	  lock = (int)(ptr->lock);
-	}
-	bool insert = true;
-	for(j = 0; j < locklen; j++) {
-	  if(locks[j] == lock) {
-		insert = false;
-		break;
-	  } else if(locks[j] > lock) {
-		break;
-	  }
-	}
-	if(insert) {
-	  int h = locklen;
-	  for(; h > j; h--) {
-		locks[h] = locks[h-1];
-	  }
-	  locks[j] = lock;
-	  locklen++;
-	}
+    struct ___Object___ * ptr = (struct ___Object___ *)(ptrs[i]);
+    int lock = 0;
+    int j = 0;
+    if(ptr->lock == NULL) {
+      lock = (int)(ptr);
+    } else {
+      lock = (int)(ptr->lock);
+    }
+    bool insert = true;
+    for(j = 0; j < locklen; j++) {
+      if(locks[j] == lock) {
+	insert = false;
+	break;
+      } else if(locks[j] > lock) {
+	break;
+      }
+    }
+    if(insert) {
+      int h = locklen;
+      for(; h > j; h--) {
+	locks[h] = locks[h-1];
+      }
+      locks[j] = lock;
+      locklen++;
+    }
   }
   // use the smallest lock as the shared lock for the whole set
   return (int *)(locks[0]);
@@ -727,62 +709,61 @@ int * getAliasLock(void ** ptrs,
       int lock = 0;
       int j = 0;
       if(ptr->lock == NULL) {
-		lock = (int)(ptr);
+	lock = (int)(ptr);
       } else {
-		lock = (int)(ptr->lock);
+	lock = (int)(ptr->lock);
       }
       if(redirect) {
-		if(lock != redirectlock) {
-		  RuntimeHashadd(tbl, lock, redirectlock);
-		}
+	if(lock != redirectlock) {
+	  RuntimeHashadd(tbl, lock, redirectlock);
+	}
       } else {
-		if(RuntimeHashcontainskey(tbl, lock)) {
-		  // already redirected
-		  redirect = true;
-		  RuntimeHashget(tbl, lock, &redirectlock);
-		  for(; j < locklen; j++) {
-			if(locks[j] != redirectlock) {
-			  RuntimeHashadd(tbl, locks[j], redirectlock);
-			}
-		  }
-		} else {
-		  bool insert = true;
-		  for(j = 0; j < locklen; j++) {
-			if(locks[j] == lock) {
-			  insert = false;
-			  break;
-			} else if(locks[j] > lock) {
-			  break;
-			}
-		  }
-		  if(insert) {
-			int h = locklen;
-			for(; h > j; h--) {
-			  locks[h] = locks[h-1];
-			}
-			locks[j] = lock;
-			locklen++;
-		  }
-		}
+	if(RuntimeHashcontainskey(tbl, lock)) {
+	  // already redirected
+	  redirect = true;
+	  RuntimeHashget(tbl, lock, &redirectlock);
+	  for(; j < locklen; j++) {
+	    if(locks[j] != redirectlock) {
+	      RuntimeHashadd(tbl, locks[j], redirectlock);
+	    }
+	  }
+	} else {
+	  bool insert = true;
+	  for(j = 0; j < locklen; j++) {
+	    if(locks[j] == lock) {
+	      insert = false;
+	      break;
+	    } else if(locks[j] > lock) {
+	      break;
+	    }
+	  }
+	  if(insert) {
+	    int h = locklen;
+	    for(; h > j; h--) {
+	      locks[h] = locks[h-1];
+	    }
+	    locks[j] = lock;
+	    locklen++;
+	  }
+	}
       }
     }
     if(redirect) {
       return (int *)redirectlock;
     } else {
-	  // use the first lock as the shared lock
-	  for(j = 1; j < locklen; j++) {
-		if(locks[j] != locks[0]) {
-		  RuntimeHashadd(tbl, locks[j], locks[0]);
-		}
-	  }
+      // use the first lock as the shared lock
+      for(j = 1; j < locklen; j++) {
+	if(locks[j] != locks[0]) {
+	  RuntimeHashadd(tbl, locks[j], locks[0]);
+	}
+      }
       return (int *)(locks[0]);
     }
   }
 #endif // TILERA_BME
 }
 
-void addAliasLock(void * ptr,
-                  int lock) {
+void addAliasLock(void * ptr, int lock) {
   struct ___Object___ * obj = (struct ___Object___ *)ptr;
   if(((int)ptr != lock) && (obj->lock != (int*)lock)) {
     // originally no alias lock associated or have a different alias lock
@@ -1125,7 +1106,7 @@ newtask:
         // check if has the lock already
         // can not get the lock, try later
         // release all grabbed locks for previous parameters		
-        for(j = 0; j < i; ++j) {
+        for(j = 0; j < i; j++) {
           lock = (int*)(runtime_locks[j].value/*redirectlock*/);
           releasewritelock(lock);
         }
@@ -1161,7 +1142,7 @@ newtask:
           BAMBOO_DEBUGPRINT(0xe994);
           BAMBOO_DEBUGPRINT_REG(parameter);
           // release grabbed locks
-          for(j = 0; j < runtime_locklen; ++j) {
+          for(j = 0; j < runtime_locklen; j++) {
             int * lock = (int *)(runtime_locks[j].value);
             releasewritelock(lock);
           }
@@ -1175,7 +1156,7 @@ newtask:
       {
         int tmpi = 0;
         bool ismet = false;
-        for(tmpi = 0; tmpi < pw->numberofterms; ++tmpi) {
+        for(tmpi = 0; tmpi < pw->numberofterms; tmpi++) {
           andmask=pw->intarray[tmpi*2];
           checkmask=pw->intarray[tmpi*2+1];
           if((((struct ___Object___ *)parameter)->flag&andmask)==checkmask) {
@@ -1197,7 +1178,7 @@ newtask:
           if (enterflags!=NULL)
             RUNFREE(enterflags);
           // release grabbed locks
-          for(j = 0; j < runtime_locklen; ++j) {
+          for(j = 0; j < runtime_locklen; j++) {
             int * lock = (int *)(runtime_locks[j].value/*redirectlock*/);
             releasewritelock(lock);
           }
@@ -1219,14 +1200,12 @@ parameterpresent:
         struct ___TagDescriptor___ *tagd=currtpd->parameterArray[slotid];
         if (!containstag(parameter, tagd)) {
           BAMBOO_DEBUGPRINT(0xe996);
-          {
-            // release grabbed locks
-            int tmpj = 0;
-            for(tmpj = 0; tmpj < runtime_locklen; ++tmpj) {
-              int * lock = (int *)(runtime_locks[tmpj].value/*redirectlock*/);
-              releasewritelock(lock);
-            }
-          }
+	  // release grabbed locks
+	  int tmpj = 0;
+	  for(tmpj = 0; tmpj < runtime_locklen; tmpj++) {
+	    int * lock = (int *)(runtime_locks[tmpj].value/*redirectlock*/);
+	    releasewritelock(lock);
+	  }
           RUNFREE(currtpd->parameterArray);
           RUNFREE(currtpd);
           currtpd = NULL;
@@ -1382,44 +1361,44 @@ loopstart:
     /* Check for objects with existing tags */
     for(i=0; i<numparams; i++) {
       if (statusarray[i]==0) {
-		struct parameterdescriptor *pd=task->descriptorarray[i];
-		int j;
-		for(j=0; j<pd->numbertags; j++) {
-		  int slotid=pd->tagarray[2*j];
-		  if(statusarray[slotid+numparams]!=0) {
-			processobject(parameter,i,pd,&iteratorcount,
-				statusarray,numparams);
-			processtags(pd,i,parameter,&iteratorcount,statusarray,numparams);
-			goto loopstart;
-		  }
-		}
+	struct parameterdescriptor *pd=task->descriptorarray[i];
+	int j;
+	for(j=0; j<pd->numbertags; j++) {
+	  int slotid=pd->tagarray[2*j];
+	  if(statusarray[slotid+numparams]!=0) {
+	    processobject(parameter,i,pd,&iteratorcount,
+			  statusarray,numparams);
+	    processtags(pd,i,parameter,&iteratorcount,statusarray,numparams);
+	    goto loopstart;
+	  }
+	}
       }
     }
-
+    
     /* Next do objects w/ unbound tags*/
-
+    
     for(i=0; i<numparams; i++) {
       if (statusarray[i]==0) {
-		struct parameterdescriptor *pd=task->descriptorarray[i];
-		if (pd->numbertags>0) {
-		  processobject(parameter,i,pd,&iteratorcount,statusarray,numparams);
-		  processtags(pd,i,parameter,&iteratorcount,statusarray,numparams);
-		  goto loopstart;
-		}
+	struct parameterdescriptor *pd=task->descriptorarray[i];
+	if (pd->numbertags>0) {
+	  processobject(parameter,i,pd,&iteratorcount,statusarray,numparams);
+	  processtags(pd,i,parameter,&iteratorcount,statusarray,numparams);
+	  goto loopstart;
+	}
       }
     }
-
+    
     /* Nothing with a tag enqueued */
-
+    
     for(i=0; i<numparams; i++) {
       if (statusarray[i]==0) {
-		struct parameterdescriptor *pd=task->descriptorarray[i];
-		processobject(parameter,i,pd,&iteratorcount,statusarray,numparams);
-		processtags(pd,i,parameter,&iteratorcount,statusarray,numparams);
-		goto loopstart;
+	struct parameterdescriptor *pd=task->descriptorarray[i];
+	processobject(parameter,i,pd,&iteratorcount,statusarray,numparams);
+	processtags(pd,i,parameter,&iteratorcount,statusarray,numparams);
+	goto loopstart;
       }
     }
-
+    
     /* Nothing left */
     return;
   }
@@ -1446,35 +1425,32 @@ void printdebug() {
 #endif
       ObjectHashiterator(set, &objit);
       while(ObjhasNext(&objit)) {
-		struct ___Object___ * obj=(struct ___Object___ *)Objkey(&objit);
-		struct ___Object___ * tagptr=obj->___tags___;
-		int nonfailed=Objdata4(&objit);
-		int numflags=Objdata3(&objit);
-		int flags=Objdata2(&objit);
-		Objnext(&objit);
+	struct ___Object___ * obj=(struct ___Object___ *)Objkey(&objit);
+	struct ___Object___ * tagptr=obj->___tags___;
+	int nonfailed=Objdata4(&objit);
+	int numflags=Objdata3(&objit);
+	int flags=Objdata2(&objit);
+	Objnext(&objit);
 #ifndef RAW
-		printf("    Contains %lx\n", obj);
-		printf("      flag=%d\n", obj->flag);
+	printf("    Contains %lx\n", obj);
+	printf("      flag=%d\n", obj->flag);
 #endif
-		if (tagptr==NULL) {
-		} else if (tagptr->type==TAGTYPE) {
+	if (tagptr==NULL) {
+	} else if (tagptr->type==TAGTYPE) {
 #ifndef RAW
-		  printf("      tag=%lx\n",tagptr);
+	  printf("      tag=%lx\n",tagptr);
+#endif
+	} else {
+	  int tagindex=0;
+	  struct ArrayObject *ao=(struct ArrayObject *)tagptr;
+	  for(; tagindex<ao->___cachedCode___; tagindex++) {
+#ifndef RAW
+	    printf("      tag=%lx\n",ARRAYGET(ao,struct ___TagDescriptor___*, tagindex));
 #else
-		  ;
+	    ;
 #endif
-		} else {
-		  int tagindex=0;
-		  struct ArrayObject *ao=(struct ArrayObject *)tagptr;
-		  for(; tagindex<ao->___cachedCode___; tagindex++) {
-#ifndef RAW
-			printf("      tag=%lx\n",ARRAYGET(ao,struct ___TagDescriptor___*,
-											  tagindex));
-#else
-			;
-#endif
-		  }
-		}
+	  }
+	}
       }
     }
   }
@@ -1551,13 +1527,13 @@ int toiHasNext(struct tagobjectiterator *it,
     int i;
     if (objptr->type!=OBJECTARRAYTYPE) {
       if (it->tagobjindex>0)
-		return 0;
+	return 0;
       if (!ObjectHashcontainskey(it->objectset, (int) objptr))
-		return 0;
+	return 0;
       for(i=1; i<it->numtags; i++) {
-		struct ___TagDescriptor___ *tag2=objectarray[it->tagbindings[i]];
-		if (!containstag(objptr,tag2))
-		  return 0;
+	struct ___TagDescriptor___ *tag2=objectarray[it->tagbindings[i]];
+	if (!containstag(objptr,tag2))
+	  return 0;
       }
       return 1;
     } else {
@@ -1565,20 +1541,20 @@ int toiHasNext(struct tagobjectiterator *it,
       int tagindex;
       int i;
       for(tagindex=it->tagobjindex;tagindex<ao->___cachedCode___;tagindex++){
-		struct ___Object___ *objptr=
-		  ARRAYGET(ao,struct ___Object___*,tagindex);
-		if (!ObjectHashcontainskey(it->objectset, (int) objptr))
-		  continue;
-		for(i=1; i<it->numtags; i++) {
-		  struct ___TagDescriptor___ *tag2=objectarray[it->tagbindings[i]];
-		  if (!containstag(objptr,tag2))
-			goto nexttag;
-		}
-		it->tagobjindex=tagindex;
-		return 1;
-nexttag:
-		;
-	  }
+	struct ___Object___ *objptr=
+	  ARRAYGET(ao,struct ___Object___*,tagindex);
+	if (!ObjectHashcontainskey(it->objectset, (int) objptr))
+	  continue;
+	for(i=1; i<it->numtags; i++) {
+	  struct ___TagDescriptor___ *tag2=objectarray[it->tagbindings[i]];
+	  if (!containstag(objptr,tag2))
+	    goto nexttag;
+	}
+	it->tagobjindex=tagindex;
+	return 1;
+      nexttag:
+	;
+      }
       it->tagobjindex=tagindex;
       return 0;
     }
@@ -1595,7 +1571,7 @@ int containstag(struct ___Object___ *ptr,
     struct ArrayObject *ao=(struct ArrayObject *)objptr;
     for(j=0; j<ao->___cachedCode___; j++) {
       if (ptr==ARRAYGET(ao, struct ___Object___*, j)) {
-		return 1;
+	return 1;
       }
     }
     return 0;

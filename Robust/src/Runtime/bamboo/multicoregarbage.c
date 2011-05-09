@@ -4,33 +4,16 @@
 #include "runtime.h"
 #include "multicoregarbage.h"
 #include "multicoregcmark.h"
+#include "gcqueue.h"
 #include "multicoregccompact.h"
 #include "multicoregcflush.h"
 #include "multicoreruntime.h"
 #include "multicoregcprofile.h"
 
-struct pointerblock *gchead=NULL;
-int gcheadindex=0;
-struct pointerblock *gctail=NULL;
-int gctailindex=0;
-struct pointerblock *gctail2=NULL;
-int gctailindex2=0;
-struct pointerblock *gcspare=NULL;
-
-struct lobjpointerblock *gclobjhead=NULL;
-int gclobjheadindex=0;
-struct lobjpointerblock *gclobjtail=NULL;
-int gclobjtailindex=0;
-struct lobjpointerblock *gclobjtail2=NULL;
-int gclobjtailindex2=0;
-struct lobjpointerblock *gclobjspare=NULL;
-
-#ifdef MULTICORE_GC
 #ifdef SMEMM
 extern unsigned int gcmem_mixed_threshold;
 extern unsigned int gcmem_mixed_usedmem;
 #endif // SMEMM
-#endif // MULTICORE_GC
 
 #ifdef GC_DEBUG
 // dump whole mem in blocks
@@ -108,13 +91,12 @@ void dumpSMem() {
 void initmulticoregcdata() {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     // startup core to initialize corestatus[]
-    int i;
-    for(i = 0; i < NUMCORESACTIVE; ++i) {
+    for(int i = 0; i < NUMCORESACTIVE; i++) {
       gccorestatus[i] = 1;
       gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
       gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
     } 
-    for(i = 0; i < NUMCORES4GC; ++i) {
+    for(int i = 0; i < NUMCORES4GC; i++) {
       gcloads[i] = 0;
       gcrequiredmems[i] = 0;
       gcstopblock[i] = 0;
@@ -165,8 +147,7 @@ void dismulticoregcdata() {
 
 void initGC() {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-    int i;
-    for(i = 0; i < NUMCORES4GC; ++i) {
+    for(int i = 0; i < NUMCORES4GC; i++) {
       gccorestatus[i] = 1;
       gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
       gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
@@ -175,7 +156,7 @@ void initGC() {
       gcfilledblocks[i] = 0;
       gcstopblock[i] = 0;
     } 
-    for(i = NUMCORES4GC; i < NUMCORESACTIVE; ++i) {
+    for(int i = NUMCORES4GC; i < NUMCORESACTIVE; i++) {
       gccorestatus[i] = 1;
       gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
       gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
@@ -183,7 +164,7 @@ void initGC() {
     gcheaptop = 0;
     gctopcore = 0;
     gctopblock = 0;
-  gcnumsrobjs_index = 0;
+    gcnumsrobjs_index = 0;
   } 
   gcself_numsendobjs = 0;
   gcself_numreceiveobjs = 0;
@@ -196,28 +177,7 @@ void initGC() {
   gccurr_heaptop = 0;
   gcdstcore = 0;
 
-  // initialize queue
-  if (gchead==NULL) {
-    gcheadindex=gctailindex=gctailindex2 = 0;
-    gchead=gctail=gctail2=RUNMALLOC(sizeof(struct pointerblock));
-  } else {
-    gctailindex=gctailindex2=gcheadindex=0;
-    gctail=gctail2=gchead;
-  }
-  gchead->next=NULL;
-
-  // initialize the large obj queues
-  if (gclobjhead==NULL) {
-    gclobjheadindex=0;
-    gclobjtailindex=0;
-    gclobjtailindex2=0;
-    gclobjhead=gclobjtail=gclobjtail2=
-      RUNMALLOC(sizeof(struct lobjpointerblock));
-  } else {
-    gclobjtailindex=gclobjtailindex2=gclobjheadindex=0;
-    gclobjtail=gclobjtail2=gclobjhead;
-  }
-  gclobjhead->next=gclobjhead->prev=NULL;
+  gcqueue_init();
 
   freeMGCHash(gcforwardobjtbl);
   gcforwardobjtbl = allocateMGCHash(20, 3);
@@ -226,8 +186,7 @@ void initGC() {
 } 
 
 bool gc_checkAllCoreStatus_I() {
-  int i;
-  for(i = 0; i < NUMCORESACTIVE; ++i) {
+  for(int i = 0; i < NUMCORESACTIVE; i++) {
     if(gccorestatus[i] != 0) {
       return false;
     }  
@@ -236,7 +195,6 @@ bool gc_checkAllCoreStatus_I() {
 }
 
 INLINE void checkMarkStatus() {
-  int i;
   if((!waitconfirm) ||
       (waitconfirm && (numconfirm == 0))) {
     unsigned int entry_index = 0;
@@ -262,7 +220,7 @@ INLINE void checkMarkStatus() {
         waitconfirm = true;
         numconfirm = NUMCORESACTIVE - 1;
         BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-        for(i = 1; i < NUMCORESACTIVE; ++i) {
+        for(int i = 1; i < NUMCORESACTIVE; i++) {
           gccorestatus[i] = 1;
           // send mark phase finish confirm request msg to core i
           send_msg_1(i, GCMARKCONFIRM, false);
@@ -272,17 +230,17 @@ INLINE void checkMarkStatus() {
         // check if the sum of send objs and receive obj are the same
         // yes->check if the info is the latest; no->go on executing
         unsigned int sumsendobj = 0;
-        for(i = 0; i < NUMCORESACTIVE; ++i) {
+        for(int i = 0; i < NUMCORESACTIVE; i++) {
           sumsendobj += gcnumsendobjs[gcnumsrobjs_index][i];
         } 
-        for(i = 0; i < NUMCORESACTIVE; ++i) {
+        for(int i = 0; i < NUMCORESACTIVE; i++) {
           sumsendobj -= gcnumreceiveobjs[gcnumsrobjs_index][i];
         } 
         if(0 == sumsendobj) {
           // Check if there are changes of the numsendobjs or numreceiveobjs on
           // each core
           bool ischanged = false;
-          for(i = 0; i < NUMCORESACTIVE; ++i) {
+          for(int i = 0; i < NUMCORESACTIVE; i++) {
             if((gcnumsendobjs[0][i] != gcnumsendobjs[1][i]) || 
                 (gcnumreceiveobjs[0][i] != gcnumreceiveobjs[1][i]) ) {
               ischanged = true;
@@ -293,7 +251,7 @@ INLINE void checkMarkStatus() {
             // all the core status info are the latest,stop mark phase
             gcphase = COMPACTPHASE;
             // restore the gcstatus for all cores
-            for(i = 0; i < NUMCORESACTIVE; ++i) {
+            for(int i = 0; i < NUMCORESACTIVE; i++) {
               gccorestatus[i] = 1;
             }  
           } else {
@@ -321,11 +279,10 @@ INLINE void checkMarkStatus() {
 // compute load balance for all cores
 INLINE int loadbalance(unsigned int * heaptop) {
   // compute load balance
-  int i;
 
   // get the total loads
   unsigned int tloads = gcloads[STARTUPCORE];
-  for(i = 1; i < NUMCORES4GC; i++) {
+  for(int i = 1; i < NUMCORES4GC; i++) {
     tloads += gcloads[i];
   }
   *heaptop = gcbaseva + tloads;
@@ -432,8 +389,7 @@ INLINE bool cacheLObjs() {
 } 
 
 // update the bmmboo_smemtbl to record current shared mem usage
-void updateSmemTbl(unsigned int coren,
-                   unsigned int localtop) {
+void updateSmemTbl(unsigned int coren, unsigned int localtop) {
   unsigned int ltopcore = 0;
   unsigned int bound = BAMBOO_SMEM_SIZE_L;
   BLOCKINDEX(localtop, &ltopcore);
@@ -441,31 +397,26 @@ void updateSmemTbl(unsigned int coren,
     bound = BAMBOO_SMEM_SIZE;
   }
   unsigned int load = (unsigned int)(localtop-gcbaseva)%(unsigned int)bound;
-  unsigned int i = 0;
-  unsigned int j = 0;
   unsigned int toset = 0;
-  do {
-    toset = gc_core2block[2*coren+i]+(unsigned int)(NUMCORES4GC*2)*j;
-    if(toset < ltopcore) {
-      bamboo_smemtbl[toset]=(toset<NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+  for(int j=0; 1; j++) {
+    for(int i=0; i<2; i++) {
+      toset = gc_core2block[2*coren+i]+(unsigned int)(NUMCORES4GC*2)*j;
+      if(toset < ltopcore) {
+	bamboo_smemtbl[toset]=(toset<NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
 #ifdef SMEMM
-      gcmem_mixed_usedmem += bamboo_smemtbl[toset];
+	gcmem_mixed_usedmem += bamboo_smemtbl[toset];
 #endif
-    } else if(toset == ltopcore) {
-      bamboo_smemtbl[toset] = load;
+      } else if(toset == ltopcore) {
+	bamboo_smemtbl[toset] = load;
 #ifdef SMEMM
-      gcmem_mixed_usedmem += bamboo_smemtbl[toset];
+	gcmem_mixed_usedmem += bamboo_smemtbl[toset];
 #endif
-      break;
-    } else {
-      break;
+	return;
+      } else {
+	return;
+      }
     }
-    i++;
-    if(i == 2) {
-      i = 0;
-      j++;
-    }
-  } while(true);
+  }
 }
 
 INLINE unsigned int checkCurrHeapTop() {
@@ -498,20 +449,14 @@ INLINE unsigned int checkCurrHeapTop() {
   // a bug here: when using local allocation, directly move large objects
   // to the highest free chunk might not be memory efficient
   unsigned int tmpheaptop = 0;
-  int i = 0;
-  for(i = gcnumblock-1; i >= 0; i--) {
+  for(int i = gcnumblock-1; i >= 0; i--) {
     if(bamboo_smemtbl[i] > 0) {
-      break;
-    }
-  }
-  if(i == -1) {
-    tmpheaptop = gcbaseva;
-  } else {
-    tmpheaptop = gcbaseva+bamboo_smemtbl[i]+((i<NUMCORES4GC) ?
+      return gcbaseva+bamboo_smemtbl[i]+((i<NUMCORES4GC) ?
         (BAMBOO_SMEM_SIZE_L*i) :
         (BAMBOO_SMEM_SIZE*(i-NUMCORES4GC)+BAMBOO_LARGE_SMEM_BOUND));
+    }
   }
-  return tmpheaptop;
+  return gcbaseva;
 }
 
 INLINE void moveLObjs() {
@@ -780,7 +725,7 @@ void master_getlargeobjs() {
   // send msgs to all cores requiring large objs info
   // Note: only need to ask gc cores, non-gc cores do not host any objs
   numconfirm = NUMCORES4GC - 1;
-  for(i = 1; i < NUMCORES4GC; ++i) {
+  for(int i = 1; i < NUMCORES4GC; i++) {
     send_msg_1(i, GCLOBJREQUEST, false);
   }
   gcloads[BAMBOO_NUM_OF_CORE] = gccurr_heaptop;
@@ -796,24 +741,19 @@ void master_getlargeobjs() {
   GC_PRINTF("prepare to cache large objs \n");
 
   // cache all large objs
-  if(!cacheLObjs()) {
-    // no enough space to cache large objs
-    GC_PRINTF("Not enough space to cache large objects\n");
-    BAMBOO_EXIT(0xb02e);
-  }
+  BAMBOO_ASSERTMSG(cacheLObjs(), "Not enough space to cache large objects\n", 0xb02e);
 }
 
 void master_compact() {
   // predict number of blocks to fill for each core
   unsigned int tmpheaptop = 0;
   int numpbc = loadbalance(&tmpheaptop);
-  int i;
 
   numpbc = (BAMBOO_SHARED_MEM_SIZE)/(BAMBOO_SMEM_SIZE);
   GC_PRINTF("mark phase finished \n");
   
   tmpheaptop = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
-  for(i = 0; i < NUMCORES4GC; ++i) {
+  for(int i = 0; i < NUMCORES4GC; i++) {
     unsigned int tmpcoreptr = 0;
     BASEPTR(i, numpbc, &tmpcoreptr);
     // init some data strutures for compact phase
@@ -937,11 +877,10 @@ void pregccheck_I() {
     gcnumsendobjs[0][BAMBOO_NUM_OF_CORE] = self_numsendobjs;
     gcnumreceiveobjs[0][BAMBOO_NUM_OF_CORE] = self_numreceiveobjs;
     int sumsendobj = 0;
-    int i;
-    for(i = 0; i < NUMCORESACTIVE; ++i) {
+    for(int i = 0; i < NUMCORESACTIVE; i++) {
       sumsendobj += gcnumsendobjs[0][i];
     }  
-    for(i = 0; i < NUMCORESACTIVE; ++i) {
+    for(int i = 0; i < NUMCORESACTIVE; i++) {
       sumsendobj -= gcnumreceiveobjs[0][i];
     } 
     if(0 != sumsendobj) {

@@ -6,8 +6,7 @@
 extern int corenum;
 
 INLINE bool gc_checkCoreStatus_I() {
-  int i;
-  for(i = 0; i < NUMCORES4GC; ++i) {
+  for(int i = 0; i < NUMCORES4GC; ++i) {
     if(gccorestatus[i] != 0)
       return false;
   }  
@@ -148,7 +147,6 @@ INLINE void resolvePendingMoveRequest() {
     gcphase = SUBTLECOMPACTPHASE;
     compact2Heaptop();
   }
-  
 } 
 
 // If out of boundary of valid shared memory, return false, else return true
@@ -306,17 +304,15 @@ INLINE unsigned int findValidObj(struct moveHelper * orig,
 }
 
 // endaddr does not contain spaces for headers
-INLINE bool moveobj(struct moveHelper * orig,
-                    struct moveHelper * to,
-                    unsigned int stopblock) {
+INLINE bool moveobj(struct moveHelper * orig, struct moveHelper * to, unsigned int stopblock) {
   if(stopblock == 0) {
     return true;
   }
 
   int type = 0;
-  unsigned int size = 0;
+  unsigned int size = findValidObj(orig, to, &type);
   unsigned int isize = 0;
-  size = findValidObj(orig, to, &type);
+
   if(size == -1) {
     // finished, no more data
     return true;
@@ -461,7 +457,7 @@ innercompact:
     *heaptopptr = to->ptr;
     *filledblocks = to->numblocks;
   }
-
+  
   // send msgs to core coordinator indicating that the compact is finishing
   // send compact finish message to core coordinator
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
@@ -506,21 +502,15 @@ innercompact:
 
     to->ptr = gcmovestartaddr;
     to->numblocks = gcblock2fill - 1;
-    to->bound = ((to->numblocks==0)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE_L)
-      +BAMBOO_SMEM_SIZE*to->numblocks;
+    to->bound = ((to->numblocks==0)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE_L)+BAMBOO_SMEM_SIZE*to->numblocks;
     BASEPTR(gcdstcore, to->numblocks, &(to->base));
     to->offset = to->ptr - to->base;
-    to->top = (to->numblocks==0)?(to->offset)
-      :(to->bound-BAMBOO_SMEM_SIZE+to->offset);
+    to->top = (to->numblocks==0)?(to->offset):(to->bound-BAMBOO_SMEM_SIZE+to->offset);
     to->base = to->ptr;
     to->offset = BAMBOO_CACHE_LINE_SIZE;
     to->ptr += to->offset;   // for header
     to->top += to->offset;
-    if(gcdstcore == BAMBOO_NUM_OF_CORE) {
-      *localcompact = true;
-    } else {
-      *localcompact = false;
-    }
+    *localcompact = (gcdstcore == BAMBOO_NUM_OF_CORE);
     CACHEADAPT_SAMPLING_DATA_REVISE_INIT();
     goto innercompact;
   }
@@ -528,9 +518,7 @@ innercompact:
 }
 
 void compact() {
-  if(COMPACTPHASE != gcphase) {
-    BAMBOO_EXIT(0xb025);
-  }
+  BAMBOO_ASSERT(COMPACTPHASE == gcphase, 0xb025);
   
   // initialize pointers for comapcting
   struct moveHelper * orig = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
@@ -542,20 +530,19 @@ void compact() {
                0, to->base, 0, false);
     RUNFREE(orig);
     RUNFREE(to);
-    return;
-  }
-  CACHEADAPT_SAMPLING_DATA_REVISE_INIT();
+  } else {
+    CACHEADAPT_SAMPLING_DATA_REVISE_INIT();
 
-  unsigned int filledblocks = 0;
-  unsigned int heaptopptr = 0;
-  bool localcompact = true;
-  compacthelper(orig, to, &filledblocks, &heaptopptr, &localcompact);
-  RUNFREE(orig);
-  RUNFREE(to);
+    unsigned int filledblocks = 0;
+    unsigned int heaptopptr = 0;
+    bool localcompact = true;
+    compacthelper(orig, to, &filledblocks, &heaptopptr, &localcompact);
+    RUNFREE(orig);
+    RUNFREE(to);
+  }
 } 
 
 void compact_master(struct moveHelper * orig, struct moveHelper * to) {
-  bool finalcompact = false;
   // initialize pointers for comapcting
   initOrig_Dst(orig, to);
   CACHEADAPT_SAMPLING_DATA_REVISE_INIT();

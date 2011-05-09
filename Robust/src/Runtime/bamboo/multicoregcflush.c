@@ -4,7 +4,8 @@
 #include "ObjectHash.h"
 #include "GenericHashtable.h"
 
-extern int corenum;
+/* Task specific includes */
+
 #ifdef TASK
 extern struct parameterwrapper ** objectqueues[][NUMCLASSES];
 extern int numqueues[][NUMCLASSES];
@@ -17,74 +18,46 @@ extern int runtime_locklen;
 
 extern struct global_defs_t * global_defs_p;
 
-#ifdef SMEMM
-extern unsigned int gcmem_mixed_threshold;
-extern unsigned int gcmem_mixed_usedmem;
-#endif
-
 #ifdef MGC
 extern struct lockvector bamboo_threadlocks;
 #endif
 
-extern struct pointerblock *gchead;
-extern int gcheadindex;
-extern struct pointerblock *gctail;
-extern int gctailindex;
-extern struct pointerblock *gctail2;
-extern int gctailindex2;
-extern struct pointerblock *gcspare;
-
-extern struct lobjpointerblock *gclobjhead;
-extern int gclobjheadindex;
-extern struct lobjpointerblock *gclobjtail;
-extern int gclobjtailindex;
-extern struct lobjpointerblock *gclobjtail2;
-extern int gclobjtailindex2;
-extern struct lobjpointerblock *gclobjspare;
-
 // NOTE: the objptr should not be NULL and should not be non shared ptr
-INLINE void * flushObj(void * objptr, int linenum, void * ptr, int tt) {
-  void * dstptr = gcmappingtbl[OBJMAPPINGINDEX((unsigned int)objptr)];
-  return dstptr;
+#define FLUSHOBJ(obj, tt) {void *flushtmpptr=obj; if (flushtmpptr!=NULL) obj=flushObj(flushtmpptr);}
+#define FLUSHOBJNONNULL(obj, tt) {void *flushtmpptr=obj; obj=flushObj(flushtmpptr);}
+
+INLINE void * flushObj(void * objptr) {
+  return gcmappingtbl[OBJMAPPINGINDEX((unsigned int)objptr)];
+}
+
+INLINE void updategarbagelist(struct garbagelist *listptr) {
+  for(;listptr!=NULL; listptr=listptr->next) {
+    for(int i=0; i<listptr->size; i++) {
+      FLUSHOBJ(listptr->array[i], i);
+    }
+  }
 }
 
 INLINE void flushRuntimeObj(struct garbagelist * stackptr) {
-  int i,j;
   // flush current stack
-  while(stackptr!=NULL) {
-    for(i=0; i<stackptr->size; i++) {
-      if(stackptr->array[i] != NULL) {
-        stackptr->array[i] = 
-          flushObj(stackptr->array[i], __LINE__, stackptr->array[i], i);
-      }
-    }
-    stackptr=stackptr->next;
-  }
+  updategarbagelist(stackptr);
 
   // flush static pointers global_defs_p
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-    struct garbagelist * staticptr=(struct garbagelist *)global_defs_p;
-    for(i=0; i<staticptr->size; i++) {
-      if(staticptr->array[i] != NULL) {
-        staticptr->array[i] = 
-          flushObj(staticptr->array[i], __LINE__, staticptr->array[i], i);
-      }
-    }
+    updategarbagelist((struct garbagelist *)global_defs_p);
   }
 
 #ifdef TASK
   // flush objectsets
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
-    for(i=0; i<NUMCLASSES; i++) {
+    for(int i=0; i<NUMCLASSES; i++) {
       struct parameterwrapper ** queues = objectqueues[BAMBOO_NUM_OF_CORE][i];
       int length = numqueues[BAMBOO_NUM_OF_CORE][i];
-      for(j = 0; j < length; ++j) {
+      for(int j = 0; j < length; ++j) {
         struct parameterwrapper * parameter = queues[j];
         struct ObjectHash * set=parameter->objectset;
-        struct ObjectNode * ptr=set->listhead;
-        while(ptr!=NULL) {
-          ptr->key = flushObj((void *)ptr->key, __LINE__, (void *)ptr->key, 0);
-          ptr=ptr->lnext;
+        for(struct ObjectNode * ptr=set->listhead;ptr!=NULL;ptr=ptr->lnext) {
+          FLUSHOBJNONNULL(ptr->key, 0);
         }
         ObjectHashrehash(set);
       }
@@ -93,87 +66,63 @@ INLINE void flushRuntimeObj(struct garbagelist * stackptr) {
 
   // flush current task descriptor
   if(currtpd != NULL) {
-    for(i=0; i<currtpd->numParameters; i++) {
+    for(int i=0; i<currtpd->numParameters; i++) {
       // the parameter can not be NULL
-      currtpd->parameterArray[i] = flushObj(currtpd->parameterArray[i], 
-          __LINE__, currtpd->parameterArray[i], i);
+      FLUSHOBJNONNULL(currtpd->parameterArray[i], i);
     }
   }
 
   // flush active tasks
   if(activetasks != NULL) {
-    struct genpointerlist * ptr=activetasks->list;
-    while(ptr!=NULL) {
+    for(struct genpointerlist * ptr=activetasks->list;ptr!=NULL;ptr=ptr->inext) {
       struct taskparamdescriptor *tpd=ptr->src;
-      int i;
-      for(i=0; i<tpd->numParameters; i++) {
+      for(int i=0; i<tpd->numParameters; i++) {
         // the parameter can not be NULL
-        tpd->parameterArray[i] = 
-          flushObj(tpd->parameterArray[i], __LINE__, tpd->parameterArray[i], i);
+	FLUSHOBJNONNULL(tpd->parameterArray[i], i);
       }
-      ptr=ptr->inext;
     }
     genrehash(activetasks);
   }
 
   // flush cached transferred obj
-  struct QueueItem * tmpobjptr =  getHead(&objqueue);
-  while(tmpobjptr != NULL) {
+  for(struct QueueItem * tmpobjptr =  getHead(&objqueue);tmpobjptr != NULL;tmpobjptr = getNextQueueItem(tmpobjptr)) {
     struct transObjInfo * objInfo=(struct transObjInfo *)(tmpobjptr->objectptr);
     // the obj can not be NULL
-    objInfo->objptr = flushObj(objInfo->objptr, __LINE__, objInfo->objptr, 0);
-    tmpobjptr = getNextQueueItem(tmpobjptr);
+    FLUSHOBJNONNULL(objInfo->objptr, 0);
   }
 
   // flush cached objs to be transferred
-  struct QueueItem * item = getHead(totransobjqueue);
-  while(item != NULL) {
+  for(struct QueueItem * item = getHead(totransobjqueue);item != NULL;item = getNextQueueItem(item);) {
     struct transObjInfo * totransobj = (struct transObjInfo *)(item->objectptr);
     // the obj can not be NULL
-    totransobj->objptr = 
-      flushObj(totransobj->objptr, __LINE__, totransobj->objptr, 0);
-    item = getNextQueueItem(item);
+    FLUSHOBJNONNULL(totransobj->objptr, 0);
   }  
 
   // enqueue lock related info
-  for(i = 0; i < runtime_locklen; ++i) {
-    if(runtime_locks[i].redirectlock != NULL) {
-      runtime_locks[i].redirectlock = flushObj(runtime_locks[i].redirectlock, 
-          __LINE__, runtime_locks[i].redirectlock, i);
-    }
-    if(runtime_locks[i].value != NULL) {
-      runtime_locks[i].value = flushObj(runtime_locks[i].value, 
-          __LINE__, runtime_locks[i].value, i);
-    }
+  for(int i = 0; i < runtime_locklen; ++i) {
+    FLUSHOBJ(runtime_locks[i].redirectlock, i);
+    FLUSHOBJ(runtime_locks[i].value, i);
   }
 #endif
 
 #ifdef MGC
   // flush the bamboo_threadlocks
-  for(i = 0; i < bamboo_threadlocks.index; i++) {
+  for(int i = 0; i < bamboo_threadlocks.index; i++) {
     // the locked obj can not be NULL
-    bamboo_threadlocks.locks[i].object = 
-      flushObj((void *)(bamboo_threadlocks.locks[i].object), 
-          __LINE__, (void *)(bamboo_threadlocks.locks[i].object), i);
+    FLUSHOBJNONNULL(bamboo_threadlocks.locks[i].object, i);
   }
 
   // flush the bamboo_current_thread
-  if(bamboo_current_thread != 0) {
-    bamboo_current_thread = 
-      (unsigned int)(flushObj((void *)bamboo_current_thread, 
-            __LINE__, (void *)bamboo_current_thread, 0));
-  }
+  FLUSHOBJ(bamboo_current_thread, 0);
 
   // flush global thread queue
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     unsigned int thread_counter = *((unsigned int*)(bamboo_thread_queue+1));
     if(thread_counter > 0) {
       unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
-      for(i = thread_counter; i > 0; i--) {
+      for(int i = thread_counter; i > 0; i--) {
         // the thread obj can not be NULL
-        bamboo_thread_queue[4+start] = 
-          (INTPTR)(flushObj((void *)bamboo_thread_queue[4+start], 
-                __LINE__, (void *)bamboo_thread_queue, 0));
+        FLUSHOBJNONNULL(bamboo_thread_queue[4+start], 0);
         start = (start+1)&bamboo_max_thread_num_mask;
       }
     }
@@ -185,57 +134,42 @@ INLINE void flushRuntimeObj(struct garbagelist * stackptr) {
 INLINE void flushPtrsInObj(void * ptr) {
   int type = ((int *)(ptr))[0];
   // scan all pointers in ptr
-  unsigned int * pointer;
-  pointer=pointerarray[type];
+  unsigned int * pointer=pointerarray[type];
   if (pointer==0) {
     /* Array of primitives */
-    pointer=pointerarray[OBJECTTYPE];
+#ifdef OBJECTHASPOINTERS
     //handle object class
+    pointer=pointerarray[OBJECTTYPE];
     unsigned int size=pointer[0];
-    int i;
-    for(i=1; i<=size; i++) {
+    for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
-      void * objptr=*((void **)(((char *)ptr)+offset));
-      if(objptr != NULL) {
-        *((void **)(((char *)ptr)+offset)) = flushObj(objptr, __LINE__, ptr, i);
-      }
+      FLUSHOBJ(*((void **)(((char *)ptr)+offset)), i);
     }
+#endif
   } else if (((unsigned int)pointer)==1) {
     /* Array of pointers */
     struct ArrayObject *ao=(struct ArrayObject *) ptr;
     int length=ao->___length___;
-    int j;
-    for(j=0; j<length; j++) {
-      void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[j];
-      if(objptr != NULL) {
-        ((void **)(((char *)&ao->___length___)+sizeof(int)))[j] = 
-          flushObj(objptr, __LINE__, ptr, j);
-      }
+    for(int j=0; j<length; j++) {
+      FLUSHOBJ(((void **)(((char *)&ao->___length___)+sizeof(int)))[j], j);
     }
-    {
-      pointer=pointerarray[OBJECTTYPE];
-      //handle object class
-      unsigned int size=pointer[0];
-      int i;
-      for(i=1; i<=size; i++) {
-        unsigned int offset=pointer[i];     
-        void * objptr=*((void **)(((char *)ptr)+offset));
-        if(objptr != NULL) {
-          *((void **)(((char *)ptr)+offset)) = 
-            flushObj(objptr, __LINE__, ptr, i);
-        }
-      }
+#ifdef OBJECTHASPOINTERS
+    pointer=pointerarray[OBJECTTYPE];
+    //handle object class
+    unsigned int size=pointer[0];
+    
+    for(int i=1; i<=size; i++) {
+      unsigned int offset=pointer[i];     
+      FLUSHOBJ(*((void **)(((char *)ptr)+offset)), i);
     }
+#endif
   } else {
     unsigned int size=pointer[0];
-    int i;
-    for(i=1; i<=size; i++) {
+    
+    for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
-      void * objptr=*((void **)(((char *)ptr)+offset));
-      if(objptr != NULL) {
-        *((void **)(((char *)ptr)+offset)) = flushObj(objptr, __LINE__, ptr, i);
-      }
-    } 
+      FLUSHOBJ(*((void **)(((char *)ptr)+offset)), i);
+    }
   }  
 }
 
@@ -243,7 +177,6 @@ void flush(struct garbagelist * stackptr) {
   BAMBOO_CACHE_MF();
 
   flushRuntimeObj(stackptr);
-
   while(true) {
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     if(!gc_moreItems_I()) {
@@ -254,10 +187,9 @@ void flush(struct garbagelist * stackptr) {
     unsigned int ptr = gc_dequeue_I();
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
     // should be a local shared obj and should have mapping info
-    ptr = flushObj(ptr, __LINE__, ptr, 0);
-    if(ptr == NULL) {
-      BAMBOO_EXIT(0xb02a);
-    }
+    FLUSHOBJNONNULL(ptr, 0);
+    BAMBOO_ASSERT(ptr != NULL, 0xb02a);
+
     if(((struct ___Object___ *)ptr)->marked == COMPACTED) {
       flushPtrsInObj((void *)ptr);
       // restore the mark field, indicating that this obj has been flushed
@@ -270,10 +202,9 @@ void flush(struct garbagelist * stackptr) {
   // flush lobjs
   while(gc_lobjmoreItems_I()) {
     unsigned int ptr = gc_lobjdequeue_I(NULL, NULL);
-    ptr = flushObj(ptr, __LINE__, ptr, 0);
-    if(ptr == NULL) {
-      BAMBOO_EXIT(0xb02d);
-    }
+    FLUSHOBJ(ptr, 0);
+    BAMBOO_ASSERT(ptr!=NULL, 0xb02d);
+
     if(((struct ___Object___ *)ptr)->marked == COMPACTED) {
       flushPtrsInObj((void *)ptr);
       // restore the mark field, indicating that this obj has been flushed
