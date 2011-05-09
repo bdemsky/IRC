@@ -1,4 +1,3 @@
-// BAMBOO_EXIT(0xb000);
 // TODO: DO NOT support tag!!!
 #ifdef MULTICORE_GC
 #include "runtime.h"
@@ -9,6 +8,7 @@
 #include "multicoregcflush.h"
 #include "multicoreruntime.h"
 #include "multicoregcprofile.h"
+#include "gcqueue.h"
 
 #ifdef SMEMM
 extern unsigned int gcmem_mixed_threshold;
@@ -177,7 +177,7 @@ void initGC() {
   gccurr_heaptop = 0;
   gcdstcore = 0;
 
-  gcqueue_init();
+  gc_queueinit();
 
   freeMGCHash(gcforwardobjtbl);
   gcforwardobjtbl = allocateMGCHash(20, 3);
@@ -185,6 +185,19 @@ void initGC() {
   GCPROFILE_INIT();
 } 
 
+bool gc_checkAllCoreStatus() {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  for(int i = 0; i < NUMCORESACTIVE; i++) {
+    if(gccorestatus[i] != 0) {
+      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+      return false;
+    }  
+  }  
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  return true;
+}
+
+// NOTE: should be invoked with interrupts turned off
 bool gc_checkAllCoreStatus_I() {
   for(int i = 0; i < NUMCORESACTIVE; i++) {
     if(gccorestatus[i] != 0) {
@@ -216,15 +229,10 @@ INLINE void checkMarkStatus() {
         // the first time found all cores stall
         // send out status confirm msg to all other cores
         // reset the corestatus array too    
-        gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
         waitconfirm = true;
         numconfirm = NUMCORESACTIVE - 1;
         BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-        for(int i = 1; i < NUMCORESACTIVE; i++) {
-          gccorestatus[i] = 1;
-          // send mark phase finish confirm request msg to core i
-          send_msg_1(i, GCMARKCONFIRM, false);
-        }
+        GC_SEND_MSG_1_TO_CLIENT(GCMARKCONFIRM);
       } else {
         // Phase 2
         // check if the sum of send objs and receive obj are the same
@@ -730,8 +738,7 @@ void master_getlargeobjs() {
   }
   gcloads[BAMBOO_NUM_OF_CORE] = gccurr_heaptop;
   //spin until we have all responses
-  while(numconfirm!=0)
-    ;
+  while(numconfirm!=0) ;
 
   // check the heaptop
   if(gcheaptop < gcmarkedptrbound) {
@@ -741,7 +748,7 @@ void master_getlargeobjs() {
   GC_PRINTF("prepare to cache large objs \n");
 
   // cache all large objs
-  BAMBOO_ASSERTMSG(cacheLObjs(), "Not enough space to cache large objects\n", 0xb02e);
+  BAMBOO_ASSERTMSG(cacheLObjs(), "Not enough space to cache large objects\n");
 }
 
 void master_compact() {
@@ -794,7 +801,7 @@ void master_compact() {
   RUNFREE(to);
 }
 
-void master_updaterefs() {
+void master_updaterefs(struct garbagelist * stackptr) {
   gcphase = FLUSHPHASE;
   GC_SEND_MSG_1_TO_CLIENT(GCSTARTFLUSH);
   GCPROFILE_ITEM();
@@ -860,7 +867,7 @@ void gc_master(struct garbagelist * stackptr) {
   master_compact();
   
   // update the references
-  master_updaterefs();
+  master_updaterefs(stackptr);
 
   // do cache adaptation
   CACHEADAPT_PHASE_MASTER();
@@ -872,8 +879,9 @@ void gc_master(struct garbagelist * stackptr) {
   tprintf("finish GC ! %d \n", gcflag);
 } 
 
-void pregccheck_I() {
+void pregccheck() {
   while(true) {
+    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     gcnumsendobjs[0][BAMBOO_NUM_OF_CORE] = self_numsendobjs;
     gcnumreceiveobjs[0][BAMBOO_NUM_OF_CORE] = self_numreceiveobjs;
     int sumsendobj = 0;
@@ -890,9 +898,8 @@ void pregccheck_I() {
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 
       while(!gcprecheck) ;
-      
-      BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     } else {
+      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       return;
     }
   }
@@ -938,17 +945,14 @@ bool gc(struct garbagelist * stackptr) {
   if(0 == BAMBOO_NUM_OF_CORE) {
     GC_PRINTF("Check if we can do gc or not\n");
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-    if(!gc_checkAllCoreStatus_I()) {
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+    if(!gc_checkAllCoreStatus()) {
       // some of the cores are still executing the mutator and did not reach
       // some gc safe point, therefore it is not ready to do gc
       gcflag = true;
       return false;
     } else {
       GCPROFILE_START();
-      pregccheck_I();
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+      pregccheck();
     }
     GC_PRINTF("start gc! \n");
     pregcprocessing();

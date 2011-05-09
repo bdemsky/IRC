@@ -32,7 +32,7 @@ memalloc:
       hasgc++;
     } else {
       // no more global shared memory
-      BAMBOO_EXIT(0xc001);
+      BAMBOO_EXIT();
     }
 
     // try to malloc again
@@ -55,7 +55,7 @@ void * mycalloc_share(int m,
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
   if(p == NULL) {
     // no more global shared memory
-    BAMBOO_EXIT(0xc002);
+    BAMBOO_EXIT();
   }
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return
@@ -86,7 +86,7 @@ inermycalloc_i:
     }
 #endif
     printf("mycalloc %s %d \n", file, line);
-    BAMBOO_EXIT(0xc003);
+    BAMBOO_EXIT();
   }
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return p;
@@ -115,7 +115,7 @@ inermycalloc_i:
     }
 #endif
     tprintf("mycalloc_i %s %d \n", file, line);
-    BAMBOO_EXIT(0xc004);
+    BAMBOO_EXIT();
   }
   return p;
 }

@@ -77,21 +77,12 @@ INLINE void markObj(void * objptr) {
   unsigned int host = hostcore(objptr);
   if(BAMBOO_NUM_OF_CORE == host) {
     // on this core
-
-    /*BD: I think it is probably okay to keep interrupts enabled
-     * here...  Reasoning is the following...  Even if we enqueue an
-     * object twice, the pointers in it will be marked only once
-     * (we'll catch it in the mark phase), so correctness should not
-     * be a concern...  The chances of this actually happening are
-     * pretty small, so efficiency should not be a concern
-     */
-
     if(((struct ___Object___ *)objptr)->marked == INIT) {
       // this is the first time that this object is discovered,
       // set the flag as DISCOVERED
       ((struct ___Object___ *)objptr)->marked = DISCOVERED;
       BAMBOO_CACHE_FLUSH_LINE(objptr);
-      gc_enqueue_I(objptr);
+      gc_enqueue(objptr);
     }
   } else {
     // check if this obj has been forwarded
@@ -116,7 +107,7 @@ INLINE void markgarbagelist(struct garbagelist * listptr) {
 
 // enqueue root objs
 INLINE void tomark(struct garbagelist * stackptr) {
-  BAMBOO_ASSERT(MARKPHASE == gcphase, 0xb010);
+  BAMBOO_ASSERT(MARKPHASE == gcphase);
 
   gcbusystatus = true;
   gcnumlobjs = 0;
@@ -272,16 +263,10 @@ INLINE void mark(bool isfirst, struct garbagelist * stackptr) {
   // mark phase
   while(MARKPHASE == gcphase) {
     int counter = 0;
-    while(true) {
-      BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-      if(!gc_moreItems2_I()) {
-        BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-        break;
-      }
+    while(gc_moreItems2()) {
       sendStall = false;
       gcbusystatus = true;
-      unsigned int ptr = gc_dequeue2_I();
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+      unsigned int ptr = gc_dequeue2();
 
       unsigned int size = 0;
       unsigned int isize = 0;
@@ -292,10 +277,8 @@ INLINE void mark(bool isfirst, struct garbagelist * stackptr) {
         continue;
       } else if(isLarge(ptr, &type, &size)) {
         // ptr is a large object and not marked or enqueued
-        BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-        gc_lobjenqueue_I(ptr, size, BAMBOO_NUM_OF_CORE);
+        gc_lobjenqueue(ptr, size, BAMBOO_NUM_OF_CORE);
         gcnumlobjs++;
-        BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       } else {
         // ptr is an unmarked active object on this core
         ALIGNSIZE(size, &isize);
@@ -321,8 +304,7 @@ INLINE void mark(bool isfirst, struct garbagelist * stackptr) {
       gcloads[BAMBOO_NUM_OF_CORE] = gccurr_heaptop;
     } else {
       if(!sendStall) {
-        send_msg_4(STARTUPCORE, GCFINISHMARK, BAMBOO_NUM_OF_CORE,
-		   gcself_numsendobjs, gcself_numreceiveobjs, false);
+        send_msg_4(STARTUPCORE, GCFINISHMARK, BAMBOO_NUM_OF_CORE,gcself_numsendobjs, gcself_numreceiveobjs, false);
         sendStall = true;
       }
     }

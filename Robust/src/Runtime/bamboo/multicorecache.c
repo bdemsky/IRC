@@ -567,37 +567,21 @@ void cacheAdapt_phase_client() {
 void cacheAdapt_phase_master() {
   GCPROFILEITEM();
   gcphase = PREFINISHPHASE;
-  gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
-  // Note: all cores should flush their runtime data including non-gc
-  //       cores
-  for(i = 1; i < NUMCORESACTIVE; ++i) {
-    // send start flush messages to all cores
-    gccorestatus[i] = 1;
-    send_msg_1(i, GCSTARTPREF, false);
-  }
+  // Note: all cores should flush their runtime data including non-gc cores
+  GC_SEND_MSG_1_TO_CLIENT(GCSTARTPREF);
   GC_PRINTF("Start prefinish phase \n");
   // cache adapt phase
   cacheAdapt_mutator();
   CACHEADPAT_OUTPUT_CACHE_POLICY();
   cacheAdapt_gc(false);
 
-  gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-  while(PREFINISHPHASE == gcphase) {
-    // check the status of all cores
-    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-    if(gc_checkAllCoreStatus_I()) {
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-      break;
-    }
-    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-  }
+  GC_CHECK_ALL_CORE_STATUS(PREFINISHPHASE == gcphase);
 
   CACHEADAPT_SAMPING_RESET();
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
     // zero out the gccachesamplingtbl
     BAMBOO_MEMSET_WH(gccachesamplingtbl_local,0,size_cachesamplingtbl_local);
-    BAMBOO_MEMSET_WH(gccachesamplingtbl_local_r,0,
-        size_cachesamplingtbl_local_r);
+    BAMBOO_MEMSET_WH(gccachesamplingtbl_local_r,0,size_cachesamplingtbl_local_r);
     BAMBOO_MEMSET_WH(gccachepolicytbl,0,size_cachepolicytbl);
   }
 }

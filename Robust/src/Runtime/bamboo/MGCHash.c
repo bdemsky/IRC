@@ -28,7 +28,7 @@ mgchashtable_t * mgchashCreate(unsigned int size, double loadfactor) {
 
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf401);
+    BAMBOO_EXIT();
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -38,13 +38,13 @@ mgchashtable_t * mgchashCreate(unsigned int size, double loadfactor) {
   // Allocate space for the hash table
   ctable = (mgchashtable_t *)RUNMALLOC(sizeof(mgchashtable_t));
   if(ctable == NULL) {
-	// Run out of local memory
-	BAMBOO_EXIT(0xf402);
+    // Run out of local memory
+    BAMBOO_EXIT();
   }
   ctable->table = (mgchashlistnode_t*)RUNMALLOC(size*sizeof(mgchashlistnode_t));
   if(ctable->table == NULL) {
-	// Run out of local memory
-	BAMBOO_EXIT(0xf403);
+    // Run out of local memory
+    BAMBOO_EXIT();
   }
   ctable->loadfactor = loadfactor;
   ctable->size = size;
@@ -131,7 +131,7 @@ mgchashtable_t * mgchashCreate_I(unsigned int size, double loadfactor) {
 
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf404);
+    BAMBOO_EXIT();
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -141,13 +141,13 @@ mgchashtable_t * mgchashCreate_I(unsigned int size, double loadfactor) {
   // Allocate space for the hash table
   ctable = (mgchashtable_t*)RUNMALLOC_I(sizeof(mgchashtable_t));
   if(ctable == NULL) {
-	// Run out of local memory
-	BAMBOO_EXIT(0xf405);
+    // Run out of local memory
+    BAMBOO_EXIT();
   }
   ctable->table=(mgchashlistnode_t*)RUNMALLOC_I(size*sizeof(mgchashlistnode_t));
   if(ctable->table == NULL) {
-	// Run out of local memory
-	BAMBOO_EXIT(0xf406);
+    // Run out of local memory
+    BAMBOO_EXIT();
   }
   ctable->loadfactor = loadfactor;
   ctable->size = size;
@@ -294,7 +294,7 @@ unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
   oldsize = tbl->size;
 
   if((node = RUNMALLOC_I(newsize*sizeof(mgchashlistnode_t))) == NULL) {
-    BAMBOO_EXIT(0xf407);
+    BAMBOO_EXIT();
     printf("Calloc error %s %d\n", __FILE__, __LINE__);
     return 1;
   }
@@ -312,29 +312,29 @@ unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
       mgchashlistnode_t *tmp,*next;
 
       if ((key=curr->key) == 0) {
-		//Exit inner loop if there the first element is 0
-		break;
-		//key = val =0 for element if not present within the hash table
+        //Exit inner loop if there the first element is 0
+        break;
+        //key = val =0 for element if not present within the hash table
       }
       index = (((unsigned INTPTR)key) & mask) >> (GC_SHIFT_BITS);
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
       if(tmp->key == 0) {
-		tmp->key = key;
-		tmp->val = curr->val;
+        tmp->key = key;
+        tmp->val = curr->val;
       } /*
 	   NOTE:  Add this case if you change this...
 	   This case currently never happens because of the way things rehash....*/
       else if (isfirst) {
-		mgchashlistnode_t *newnode=RUNMALLOC_I(1*sizeof(mgchashlistnode_t)); 
-		newnode->key = curr->key;
-		newnode->val = curr->val;
-		newnode->next = tmp->next;
-		tmp->next=newnode;
+        mgchashlistnode_t *newnode=RUNMALLOC_I(1*sizeof(mgchashlistnode_t)); 
+        newnode->key = curr->key;
+        newnode->val = curr->val;
+        newnode->next = tmp->next;
+        tmp->next=newnode;
       } else {
-		curr->next=tmp->next;
-		tmp->next=curr;
+        curr->next=tmp->next;
+        tmp->next=curr;
       }
 
       isfirst = 0;
@@ -367,7 +367,7 @@ struct MGCHash * allocateMGCHash(int size,
   struct MGCHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf408);
+    BAMBOO_EXIT();
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -432,7 +432,7 @@ struct MGCHash * allocateMGCHash_I(int size,
   struct MGCHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf409);
+    BAMBOO_EXIT();
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -487,9 +487,9 @@ int MGCHashcontains(struct MGCHash *thisvar, int data) {
   while (ptr!=NULL) {
     if (ptr->data == data) {
       if(prev != NULL) {
-	prev->next = NULL;
-	ptr->next = thisvar->bucket[hashkey].next;
-	thisvar->bucket[hashkey].next = ptr;
+        prev->next = NULL;
+        ptr->next = thisvar->bucket[hashkey].next;
+        thisvar->bucket[hashkey].next = ptr;
       }
 
       return 1;       // success

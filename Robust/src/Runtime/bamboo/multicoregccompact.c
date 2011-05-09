@@ -5,12 +5,78 @@
 
 extern int corenum;
 
-INLINE bool gc_checkCoreStatus_I() {
+INLINE bool gc_checkCoreStatus() {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   for(int i = 0; i < NUMCORES4GC; ++i) {
-    if(gccorestatus[i] != 0)
+    if(gccorestatus[i] != 0) {
+      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       return false;
+    }
   }  
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return true;
+}
+
+INLINE void gc_resetCoreStatus() {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  for(int i = 0; i < NUMCORES4GC; ++i) {
+    gccorestatus[i] = 1;
+  }
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+}
+
+// should be invoked with interrupt closed
+int assignSpareMem_I(unsigned int sourcecore,
+                     unsigned int * requiredmem,
+                     unsigned int * tomove,
+                     unsigned int * startaddr) {
+  unsigned int b = 0;
+  BLOCKINDEX(gcloads[sourcecore], &b);
+  unsigned int boundptr = (b<NUMCORES4GC) ? ((b+1)*BAMBOO_SMEM_SIZE_L)
+     : (BAMBOO_LARGE_SMEM_BOUND+(b-NUMCORES4GC+1)*BAMBOO_SMEM_SIZE);
+  unsigned int remain = boundptr - gcloads[sourcecore];
+  unsigned int memneed = requiredmem + BAMBOO_CACHE_LINE_SIZE;
+  *startaddr = gcloads[sourcecore];
+  *tomove = gcfilledblocks[sourcecore] + 1;
+  if(memneed < remain) {
+    gcloads[sourcecore] += memneed;
+    return 0;
+  } else {
+    // next available block
+    gcfilledblocks[sourcecore] += 1;
+    unsigned int newbase = 0;
+    BASEPTR(sourcecore, gcfilledblocks[sourcecore], &newbase);
+    gcloads[sourcecore] = newbase;
+    return requiredmem-remain;
+  }
+}
+
+int assignSpareMem(unsigned int sourcecore,
+                   unsigned int * requiredmem,
+                   unsigned int * tomove,
+                   unsigned int * startaddr) {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  unsigned int b = 0;
+  BLOCKINDEX(gcloads[sourcecore], &b);
+  unsigned int boundptr = (b<NUMCORES4GC) ? ((b+1)*BAMBOO_SMEM_SIZE_L)
+     : (BAMBOO_LARGE_SMEM_BOUND+(b-NUMCORES4GC+1)*BAMBOO_SMEM_SIZE);
+  unsigned int remain = boundptr - gcloads[sourcecore];
+  unsigned int memneed = requiredmem + BAMBOO_CACHE_LINE_SIZE;
+  *startaddr = gcloads[sourcecore];
+  *tomove = gcfilledblocks[sourcecore] + 1;
+  if(memneed < remain) {
+    gcloads[sourcecore] += memneed;
+    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+    return 0;
+  } else {
+    // next available block
+    gcfilledblocks[sourcecore] += 1;
+    unsigned int newbase = 0;
+    BASEPTR(sourcecore, gcfilledblocks[sourcecore], &newbase);
+    gcloads[sourcecore] = newbase;
+    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+    return requiredmem-remain;
+  }
 }
 
 INLINE void compact2Heaptophelper_I(unsigned int coren,
@@ -25,7 +91,11 @@ INLINE void compact2Heaptophelper_I(unsigned int coren,
     gcdstcore = gctopcore;
     gcblock2fill = *numblocks + 1;
   } else {
-    send_msg_4(coren, GCMOVESTART, gctopcore, *p, (*numblocks) + 1, false);
+    if(BAMBOO_CHECK_SEND_MODE()) {
+      cache_msg_4(coren,GCMOVESTART,gctopcore,*p,(*numblocks)+1);
+    } else {
+      send_msg_4(coren, GCMOVESTART, gctopcore, *p, (*numblocks) + 1, true);
+    }
   }
   if(memneed < *remain) {
     *p = *p + memneed;
@@ -122,12 +192,10 @@ INLINE void resolvePendingMoveRequest() {
       // find match
       unsigned int tomove = 0;
       unsigned int startaddr = 0;
-      BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-      gcrequiredmems[dstcore] = assignSpareMem_I(sourcecore,
-                                                 gcrequiredmems[dstcore],
-                                                 &tomove,
-                                                 &startaddr);
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+      gcrequiredmems[dstcore] = assignSpareMem(sourcecore,
+                                               gcrequiredmems[dstcore],
+                                               &tomove,
+                                               &startaddr);
       if(STARTUPCORE == dstcore) {
 	gcdstcore = sourcecore;
 	gctomove = true;
@@ -384,37 +452,11 @@ INLINE bool moveobj(struct moveHelper * orig, struct moveHelper * to, unsigned i
 } 
 
 // should be invoked with interrupt closed
-INLINE int assignSpareMem_I(unsigned int sourcecore,
-                            unsigned int * requiredmem,
-                            unsigned int * tomove,
-                            unsigned int * startaddr) {
-  unsigned int b = 0;
-  BLOCKINDEX(gcloads[sourcecore], &b);
-  unsigned int boundptr = (b<NUMCORES4GC) ? ((b+1)*BAMBOO_SMEM_SIZE_L)
-     : (BAMBOO_LARGE_SMEM_BOUND+(b-NUMCORES4GC+1)*BAMBOO_SMEM_SIZE);
-  unsigned int remain = boundptr - gcloads[sourcecore];
-  unsigned int memneed = requiredmem + BAMBOO_CACHE_LINE_SIZE;
-  *startaddr = gcloads[sourcecore];
-  *tomove = gcfilledblocks[sourcecore] + 1;
-  if(memneed < remain) {
-    gcloads[sourcecore] += memneed;
-    return 0;
-  } else {
-    // next available block
-    gcfilledblocks[sourcecore] += 1;
-    unsigned int newbase = 0;
-    BASEPTR(sourcecore, gcfilledblocks[sourcecore], &newbase);
-    gcloads[sourcecore] = newbase;
-    return requiredmem-remain;
-  }
-} 
-
-// should be invoked with interrupt closed
-INLINE bool gcfindSpareMem_I(unsigned int * startaddr,
-                             unsigned int * tomove,
-                             unsigned int * dstcore,
-                             unsigned int requiredmem,
-                             unsigned int requiredcore) {
+bool gcfindSpareMem_I(unsigned int * startaddr,
+                      unsigned int * tomove,
+                      unsigned int * dstcore,
+                      unsigned int requiredmem,
+                      unsigned int requiredcore) {
   for(int k = 0; k < NUMCORES4GC; k++) {
     if((gccorestatus[k] == 0) && (gcfilledblocks[k] < gcstopblock[k])) {
       // check if this stopped core has enough mem
@@ -428,6 +470,28 @@ INLINE bool gcfindSpareMem_I(unsigned int * startaddr,
   gcmovepending++;
   return false;
 } 
+
+bool gcfindSpareMem(unsigned int * startaddr,
+                    unsigned int * tomove,
+                    unsigned int * dstcore,
+                    unsigned int requiredmem,
+                    unsigned int requiredcore) {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  for(int k = 0; k < NUMCORES4GC; k++) {
+    if((gccorestatus[k] == 0) && (gcfilledblocks[k] < gcstopblock[k])) {
+      // check if this stopped core has enough mem
+      assignSpareMem_I(k, requiredmem, tomove, startaddr);
+      *dstcore = k;
+      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+      return true;
+    }
+  }
+  // if can not find spare mem right now, hold the request
+  gcrequiredmems[requiredcore] = requiredmem;
+  gcmovepending++;
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  return false;
+}
 
 INLINE bool compacthelper(struct moveHelper * orig,
                           struct moveHelper * to,
@@ -466,15 +530,12 @@ innercompact:
     if((unsigned int)(orig->ptr) < (unsigned int)gcmarkedptrbound) {
       // ask for more mem
       gctomove = false;
-      BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-      if(gcfindSpareMem_I(&gcmovestartaddr, &gcblock2fill, &gcdstcore,
+      if(gcfindSpareMem(&gcmovestartaddr, &gcblock2fill, &gcdstcore,
             gccurr_heaptop, BAMBOO_NUM_OF_CORE)) {
         gctomove = true;
       } else {
-        BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
         return false;
       }
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
     } else {
       gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
       gctomove = false;
@@ -495,8 +556,7 @@ innercompact:
 
   if(orig->ptr < gcmarkedptrbound) {
     // still have unpacked obj
-    while(!gctomove)
-      ;
+    while(!gctomove) ;
     
     gctomove = false;
 
@@ -518,7 +578,7 @@ innercompact:
 }
 
 void compact() {
-  BAMBOO_ASSERT(COMPACTPHASE == gcphase, 0xb025);
+  BAMBOO_ASSERT(COMPACTPHASE == gcphase);
   
   // initialize pointers for comapcting
   struct moveHelper * orig = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
@@ -556,17 +616,11 @@ void compact_master(struct moveHelper * orig, struct moveHelper * to) {
       finishcompact = compacthelper(orig,to,&filledblocks,&heaptopptr,&localcompact);
     }
     
-    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-    if(gc_checkCoreStatus_I()) {
-      // all cores have finished compacting
-      // restore the gcstatus of all cores
-      for(int i = 0; i < NUMCORES4GC; ++i) {
-        gccorestatus[i] = 1;
-      }
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+    if(gc_checkCoreStatus()) {
+      // all cores have finished compacting restore the gcstatus of all cores
+      gc_resetCoreStatus();
       break;
     } else {
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       // check if there are spare mem for pending move requires
       if(COMPACTPHASE == gcphase) {
         resolvePendingMoveRequest();

@@ -22,10 +22,10 @@ struct ObjectHash * noargallocateObjectHash() {
 }
 
 struct ObjectHash * allocateObjectHash(int size) {
-  struct ObjectHash *thisvar;  //=(struct ObjectHash *)RUNMALLOC(sizeof(struct ObjectHash));
+  struct ObjectHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf001);
+    BAMBOO_EXIT();
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);

@@ -73,16 +73,6 @@ INLINE void initlock(struct ___Object___ * v);
 INLINE void terminatememprof(void);
 #endif // BAMBOO_MEMPROF
 
-// Would probably be better to just have these print out line numbers...
-// But not going to do that without consultation
-
-//Macros for performance runs....to eliminate assertions if we don't need them
-//#define BAMBOO_ASSERT(x, y)  ;
-//#define BAMBOO_ASSERTMSG(x, y, z) ;
-
-#define BAMBOO_ASSERT(x, y) if (!x) BAMBOO_EXIT(y);
-#define BAMBOO_ASSERTMSG(x, y, z) if (!x) {GC_PRINTF(y); BAMBOO_EXIT(z);}
-
 ///////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
@@ -96,8 +86,11 @@ INLINE void terminatememprof(void);
 // BAMBOO_DEBUGPRINT(x): print out integer x                               //
 // BAMBOO_DEBUGPRINT_REG(x): print out value of variable x                 //
 // BAMBOO_EXIT_APP(x): exit the whole application                          //
-// BAMBOO_EXIT(x): error exit routine with error #                         //
+// BAMBOO_EXIT(x): error exit routine with file name and line #            //
 // BAMBOO_DIE(x): error exit routine with error msg                        //
+// BAMBOO_ASSERT(x) : check if condition x is met                          //
+// BAMBOO_ASSERTMSG(x.y): check if condition x is met or not, if not, print//
+//                        out msg y                                        //
 // BAMBOO_GET_EXE_TIME(): rountine to get current clock cycle number       //
 // BAMBOO_MSG_AVAIL(): checking if there are msgs coming in                //
 // BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT(): change to runtime mode from    //

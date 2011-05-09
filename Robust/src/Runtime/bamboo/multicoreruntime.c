@@ -287,13 +287,11 @@ void CALL11(___System______exit____I,
 // gc_profile mode, output gc prfiling data
 #ifdef MULTICORE_GC
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-    BAMBOO_PRINT(BAMBOO_GET_EXE_TIME());
-    BAMBOO_PRINT(0xbbbbbbbb);
     CACHEADAPT_DISABLE_TIMER();
     GC_OUTPUT_PROFILE_DATA();
   }
 #endif 
-  BAMBOO_EXIT(___status___);
+  BAMBOO_EXIT_APP(___status___);
 }
 
 #ifdef D___Vector______removeElement_____AR_L___Object____I_I
@@ -502,7 +500,7 @@ void failedboundschk(int num) {
 #ifdef THREADS
   threadexit();
 #elif defined MGC
-  BAMBOO_EXIT(0xa0000000 + num);
+  BAMBOO_EXIT();
 #else
   exit(-1);
 #endif
@@ -511,7 +509,7 @@ void failedboundschk(int num) {
   printf("Array out of bounds\n");
   longjmp(error_handler,2);
 #else
-  BAMBOO_EXIT(0xa0000000 + num);
+  BAMBOO_EXIT();
 #endif
 #endif
 }
@@ -543,7 +541,7 @@ void failednullptr(void * ptr) {
 #ifdef THREADS
   threadexit();
 #elif defined MGC
-  BAMBOO_EXIT(0xa001);
+  BAMBOO_EXIT();
 #else
   exit(-1);
 #endif
@@ -552,7 +550,7 @@ void failednullptr(void * ptr) {
   printf("NULL ptr\n");
   longjmp(error_handler,2);
 #else
-  BAMBOO_EXIT(0xa001);
+  BAMBOO_EXIT();
 #endif
 #endif
 }
@@ -593,7 +591,7 @@ INLINE void initruntimedata() {
   }
   msgdataindex = 0;
   msgdatalast = 0;
-  msglength = BAMBOO_MSG_BUF_LENGTH;
+  //msglength = BAMBOO_MSG_BUF_LENGTH;
   msgdatafull = false;
   for(i = 0; i < BAMBOO_OUT_BUF_LENGTH; ++i) {
     outmsgdata[i] = -1;
@@ -641,7 +639,7 @@ INLINE void recordtotalexetime() {
 #endif // USEIO
 }
 
-INLINE void getprofiledata() {
+INLINE void getprofiledata_I() {
   //profile mode, send msgs to other cores to request pouring out progiling data
 #ifdef PROFILE
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
@@ -720,7 +718,7 @@ INLINE void checkCoreStatus() {
           // terminate; for profiling mode, send request to all
           // other cores to pour out profiling data
           recordtotalexetime();
-          getprofiledata();
+          getprofiledata_I();
           CACHEADAPT_DISABLE_TIMER();
           GC_OUTPUT_PROFILE_DATA();
           disruntimedata();
@@ -838,8 +836,7 @@ inline void run(int argc, char** argv) {
             } else {
               // send StallMsg to startup core
               // send stall msg
-              send_msg_4(STARTUPCORE, TRANSTALL, BAMBOO_NUM_OF_CORE,
-                  self_numsendobjs, self_numreceiveobjs, false);
+              send_msg_4(STARTUPCORE, TRANSTALL, BAMBOO_NUM_OF_CORE,self_numsendobjs, self_numreceiveobjs, false);
               sendStall = true;
               isfirst = true;
               busystatus = false;

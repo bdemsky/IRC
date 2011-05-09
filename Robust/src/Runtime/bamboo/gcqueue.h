@@ -1,6 +1,8 @@
 #ifndef GCQUEUE_H
 #define GCQUEUE_H
 
+#include "stdio.h"
+
 #define NUMPTRS 120
 
 struct pointerblock {
@@ -57,6 +59,9 @@ static void gc_queueinit() {
   gclobjhead->next=gclobjhead->prev=NULL;
 }
 
+////////////////////////////////////////////////////////////////////
+// functions that should be invoked with interrupts off
+////////////////////////////////////////////////////////////////////
 static void gc_enqueue_I(unsigned int ptr) {
   if (gcheadindex==NUMPTRS) {
     struct pointerblock * tmp;
@@ -72,8 +77,7 @@ static void gc_enqueue_I(unsigned int ptr) {
     gcheadindex=0;
   } 
   gchead->ptrs[gcheadindex++]=ptr;
-} 
-
+}
 
 // dequeue and destroy the queue
 static unsigned int gc_dequeue_I() {
@@ -214,4 +218,96 @@ static unsigned int gc_lobjdequeue4_I(unsigned int * length,
 static int gc_lobjmoreItems4_I() {
   return !((gclobjhead==gclobjtail2)&&(gclobjtailindex2==gclobjheadindex));
 }
+
+////////////////////////////////////////////////////////////////////
+// functions that can be invoked in normal places
+////////////////////////////////////////////////////////////////////
+static void gc_enqueue(unsigned int ptr) {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  if (gcheadindex==NUMPTRS) {
+    struct pointerblock * tmp;
+    if (gcspare!=NULL) {
+      tmp=gcspare;
+      gcspare=NULL;
+      tmp->next = NULL;
+    } else {
+      tmp=RUNMALLOC_I(sizeof(struct pointerblock));
+    } 
+    gchead->next=tmp;
+    gchead=tmp;
+    gcheadindex=0;
+  } 
+  gchead->ptrs[gcheadindex++]=ptr;
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+}
+
+static unsigned int gc_dequeue() {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  if (gctailindex==NUMPTRS) {
+    struct pointerblock *tmp=gctail;
+    gctail=gctail->next;
+    gctailindex=0;
+    if (gcspare!=NULL) {
+      RUNFREE_I(tmp);
+    } else {
+      gcspare=tmp;
+      gcspare->next = NULL;
+    } 
+  } 
+  unsigned int r = gctail->ptrs[gctailindex++];
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  return r;
+} 
+
+static int gc_moreItems() {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  int r = !((gchead==gctail)&&(gctailindex==gcheadindex));
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  return r;
+}
+
+// dequeue and do not destroy the queue
+static unsigned int gc_dequeue2() {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  if (gctailindex2==NUMPTRS) {
+    struct pointerblock *tmp=gctail2;
+    gctail2=gctail2->next;
+    gctailindex2=0;
+  } 
+  unsigned int r = gctail2->ptrs[gctailindex2++];
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  return r;
+}
+
+static int gc_moreItems2() {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  int r = !((gchead==gctail2)&&(gctailindex2==gcheadindex));
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  return r;
+}
+
+static void gc_lobjenqueue(unsigned int ptr,
+                           unsigned int length,
+                           unsigned int host) {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  if (gclobjheadindex==NUMLOBJPTRS) {
+    struct lobjpointerblock * tmp;
+    if (gclobjspare!=NULL) {
+      tmp=gclobjspare;
+      gclobjspare=NULL;
+      tmp->next = NULL;
+      tmp->prev = NULL;
+    } else {
+      tmp=RUNMALLOC_I(sizeof(struct lobjpointerblock));
+    }  
+    gclobjhead->next=tmp;
+    tmp->prev = gclobjhead;
+    gclobjhead=tmp;
+    gclobjheadindex=0;
+  } 
+  gclobjhead->lobjs[gclobjheadindex]=ptr;
+  gclobjhead->lengths[gclobjheadindex]=length;
+  gclobjhead->hosts[gclobjheadindex++]=host;
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+} 
 #endif

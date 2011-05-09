@@ -11,7 +11,7 @@ int msgdata[BAMBOO_MSG_BUF_LENGTH];
 volatile int msgdataindex;
 volatile int msgdatalast;
 //BAD! BAD! BAD!  THIS SHOULD NOT BE A GLOBAL!!!!
-int msglength;
+//int msglength;
 volatile bool msgdatafull;
 int outmsgdata[BAMBOO_OUT_BUF_LENGTH];
 int outmsgindex;
@@ -47,7 +47,7 @@ volatile bool isMsgHanging;
 #define OUTMSG_LASTINDEXINC() \
   outmsglast = (outmsglast + 1) & (BAMBOO_OUT_BUF_MASK); \
   if(outmsglast == outmsgindex) { \
-    BAMBOO_EXIT(0xd101); \
+    BAMBOO_EXIT(); \
   }
 
 #define OUTMSG_CACHE(n) \
@@ -207,74 +207,26 @@ typedef enum {
 } MSGTYPE;
 
 // msg related functions
-INLINE void send_hanging_msg(bool isInterrupt);
-INLINE void send_msg_1(int targetcore,
-                       unsigned long n0,
-                       bool isInterrupt);
-INLINE void send_msg_2(int targetcore,
-                       unsigned long n0,
-                       unsigned long n1,
-                       bool isInterrupt);
-INLINE void send_msg_3(int targetcore,
-                       unsigned long n0,
-                       unsigned long n1,
-                       unsigned long n2,
-                       bool isInterrupt);
-INLINE void send_msg_4(int targetcore,
-                       unsigned long n0,
-                       unsigned long n1,
-                       unsigned long n2,
-                       unsigned long n3,
-                       bool isInterrupt);
-INLINE void send_msg_5(int targetcore,
-                       unsigned long n0,
-                       unsigned long n1,
-                       unsigned long n2,
-                       unsigned long n3,
-                       unsigned long n4,
-                       bool isInterrupt);
-INLINE void send_msg_6(int targetcore,
-                       unsigned long n0,
-                       unsigned long n1,
-                       unsigned long n2,
-                       unsigned long n3,
-                       unsigned long n4,
-                       unsigned long n5,
-                       bool isInterrupt);
-INLINE void cache_msg_1(int targetcore,
-                        unsigned long n0);
-INLINE void cache_msg_2(int targetcore,
-                        unsigned long n0,
-                        unsigned long n1);
-INLINE void cache_msg_3(int targetcore,
-                        unsigned long n0,
-                        unsigned long n1,
-                        unsigned long n2);
-INLINE void cache_msg_4(int targetcore,
-                        unsigned long n0,
-                        unsigned long n1,
-                        unsigned long n2,
-                        unsigned long n3);
-INLINE void cache_msg_5(int targetcore,
-                        unsigned long n0,
-                        unsigned long n1,
-                        unsigned long n2,
-                        unsigned long n3,
-                        unsigned long n4);
-INLINE void cache_msg_6(int targetcore,
-                        unsigned long n0,
-                        unsigned long n1,
-                        unsigned long n2,
-                        unsigned long n3,
-                        unsigned long n4,
-                        unsigned long n5);
-INLINE int receiveMsg(unsigned int send_port_pending);
+void send_hanging_msg(bool isInterrupt);
+void send_msg_1(int targetcore,unsigned long n0,bool isInterrupt);
+void send_msg_2(int targetcore,unsigned long n0,unsigned long n1,bool isInterrupt);
+void send_msg_3(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,bool isInterrupt);
+void send_msg_4(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,bool isInterrupt);
+void send_msg_5(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4,bool isInterrupt);
+void send_msg_6(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4,unsigned long n5,bool isInterrupt);
+void cache_msg_1(int targetcore,unsigned long n0);
+void cache_msg_2(int targetcore,unsigned long n0,unsigned long n1);
+void cache_msg_3(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2);
+void cache_msg_4(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3);
+void cache_msg_5(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4);
+void cache_msg_6(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4,unsigned long n5);
+int receiveMsg(unsigned int send_port_pending);
 #ifdef TASK
-INLINE void transferObject(struct transObjInfo * transObj);
+void transferObject(struct transObjInfo * transObj);
 #endif
 
 #ifdef MULTICORE_GC
-INLINE void transferMarkResults();
+void transferMarkResults();
 #endif 
 
 #endif // MULTICORE

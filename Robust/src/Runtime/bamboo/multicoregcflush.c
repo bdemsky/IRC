@@ -3,6 +3,7 @@
 #include "multicoreruntime.h"
 #include "ObjectHash.h"
 #include "GenericHashtable.h"
+#include "gcqueue.h"
 
 /* Task specific includes */
 
@@ -92,7 +93,7 @@ INLINE void flushRuntimeObj(struct garbagelist * stackptr) {
   }
 
   // flush cached objs to be transferred
-  for(struct QueueItem * item = getHead(totransobjqueue);item != NULL;item = getNextQueueItem(item);) {
+  for(struct QueueItem * item = getHead(totransobjqueue);item != NULL;item = getNextQueueItem(item)) {
     struct transObjInfo * totransobj = (struct transObjInfo *)(item->objectptr);
     // the obj can not be NULL
     FLUSHOBJNONNULL(totransobj->objptr, 0);
@@ -177,18 +178,11 @@ void flush(struct garbagelist * stackptr) {
   BAMBOO_CACHE_MF();
 
   flushRuntimeObj(stackptr);
-  while(true) {
-    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-    if(!gc_moreItems_I()) {
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-      break;
-    }
-
-    unsigned int ptr = gc_dequeue_I();
-    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  while(gc_moreItems()) {
+    unsigned int ptr = gc_dequeue();
     // should be a local shared obj and should have mapping info
     FLUSHOBJNONNULL(ptr, 0);
-    BAMBOO_ASSERT(ptr != NULL, 0xb02a);
+    BAMBOO_ASSERT(ptr != NULL);
 
     if(((struct ___Object___ *)ptr)->marked == COMPACTED) {
       flushPtrsInObj((void *)ptr);
@@ -203,7 +197,7 @@ void flush(struct garbagelist * stackptr) {
   while(gc_lobjmoreItems_I()) {
     unsigned int ptr = gc_lobjdequeue_I(NULL, NULL);
     FLUSHOBJ(ptr, 0);
-    BAMBOO_ASSERT(ptr!=NULL, 0xb02d);
+    BAMBOO_ASSERT(ptr!=NULL);
 
     if(((struct ___Object___ *)ptr)->marked == COMPACTED) {
       flushPtrsInObj((void *)ptr);

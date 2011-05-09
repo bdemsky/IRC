@@ -728,20 +728,15 @@ public class BuildCodeMultiCore extends BuildCode {
       output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
       output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
     } else {
-      //output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
       output.println("printf(\"(%x,%x) Process %x(%d): task %s\\n\", udn_tile_coord_x(), udn_tile_coord_y(), corenum, corenum, \"" + task.getSymbol() + "\");");
-      //output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
     }
-    //output.println("BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());");
     output.println("#endif");
     output.println("#ifdef DEBUG");
     if(this.state.RAW) {
       output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
       output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
     } else {
-      //output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
       output.println("printf(\"(%x,%x) Process %x(%d): task %s\\n\", udn_tile_coord_x(), udn_tile_coord_y(), corenum, corenum, \"" + task.getSymbol() + "\");");
-      //output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
     }
     output.println("#endif");
     if(this.state.RAW) {
@@ -781,13 +776,9 @@ public class BuildCodeMultiCore extends BuildCode {
           //output.println("   flushAll();");
           output.println("#ifdef CACHEFLUSH");
           output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
-          output.println("#ifdef DEBUG");
           output.println("BAMBOO_DEBUGPRINT(0xec00);");
-          output.println("#endif");
           output.println("BAMBOO_CACHE_FLUSH_ALL();");
-          output.println("#ifdef DEBUG");
           output.println("BAMBOO_DEBUGPRINT(0xecff);");
-          output.println("#endif");
           output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
           output.println("#endif");
           outputTransCode(output);
@@ -1657,13 +1648,9 @@ public class BuildCodeMultiCore extends BuildCode {
       if(fm.getTask() != null) {
         output.println("#ifdef CACHEFLUSH");
         output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
-        output.println("#ifdef DEBUG");
         output.println("BAMBOO_DEBUGPRINT(0xec00);");
-        output.println("#endif");
         output.println("BAMBOO_CACHE_FLUSH_ALL();");
-        output.println("#ifdef DEBUG");
         output.println("BAMBOO_DEBUGPRINT(0xecff);");
-        output.println("#endif");
         output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
         output.println("#endif");
         outputTransCode(output);

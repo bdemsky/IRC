@@ -98,12 +98,9 @@ INLINE bool checkObjQueue() {
   while(!isEmpty(&objqueue)) {
     void * obj = NULL;
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-    BAMBOO_DEBUGPRINT(0xf001);
-    BAMBOO_DEBUGPRINT(0xeee1);
     rflag = true;
     objInfo = (struct transObjInfo *)getItem(&objqueue);
     obj = objInfo->objptr;
-    BAMBOO_DEBUGPRINT_REG((int)obj);
     // grab lock and flush the obj
     grount = 0;
     struct ___Object___ * tmpobj = (struct ___Object___ *)obj;
@@ -115,7 +112,6 @@ INLINE bool checkObjQueue() {
       BAMBOO_WAITING_FOR_LOCK(0);
     } 
     grount = lockresult;
-    BAMBOO_DEBUGPRINT_REG(grount);
 
     lockresult = 0;
     lockobj = 0;
@@ -137,10 +133,7 @@ INLINE bool checkObjQueue() {
 	int paramindex = objInfo->queues[2 * k + 1];
 	struct parameterwrapper ** queues =
 	  &(paramqueues[BAMBOO_NUM_OF_CORE][taskindex][paramindex]);
-	BAMBOO_DEBUGPRINT_REG(taskindex);
-	BAMBOO_DEBUGPRINT_REG(paramindex);
 	enqueueObject_I(obj, queues, 1);
-	BAMBOO_DEBUGPRINT_REG(hashsize(activetasks));
       } 
       releasewritelock_I(tmpobj);
       RUNFREE_I(objInfo->queues);
@@ -168,18 +161,15 @@ INLINE bool checkObjQueue() {
       addNewItem_I(&objqueue, objInfo);
 objqueuebreak:
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-      BAMBOO_DEBUGPRINT(0xf000);
       break;
     } 
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-    BAMBOO_DEBUGPRINT(0xf000);
   }
 
 #ifdef ACCURATEPROFILE
   PROFILE_TASK_END();
 #endif
 
-  BAMBOO_DEBUGPRINT(0xee02);
   return rflag;
 }
 
@@ -959,37 +949,26 @@ void releasewritelock_r(void * lock, void * redirectlock) {
   int reallock = (int)lock;
   targetcore = (reallock >> 5) % NUMCORES;
 
-  BAMBOO_DEBUGPRINT(0xe671);
-  BAMBOO_DEBUGPRINT_REG((int)lock);
-  BAMBOO_DEBUGPRINT_REG(reallock);
-  BAMBOO_DEBUGPRINT_REG(targetcore);
-
   if(targetcore == BAMBOO_NUM_OF_CORE) {
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-    BAMBOO_DEBUGPRINT(0xf001);
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xe20c);
+      BAMBOO_EXIT();
     } else {
       int rwlock_obj = 0;
       struct LockValue * lockvalue = NULL;
-      BAMBOO_DEBUGPRINT(0xe672);
       RuntimeHashget(locktbl, reallock, &rwlock_obj);
       lockvalue = (struct LockValue *)rwlock_obj;
-      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
       lockvalue->value++;
       lockvalue->redirectlock = (int)redirectlock;
-      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
     }
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-    BAMBOO_DEBUGPRINT(0xf000);
     return;
   } else {
     // send lock release with redirect info msg
     // for 32 bit machine, the size is always 4 words
-    send_msg_4(targetcore, REDIRECTRELEASE, 1, (int)lock,
-               (int)redirectlock, false);
+    send_msg_4(targetcore,REDIRECTRELEASE,1,(int)lock,(int)redirectlock,false);
   }
 }
 #endif
@@ -1012,7 +991,6 @@ void executetasks() {
 newtask:
   while(hashsize(activetasks)>0) {
     GCCHECK(NULL);
-    BAMBOO_DEBUGPRINT(0xe990);
 
     /* See if there are any active tasks */
     int i;
@@ -1068,17 +1046,13 @@ newtask:
       }
     }  // for(i = 0; i < numparams; i++)
     // grab these required locks
-    BAMBOO_DEBUGPRINT(0xe991);
 
     for(i = 0; i < runtime_locklen; i++) {
       int * lock = (int *)(runtime_locks[i].value);
       islock = true;
       // require locks for this parameter if it is not a startup object
-      BAMBOO_DEBUGPRINT_REG((int)lock);
-      BAMBOO_DEBUGPRINT_REG((int)(runtime_locks[i].value));
       getwritelock(lock);
       BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-      BAMBOO_DEBUGPRINT(0xf001);
       while(!lockflag) {
         BAMBOO_WAITING_FOR_LOCK(0);
       }
@@ -1098,11 +1072,8 @@ newtask:
       reside = false;
 #endif
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-      BAMBOO_DEBUGPRINT(0xf000);
 
       if(grount == 0) {
-        BAMBOO_DEBUGPRINT(0xe992);
-        BAMBOO_DEBUGPRINT_REG(lock);
         // check if has the lock already
         // can not get the lock, try later
         // release all grabbed locks for previous parameters		
@@ -1125,7 +1096,6 @@ newtask:
       }
     }   // line 2752:  for(i = 0; i < runtime_locklen; i++)
 
-    BAMBOO_DEBUGPRINT(0xe993);
     /* Make sure that the parameters are still in the queues */
     for(i=0; i<numparams; i++) {
       void * parameter=currtpd->parameterArray[i];
@@ -1139,8 +1109,6 @@ newtask:
       /* Check that object is still in queue */
       {
         if (!ObjectHashcontainskey(pw->objectset, (int) parameter)) {
-          BAMBOO_DEBUGPRINT(0xe994);
-          BAMBOO_DEBUGPRINT_REG(parameter);
           // release grabbed locks
           for(j = 0; j < runtime_locklen; j++) {
             int * lock = (int *)(runtime_locks[j].value);
@@ -1170,8 +1138,6 @@ newtask:
           int next;
           int UNUSED, UNUSED2;
           int * enterflags;
-          BAMBOO_DEBUGPRINT(0xe995);
-          BAMBOO_DEBUGPRINT_REG(parameter);
           ObjectHashget(pw->objectset, (int) parameter, (int *) &next,
               (int *) &enterflags, &UNUSED, &UNUSED2);
           ObjectHashremove(pw->objectset, (int)parameter);
@@ -1199,7 +1165,6 @@ parameterpresent:
         int slotid=pd->tagarray[2*j]+numparams;
         struct ___TagDescriptor___ *tagd=currtpd->parameterArray[slotid];
         if (!containstag(parameter, tagd)) {
-          BAMBOO_DEBUGPRINT(0xe996);
 	  // release grabbed locks
 	  int tmpj = 0;
 	  for(tmpj = 0; tmpj < runtime_locklen; tmpj++) {
@@ -1233,7 +1198,6 @@ execute:
 #endif
       PROFILE_TASK_START(currtpd->task->name);
 
-      BAMBOO_DEBUGPRINT(0xe997);
       ((void (*)(void **))currtpd->task->taskptr)(taskpointerarray);
 
 #ifdef ACCURATEPROFILE
@@ -1242,17 +1206,11 @@ execute:
       // new a PostTaskInfo for the post-task execution
       PROFILE_TASK_START("post task execution");
 #endif
-      BAMBOO_DEBUGPRINT(0xe998);
-      BAMBOO_DEBUGPRINT_REG(islock);
 
       if(islock) {
-        BAMBOO_DEBUGPRINT(0xe999);
         for(i = runtime_locklen; i>0; i--) {
           void * ptr = (void *)(runtime_locks[i-1].redirectlock);
           int * lock = (int *)(runtime_locks[i-1].value);
-          BAMBOO_DEBUGPRINT_REG((int)ptr);
-          BAMBOO_DEBUGPRINT_REG((int)lock);
-          BAMBOO_DEBUGPRINT_REG(*((int*)lock+5));
 #ifndef MULTICORE_GC
 #ifndef TILERA_BME
           if(RuntimeHashcontainskey(lockRedirectTbl, (int)lock)) {
@@ -1279,10 +1237,8 @@ execute:
       RUNFREE(currtpd->parameterArray);
       RUNFREE(currtpd);
       currtpd = NULL;
-      BAMBOO_DEBUGPRINT(0xe99a);
     }   
   } //  while(hashsize(activetasks)>0)
-  BAMBOO_DEBUGPRINT(0xe99b);
 }
 
 /* This function processes an objects tags */

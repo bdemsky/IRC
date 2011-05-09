@@ -22,10 +22,10 @@ struct RuntimeHash * noargallocateRuntimeHash() {
 }
 
 struct RuntimeHash * allocateRuntimeHash(int size) {
-  struct RuntimeHash *thisvar;  //=(struct RuntimeHash *)RUNMALLOC(sizeof(struct RuntimeHash));
+  struct RuntimeHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf101);
+    BAMBOO_EXIT();
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -205,10 +205,10 @@ int RuntimeHashadd(struct RuntimeHash * thisvar,int key, int data) {
 
 #ifdef MULTICORE
 struct RuntimeHash * allocateRuntimeHash_I(int size) {
-  struct RuntimeHash *thisvar;  //=(struct RuntimeHash *)RUNMALLOC(sizeof(struct RuntimeHash));
+  struct RuntimeHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf101);
+    BAMBOO_EXIT();
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);

@@ -679,20 +679,20 @@ void * smemalloc_I(int coren,
 
   case SMEMFIXED: {
 #ifdef SMEMF
-	mem = fixedmalloc_I(coren, isize, allocsize);
+    mem = fixedmalloc_I(coren, isize, allocsize);
 #else
-	// not supported yet
-	BAMBOO_EXIT(0xe101);
+    // not supported yet
+    BAMBOO_EXIT();
 #endif
     break;
   }
 
   case SMEMMIXED: {
 #ifdef SMEMM
-	mem = mixedmalloc_I(coren, isize, allocsize);
+    mem = mixedmalloc_I(coren, isize, allocsize);
 #else
-	// not supported yet
-    BAMBOO_EXIT(0xe102);
+    // not supported yet
+    BAMBOO_EXIT();
 #endif
     break;
   }
@@ -745,7 +745,7 @@ void * smemalloc_I(int coren,
   if(mem == NULL) {
     // no enough shared global memory
     *allocsize = 0;
-    BAMBOO_EXIT(0xe103);
+    BAMBOO_EXIT();
   }
   return mem;
 } 

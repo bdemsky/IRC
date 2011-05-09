@@ -210,12 +210,9 @@ unsigned int size_cachepolicytbl;
   { \
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0; \
     while(f) { \
-      BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT(); \
-      if(gc_checkAllCoreStatus_I()) { \
-        BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME(); \
+      if(gc_checkAllCoreStatus()) { \
         break; \
       } \
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME(); \
     } \
   }
 
@@ -234,7 +231,7 @@ unsigned int size_cachepolicytbl;
 
 void initmulticoregcdata();
 void dismulticoregcdata();
-bool gc_checkAllCoreStatus_I();
+bool gc_checkAllCoreStatus();
 bool gc(struct garbagelist * stackptr); // core coordinator routine
 void gc_collect(struct garbagelist* stackptr); //core collector routine
 void gc_nocollect(struct garbagelist* stackptr); //non-gc core collector routine
