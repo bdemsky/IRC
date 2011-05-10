@@ -17,16 +17,18 @@ import Analysis.Locality.*;
 
 public class BuildOoOJavaCode extends BuildCode {
 
-  OoOJavaAnalysis oooa;
+  protected OoOJavaAnalysis oooa;
 
-  String maxTaskRecSizeStr="__maxTaskRecSize___";
+  protected String maxTaskRecSizeStr="__maxTaskRecSize___";
 
-  String mlperrstr =
+  protected String mlperrstr =
     "if(status != 0) { "+
     "sprintf(errmsg, \"MLP error at %s:%d\", __FILE__, __LINE__); "+
     "perror(errmsg); exit(-1); }";
 
-  RuntimeConflictResolver rcr = null;
+  protected RuntimeConflictResolver rcr = null;
+
+
 
   public BuildOoOJavaCode(State st,
                           Hashtable temptovar,
@@ -237,7 +239,6 @@ public class BuildOoOJavaCode extends BuildCode {
 
   protected void additionalClassObjectFields(PrintWriter outclassdefs) {
     outclassdefs.println("  int oid;");
-    outclassdefs.println("  int allocsite;");
   }
 
 
@@ -266,37 +267,6 @@ public class BuildOoOJavaCode extends BuildCode {
       output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
       output.println("   INTPTR       "+dynSrcVar+"_srcOffset = 0x1;");
     }
-
-
-    // eom - set up related allocation sites's waiting queues
-    // TODO: we have to do a table-based thing here...
-    // jjenista, I THINK WE LOSE THIS ALTOGETHER!
-    /*
-       FlatSESEEnterNode callerSESEplaceholder = (FlatSESEEnterNode) fm.getNext( 0 );
-       if(callerSESEplaceholder!= oooa.getMainSESE()){
-       Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(callerSESEplaceholder);
-       if (graph != null && graph.hasConflictEdge()) {
-        output.println("   // set up waiting queues ");
-        output.println("   int numMemoryQueue=0;");
-        output.println("   int memoryQueueItemID=0;");
-        Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
-        System.out.println("#lockSet="+lockSet.hashCode());
-        System.out.println("lockset="+lockSet);
-        for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
-          Analysis.OoOJava.SESELock seseLock = (Analysis.OoOJava.SESELock) iterator.next();
-          System.out.println("id="+seseLock.getID());
-          System.out.println("#="+seseLock);
-        }
-        System.out.println("size="+lockSet.size());
-        if (lockSet.size() > 0) {
-          output.println("   numMemoryQueue=" + lockSet.size() + ";");
-          output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
-          output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
-          output.println();
-        }
-       }
-       }
-     */
   }
 
 
@@ -2039,7 +2009,7 @@ public class BuildOoOJavaCode extends BuildCode {
                        "=allocate_newarray_mlp("+localsprefixaddr+
                        ", "+arrayid+", "+generateTemp(fm, fn.getSize())+
                        ", oid, "+
-                       oooa.getDisjointAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+
+                       oooa.getHeapAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+
                        ");");
         output.println("    oid += oidIncrement;");
       } else {
@@ -2056,7 +2026,7 @@ public class BuildOoOJavaCode extends BuildCode {
                        "=allocate_new_mlp("+localsprefixaddr+
                        ", "+fn.getType().getClassDesc().getId()+
                        ", oid, "+
-                       oooa.getDisjointAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+
+                       oooa.getHeapAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+
                        ");");
         output.println("    oid += oidIncrement;");
       } else {
@@ -2133,5 +2103,6 @@ public class BuildOoOJavaCode extends BuildCode {
     }
     return rtr;
   }
+
 
 }

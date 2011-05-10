@@ -15,12 +15,7 @@ import IR.Tree.ParseNode;
 import IR.Tree.BuildIR;
 import IR.Tree.JavaBuilder;
 import IR.Tree.SemanticCheck;
-import IR.Flat.BuildCodeMultiCore;
-import IR.Flat.BuildCodeMGC;
-import IR.Flat.BuildFlat;
-import IR.Flat.BuildCode;
-import IR.Flat.BuildCodeTran;
-import IR.Flat.BuildOoOJavaCode;
+import IR.Flat.*;
 import IR.Flat.Inliner;
 import IR.ClassDescriptor;
 import IR.State;
@@ -54,6 +49,7 @@ import Analysis.Loops.*;
 import Analysis.Liveness;
 import Analysis.ArrayReferencees;
 import Analysis.Pointer.Pointer;
+import Analysis.Disjoint.HeapAnalysis;
 import IR.MethodDescriptor;
 import IR.Flat.FlatMethod;
 import Interface.*;
@@ -75,7 +71,7 @@ public class Main {
     String outputdir = null;
     boolean isDistributeInfo = false;
     boolean isDisAll = false;
-    int startnum = 0;
+    int startnum = 0;    
 
 
     for(int i=0; i<args.length; i++) {
@@ -284,6 +280,12 @@ public class Main {
 
       } else if( option.equals("-disjoint-debug-scheduling") ) {
         state.DISJOINTDEBUGSCHEDULING = true;
+
+
+      } else if( option.equals("-pointsto-check-v-runtime") ) {
+        state.POINTSTO_CHECK_V_RUNTIME = true;
+
+
       } else if (option.equals("-optional"))
         state.OPTIONAL=true;
       else if (option.equals("-optimize"))
@@ -455,6 +457,8 @@ public class Main {
     SafetyAnalysis sa=null;
     PrefetchAnalysis pa=null;
     OoOJavaAnalysis oooa=null;
+    HeapAnalysis heapAnalysis=null;
+
     if (state.INLINEATOMIC) {
       Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
       while(classit.hasNext()) {
@@ -539,12 +543,14 @@ public class Main {
       Liveness l  = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state, tu, callgraph);
       DisjointAnalysis da = new DisjointAnalysis(state, tu, callgraph, l, ar, null, null);
+      heapAnalysis = da;
     }
 
     if (state.OOOJAVA) {
       Liveness l   = new Liveness();
       ArrayReferencees ar  = new ArrayReferencees(state, tu, callgraph);
       oooa = new OoOJavaAnalysis(state, tu, callgraph, l, ar);
+      heapAnalysis = oooa.getHeapAnalysis();
     }
 
 
@@ -660,6 +666,20 @@ public class Main {
         } else {
           bc=new BuildCode(state, bf.getMap(), tu, sa, callgraph, jb);
         }
+      }
+
+      if( (state.OOOJAVA || state.POINTSTO_CHECK_V_RUNTIME) &&
+          heapAnalysis != null ) {
+        // use this extension to generate the allocsite field of Object and
+        // ArrayObject for whatever other extensions and systems need it
+        BCXallocsiteObjectField bcx = new BCXallocsiteObjectField( bc, heapAnalysis );
+        bc.registerExtension( bcx );
+      }
+
+      if( state.POINTSTO_CHECK_V_RUNTIME &&
+          heapAnalysis != null ) {
+        BCXPointsToCheckVRuntime bcx = new BCXPointsToCheckVRuntime( bc, heapAnalysis );
+        bc.registerExtension( bcx );
       }
 
       bc.buildCode();

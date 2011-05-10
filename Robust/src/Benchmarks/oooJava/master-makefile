@@ -32,16 +32,19 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 	-coreprof-enable cpe_taskstallmem
 
 
-USEOOO= -ooojava $(NUM_OOO_WORKERS) 2 -squeue #-ooodebug-disable-task-mem-pool
+USEOOO= -ooojava $(NUM_OOO_WORKERS) 2      -squeue #-ooodebug-disable-task-mem-pool
 USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -squeue -ooodebug
 OOODEBUG= -ooodebug -printlinenum
 RCRDEBUG= -rcr_debug -printlinenum
 RCRDEBUGV= -rcr_debug_verbose -printlinenum
-BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -optimize -nolock -debug #-nooptimize #src-after-pp
+BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 5000 -garbagestats -joptimize -noloop -optimize -nolock -debug #-nooptimize #src-after-pp
+
+
+CHECKPOINTSTO= -disjoint -pointsto-check-v-runtime
 
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed
-DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-desire-determinism
+DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-desire-determinism 
 
 
 #####################################
@@ -93,10 +96,19 @@ single-remake-c:
 rcr-remake-c:
 	$(BUILDSCRIPT) -nojava $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
+
 single: $(PROGRAM)s.bin
 
 $(PROGRAM)s.bin: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) -thread $(BMFLAGS) $(BSFLAGS) $(USECOREPROF)                       -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) -o $(PROGRAM)s -builddir sing $(SOURCE_FILES)
+
+
+check-pointsto: $(PROGRAM)c.bin
+
+$(PROGRAM)c.bin: $(SOURCE_FILES) ../master-makefile
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(CHECKPOINTSTO) -o $(PROGRAM)c -builddir chk $(SOURCE_FILES)
+
+
 
 ooo: $(PROGRAM)p.bin
 

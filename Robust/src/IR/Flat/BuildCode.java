@@ -54,6 +54,7 @@ public class BuildCode {
   int globaldefscount=0;
   boolean mgcstaticinit = false;
   JavaBuilder javabuilder;
+  String strObjType;
 
   int boundschknum = 0;
 
@@ -83,6 +84,10 @@ public class BuildCode {
     State.logEvent("Virtual");
     virtualcalls=new Virtual(state, null, callgraph);
     printedfieldstbl = new Hashtable<String, ClassDescriptor>();
+    extensions = new Vector<BuildCodeExtension>();
+    this.strObjType = 
+      "struct "+
+      typeutil.getClass( TypeUtil.ObjectClass ).getSafeSymbol();
   }
 
   /** The buildCode method outputs C code for all the methods.  The Flat
@@ -107,6 +112,10 @@ public class BuildCode {
 
     try {
       buildCodeSetup(); //EXTENSION POINT
+      for(BuildCodeExtension bcx: extensions) {
+        bcx.buildCodeSetup();
+      }
+
       outstructs=new CodePrinter(new FileOutputStream(PREFIX+"structdefs.h"), true);
       outmethodheader=new CodePrinter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
       outclassdefs=new CodePrinter(new FileOutputStream(PREFIX+"classdefs.h"), true);
@@ -149,6 +158,9 @@ public class BuildCode {
     }
 
     additionalIncludesMethodsHeader(outmethodheader);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalIncludesMethodsHeader(outmethodheader);
+    }
 
     /* Output Structures */
     outputStructs(outstructs);
@@ -191,6 +203,9 @@ public class BuildCode {
     // an opportunity for subclasses to do extra
     // initialization
     preCodeGenInitialization();
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.preCodeGenInitialization();
+    }
 
     State.logEvent("Start outputMethods");
     /* Build the actual methods */
@@ -199,6 +214,10 @@ public class BuildCode {
 
     // opportunity for subclasses to gen extra code
     additionalCodeGen(outmethodheader, outstructs, outmethod);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalCodeGen(outmethodheader, outstructs, outmethod);
+    }
+
 
     if (state.TASK) {
       /* Output code for tasks */
@@ -234,6 +253,10 @@ public class BuildCode {
     outstructs.close();
 
     postCodeGenCleanUp();
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.postCodeGenCleanUp();
+    }
+
     State.logEvent("End of buildCode");
   }
 
@@ -378,6 +401,9 @@ public class BuildCode {
 
 
     additionalCodeAtTopOfMain(outmethod);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalCodeAtTopOfMain(outmethod);
+    }
 
 
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
@@ -395,6 +421,13 @@ public class BuildCode {
     }
     outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
     outmethod.println("  }");
+
+
+    additionalCodeForCommandLineArgs(outmethod, "stringarray");
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalCodeForCommandLineArgs(outmethod, "stringarray");
+    }
+
 
     MethodDescriptor md=typeutil.getMain();
     ClassDescriptor cd=typeutil.getMainClass();
@@ -425,6 +458,10 @@ public class BuildCode {
 
 
     additionalCodeAtBottomOfMain(outmethod);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalCodeAtBottomOfMain(outmethod);
+    }
+
 
     outmethod.println("}");
   }
@@ -503,8 +540,10 @@ public class BuildCode {
       outmethod.println("#include \"checkers.h\"");
     }
 
-
     additionalIncludesMethodsImplementation(outmethod);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalIncludesMethodsImplementation(outmethod);
+    }
 
     outmethod.println("struct global_defs_t * global_defs_p;");
     outmethod.println("struct global_defsprim_t * global_defsprim_p;");
@@ -519,6 +558,10 @@ public class BuildCode {
 
 
     additionalCodeAtTopMethodsImplementation(outmethod);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalCodeAtTopMethodsImplementation(outmethod);
+    }
+
 
     generateMethods(outmethod);
   }
@@ -560,6 +603,9 @@ public class BuildCode {
 
 
     additionalIncludesStructsHeader(outstructs);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalIncludesStructsHeader(outstructs);
+    }
 
 
     /* Output #defines that the runtime uses to determine type
@@ -629,7 +675,11 @@ public class BuildCode {
     outclassdefs.println("  int type;");
     outclassdefs.println("  int hashcode;");
 
+
     additionalClassObjectFields(outclassdefs);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalClassObjectFields(outclassdefs);
+    }
 
 
     if (state.EVENTMONITOR) {
@@ -669,7 +719,12 @@ public class BuildCode {
 
     printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs, outglobaldefs, outglobaldefsprim);
     printedfieldstbl.clear();
+
     printExtraArrayFields(outclassdefs);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.printExtraArrayFields(outclassdefs);
+    }
+
     if (state.ARRAYPAD) {
       outclassdefs.println("  int paddingforarray;");
     }
@@ -927,7 +982,11 @@ public class BuildCode {
 
   protected void generateSizeArray(PrintWriter outclassdefs) {
     outclassdefs.print("extern struct prefetchCountStats * evalPrefetch;\n");
+
     generateSizeArrayExtensions(outclassdefs);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.generateSizeArrayExtensions(outclassdefs);
+    }
 
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     cdarray=new ClassDescriptor[state.numClasses()];
@@ -1574,6 +1633,9 @@ fldloop:
     classdefout.println("  int hashcode;");
 
     additionalClassObjectFields(classdefout);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalClassObjectFields(classdefout);
+    }
 
 
     if (state.EVENTMONITOR) {
@@ -1965,6 +2027,9 @@ fldloop:
       }
 
       additionalCodeAtTopFlatMethodBody(output, fm);
+      for(BuildCodeExtension bcx: extensions) {
+        bcx.additionalCodeAtTopFlatMethodBody(output, fm);
+      }
 
       /* Check to see if we need to do a GC if this is a
        * multi-threaded program...*/
@@ -2020,6 +2085,9 @@ fldloop:
     }
 
     additionalCodeAtTopFlatMethodBody(output, fm);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalCodeAtTopFlatMethodBody(output, fm);
+    }
 
     /* Check to see if we need to do a GC if this is a
      * multi-threaded program...*/
@@ -2207,7 +2275,11 @@ fldloop:
 
   protected void generateFlatNode(FlatMethod fm, FlatNode fn, PrintWriter output) {
     if(state.LINENUM) printSourceLineNumber(fm,fn,output);
+
     additionalCodePreNode(fm, fn, output);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalCodePreNode(fm, fn, output);
+    }
 
     switch(fn.kind()) {
     case FKind.FlatAtomicEnterNode:
@@ -2320,6 +2392,10 @@ fldloop:
     }
 
     additionalCodePostNode(fm, fn, output);
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalCodePostNode(fm, fn, output);
+    }
+
   }
 
   public void generateFlatBackEdge(FlatMethod fm, FlatBackEdge fn, PrintWriter output) {
@@ -2829,6 +2905,8 @@ fldloop:
 
 
   protected void generateFlatNew(FlatMethod fm, FlatNew fn, PrintWriter output) {
+    String dst=generateTemp(fm,fn.getDst());
+
     if (fn.getType().isArray()) {
       int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
@@ -2844,10 +2922,13 @@ fldloop:
       }
     }
     if (state.FASTCHECK) {
-      String dst=generateTemp(fm,fn.getDst());
       output.println(dst+"->___localcopy___=(struct ___Object___*)1;");
       output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
       output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
+    }
+
+    for(BuildCodeExtension bcx: extensions) {
+      bcx.additionalCodeNewObject(output, dst, fn);
     }
   }
 
@@ -3568,6 +3649,19 @@ fldloop:
     return l;
   }
 
+
+
+  // either create and register an extension object with buildcode
+  // or look at the following option of subclassing BuildCode
+  private Vector<BuildCodeExtension> extensions;
+
+  // note that extensions are invoked in the order they are added
+  // to BuildCode
+  public void registerExtension( BuildCodeExtension bcx ) {
+    extensions.add( bcx );
+  }
+
+
   // override these methods in a subclass of BuildCode
   // to generate code for additional systems
   protected void printExtraArrayFields(PrintWriter outclassdefs) {
@@ -3589,6 +3683,8 @@ fldloop:
                                    PrintWriter outmethod) {
   }
   protected void additionalCodeAtTopOfMain(PrintWriter outmethod) {
+  }
+  protected void additionalCodeForCommandLineArgs(PrintWriter outmethod, String argsVar) {
   }
   protected void additionalCodeAtBottomOfMain(PrintWriter outmethod) {
   }

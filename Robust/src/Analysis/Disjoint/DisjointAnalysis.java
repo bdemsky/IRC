@@ -347,6 +347,11 @@ public class DisjointAnalysis implements HeapAnalysis {
     bw.close();
   }
 
+
+
+  public Alloc getCmdLineArgsAlloc() {
+    return getAllocationSiteFromFlatNew( constructedCmdLineArgsNew );
+  }
   ///////////////////////////////////////////
   //
   // end public interface
@@ -538,9 +543,25 @@ public class DisjointAnalysis implements HeapAnalysis {
   static protected Hashtable<FlatNode, ReachGraph> fn2rgAtEnter =
     new Hashtable<FlatNode, ReachGraph>();
 
+  static protected Hashtable<FlatNode, ReachGraph> fn2rgAtExit =
+    new Hashtable<FlatNode, ReachGraph>();
+
+
   private Hashtable<FlatCall, Descriptor> fc2enclosing;
 
   Accessible accessible;
+
+  
+  // we construct an entry method of flat nodes complete
+  // with a new allocation site to model the command line
+  // args creation just for the analysis, so remember that
+  // allocation site.  Later in code gen we might want to
+  // know if something is pointing-to to the cmd line args
+  // and we can verify by checking the allocation site field.
+  protected FlatNew constructedCmdLineArgsNew;
+
+
+
 
   // allocate various structures that are not local
   // to a single class method--should be done once
@@ -1175,6 +1196,7 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       System.out.println("  Generating reach graph for program point: "+fgrn.getGraphName() );
 
+
       rg.writeGraph("genReach"+fgrn.getGraphName(),
                     true,     // write labels (variables)
                     true,    // selectively hide intermediate temp vars
@@ -1749,6 +1771,12 @@ public class DisjointAnalysis implements HeapAnalysis {
       mapBackEdgeToMonotone.put(fn, rg);
     }
 
+
+    ReachGraph rgOnExit = new ReachGraph();
+    rgOnExit.merge(rg);
+    fn2rgAtExit.put(fn, rgOnExit);
+
+
     // at this point rg should be the correct update
     // by an above transfer function, or untouched if
     // the flat node type doesn't affect the heap
@@ -1943,7 +1971,6 @@ public class DisjointAnalysis implements HeapAnalysis {
 
 
 
-
   // Take in source entry which is the program's compiled entry and
   // create a new analysis entry, a method that takes no parameters
   // and appears to allocate the command line arguments and call the
@@ -1974,6 +2001,7 @@ public class DisjointAnalysis implements HeapAnalysis {
                   cmdLineArgs,
                   false  // is global
                   );
+    this.constructedCmdLineArgsNew = fn;
 
     TempDescriptor[] sourceEntryArgs = new TempDescriptor[1];
     sourceEntryArgs[0] = cmdLineArgs;
@@ -2699,4 +2727,57 @@ public class DisjointAnalysis implements HeapAnalysis {
     }
   }
 
+
+
+
+  public Set<Alloc> canPointToAt( TempDescriptor x,
+                                  FlatNode programPoint ) {
+
+    ReachGraph rgAtEnter = fn2rgAtEnter.get( programPoint );
+    if( rgAtEnter == null ) {
+      return null; 
+    }
+
+    return rgAtEnter.canPointTo( x );
+  }
+
+
+  public Set<Alloc> canPointToAfter( TempDescriptor x,
+                                     FlatNode programPoint ) {
+
+    ReachGraph rgAtExit = fn2rgAtExit.get( programPoint );
+    if( rgAtExit == null ) {
+      return null; 
+    }
+
+    return rgAtExit.canPointTo( x );
+  }
+  
+
+  public Hashtable< Alloc, Set<Alloc> > canPointToAt( TempDescriptor x,
+                                                      FieldDescriptor f,
+                                                      FlatNode programPoint ) {
+
+    ReachGraph rgAtEnter = fn2rgAtEnter.get( programPoint );
+    if( rgAtEnter == null ) {
+      return null; 
+    }
+    
+    return rgAtEnter.canPointTo( x, f.getSymbol() );
+  }
+
+
+  public Hashtable< Alloc, Set<Alloc> > canPointToAtElement( TempDescriptor x,
+                                                             FlatNode programPoint ) {
+
+    ReachGraph rgAtEnter = fn2rgAtEnter.get( programPoint );
+    if( rgAtEnter == null ) {
+      return null; 
+    }
+
+    assert x.getType() != null;
+    assert x.getType().isArray();
+
+    return rgAtEnter.canPointTo( x, arrayElementFieldName );
+  }
 }

@@ -85,7 +85,7 @@ public class OoOJavaAnalysis {
     return fm;
   }
 
-  public HeapAnalysis getDisjointAnalysis() {
+  public HeapAnalysis getHeapAnalysis() {
     return disjointAnalysisTaints;
   }
 

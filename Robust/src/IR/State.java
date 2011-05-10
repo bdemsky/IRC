@@ -128,6 +128,10 @@ public class State {
 
   public boolean DISJOINTDEBUGSCHEDULING=false;
 
+
+  public boolean POINTSTO_CHECK_V_RUNTIME=false;
+
+
   public boolean OOOJAVA=false;
   public boolean OOODEBUG=false;
   public boolean RCR=false;

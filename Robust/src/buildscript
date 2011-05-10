@@ -50,6 +50,8 @@ echo -disjoint-dvisit-stack-callees-on-top alternate stack strat
 echo -disjoint-dvisit-pqueue use prio. q strat to visit descriptors
 echo -disjoint-desire-determinism set above interproc for determinism
 echo -disjoint-debug-scheduling debug when methods are scheduled for analysis
+echo
+echo -pointsto-check-v-runtime check allocation site of pointer targets at runtime to help verify heap analysis results
 echo 
 echo "-mlp <num cores> <max sese age> build mlp code"
 echo -mlpdebug if mlp, report progress and interim results
@@ -817,10 +819,11 @@ else
     then
     #threading java stuff
     JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread"
-  fi
 
-  #base java stuff
-  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
+  else 
+    #base java stuff
+    JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
+  fi
 fi
 
 # everyone gets this except ssjava!

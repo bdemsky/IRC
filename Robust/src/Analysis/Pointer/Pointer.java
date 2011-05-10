@@ -2092,4 +2092,34 @@ nextdelta:
       }
     }
   }
+
+
+
+
+  public Alloc getCmdLineArgsAlloc() {
+    return null;
+  }
+
+
+
+  public Set<Alloc> canPointToAt( TempDescriptor x,
+                                  FlatNode programPoint ) {
+    return null; 
+  }
+
+  public Set<Alloc> canPointToAfter( TempDescriptor x,
+                                     FlatNode programPoint ) {
+    return null; 
+  }
+
+  public Hashtable< Alloc, Set<Alloc> > canPointToAt( TempDescriptor x,
+                                                      FieldDescriptor f,
+                                                      FlatNode programPoint ) {
+    return null; 
+  }
+
+  public Hashtable< Alloc, Set<Alloc> > canPointToAtElement( TempDescriptor x,
+                                                             FlatNode programPoint ) {
+    return null; 
+  }
 }

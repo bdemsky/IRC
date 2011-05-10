@@ -5189,4 +5189,77 @@ public class ReachGraph {
   public Set<TempDescriptor> getInaccessibleVars() {
     return inaccessibleVars;
   }
+
+
+
+
+  public Set<Alloc> canPointTo( TempDescriptor x ) {
+    VariableNode vn = getVariableNodeNoMutation( x );
+    if( vn == null ) {
+      return null;
+    }
+
+    Set<Alloc> out = new HashSet<Alloc>();
+
+    Iterator<RefEdge> edgeItr = vn.iteratorToReferencees();
+    while( edgeItr.hasNext() ) {
+      HeapRegionNode hrn = edgeItr.next().getDst();
+
+      out.add( hrn.getAllocSite() );
+    }
+
+    return out;
+  }
+
+
+
+  public Hashtable< Alloc, Set<Alloc> > canPointTo( TempDescriptor x,
+                                                    String         field ) {
+    
+    VariableNode vn = getVariableNodeNoMutation( x );
+    if( vn == null ) {
+      return null;
+    }
+
+    Hashtable< Alloc, Set<Alloc> > out = new Hashtable< Alloc, Set<Alloc> >();
+
+    Iterator<RefEdge> edgeItr = vn.iteratorToReferencees();
+    while( edgeItr.hasNext() ) {
+      HeapRegionNode hrn = edgeItr.next().getDst();
+
+      Alloc key = hrn.getAllocSite();
+
+      Set<Alloc> moreValues = new HashSet<Alloc>();
+      Iterator<RefEdge> edgeItr2 = hrn.iteratorToReferencees();
+      while( edgeItr2.hasNext() ) {
+        RefEdge edge = edgeItr2.next();
+        
+        if( field.equals( edge.getField() ) ) {
+          moreValues.add( edge.getDst().getAllocSite() );
+        }
+      }
+
+      if( out.containsKey( key ) ) {
+        out.get( key ).addAll( moreValues );
+      } else {
+        out.put( key, moreValues );
+      }
+    }
+    
+    return out;
+  }
+
+
+
+  // for debugging
+  public TempDescriptor findVariableByName( String name ) {
+
+    for( TempDescriptor td: td2vn.keySet() ) {
+      if( td.getSymbol().contains( name ) ) {
+        return td;
+      }
+    }
+    
+    return null;
+  }
 }
