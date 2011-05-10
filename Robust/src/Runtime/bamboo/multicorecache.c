@@ -553,7 +553,7 @@ void cacheAdapt_phase_client() {
   cacheAdapt_mutator();
   cacheAdapt_gc(false);
   //send init finish msg to core coordinator
-  send_msg_2(STARTUPCORE, GCFINISHPREF, BAMBOO_NUM_OF_CORE, false);
+  send_msg_2(STARTUPCORE, GCFINISHPREF, BAMBOO_NUM_OF_CORE);
   GC_PRINTF("Finish prefinish phase\n");
   CACHEADAPT_SAMPING_RESET();
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {

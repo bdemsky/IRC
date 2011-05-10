@@ -222,7 +222,7 @@ unsigned int size_cachepolicytbl;
     for(int i = 0; i < NUMCORESACTIVE; ++i) { \
       gccorestatus[i] = 1; \
       if(BAMBOO_NUM_OF_CORE != i) { \
-        send_msg_1(i, (m), false); \
+        send_msg_1(i, (m)); \
       } \
     } \
   }

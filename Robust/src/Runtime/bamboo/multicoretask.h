@@ -39,7 +39,7 @@ void releasewritelock_I(void * ptr);
 void releasewritelock_r(void * lock, void * redirectlock);
 #endif // ifndef MULTICORE_GC
 /* this function is to process lock requests.
- * can only be invoked in receiveObject() */
+ * can only be invoked in receiveObject_I() */
 // if return -1: the lock request is redirected
 //            0: the lock request is approved
 //            1: the lock request is denied

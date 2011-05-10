@@ -645,7 +645,7 @@ INLINE void getprofiledata_I() {
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   for(i = 1; i < NUMCORESACTIVE; ++i) {
     // send profile request msg to core i
-    send_msg_2(i, PROFILEOUTPUT, totalexetime, false);
+    send_msg_2(i, PROFILEOUTPUT, totalexetime);
   } 
 #ifndef RT_TEST
   // pour profiling data on startup core
@@ -710,7 +710,7 @@ INLINE void checkCoreStatus() {
           for(i = 1; i < NUMCORESACTIVE; ++i) {
             corestatus[i] = 1;
             // send status confirm msg to core i
-            send_msg_1(i, STATUSCONFIRM, false);
+            send_msg_1(i, STATUSCONFIRM);
           }   
           return;
         } else {
@@ -802,7 +802,7 @@ inline void run(int argc, char** argv) {
         sendStall = false;
       }
 #ifndef INTERRUPT
-      while(receiveObject() != -1) {
+      while(receiveObject_I() != -1) {
       }
 #endif
       // check if there are some pending objects,
@@ -836,7 +836,7 @@ inline void run(int argc, char** argv) {
             } else {
               // send StallMsg to startup core
               // send stall msg
-              send_msg_4(STARTUPCORE, TRANSTALL, BAMBOO_NUM_OF_CORE,self_numsendobjs, self_numreceiveobjs, false);
+              send_msg_4(STARTUPCORE,TRANSTALL,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
               sendStall = true;
               isfirst = true;
               busystatus = false;

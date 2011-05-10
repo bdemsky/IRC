@@ -105,7 +105,7 @@ INLINE void terminatememprof(void);
 //                                        send mode                        //
 // BAMBOO_ENTER_SEND_MODE_FROM_RUNTIME(): change to send mode from         //
 //                                        runtime mode                     //
-// BAMBOO_WAITING_FOR_LOCK(): routine executed while waiting for lock      //
+// BAMBOO_WAITING_FOR_LOCK_I(): routine executed while waiting for lock    //
 //                            request response                             //
 // BAMBOO_LOCAL_MEM_CALLOC(x, y): allocate an array of x elements each of  //
 //                                whose size in bytes is y on local memory //

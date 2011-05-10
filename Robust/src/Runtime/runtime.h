@@ -150,7 +150,7 @@ void createstartupobject();
 #ifdef MULTICORE
 #include "SimpleHash.h"
 inline void run(int argc, char** argv);
-int receiveObject(int send_port_pending);
+int receiveObject_I();
 void * smemalloc_I(int coren, int size, int * allocsize);
 #ifdef MULTICORE_GC
 inline void setupsmemmode(void);

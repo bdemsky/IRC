@@ -210,7 +210,7 @@ void flush(struct garbagelist * stackptr) {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
   } else {
-    send_msg_2(STARTUPCORE, GCFINISHFLUSH, BAMBOO_NUM_OF_CORE, false);
+    send_msg_2(STARTUPCORE,GCFINISHFLUSH,BAMBOO_NUM_OF_CORE);
   }
 } 
 

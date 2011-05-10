@@ -88,7 +88,7 @@ INLINE void markObj(void * objptr) {
     // check if this obj has been forwarded
     if(!MGCHashcontains(gcforwardobjtbl, (int)objptr)) {
       // send a msg to host informing that objptr is active
-      send_msg_2(host, GCMARKEDOBJ, objptr, false);
+      send_msg_2(host,GCMARKEDOBJ,objptr);
       GCPROFILE_RECORD_FORWARD_OBJ();
       gcself_numsendobjs++;
       MGCHashadd(gcforwardobjtbl, (int)objptr);
@@ -304,7 +304,7 @@ INLINE void mark(bool isfirst, struct garbagelist * stackptr) {
       gcloads[BAMBOO_NUM_OF_CORE] = gccurr_heaptop;
     } else {
       if(!sendStall) {
-        send_msg_4(STARTUPCORE, GCFINISHMARK, BAMBOO_NUM_OF_CORE,gcself_numsendobjs, gcself_numreceiveobjs, false);
+        send_msg_4(STARTUPCORE,GCFINISHMARK,BAMBOO_NUM_OF_CORE,gcself_numsendobjs,gcself_numreceiveobjs);
         sendStall = true;
       }
     }

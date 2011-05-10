@@ -48,7 +48,7 @@ void gc_outputProfileData();
 #define GCPROFILE_INFO_2_MASTER() \
   { \
     if(STARTUPCORE != BAMBOO_NUM_OF_CORE) { \
-      send_msg_4(STARTUPCORE,GCPROFILES,gc_num_obj,gc_num_liveobj,gc_num_forwardobj, false); \
+      send_msg_4(STARTUPCORE,GCPROFILES,gc_num_obj,gc_num_liveobj,gc_num_forwardobj); \
     }\
     gc_num_obj = 0; \
   }

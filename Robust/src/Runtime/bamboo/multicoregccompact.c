@@ -92,9 +92,9 @@ INLINE void compact2Heaptophelper_I(unsigned int coren,
     gcblock2fill = *numblocks + 1;
   } else {
     if(BAMBOO_CHECK_SEND_MODE()) {
-      cache_msg_4(coren,GCMOVESTART,gctopcore,*p,(*numblocks)+1);
+      cache_msg_4_I(coren,GCMOVESTART,gctopcore,*p,(*numblocks)+1);
     } else {
-      send_msg_4(coren, GCMOVESTART, gctopcore, *p, (*numblocks) + 1, true);
+      send_msg_4_I(coren,GCMOVESTART,gctopcore,*p,(*numblocks)+1);
     }
   }
   if(memneed < *remain) {
@@ -202,7 +202,7 @@ INLINE void resolvePendingMoveRequest() {
 	gcmovestartaddr = startaddr;
 	gcblock2fill = tomove;
       } else {
-	send_msg_4(dstcore, GCMOVESTART, sourcecore,startaddr, tomove, false);
+	send_msg_4(dstcore,GCMOVESTART,sourcecore,startaddr,tomove);
       }
       gcmovepending--;
       nosparemem = true;
@@ -545,12 +545,10 @@ innercompact:
     if((unsigned int)(orig->ptr) < (unsigned int)gcmarkedptrbound) {
       // ask for more mem
       gctomove = false;
-      send_msg_5(STARTUPCORE, GCFINISHCOMPACT, BAMBOO_NUM_OF_CORE,
-                 *filledblocks, *heaptopptr, gccurr_heaptop, false);
+      send_msg_5(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE,*filledblocks,*heaptopptr,gccurr_heaptop);
     } else {
       // finish compacting
-      send_msg_5(STARTUPCORE, GCFINISHCOMPACT, BAMBOO_NUM_OF_CORE,
-                 *filledblocks, *heaptopptr, 0, false);
+      send_msg_5(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE,*filledblocks,*heaptopptr, 0);
     }
   } 
 
@@ -586,8 +584,7 @@ void compact() {
   if(!initOrig_Dst(orig, to)) {
     // no available data to compact
     // send compact finish msg to STARTUP core
-    send_msg_5(STARTUPCORE, GCFINISHCOMPACT, BAMBOO_NUM_OF_CORE,
-               0, to->base, 0, false);
+    send_msg_5(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE,0,to->base,0);
     RUNFREE(orig);
     RUNFREE(to);
   } else {

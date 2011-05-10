@@ -629,8 +629,7 @@ void gc_collect(struct garbagelist * stackptr) {
   gcprocessing = true;
   // inform the master that this core is at a gc safe point and is ready to 
   // do gc
-  send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, self_numsendobjs, 
-	     self_numreceiveobjs, false);
+  send_msg_4(STARTUPCORE,GCFINISHPRE,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
 
   // core collector routine
   //wait for init phase
@@ -640,7 +639,7 @@ void gc_collect(struct garbagelist * stackptr) {
   initGC();
   CACHEADAPT_GC(true);
   //send init finish msg to core coordinator
-  send_msg_2(STARTUPCORE, GCFINISHINIT, BAMBOO_NUM_OF_CORE, false);
+  send_msg_2(STARTUPCORE,GCFINISHINIT,BAMBOO_NUM_OF_CORE);
 
   //wait for mark phase
   WAITFORGCPHASE(MARKPHASE);
@@ -675,8 +674,7 @@ void gc_nocollect(struct garbagelist * stackptr) {
   gcprocessing = true;
   // inform the master that this core is at a gc safe point and is ready to 
   // do gc
-  send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, self_numsendobjs, 
-    self_numreceiveobjs, false);
+  send_msg_4(STARTUPCORE,GCFINISHPRE,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
   
   WAITFORGCPHASE(INITPHASE);
 
@@ -684,7 +682,7 @@ void gc_nocollect(struct garbagelist * stackptr) {
   initGC();
   CACHEADAPT_GC(true);
   //send init finish msg to core coordinator
-  send_msg_2(STARTUPCORE, GCFINISHINIT, BAMBOO_NUM_OF_CORE, false);
+  send_msg_2(STARTUPCORE,GCFINISHINIT,BAMBOO_NUM_OF_CORE);
 
   WAITFORGCPHASE(MARKPHASE);
 
@@ -734,7 +732,7 @@ void master_getlargeobjs() {
   // Note: only need to ask gc cores, non-gc cores do not host any objs
   numconfirm = NUMCORES4GC - 1;
   for(int i = 1; i < NUMCORES4GC; i++) {
-    send_msg_1(i, GCLOBJREQUEST, false);
+    send_msg_1(i,GCLOBJREQUEST);
   }
   gcloads[BAMBOO_NUM_OF_CORE] = gccurr_heaptop;
   //spin until we have all responses
@@ -773,14 +771,14 @@ void master_compact() {
     if (tmpcoreptr < tmpheaptop) {
       gcstopblock[i] = numpbc + 1;
       if(i != STARTUPCORE) {
-        send_msg_2(i, GCSTARTCOMPACT, numpbc+1, false);
+        send_msg_2(i, GCSTARTCOMPACT, numpbc+1);
       } else {
         gcblock2fill = numpbc+1;
       }
     } else {
       gcstopblock[i] = numpbc;
       if(i != STARTUPCORE) {
-        send_msg_2(i, GCSTARTCOMPACT, numpbc, false);
+        send_msg_2(i, GCSTARTCOMPACT, numpbc);
       } else {
         gcblock2fill = numpbc;
       }

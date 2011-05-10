@@ -109,7 +109,7 @@ INLINE bool checkObjQueue() {
     }
     getwritelock_I(tmpobj);
     while(!lockflag) {
-      BAMBOO_WAITING_FOR_LOCK(0);
+      BAMBOO_WAITING_FOR_LOCK_I();
     } 
     grount = lockresult;
 
@@ -968,7 +968,7 @@ void releasewritelock_r(void * lock, void * redirectlock) {
   } else {
     // send lock release with redirect info msg
     // for 32 bit machine, the size is always 4 words
-    send_msg_4(targetcore,REDIRECTRELEASE,1,(int)lock,(int)redirectlock,false);
+    send_msg_4(targetcore,REDIRECTRELEASE,1,(int)lock,(int)redirectlock);
   }
 }
 #endif
@@ -1054,11 +1054,11 @@ newtask:
       getwritelock(lock);
       BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
       while(!lockflag) {
-        BAMBOO_WAITING_FOR_LOCK(0);
+        BAMBOO_WAITING_FOR_LOCK_I();
       }
 #ifndef INTERRUPT
       if(reside) {
-        while(BAMBOO_WAITING_FOR_LOCK(0) != -1) {
+        while(BAMBOO_WAITING_FOR_LOCK_I() != -1) {
         }
       }
 #endif

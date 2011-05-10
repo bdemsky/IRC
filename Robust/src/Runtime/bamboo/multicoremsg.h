@@ -207,20 +207,25 @@ typedef enum {
 } MSGTYPE;
 
 // msg related functions
-void send_hanging_msg(bool isInterrupt);
-void send_msg_1(int targetcore,unsigned long n0,bool isInterrupt);
-void send_msg_2(int targetcore,unsigned long n0,unsigned long n1,bool isInterrupt);
-void send_msg_3(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,bool isInterrupt);
-void send_msg_4(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,bool isInterrupt);
-void send_msg_5(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4,bool isInterrupt);
-void send_msg_6(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4,unsigned long n5,bool isInterrupt);
-void cache_msg_1(int targetcore,unsigned long n0);
-void cache_msg_2(int targetcore,unsigned long n0,unsigned long n1);
-void cache_msg_3(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2);
-void cache_msg_4(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3);
-void cache_msg_5(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4);
-void cache_msg_6(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4,unsigned long n5);
-int receiveMsg(unsigned int send_port_pending);
+void send_msg_1(int targetcore,unsigned long n0);
+void send_msg_2(int targetcore,unsigned long n0,unsigned long n1);
+void send_msg_3(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2);
+void send_msg_4(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3);
+void send_msg_5(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4);
+void send_msg_6(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4,unsigned long n5);
+void send_msg_1_I(int targetcore,unsigned long n0);
+void send_msg_2_I(int targetcore,unsigned long n0,unsigned long n1);
+void send_msg_3_I(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2);
+void send_msg_4_I(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3);
+void send_msg_5_I(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4);
+void send_msg_6_I(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4,unsigned long n5);
+void cache_msg_1_I(int targetcore,unsigned long n0);
+void cache_msg_2_I(int targetcore,unsigned long n0,unsigned long n1);
+void cache_msg_3_I(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2);
+void cache_msg_4_I(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3);
+void cache_msg_5_I(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4);
+void cache_msg_6_I(int targetcore,unsigned long n0,unsigned long n1,unsigned long n2,unsigned long n3,unsigned long n4,unsigned long n5);
+int receiveMsg_I();
 #ifdef TASK
 void transferObject(struct transObjInfo * transObj);
 #endif

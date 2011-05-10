@@ -99,8 +99,11 @@ INLINE int checkMsgLength_I(int size) {
   }
 
   default:
+  {
+    tprintf("%x \n", type);
     BAMBOO_EXIT();
     break;
+  }
   }
   return BAMBOO_OUT_BUF_LENGTH;
 }
@@ -146,9 +149,9 @@ INLINE void processmsg_transobj_I(int msglength) {
     } else {
       // send a update pregc information msg to the master core
       if(BAMBOO_CHECK_SEND_MODE()) {
-        cache_msg_4(STARTUPCORE,GCFINISHPRE,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
+        cache_msg_4_I(STARTUPCORE,GCFINISHPRE,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
       } else {
-        send_msg_4(STARTUPCORE,GCFINISHPRE,BAMBOO_NUM_OF_CORE,self_numsendobjs, self_numreceiveobjs,true);
+        send_msg_4_I(STARTUPCORE,GCFINISHPRE,BAMBOO_NUM_OF_CORE,self_numsendobjs, self_numreceiveobjs);
       }
     }
   }
@@ -190,9 +193,9 @@ INLINE void processmsg_lockrequest_I() {
     // for 32 bit machine, the size is always 4 words, cache the msg first
     int tmp = deny==1 ? LOCKDENY : LOCKGROUNT;
     if(BAMBOO_CHECK_SEND_MODE()) {
-      cache_msg_4(data4, tmp, locktype, data2, data3);
+      cache_msg_4_I(data4,tmp,locktype,data2,data3);
     } else {
-      send_msg_4(data4, tmp, locktype, data2, data3, true);
+      send_msg_4_I(data4,tmp,locktype,data2,data3);
     }
   }
 }
@@ -255,9 +258,9 @@ INLINE void processmsg_redirectlock_I() {
     // send response msg
     // for 32 bit machine, the size is always 4 words, cache the msg first
     if(BAMBOO_CHECK_SEND_MODE()) {
-      cache_msg_4(data4,deny==1?REDIRECTDENY:REDIRECTGROUNT,data1,data2,data3);
+      cache_msg_4_I(data4,deny==1?REDIRECTDENY:REDIRECTGROUNT,data1,data2,data3);
     } else {
-      send_msg_4(data4,deny==1?REDIRECTDENY:REDIRECTGROUNT,data1,data2,data3,true);
+      send_msg_4_I(data4,deny==1?REDIRECTDENY:REDIRECTGROUNT,data1,data2,data3);
     }
   }
 }
@@ -316,9 +319,9 @@ INLINE void processmsg_profileoutput_I() {
 #endif
   // cache the msg first
   if(BAMBOO_CHECK_SEND_MODE()) {
-    cache_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
+    cache_msg_2_I(STARTUPCORE,PROFILEFINISH,BAMBOO_NUM_OF_CORE);
   } else {
-    send_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE, true);
+    send_msg_2_I(STARTUPCORE,PROFILEFINISH,BAMBOO_NUM_OF_CORE);
   }
 }
 
@@ -335,9 +338,9 @@ INLINE void processmsg_statusconfirm_I() {
   // send response msg
   // cache the msg first
   if(BAMBOO_CHECK_SEND_MODE()) {
-    cache_msg_5(STARTUPCORE,STATUSREPORT,busystatus?1:0,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
+    cache_msg_5_I(STARTUPCORE,STATUSREPORT,busystatus?1:0,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
   } else {
-    send_msg_5(STARTUPCORE,STATUSREPORT,busystatus?1:0,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs,true);
+    send_msg_5_I(STARTUPCORE,STATUSREPORT,busystatus?1:0,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
   }
 }
 
@@ -388,9 +391,9 @@ INLINE void processmsg_memrequest_I() {
     if(mem != NULL) {
       // send the start_va to request core, cache the msg first
       if(BAMBOO_CHECK_SEND_MODE()) {
-        cache_msg_3(data2, MEMRESPONSE, mem, allocsize);
+        cache_msg_3_I(data2,MEMRESPONSE,mem,allocsize);
       } else {
-        send_msg_3(data2, MEMRESPONSE, mem, allocsize, true);
+        send_msg_3_I(data2,MEMRESPONSE,mem,allocsize);
       }
     } //else if mem == NULL, the gcflag of the startup core has been set
     // and all the other cores have been informed to start gc
@@ -553,9 +556,9 @@ INLINE void processmsg_gcfinishcompact_I() {
       if(gcfindSpareMem_I(&startaddr, &tomove, &dstcore, data4, cnum)) {
         // cache the msg first
         if(BAMBOO_CHECK_SEND_MODE()) {
-          cache_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
+          cache_msg_4_I(cnum,GCMOVESTART,dstcore,startaddr,tomove);
         } else {
-          send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove, true);
+          send_msg_4_I(cnum,GCMOVESTART,dstcore,startaddr,tomove);
         }
       }
     } else {
@@ -587,9 +590,9 @@ INLINE void processmsg_gcmarkconfirm_I() {
   gcbusystatus = gc_moreItems2_I();
   // send response msg, cahce the msg first
   if(BAMBOO_CHECK_SEND_MODE()) {
-    cache_msg_5(STARTUPCORE,GCMARKREPORT,BAMBOO_NUM_OF_CORE,gcbusystatus,gcself_numsendobjs,gcself_numreceiveobjs);
+    cache_msg_5_I(STARTUPCORE,GCMARKREPORT,BAMBOO_NUM_OF_CORE,gcbusystatus,gcself_numsendobjs,gcself_numreceiveobjs);
   } else {
-    send_msg_5(STARTUPCORE,GCMARKREPORT,BAMBOO_NUM_OF_CORE,gcbusystatus,gcself_numsendobjs,gcself_numreceiveobjs, true);
+    send_msg_5_I(STARTUPCORE,GCMARKREPORT,BAMBOO_NUM_OF_CORE,gcbusystatus,gcself_numsendobjs,gcself_numreceiveobjs);
   }
 }
 
@@ -724,13 +727,11 @@ INLINE void processmsg_gcfinishpref_I() {
 //               3--received a lock Msg
 //               RAW version: -1 -- received nothing
 //                            otherwise -- received msg type
-int receiveObject(int send_port_pending) {
+int receiveObject_I() {
   PROFILE_INTERRUPT_START(); 
 msg:
   // get the incoming msgs
-  if(receiveMsg(send_port_pending) == -1) {
-    return -1;
-  }
+  receiveMsg_I();
   if(BAMBOO_CHECK_SEND_MODE()) {
     // during send, don't process the msg now
     return -3; 
