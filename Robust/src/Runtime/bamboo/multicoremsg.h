@@ -157,7 +157,7 @@ volatile bool isMsgHanging;
  *            (size is always 3 * sizeof(int))
  */
 typedef enum {
-  MSGSTART = 0xD0,       // 0xD0
+  MSGSTART = 0x0,       // 0xD0
   TRANSOBJ,              // 0xD1
   TRANSTALL,             // 0xD2
   LOCKREQUEST,           // 0xD3

@@ -52,7 +52,7 @@ int msgsizearray[] = {
   2, //GCFINISHPREF,          // 0xF7
 #endif // GC_CACHE_ADAPT
 #endif // MULTICORE_GC
-  //MSGEND
+  -1//MSGEND
 };
 
 INLINE int checkMsgLength_I() {
