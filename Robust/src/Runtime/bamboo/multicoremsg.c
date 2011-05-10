@@ -55,7 +55,7 @@ int msgsizearray[] = {
   -1//MSGEND
 };
 
-INLINE int checkMsgLength_I() {
+INLINE unsigned int checkMsgLength_I() {
 #if (defined(TASK)||defined(MULTICORE_GC))
   unsigned int realtype = msgdata[msgdataindex];
   unsigned int type=realtype&0xff;
