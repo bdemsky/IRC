@@ -4,13 +4,7 @@
 #include "multicoreruntime.h"
 #include "GenericHashtable.h"
 #include "gcqueue.h"
-#ifdef MGC
-#include "runtime_arch.h"
 
-extern int corenum;
-#endif
-
-extern int corenum;
 #ifdef TASK
 extern struct parameterwrapper ** objectqueues[][NUMCLASSES];
 extern int numqueues[][NUMCLASSES];

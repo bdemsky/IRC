@@ -3,10 +3,7 @@
 #include "multicoreruntime.h"
 #include "multicoretaskprofile.h"
 #include "multicoretask.h"
-
-#ifndef INLINE
-#define INLINE    inline __attribute__((always_inline))
-#endif 
+#include "multicore.h"
 
 //  data structures for task invocation
 struct genhashtable * activetasks;

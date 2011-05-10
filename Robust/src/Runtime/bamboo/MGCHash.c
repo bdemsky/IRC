@@ -8,16 +8,6 @@
 #include "dmalloc.h"
 #endif
 
-#ifndef INTPTR
-#ifdef BIT64
-#define INTPTR long
-#define INTPTRSHIFT 3
-#else
-#define INTPTR int
-#define INTPTRSHIFT 2
-#endif
-#endif
-
 #define GC_SHIFT_BITS 4
 
 /* mgchash ********************************************************/

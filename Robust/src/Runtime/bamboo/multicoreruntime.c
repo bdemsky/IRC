@@ -3,9 +3,6 @@
 #include "runtime.h"
 #include "multicoreruntime.h"
 #include "methodheaders.h"
-#ifdef MGC
-#include "runtime_arch.h"
-#endif
 
 extern int classsize[];
 extern int typearray[];
@@ -16,7 +13,6 @@ extern int* supertypes[];
 extern struct genhashtable * activetasks;
 #endif
 
-int debugtask=0;
 #ifdef MGC
 int corenum = 0;
 #endif

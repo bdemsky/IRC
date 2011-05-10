@@ -3,8 +3,6 @@
 #include "runtime_arch.h"
 #include "multicoreruntime.h"
 
-extern int corenum;
-
 INLINE bool gc_checkCoreStatus() {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   for(int i = 0; i < NUMCORES4GC; ++i) {

@@ -5,8 +5,6 @@
 #include "structdefs.h"
 #include "mem.h"
 
-extern int corenum;
-
 INLINE void initmulticoregcprofiledata() {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     // startup core to initialize corestatus[]

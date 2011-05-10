@@ -2,8 +2,6 @@
 #include "runtime_arch.h"
 #include "multicoreruntime.h"
 
-extern int corenum;
-
 #ifdef MULTICORE_GC
 #include "multicorehelper.h"
 

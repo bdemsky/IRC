@@ -4,11 +4,6 @@
 #include "ObjectHash.h"
 #include "GenericHashtable.h"
 #include "gcqueue.h"
-#ifdef MGC
-#include "runtime_arch.h"
-
-extern int corenum;
-#endif
 
 /* Task specific includes */
 

@@ -1,22 +1,7 @@
 #ifndef MGCHASH_H
 #define MGCHASH_H
 
-#ifndef bool
-#define bool int
-#endif
-
-#ifndef true
-#define true 1
-#endif
-
-#ifndef false
-#define false 0
-#endif
-
-#ifndef INLINE
-#define INLINE    inline __attribute__((always_inline))
-#endif
-
+#include "multicore.h"
 #include "mem.h"
 
 /* mgchash *********************************************************/

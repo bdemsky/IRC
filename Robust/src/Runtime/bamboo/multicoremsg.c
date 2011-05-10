@@ -4,12 +4,6 @@
 #include "multicoreruntime.h"
 #include "multicoretaskprofile.h"
 #include "gcqueue.h"
-#ifdef MGC
-#include "structdefs.h"
-#include "runtime_arch.h"
-
-extern int corenum;
-#endif
 
 int msgsizearray[] = {
   0, //MSGSTART,

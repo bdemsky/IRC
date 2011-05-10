@@ -8,8 +8,24 @@
 
 #ifndef bool
 #define bool int
+#endif
+
+#ifndef true
 #define true 1
+#endif
+
+#ifndef false
 #define false 0
+#endif
+
+#ifndef INTPTR
+#ifdef BIT64
+#define INTPTR long
+#define INTPTRSHIFT 3
+#else
+#define INTPTR int
+#define INTPTRSHIFT 2
+#endif
 #endif
 
 #endif // MULTICORE

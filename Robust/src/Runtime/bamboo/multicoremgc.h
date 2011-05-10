@@ -1,6 +1,7 @@
 #ifndef BAMBOO_MULTICORE_MGC_H
 #define BAMBOO_MULTICORE_MGC_H
 #ifdef MGC
+#include "runtime_arch.h"
 // shared memory pointer for global thread queue
 // In MGC version, this block of memory is located at the very bottom of the 
 // shared memory with the base address as BAMBOO_BASE_VA.
@@ -16,7 +17,5 @@
 unsigned int * bamboo_thread_queue;
 unsigned int bamboo_max_thread_num_mask;
 unsigned int bamboo_current_thread;
-
-//extern int corenum;
 #endif // MGC
 #endif // BAMBOO_MULTICORE_MGC_H
