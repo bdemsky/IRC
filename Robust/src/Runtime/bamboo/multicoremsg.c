@@ -59,31 +59,27 @@ int msgsizearray[] = {
   -1 //MSGEND
 };
 
-INLINE unsigned int checkMsgLength_I(unsigned int * type) {
+INLINE unsigned int checkMsgLength_I(unsigned int realtype) {
 #if (defined(TASK)||defined(MULTICORE_GC))
-  unsigned int realtype = msgdata[msgdataindex];
-  *type=realtype&0xff;
+  unsigned int type = realtype & 0xff;
 #else
-  *type = msgdata[msgdataindex];
+  unsigned int type = realtype;
 #endif
-  if(*type>MSGEND) {
-    // invalid msg type
-    BAMBOO_EXIT();
-  }
+  BAMBOO_ASSERT(type<=MSGEND, 0x1234);
 #ifdef TASK
 #ifdef MULTICORE_GC
-  if(*type==TRANSOBJ||*type==GCLOBJINFO) {
+  if(type==TRANSOBJ||type==GCLOBJINFO) {
 #else
-  if(*type==TRANSOBJ) {
+  if(type==TRANSOBJ) {
 #endif
 #elif MULTICORE_GC
-  if (*type==GCLOBJINFO) {
+  if (type==GCLOBJINFO) {
 #endif
 #if (defined(TASK)||defined(MULTICORE_GC))
     return realtype>>8;
   }
 #endif
-  return msgsizearray[*type];
+  return msgsizearray[type];
 }
 
 #ifdef TASK
@@ -731,9 +727,15 @@ processmsg:
   }
 
   //we only ever read the first word
-  MSGTYPE type;
-  unsigned int msglength = checkMsgLength_I((unsigned int*)(&type));
-  
+  unsigned int realtype = msgdata[msgdataindex];
+  unsigned int msglength = checkMsgLength_I(realtype);
+
+#if (defined(TASK)||defined(MULTICORE_GC))
+  unsigned int type = realtype & 0xff;
+#else
+  unsigned int type = realtype;
+#endif
+
   if(msglength <= size) {
     // have some whole msg
     MSG_INDEXINC_I();
