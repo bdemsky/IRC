@@ -105,6 +105,12 @@ void gc_outputProfileData();
       gc_profileItem(); \
     } \
   }
+#define GCPROFILE_END() \
+  { \
+    if(gc_profile_flag) { \
+      gc_profileEnd(); \
+    } \
+  }
 #else // MGC_SPEC
 #define GCPROFILE_RECORD_LOBJ() (gc_num_lobj++)
 #define GCPROFILE_RECORD_LOBJSPACE() (gc_num_lobjspace = sumsize)
@@ -120,9 +126,9 @@ void gc_outputProfileData();
 #define GCPROFILE_RECORD_LIVE_OBJ() (gc_num_liveobj++)
 #define GCPROFILE_START() gc_profileStart()
 #define GCPROFILE_ITEM() gc_profileItem()
+#define GCPROFILE_END() gc_profileEnd()
 #endif // MGC_SPEC
 
-#define GCPROFILE_END() gc_profileEnd()
 #define GCPROFILE_INIT() gc_profileInit()
 
 #else // GC_PROFILE

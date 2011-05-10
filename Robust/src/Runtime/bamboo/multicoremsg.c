@@ -65,7 +65,7 @@ INLINE unsigned int checkMsgLength_I(unsigned int realtype) {
 #else
   unsigned int type = realtype;
 #endif
-  BAMBOO_ASSERT(type<=MSGEND, 0x1234);
+  BAMBOO_ASSERT(type<=MSGEND);
 #ifdef TASK
 #ifdef MULTICORE_GC
   if(type==TRANSOBJ||type==GCLOBJINFO) {
