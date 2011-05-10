@@ -49,7 +49,7 @@ public class BuildIR {
     }
 
     ParseNode ipn = pn.getChild("imports").getChild("import_decls_list");
-    if (ipn != null) {
+    if ((ipn != null) && !state.MGC) {
       ParseNodeVector pnv = ipn.getChildren();
       for (int i = 0; i < pnv.size(); i++) {
         ParseNode pnimport = pnv.elementAt(i);
@@ -71,7 +71,7 @@ public class BuildIR {
 
     ParseNode ppn=pn.getChild("packages").getChild("package");
     String packageName = null;
-    if (ppn!=null) {
+    if ((ppn!=null) && !state.MGC){
       NameDescriptor nd = parseClassName(ppn.getChild("name"));
       packageName = nd.getPathFromRootToHere();
       //Trick -> import the package directory as a multi-import and it'll

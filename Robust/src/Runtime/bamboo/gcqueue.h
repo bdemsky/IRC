@@ -1,7 +1,10 @@
 #ifndef GCQUEUE_H
 #define GCQUEUE_H
-
 #include "stdio.h"
+
+#ifdef MGC
+#include "interrupt.h"
+#endif
 
 #define NUMPTRS 120
 

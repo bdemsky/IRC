@@ -9,6 +9,11 @@
 #include "multicoreruntime.h"
 #include "multicoregcprofile.h"
 #include "gcqueue.h"
+#ifdef MGC
+#include "runtime_arch.h"
+
+extern int corenum;
+#endif
 
 #ifdef SMEMM
 extern unsigned int gcmem_mixed_threshold;

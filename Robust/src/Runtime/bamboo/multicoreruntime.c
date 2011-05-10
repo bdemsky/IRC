@@ -3,6 +3,9 @@
 #include "runtime.h"
 #include "multicoreruntime.h"
 #include "methodheaders.h"
+#ifdef MGC
+#include "runtime_arch.h"
+#endif
 
 extern int classsize[];
 extern int typearray[];

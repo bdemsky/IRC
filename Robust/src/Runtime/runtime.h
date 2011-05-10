@@ -157,7 +157,7 @@ inline void setupsmemmode(void);
 #endif
 #endif
 
-#ifdef THREADS
+#if (defined(THREADS)||defined(MGC))
 #define MAXLOCKS 256
 
 struct lockpair {

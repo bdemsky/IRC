@@ -44,6 +44,10 @@ public class TypeUtil {
 
   public void addNewClass(String cl, Set todo) {
     //search through the default locations for the file.
+    if(state.MGC) {
+      // do not consider package or import when compiling MGC version
+      cl = (cl.lastIndexOf('.')==-1)?cl:cl.substring(cl.lastIndexOf('.')+1);
+    }
     for (int i = 0; i < state.classpath.size(); i++) {
       String path = (String) state.classpath.get(i);
       File f = new File(path, cl.replace('.', '/') + ".java");
@@ -63,16 +67,26 @@ public class TypeUtil {
 
 
   public ClassDescriptor getClass(String classname) {
-    ClassDescriptor cd=(ClassDescriptor)state.getClassSymbolTable().get(classname);
+    String cl = classname;
+    if(state.MGC) {
+      // do not consider package or import when compiling MGC version
+      cl = (cl.lastIndexOf('.')==-1)?cl:cl.substring(cl.lastIndexOf('.')+1);
+    }
+    ClassDescriptor cd=(ClassDescriptor)state.getClassSymbolTable().get(cl);
     return cd;
   }
 
   public ClassDescriptor getClass(String classname, HashSet todo) {
-    ClassDescriptor cd=(ClassDescriptor)state.getClassSymbolTable().get(classname);
+    String cl = classname;
+    if(state.MGC) {
+      // do not consider package or import when compiling MGC version
+      cl = (cl.lastIndexOf('.')==-1)?cl:cl.substring(cl.lastIndexOf('.')+1);
+    }
+    ClassDescriptor cd=(ClassDescriptor)state.getClassSymbolTable().get(cl);
     if (cd==null) {
       //have to find class
-      addNewClass(classname, todo);
-      cd=(ClassDescriptor)state.getClassSymbolTable().get(classname);
+      addNewClass(cl, todo);
+      cd=(ClassDescriptor)state.getClassSymbolTable().get(cl);
 
       System.out.println("Build class:"+cd);
       todo.add(cd);

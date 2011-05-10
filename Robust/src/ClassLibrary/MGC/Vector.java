@@ -79,7 +79,7 @@ public class Vector implements Set {
     }
   }
 
-  private ensureCapacity(int minCapacity) {
+  private void ensureCapacity(int minCapacity) {
     if (minCapacity>array.length) {
       int newsize;
       if (capacityIncrement<=0)

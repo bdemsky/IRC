@@ -4,6 +4,12 @@
 #include "multicoreruntime.h"
 #include "multicoretaskprofile.h"
 #include "gcqueue.h"
+#ifdef MGC
+#include "structdefs.h"
+#include "runtime_arch.h"
+
+extern int corenum;
+#endif
 
 int msgsizearray[] = {
   0, //MSGSTART,
@@ -80,6 +86,7 @@ INLINE unsigned int checkMsgLength_I(unsigned int * type) {
   return msgsizearray[*type];
 }
 
+#ifdef TASK
 INLINE void processmsg_transobj_I(int msglength) {
   struct transObjInfo * transObj=RUNMALLOC_I(sizeof(struct transObjInfo));
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE <= NUMCORESACTIVE - 1);
@@ -128,6 +135,7 @@ INLINE void processmsg_transobj_I(int msglength) {
   }
 #endif 
 }
+#endif
 
 INLINE void processmsg_transtall_I() {
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
