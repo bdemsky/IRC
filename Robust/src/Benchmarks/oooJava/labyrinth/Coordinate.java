@@ -68,7 +68,10 @@
  * =============================================================================
  */
 
-import java.lang.Math;
+// jjenista
+//import java.lang.Math;
+import Math;
+
 
 public class Coordinate {
 
