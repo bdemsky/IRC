@@ -72,7 +72,7 @@ INLINE int checkMsgLength_I() {
   if (type==GCLOBJINFO) {
 #endif
 #if (defined(TASK)||defined(MULTICORE_GC))
-    return msgdata[realtype>>8];
+    return realtype>>8;
   }
 #endif
   return msgsizearray[type];
