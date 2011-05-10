@@ -5,118 +5,87 @@
 #include "multicoretaskprofile.h"
 #include "gcqueue.h"
 
-INLINE int checkMsgLength_I(int size) {
-  int type = msgdata[msgdataindex];
-  switch(type) {
-  case STATUSCONFIRM:
-  case TERMINATE:
+int msgsizearray[] = {
+  0, //MSGSTART,
+  -1, //TRANSOBJ,              // 0xD1
+  4, //TRANSTALL,             // 0xD2
+  5, //LOCKREQUEST,           // 0xD3
+  4, //LOCKGROUNT,            // 0xD4
+  4, //LOCKDENY,              // 0xD5
+  4, //LOCKRELEASE,           // 0xD6
+  2, //PROFILEOUTPUT,         // 0xD7
+  2, //PROFILEFINISH,         // 0xD8
+  6, //REDIRECTLOCK,          // 0xD9
+  4, //REDIRECTGROUNT,        // 0xDa
+  4, //REDIRECTDENY,          // 0xDb
+  4, //REDIRECTRELEASE,       // 0xDc
+  1, //STATUSCONFIRM,         // 0xDd
+  5, //STATUSREPORT,          // 0xDe
+  1, //TERMINATE,             // 0xDf
+  3, //MEMREQUEST,            // 0xE0
+  3, //MEMRESPONSE,           // 0xE1
 #ifdef MULTICORE_GC
-  case GCSTARTPRE:
-  case GCSTART:
-  case GCSTARTINIT:
-  case GCSTARTFLUSH:
-  case GCFINISH:
-  case GCMARKCONFIRM:
-  case GCLOBJREQUEST:
-#ifdef GC_CACHE_ADAPT
-  case GCSTARTPREF:
-#endif 
-#endif 
-    return 1;
-    break;
-
-#ifdef TASK
-  case PROFILEOUTPUT:
-  case PROFILEFINISH:
-#endif
-#ifdef MULTICORE_GC
-  case GCSTARTCOMPACT:
-  case GCMARKEDOBJ:
-  case GCFINISHINIT:
-  case GCFINISHFLUSH:
-#ifdef GC_CACHE_ADAPT
-  case GCFINISHPREF:
-#endif 
-#endif 
-    return 2;
-    break;
-
-  case MEMREQUEST:
-  case MEMRESPONSE:
-    return 3;
-    break;
-    
-  case TRANSTALL:
-#ifdef TASK
-  case LOCKGROUNT:
-  case LOCKDENY:
-  case LOCKRELEASE:
-  case REDIRECTGROUNT:
-  case REDIRECTDENY:
-  case REDIRECTRELEASE:
-#endif
-#ifdef MULTICORE_GC
-  case GCFINISHPRE:
-  case GCFINISHMARK:
-  case GCMOVESTART:
+  1, //GCSTARTPRE,            // 0xE2
+  1, //GCSTARTINIT,           // 0xE3
+  1, //GCSTART,               // 0xE4
+  2, //GCSTARTCOMPACT,        // 0xE5
+  1, //GCSTARTFLUSH,          // 0xE6
+  4, //GCFINISHPRE,           // 0xE7
+  2,//GCFINISHINIT,          // 0xE8
+  4, //GCFINISHMARK,          // 0xE9
+  5, //GCFINISHCOMPACT,       // 0xEa
+  2,//GCFINISHFLUSH,         // 0xEb
+  1, //GCFINISH,              // 0xEc
+  1, //GCMARKCONFIRM,         // 0xEd
+  5, //GCMARKREPORT,          // 0xEe
+  2, //GCMARKEDOBJ,           // 0xEf
+  4, //GCMOVESTART,           // 0xF0
+  1, //GCLOBJREQUEST,         // 0xF1   
+  -1, //GCLOBJINFO,            // 0xF2
 #ifdef GC_PROFILE
-  case GCPROFILES:
-#endif
-#endif
-    return 4;
-    break;
-    
-#ifdef TASK
-  case LOCKREQUEST:
-#endif
-  case STATUSREPORT:
-#ifdef MULTICORE_GC
-  case GCFINISHCOMPACT:
-  case GCMARKREPORT:
-#endif
-    return 5;
-    break;
-    
-#ifdef TASK
-  case REDIRECTLOCK:
-    return 6;
-    break;
-#endif
+  4, //GCPROFILES,            // 0xF3
+#endif // GC_PROFILE
+#ifdef GC_CACHE_ADAPT
+  -2, //GCSTARTPOSTINIT,       // 0xF4
+  1, //GCSTARTPREF,           // 0xF5
+  -2, //GCFINISHPOSTINIT,      // 0xF6
+  2, //GCFINISHPREF,          // 0xF7
+#endif // GC_CACHE_ADAPT
+#endif // MULTICORE_GC
+  //MSGEND
+};
 
+INLINE int checkMsgLength_I() {
+#if (defined(TASK)||defined(MULTICORE_GC))
+  unsigned int realtype = msgdata[msgdataindex];
+  unsigned int type=realtype&0xff;
+#else
+  unsigned int type = msgdata[msgdataindex];
+#endif
 #ifdef TASK
-  case TRANSOBJ:   // nonfixed size
-#endif
 #ifdef MULTICORE_GC
-  case GCLOBJINFO:
+  if(type==TRANSOBJ||type==GCLOBJINFO) {
+#else
+  if(type==TRANSOBJ) {
 #endif
-  {  // nonfixed size
-    if(size > 1) {
-      return msgdata[(msgdataindex+1)&(BAMBOO_MSG_BUF_MASK)];
-    } else {
-      return -1;
-    }
-    break;
+#elif MULTICORE_GC
+  if (type==GCLOBJINFO) {
+#endif
+#if (defined(TASK)||defined(MULTICORE_GC))
+    return msgdata[realtype>>8];
   }
-
-  default:
-  {
-    tprintf("%x \n", type);
-    BAMBOO_EXIT();
-    break;
-  }
-  }
-  return BAMBOO_OUT_BUF_LENGTH;
+#endif
+  return msgsizearray[type];
 }
 
 INLINE void processmsg_transobj_I(int msglength) {
-  MSG_INDEXINC_I();
   struct transObjInfo * transObj=RUNMALLOC_I(sizeof(struct transObjInfo));
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE <= NUMCORESACTIVE - 1);
 
   // store the object and its corresponding queue info, enqueue it later
   transObj->objptr = (void *)msgdata[msgdataindex]; 
   MSG_INDEXINC_I();
-  transObj->length = (msglength - 3) / 2;
+  transObj->length = (msglength - 2) / 2;
   transObj->queues = RUNMALLOC_I(sizeof(int)*(msglength - 3));
   for(int k = 0; k < transObj->length; k++) {
     transObj->queues[2*k] = msgdata[msgdataindex];  
@@ -645,10 +614,8 @@ INLINE void processmsg_gcmovestart_I() {
   MSG_INDEXINC_I();     
 }
 
-INLINE void processmsg_gclobjinfo_I() {
+INLINE void processmsg_gclobjinfo_I(unsigned int data1) {
   numconfirm--;
-  int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE <= NUMCORES4GC - 1);
@@ -663,7 +630,7 @@ INLINE void processmsg_gclobjinfo_I() {
     gcheaptop = data4;
   }
   // large obj info here
-  for(int k = 5; k < data1; k+=2) {
+  for(int k = 4; k < data1; k+=2) {
     int lobj = msgdata[msgdataindex];
     MSG_INDEXINC_I();  
     int length = msgdata[msgdataindex];
@@ -739,9 +706,8 @@ msg:
 processmsg:
   // processing received msgs
   int size = 0;
-  int msglength = 0;
   MSG_REMAINSIZE_I(&size);
-  if((size == 0) || ((msglength=checkMsgLength_I(size)) == -1)) {
+  if(size == 0) {
     // not a whole msg
     // have new coming msg
     if((BAMBOO_MSG_AVAIL() != 0) && !msgdatafull) {
@@ -750,6 +716,9 @@ processmsg:
       return -1;
     }
   }
+
+  //we only ever read the first word
+  unsigned int msglength = checkMsgLength_I();
 
   if(msglength <= size) {
     // have some whole msg
@@ -955,7 +924,7 @@ processmsg:
 
     case GCLOBJINFO: {
       // received a large objs info response msg
-      processmsg_gclobjinfo_I();
+      processmsg_gclobjinfo_I(msglength);
       break;
     } 
 
