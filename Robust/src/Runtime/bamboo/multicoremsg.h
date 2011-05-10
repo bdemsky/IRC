@@ -10,8 +10,6 @@
 int msgdata[BAMBOO_MSG_BUF_LENGTH];
 volatile int msgdataindex;
 volatile int msgdatalast;
-//BAD! BAD! BAD!  THIS SHOULD NOT BE A GLOBAL!!!!
-//int msglength;
 volatile bool msgdatafull;
 int outmsgdata[BAMBOO_OUT_BUF_LENGTH];
 int outmsgindex;
@@ -29,9 +27,6 @@ volatile bool isMsgHanging;
   msgdata[msgdatalast] = (n); \
   MSG_LASTINDEXINC_I()
 
-// NOTE: if msgdataindex == msgdatalast, it always means that the buffer if
-//       full. In the case that the buffer is empty, should never call this
-//       MACRO
 #define MSG_REMAINSIZE_I(s) \
   if(msgdataindex < msgdatalast) { \
     (*(int*)s) = msgdatalast - msgdataindex; \
@@ -157,7 +152,7 @@ volatile bool isMsgHanging;
  *            (size is always 3 * sizeof(int))
  */
 typedef enum {
-  MSGSTART = 0x0,       // 0xD0
+  MSGSTART = 0x0,        // 0xD0
   TRANSOBJ,              // 0xD1
   TRANSTALL,             // 0xD2
   LOCKREQUEST,           // 0xD3
@@ -197,10 +192,8 @@ typedef enum {
   GCPROFILES,            // 0xF3
 #endif // GC_PROFILE
 #ifdef GC_CACHE_ADAPT
-  GCSTARTPOSTINIT,       // 0xF4
-  GCSTARTPREF,           // 0xF5
-  GCFINISHPOSTINIT,      // 0xF6
-  GCFINISHPREF,          // 0xF7
+  GCSTARTPREF,           // 0xF4
+  GCFINISHPREF,          // 0xF5
 #endif // GC_CACHE_ADAPT
 #endif // MULTICORE_GC
   MSGEND

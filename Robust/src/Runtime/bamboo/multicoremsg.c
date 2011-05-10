@@ -7,7 +7,7 @@
 
 int msgsizearray[] = {
   0, //MSGSTART,
-  -1, //TRANSOBJ,              // 0xD1
+ -1, //TRANSOBJ,              // 0xD1
   4, //TRANSTALL,             // 0xD2
   5, //LOCKREQUEST,           // 0xD3
   4, //LOCKGROUNT,            // 0xD4
@@ -31,51 +31,53 @@ int msgsizearray[] = {
   2, //GCSTARTCOMPACT,        // 0xE5
   1, //GCSTARTFLUSH,          // 0xE6
   4, //GCFINISHPRE,           // 0xE7
-  2,//GCFINISHINIT,          // 0xE8
+  2, //GCFINISHINIT,          // 0xE8
   4, //GCFINISHMARK,          // 0xE9
   5, //GCFINISHCOMPACT,       // 0xEa
-  2,//GCFINISHFLUSH,         // 0xEb
+  2, //GCFINISHFLUSH,         // 0xEb
   1, //GCFINISH,              // 0xEc
   1, //GCMARKCONFIRM,         // 0xEd
   5, //GCMARKREPORT,          // 0xEe
   2, //GCMARKEDOBJ,           // 0xEf
   4, //GCMOVESTART,           // 0xF0
   1, //GCLOBJREQUEST,         // 0xF1   
-  -1, //GCLOBJINFO,            // 0xF2
+ -1, //GCLOBJINFO,            // 0xF2
 #ifdef GC_PROFILE
   4, //GCPROFILES,            // 0xF3
 #endif // GC_PROFILE
 #ifdef GC_CACHE_ADAPT
-  -2, //GCSTARTPOSTINIT,       // 0xF4
   1, //GCSTARTPREF,           // 0xF5
-  -2, //GCFINISHPOSTINIT,      // 0xF6
   2, //GCFINISHPREF,          // 0xF7
 #endif // GC_CACHE_ADAPT
 #endif // MULTICORE_GC
-  -1//MSGEND
+  -1 //MSGEND
 };
 
-INLINE unsigned int checkMsgLength_I() {
+INLINE unsigned int checkMsgLength_I(unsigned int * type) {
 #if (defined(TASK)||defined(MULTICORE_GC))
   unsigned int realtype = msgdata[msgdataindex];
-  unsigned int type=realtype&0xff;
+  *type=realtype&0xff;
 #else
-  unsigned int type = msgdata[msgdataindex];
+  *type = msgdata[msgdataindex];
 #endif
+  if(*type>MSGEND) {
+    // invalid msg type
+    BAMBOO_EXIT();
+  }
 #ifdef TASK
 #ifdef MULTICORE_GC
-  if(type==TRANSOBJ||type==GCLOBJINFO) {
+  if(*type==TRANSOBJ||*type==GCLOBJINFO) {
 #else
-  if(type==TRANSOBJ) {
+  if(*type==TRANSOBJ) {
 #endif
 #elif MULTICORE_GC
-  if (type==GCLOBJINFO) {
+  if (*type==GCLOBJINFO) {
 #endif
 #if (defined(TASK)||defined(MULTICORE_GC))
     return realtype>>8;
   }
 #endif
-  return msgsizearray[type];
+  return msgsizearray[*type];
 }
 
 INLINE void processmsg_transobj_I(int msglength) {
@@ -699,6 +701,9 @@ int receiveObject_I() {
 msg:
   // get the incoming msgs
   receiveMsg_I();
+  if((msgdataindex == msgdatalast) && (!msgdatafull)) {
+    return -1;
+  }
   if(BAMBOO_CHECK_SEND_MODE()) {
     // during send, don't process the msg now
     return -3; 
@@ -718,12 +723,11 @@ processmsg:
   }
 
   //we only ever read the first word
-  unsigned int msglength = checkMsgLength_I();
-
+  MSGTYPE type;
+  unsigned int msglength = checkMsgLength_I((unsigned int*)(&type));
+  
   if(msglength <= size) {
     // have some whole msg
-    MSGTYPE type;
-    type = msgdata[msgdataindex]; //[0]
     MSG_INDEXINC_I();
     msgdatafull = false;
     switch(type) {
