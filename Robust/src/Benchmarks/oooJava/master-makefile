@@ -140,8 +140,8 @@ rcr-debug-v: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(RCRDEBUGV) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
 clean:
-	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin $(PROGRAM)r.bin
-	rm -fr par sing rcr
+	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin $(PROGRAM)r.bin $(PROGRAM)c.bin
+	rm -fr par sing rcr chk
 	rm -f tmp.c
 	rm -f  *~
 	rm -f  *.dot
