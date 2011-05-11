@@ -40,7 +40,7 @@ RCRDEBUGV= -rcr_debug_verbose -printlinenum
 BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 5000 -garbagestats -joptimize -noloop -optimize -nolock -debug #-nooptimize #src-after-pp
 
 
-CHECKPOINTSTO= -disjoint -pointsto-check-v-runtime
+CHECKPOINTSTO= -disjoint -printlinenum -pointsto-check-v-runtime #-disjoint-write-dots final
 
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed
