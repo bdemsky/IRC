@@ -1723,11 +1723,13 @@ public class DisjointAnalysis implements HeapAnalysis {
       // of programs with no tasks/SESEs/rblocks...
       //XXXXXXXXXXXXXXXXXXXXXXXXX
       //need to consider more
-      FlatNode nextFN=fmCallee.getNext(0);
-      if( nextFN instanceof FlatSESEEnterNode ) {
-        FlatSESEEnterNode calleeSESE=(FlatSESEEnterNode)nextFN;
-        if(!calleeSESE.getIsLeafSESE()) {
-          rg.makeInaccessible(liveness.getLiveInTemps(fmContaining, fn) );
+      if( state.OOOJAVA ) {
+        FlatNode nextFN=fmCallee.getNext(0);
+        if( nextFN instanceof FlatSESEEnterNode ) {
+          FlatSESEEnterNode calleeSESE=(FlatSESEEnterNode)nextFN;
+          if(!calleeSESE.getIsLeafSESE()) {
+            rg.makeInaccessible(liveness.getLiveInTemps(fmContaining, fn) );
+          }
         }
       }
 
