@@ -9,14 +9,6 @@ public class FlatIRGraph {
 
   private State state;
 
-  private BufferedWriter flatbw;
-
-  private HashSet<FlatNode> visited;
-  private HashSet<FlatNode> toVisit;
-
-  private int labelindex;
-  private Hashtable<FlatNode, Integer> flatnodetolabel;
-
   public FlatIRGraph(State state, boolean tasks, boolean usermethods, boolean libmethods) throws java.io.IOException {
     this.state=state;
 
@@ -46,7 +38,21 @@ public class FlatIRGraph {
     }
   }
 
-  private void writeFlatIRGraph(FlatMethod fm, String graphname) throws java.io.IOException {
+
+
+  static BufferedWriter flatbw;
+
+  static HashSet<FlatNode> visited;
+  static HashSet<FlatNode> toVisit;
+
+  static int labelindex;
+  static Hashtable<FlatNode, Integer> flatnodetolabel;
+
+  
+  static public void writeFlatIRGraph(FlatMethod fm, String graphname) throws java.io.IOException {
+
+
+
     // give every node in the flat IR graph a unique label
     // so a human being can inspect the graph and verify
     // correctness
@@ -91,7 +97,8 @@ public class FlatIRGraph {
     flatbw.close();
   }
 
-  private void labelFlatNodes(FlatNode fn) {
+
+  static private void labelFlatNodes(FlatNode fn) {
     visited.add(fn);
     flatnodetolabel.put(fn,new Integer(labelindex++));
     for(int i=0; i<fn.numNext(); i++) {
@@ -102,12 +109,13 @@ public class FlatIRGraph {
     }
   }
 
-  private String makeNodeName(String graphname, Integer id, String type) {
+
+  static private String makeNodeName(String graphname, Integer id, String type) {
     String s = String.format("%05d", id);
     return "FN"+s+"_"+type;
   }
 
-  private String makeDotNodeDec(String graphname, Integer id, String type, String details) {
+  static private String makeDotNodeDec(String graphname, Integer id, String type, String details) {
     if( details == null ) {
       return "  node"+id+"[label=\""+makeNodeName(graphname,id,type)+"\"];\n";
     } else {
