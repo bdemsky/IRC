@@ -70,8 +70,11 @@
 
 public class Labyrinth 
 {
-static  String global_inputFile;
-static   boolean global_doPrint;
+  // jjenista -- not sure what is going with static fields in the general
+  // compiler, let alone disjoint/pointer/OOOJ/DOJ
+  /*static*/  String global_inputFile;
+  /*static*/  boolean global_doPrint;
+
     int numThread;
     int bendCost;
     int xCost;
