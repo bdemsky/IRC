@@ -2,7 +2,7 @@
 
 #include "multicoretaskprofile.h"
 
-INLINE void inittaskprofiledata() {
+void inittaskprofiledata() {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     // startup core to initialize corestatus[]
     for(i = 0; i < NUMCORESACTIVE; ++i) {
@@ -20,60 +20,6 @@ INLINE void inittaskprofiledata() {
   interruptInfoOverflow = false;
 #endif // PROFILE_INTERRUPT
 }
-
-inline void setTaskExitIndex(int index) {
-  taskInfoArray[taskInfoIndex]->exitIndex = index;
-}
-
-inline void addNewObjInfo(void * nobj) {
-  if(taskInfoArray[taskInfoIndex]->newObjs == NULL) {
-    taskInfoArray[taskInfoIndex]->newObjs = createQueue();
-  }
-  addNewItem(taskInfoArray[taskInfoIndex]->newObjs, nobj);
-}
-
-inline void profileTaskStart(char * taskname) {
-  if(!taskInfoOverflow) {
-    TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
-    taskInfoArray[taskInfoIndex] = taskInfo;
-    taskInfo->taskName = taskname;
-    taskInfo->startTime = BAMBOO_GET_EXE_TIME();
-    taskInfo->endTime = -1;
-    taskInfo->exitIndex = -1;
-    taskInfo->newObjs = NULL;
-  }
-}
-
-inline void profileTaskEnd() {
-  if(!taskInfoOverflow) {
-    taskInfoArray[taskInfoIndex]->endTime = BAMBOO_GET_EXE_TIME();
-    taskInfoIndex++;
-    if(taskInfoIndex == TASKINFOLENGTH) {
-      taskInfoOverflow = true;
-    }
-  }
-}
-
-#ifdef PROFILE_INTERRUPT
-INLINE void profileInterruptStart_I(void) {
-  if(!interruptInfoOverflow) {
-    InterruptInfo* intInfo = RUNMALLOC_I(sizeof(struct interrupt_info));
-    interruptInfoArray[interruptInfoIndex] = intInfo;
-    intInfo->startTime = BAMBOO_GET_EXE_TIME();
-    intInfo->endTime = -1;
-  }
-}
-
-INLINE void profileInterruptEnd_I(void) {
-  if(!interruptInfoOverflow) {
-    interruptInfoArray[interruptInfoIndex]->endTime=BAMBOO_GET_EXE_TIME();
-    interruptInfoIndex++;
-    if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
-      interruptInfoOverflow = true;
-    }
-  }
-}
-#endif // PROFILE_INTERRUPT
 
 // output the profiling data
 void outputProfileData() {

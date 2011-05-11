@@ -21,11 +21,7 @@ struct moveHelper {
 #define GC_BLOCK_REMAIN_SIZE(b, p) \
   ((b)<NUMCORES4GC)?((BAMBOO_SMEM_SIZE_L)-((p)%(BAMBOO_SMEM_SIZE_L))):((BAMBOO_SMEM_SIZE)-((p)%(BAMBOO_SMEM_SIZE)))
 
-bool gcfindSpareMem_I(unsigned int * startaddr,
-                      unsigned int * tomove,
-                      unsigned int * dstcore,
-                      unsigned int requiredmem,
-                      unsigned int requiredcore);
+bool gcfindSpareMem_I(unsigned int * startaddr,unsigned int * tomove,unsigned int * dstcore,unsigned int requiredmem,unsigned int requiredcore);
 void compact();
 void compact_master(struct moveHelper * orig, struct moveHelper * to);
 #endif // MULTICORE_GC

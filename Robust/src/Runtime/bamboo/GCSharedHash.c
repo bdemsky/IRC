@@ -29,14 +29,14 @@ struct GCSharedHash * allocateGCSharedHash(int size) {
   } 
   thisvar=(struct GCSharedHash *)FREEMALLOC_NGC(sizeof(struct GCSharedHash));
   if(thisvar == NULL) {
-	return NULL;
+    return NULL;
   }
   thisvar->size = size;
   thisvar->bucket = 
 	(struct GCSharedNode **)FREEMALLOC_NGC(sizeof(struct GCSharedNode *)*size);
   if(thisvar->bucket == NULL) {
-	FREE_NGC(thisvar);
-	return NULL;
+    FREE_NGC(thisvar);
+    return NULL;
   }
   /* Set allocation blocks*/
   thisvar->listhead=NULL;
@@ -62,7 +62,7 @@ bool GCSharedHashrehash(struct GCSharedHash * thisvar) {
   struct GCSharedNode ** newbucket = (struct GCSharedNode **)
 	FREEMALLOC_NGC(sizeof(struct GCSharedNode *)*newsize);
   if(newbucket == NULL) {
-	return false;
+    return false;
   }
   int i;
   for(i=thisvar->size-1; i>=0; i--) {
@@ -88,21 +88,19 @@ int GCSharedHashadd(struct GCSharedHash * thisvar,int key, int data) {
 
   if (thisvar->numelements>=thisvar->size) {
     int newsize=2*thisvar->size+1;
-    struct GCSharedNode ** newbucket = 
-	  (struct GCSharedNode **)FREEMALLOC_NGC(
-		  sizeof(struct GCSharedNode *)*newsize);
-	if(newbucket == NULL) {
-	  return -1;
-	}
+    struct GCSharedNode ** newbucket=(struct GCSharedNode **)FREEMALLOC_NGC(sizeof(struct GCSharedNode *)*newsize);
+    if(newbucket == NULL) {
+      return -1;
+    }
     int i;
     for(i=thisvar->size-1; i>=0; i--) {
       struct GCSharedNode *ptr;
       for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
-	struct GCSharedNode * nextptr=ptr->next;
-	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-	ptr->next=newbucket[newhashkey];
-	newbucket[newhashkey]=ptr;
-	ptr=nextptr;
+        struct GCSharedNode * nextptr=ptr->next;
+        unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+        ptr->next=newbucket[newhashkey];
+        newbucket[newhashkey]=ptr;
+        ptr=nextptr;
       }
     }
     thisvar->size=newsize;
@@ -125,9 +123,9 @@ int GCSharedHashadd(struct GCSharedHash * thisvar,int key, int data) {
 
   {
     struct GCSharedNode *node=FREEMALLOC_NGC(sizeof(struct GCSharedNode));
-	if(node == NULL) {
-	  return -1;
-	}
+    if(node == NULL) {
+      return -1;
+    }
     node->data=data;
     node->key=key;
     node->next=(*ptr);
@@ -162,15 +160,13 @@ struct GCSharedHash * allocateGCSharedHash_I(int size) {
   }
   thisvar=(struct GCSharedHash *)FREEMALLOC_NGC_I(sizeof(struct GCSharedHash));
   if(thisvar == NULL) {
-	return NULL;
+    return NULL;
   }
   thisvar->size = size;
-  thisvar->bucket = 
-	(struct GCSharedNode **)FREEMALLOC_NGC_I(
-		sizeof(struct GCSharedNode *)*size);
+  thisvar->bucket=(struct GCSharedNode **)FREEMALLOC_NGC_I(sizeof(struct GCSharedNode *)*size);
   if(thisvar->bucket == NULL) {
-	FREE_NGC_I(thisvar);
-	return NULL;
+    FREE_NGC_I(thisvar);
+    return NULL;
   }
   /* Set allocation blocks*/
   thisvar->listhead=NULL;
@@ -187,21 +183,19 @@ int GCSharedHashadd_I(struct GCSharedHash * thisvar,int key, int data) {
 
   if (thisvar->numelements>=thisvar->size) {
     int newsize=2*thisvar->size+1;
-    struct GCSharedNode ** newbucket = 
-	  (struct GCSharedNode **)FREEMALLOC_NGC_I(
-		  sizeof(struct GCSharedNode *)*newsize);
-	if(newbucket == NULL) {
-	  return -1;
-	}
+    struct GCSharedNode ** newbucket=(struct GCSharedNode **)FREEMALLOC_NGC_I(sizeof(struct GCSharedNode *)*newsize);
+    if(newbucket == NULL) {
+      return -1;
+    }
     int i;
     for(i=thisvar->size-1; i>=0; i--) {
       struct GCSharedNode *ptr;
       for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
-	struct GCSharedNode * nextptr=ptr->next;
-	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-	ptr->next=newbucket[newhashkey];
-	newbucket[newhashkey]=ptr;
-	ptr=nextptr;
+        struct GCSharedNode * nextptr=ptr->next;
+        unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+        ptr->next=newbucket[newhashkey];
+        newbucket[newhashkey]=ptr;
+        ptr=nextptr;
       }
     }
     thisvar->size=newsize;
@@ -224,9 +218,9 @@ int GCSharedHashadd_I(struct GCSharedHash * thisvar,int key, int data) {
 
   {
     struct GCSharedNode *node=FREEMALLOC_NGC_I(sizeof(struct GCSharedNode));
-	if(node == NULL) {
-	  return -1;
-	}
+    if(node == NULL) {
+      return -1;
+    }
     node->data=data;
     node->key=key;
     node->next=(*ptr);
@@ -266,8 +260,7 @@ int GCSharedHashget(struct GCSharedHash *thisvar, int key, int *data) {
 
 /* MGCSHAREDHASH ********************************************************/
 
-mgcsharedhashtbl_t * mgcsharedhashCreate(unsigned int size, 
-                                         double loadfactor) {
+mgcsharedhashtbl_t * mgcsharedhashCreate(unsigned int size,double loadfactor) {
   mgcsharedhashtbl_t * ctable;
   mgcsharedhashlistnode_t * nodes;
   int i;
@@ -279,8 +272,7 @@ mgcsharedhashtbl_t * mgcsharedhashCreate(unsigned int size,
     return NULL;
   }
   // Allocate space for the hash table
-  ctable->table = (mgcsharedhashlistnode_t *)FREEMALLOC_NGC(
-	  size*sizeof(mgcsharedhashlistnode_t));
+  ctable->table=(mgcsharedhashlistnode_t *)FREEMALLOC_NGC(size*sizeof(mgcsharedhashlistnode_t));
   if(ctable->table == NULL) {
     BAMBOO_EXIT(); // TODO
     return NULL;
@@ -298,8 +290,7 @@ mgcsharedhashtbl_t * mgcsharedhashCreate(unsigned int size,
   return ctable;
 }
 
-mgcsharedhashtbl_t * mgcsharedhashCreate_I(unsigned int size, 
-                                           double loadfactor) {
+mgcsharedhashtbl_t * mgcsharedhashCreate_I(unsigned int size,double loadfactor) {
   mgcsharedhashtbl_t * ctable;
   mgcsharedhashlistnode_t * nodes;
   int i;
@@ -311,8 +302,7 @@ mgcsharedhashtbl_t * mgcsharedhashCreate_I(unsigned int size,
     return NULL;
   }
   // Allocate space for the hash table
-  ctable->table = (mgcsharedhashlistnode_t *)FREEMALLOC_NGC_I(
-	  size*sizeof(mgcsharedhashlistnode_t));
+  ctable->table=(mgcsharedhashlistnode_t *)FREEMALLOC_NGC_I(size*sizeof(mgcsharedhashlistnode_t));
   if(ctable->table == NULL) {
     BAMBOO_EXIT(); // TODO
     return NULL;
@@ -334,28 +324,26 @@ void mgcsharedhashReset(mgcsharedhashtbl_t * tbl) {
   mgcsharedhashlistnode_t * ptr = tbl->table;
 
   if ((tbl->numelements) < (tbl->size>>6)) {
-	mgcsharedhashlistnode_t *top = &ptr[tbl->size];
-	mgcsharedhashlistnode_t * list = tbl->list;
-	while(list != NULL) {  
+    mgcsharedhashlistnode_t *top = &ptr[tbl->size];
+    mgcsharedhashlistnode_t * list = tbl->list;
+    while(list != NULL) {  
       mgcsharedhashlistnode_t * next = list->next;
       if ((list >= ptr) && (list < top)) {
-		//zero in list
+        //zero in list
         list->key=NULL;
         list->next=NULL;
       }
       list = next;
-	}
+    }
   } else {
-	BAMBOO_MEMSET_WH(tbl->table, '\0', 
-		sizeof(mgcsharedhashlistnode_t)*tbl->size);
+    BAMBOO_MEMSET_WH(tbl->table,'\0',sizeof(mgcsharedhashlistnode_t)*tbl->size);
   }
 
   mgcsharedliststruct_t * structs = tbl->structs;
   while(structs != NULL) {
     mgcsharedliststruct_t * next = structs->next;
-	BAMBOO_MEMSET_WH(structs->array, '\0', 
-		structs->num * sizeof(mgcsharedhashlistnode_t));
-	structs->num = 0;
+    BAMBOO_MEMSET_WH(structs->array,'\0',structs->num*sizeof(mgcsharedhashlistnode_t));
+    structs->num = 0;
     structs = next;
   }
   tbl->numelements = 0;
@@ -378,16 +366,16 @@ int mgcsharedhashInsert(mgcsharedhashtbl_t * tbl, void * key, void * val) {
     ptr->key=key;
     ptr->val=val;
   } else { // Insert to the next empty place
-	mgcsharedhashlistnode_t *top = &tbl->table[tbl->size];
+    mgcsharedhashlistnode_t *top = &tbl->table[tbl->size];
     do {
-	  ptr++;
-	} while((ptr < top) && (ptr->key != NULL));
-	if(ptr >= top) {
-	  return -1;
-	} else {
-	  ptr->key = key;
-	  ptr->val = val;
-	}
+      ptr++;
+    } while((ptr < top) && (ptr->key != NULL));
+    if(ptr >= top) {
+      return -1;
+    } else {
+      ptr->key = key;
+      ptr->val = val;
+    }
   }
   ptr->next = tbl->list;
   tbl->list = ptr;
@@ -410,20 +398,20 @@ int mgcsharedhashInsert_I(mgcsharedhashtbl_t * tbl, void * key, void * val) {
     ptr->key=key;
     ptr->val=val;
   } else { // Insert to the next empty place
-	mgcsharedhashlistnode_t * top = &tbl->table[tbl->size];
-	mgcsharedhashlistnode_t * start = ptr;
+    mgcsharedhashlistnode_t * top = &tbl->table[tbl->size];
+    mgcsharedhashlistnode_t * start = ptr;
     do {
-	  ptr++;
-	  if(ptr->key == 0) {
-		break;
-	  }
-	} while(ptr < top);
-	if(ptr >= top) {
-	  return -1;
-	} else {
-	  ptr->key = key;
-	  ptr->val = val;
-	}
+      ptr++;
+      if(ptr->key == 0) {
+        break;
+      }
+    } while(ptr < top);
+    if(ptr >= top) {
+      return -1;
+    } else {
+      ptr->key = key;
+      ptr->val = val;
+    }
   }
   ptr->next = tbl->list;
   tbl->list = ptr;
@@ -432,11 +420,10 @@ int mgcsharedhashInsert_I(mgcsharedhashtbl_t * tbl, void * key, void * val) {
 }
 
 // Search for an address for a given oid
-INLINE void * mgcsharedhashSearch(mgcsharedhashtbl_t * tbl, void * key) {
+void * mgcsharedhashSearch(mgcsharedhashtbl_t * tbl, void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE]
-  mgcsharedhashlistnode_t * node = 
-	&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>(GC_SHIFT_BITS)];
-  mgcsharedhashlistnode_t *top = &tbl->table[tbl->size];
+  mgcsharedhashlistnode_t * node=&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>(GC_SHIFT_BITS)];
+  mgcsharedhashlistnode_t *top=&tbl->table[tbl->size];
 
   do {
     if(node->key == key) {

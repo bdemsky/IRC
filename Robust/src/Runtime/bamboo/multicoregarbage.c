@@ -31,15 +31,15 @@ void dumpSMem() {
 	 udn_tile_coord_y());
   for(i=BAMBOO_BASE_VA; (unsinged int)i<(unsigned int)gcbaseva; i+= 4*16) {
     printf("(%x,%x) 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n",
-	   udn_tile_coord_x(), udn_tile_coord_y(),
-	   *((int *)(i)), *((int *)(i + 4)),
-	   *((int *)(i + 4*2)), *((int *)(i + 4*3)),
-	   *((int *)(i + 4*4)), *((int *)(i + 4*5)),
-	   *((int *)(i + 4*6)), *((int *)(i + 4*7)),
-	   *((int *)(i + 4*8)), *((int *)(i + 4*9)),
-	   *((int *)(i + 4*10)), *((int *)(i + 4*11)),
-	   *((int *)(i + 4*12)), *((int *)(i + 4*13)),
-	   *((int *)(i + 4*14)), *((int *)(i + 4*15)));
+        udn_tile_coord_x(), udn_tile_coord_y(),
+        *((int *)(i)), *((int *)(i + 4)),
+        *((int *)(i + 4*2)), *((int *)(i + 4*3)),
+        *((int *)(i + 4*4)), *((int *)(i + 4*5)),
+        *((int *)(i + 4*6)), *((int *)(i + 4*7)),
+        *((int *)(i + 4*8)), *((int *)(i + 4*9)),
+        *((int *)(i + 4*10)), *((int *)(i + 4*11)),
+        *((int *)(i + 4*12)), *((int *)(i + 4*13)),
+        *((int *)(i + 4*14)), *((int *)(i + 4*15)));
   }
   sblock = gcreservedsb;
   bool advanceblock = false;
@@ -50,39 +50,38 @@ void dumpSMem() {
     if(j%((BAMBOO_SMEM_SIZE)/(4*16)) == 0) {
       // finished a sblock
       if(j < ((BAMBOO_LARGE_SMEM_BOUND)/(4*16))) {
-	if((j > 0) && (j%((BAMBOO_SMEM_SIZE_L)/(4*16)) == 0)) {
-	  // finished a block
-	  block++;
-	  advanceblock = true;
-	}
+        if((j > 0) && (j%((BAMBOO_SMEM_SIZE_L)/(4*16)) == 0)) {
+          // finished a block
+          block++;
+          advanceblock = true;	
+        }
       } else {
-	// finished a block
-	block++;
-	advanceblock = true;
+        // finished a block
+        block++;
+        advanceblock = true;
       }
       // compute core #
       if(advanceblock) {
-	coren = gc_block2core[block%(NUMCORES4GC*2)];
+        coren = gc_block2core[block%(NUMCORES4GC*2)];
       }
       // compute core coordinate
       x = BAMBOO_COORDS_X(coren);
       y = BAMBOO_COORDS_Y(coren);
       printf("(%x,%x) ==== %d, %d : core (%d,%d), saddr %x====\n",
-	     udn_tile_coord_x(), udn_tile_coord_y(),
-             block, sblock++, x, y,
-             (sblock-1)*(BAMBOO_SMEM_SIZE)+gcbaseva);
+          udn_tile_coord_x(), udn_tile_coord_y(),block, sblock++, x, y,
+          (sblock-1)*(BAMBOO_SMEM_SIZE)+gcbaseva);
     }
     j++;
     printf("(%x,%x) 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n",
-	   udn_tile_coord_x(), udn_tile_coord_y(),
-	   *((int *)(i)), *((int *)(i + 4)),
-	   *((int *)(i + 4*2)), *((int *)(i + 4*3)),
-	   *((int *)(i + 4*4)), *((int *)(i + 4*5)),
-	   *((int *)(i + 4*6)), *((int *)(i + 4*7)),
-	   *((int *)(i + 4*8)), *((int *)(i + 4*9)),
-	   *((int *)(i + 4*10)), *((int *)(i + 4*11)),
-	   *((int *)(i + 4*12)), *((int *)(i + 4*13)),
-	   *((int *)(i + 4*14)), *((int *)(i + 4*15)));
+        udn_tile_coord_x(), udn_tile_coord_y(),
+        *((int *)(i)), *((int *)(i + 4)),
+        *((int *)(i + 4*2)), *((int *)(i + 4*3)),
+        *((int *)(i + 4*4)), *((int *)(i + 4*5)),
+        *((int *)(i + 4*6)), *((int *)(i + 4*7)),
+        *((int *)(i + 4*8)), *((int *)(i + 4*9)),
+        *((int *)(i + 4*10)), *((int *)(i + 4*11)),
+        *((int *)(i + 4*12)), *((int *)(i + 4*13)),
+        *((int *)(i + 4*14)), *((int *)(i + 4*15)));
   }
   printf("(%x,%x) \n", udn_tile_coord_x(), udn_tile_coord_y());
 }
@@ -207,9 +206,50 @@ bool gc_checkAllCoreStatus_I() {
   return true;
 }
 
+INLINE void checkMarkStatus_p2() {
+  // check if the sum of send objs and receive obj are the same
+  // yes->check if the info is the latest; no->go on executing
+  unsigned int sumsendobj = 0;
+  for(int i = 0; i < NUMCORESACTIVE; i++) {
+    sumsendobj += gcnumsendobjs[gcnumsrobjs_index][i];
+  } 
+  for(int i = 0; i < NUMCORESACTIVE; i++) {
+    sumsendobj -= gcnumreceiveobjs[gcnumsrobjs_index][i];
+  } 
+  if(0 == sumsendobj) {
+    // Check if there are changes of the numsendobjs or numreceiveobjs 
+    // on each core
+    int i = 0;
+    for(i = 0; i < NUMCORESACTIVE; i++) {
+      if((gcnumsendobjs[0][i]!=gcnumsendobjs[1][i])||(gcnumreceiveobjs[0][i]!=gcnumreceiveobjs[1][i]) ) {
+        break;
+      }
+    }  
+    if(i == NUMCORESACTIVE) {    
+      // all the core status info are the latest,stop mark phase
+      gcphase = COMPACTPHASE;
+      // restore the gcstatus for all cores
+      for(int i = 0; i < NUMCORESACTIVE; i++) {
+        gccorestatus[i] = 1;
+      }  
+    } else {
+      // There were changes between phase 1 and phase 2, can not decide 
+      // whether the mark phase has been finished
+      waitconfirm = false;
+      // As it fails in phase 2, flip the entries
+      gcnumsrobjs_index = (gcnumsrobjs_index == 0) ? 1 : 0;
+    } 
+  } else {
+    // There were changes between phase 1 and phase 2, can not decide 
+    // whether the mark phase has been finished
+    waitconfirm = false;
+    // As it fails in phase 2, flip the entries
+    gcnumsrobjs_index = (gcnumsrobjs_index == 0) ? 1 : 0;
+  }
+}
+
 INLINE void checkMarkStatus() {
-  if((!waitconfirm) ||
-      (waitconfirm && (numconfirm == 0))) {
+  if((!waitconfirm)||(waitconfirm && (numconfirm == 0))) {
     unsigned int entry_index = 0;
     if(waitconfirm) {
       // phase 2
@@ -235,47 +275,7 @@ INLINE void checkMarkStatus() {
         GC_SEND_MSG_1_TO_CLIENT(GCMARKCONFIRM);
       } else {
         // Phase 2
-        // check if the sum of send objs and receive obj are the same
-        // yes->check if the info is the latest; no->go on executing
-        unsigned int sumsendobj = 0;
-        for(int i = 0; i < NUMCORESACTIVE; i++) {
-          sumsendobj += gcnumsendobjs[gcnumsrobjs_index][i];
-        } 
-        for(int i = 0; i < NUMCORESACTIVE; i++) {
-          sumsendobj -= gcnumreceiveobjs[gcnumsrobjs_index][i];
-        } 
-        if(0 == sumsendobj) {
-          // Check if there are changes of the numsendobjs or numreceiveobjs on
-          // each core
-          bool ischanged = false;
-          for(int i = 0; i < NUMCORESACTIVE; i++) {
-            if((gcnumsendobjs[0][i] != gcnumsendobjs[1][i]) || 
-                (gcnumreceiveobjs[0][i] != gcnumreceiveobjs[1][i]) ) {
-              ischanged = true;
-              break;
-            }
-          }  
-          if(!ischanged) {    
-            // all the core status info are the latest,stop mark phase
-            gcphase = COMPACTPHASE;
-            // restore the gcstatus for all cores
-            for(int i = 0; i < NUMCORESACTIVE; i++) {
-              gccorestatus[i] = 1;
-            }  
-          } else {
-            // There were changes between phase 1 and phase 2, can not decide 
-            // whether the mark phase has been finished
-            waitconfirm = false;
-            // As it fails in phase 2, flip the entries
-            gcnumsrobjs_index = (gcnumsrobjs_index == 0) ? 1 : 0;
-          } 
-        } else {
-          // There were changes between phase 1 and phase 2, can not decide 
-          // whether the mark phase has been finished
-          waitconfirm = false;
-          // As it fails in phase 2, flip the entries
-          gcnumsrobjs_index = (gcnumsrobjs_index == 0) ? 1 : 0;
-        } 
+        checkMarkStatus_p2(); 
         BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       }
     } else {
@@ -287,7 +287,6 @@ INLINE void checkMarkStatus() {
 // compute load balance for all cores
 INLINE int loadbalance(unsigned int * heaptop) {
   // compute load balance
-
   // get the total loads
   unsigned int tloads = gcloads[STARTUPCORE];
   for(int i = 1; i < NUMCORES4GC; i++) {
@@ -326,27 +325,27 @@ INLINE unsigned int sortLObjs() {
     // find the place to insert
     while(true) {
       if(i == 0) {
-	if(tmp_block->prev == NULL) {
-	  break;
-	}
-	if(tmp_block->prev->lobjs[NUMLOBJPTRS-1] > tmp_lobj) {
-	  tmp_block->lobjs[i] = tmp_block->prev->lobjs[NUMLOBJPTRS-1];
-	  tmp_block->lengths[i] = tmp_block->prev->lengths[NUMLOBJPTRS-1];
-	  tmp_block->hosts[i] = tmp_block->prev->hosts[NUMLOBJPTRS-1];
-	  tmp_block = tmp_block->prev;
-	  i = NUMLOBJPTRS-1;
-	} else {
-	  break;
-	}  // if(tmp_block->prev->lobjs[NUMLOBJPTRS-1] < tmp_lobj)
+        if(tmp_block->prev == NULL) {
+          break;
+        }
+        if(tmp_block->prev->lobjs[NUMLOBJPTRS-1] > tmp_lobj) {
+          tmp_block->lobjs[i] = tmp_block->prev->lobjs[NUMLOBJPTRS-1];
+          tmp_block->lengths[i] = tmp_block->prev->lengths[NUMLOBJPTRS-1];
+          tmp_block->hosts[i] = tmp_block->prev->hosts[NUMLOBJPTRS-1];
+          tmp_block = tmp_block->prev;
+          i = NUMLOBJPTRS-1;
+        } else {
+          break;
+        }  // if(tmp_block->prev->lobjs[NUMLOBJPTRS-1] < tmp_lobj)
       } else {
-	if(tmp_block->lobjs[i-1] > tmp_lobj) {
-	  tmp_block->lobjs[i] = tmp_block->lobjs[i-1];
-	  tmp_block->lengths[i] = tmp_block->lengths[i-1];
-	  tmp_block->hosts[i] = tmp_block->hosts[i-1];
-	  i--;
-	} else {
-	  break;
-	}  
+        if(tmp_block->lobjs[i-1] > tmp_lobj) {
+          tmp_block->lobjs[i] = tmp_block->lobjs[i-1];
+          tmp_block->lengths[i] = tmp_block->lengths[i-1];
+          tmp_block->hosts[i] = tmp_block->hosts[i-1];
+          i--;
+        } else {
+          break;
+        }  
       } 
     }  
     // insert it
@@ -383,11 +382,9 @@ INLINE bool cacheLObjs() {
     size = gclobjtail2->lengths[gclobjtailindex2];
     // set the mark field to , indicating that this obj has been moved
     // and need to be flushed
-    ((struct ___Object___ *)(gclobjtail2->lobjs[gclobjtailindex2]))->marked = 
-      COMPACTED;
+    ((struct ___Object___ *)(gclobjtail2->lobjs[gclobjtailindex2]))->marked=COMPACTED;
     dst -= size;
-    if((unsigned int)dst < 
-        (unsigned int)(gclobjtail2->lobjs[gclobjtailindex2]+size)) {
+    if((unsigned int)dst<(unsigned int)(gclobjtail2->lobjs[gclobjtailindex2]+size)) {
       memmove(dst, gclobjtail2->lobjs[gclobjtailindex2], size);
     } else {
       memcpy(dst, gclobjtail2->lobjs[gclobjtailindex2], size);
@@ -410,18 +407,18 @@ void updateSmemTbl(unsigned int coren, unsigned int localtop) {
     for(int i=0; i<2; i++) {
       toset = gc_core2block[2*coren+i]+(unsigned int)(NUMCORES4GC*2)*j;
       if(toset < ltopcore) {
-	bamboo_smemtbl[toset]=(toset<NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+        bamboo_smemtbl[toset]=BLOCKSIZE(toset<NUMCORES4GC);
 #ifdef SMEMM
-	gcmem_mixed_usedmem += bamboo_smemtbl[toset];
+        gcmem_mixed_usedmem += bamboo_smemtbl[toset];
 #endif
       } else if(toset == ltopcore) {
-	bamboo_smemtbl[toset] = load;
+        bamboo_smemtbl[toset] = load;
 #ifdef SMEMM
-	gcmem_mixed_usedmem += bamboo_smemtbl[toset];
+        gcmem_mixed_usedmem += bamboo_smemtbl[toset];
 #endif
-	return;
+        return;
       } else {
-	return;
+        return;
       }
     }
   }
@@ -432,21 +429,18 @@ INLINE unsigned int checkCurrHeapTop() {
   BAMBOO_MEMSET_WH(bamboo_smemtbl, 0, sizeof(int)*gcnumblock);
   // flush all gcloads to indicate the real heap top on one core
   // previous it represents the next available ptr on a core
-  if(((unsigned int)gcloads[0] > (unsigned int)(gcbaseva+BAMBOO_SMEM_SIZE_L))
-     && (((unsigned int)gcloads[0]%(BAMBOO_SMEM_SIZE)) == 0)) {
+  if(((unsigned int)gcloads[0]>(unsigned int)(gcbaseva+BAMBOO_SMEM_SIZE_L))&&(((unsigned int)gcloads[0]%(BAMBOO_SMEM_SIZE)) == 0)) {
     // edge of a block, check if this is exactly the heaptop
     BASEPTR(0, gcfilledblocks[0]-1, &(gcloads[0]));
-    gcloads[0]+=(gcfilledblocks[0]>1?(BAMBOO_SMEM_SIZE):(BAMBOO_SMEM_SIZE_L));
+    gcloads[0]+=BLOCKSIZE(gcfilledblocks[0]<=1);
   }
   updateSmemTbl(0, gcloads[0]);
   for(int i = 1; i < NUMCORES4GC; i++) {
     unsigned int tmptop = 0;
-    if((gcfilledblocks[i] > 0)
-       && (((unsigned int)gcloads[i] % (BAMBOO_SMEM_SIZE)) == 0)) {
+    if((gcfilledblocks[i] > 0)&&(((unsigned int)gcloads[i]%(BAMBOO_SMEM_SIZE)) == 0)) {
       // edge of a block, check if this is exactly the heaptop
       BASEPTR(i, gcfilledblocks[i]-1, &gcloads[i]);
-      gcloads[i] +=
-        (gcfilledblocks[i]>1?(BAMBOO_SMEM_SIZE):(BAMBOO_SMEM_SIZE_L));
+      gcloads[i]+=BLOCKSIZE(gcfilledblocks[i]<=1);
       tmptop = gcloads[i];
     }
     updateSmemTbl(i, gcloads[i]);
@@ -459,12 +453,25 @@ INLINE unsigned int checkCurrHeapTop() {
   unsigned int tmpheaptop = 0;
   for(int i = gcnumblock-1; i >= 0; i--) {
     if(bamboo_smemtbl[i] > 0) {
-      return gcbaseva+bamboo_smemtbl[i]+((i<NUMCORES4GC) ?
-        (BAMBOO_SMEM_SIZE_L*i) :
-        (BAMBOO_SMEM_SIZE*(i-NUMCORES4GC)+BAMBOO_LARGE_SMEM_BOUND));
+      return gcbaseva+bamboo_smemtbl[i]+OFFSET2BASEVA(i);
     }
   }
   return gcbaseva;
+}
+
+INLINE void movelobj(unsigned int tmpheaptop,unsigned int ptr,int size,int isize) {
+  // move the large obj
+  if((unsigned int)gcheaptop < (unsigned int)(tmpheaptop+size)) {
+    memmove(tmpheaptop, gcheaptop, size);
+  } else {
+    memcpy(tmpheaptop, gcheaptop, size);
+  }
+  // fill the remaining space with -2 padding
+  BAMBOO_MEMSET_WH(tmpheaptop+size, -2, isize-size);
+  gcheaptop += size;
+  // cache the mapping info 
+  gcmappingtbl[OBJMAPPINGINDEX((unsigned int)ptr)]=(unsigned int)tmpheaptop;
+  tmpheaptop += isize;
 }
 
 INLINE void moveLObjs() {
@@ -483,9 +490,7 @@ INLINE void moveLObjs() {
   gcmem_mixed_usedmem += tomove;
 #endif
   // flush the sbstartbl
-  BAMBOO_MEMSET_WH(&(gcsbstarttbl[gcreservedsb]), '\0',
-    (BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE-(unsigned int)gcreservedsb)
-    *sizeof(unsigned int));
+  BAMBOO_MEMSET_WH(&(gcsbstarttbl[gcreservedsb]),'\0',(BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE-(unsigned int)gcreservedsb)*sizeof(unsigned int));
   if(tomove == 0) {
     gcheaptop = tmpheaptop;
   } else {
@@ -515,89 +520,64 @@ INLINE void moveLObjs() {
       ptr = (unsigned int)(gc_lobjdequeue4_I(&size, &host));
       ALIGNSIZE(size, &isize);
       if(remain >= isize) {
-	remain -= isize;
-	// move the large obj
-	if((unsigned int)gcheaptop < (unsigned int)(tmpheaptop+size)) {
-	  memmove(tmpheaptop, gcheaptop, size);
-	} else {
-	  memcpy(tmpheaptop, gcheaptop, size);
-	}
-	// fill the remaining space with -2 padding
-	BAMBOO_MEMSET_WH(tmpheaptop+size, -2, isize-size);
-	
-	gcheaptop += size;
-	cpysize += isize;
-	// cache the mapping info
-	gcmappingtbl[OBJMAPPINGINDEX((unsigned int)ptr)]=(unsigned int)tmpheaptop;
-	tmpheaptop += isize;
-	
-	// update bamboo_smemtbl
-	bamboo_smemtbl[b] += isize;
+        remain -= isize;
+        // move the large obj
+        movelobj(tmpheaptop,ptr,size,isize);
+        cpysize += isize;
+        // update bamboo_smemtbl
+        bamboo_smemtbl[b] += isize;
       } else {
-	// this object acrosses blocks
-	if(cpysize > 0) {
-	  CLOSEBLOCK(base, cpysize+BAMBOO_CACHE_LINE_SIZE);
-	  bamboo_smemtbl[b] += BAMBOO_CACHE_LINE_SIZE;
-	  cpysize = 0;
-	  base = tmpheaptop;
-	  if(remain == 0) {
-	    remain = ((tmpheaptop-gcbaseva)<(BAMBOO_LARGE_SMEM_BOUND)) ?
-	      BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
-	  }
-	  remain -= BAMBOO_CACHE_LINE_SIZE;
-	  tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
-	  BLOCKINDEX(tmpheaptop, &b);
-	  sb = (unsigned int)(tmpheaptop-gcbaseva)/(BAMBOO_SMEM_SIZE)+gcreservedsb;
-	} 
+        // this object acrosses blocks
+        if(cpysize > 0) {
+          CLOSEBLOCK(base, cpysize+BAMBOO_CACHE_LINE_SIZE);
+          bamboo_smemtbl[b] += BAMBOO_CACHE_LINE_SIZE;
+          cpysize = 0;
+          base = tmpheaptop;
+          if(remain == 0) {
+            remain = BLOCKSIZE((tmpheaptop-gcbaseva)<(BAMBOO_LARGE_SMEM_BOUND));
+          }
+          remain -= BAMBOO_CACHE_LINE_SIZE;
+          tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
+          BLOCKINDEX(tmpheaptop, &b);
+          sb = (unsigned int)(tmpheaptop-gcbaseva)/(BAMBOO_SMEM_SIZE)+gcreservedsb;
+        } 
+        // move the obj
+        movelobj(tmpheaptop,ptr,size,isize);
+        	
+        // set the gcsbstarttbl and bamboo_smemtbl
+        unsigned int tmpsbs=1+(unsigned int)(isize-remain-1)/BAMBOO_SMEM_SIZE;
+        for(int k = 1; k < tmpsbs; k++) {
+          gcsbstarttbl[sb+k] = -1;
+        }
+        sb += tmpsbs;
+        bound = BLOCKSIZE(b<NUMCORES4GC);
+        BLOCKINDEX(tmpheaptop-1, &tmpsbs);
+        for(; b < tmpsbs; b++) {
+          bamboo_smemtbl[b] = bound;
+          if(b==NUMCORES4GC-1) {
+            bound = BAMBOO_SMEM_SIZE;
+          }
+        }
+        if(((unsigned int)(isize-remain)%(BAMBOO_SMEM_SIZE)) == 0) {
+          gcsbstarttbl[sb] = -1;
+          remain = BLOCKSIZE((tmpheaptop-gcbaseva)<(BAMBOO_LARGE_SMEM_BOUND));
+          bamboo_smemtbl[b] = bound;
+        } else {
+          gcsbstarttbl[sb] = (int)tmpheaptop;
+          remain = tmpheaptop-gcbaseva;
+          bamboo_smemtbl[b] = remain%bound;
+          remain = bound - bamboo_smemtbl[b];
+        } 
 	
-	// move the large obj
-	if((unsigned int)gcheaptop < (unsigned int)(tmpheaptop+size)) {
-	  memmove(tmpheaptop, gcheaptop, size);
-	} else {
-	  memcpy(tmpheaptop, gcheaptop, size);
-	}
-	// fill the remaining space with -2 padding
-	BAMBOO_MEMSET_WH(tmpheaptop+size, -2, isize-size);
-	gcheaptop += size;
-	// cache the mapping info 
-	gcmappingtbl[OBJMAPPINGINDEX((unsigned int)ptr)]=(unsigned int)tmpheaptop;
-	tmpheaptop += isize;
-	
-	// set the gcsbstarttbl and bamboo_smemtbl
-	unsigned int tmpsbs=1+(unsigned int)(isize-remain-1)/BAMBOO_SMEM_SIZE;
-	for(int k = 1; k < tmpsbs; k++) {
-	  gcsbstarttbl[sb+k] = -1;
-	}
-	sb += tmpsbs;
-	bound = (b<NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
-	BLOCKINDEX(tmpheaptop-1, &tmpsbs);
-	for(; b < tmpsbs; b++) {
-	  bamboo_smemtbl[b] = bound;
-	  if(b==NUMCORES4GC-1) {
-	    bound = BAMBOO_SMEM_SIZE;
-	  }
-	}
-	if(((unsigned int)(isize-remain)%(BAMBOO_SMEM_SIZE)) == 0) {
-	  gcsbstarttbl[sb] = -1;
-	  remain = ((tmpheaptop-gcbaseva)<(BAMBOO_LARGE_SMEM_BOUND)) ?
-	    BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
-	  bamboo_smemtbl[b] = bound;
-	} else {
-	  gcsbstarttbl[sb] = (int)tmpheaptop;
-	  remain = tmpheaptop-gcbaseva;
-	  bamboo_smemtbl[b] = remain%bound;
-	  remain = bound - bamboo_smemtbl[b];
-	} 
-	
-	CLOSEBLOCK(base, isize+BAMBOO_CACHE_LINE_SIZE);
-	cpysize = 0;
-	base = tmpheaptop;
-	if(remain == BAMBOO_CACHE_LINE_SIZE) {
-	  // fill with 0 in case
-	  BAMBOO_MEMSET_WH(tmpheaptop, '\0', remain);
-	}
-	remain -= BAMBOO_CACHE_LINE_SIZE;
-	tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
+        CLOSEBLOCK(base, isize+BAMBOO_CACHE_LINE_SIZE);
+        cpysize = 0;
+        base = tmpheaptop;
+        if(remain == BAMBOO_CACHE_LINE_SIZE) {
+          // fill with 0 in case
+          BAMBOO_MEMSET_WH(tmpheaptop, '\0', remain);
+        }
+        remain -= BAMBOO_CACHE_LINE_SIZE;
+        tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
       } 
     }
     
@@ -613,7 +593,7 @@ INLINE void moveLObjs() {
   bamboo_free_block = 0;
   unsigned int tbound = 0;
   do {
-    tbound=(bamboo_free_block<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
+    tbound=BLOCKSIZE(bamboo_free_block<NUMCORES4GC);
     if(bamboo_smemtbl[bamboo_free_block] == tbound) {
       bamboo_free_block++;
     } else {

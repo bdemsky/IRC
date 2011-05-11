@@ -179,9 +179,21 @@ unsigned int size_cachepolicytbl;
     (*((unsigned int*)(o))) = ((s)-(BAMBOO_SMEM_SIZE_L))%(BAMBOO_SMEM_SIZE); \
   }
 
+#define OFFSET2BASEVA(i) \
+  (((i)<NUMCORES4GC)?(BAMBOO_SMEM_SIZE_L*(i)):(BAMBOO_SMEM_SIZE*((i)-NUMCORES4GC)+BAMBOO_LARGE_SMEM_BOUND))
+
+#define BLOCKSIZE(c) \
+  ((c)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE)
+
 // mapping of (core #, index of the block) to the global block index
 #define BLOCKINDEX2(c, n) \
   (gc_core2block[(2*(c))+((n)%2)]+((NUMCORES4GC*2)*((n)/2)))
+
+#define BOUNDPTR(b) \
+  (((b)<NUMCORES4GC)?(((b)+1)*BAMBOO_SMEM_SIZE_L):(BAMBOO_LARGE_SMEM_BOUND+((b)-NUMCORES4GC+1)*BAMBOO_SMEM_SIZE))
+
+#define BLOCKBOUND(n) \
+  (((n)==0)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE_L+BAMBOO_SMEM_SIZE*(n))
 
 // mapping of (core #, number of the block) to the base pointer of the block
 #define BASEPTR(c, n, p) \
@@ -243,12 +255,8 @@ void master_finish();
 void gc_master(struct garbagelist * stackptr);
 
 
-INLINE void transferMarkResults_I();
-INLINE bool gcfindSpareMem_I(unsigned int * startaddr,
-                             unsigned int * tomove,
-                             unsigned int * dstcore,
-                             unsigned int requiredmem,
-                             unsigned int requiredcore);
+void transferMarkResults_I();
+bool gcfindSpareMem_I(unsigned int * startaddr,unsigned int * tomove,unsigned int * dstcore,unsigned int requiredmem,unsigned int requiredcore);
 
 #define INITMULTICOREGCDATA() initmulticoregcdata()
 #define DISMULTICOREGCDATA() dismulticoregcdata()

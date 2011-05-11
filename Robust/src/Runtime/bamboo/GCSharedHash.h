@@ -28,7 +28,7 @@ struct GCSharedHash {
   struct GCSharedNode *listtail;
 };
 
-inline int GCSharedHashcountset(struct GCSharedHash * thisvar);
+int GCSharedHashcountset(struct GCSharedHash * thisvar);
 
 /* RuntimeHashException  *************************************************/
 

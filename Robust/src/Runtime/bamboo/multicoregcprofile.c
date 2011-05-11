@@ -2,10 +2,9 @@
 #ifdef GC_PROFILE
 #include "multicoregcprofile.h"
 #include "runtime_arch.h"
-#include "structdefs.h"
 #include "mem.h"
 
-INLINE void initmulticoregcprofiledata() {
+void initmulticoregcprofiledata() {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     // startup core to initialize corestatus[]
     gc_infoIndex = 0;
@@ -17,50 +16,6 @@ INLINE void initmulticoregcprofiledata() {
   gc_num_liveobj = 0;
   gc_num_forwardobj = 0;
   gc_num_profiles = NUMCORESACTIVE - 1;
-}
-
-INLINE void gc_profileInit() {
-  gc_num_livespace = 0;
-  gc_num_freespace = 0;
-  gc_num_lobj = 0;
-  gc_num_lobjspace = 0;
-  gc_num_liveobj = 0;
-  gc_num_forwardobj = 0;
-  gc_num_profiles = NUMCORESACTIVE - 1;
-}
-
-INLINE void gc_profileStart(void) {
-  if(!gc_infoOverflow) {
-    GCInfo* gcInfo = RUNMALLOC(sizeof(struct gc_info));
-    gc_infoArray[gc_infoIndex] = gcInfo;
-    gcInfo->index = 1;
-    gcInfo->time[0] = BAMBOO_GET_EXE_TIME();
-  }
-}
-
-INLINE void gc_profileItem(void) {
-  if(!gc_infoOverflow) {
-    GCInfo* gcInfo = gc_infoArray[gc_infoIndex];
-    gcInfo->time[gcInfo->index++] = BAMBOO_GET_EXE_TIME();
-  }
-}
-
-INLINE void gc_profileEnd(void) {
-  if(!gc_infoOverflow) {
-    GCInfo* gcInfo = gc_infoArray[gc_infoIndex];
-    gcInfo->time[gcInfo->index++] = BAMBOO_GET_EXE_TIME();
-    gcInfo->time[gcInfo->index++] = gc_num_livespace;
-    gcInfo->time[gcInfo->index++] = gc_num_freespace;
-    gcInfo->time[gcInfo->index++] = gc_num_lobj;
-    gcInfo->time[gcInfo->index++] = gc_num_lobjspace;
-    gcInfo->time[gcInfo->index++] = gc_num_obj;
-    gcInfo->time[gcInfo->index++] = gc_num_liveobj;
-    gcInfo->time[gcInfo->index++] = gc_num_forwardobj;
-    gc_infoIndex++;
-    if(gc_infoIndex == GCINFOLENGTH) {
-      gc_infoOverflow = true;
-    }
-  }
 }
 
 // output the profiling data

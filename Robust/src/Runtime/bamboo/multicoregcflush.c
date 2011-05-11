@@ -75,7 +75,7 @@ INLINE void flushRuntimeObj(struct garbagelist * stackptr) {
 
   // flush active tasks
   if(activetasks != NULL) {
-    for(struct genpointerlist * ptr=activetasks->list;ptr!=NULL;ptr=ptr->inext) {
+    for(struct genpointerlist * ptr=activetasks->list;ptr!=NULL;ptr=ptr->inext){
       struct taskparamdescriptor *tpd=ptr->src;
       for(int i=0; i<tpd->numParameters; i++) {
         // the parameter can not be NULL

@@ -1,3 +1,5 @@
+// NOTE: this file should be changed to be generated automatically
+
 #ifndef BAMBOO_MULTICORE_HELPER_H
 #define BAMBOO_MULTICORE_HELPER_H
 

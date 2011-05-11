@@ -188,7 +188,7 @@ void mgchashInsert_I(mgchashtable_t * tbl, void * key, void *val) {
 #endif
 
 // Search for an address for a given oid
-INLINE void * mgchashSearch(mgchashtable_t * tbl, void * key) {
+void * mgchashSearch(mgchashtable_t * tbl, void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE]
   mgchashlistnode_t *node = 
 	&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>(GC_SHIFT_BITS)];
@@ -206,7 +206,7 @@ INLINE void * mgchashSearch(mgchashtable_t * tbl, void * key) {
 unsigned int mgchashResize(mgchashtable_t * tbl, unsigned int newsize) {
   mgchashlistnode_t *node, *ptr, *curr;  // curr and next keep track of the 
                                          // current and the next 
-										 // mgchashlistnodes in a linked list
+                                         // mgchashlistnodes in a linked list
   unsigned int oldsize;
   int isfirst;    // Keeps track of the first element in the 
                   // chashlistnode_t for each bin in hashtable
@@ -234,30 +234,29 @@ unsigned int mgchashResize(mgchashtable_t * tbl, unsigned int newsize) {
       mgchashlistnode_t *tmp,*next;
 
       if ((key=curr->key) == 0) { 
-		//Exit inner loop if there the first element is 0
-		break;
-		//key = val =0 for element if not present within the hash table
-	  }
+        //Exit inner loop if there the first element is 0
+        break;
+        //key = val =0 for element if not present within the hash table
+      }
       index = (((unsigned INTPTR)key) & mask) >> (GC_SHIFT_BITS);
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
       if(tmp->key == 0) {
-		tmp->key = key;
-		tmp->val = curr->val;
+        tmp->key = key;
+        tmp->val = curr->val;
       } /*
 	   NOTE:  Add this case if you change this...
 	   This case currently never happens because of the way things rehash....*/
 	   else if (isfirst) {
-		 mgchashlistnode_t *newnode= RUNMALLOC(1*sizeof(mgchashlistnode_t));
-		 newnode->key = curr->key;
-		 newnode->val = curr->val;
-		 newnode->next = tmp->next;
-		 tmp->next=newnode;
-	   } 
-      else {
-		curr->next=tmp->next;
-		tmp->next=curr;
+       mgchashlistnode_t *newnode= RUNMALLOC(1*sizeof(mgchashlistnode_t));
+       newnode->key = curr->key;
+       newnode->val = curr->val;
+       newnode->next = tmp->next;
+       tmp->next=newnode;
+     } else {
+       curr->next=tmp->next;
+       tmp->next=curr;
       }
 
       isfirst = 0;
@@ -273,7 +272,7 @@ unsigned int mgchashResize(mgchashtable_t * tbl, unsigned int newsize) {
 unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
   mgchashlistnode_t *node, *ptr, *curr; // curr and next keep track of the 
                                         // current and the next 
-										// mgchashlistnodes in a linked list
+                                        // mgchashlistnodes in a linked list
   unsigned int oldsize;
   int isfirst; // Keeps track of the first element in the chashlistnode_t 
                // for each bin in hashtable
@@ -313,9 +312,8 @@ unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
       if(tmp->key == 0) {
         tmp->key = key;
         tmp->val = curr->val;
-      } /*
-	   NOTE:  Add this case if you change this...
-	   This case currently never happens because of the way things rehash....*/
+      } /*NOTE:  Add this case if you change this...
+          This case currently never happens because of the way things rehash..*/
       else if (isfirst) {
         mgchashlistnode_t *newnode=RUNMALLOC_I(1*sizeof(mgchashlistnode_t)); 
         newnode->key = curr->key;
@@ -365,8 +363,7 @@ struct MGCHash * allocateMGCHash(int size,
   }
   thisvar=(struct MGCHash *)RUNMALLOC(sizeof(struct MGCHash));
   thisvar->size = size;
-  thisvar->bucket =
-    (struct MGCNode *) RUNMALLOC(sizeof(struct MGCNode)*size);
+  thisvar->bucket=(struct MGCNode *) RUNMALLOC(sizeof(struct MGCNode)*size);
   //Set data counts
   thisvar->num4conflicts = conflicts;
   return thisvar;
@@ -417,8 +414,7 @@ int MGCHashadd(struct MGCHash * thisvar, int data) {
 }
 
 #ifdef MULTICORE
-struct MGCHash * allocateMGCHash_I(int size,
-                                   int conflicts) {
+struct MGCHash * allocateMGCHash_I(int size,int conflicts) {
   struct MGCHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
@@ -430,8 +426,7 @@ struct MGCHash * allocateMGCHash_I(int size,
   }
   thisvar=(struct MGCHash *)RUNMALLOC_I(sizeof(struct MGCHash));
   thisvar->size = size;
-  thisvar->bucket =
-    (struct MGCNode *) RUNMALLOC_I(sizeof(struct MGCNode)*size);
+  thisvar->bucket=(struct MGCNode *) RUNMALLOC_I(sizeof(struct MGCNode)*size);
   //Set data counts
   thisvar->num4conflicts = conflicts;
   return thisvar;

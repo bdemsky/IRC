@@ -33,10 +33,62 @@ int interruptInfoIndex;
 bool interruptInfoOverflow;
 #endif
 
-INLINE void profileTaskStart(char * taskname);
-INLINE void profileTaskEnd(void);
 void outputProfileData();
-INLINE void inittaskprofiledata();
+void inittaskprofiledata();
+
+INLINE static void setTaskExitIndex(int index) {
+  taskInfoArray[taskInfoIndex]->exitIndex = index;
+}
+
+INLINE static void addNewObjInfo(void * nobj) {
+  if(taskInfoArray[taskInfoIndex]->newObjs == NULL) {
+    taskInfoArray[taskInfoIndex]->newObjs = createQueue();
+  }
+  addNewItem(taskInfoArray[taskInfoIndex]->newObjs, nobj);
+}
+
+INLINE static void profileTaskStart(char * taskname) {
+  if(!taskInfoOverflow) {
+    TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
+    taskInfoArray[taskInfoIndex] = taskInfo;
+    taskInfo->taskName = taskname;
+    taskInfo->startTime = BAMBOO_GET_EXE_TIME();
+    taskInfo->endTime = -1;
+    taskInfo->exitIndex = -1;
+    taskInfo->newObjs = NULL;
+  }
+}
+
+INLINE staitc void profileTaskEnd() {
+  if(!taskInfoOverflow) {
+    taskInfoArray[taskInfoIndex]->endTime = BAMBOO_GET_EXE_TIME();
+    taskInfoIndex++;
+    if(taskInfoIndex == TASKINFOLENGTH) {
+      taskInfoOverflow = true;
+    }
+  }
+}
+
+#ifdef PROFILE_INTERRUPT
+INLINE static void profileInterruptStart_I(void) {
+  if(!interruptInfoOverflow) {
+    InterruptInfo* intInfo = RUNMALLOC_I(sizeof(struct interrupt_info));
+    interruptInfoArray[interruptInfoIndex] = intInfo;
+    intInfo->startTime = BAMBOO_GET_EXE_TIME();
+    intInfo->endTime = -1;
+  }
+}
+
+INLINE static void profileInterruptEnd_I(void) {
+  if(!interruptInfoOverflow) {
+    interruptInfoArray[interruptInfoIndex]->endTime=BAMBOO_GET_EXE_TIME();
+    interruptInfoIndex++;
+    if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
+      interruptInfoOverflow = true;
+    }
+  }
+}
+#endif // PROFILE_INTERRUPT
 
 #define INIT_TASKPROFILE_DATA() inittaskprofiledata()
 #define PROFILE_TASK_START(s) profileTaskStart(s)
