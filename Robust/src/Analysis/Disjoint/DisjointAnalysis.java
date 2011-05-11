@@ -5,6 +5,7 @@ import Analysis.Liveness;
 import Analysis.ArrayReferencees;
 import Analysis.OoOJava.Accessible;
 import Analysis.OoOJava.RBlockRelationAnalysis;
+import Analysis.FlatIRGraph.*;
 import IR.*;
 import IR.Flat.*;
 import IR.Tree.Modifiers;
@@ -1994,16 +1995,51 @@ public class DisjointAnalysis implements HeapAnalysis {
                            );
 
     TempDescriptor cmdLineArgs =
-      new TempDescriptor("args",
+      new TempDescriptor("analysisEntryTemp_args",
                          mdSourceEntry.getParamType(0)
                          );
 
-    FlatNew fn =
+    FlatNew fnArgs =
       new FlatNew(mdSourceEntry.getParamType(0),
                   cmdLineArgs,
                   false  // is global
                   );
-    this.constructedCmdLineArgsNew = fn;
+    this.constructedCmdLineArgsNew = fnArgs;
+
+    
+    // jjenista - we might want to model more of the initial context
+    // someday, so keep this trickery in that case.  For now, this analysis
+    // ignores immutable types which includes String, so the following flat
+    // nodes will not add anything to the reach graph.
+    //
+    //TempDescriptor anArg =
+    //  new TempDescriptor("analysisEntryTemp_arg",
+    //                     mdSourceEntry.getParamType(0).dereference()
+    //                     );
+    //
+    //FlatNew fnArg =
+    //  new FlatNew(mdSourceEntry.getParamType(0).dereference(),
+    //              anArg,
+    //              false  // is global
+    //              );
+    //
+    //TempDescriptor index =
+    //  new TempDescriptor("analysisEntryTemp_index",
+    //                     new TypeDescriptor(TypeDescriptor.INT)
+    //                     );
+    //
+    //FlatLiteralNode fl =
+    //  new FlatLiteralNode(new TypeDescriptor(TypeDescriptor.INT),
+    //                      new Integer( 0 ),
+    //                      index
+    //                      );
+    //
+    //FlatSetElementNode fse =
+    //  new FlatSetElementNode(cmdLineArgs,
+    //                         index,
+    //                         anArg
+    //                         );
+
 
     TempDescriptor[] sourceEntryArgs = new TempDescriptor[1];
     sourceEntryArgs[0] = cmdLineArgs;
@@ -2024,8 +2060,8 @@ public class DisjointAnalysis implements HeapAnalysis {
                      fe
                      );
 
-    this.fmAnalysisEntry.addNext(fn);
-    fn.addNext(fc);
+    this.fmAnalysisEntry.addNext(fnArgs);
+    fnArgs.addNext(fc);
     fc.addNext(frn);
     frn.addNext(fe);
   }
@@ -2765,7 +2801,7 @@ public class DisjointAnalysis implements HeapAnalysis {
       return null; 
     }
     
-    return rgAtEnter.canPointTo( x, f.getSymbol() );
+    return rgAtEnter.canPointTo( x, f.getSymbol(), f.getType() );
   }
 
 
@@ -2780,6 +2816,6 @@ public class DisjointAnalysis implements HeapAnalysis {
     assert x.getType() != null;
     assert x.getType().isArray();
 
-    return rgAtEnter.canPointTo( x, arrayElementFieldName );
+    return rgAtEnter.canPointTo( x, arrayElementFieldName, x.getType().dereference() );
   }
 }

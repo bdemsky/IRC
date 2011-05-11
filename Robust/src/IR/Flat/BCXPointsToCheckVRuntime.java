@@ -189,11 +189,20 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
                                       TempDescriptor x,
                                       Set<Alloc>     targetsByAnalysis ) {
 
+    assert targetsByAnalysis != null;
+
+
     output.println( "" );
     output.println( "// asserts vs. heap results (DEBUG)" );
     
-    if( targetsByAnalysis == null ||
-        targetsByAnalysis.isEmpty() ) {
+
+    if( targetsByAnalysis == HeapAnalysis.DONTCARE_PTR ) {
+      output.println( "// ANALYSIS DIDN'T CARE WHAT "+x+" POINTS-TO" );
+      return;
+    }
+
+    
+    if( targetsByAnalysis.isEmpty() ) {
       output.println( "assert( "+
                       buildCode.generateTemp( context, x )+
                       " == NULL );\n" );
@@ -228,13 +237,20 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
                                       FieldDescriptor                f, // this null OR
                                       TempDescriptor                 i, // this null
                                       Hashtable< Alloc, Set<Alloc> > targetsByAnalysis ) {
-
+    assert targetsByAnalysis != null;
+    
     assert f == null || i == null;
 
     output.println( "// asserts vs. heap results (DEBUG)" );
+
+
+    if( targetsByAnalysis == HeapAnalysis.DONTCARE_DREF ) {
+      output.println( "// ANALYSIS DIDN'T CARE WHAT "+x+" POINTS-TO" );
+      return;
+    }
     
-    if( targetsByAnalysis == null ||
-        targetsByAnalysis.isEmpty() ) {
+    
+    if( targetsByAnalysis.isEmpty() ) {
       output.println( "assert( "+
                       buildCode.generateTemp( context, x )+
                       " == NULL );\n" );
@@ -274,10 +290,14 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
         
         output.print( "case "+
                       k.getUniqueAllocSiteID()+
-                      ": assert( allocsiteOneHop == -1" );
-        
+                      ":" );
+
         Set<Alloc> hopTargets = targetsByAnalysis.get( k );
-        if( hopTargets != null ) {
+        if( hopTargets == HeapAnalysis.DONTCARE_PTR ) {
+          output.print( "/* ANALYSIS DOESN'T CARE */" );
+
+        } else {
+          output.print( "assert( allocsiteOneHop == -1" );
 
           if( !hopTargets.isEmpty() ) {
             output.print( " || " );
@@ -294,9 +314,11 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
               output.print( " || " );
             }
           }
+     
+          output.print( " );" );
         }
 
-        output.println( " ); break;" );
+        output.println( " break;" );
       }
 
       output.println( "    default: assert( 0 ); break;" );

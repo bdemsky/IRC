@@ -5194,17 +5194,24 @@ public class ReachGraph {
 
 
   public Set<Alloc> canPointTo( TempDescriptor x ) {
-    VariableNode vn = getVariableNodeNoMutation( x );
-    if( vn == null ) {
-      return null;
+
+    if( !DisjointAnalysis.shouldAnalysisTrack( x.getType() ) ) {
+      // if we don't care to track it, return null which means
+      // "a client of this result shouldn't care either"
+      return HeapAnalysis.DONTCARE_PTR;
     }
 
     Set<Alloc> out = new HashSet<Alloc>();
 
+    VariableNode vn = getVariableNodeNoMutation( x );
+    if( vn == null ) {
+      // the empty set means "can't point to anything"
+      return out;
+    }
+
     Iterator<RefEdge> edgeItr = vn.iteratorToReferencees();
     while( edgeItr.hasNext() ) {
       HeapRegionNode hrn = edgeItr.next().getDst();
-
       out.add( hrn.getAllocSite() );
     }
 
@@ -5214,20 +5221,35 @@ public class ReachGraph {
 
 
   public Hashtable< Alloc, Set<Alloc> > canPointTo( TempDescriptor x,
-                                                    String         field ) {
-    
-    VariableNode vn = getVariableNodeNoMutation( x );
-    if( vn == null ) {
-      return null;
+                                                    String         field,
+                                                    TypeDescriptor fieldType ) {
+
+    if( !DisjointAnalysis.shouldAnalysisTrack( x.getType() ) ) {
+      // if we don't care to track it, return null which means
+      // "a client of this result shouldn't care either"
+      return HeapAnalysis.DONTCARE_DREF;
     }
 
     Hashtable< Alloc, Set<Alloc> > out = new Hashtable< Alloc, Set<Alloc> >();
+    
+    VariableNode vn = getVariableNodeNoMutation( x );
+    if( vn == null ) {
+      // the empty set means "can't point to anything"
+      return out;
+    }
+
 
     Iterator<RefEdge> edgeItr = vn.iteratorToReferencees();
     while( edgeItr.hasNext() ) {
       HeapRegionNode hrn = edgeItr.next().getDst();
+      Alloc          key = hrn.getAllocSite();
 
-      Alloc key = hrn.getAllocSite();
+      if( !DisjointAnalysis.shouldAnalysisTrack( fieldType ) ) {
+        // if we don't care to track it, put no entry which means
+        // "a client of this result shouldn't care either"
+        out.put( key, HeapAnalysis.DONTCARE_PTR );
+        continue;
+      }
 
       Set<Alloc> moreValues = new HashSet<Alloc>();
       Iterator<RefEdge> edgeItr2 = hrn.iteratorToReferencees();
