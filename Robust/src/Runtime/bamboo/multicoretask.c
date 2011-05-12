@@ -53,7 +53,7 @@ INLINE void dislocktable() {
 #endif
 }
 
-INLINE void inittaskdata() {
+void inittaskdata() {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     // startup core to initialize corestatus[]
     total_num_t6 = 0; // TODO for test
@@ -71,7 +71,7 @@ INLINE void inittaskdata() {
   INIT_TASKPROFILE_DATA();
 }
 
-INLINE void distaskdata() {
+void distaskdata() {
   if(activetasks != NULL) {
     genfreehashtable(activetasks);
   }

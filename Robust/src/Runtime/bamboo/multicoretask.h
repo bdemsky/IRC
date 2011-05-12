@@ -43,19 +43,11 @@ void releasewritelock_r(void * lock, void * redirectlock);
 // if return -1: the lock request is redirected
 //            0: the lock request is approved
 //            1: the lock request is denied
-INLINE int processlockrequest_I(int locktype,
-                                int lock,
-                                int obj,
-                                int requestcore,
-                                int rootrequestcore,
-                                bool cache);
-INLINE void processlockrelease_I(int locktype,
-                                 int lock,
-                                 int redirectlock,
-                                 bool redirect);
+int processlockrequest_I(int locktype,int lock,int obj,int requestcore,int rootrequestcore,bool cache);
+void processlockrelease_I(int locktype,int lock,int redirectlock,bool redirect);
 
-INLINE void inittaskdata();
-INLINE void distaskdata();
+void inittaskdata();
+void distaskdata();
 
 #define INITTASKDATA() inittaskdata()
 #define DISTASKDATA() distaskdata()

@@ -7,12 +7,13 @@
 #include "multicoremem.h"
 #include "multicoretask.h"
 #include "multicoremgc.h"
+#include "multicorecache.h"
 
 //Define the following line if the base object type has pointers
 //#define OBJECTHASPOINTERS
 
-
 #ifdef MULTICORE_GC
+extern volatile bool gcflag;
 #define GCCHECK(p) \
   if(gcflag) gc(p)
 #else

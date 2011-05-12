@@ -3,6 +3,7 @@
 #include "runtime.h"
 #include "multicoreruntime.h"
 #include "methodheaders.h"
+#include "multicoregarbage.h"
 
 extern int classsize[];
 extern int typearray[];
@@ -629,9 +630,6 @@ INLINE void recordtotalexetime() {
   totalexetime = BAMBOO_GET_EXE_TIME()-bamboo_start_time;
 #else // USEIO
   BAMBOO_PRINT(BAMBOO_GET_EXE_TIME()-bamboo_start_time);
-#ifdef GC_FLUSH_DTLB
-  BAMBOO_PRINT_REG(gc_num_flush_dtlb);
-#endif
 #ifndef BAMBOO_MEMPROF
   BAMBOO_PRINT(0xbbbbbbbb);
 #endif
@@ -641,6 +639,11 @@ INLINE void recordtotalexetime() {
 INLINE void getprofiledata_I() {
   //profile mode, send msgs to other cores to request pouring out progiling data
 #ifdef PROFILE
+  // use numconfirm to check if all cores have finished output task profiling 
+  // information. This is safe as when the execution reaches this phase there 
+  // should have no other msgs except the PROFILEFINISH msg, there should be 
+  // no gc too.
+  numconfirm=NUMCORESACTIVE-1;
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   for(i = 1; i < NUMCORESACTIVE; ++i) {
     // send profile request msg to core i
@@ -652,14 +655,7 @@ INLINE void getprofiledata_I() {
 #endif
   while(true) {
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-    profilestatus[BAMBOO_NUM_OF_CORE] = 0;
-    // check the status of all cores
-    for(i = 0; i < NUMCORESACTIVE; ++i) {
-      if(profilestatus[i] != 0) {
-        break;
-      }
-    }  
-    if(i != NUMCORESACTIVE) {
+    if(numconfirm != 0) {
       int halt = 100;
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       while(halt--) {

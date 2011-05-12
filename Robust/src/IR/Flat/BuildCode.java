@@ -2038,7 +2038,7 @@ fldloop:
         //Don't bother if we aren't in recursive methods...The loops case will catch it
         if (callgraph.getAllMethods(md).contains(md)) {
           if (this.state.MULTICOREGC) {
-            output.println("if(gcflag) gc("+localsprefixaddr+");");
+            output.println("GCCHECK("+localsprefixaddr+");");
           } else {
             output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
           }
@@ -2097,7 +2097,7 @@ fldloop:
       //Don't bother if we aren't in recursive methods...The loops case will catch it
       if (callgraph.getAllMethods(md).contains(md)) {
         if (this.state.MULTICOREGC) {
-          output.println("if(gcflag) gc("+localsprefixaddr+");");
+          output.println("GCCHECK("+localsprefixaddr+");");
         } else {
           output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
         }
@@ -2402,7 +2402,7 @@ fldloop:
     if (((state.OOOJAVA||state.THREAD)&&GENERATEPRECISEGC)
         || (this.state.MULTICOREGC)) {
       if(this.state.MULTICOREGC) {
-        output.println("if (gcflag) gc("+localsprefixaddr+");");
+        output.println("GCCHECK("+localsprefixaddr+");");
       } else {
         output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
       }

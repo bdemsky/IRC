@@ -2,6 +2,7 @@
 #include "multicoremsg.h"
 #include "runtime.h"
 #include "multicoreruntime.h"
+#include "multicoregarbage.h"
 #include "multicoretaskprofile.h"
 #include "gcqueue.h"
 
@@ -14,7 +15,7 @@ int msgsizearray[] = {
   4, //LOCKDENY,              // 0xD5
   4, //LOCKRELEASE,           // 0xD6
   2, //PROFILEOUTPUT,         // 0xD7
-  2, //PROFILEFINISH,         // 0xD8
+  1, //PROFILEFINISH,         // 0xD8
   6, //REDIRECTLOCK,          // 0xD9
   4, //REDIRECTGROUNT,        // 0xDa
   4, //REDIRECTDENY,          // 0xDb
@@ -110,7 +111,7 @@ INLINE void processmsg_transobj_I(int msglength) {
   
   self_numreceiveobjs++;
 #ifdef MULTICORE_GC
-  if(gcprocessing) {
+  if(gc_status_info.gcprocessing) {
     if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
       // set the gcprecheck to enable checking again
       gcprecheck = true;
@@ -288,17 +289,15 @@ INLINE void processmsg_profileoutput_I() {
 #endif
   // cache the msg first
   if(BAMBOO_CHECK_SEND_MODE()) {
-    cache_msg_2_I(STARTUPCORE,PROFILEFINISH,BAMBOO_NUM_OF_CORE);
+    cache_msg_1_I(STARTUPCORE,PROFILEFINISH);
   } else {
-    send_msg_2_I(STARTUPCORE,PROFILEFINISH,BAMBOO_NUM_OF_CORE);
+    send_msg_1_I(STARTUPCORE,PROFILEFINISH);
   }
 }
 
 INLINE void processmsg_profilefinish_I() {
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
-  int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  profilestatus[data1] = 0;
+  numconfirm--;
 }
 #endif // PROFILE
 
@@ -352,7 +351,7 @@ INLINE void processmsg_memrequest_I() {
   int allocsize = 0;
   void * mem = NULL;
 #ifdef MULTICORE_GC
-  if(!gcprocessing || !gcflag) {
+  if(!gc_status_info.gcprocessing || !gcflag) {
     // either not doing GC or the master core has decided to stop GC but 
     // // still sending msgs to other cores to inform them to stop the GC
 #endif
@@ -379,7 +378,7 @@ INLINE void processmsg_memresponse_I() {
   // receive a shared memory response msg
 #ifdef MULTICORE_GC
   // if is currently doing gc, dump this msg
-  if(!gcprocessing) {
+  if(!gc_status_info.gcprocessing) {
 #endif
   if(data2 == 0) {
 #ifdef MULTICORE_GC
@@ -427,22 +426,22 @@ INLINE void processmsg_gcstartpre_I() {
 }
 
 INLINE void processmsg_gcstartinit_I() {
-  gcphase = INITPHASE;
+  gc_status_info.gcphase = INITPHASE;
 }
 
 INLINE void processmsg_gcstart_I() {
   // set the GC flag
-  gcphase = MARKPHASE;
+  gc_status_info.gcphase = MARKPHASE;
 }
 
 INLINE void processmsg_gcstartcompact_I() {
   gcblock2fill = msgdata[msgdataindex];
   MSG_INDEXINC_I();  
-  gcphase = COMPACTPHASE;
+  gc_status_info.gcphase = COMPACTPHASE;
 }
 
 INLINE void processmsg_gcstartflush_I() {
-  gcphase = FLUSHPHASE;
+  gc_status_info.gcphase = FLUSHPHASE;
 }
 
 INLINE void processmsg_gcfinishpre_I() {
@@ -513,7 +512,7 @@ INLINE void processmsg_gcfinishcompact_I() {
   MSG_INDEXINC_I(); 
   // only gc cores need to do compact
   if(cnum < NUMCORES4GC) {
-    if(COMPACTPHASE == gcphase) {
+    if(COMPACTPHASE == gc_status_info.gcphase) {
       gcfilledblocks[cnum] = filledblocks;
       gcloads[cnum] = heaptop;
     }
@@ -550,18 +549,18 @@ INLINE void processmsg_gcfinishflush_I() {
 
 INLINE void processmsg_gcfinish_I() {
   // received a GC finish msg
-  gcphase = FINISHPHASE;
-  gcprocessing = false;
+  gc_status_info.gcphase = FINISHPHASE;
+  gc_status_info.gcprocessing = false;
 }
 
 INLINE void processmsg_gcmarkconfirm_I() {
   BAMBOO_ASSERT(((BAMBOO_NUM_OF_CORE!=STARTUPCORE)&&(BAMBOO_NUM_OF_CORE<=NUMCORESACTIVE-1)));
-  gcbusystatus = gc_moreItems2_I();
+  gc_status_info.gcbusystatus = gc_moreItems2_I();
   // send response msg, cahce the msg first
   if(BAMBOO_CHECK_SEND_MODE()) {
-    cache_msg_5_I(STARTUPCORE,GCMARKREPORT,BAMBOO_NUM_OF_CORE,gcbusystatus,gcself_numsendobjs,gcself_numreceiveobjs);
+    cache_msg_5_I(STARTUPCORE,GCMARKREPORT,BAMBOO_NUM_OF_CORE,gc_status_info.gcbusystatus,gcself_numsendobjs,gcself_numreceiveobjs);
   } else {
-    send_msg_5_I(STARTUPCORE,GCMARKREPORT,BAMBOO_NUM_OF_CORE,gcbusystatus,gcself_numsendobjs,gcself_numreceiveobjs);
+    send_msg_5_I(STARTUPCORE,GCMARKREPORT,BAMBOO_NUM_OF_CORE,gc_status_info.gcbusystatus,gcself_numsendobjs,gcself_numreceiveobjs);
   }
 }
 
@@ -601,7 +600,7 @@ INLINE void processmsg_gcmarkedobj_I() {
     gc_enqueue_I(data1);
   }
   gcself_numreceiveobjs++;
-  gcbusystatus = true;
+  gc_status_info.gcbusystatus = true;
 }
 
 INLINE void processmsg_gcmovestart_I() {
@@ -663,7 +662,7 @@ INLINE void processmsg_gcprofiles_I() {
 
 #ifdef GC_CACHE_ADAPT
 INLINE void processmsg_gcstartpref_I() {
-  gcphase = PREFINISHPHASE;
+  gc_status_info.gcphase = PREFINISHPHASE;
 }
 
 INLINE void processmsg_gcfinishpref_I() {

@@ -2,6 +2,7 @@
 #include "multicoregccompact.h"
 #include "runtime_arch.h"
 #include "multicoreruntime.h"
+#include "multicoregarbage.h"
 
 INLINE bool gc_checkCoreStatus() {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
@@ -196,7 +197,7 @@ INLINE void resolvePendingMoveRequest() {
   }  
   
   if(!hasrunning && !noblock) {
-    gcphase = SUBTLECOMPACTPHASE;
+    gc_status_info.gcphase = SUBTLECOMPACTPHASE;
     compact2Heaptop();
   }
 } 
@@ -533,14 +534,14 @@ innercompact:
     to->ptr += to->offset;   // for header
     to->top += to->offset;
     *localcompact = (gcdstcore == BAMBOO_NUM_OF_CORE);
-    CACHEADAPT_SAMPLING_DATA_REVISE_INIT();
+    CACHEADAPT_SAMPLING_DATA_REVISE_INIT(orig, to);
     goto innercompact;
   }
   return true;
 }
 
 void compact() {
-  BAMBOO_ASSERT(COMPACTPHASE == gcphase);
+  BAMBOO_ASSERT(COMPACTPHASE == gc_status_info.gcphase);
   
   // initialize pointers for comapcting
   struct moveHelper * orig = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
@@ -552,7 +553,7 @@ void compact() {
     RUNFREE(orig);
     RUNFREE(to);
   } else {
-    CACHEADAPT_SAMPLING_DATA_REVISE_INIT();
+    CACHEADAPT_SAMPLING_DATA_REVISE_INIT(orig, to);
 
     unsigned int filledblocks = 0;
     unsigned int heaptopptr = 0;
@@ -566,13 +567,13 @@ void compact() {
 void compact_master(struct moveHelper * orig, struct moveHelper * to) {
   // initialize pointers for comapcting
   initOrig_Dst(orig, to);
-  CACHEADAPT_SAMPLING_DATA_REVISE_INIT();
+  CACHEADAPT_SAMPLING_DATA_REVISE_INIT(orig, to);
   int filledblocks = 0;
   unsigned int heaptopptr = 0;
   bool finishcompact = false;
   bool iscontinue = true;
   bool localcompact = true;
-  while((COMPACTPHASE == gcphase) || (SUBTLECOMPACTPHASE == gcphase)) {
+  while((COMPACTPHASE == gc_status_info.gcphase) || (SUBTLECOMPACTPHASE == gc_status_info.gcphase)) {
     if((!finishcompact) && iscontinue) {
       finishcompact = compacthelper(orig,to,&filledblocks,&heaptopptr,&localcompact);
     }
@@ -583,7 +584,7 @@ void compact_master(struct moveHelper * orig, struct moveHelper * to) {
       break;
     } else {
       // check if there are spare mem for pending move requires
-      if(COMPACTPHASE == gcphase) {
+      if(COMPACTPHASE == gc_status_info.gcphase) {
         resolvePendingMoveRequest();
       } else {
         compact2Heaptop();

@@ -697,7 +697,7 @@ public class BuildCodeMultiCore extends BuildCode {
     /* Check to see if we need to do a GC if this is a
      * multi-threaded program...*/
     if(this.state.MULTICOREGC) {
-      output.println("if(gcflag) gc("+localsprefixaddr+");");
+      output.println("GCCHECK("+localsprefixaddr+");");
     }
 
     /* Create queues to store objects need to be transferred to other cores and their destination*/

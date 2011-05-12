@@ -13,78 +13,83 @@ typedef struct task_info {
   unsigned long long endTime;
   unsigned long long exitIndex;
   struct Queue * newObjs;
-} TaskInfo;
+} TaskInfo_t;
 
-TaskInfo * taskInfoArray[TASKINFOLENGTH];
-int taskInfoIndex;
-bool taskInfoOverflow;
-volatile int profilestatus[NUMCORESACTIVE]; // records status of each core
-                                            // 1: running tasks
-                                            // 0: stall
+typedef struct task_profile {
+  TaskInfo_t * taskInfoArray[TASKINFOLENGTH];
+  int taskInfoIndex;
+  bool taskInfoOverflow;
+} TaskProfile_t;
+
+extern TaskProfile_t taskProfileInfo;
 #ifdef PROFILE_INTERRUPT
 #define INTERRUPTINFOLENGTH 50
 typedef struct interrupt_info {
   unsigned long long startTime;
   unsigned long long endTime;
-} InterruptInfo;
+} InterruptInfo_t;
 
-InterruptInfo * interruptInfoArray[INTERRUPTINFOLENGTH];
-int interruptInfoIndex;
-bool interruptInfoOverflow;
+typedef struct interrupt_profile {
+  InterruptInfo_t * interruptInfoArray[INTERRUPTINFOLENGTH];
+  int interruptInfoIndex;
+  bool interruptInfoOverflow;
+} InterruptProfile_t;
+
+extern InterruptProfile_t interruptProfileInfo;
 #endif
 
 void outputProfileData();
 void inittaskprofiledata();
 
 INLINE static void setTaskExitIndex(int index) {
-  taskInfoArray[taskInfoIndex]->exitIndex = index;
+  taskProfileInfo.taskInfoArray[taskProfileInfo.taskInfoIndex]->exitIndex = index;
 }
 
 INLINE static void addNewObjInfo(void * nobj) {
-  if(taskInfoArray[taskInfoIndex]->newObjs == NULL) {
-    taskInfoArray[taskInfoIndex]->newObjs = createQueue();
+  if(taskProfileInfo.taskInfoArray[taskProfileInfo.taskInfoIndex]->newObjs==NULL) {
+    taskProfileInfo.taskInfoArray[taskProfileInfo.taskInfoIndex]->newObjs=createQueue();
   }
-  addNewItem(taskInfoArray[taskInfoIndex]->newObjs, nobj);
+  addNewItem(taskProfileInfo.taskInfoArray[taskProfileInfo.taskInfoIndex]->newObjs, nobj);
 }
 
 INLINE static void profileTaskStart(char * taskname) {
-  if(!taskInfoOverflow) {
-    TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
-    taskInfoArray[taskInfoIndex] = taskInfo;
-    taskInfo->taskName = taskname;
-    taskInfo->startTime = BAMBOO_GET_EXE_TIME();
-    taskInfo->endTime = -1;
-    taskInfo->exitIndex = -1;
-    taskInfo->newObjs = NULL;
+  if(!taskProfileInfo.taskInfoOverflow) {
+    TaskInfo* taskInfo=RUNMALLOC(sizeof(struct task_info));
+    taskProfileInfo.taskInfoArray[taskProfileInfo.taskInfoIndex]=taskInfo;
+    taskInfo->taskName=taskname;
+    taskInfo->startTime=BAMBOO_GET_EXE_TIME();
+    taskInfo->endTime=-1;
+    taskInfo->exitIndex=-1;
+    taskInfo->newObjs=NULL;
   }
 }
 
 INLINE staitc void profileTaskEnd() {
-  if(!taskInfoOverflow) {
-    taskInfoArray[taskInfoIndex]->endTime = BAMBOO_GET_EXE_TIME();
-    taskInfoIndex++;
-    if(taskInfoIndex == TASKINFOLENGTH) {
-      taskInfoOverflow = true;
+  if(!taskProfileInfo.taskInfoOverflow) {
+    taskProfileInfo.taskInfoArray[taskProfileInfo.taskInfoIndex]->endTime=BAMBOO_GET_EXE_TIME();
+    taskProfileInfo.taskInfoIndex++;
+    if(taskProfileInfo.taskInfoIndex == TASKINFOLENGTH) {
+      taskProfileInfo.taskInfoOverflow=true;
     }
   }
 }
 
 #ifdef PROFILE_INTERRUPT
 INLINE static void profileInterruptStart_I(void) {
-  if(!interruptInfoOverflow) {
-    InterruptInfo* intInfo = RUNMALLOC_I(sizeof(struct interrupt_info));
-    interruptInfoArray[interruptInfoIndex] = intInfo;
-    intInfo->startTime = BAMBOO_GET_EXE_TIME();
-    intInfo->endTime = -1;
+  if(!interruptProfileInfo.interruptInfoOverflow) {
+    InterruptInfo* intInfo=RUNMALLOC_I(sizeof(struct interrupt_info));
+    interruptProfileInfo.interruptInfoArray[interruptProfileInfo.interruptInfoIndex]=intInfo;
+    intInfo->startTime=BAMBOO_GET_EXE_TIME();
+    intInfo->endTime=-1;
   }
 }
 
 INLINE static void profileInterruptEnd_I(void) {
-  if(!interruptInfoOverflow) {
-    interruptInfoArray[interruptInfoIndex]->endTime=BAMBOO_GET_EXE_TIME();
-    interruptInfoIndex++;
-    if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
-      interruptInfoOverflow = true;
+  if(!interruptProfileInfo.interruptInfoOverflow) {
+    interruptProfileInfo.interruptInfoArray[interruptProfileInfo.interruptInfoIndex]->endTime=BAMBOO_GET_EXE_TIME();
+    interruptProfileInfo.interruptInfoIndex++;
+    if(interruptProfileInfo.interruptInfoIndex==INTERRUPTINFOLENGTH) {
+      interruptProfileInfo.interruptInfoOverflow=true;
     }
   }
 }
@@ -94,9 +99,6 @@ INLINE static void profileInterruptEnd_I(void) {
 #define PROFILE_TASK_START(s) profileTaskStart(s)
 #define PROFILE_TASK_END() profileTaskEnd()
 #ifdef PROFILE_INTERRUPT
-INLINE void profileInterruptStart_I(void);
-INLINE void profileInterruptEnd_I(void);
-
 #define PROFILE_INTERRUPT_START() profileInterruptStart_I()
 #define PROFILE_INTERRUPT_END() profileInterruptEnd_I()
 #else

@@ -1,4 +1,4 @@
-#ifndef BABMOO_MULTICORE_MEM_H
+#ifndef BAMBOO_MULTICORE_MEM_H
 #define BAMBOO_MULTICORE_MEM_H
 #include "multicore.h"
 #include "Queue.h"
@@ -107,7 +107,6 @@
 #endif // GC_SMALLPAGESIZE
 
 volatile bool gc_localheap_s;
-#include "multicoregarbage.h"
 
 typedef enum {
   SMEMLOCAL = 0x0,// 0x0, using local mem only

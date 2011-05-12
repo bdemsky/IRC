@@ -106,9 +106,9 @@ INLINE void markgarbagelist(struct garbagelist * listptr) {
 
 // enqueue root objs
 INLINE void tomark(struct garbagelist * stackptr) {
-  BAMBOO_ASSERT(MARKPHASE == gcphase);
+  BAMBOO_ASSERT(MARKPHASE == gc_status_info.gcphase);
 
-  gcbusystatus = true;
+  gc_status_info.gcbusystatus = true;
   gcnumlobjs = 0;
 
   // enqueue current stack
@@ -260,11 +260,11 @@ INLINE void mark(bool isfirst, struct garbagelist * stackptr) {
   unsigned int isize = 0;
   bool sendStall = false;
   // mark phase
-  while(MARKPHASE == gcphase) {
+  while(MARKPHASE == gc_status_info.gcphase) {
     int counter = 0;
     while(gc_moreItems2()) {
       sendStall = false;
-      gcbusystatus = true;
+      gc_status_info.gcbusystatus = true;
       unsigned int ptr = gc_dequeue2();
 
       unsigned int size = 0;
@@ -293,7 +293,7 @@ INLINE void mark(bool isfirst, struct garbagelist * stackptr) {
       // scan the pointers in object
       scanPtrsInObj(ptr, type);      
     }   
-    gcbusystatus = false;
+    gc_status_info.gcbusystatus = false;
     // send mark finish msg to core coordinator
     if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
       int entry_index = waitconfirm ? (gcnumsrobjs_index==0) : gcnumsrobjs_index;

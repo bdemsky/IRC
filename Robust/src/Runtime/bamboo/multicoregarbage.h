@@ -6,7 +6,6 @@
 #include "multicorehelper.h"  // for mappings between core # and block #
 #include "structdefs.h"
 #include "multicoregcprofile.h"
-#include "multicorecache.h"
 
 #ifdef GC_DEBUG
 #define GC_PRINTF tprintf
@@ -19,11 +18,6 @@
 #define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC)
 // let each gc core to have one big block, this is very important
 // for the computation of NUMBLOCKS(s, n), DO NOT change this!
-
-#ifdef GC_FLUSH_DTLB
-#define GC_NUM_FLUSH_DTLB 1
-unsigned int gc_num_flush_dtlb;
-#endif
 
 typedef enum {
   INIT = 0,           // 0
@@ -46,13 +40,14 @@ typedef enum {
   FINISHPHASE              // 0x6/0x7
 } GCPHASETYPE;
 
-volatile bool gcflag;
-volatile bool gcprocessing;
-volatile GCPHASETYPE gcphase; // indicating GC phase
+typedef struct gc_status {
+  volatile bool gcprocessing;
+  volatile GCPHASETYPE gcphase; // indicating GC phase
+  volatile bool gcbusystatus;
+} gc_status_t;
 
-#define WAITFORGCPHASE(phase) while(gcphase != phase) ;
-
-volatile bool gcpreinform; // counter for stopped cores
+extern volatile bool gcflag;
+extern gc_status_t gc_status_info;
 volatile bool gcprecheck; // indicates if there are updated pregc information
 
 unsigned int gccurr_heaptop;
@@ -68,7 +63,7 @@ volatile unsigned int gcnumsrobjs_index;//indicates which entry to record the
 						                // checking process
 								            // the info received in phase 2 must be 
 								            // recorded in the other entry
-volatile bool gcbusystatus;
+
 unsigned int gcself_numsendobjs;
 unsigned int gcself_numreceiveobjs;
 
@@ -126,7 +121,9 @@ int * gccachesamplingtbl_local_r;
 unsigned int size_cachesamplingtbl_local_r;
 int * gccachepolicytbl;
 unsigned int size_cachepolicytbl;
-#endif // GC_CACHE_ADAPT
+#endif
+
+#define WAITFORGCPHASE(phase) while(gc_status_info.gcphase != phase) ;
 
 #define OBJMAPPINGINDEX(p) (((unsigned int)p-gcbaseva)/bamboo_baseobjsize)
 

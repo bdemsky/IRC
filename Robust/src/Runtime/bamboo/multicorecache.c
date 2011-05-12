@@ -1,16 +1,9 @@
 #ifdef GC_CACHE_ADAPT
 #include "multicorecache.h"
+#include "multicoremsg.h"
+#include "multicoregcprofile.h"
 
-typedef struct gc_cache_revise_info {
-  unsigned int orig_page_start_va;
-  unsigned int orig_page_end_va;
-  unsigned int orig_page_index;
-  unsigned int to_page_start_va;
-  unsigned int to_page_end_va;
-  unsigned int to_page_index;
-  unsigned int revised_sampling[NUMCORESACTIVE];
-} gc_cache_revise_info_t;
-gc_cache_revise_info_t gc_cache_revise_infomation;
+gc_cache_revise_info_t gc_cache_revise_information;
 
 // prepare for cache adaption:
 //   -- flush the shared heap
@@ -40,9 +33,9 @@ void cacheAdapt_gc(bool isgccachestage) {
     for(int i = 0; i < NUMCORESACTIVE; i++) { \
       int freq = *local_tbl; \
       local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r); \
-      if(*((unsigned int)(hotfreq)) < freq) { \
-        *((unsigned int)(hotfreq)) = freq; \
-        *((unsigned int)(hotestcore)) = i; \
+      if(*((unsigned int *)(hotfreq)) < freq) { \
+        *((unsigned int *)(hotfreq)) = freq; \
+        *((unsigned int *)(hotestcore)) = i; \
       } \
     } \
   }
@@ -54,10 +47,10 @@ void cacheAdapt_gc(bool isgccachestage) {
     for(int i = 0; i < NUMCORESACTIVE; i++) { \
       int freq = *local_tbl; \
       local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r); \
-      *((unsigned int)(totalfreq)) = *((unsigned int)(totalfreq)) + freq; \
-      if(*((unsigned int)(hotfreq)) < freq) { \
-        *((unsigned int)(hotfreq)) = freq; \
-        *((unsigned int)(hotestcore)) = i; \
+      *((unsigned int *)(totalfreq)) = *((unsigned int *)(totalfreq)) + freq; \
+      if(*((unsigned int *)(hotfreq)) < freq) { \
+        *((unsigned int *)(hotfreq)) = freq; \
+        *((unsigned int *)(hotestcore)) = i; \
       } \
     } \
   }
@@ -235,7 +228,7 @@ void gc_quicksort(unsigned long long *array,unsigned int left,unsigned int right
   return;
 }
 
-INLINE void cacheAdapt_h4h_remote_accesses(unsigned long long workload_threshold,unsigned long long ** core2heavypages, unsigned long long * workload,int i) {
+INLINE int cacheAdapt_h4h_remote_accesses(unsigned long long workload_threshold,unsigned long long ** core2heavypages, unsigned long long * workload,int i) {
   int j = 1;
   unsigned int index = (unsigned int)core2heavypages[i][0];
   if(workload[i] > workload_threshold) {
@@ -250,6 +243,7 @@ INLINE void cacheAdapt_h4h_remote_accesses(unsigned long long workload_threshold
       j += 3;
     }
   }
+  return j;
 }
 
 // Every page cached on the core that accesses it the most. 
@@ -353,7 +347,8 @@ int cacheAdapt_policy_crowd(){
   unsigned long long workload_threshold=total_workload/GC_CACHE_ADAPT_OVERLOAD_THRESHOLD;
   // Check the workload of each core
   for(int i = 0; i < NUMCORESACTIVE; i++) {
-    cacheAdapt_h4h_remote_accesses(workload_threshold,core2heavypages,workload,i);
+    unsigned int index=(unsigned int)core2heavypages[i][0];
+    int j=cacheAdapt_h4h_remote_accesses(workload_threshold,core2heavypages,workload,i);
     // Check if the accesses are crowded on few pages
     // sort according to the total access
 inner_crowd:
@@ -441,17 +436,17 @@ void cacheAdapt_phase_client() {
 }
 
 void cacheAdapt_phase_master() {
-  GCPROFILEITEM();
-  gcphase = PREFINISHPHASE;
+  GCPROFILE_ITEM();
+  gc_status_info.gcphase = PREFINISHPHASE;
   // Note: all cores should flush their runtime data including non-gc cores
   GC_SEND_MSG_1_TO_CLIENT(GCSTARTPREF);
   GC_PRINTF("Start prefinish phase \n");
   // cache adapt phase
   cacheAdapt_mutator();
-  CACHEADPAT_OUTPUT_CACHE_POLICY();
+  CACHEADAPT_OUTPUT_CACHE_POLICY();
   cacheAdapt_gc(false);
 
-  GC_CHECK_ALL_CORE_STATUS(PREFINISHPHASE == gcphase);
+  GC_CHECK_ALL_CORE_STATUS(PREFINISHPHASE == gc_status_info.gcphase);
 
   CACHEADAPT_SAMPING_RESET();
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {

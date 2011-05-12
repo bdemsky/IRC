@@ -1,12 +1,12 @@
 // TODO: DO NOT support tag!!!
 #ifdef MULTICORE_GC
 #include "runtime.h"
+#include "multicoreruntime.h"
 #include "multicoregarbage.h"
 #include "multicoregcmark.h"
 #include "gcqueue.h"
 #include "multicoregccompact.h"
 #include "multicoregcflush.h"
-#include "multicoreruntime.h"
 #include "multicoregcprofile.h"
 #include "gcqueue.h"
 
@@ -14,6 +14,9 @@
 extern unsigned int gcmem_mixed_threshold;
 extern unsigned int gcmem_mixed_usedmem;
 #endif // SMEMM
+
+volatile bool gcflag;
+gc_status_t gc_status_info;
 
 #ifdef GC_DEBUG
 // dump whole mem in blocks
@@ -105,8 +108,9 @@ void initmulticoregcdata() {
 
   bamboo_smem_zero_top = NULL;
   gcflag = false;
-  gcprocessing = false;
-  gcphase = FINISHPHASE;
+  gc_status_info.gcprocessing = false;
+  gc_status_info.gcphase = FINISHPHASE;
+
   gcprecheck = true;
   gccurr_heaptop = 0;
   gcself_numsendobjs = 0;
@@ -122,15 +126,11 @@ void initmulticoregcdata() {
   gcmovepending = 0;
   gcblock2fill = 0;
 #ifdef SMEMM
-  gcmem_mixed_threshold = (unsigned int)((BAMBOO_SHARED_MEM_SIZE
-		-bamboo_reserved_smem*BAMBOO_SMEM_SIZE)*0.8);
+  gcmem_mixed_threshold=(unsigned int)((BAMBOO_SHARED_MEM_SIZE-bamboo_reserved_smem*BAMBOO_SMEM_SIZE)*0.8);
   gcmem_mixed_usedmem = 0;
 #endif
 #ifdef MGC_SPEC
   gc_profile_flag = false;
-#endif
-#ifdef GC_FLUSH_DTLB
-  gc_num_flush_dtlb = 0;
 #endif
   gc_localheap_s = false;
 #ifdef GC_CACHE_ADAPT
@@ -227,7 +227,7 @@ INLINE void checkMarkStatus_p2() {
     }  
     if(i == NUMCORESACTIVE) {    
       // all the core status info are the latest,stop mark phase
-      gcphase = COMPACTPHASE;
+      gc_status_info.gcphase = COMPACTPHASE;
       // restore the gcstatus for all cores
       for(int i = 0; i < NUMCORESACTIVE; i++) {
         gccorestatus[i] = 1;
@@ -606,7 +606,7 @@ INLINE void moveLObjs() {
 } 
 
 void gc_collect(struct garbagelist * stackptr) {
-  gcprocessing = true;
+  gc_status_info.gcprocessing = true;
   // inform the master that this core is at a gc safe point and is ready to 
   // do gc
   send_msg_4(STARTUPCORE,GCFINISHPRE,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
@@ -651,7 +651,7 @@ void gc_collect(struct garbagelist * stackptr) {
 } 
 
 void gc_nocollect(struct garbagelist * stackptr) {
-  gcprocessing = true;
+  gc_status_info.gcprocessing = true;
   // inform the master that this core is at a gc safe point and is ready to 
   // do gc
   send_msg_4(STARTUPCORE,GCFINISHPRE,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
@@ -696,10 +696,10 @@ void master_mark(struct garbagelist *stackptr) {
 
   GC_PRINTF("Start mark phase \n");
   GC_SEND_MSG_1_TO_CLIENT(GCSTART);
-  gcphase = MARKPHASE;
+  gc_status_info.gcphase = MARKPHASE;
   // mark phase
 
-  while(MARKPHASE == gcphase) {
+  while(MARKPHASE == gc_status_info.gcphase) {
     mark(isfirst, stackptr);
     isfirst=false;
     // check gcstatus
@@ -780,7 +780,7 @@ void master_compact() {
 }
 
 void master_updaterefs(struct garbagelist * stackptr) {
-  gcphase = FLUSHPHASE;
+  gc_status_info.gcphase = FLUSHPHASE;
   GC_SEND_MSG_1_TO_CLIENT(GCSTARTFLUSH);
   GCPROFILE_ITEM();
   GC_PRINTF("Start flush phase \n");
@@ -788,12 +788,12 @@ void master_updaterefs(struct garbagelist * stackptr) {
   flush(stackptr);
   // now the master core need to decide the new cache strategy
   CACHEADAPT_MASTER();
-  GC_CHECK_ALL_CORE_STATUS(FLUSHPHASE==gcphase);
+  GC_CHECK_ALL_CORE_STATUS(FLUSHPHASE==gc_status_info.gcphase);
   GC_PRINTF("Finish flush phase \n");
 }
 
 void master_finish() {
-  gcphase = FINISHPHASE;
+  gc_status_info.gcphase = FINISHPHASE;
   
   // invalidate all shared mem pointers
   // put it here as it takes time to inform all the other cores to
@@ -807,7 +807,7 @@ void master_finish() {
   gcflag = false;
   GC_SEND_MSG_1_TO_CLIENT(GCFINISH);
   
-  gcprocessing = false;
+  gc_status_info.gcprocessing = false;
   if(gcflag) {
     // inform other cores to stop and wait for gc
     gcprecheck = true;
@@ -822,8 +822,8 @@ void master_finish() {
 
 void gc_master(struct garbagelist * stackptr) {
   tprintf("start GC !!!!!!!!!!!!! \n");
-  gcprocessing = true;
-  gcphase = INITPHASE;
+  gc_status_info.gcprocessing = true;
+  gc_status_info.gcphase = INITPHASE;
 
   waitconfirm = false;
   numconfirm = 0;
@@ -854,7 +854,7 @@ void gc_master(struct garbagelist * stackptr) {
   master_finish();
 
   GC_PRINTF("gc finished   \n");
-  tprintf("finish GC ! %d \n", gcflag);
+  tprintf("finish GC ! %d \n",gcflag);
 } 
 
 void pregccheck() {
@@ -892,12 +892,6 @@ void pregcprocessing() {
   // we need to make sure during the gcinit phase the shared heap is not 
   // touched. Otherwise, there would be problem when adapt the cache strategy.
   BAMBOO_CLOSE_CUR_MSP();
-#ifdef GC_FLUSH_DTLB
-  if(gc_num_flush_dtlb < GC_NUM_FLUSH_DTLB) {
-    BAMBOO_CLEAN_DTLB();
-    gc_num_flush_dtlb++;
-  }
-#endif
 #if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)
   // get the sampling data 
   bamboo_output_dtlb_sampling();
@@ -915,7 +909,7 @@ void postgcprocessing() {
 bool gc(struct garbagelist * stackptr) {
   // check if do gc
   if(!gcflag) {
-    gcprocessing = false;
+    gc_status_info.gcprocessing = false;
     return false;
   }
 

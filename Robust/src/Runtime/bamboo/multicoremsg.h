@@ -106,8 +106,8 @@ volatile bool isMsgHanging;
  *          lock type: 0 -- read; 1 -- write
  * ProfileMsg: 7 + totalexetime
  *               (size is always 2 * sizeof(int))
- *             8 + corenum
- *               (size is always 2 * sizeof(int))
+ *             8 
+ *               (size is always sizeof(int))
  * StatusMsg: d (size is always 1 * sizeof(int))
  *            e + status + corenum + sendobjs + receiveobjs
  *              (size is always 5 * sizeof(int))

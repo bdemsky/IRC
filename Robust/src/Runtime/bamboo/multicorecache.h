@@ -2,6 +2,9 @@
 #define BAMBOO_MULTICORE_CACHE_H
 #ifdef MULTICORE_GC
 #include "multicore.h"
+#include "multicoremem.h"
+#include "multicoregccompact.h"
+#include "multicoregarbage.h"
 
 #ifdef GC_CACHE_ADAPT
 #define GC_CACHE_SAMPLING_UNIT 100000000
@@ -33,61 +36,65 @@ typedef union
 #define BAMBOO_CACHE_MODE_NONE 2
 #define BAMBOO_CACHE_MODE_COORDS 3
 
-INLINE static void samplingDataInit() {
-  gc_cache_revise_infomation.to_page_start_va = (unsigned int)to->ptr;
-  unsigned int toindex = (unsigned int)(tobase-gcbaseva)/(BAMBOO_PAGE_SIZE);
-  gc_cache_revise_infomation.to_page_end_va = gcbaseva + 
-    (BAMBOO_PAGE_SIZE)*(toindex+1);
-  gc_cache_revise_infomation.to_page_index = toindex;
-  gc_cache_revise_infomation.orig_page_start_va = (unsigned int)orig->ptr;
-  gc_cache_revise_infomation.orig_page_end_va = gcbaseva+(BAMBOO_PAGE_SIZE)
-  *(((unsigned int)(orig->ptr)-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-  gc_cache_revise_infomation.orig_page_index = 
-    ((unsigned int)(orig->blockbase)-gcbaseva)/(BAMBOO_PAGE_SIZE);
+typedef struct gc_cache_revise_info {
+  unsigned int orig_page_start_va;
+  unsigned int orig_page_end_va;
+  unsigned int orig_page_index;
+  unsigned int to_page_start_va;
+  unsigned int to_page_end_va;
+  unsigned int to_page_index;
+  unsigned int revised_sampling[NUMCORESACTIVE];
+} gc_cache_revise_info_t;
+
+extern gc_cache_revise_info_t gc_cache_revise_information;
+
+INLINE static void samplingDataReviseInit(struct moveHelper * orig,struct moveHelper * to) {
+  gc_cache_revise_information.to_page_start_va=(unsigned int)to->ptr;
+  unsigned int toindex=(unsigned int)(to->base-gcbaseva)/(BAMBOO_PAGE_SIZE);
+  gc_cache_revise_information.to_page_end_va=gcbaseva+(BAMBOO_PAGE_SIZE)*(toindex+1);
+  gc_cache_revise_information.to_page_index=toindex;
+  gc_cache_revise_information.orig_page_start_va=(unsigned int)orig->ptr;
+  gc_cache_revise_information.orig_page_end_va=gcbaseva+(BAMBOO_PAGE_SIZE)*(((unsigned int)(orig->ptr)-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
+  gc_cache_revise_information.orig_page_index=((unsigned int)(orig->blockbase)-gcbaseva)/(BAMBOO_PAGE_SIZE);
 }
 
 INLINE static void samplingDataConvert(unsigned int current_ptr) {
-  unsigned int tmp_factor = 
-  current_ptr-gc_cache_revise_infomation.to_page_start_va;
-  unsigned int topage=gc_cache_revise_infomation.to_page_index;
-  unsigned int oldpage = gc_cache_revise_infomation.orig_page_index;
+  unsigned int tmp_factor=current_ptr-gc_cache_revise_information.to_page_start_va;
+  unsigned int topage=gc_cache_revise_information.to_page_index;
+  unsigned int oldpage=gc_cache_revise_information.orig_page_index;
   int * newtable=&gccachesamplingtbl_r[topage];
   int * oldtable=&gccachesamplingtbl[oldpage];
   
   for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-    (*newtable) = ((*newtable)+(*oldtable)*tmp_factor);
+    (*newtable)=((*newtable)+(*oldtable)*tmp_factor);
     newtable=(int*)(((char *)newtable)+size_cachesamplingtbl_local_r);
     oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
   }
 } 
 
 INLINE static void completePageConvert(struct moveHelper * orig,struct moveHelper * to,unsigned int current_ptr,bool closeToPage) {
-  unsigned int ptr = 0;
-  unsigned int tocompare = 0;
+  unsigned int ptr=0;
+  unsigned int tocompare=0;
   if(closeToPage) {
-    ptr = to->ptr;
-    tocompare = gc_cache_revise_infomation.to_page_end_va;
+    ptr=to->ptr;
+    tocompare=gc_cache_revise_information.to_page_end_va;
   } else {
-    ptr = orig->ptr;
-    tocompare = gc_cache_revise_infomation.orig_page_end_va;
+    ptr=orig->ptr;
+    tocompare=gc_cache_revise_information.orig_page_end_va;
   }
-  if((unsigned int)ptr >= (unsigned int)tocompare) {
+  if((unsigned int)ptr>=(unsigned int)tocompare) {
     // end of an orig/to page
     // compute the impact of this page for the new page
     samplingDataConvert(current_ptr);
     // prepare for an new orig page
-    unsigned int tmp_index = 
-      (unsigned int)((unsigned int)orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
-    gc_cache_revise_infomation.orig_page_start_va = orig->ptr;
-    gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
-      (BAMBOO_PAGE_SIZE)*(unsigned int)(tmp_index+1);
-    gc_cache_revise_infomation.orig_page_index = tmp_index;
-    gc_cache_revise_infomation.to_page_start_va = to->ptr;
+    unsigned int tmp_index=(unsigned int)((unsigned int)orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
+    gc_cache_revise_information.orig_page_start_va=orig->ptr;
+    gc_cache_revise_information.orig_page_end_va=gcbaseva+(BAMBOO_PAGE_SIZE)*(unsigned int)(tmp_index+1);
+    gc_cache_revise_information.orig_page_index=tmp_index;
+    gc_cache_revise_information.to_page_start_va=to->ptr;
     if(closeToPage) {
-      gc_cache_revise_infomation.to_page_end_va = gcbaseva+(BAMBOO_PAGE_SIZE)
-        *(((unsigned int)(to->ptr)-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-      gc_cache_revise_infomation.to_page_index = 
-        ((unsigned int)(to->ptr)-gcbaseva)/(BAMBOO_PAGE_SIZE);
+      gc_cache_revise_information.to_page_end_va=gcbaseva+(BAMBOO_PAGE_SIZE)*(((unsigned int)(to->ptr)-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
+      gc_cache_revise_information.to_page_index=((unsigned int)(to->ptr)-gcbaseva)/(BAMBOO_PAGE_SIZE);
     }
   }
 } 
@@ -121,14 +128,15 @@ void gc_output_cache_sampling_r();
 #define CACHEADAPT_SAMPING_RESET() 
 #endif
 
-#define CACHEADAPT_SAMPLING_DATA_REVISE_INIT() samplingDataReviseInit()
+#define CACHEADAPT_SAMPLING_DATA_REVISE_INIT(o,t) \
+  samplingDataReviseInit((o),(t))
 #define CACHEADAPT_SAMPLING_DATA_CONVERT(p) samplingDataConvert((p))
 #define CACHEADAPT_COMPLETE_PAGE_CONVERT(o, t, p, b) \
   completePageConvert((o), (t), (p), (b));
 
 #define CACHEADAPT_GC(b) cacheAdapt_gc(b)
 #define CACHEADAPT_MASTER() cacheAdapt_master()
-#define CACHEADAPT_PHASE_CLIENT() cacheAdpat_phase_client()
+#define CACHEADAPT_PHASE_CLIENT() cacheAdapt_phase_client()
 #define CACHEADAPT_PHASE_MASTER() cacheAdapt_phase_master()
 
 #ifdef GC_CACHE_ADAPT_OUTPUT
@@ -158,7 +166,7 @@ void gc_output_cache_sampling_r();
 #define CACHEADAPT_ENABLE_TIMER() 
 #define CACHEADAPT_DISABLE_TIMER() 
 #define CACHEADAPT_SAMPING_RESET()
-#define CACHEADAPT_SAMPLING_DATA_REVISE_INIT() 
+#define CACHEADAPT_SAMPLING_DATA_REVISE_INIT(o,t) 
 #define CACHEADAPT_SAMPLING_DATA_CONVERT(p) 
 #define CACHEADAPT_COMPLETE_PAGE_CONVERT(o, t, p, b) 
 #define CACHEADAPT_GC(b)

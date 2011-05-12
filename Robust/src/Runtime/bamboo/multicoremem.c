@@ -3,6 +3,7 @@
 #include "multicoreruntime.h"
 
 #ifdef MULTICORE_GC
+#include "multicoregarbage.h"
 #include "multicorehelper.h"
 #include "multicoremem_helper.h"
 
@@ -300,7 +301,7 @@ void * smemalloc_I(int coren,
     *allocsize = 0;
     if(!gcflag) {
       gcflag = true;
-      if(!gcprocessing) {
+      if(!gc_status_info.gcprocessing) {
         // inform other cores to stop and wait for gc
         gcprecheck = true;
         for(int i = 0; i < NUMCORESACTIVE; i++) {
