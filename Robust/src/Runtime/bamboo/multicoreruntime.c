@@ -287,6 +287,8 @@ void CALL11(___System______exit____I,
 // gc_profile mode, output gc prfiling data
 #ifdef MULTICORE_GC
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+    BAMBOO_PRINT(BAMBOO_GET_EXE_TIME());
+    BAMBOO_PRINT(0xbbbbbbbb);
     CACHEADAPT_DISABLE_TIMER();
     GC_OUTPUT_PROFILE_DATA();
   }
