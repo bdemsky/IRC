@@ -65,8 +65,18 @@ public class FlatNew extends FlatNode {
 
   public String toString() {
     String str = "FlatNew_"+dst.toString()+"= NEW "+type.toString();
-    if (size!=null)
+
+    int numEmptyBrackets = type.getArrayCount();
+    if( size != null ) {
+      --numEmptyBrackets;
+    }
+    for( int i = 0; i < numEmptyBrackets; ++i ) {
+      str += "[]";
+    }    
+    if( size != null ) {
       str += "["+size.toString()+"]";
+    }    
+
     return str;
   }
 
