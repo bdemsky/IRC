@@ -2099,7 +2099,12 @@ nextdelta:
   public Alloc getCmdLineArgsAlloc() {
     return null;
   }
-
+  public Alloc getCmdLineArgAlloc() {
+    return null;
+  }
+  public Alloc getCmdLineArgBytesAlloc() {
+    return null;
+  }
 
 
   public Set<Alloc> canPointToAt( TempDescriptor x,

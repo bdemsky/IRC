@@ -5234,10 +5234,9 @@ public class ReachGraph {
     
     VariableNode vn = getVariableNodeNoMutation( x );
     if( vn == null ) {
-      // the empty set means "can't point to anything"
+      // the empty table means "x can't point to anything"
       return out;
     }
-
 
     Iterator<RefEdge> edgeItr = vn.iteratorToReferencees();
     while( edgeItr.hasNext() ) {

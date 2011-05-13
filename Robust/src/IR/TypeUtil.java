@@ -8,6 +8,7 @@ import Main.Main;
 
 public class TypeUtil {
   public static String StringClass;
+  public static String StringClassValueField;
   public static String ObjectClass;
   public static String StartupClass;
   public static String TagClass;
@@ -26,6 +27,7 @@ public class TypeUtil {
     this.bir=bir;
     if (state.JNI) {
       StringClass="java.lang.String";
+      StringClassValueField="value";
       ObjectClass="java.lang.Object";
       StartupClass="StartupObject";
       TagClass="TagDescriptor";
@@ -33,6 +35,7 @@ public class TypeUtil {
       TaskClass="Task";
     } else {
       StringClass="String";
+      StringClassValueField="value";
       ObjectClass="Object";
       StartupClass="StartupObject";
       TagClass="TagDescriptor";

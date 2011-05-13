@@ -27,8 +27,8 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
   }
 
 
-  public void additionalIncludesMethodsHeader(PrintWriter outmethodheader) {
-    outmethodheader.println("#include \"assert.h\"");
+  public void additionalIncludesMethodsHeader(PrintWriter outmethodheader) {    
+    outmethodheader.println( "#include<stdio.h>" );
   }
 
 
@@ -118,6 +118,12 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
                                             lhs,
                                             heapAnalysis.canPointToAt( lhs, fn )
                                             );
+
+          genAssertRuntimePtrVsHeapResults( output,
+                                            fm,
+                                            rhs,
+                                            heapAnalysis.canPointToAt( rhs, fn )
+                                            );
       
           genAssertRuntimePtrVsHeapResults( output,
                                             fm,
@@ -142,6 +148,12 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
                                             fm,
                                             lhs,
                                             heapAnalysis.canPointToAt( lhs, fn )
+                                            );
+
+          genAssertRuntimePtrVsHeapResults( output,
+                                            fm,
+                                            rhs,
+                                            heapAnalysis.canPointToAt( rhs, fn )
                                             );
       
           genAssertRuntimePtrVsHeapResults( output,
@@ -184,6 +196,16 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
 
 
   protected void 
+    printConditionFailed( PrintWriter output,
+                          String      condition ) {
+    output.println( "printf(\"[[[ CHECK VS HEAP RESULTS FAILED ]]] Condition for failure( "+
+                    condition+" ) at %s:%d\\n\", __FILE__, __LINE__ );" );
+  }
+                          
+
+
+
+  protected void 
     genAssertRuntimePtrVsHeapResults( PrintWriter    output,
                                       FlatMethod     context,
                                       TempDescriptor x,
@@ -193,7 +215,7 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
 
 
     output.println( "" );
-    output.println( "// asserts vs. heap results (DEBUG)" );
+    output.println( "// checks vs. heap results (DEBUG) for "+x );
     
 
     if( targetsByAnalysis == HeapAnalysis.DONTCARE_PTR ) {
@@ -201,31 +223,36 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
       return;
     }
 
+
+    String condition;
     
     if( targetsByAnalysis.isEmpty() ) {
-      output.println( "assert( "+
-                      buildCode.generateTemp( context, x )+
-                      " == NULL );\n" );
+      condition = 
+        buildCode.generateTemp( context, x )+
+        " != NULL";      
       
     } else {
-      output.print( "assert( "+
-                    buildCode.generateTemp( context, x )+
-                    " == NULL || " );
-
+      condition = 
+        buildCode.generateTemp( context, x )+
+        " != NULL &&";
+      
       Iterator<Alloc> aItr = targetsByAnalysis.iterator();
       while( aItr.hasNext() ) {
         Alloc a = aItr.next();
-        output.print( buildCode.generateTemp( context, x )+
-                      "->allocsite == "+
-                      a.getUniqueAllocSiteID()
-                      );
-        if( aItr.hasNext() ) {
-          output.print( " || " );
-        }
-      }
+        condition += 
+          buildCode.generateTemp( context, x )+
+          "->allocsite != "+
+          a.getUniqueAllocSiteID();
 
-      output.println( " );\n" );      
+        if( aItr.hasNext() ) {
+          condition += " &&";
+        }
+      }      
     }
+
+    output.println( "if( "+condition+" ) {" );
+    printConditionFailed( output, condition );
+    output.println( "}\n" );
   }
 
 
@@ -237,11 +264,19 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
                                       FieldDescriptor                f, // this null OR
                                       TempDescriptor                 i, // this null
                                       Hashtable< Alloc, Set<Alloc> > targetsByAnalysis ) {
+    // I assume when you invoke this method you already
+    // invoked a check on just what x points to, don't duplicate
+    // AND assume the check to x passed
+
     assert targetsByAnalysis != null;
     
     assert f == null || i == null;
-
-    output.println( "// asserts vs. heap results (DEBUG)" );
+    
+    if( f != null ) {
+      output.println( "// checks vs. heap results (DEBUG) for "+x+"."+f );
+    } else {
+      output.println( "// checks vs. heap results (DEBUG) for "+x+"["+i+"]" );
+    }
 
 
     if( targetsByAnalysis == HeapAnalysis.DONTCARE_DREF ) {
@@ -251,12 +286,11 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
     
     
     if( targetsByAnalysis.isEmpty() ) {
-      output.println( "assert( "+
-                      buildCode.generateTemp( context, x )+
-                      " == NULL );\n" );
+      output.println( "// Should have already checked "+x+" is NULL" );
+
     } else {
       output.println( "{" );
-
+      
       // if the ptr is null, that's ok, if not check allocsite
       output.println( "if( "+
                       buildCode.generateTemp( context, x )+
@@ -277,9 +311,9 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
                         "(((void*) &("+buildCode.generateTemp( context, x )+"->___length___))+sizeof(int)))"+
                         "["+buildCode.generateTemp( context, i )+"];" );
       }
-
+      
       output.println( "if( objOneHop != NULL ) { allocsiteOneHop = objOneHop->allocsite; }" );
-
+      
       output.println( "switch( "+
                       buildCode.generateTemp( context, x )+
                       "->allocsite ) {" );
@@ -295,33 +329,39 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
         Set<Alloc> hopTargets = targetsByAnalysis.get( k );
         if( hopTargets == HeapAnalysis.DONTCARE_PTR ) {
           output.print( "/* ANALYSIS DOESN'T CARE */" );
-
+      
         } else {
-          output.print( "assert( allocsiteOneHop == -1" );
-
+          String condition = "allocsiteOneHop != -1";
+      
           if( !hopTargets.isEmpty() ) {
-            output.print( " || " );
+            condition += " && ";
           }
-
+      
           Iterator<Alloc> aItr = hopTargets.iterator();
           while( aItr.hasNext() ) {
             Alloc a = aItr.next();
             
-            output.print( "allocsiteOneHop == "+
-                          a.getUniqueAllocSiteID() );
+            condition += 
+              "allocsiteOneHop != "+
+              a.getUniqueAllocSiteID();
             
             if( aItr.hasNext() ) {
-              output.print( " || " );
+              condition += " && ";
             }
           }
-     
-          output.print( " );" );
+      
+          output.println( "if( "+condition+" ) {" );
+          printConditionFailed( output, condition );
+          output.println( "}" );
         }
-
-        output.println( " break;" );
+        
+        output.println( "break;" );
       }
-
-      output.println( "    default: assert( 0 ); break;" );
+      
+      output.println( "default:" );
+      output.println( "// the previous condition for "+x+
+                      " should already report this failure point" );
+      output.println( "break;" );
       output.println( "}" );
       output.println( "}" );
       output.println( "}\n" );

@@ -672,7 +672,7 @@ public class Main {
           heapAnalysis != null ) {
         // use this extension to generate the allocsite field of Object and
         // ArrayObject for whatever other extensions and systems need it
-        BCXallocsiteObjectField bcx = new BCXallocsiteObjectField( bc, heapAnalysis );
+        BCXallocsiteObjectField bcx = new BCXallocsiteObjectField( bc, tu, heapAnalysis );
         bc.registerExtension( bcx );
       }
 

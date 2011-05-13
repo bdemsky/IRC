@@ -45,8 +45,8 @@ public class FlatIRGraph {
       }
     }
   }
-
-  private void writeFlatIRGraph(FlatMethod fm, String graphname) throws java.io.IOException {
+  
+  public void writeFlatIRGraph(FlatMethod fm, String graphname) throws java.io.IOException {
     // give every node in the flat IR graph a unique label
     // so a human being can inspect the graph and verify
     // correctness

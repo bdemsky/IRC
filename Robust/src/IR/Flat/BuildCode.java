@@ -42,7 +42,7 @@ public class BuildCode {
   public static String arraytype="ArrayObject";
   public static int flagcount = 0;
   Virtual virtualcalls;
-  TypeUtil typeutil;
+  public TypeUtil typeutil;
   protected int maxtaskparams=0;
   protected int maxcount=0;
   ClassDescriptor[] cdarray;

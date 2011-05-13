@@ -353,6 +353,12 @@ public class DisjointAnalysis implements HeapAnalysis {
   public Alloc getCmdLineArgsAlloc() {
     return getAllocationSiteFromFlatNew( constructedCmdLineArgsNew );
   }
+  public Alloc getCmdLineArgAlloc() {
+    return getAllocationSiteFromFlatNew( constructedCmdLineArgNew );
+  }
+  public Alloc getCmdLineArgBytesAlloc() {
+    return getAllocationSiteFromFlatNew( constructedCmdLineArgBytesNew );
+  }
   ///////////////////////////////////////////
   //
   // end public interface
@@ -560,6 +566,8 @@ public class DisjointAnalysis implements HeapAnalysis {
   // know if something is pointing-to to the cmd line args
   // and we can verify by checking the allocation site field.
   protected FlatNew constructedCmdLineArgsNew;
+  protected FlatNew constructedCmdLineArgNew;
+  protected FlatNew constructedCmdLineArgBytesNew;
 
 
 
@@ -1200,12 +1208,12 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       rg.writeGraph("genReach"+fgrn.getGraphName(),
                     true,     // write labels (variables)
-                    true,    // selectively hide intermediate temp vars
-                    true,     // prune unreachable heap regions
+                    false, //true,    // selectively hide intermediate temp vars
+                    false, //true,     // prune unreachable heap regions
                     true,    // hide reachability altogether
                     true,    // hide subset reachability states
                     true,     // hide predicates
-                    false);    // hide edge taints
+                    true); //false);    // hide edge taints
     } break;
 
 
@@ -1985,8 +1993,7 @@ public class DisjointAnalysis implements HeapAnalysis {
     mods.addModifier(Modifiers.PUBLIC);
     mods.addModifier(Modifiers.STATIC);
 
-    TypeDescriptor returnType =
-      new TypeDescriptor(TypeDescriptor.VOID);
+    TypeDescriptor returnType = new TypeDescriptor(TypeDescriptor.VOID);
 
     this.mdAnalysisEntry =
       new MethodDescriptor(mods,
@@ -1994,56 +2001,96 @@ public class DisjointAnalysis implements HeapAnalysis {
                            "analysisEntryMethod"
                            );
 
+    TypeDescriptor argsType = mdSourceEntry.getParamType(0);
     TempDescriptor cmdLineArgs =
       new TempDescriptor("analysisEntryTemp_args",
-                         mdSourceEntry.getParamType(0)
+                         argsType
                          );
-
     FlatNew fnArgs =
-      new FlatNew(mdSourceEntry.getParamType(0),
+      new FlatNew(argsType,
                   cmdLineArgs,
                   false  // is global
                   );
     this.constructedCmdLineArgsNew = fnArgs;
 
-    
-    // jjenista - we might want to model more of the initial context
-    // someday, so keep this trickery in that case.  For now, this analysis
-    // ignores immutable types which includes String, so the following flat
-    // nodes will not add anything to the reach graph.
-    //
-    //TempDescriptor anArg =
-    //  new TempDescriptor("analysisEntryTemp_arg",
-    //                     mdSourceEntry.getParamType(0).dereference()
-    //                     );
-    //
-    //FlatNew fnArg =
-    //  new FlatNew(mdSourceEntry.getParamType(0).dereference(),
-    //              anArg,
-    //              false  // is global
-    //              );
-    //
-    //TempDescriptor index =
-    //  new TempDescriptor("analysisEntryTemp_index",
-    //                     new TypeDescriptor(TypeDescriptor.INT)
-    //                     );
-    //
-    //FlatLiteralNode fl =
-    //  new FlatLiteralNode(new TypeDescriptor(TypeDescriptor.INT),
-    //                      new Integer( 0 ),
-    //                      index
-    //                      );
-    //
-    //FlatSetElementNode fse =
-    //  new FlatSetElementNode(cmdLineArgs,
-    //                         index,
-    //                         anArg
-    //                         );
+    TypeDescriptor argType = argsType.dereference();
+    TempDescriptor anArg =
+      new TempDescriptor("analysisEntryTemp_arg",
+                         argType
+                         );
+    FlatNew fnArg =
+      new FlatNew(argType,
+                  anArg,
+                  false  // is global
+                  );
+    this.constructedCmdLineArgNew = fnArg;
 
+    TypeDescriptor typeIndex = new TypeDescriptor(TypeDescriptor.INT);
+    TempDescriptor index =
+      new TempDescriptor("analysisEntryTemp_index",
+                         typeIndex
+                         );
+    FlatLiteralNode fli =
+      new FlatLiteralNode(typeIndex,
+                          new Integer( 0 ),
+                          index
+                          );
+    
+    FlatSetElementNode fse =
+      new FlatSetElementNode(cmdLineArgs,
+                             index,
+                             anArg
+                             );
+
+    TypeDescriptor typeSize = new TypeDescriptor(TypeDescriptor.INT);
+    TempDescriptor sizeBytes =
+      new TempDescriptor("analysisEntryTemp_size",
+                         typeSize
+                         );
+    FlatLiteralNode fls =
+      new FlatLiteralNode(typeSize,
+                          new Integer( 1 ),
+                          sizeBytes
+                          );
+
+    TypeDescriptor typeBytes =
+      new TypeDescriptor(TypeDescriptor.CHAR).makeArray( state );
+    TempDescriptor strBytes =
+      new TempDescriptor("analysisEntryTemp_strBytes",
+                         typeBytes
+                         );
+    FlatNew fnBytes =
+      new FlatNew(typeBytes,
+                  strBytes,
+                  //sizeBytes,
+                  false  // is global
+                  );
+    this.constructedCmdLineArgBytesNew = fnBytes;
+
+    ClassDescriptor cdString = argType.getClassDesc();
+    assert cdString != null;
+    FieldDescriptor argBytes = null;
+    Iterator sFieldsItr = cdString.getFields();
+    while( sFieldsItr.hasNext() ) {
+      FieldDescriptor fd = (FieldDescriptor) sFieldsItr.next();
+      if( fd.getSymbol().equals( typeUtil.StringClassValueField ) ) {
+        argBytes = fd;
+        break;
+      }
+    }
+    assert argBytes != null;
+    FlatSetFieldNode fsf =
+      new FlatSetFieldNode(anArg,
+                           argBytes,
+                           strBytes
+                           );
+
+    // throw this in so you can always see what the initial heap context
+    // looks like if you want to, its cheap
+    FlatGenReachNode fgen = new FlatGenReachNode( "argContext" );
 
     TempDescriptor[] sourceEntryArgs = new TempDescriptor[1];
     sourceEntryArgs[0] = cmdLineArgs;
-
     FlatCall fc =
       new FlatCall(mdSourceEntry,
                    null,  // dst temp
@@ -2060,10 +2107,35 @@ public class DisjointAnalysis implements HeapAnalysis {
                      fe
                      );
 
-    this.fmAnalysisEntry.addNext(fnArgs);
-    fnArgs.addNext(fc);
-    fc.addNext(frn);
-    frn.addNext(fe);
+    List<FlatNode> nodes = new LinkedList<FlatNode>();
+    nodes.add( fnArgs );
+    nodes.add( fnArg );
+    nodes.add( fli );
+    nodes.add( fse );
+    nodes.add( fls );
+    nodes.add( fnBytes );
+    nodes.add( fsf );
+    nodes.add( fgen );
+    nodes.add( fc );
+    nodes.add( frn );
+    nodes.add( fe );
+
+    FlatNode current = this.fmAnalysisEntry;
+    for( FlatNode next: nodes ) {
+      current.addNext( next );
+      current = next;
+    }
+
+    
+    // jjenista - this is useful for looking at the FlatIRGraph of the
+    // analysis entry method constructed above if you have to modify it.
+    // The usual method of writing FlatIRGraphs out doesn't work because
+    // this flat method is private to the model of this analysis only.
+    //try {
+    //  FlatIRGraph flatMethodWriter = 
+    //    new FlatIRGraph( state, false, false, false );
+    //  flatMethodWriter.writeFlatIRGraph( fmAnalysisEntry, "analysisEntry" );
+    //} catch( IOException e ) {}
   }
 
 

@@ -11,7 +11,18 @@ import IR.Flat.FlatNew;
 public interface HeapAnalysis {
   public EffectsAnalysis getEffectsAnalysis();
   public Alloc getAllocationSiteFromFlatNew(FlatNew node);
-  public Alloc getCmdLineArgsAlloc();
+
+  // what are these for?  Well, if your heap analysis wants to model
+  // the command line argument heap as the initial context, AND you are
+  // assigning IDs to allocation sites, the problem is there is no explicit
+  // allocation site for the command line arguments in the source code.  So
+  // what you do is build your model and when these methods are invoked, return
+  // the alloc ID from your model.  So the structure is an array of Strings has
+  // elements that reference a single String, and that String has a field that
+  // references an array of char primitives.
+  public Alloc getCmdLineArgsAlloc();    // an array of String
+  public Alloc getCmdLineArgAlloc();     // a String
+  public Alloc getCmdLineArgBytesAlloc();// an array of char
 
   // Use these methods to find out what allocation sites
   // the given pointer might point to at or after the 
