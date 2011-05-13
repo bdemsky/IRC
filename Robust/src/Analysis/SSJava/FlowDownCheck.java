@@ -48,36 +48,38 @@ import Util.Pair;
 public class FlowDownCheck {
 
   static State state;
-  HashSet toanalyze;
-  Hashtable<Descriptor, Location> td2loc; // mapping from 'type descriptor'
-                                          // to 'location'
-  Hashtable<String, ClassDescriptor> id2cd; // mapping from 'locID' to 'class
-                                            // descriptor'
+  static SSJavaAnalysis ssjava;
 
-  public FlowDownCheck(State state) {
+  HashSet toanalyze;
+  Hashtable<Descriptor, Location> d2loc; // mapping from 'descriptor'
+                                         // to 'location'
+  Hashtable<String, ClassDescriptor> id2cd; // mapping from 'locID' to 'class
+
+  public FlowDownCheck(SSJavaAnalysis ssjava, State state) {
+    this.ssjava = ssjava;
     this.state = state;
     this.toanalyze = new HashSet();
-    this.td2loc = new Hashtable<Descriptor, Location>();
-    init();
+    this.d2loc = new Hashtable<Descriptor, Location>();
+    // init();
   }
 
-  public void init() {
-    id2cd = new Hashtable<String, ClassDescriptor>();
-    Hashtable cd2lattice = state.getCd2LocationOrder();
-
-    Set cdSet = cd2lattice.keySet();
-    for (Iterator iterator = cdSet.iterator(); iterator.hasNext();) {
-      ClassDescriptor cd = (ClassDescriptor) iterator.next();
-      Lattice<String> lattice = (Lattice<String>) cd2lattice.get(cd);
-
-      Set<String> locIdSet = lattice.getKeySet();
-      for (Iterator iterator2 = locIdSet.iterator(); iterator2.hasNext();) {
-        String locID = (String) iterator2.next();
-        id2cd.put(locID, cd);
-      }
-    }
-
-  }
+  // public void init() {
+  // id2cd = new Hashtable<String, ClassDescriptor>();
+  // Hashtable cd2lattice = state.getCd2LocationOrder();
+  //
+  // Set cdSet = cd2lattice.keySet();
+  // for (Iterator iterator = cdSet.iterator(); iterator.hasNext();) {
+  // ClassDescriptor cd = (ClassDescriptor) iterator.next();
+  // Lattice<String> lattice = (Lattice<String>) cd2lattice.get(cd);
+  //
+  // Set<String> locIdSet = lattice.getKeySet();
+  // for (Iterator iterator2 = locIdSet.iterator(); iterator2.hasNext();) {
+  // String locID = (String) iterator2.next();
+  // id2cd.put(locID, cd);
+  // }
+  // }
+  //
+  // }
 
   public void flowDownCheck() {
     SymbolTable classtable = state.getClassSymbolTable();
@@ -109,10 +111,10 @@ public class FlowDownCheck {
     // post-processing for delta location
     // for a nested delta location, assigning a concrete reference to delta
     // operand
-    Set<Descriptor> tdSet = td2loc.keySet();
+    Set<Descriptor> tdSet = d2loc.keySet();
     for (Iterator iterator = tdSet.iterator(); iterator.hasNext();) {
       Descriptor td = (Descriptor) iterator.next();
-      Location loc = td2loc.get(td);
+      Location loc = d2loc.get(td);
 
       if (loc.getType() == Location.DELTA) {
         // if it contains delta reference pointing to another location element
@@ -124,7 +126,7 @@ public class FlowDownCheck {
         DeltaLocation delta = (DeltaLocation) locElement;
         Descriptor refType = delta.getRefLocationId();
         if (refType != null) {
-          Location refLoc = td2loc.get(refType);
+          Location refLoc = d2loc.get(refType);
 
           assert (refLoc instanceof CompositeLocation);
           CompositeLocation refCompLoc = (CompositeLocation) refLoc;
@@ -162,7 +164,7 @@ public class FlowDownCheck {
   }
 
   public Hashtable getMap() {
-    return td2loc;
+    return d2loc;
   }
 
   private void checkDeclarationInMethodBody(ClassDescriptor cd, MethodDescriptor md) {
@@ -420,7 +422,7 @@ public class FlowDownCheck {
       SymbolTable nametable, DeclarationNode dn) {
     VarDescriptor vd = dn.getVarDescriptor();
 
-    Location destLoc = td2loc.get(vd);
+    Location destLoc = d2loc.get(vd);
 
     ClassDescriptor localCD = md.getClassDesc();
     if (dn.getExpression() != null) {
@@ -601,7 +603,7 @@ public class FlowDownCheck {
     CompositeLocation baseLoc = null;
     if (min.getBaseName() != null) {
       if (nametable.contains(min.getBaseName().getSymbol())) {
-        Location loc = td2loc.get(nametable.get(min.getBaseName().getSymbol()));
+        Location loc = d2loc.get(nametable.get(min.getBaseName().getSymbol()));
         if (loc != null) {
           baseLoc = convertCompositeLocation(loc, cd);
         }
@@ -622,6 +624,7 @@ public class FlowDownCheck {
     CompositeLocation argGLBLoc = null;
     if (inputGLBSet.size() > 0) {
       argGLBLoc = CompositeLattice.calculateGLB(cd, inputGLBSet, cd);
+      System.out.println("baseLoc=" + baseLoc + " argGLBLoc=" + argGLBLoc);
       if (baseLoc != null) {
         if (!CompositeLattice.isGreaterThan(argGLBLoc, baseLoc, cd)) {
           throw new Error("The base location of method invocation " + min.printNode(0)
@@ -643,7 +646,7 @@ public class FlowDownCheck {
 
         ClassDescriptor calleecd = min.getMethod().getClassDesc();
         VarDescriptor calleevd = (VarDescriptor) min.getMethod().getParameter(i);
-        Location calleeLoc1 = td2loc.get(calleevd);
+        Location calleeLoc1 = d2loc.get(calleevd);
 
         if (!callerArg1.getLocation(cd).isTop()) {
           // here, check if ordering relations among caller's args respect
@@ -655,7 +658,7 @@ public class FlowDownCheck {
                   checkLocationFromExpressionNode(md, nametable, argExp, new CompositeLocation(cd));
 
               VarDescriptor calleevd2 = (VarDescriptor) min.getMethod().getParameter(currentIdx);
-              Location calleeLoc2 = td2loc.get(calleevd2);
+              Location calleeLoc2 = d2loc.get(calleevd2);
               boolean callerResult = CompositeLattice.isGreaterThan(callerArg1, callerArg2, cd);
               boolean calleeResult =
                   CompositeLattice.isGreaterThan(calleeLoc1, calleeLoc2, calleecd);
@@ -848,10 +851,10 @@ public class FlowDownCheck {
       Location localLoc = null;
       if (d instanceof VarDescriptor) {
         VarDescriptor vd = (VarDescriptor) d;
-        localLoc = td2loc.get(vd);
+        localLoc = d2loc.get(vd);
       } else if (d instanceof FieldDescriptor) {
         FieldDescriptor fd = (FieldDescriptor) d;
-        localLoc = td2loc.get(fd);
+        localLoc = d2loc.get(fd);
       }
       assert (localLoc != null);
 
@@ -874,7 +877,7 @@ public class FlowDownCheck {
 
     if (!left.getType().isPrimitive()) {
       FieldDescriptor fd = fan.getField();
-      Location fieldLoc = td2loc.get(fd);
+      Location fieldLoc = d2loc.get(fd);
 
       // in the case of "this.field", need to get rid of 'this' location from
       // the composite location
@@ -916,7 +919,7 @@ public class FlowDownCheck {
       destLocation =
           srcLocation = checkLocationFromExpressionNode(md, nametable, an.getDest(), srcLocation);
 
-      if (!((Set<String>) state.getCd2LocationPropertyMap().get(new Pair(cd, "spin")))
+      if (!ssjava.getClassLattice(cd).getSpinLocSet()
           .contains(destLocation.getLocation(cd).getLocIdentifier())) {
         throw new Error("Location " + destLocation + " is not allowed to have spinning values at "
             + cd.getSourceFileName() + ":" + an.getNumLine());
@@ -955,13 +958,13 @@ public class FlowDownCheck {
       if (ad.getMarker().equals(SSJavaAnalysis.LOC)) {
         String locationID = ad.getValue();
         // check if location is defined
-        Lattice<String> lattice = (Lattice<String>) state.getCd2LocationOrder().get(cd);
+        SSJavaLattice<String> lattice = ssjava.getClassLattice(cd);
         if (lattice == null || (!lattice.containsKey(locationID))) {
           throw new Error("Location " + locationID
               + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
         }
         Location loc = new Location(cd, locationID);
-        td2loc.put(vd, loc);
+        d2loc.put(vd, loc);
         addTypeLocation(vd.getType(), loc);
 
       } else if (ad.getMarker().equals(SSJavaAnalysis.DELTA)) {
@@ -1014,7 +1017,7 @@ public class FlowDownCheck {
 
         }
 
-        td2loc.put(vd, compLoc);
+        d2loc.put(vd, compLoc);
         addTypeLocation(vd.getType(), compLoc);
 
       }
@@ -1070,13 +1073,13 @@ public class FlowDownCheck {
       if (ad.getMarker().equals(SSJavaAnalysis.LOC)) {
         String locationID = ad.getValue();
         // check if location is defined
-        Lattice<String> lattice = (Lattice<String>) state.getCd2LocationOrder().get(cd);
+        SSJavaLattice<String> lattice = ssjava.getClassLattice(cd);
         if (lattice == null || (!lattice.containsKey(locationID))) {
           throw new Error("Location " + locationID
               + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
         }
         Location loc = new Location(cd, locationID);
-        td2loc.put(fd, loc);
+        d2loc.put(fd, loc);
         addTypeLocation(fd.getType(), loc);
 
       } else if (ad.getMarker().equals(SSJavaAnalysis.DELTA)) {
@@ -1103,7 +1106,7 @@ public class FlowDownCheck {
           deltaLoc.addDeltaOperand(loc);
         }
         compLoc.addLocation(deltaLoc);
-        td2loc.put(fd, compLoc);
+        d2loc.put(fd, compLoc);
         addTypeLocation(fd.getType(), compLoc);
 
       }
@@ -1184,13 +1187,14 @@ public class FlowDownCheck {
       assert (priorityLoc1.getClassDescriptor().equals(priorityLoc2.getClassDescriptor()));
 
       ClassDescriptor cd = priorityLoc1.getClassDescriptor();
-      Lattice<String> locationOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd);
+
+      SSJavaLattice<String> locationOrder = ssjava.getClassLattice(cd);
 
       if (priorityLoc1.getLocIdentifier().equals(priorityLoc2.getLocIdentifier())) {
         // have the same level of local hierarchy
 
-        Set<String> spinSet =
-            (Set<String>) state.getCd2LocationPropertyMap().get(new Pair(cd, "spin"));
+        Set<String> spinSet = ssjava.getClassLattice(cd).getSpinLocSet();
+
         if (spinSet != null && spinSet.contains(priorityLoc1.getLocIdentifier())) {
           // this location can be spinning
           return ComparisonResult.GREATER;
@@ -1229,7 +1233,7 @@ public class FlowDownCheck {
 
         System.out.println("lattice comparison:" + loc1.getLocIdentifier() + " ? "
             + loc2.getLocIdentifier());
-        locationOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd1);
+        locationOrder = ssjava.getClassLattice(cd1);
         if (loc1.getLocIdentifier().equals(loc2.getLocIdentifier())) {
           // have the same level of local hierarchy
           numEqualLoc++;
@@ -1296,7 +1300,7 @@ public class FlowDownCheck {
         locIdentifierSet.add(locElement.getLocIdentifier());
       }
 
-      Lattice<String> locOrder = (Lattice<String>) state.getCd2LocationOrder().get(priorityCD);
+      Lattice<String> locOrder = ssjava.getClassLattice(priorityCD);
       String glbLocIdentifer = locOrder.getGLB(locIdentifierSet);
 
       Location priorityGLB = new Location(priorityCD, glbLocIdentifer);
@@ -1329,7 +1333,7 @@ public class FlowDownCheck {
               LocalLocIdSet.add(locElement.getLocIdentifier());
             }
 
-            Lattice<String> localOrder = (Lattice<String>) state.getCd2LocationOrder().get(localCD);
+            Lattice<String> localOrder = ssjava.getClassLattice(localCD);
             Location localGLBLoc = new Location(localCD, localOrder.getGLB(LocalLocIdSet));
             glbCompLoc.addLocation(localGLBLoc);
           }

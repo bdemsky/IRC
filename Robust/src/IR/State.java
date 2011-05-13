@@ -40,8 +40,6 @@ public class State {
     this.selfloops=new HashSet();
     this.excprefetch=new HashSet();
     this.classpath=new Vector();
-    this.cd2locationOrderMap=new Hashtable();
-    this.cd2locationPropertyMap=new Hashtable();
     this.fn2labelMap=new Hashtable();
     this.lines=0;
   }
@@ -214,8 +212,6 @@ public class State {
   private int numtasks=0;
   private int numstaticblocks=0;
   private int arraycount=0;
-  public Hashtable cd2locationOrderMap;
-  public Hashtable cd2locationPropertyMap;
   public Hashtable fn2labelMap;
   public boolean OPTIMIZE=false;
   public boolean LINENUM=false;
@@ -363,22 +359,6 @@ public class State {
       throw new Error("Task "+td.getSymbol()+" defined twice");
     tasks.add(td);
     numtasks++;
-  }
-
-  public void addLocationOrder(ClassDescriptor cd, Lattice order) {
-    cd2locationOrderMap.put(cd,order);
-  }
-
-  public Hashtable getCd2LocationOrder() {
-    return cd2locationOrderMap;
-  }
-
-  public void addLocationProperty(Pair key, Object value) {
-    cd2locationPropertyMap.put(key,value);
-  }
-
-  public Hashtable getCd2LocationPropertyMap() {
-    return cd2locationPropertyMap;
   }
 
 }
