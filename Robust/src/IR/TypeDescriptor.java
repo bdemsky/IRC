@@ -282,7 +282,7 @@ public class TypeDescriptor extends Descriptor {
   }
 
   public boolean isImmutable() {
-    return isPrimitive() || isString();
+    return isPrimitive();
   }
 
   public TypeDescriptor(NameDescriptor name) {
