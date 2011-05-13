@@ -621,58 +621,9 @@ public class BuildIR {
         } else if (isNode(decl, "static_block")) {
           parseStaticBlockDecl(cn, decl.getChild("static_block_declaration"));
         } else if (isNode(decl,"block")) {
-        } else if (isNode(decl,"location_order_declaration")) {
-          parseLocationOrder(cn,decl.getChild("location_order_list"));
         } else throw new Error();
       }
     }
-  }
-
-  private void parseLocationOrder(ClassDescriptor cd, ParseNode pn) {
-    ParseNodeVector pnv = pn.getChildren();
-    Lattice<String> locOrder =
-      new Lattice<String>("_top_","_bottom_");
-    Set<String> spinLocSet=new HashSet<String>();
-    String thisLoc=null;
-    for (int i = 0; i < pnv.size(); i++) {
-      ParseNode loc = pnv.elementAt(i);
-      if(isNode(loc,"location_property")) {
-        if(loc.getFirstChild().getLabel().equals("location_multi")){
-          String spinLoc=loc.getFirstChild().getFirstChild().getLabel();
-          spinLocSet.add(spinLoc);
-        }else{
-          thisLoc=loc.getFirstChild().getFirstChild().getLabel();
-        }
-      } else {
-        if(loc.getChildren().size()==1){
-          String locIentifier=loc.getChildren().elementAt(0).getLabel();
-          locOrder.put(locIentifier);
-        }else{
-          String lowerLoc=loc.getChildren().elementAt(0).getLabel();
-          String higherLoc= loc.getChildren().elementAt(1).getLabel();
-          locOrder.put(higherLoc, lowerLoc);
-          if (locOrder.isIntroducingCycle(higherLoc)) {
-            throw new Error("Error: the order relation " + lowerLoc + " < " + higherLoc
-                + " introduces a cycle.");
-          }
-        }
-      }
-    }
-    if(spinLocSet.size()>0) {
-      //checking if location is actually defined in the hierarchy
-      for (Iterator iterator = spinLocSet.iterator(); iterator.hasNext(); ) {
-        String locID = (String) iterator.next();
-        if(!locOrder.containsKey(locID)) {
-          throw new Error("Error: The spinning location '"+
-                          locID + "' is not defined in the hierarchy of the class '"+cd +"'.");
-        }
-      }
-      state.addLocationProperty(new Pair(cd,"spin"), spinLocSet);
-    }
-    if(thisLoc!=null){
-      state.addLocationProperty(new Pair(cd,"this"), thisLoc);
-    }
-    state.addLocationOrder(cd, locOrder);
   }
 
   private void parseClassMember(ClassDescriptor cn, ParseNode pn) {

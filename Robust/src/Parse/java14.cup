@@ -160,8 +160,6 @@ non terminal ParseNode static_initializer;
 non terminal ParseNode constructor_declaration, constructor_declarator;
 non terminal ParseNode constructor_body;
 non terminal ParseNode explicit_constructor_invocation;
-// 19.8.6) Location Hierarchy Declarations
-non terminal ParseNode location_order_declaration, location_order_list, location_order;
 // 19.9.1) Interface Declarations
 non terminal ParseNode interface_declaration;
 //non terminal ParseNode normal_interface_declaration
@@ -957,9 +955,6 @@ class_body_declaration ::=
 	|	block:block {:
 		RESULT=(new ParseNode("block",parser.lexer.line_num)).addChild(block).getRoot();
         :}
-        |       location_order_declaration:lod {:
-                RESULT=(new ParseNode("location_order_declaration",parser.lexer.line_num)).addChild(lod).getRoot();
-        :}
 	;
 class_member_declaration ::=
 	//failure aware computation
@@ -1295,46 +1290,6 @@ SUPER LPAREN argument_list_opt:alo RPAREN SEMICOLON {:
 //	|	primary DOT THIS LPAREN argument_list_opt RPAREN SEMICOLON
 //	|	primary DOT SUPER LPAREN argument_list_opt RPAREN SEMICOLON
 	;
-
-// 19.8.6) Location Hierarchy Declarations
-location_order_declaration ::= LOCDEF LBRACE location_order_list:lol RBRACE {:
-                RESULT=lol;			   
-        :}
-        ;
-location_order_list ::= 
-                location_order:lo {:
-                ParseNode pn=new ParseNode("location_order_list",parser.lexer.line_num);
-		pn.addChild(lo);
-		RESULT=pn;
-        :}
-        |       location_order_list:lol COMMA location_order:lo {:
-                lol.addChild(lo);
-		RESULT=lol;
-        :}
-        ;
-location_order ::= 
-                IDENTIFIER:loc1 LT IDENTIFIER:loc2{:
-         	ParseNode pn=new ParseNode("location_order",parser.lexer.line_num);
-		pn.addChild(loc1);
-		pn.addChild(loc2);
-		RESULT=pn;         
-        :}
-	|	IDENTIFIER:loc MULT{:
-	      	ParseNode pn=new ParseNode("location_property",parser.lexer.line_num);		
-		pn.addChild("location_multi").addChild(loc);
-		RESULT=pn;
-	:}
-	|       IDENTIFIER:loc {:
-		ParseNode pn=new ParseNode("location_order",parser.lexer.line_num);
-		pn.addChild(loc);
-		RESULT=pn;
-	:}
-	|	THIS COLON IDENTIFIER:loc {:
-		ParseNode pn=new ParseNode("location_property",parser.lexer.line_num);
-		pn.addChild("location_this").addChild(loc);
-		RESULT=pn;
-	:}
-        ;
 
 // 19.9) Interfaces
 
