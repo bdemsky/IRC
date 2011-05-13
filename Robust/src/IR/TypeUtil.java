@@ -470,7 +470,7 @@ NextMethod:
     while(cd2!=null) {
       cd2=getSuper(cd2);
       if (cd2==possiblesuper)
-        return true;
+         return true;
 
       // check cd2's interface ancestors
       if(cd2 != null) {

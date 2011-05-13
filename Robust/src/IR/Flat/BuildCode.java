@@ -3005,6 +3005,11 @@ fldloop:
       } else {
         output.println(generateTemp(fm, fln.getDst())+"=NewStringShort(str"+flncount+" ,"+((String)fln.getValue()).length()+");");
       }
+      
+      for(BuildCodeExtension bcx: extensions) {
+        bcx.additionalCodeNewStringLiteral(output, generateTemp(fm, fln.getDst()));
+      }      
+
       output.println("}");
       flncount++;
     } else if (fln.getType().isBoolean()) {

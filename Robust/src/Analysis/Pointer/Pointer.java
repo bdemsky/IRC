@@ -2105,6 +2105,9 @@ nextdelta:
   public Alloc getCmdLineArgBytesAlloc() {
     return null;
   }
+  public Alloc getNewStringLiteralAlloc() {
+    return null;
+  }
 
 
   public Set<Alloc> canPointToAt( TempDescriptor x,

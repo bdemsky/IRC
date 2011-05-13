@@ -388,4 +388,5 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
   public void additionalIncludesStructsHeader(PrintWriter outstructs) {}
   public void additionalCodeAtTopMethodsImplementation(PrintWriter outmethod) {}
   public void additionalCodeNewObject(PrintWriter outmethod, String dstVar, FlatNew flatNew) {}
+  public void additionalCodeNewStringLiteral(PrintWriter output, String dstVar) {}
 }

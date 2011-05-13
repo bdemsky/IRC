@@ -92,6 +92,7 @@ public class PointerMethod {
     case FKind.FlatElementNode:
     case FKind.FlatSetElementNode:
     case FKind.FlatNew:
+    case FKind.FlatLiteralNode:
     case FKind.FlatCall:
     case FKind.FlatReturnNode:
     case FKind.FlatBackEdge:

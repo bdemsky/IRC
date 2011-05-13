@@ -359,6 +359,10 @@ public class DisjointAnalysis implements HeapAnalysis {
   public Alloc getCmdLineArgBytesAlloc() {
     return getAllocationSiteFromFlatNew( constructedCmdLineArgBytesNew );
   }
+  public Alloc getNewStringLiteralAlloc() {
+    return newStringLiteralAlloc;
+  }
+
   ///////////////////////////////////////////
   //
   // end public interface
@@ -569,6 +573,11 @@ public class DisjointAnalysis implements HeapAnalysis {
   protected FlatNew constructedCmdLineArgNew;
   protected FlatNew constructedCmdLineArgBytesNew;
 
+  
+  // similar to above, the runtime allocates new strings
+  // for literal nodes, so make up an alloc to model that
+  protected TypeDescriptor strLiteralType;
+  protected AllocSite      newStringLiteralAlloc;
 
 
 
@@ -757,9 +766,9 @@ public class DisjointAnalysis implements HeapAnalysis {
       = state.DISJOINTDEBUGCALLSTOPAFTER;
 
     ReachGraph.debugCallSiteVisitCounter
-      = 0; // count visits from 1, is incremented before first visit
+      = 0; // count visits from 1, is incremented before first visit    
 
-    
+
 
 
     if( suppressOutput ) {
@@ -767,6 +776,23 @@ public class DisjointAnalysis implements HeapAnalysis {
     }
 
     allocateStructures();
+
+    // model the implicit alloction site for new string literals
+    strLiteralType = new TypeDescriptor( typeUtil.getClass( typeUtil.StringClass ) );
+    TempDescriptor throwAway =
+      new TempDescriptor("stringLiteralTemp_dummy",
+                         strLiteralType
+                         );
+    FlatNew fnStringLiteral =
+      new FlatNew(strLiteralType,
+                  throwAway,
+                  false  // is global
+                  );
+    newStringLiteralAlloc
+      = getAllocSiteFromFlatNewPRIVATE( fnStringLiteral );
+
+
+
 
     double timeStartAnalysis = (double) System.nanoTime();
 
@@ -886,6 +912,7 @@ public class DisjointAnalysis implements HeapAnalysis {
       makeAnalysisEntryMethod(mdSourceEntry);
       descriptorsToAnalyze.add(mdAnalysisEntry);
     }
+
 
 
     // now, depending on the interprocedural mode for visiting
@@ -1480,6 +1507,21 @@ public class DisjointAnalysis implements HeapAnalysis {
         rg.assignTempEqualToNewAlloc(lhs, as);
       }
       break;
+
+      
+    case FKind.FlatLiteralNode:
+      // BIG NOTE: this transfer function is only here for
+      // points-to information for String literals.  That's it.
+      // Effects and disjoint reachability and all of that don't
+      // care about references to literals.
+      FlatLiteralNode fln = (FlatLiteralNode) fn;
+
+      if( fln.getType().equals( strLiteralType ) ) {
+        rg.assignTempEqualToNewAlloc( fln.getDst(),
+                                      newStringLiteralAlloc );
+      }      
+      break;
+
 
     case FKind.FlatSESEEnterNode:
       sese = (FlatSESEEnterNode) fn;

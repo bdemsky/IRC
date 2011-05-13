@@ -34,6 +34,7 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
     outclassdefs.println("  int allocsite;");    
   }
 
+
   public void additionalCodeForCommandLineArgs(PrintWriter outmethod, String argsVar) {
 
     ClassDescriptor cdString = typeUtil.getClass( typeUtil.StringClass );
@@ -75,12 +76,22 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
     outmethod.println("");
   }
 
+
   public void additionalCodeNewObject(PrintWriter outmethod, String dstVar, FlatNew flatNew) {
     outmethod.println(dstVar+"->allocsite = "+
                       heapAnalysis.getAllocationSiteFromFlatNew( flatNew ).getUniqueAllocSiteID()+
                       ";"
                       );
   }
+
+
+  public void additionalCodeNewStringLiteral(PrintWriter output, String dstVar) {
+    output.println(dstVar+"->allocsite = "+
+                   heapAnalysis.getNewStringLiteralAlloc().getUniqueAllocSiteID()+
+                   ";"
+                   );    
+  }
+
 
 
   public void printExtraArrayFields(PrintWriter outclassdefs) {}

@@ -34,4 +34,5 @@ public interface BuildCodeExtension {
   public void additionalCodePreNode(FlatMethod fm, FlatNode fn, PrintWriter output);
   public void additionalCodePostNode(FlatMethod fm, FlatNode fn, PrintWriter output);
   public void additionalCodeNewObject(PrintWriter outmethod, String dstVar, FlatNew flatNew);
+  public void additionalCodeNewStringLiteral(PrintWriter output, String dstVar);
 }

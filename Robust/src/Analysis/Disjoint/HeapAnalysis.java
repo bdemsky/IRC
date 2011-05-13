@@ -24,6 +24,12 @@ public interface HeapAnalysis {
   public Alloc getCmdLineArgAlloc();     // a String
   public Alloc getCmdLineArgBytesAlloc();// an array of char
 
+
+  // similar to above, new string literals have a runtime alloc site (not in
+  // code explicitly) so make one in your model and return it here
+  public Alloc getNewStringLiteralAlloc(); // a String
+
+
   // Use these methods to find out what allocation sites
   // the given pointer might point to at or after the 
   // given program point.  In the case of a variable and
