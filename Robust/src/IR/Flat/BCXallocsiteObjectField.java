@@ -20,6 +20,9 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
   protected TypeUtil     typeUtil;
   protected HeapAnalysis heapAnalysis;
   
+  protected ClassDescriptor cdString;
+  protected FieldDescriptor argBytes;
+
 
   public BCXallocsiteObjectField( BuildCode    buildCode,
                                   TypeUtil     typeUtil,
@@ -37,10 +40,10 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
 
   public void additionalCodeForCommandLineArgs(PrintWriter outmethod, String argsVar) {
 
-    ClassDescriptor cdString = typeUtil.getClass( typeUtil.StringClass );
+    cdString = typeUtil.getClass( typeUtil.StringClass );
     assert cdString != null;
 
-    FieldDescriptor argBytes = null;
+    argBytes = null;
     Iterator sFieldsItr = cdString.getFields();
     while( sFieldsItr.hasNext() ) {
       FieldDescriptor fd = (FieldDescriptor) sFieldsItr.next();
@@ -50,6 +53,7 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
       }
     }
     assert argBytes != null;
+
 
     String argsAccess = "((struct "+cdString.getSafeSymbol()+
       " **)(((char *)& "+argsVar+"->___length___)+sizeof(int)))";

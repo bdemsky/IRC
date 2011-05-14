@@ -678,7 +678,7 @@ public class Main {
 
       if( state.POINTSTO_CHECK_V_RUNTIME &&
           heapAnalysis != null ) {
-        BCXPointsToCheckVRuntime bcx = new BCXPointsToCheckVRuntime( bc, heapAnalysis );
+        BCXPointsToCheckVRuntime bcx = new BCXPointsToCheckVRuntime( bc, tu, heapAnalysis );
         bc.registerExtension( bcx );
       }
 

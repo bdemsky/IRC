@@ -17,12 +17,17 @@ import java.util.*;
 public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
   
   protected BuildCode    buildCode;
+  protected TypeUtil     typeUtil;
   protected HeapAnalysis heapAnalysis;
   
+  protected ClassDescriptor cdObject;
+
 
   public BCXPointsToCheckVRuntime( BuildCode    buildCode,
+                                   TypeUtil     typeUtil,
                                    HeapAnalysis heapAnalysis ) {
     this.buildCode    = buildCode;
+    this.typeUtil     = typeUtil;
     this.heapAnalysis = heapAnalysis;
   }
 
@@ -197,9 +202,20 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
 
   protected void 
     printConditionFailed( PrintWriter output,
-                          String      condition ) {
+                          String      condition,
+                          String      pointer ) {
+
+    // don't do this in the constructor of this extension object because
+    // build code hasn't created any types or classes yet!
+    if( cdObject == null ) { 
+      cdObject = typeUtil.getClass( typeUtil.ObjectClass );
+      assert cdObject != null;
+    }
+
     output.println( "printf(\"[[[ CHECK VS HEAP RESULTS FAILED ]]] Condition for failure( "+
-                    condition+" ) at %s:%d\\n\", __FILE__, __LINE__ );" );
+                    condition+" ) allocsite=%d at %s:%d\\n\", ((struct "+
+                    cdObject.getSafeSymbol()+"*)"+
+                    pointer+")->allocsite, __FILE__, __LINE__ );" );
   }
                           
 
@@ -213,7 +229,6 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
 
     assert targetsByAnalysis != null;
 
-
     output.println( "" );
     output.println( "// checks vs. heap results (DEBUG) for "+x );
     
@@ -223,26 +238,20 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
       return;
     }
 
+    String ptr = buildCode.generateTemp( context, x );
 
     String condition;
     
     if( targetsByAnalysis.isEmpty() ) {
-      condition = 
-        buildCode.generateTemp( context, x )+
-        " != NULL";      
+      condition = ptr+" != NULL";      
       
     } else {
-      condition = 
-        buildCode.generateTemp( context, x )+
-        " != NULL &&";
+      condition = ptr+" != NULL &&";
       
       Iterator<Alloc> aItr = targetsByAnalysis.iterator();
       while( aItr.hasNext() ) {
         Alloc a = aItr.next();
-        condition += 
-          buildCode.generateTemp( context, x )+
-          "->allocsite != "+
-          a.getUniqueAllocSiteID();
+        condition += ptr+"->allocsite != "+a.getUniqueAllocSiteID();
 
         if( aItr.hasNext() ) {
           condition += " &&";
@@ -251,7 +260,7 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
     }
 
     output.println( "if( "+condition+" ) {" );
-    printConditionFailed( output, condition );
+    printConditionFailed( output, condition, ptr );
     output.println( "}\n" );
   }
 
@@ -351,7 +360,7 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
           }
       
           output.println( "if( "+condition+" ) {" );
-          printConditionFailed( output, condition );
+          printConditionFailed( output, condition, "objOneHop" );
           output.println( "}" );
         }
         
