@@ -12,8 +12,18 @@ public class ReachGraph {
   protected static final boolean DISABLE_STRONG_UPDATES = false;
   protected static final boolean DISABLE_GLOBAL_SWEEP   = false;
 
-  // a special out-of-scope temp
-  protected static final TempDescriptor tdReturn = new TempDescriptor("_Return___");
+  // a special out-of-scope temps
+  protected static TempDescriptor tdReturn;
+  protected static TempDescriptor tdStrLiteralBytes;
+  
+  public static void initOutOfScopeTemps() {
+    tdReturn = new TempDescriptor("_Return___");
+
+    tdStrLiteralBytes = 
+      new TempDescriptor("_strLiteralBytes___",
+                         new TypeDescriptor(TypeDescriptor.CHAR).makeArray( state )
+                         );
+  }
 
   // predicate constants
   public static final ExistPred predTrue   = ExistPred.factory();    // if no args, true
@@ -379,6 +389,26 @@ public class ReachGraph {
   //  above.
   //
   ////////////////////////////////////////////////////
+
+  public void assignTempEqualToStringLiteral(TempDescriptor  x,
+                                             AllocSite       asStringLiteral,
+                                             AllocSite       asStringLiteralBytes,
+                                             FieldDescriptor fdStringBytesField) {
+    // model this to get points-to information right for
+    // pointers to string literals, even though it doesn't affect
+    // reachability paths in the heap
+    assignTempEqualToNewAlloc( x, 
+                               asStringLiteral );
+
+    assignTempEqualToNewAlloc( tdStrLiteralBytes, 
+                               asStringLiteralBytes );
+
+    assignTempXFieldFEqualToTempY( x,
+                                   fdStringBytesField,
+                                   tdStrLiteralBytes,
+                                   null );
+  }
+
 
   public void assignTempXEqualToTempY(TempDescriptor x,
                                       TempDescriptor y) {

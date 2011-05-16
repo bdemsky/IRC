@@ -2108,7 +2108,9 @@ nextdelta:
   public Alloc getNewStringLiteralAlloc() {
     return null;
   }
-
+  public Alloc getNewStringLiteralBytesAlloc() {
+    return null;
+  }
 
   public Set<Alloc> canPointToAt( TempDescriptor x,
                                   FlatNode programPoint ) {

@@ -362,6 +362,9 @@ public class DisjointAnalysis implements HeapAnalysis {
   public Alloc getNewStringLiteralAlloc() {
     return newStringLiteralAlloc;
   }
+  public Alloc getNewStringLiteralBytesAlloc() {
+    return newStringLiteralBytesAlloc;
+  }
 
   ///////////////////////////////////////////
   //
@@ -573,11 +576,70 @@ public class DisjointAnalysis implements HeapAnalysis {
   protected FlatNew constructedCmdLineArgNew;
   protected FlatNew constructedCmdLineArgBytesNew;
 
-  
   // similar to above, the runtime allocates new strings
   // for literal nodes, so make up an alloc to model that
-  protected TypeDescriptor strLiteralType;
   protected AllocSite      newStringLiteralAlloc;
+  protected AllocSite      newStringLiteralBytesAlloc;
+
+  // both of the above need the descriptor of the field
+  // for the String's value field to reference by the
+  // byte array from the string object
+  protected TypeDescriptor  stringType;
+  protected TypeDescriptor  stringBytesType;
+  protected FieldDescriptor stringBytesField;
+
+
+  protected void initImplicitStringsModel() {
+    
+    ClassDescriptor cdString = typeUtil.getClass( typeUtil.StringClass );
+    assert cdString != null;
+
+
+    stringType = 
+      new TypeDescriptor( cdString );
+
+    stringBytesType =
+      new TypeDescriptor(TypeDescriptor.CHAR).makeArray( state );
+
+
+    stringBytesField = null;
+    Iterator sFieldsItr = cdString.getFields();
+    while( sFieldsItr.hasNext() ) {
+      FieldDescriptor fd = (FieldDescriptor) sFieldsItr.next();
+      if( fd.getSymbol().equals( typeUtil.StringClassValueField ) ) {
+        stringBytesField = fd;
+        break;
+      }
+    }
+    assert stringBytesField != null;
+
+
+    TempDescriptor throwAway1 =
+      new TempDescriptor("stringLiteralTemp_dummy1",
+                         stringType
+                         );
+    FlatNew fnStringLiteral =
+      new FlatNew(stringType,
+                  throwAway1,
+                  false  // is global
+                  );
+    newStringLiteralAlloc
+      = getAllocSiteFromFlatNewPRIVATE( fnStringLiteral );    
+
+
+    TempDescriptor throwAway2 =
+      new TempDescriptor("stringLiteralTemp_dummy2",
+                         stringBytesType
+                         );
+    FlatNew fnStringLiteralBytes =
+      new FlatNew(stringBytesType,
+                  throwAway2,
+                  false  // is global
+                  );
+    newStringLiteralBytesAlloc
+      = getAllocSiteFromFlatNewPRIVATE( fnStringLiteralBytes );    
+  }
+
 
 
 
@@ -756,6 +818,8 @@ public class DisjointAnalysis implements HeapAnalysis {
     ReachGraph.typeUtil        = typeUtil;
     ReachGraph.state           = state;
 
+    ReachGraph.initOutOfScopeTemps();
+
     ReachGraph.debugCallSiteVisitStartCapture
       = state.DISJOINTDEBUGCALLVISITTOSTART;
 
@@ -770,27 +834,14 @@ public class DisjointAnalysis implements HeapAnalysis {
 
 
 
-
     if( suppressOutput ) {
       System.out.println("* Running disjoint reachability analysis with output suppressed! *");
     }
 
+
     allocateStructures();
 
-    // model the implicit alloction site for new string literals
-    strLiteralType = new TypeDescriptor( typeUtil.getClass( typeUtil.StringClass ) );
-    TempDescriptor throwAway =
-      new TempDescriptor("stringLiteralTemp_dummy",
-                         strLiteralType
-                         );
-    FlatNew fnStringLiteral =
-      new FlatNew(strLiteralType,
-                  throwAway,
-                  false  // is global
-                  );
-    newStringLiteralAlloc
-      = getAllocSiteFromFlatNewPRIVATE( fnStringLiteral );
-
+    initImplicitStringsModel();
 
 
 
@@ -1516,9 +1567,11 @@ public class DisjointAnalysis implements HeapAnalysis {
       // care about references to literals.
       FlatLiteralNode fln = (FlatLiteralNode) fn;
 
-      if( fln.getType().equals( strLiteralType ) ) {
-        rg.assignTempEqualToNewAlloc( fln.getDst(),
-                                      newStringLiteralAlloc );
+      if( fln.getType().equals( stringType ) ) {
+        rg.assignTempEqualToStringLiteral( fln.getDst(),
+                                           newStringLiteralAlloc,
+                                           newStringLiteralBytesAlloc,
+                                           stringBytesField );
       }      
       break;
 
@@ -1570,7 +1623,7 @@ public class DisjointAnalysis implements HeapAnalysis {
 
 
       // all this jimma jamma to debug call sites is WELL WORTH the
-      // effort, so many bugs or buggy info goes crazy through call
+      // effort, so so so many bugs or buggy info appears through call
       // sites
       boolean debugCallSite = false;
       if( state.DISJOINTDEBUGCALLEE != null &&
@@ -1705,6 +1758,8 @@ public class DisjointAnalysis implements HeapAnalysis {
                                                        typeDesc)
                                   );
       }
+
+
 
       ReachGraph rgMergeOfPossibleCallers = new ReachGraph();
 
@@ -2036,7 +2091,7 @@ public class DisjointAnalysis implements HeapAnalysis {
     mods.addModifier(Modifiers.STATIC);
 
     TypeDescriptor returnType = new TypeDescriptor(TypeDescriptor.VOID);
-
+    
     this.mdAnalysisEntry =
       new MethodDescriptor(mods,
                            returnType,
@@ -2095,35 +2150,21 @@ public class DisjointAnalysis implements HeapAnalysis {
                           sizeBytes
                           );
 
-    TypeDescriptor typeBytes =
-      new TypeDescriptor(TypeDescriptor.CHAR).makeArray( state );
     TempDescriptor strBytes =
       new TempDescriptor("analysisEntryTemp_strBytes",
-                         typeBytes
+                         stringBytesType
                          );
     FlatNew fnBytes =
-      new FlatNew(typeBytes,
+      new FlatNew(stringBytesType,
                   strBytes,
                   //sizeBytes,
                   false  // is global
                   );
     this.constructedCmdLineArgBytesNew = fnBytes;
 
-    ClassDescriptor cdString = argType.getClassDesc();
-    assert cdString != null;
-    FieldDescriptor argBytes = null;
-    Iterator sFieldsItr = cdString.getFields();
-    while( sFieldsItr.hasNext() ) {
-      FieldDescriptor fd = (FieldDescriptor) sFieldsItr.next();
-      if( fd.getSymbol().equals( typeUtil.StringClassValueField ) ) {
-        argBytes = fd;
-        break;
-      }
-    }
-    assert argBytes != null;
     FlatSetFieldNode fsf =
       new FlatSetFieldNode(anArg,
-                           argBytes,
+                           stringBytesField,
                            strBytes
                            );
 

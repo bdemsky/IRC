@@ -27,7 +27,8 @@ public interface HeapAnalysis {
 
   // similar to above, new string literals have a runtime alloc site (not in
   // code explicitly) so make one in your model and return it here
-  public Alloc getNewStringLiteralAlloc(); // a String
+  public Alloc getNewStringLiteralAlloc();     // a String
+  public Alloc getNewStringLiteralBytesAlloc();// an array of char
 
 
   // Use these methods to find out what allocation sites

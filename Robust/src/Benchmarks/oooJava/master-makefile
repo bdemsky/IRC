@@ -40,7 +40,7 @@ RCRDEBUGV= -rcr_debug_verbose -printlinenum
 BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 5000 -garbagestats -joptimize -noloop -optimize -nolock -debug #-nooptimize #src-after-pp
 
 
-CHECKPOINTSTO= -disjoint -printlinenum -pointsto-check-v-runtime #-disjoint-write-dots final
+CHECKPOINTSTO= -printlinenum -pointsto-check-v-runtime
 
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed
@@ -76,13 +76,16 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # EX: (skip first 10 visits, capture the next 3, then halt)
 # -disjoint-debug-snap-method Remove 10 3 true
 
-DISJOINTDEBUG= -justanalyze -disjoint -disjoint-k 1 -enable-assertions 
-#	-disjoint-write-dots final \
-#	-disjoint-debug-callsite Demand.add Lateral.compute 1 1000 true
+DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions \
+	-disjoint-write-dots final \
+	-flatirusermethods
+#       -disjoint-debug-callsite String.valueOf Power.main 1 1000 true \
+#       -justanalyze
 #	-disjoint-desire-determinism
+#	-disjoint-debug-callsite Demand.add Lateral.compute 1 1000 true
 #	-disjoint-debug-snap-method ComputeCenterOfMass 6 2 true
 #	-disjoint-debug-scheduling
-#	-flatirusermethods
+
 
 
 
@@ -106,7 +109,7 @@ $(PROGRAM)s.bin: $(SOURCE_FILES) ../master-makefile
 check-pointsto: $(PROGRAM)c.bin
 
 $(PROGRAM)c.bin: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(CHECKPOINTSTO) -o $(PROGRAM)c -builddir chk $(SOURCE_FILES)
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(DISJOINTDEBUG) $(CHECKPOINTSTO) -o $(PROGRAM)c -builddir chk $(SOURCE_FILES)
 
 
 

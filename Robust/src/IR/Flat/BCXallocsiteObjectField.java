@@ -21,7 +21,7 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
   protected HeapAnalysis heapAnalysis;
   
   protected ClassDescriptor cdString;
-  protected FieldDescriptor argBytes;
+  protected FieldDescriptor strBytes;
 
 
   public BCXallocsiteObjectField( BuildCode    buildCode,
@@ -30,6 +30,20 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
     this.buildCode    = buildCode;
     this.typeUtil     = typeUtil;
     this.heapAnalysis = heapAnalysis;
+
+    cdString = typeUtil.getClass( typeUtil.StringClass );
+    assert cdString != null;
+
+    strBytes = null;
+    Iterator sFieldsItr = cdString.getFields();
+    while( sFieldsItr.hasNext() ) {
+      FieldDescriptor fd = (FieldDescriptor) sFieldsItr.next();
+      if( fd.getSymbol().equals( typeUtil.StringClassValueField ) ) {
+        strBytes = fd;
+        break;
+      }
+    }
+    assert strBytes != null;
   }
   
   
@@ -39,21 +53,6 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
 
 
   public void additionalCodeForCommandLineArgs(PrintWriter outmethod, String argsVar) {
-
-    cdString = typeUtil.getClass( typeUtil.StringClass );
-    assert cdString != null;
-
-    argBytes = null;
-    Iterator sFieldsItr = cdString.getFields();
-    while( sFieldsItr.hasNext() ) {
-      FieldDescriptor fd = (FieldDescriptor) sFieldsItr.next();
-      if( fd.getSymbol().equals( typeUtil.StringClassValueField ) ) {
-        argBytes = fd;
-        break;
-      }
-    }
-    assert argBytes != null;
-
 
     String argsAccess = "((struct "+cdString.getSafeSymbol()+
       " **)(((char *)& "+argsVar+"->___length___)+sizeof(int)))";
@@ -70,7 +69,7 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
                       ";"
                       );
     outmethod.println("    "+argsAccess+"[i]->"+
-                      argBytes.getSafeSymbol()+
+                      strBytes.getSafeSymbol()+
                       "->allocsite = "+
                       heapAnalysis.getCmdLineArgBytesAlloc().getUniqueAllocSiteID()+
                       ";"
@@ -94,6 +93,13 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
                    heapAnalysis.getNewStringLiteralAlloc().getUniqueAllocSiteID()+
                    ";"
                    );    
+
+    output.println(dstVar+"->"+
+                   strBytes.getSafeSymbol()+
+                   "->allocsite = "+
+                   heapAnalysis.getNewStringLiteralBytesAlloc().getUniqueAllocSiteID()+
+                   ";"
+                   );
   }
 
 
