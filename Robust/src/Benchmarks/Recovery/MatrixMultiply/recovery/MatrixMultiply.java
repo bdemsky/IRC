@@ -58,7 +58,6 @@ public class MatrixMultiply extends Task {
         }
       }
     }
-
     atomic {
       dequeueTask();
     }
@@ -80,8 +79,7 @@ public class MatrixMultiply extends Task {
   }
 
   public static void main(String[] args) {
-    long fi,st;
-    st = System.currentTimeMillis();
+    //long st = System.currentTimeMillis();
     int NUM_THREADS=4;
     int SIZE = 1600;
     int increment = 80;
@@ -100,18 +98,27 @@ public class MatrixMultiply extends Task {
       System.exit(0);
     }
 
-    int[] mid = new int[8];
+    int[] mid = new int[16];
     mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
-    mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc2
-    mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
-    mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dc4
-    mid[4] = (128<<24)|(195<<16)|(136<<8)|166; //dc5
-    mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dc6
-    mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dc7
-    mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dc8
+    mid[1] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
+    mid[2] = (128<<24)|(195<<16)|(136<<8)|163; //dc2
+    mid[3] = (128<<24)|(195<<16)|(136<<8)|163; //dc2
+    mid[4] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
+    mid[5] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
+    mid[6] = (128<<24)|(195<<16)|(136<<8)|165; //dc4
+    mid[7] = (128<<24)|(195<<16)|(136<<8)|165; //dc4
+    mid[8] = (128<<24)|(195<<16)|(136<<8)|166; //dc5
+    mid[9] = (128<<24)|(195<<16)|(136<<8)|166; //dc5
+    mid[10] = (128<<24)|(195<<16)|(136<<8)|167; //dc6
+    mid[11] = (128<<24)|(195<<16)|(136<<8)|167; //dc6
+    mid[12] = (128<<24)|(195<<16)|(136<<8)|168; //dc7
+    mid[13] = (128<<24)|(195<<16)|(136<<8)|168; //dc7
+    mid[14] = (128<<24)|(195<<16)|(136<<8)|169; //dc8
+    mid[15] = (128<<24)|(195<<16)|(136<<8)|169; //dc8
 
 
     atomic {
+      //System.out.println("atomic 1");
       ts = global new TaskSet(NUM_THREADS);
 
       for( i = 0; i< NUM_THREADS; i++) {
@@ -121,6 +128,7 @@ public class MatrixMultiply extends Task {
     }
 
     atomic {
+      //System.out.println("atomic 2");
       matrix = global new MMul(SIZE, SIZE, SIZE);
       matrix.setValues();
       matrix.transpose();
@@ -134,7 +142,7 @@ public class MatrixMultiply extends Task {
         }
         ts.todo.push(mm);
       }
-
+      ////System.out.println("end atomic 2");
     }
 
     //long st = System.currentTimeMillis();

@@ -11,7 +11,7 @@ public class Spider {
     int maxDepth = 3;
     int maxSearchDepth = 10;
     int i, j;
-    String fm = "";
+    String fm = "dc-11.calit2.uci.edu";
     String fp = "";
     
     if(args.length != 3) {

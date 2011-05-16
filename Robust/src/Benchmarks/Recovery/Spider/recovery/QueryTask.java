@@ -55,7 +55,7 @@ public class QueryTask extends Task {
         return;
       }
       */
-
+      
       Socket s = new Socket();
 
       if(s.connect(hostname, 80) == -1) {

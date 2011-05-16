@@ -11,7 +11,7 @@ BASEDIR=`pwd`
 RECOVERYDIR='recovery'
 JAVASINGLEDIR='java'
 WAITTIME=120
-KILLDELAY=10
+KILLDELAY=15
 LOGDIR=~/research/Robust/src/Benchmarks/Recovery/runlog
 DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
@@ -20,6 +20,7 @@ USER='adash'
 # 0 mean new test 
 # 1~8 machine id to be killed
 
+### Sequential Machine failure order ######
 ORDER=( 0 1 3 5 7 8 2    
         0 1 2 3 4 5 6 
         0 1 8 4 6 3 7 
@@ -70,6 +71,8 @@ function runMachines {
   
   DIR=`echo ${BASEDIR}\/${BM_DIR}\/${RECOVERYDIR}`;
   echo "DIR = $DIR";
+
+  echo $BM_NAME
  
   # Run machines
   while [ $k -gt 1 ]; do
@@ -110,7 +113,7 @@ function runNormalTest {
   cd -
 }
 
-########### Failure case
+########### Sequential Failure case ##########
 function runFailureTest {
 # Run java version
 # j=1;
@@ -157,6 +160,42 @@ function runFailureTest {
 #  killclients $fName 8   # kill alive machines
   killclientswithSignal $fName 8 #kill machines when finished processing everything in ORDER{ }
   sleep 10
+ cd -
+}
+
+####### Single machine failure Case ############
+function runSingleFailureTest {
+  BM_DIR=${BM_NAME}
+  fName="$BM_NAME.bin";
+  cd ${BM_DIR}
+
+  test_iter=1;
+
+#ORDER=( 0 1 8 4 6 3 7 );
+#SINGLE_ORDER=( 1 8 4 6 3 2 7 5 );
+  SINGLE_ORDER=( 8 4 );
+
+
+  for machinename in ${SINGLE_ORDER[@]}
+  do
+    outputIter=0;
+    for outputIter in 1 2 3 4 5 6 7 8
+    do
+      echo "------------------------------- Failure Test $test_iter ----------------------------" >> log-$outputIter
+    done
+    echo "------------------------------- Failure Test $test_iter ----------------------------"
+    runMachines log   
+    sleep 10           # wait until all machine run
+    test_iter=`expr $test_iter + 1`
+    echo "------------------------ dc-$machinename is killed ------------------------" >> log-$k
+    echo "------------------------ dc-$machinename is killed ------------------------"
+    killonemachine $fName $machinename
+    sleep $WAITTIME           # wait till the end of execution
+    killclientswithSignal $fName 8  #kill rest of the alive machines
+# Insert Randowm delay 
+      let "delay= $RANDOM % $KILLDELAY + 4"
+      sleep $delay
+  done
  cd -
 }
 
@@ -300,12 +339,16 @@ function testcase {
   # terminate if it doesn't have parameter
   let "NUM_MACHINE= $nummachines + 0";
 
-  echo "====================================== Normal Test =============================="
-  runNormalTest $NUM_MACHINES 1 
-  echo "================================================================================"
+#  echo "====================================== Normal Test =============================="
+#  runNormalTest $NUM_MACHINES 1 
+#  echo "================================================================================"
 
-  echo "====================================== Failure Test ============================="
-  runFailureTest $NUM_MACHINES
+#  echo "====================================== Failure Test ============================="
+#  runFailureTest $NUM_MACHINES
+#  echo "================================================================================="
+
+  echo "====================================== Single Failure Test ============================="
+  runSingleFailureTest $NUM_MACHINES
   echo "================================================================================="
 
 #  echo "=============== Running javasingle for ${BM_NAME} on 1 machines ================="
@@ -401,4 +444,5 @@ function dsmsingle {
 echo "---------- Starting Benchmarks ----------"
 nmach=$1
 source bm_args.txt
+#source bm_args_16threads.txt
 echo "----------- done ------------"
