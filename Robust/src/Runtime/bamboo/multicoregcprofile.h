@@ -98,9 +98,7 @@ INLINE static void gc_profileEnd(void) {
 // record lobj info
 #define GCPROFILE_RECORD_LOBJ() \
   { \
-    if(gc_profile_flag) { \
       gc_num_lobj++; \
-    } \
   }
 // record lobj space info
 #define GCPROFILE_RECORD_LOBJSPACE() \
@@ -123,16 +121,12 @@ INLINE static void gc_profileEnd(void) {
 // record forward obj info
 #define GCPROFILE_RECORD_FORWARD_OBJ() \
   { \
-    if(gc_profile_flag) { \
       gc_num_forwardobj++; \
-    } \
   }
 // record live obj info
 #define GCPROFILE_RECORD_LIVE_OBJ() \
   { \
-    if(gc_profile_flag) { \
       gc_num_liveobj++; \
-    } \
   }
 #define GCPROFILE_START() \
   { \

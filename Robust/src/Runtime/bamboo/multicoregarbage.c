@@ -821,7 +821,7 @@ void master_finish() {
 }
 
 void gc_master(struct garbagelist * stackptr) {
-  tprintf("start GC !!!!!!!!!!!!! \n");
+  //tprintf("start GC !!!!!!!!!!!!! \n");
   gc_status_info.gcprocessing = true;
   gc_status_info.gcphase = INITPHASE;
 
@@ -854,7 +854,7 @@ void gc_master(struct garbagelist * stackptr) {
   master_finish();
 
   GC_PRINTF("gc finished   \n");
-  tprintf("finish GC ! %d \n",gcflag);
+  //tprintf("finish GC ! %d \n",gcflag);
 } 
 
 void pregccheck() {
