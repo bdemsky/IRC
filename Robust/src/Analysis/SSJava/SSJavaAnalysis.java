@@ -64,11 +64,13 @@ public class SSJavaAnalysis {
         AnnotationDescriptor an = classAnnotations.elementAt(i);
         String marker = an.getMarker();
         if (marker.equals(LATTICE)) {
-          SSJavaLattice<String> locOrder = new SSJavaLattice<String>("_top_", "_bottom_");
+          SSJavaLattice<String> locOrder =
+              new SSJavaLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
           cd2lattice.put(cd, locOrder);
           parseClassLatticeDefinition(cd, an.getValue(), locOrder);
         } else if (marker.equals(METHODDEFAULT)) {
-          MethodLattice<String> locOrder = new MethodLattice<String>("_top_", "_bottom_");
+          MethodLattice<String> locOrder =
+              new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
           cd2methodDefault.put(cd, locOrder);
           parseMethodLatticeDefinition(cd, an.getValue(), locOrder);
         }
@@ -85,8 +87,9 @@ public class SSJavaAnalysis {
         for (int i = 0; i < methodAnnotations.size(); i++) {
           AnnotationDescriptor an = methodAnnotations.elementAt(i);
           if (an.getMarker().equals(LATTICE)) {
-            MethodLattice<String> locOrder = new MethodLattice<String>("_top_", "_bottom_");
-            cd2lattice.put(cd, locOrder);
+            MethodLattice<String> locOrder =
+                new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
+            md2lattice.put(md, locOrder);
             parseMethodLatticeDefinition(cd, an.getValue(), locOrder);
           }
         }
@@ -193,6 +196,14 @@ public class SSJavaAnalysis {
 
   public SSJavaLattice<String> getClassLattice(ClassDescriptor cd) {
     return cd2lattice.get(cd);
+  }
+
+  public MethodLattice<String> getMethodLattice(MethodDescriptor md) {
+    if (md2lattice.contains(md)) {
+      return md2lattice.get(md);
+    } else {
+      return cd2methodDefault.get(md.getClassDesc());
+    }
   }
 
 }

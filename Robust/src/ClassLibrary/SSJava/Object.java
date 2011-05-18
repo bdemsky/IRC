@@ -1,8 +1,6 @@
+@LATTICE("")
+@METHODDEFAULT("THIS<IN,THISLOC=IN")
 public class Object {
-  
-  locdef{  
-    in
-  }
   
   public native int hashCode();
 
@@ -10,11 +8,7 @@ public class Object {
   /* WE WILL DEPRECATE IT AS SOON AS INSTANCEOF WORKS */
   public native int getType();
 
-  public String toString() {
-    return "Object"+hashCode();
-  }
-
-  public boolean equals(@LOC("in") Object o) {
+  public boolean equals(@LOC("IN") Object o) {
     if (o==this)
       return true;
     return false;

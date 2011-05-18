@@ -1,35 +1,40 @@
 package Analysis.SSJava;
 
-import IR.ClassDescriptor;
+import IR.Descriptor;
 import IR.TypeExtension;
 
-public class Location  implements TypeExtension {
+public class Location implements TypeExtension {
 
   public static final int TOP = 1;
   public static final int NORMAL = 2;
   public static final int BOTTOM = 3;
-  public static final int DELTA = 4;
 
   int type;
-  ClassDescriptor cd;
+  Descriptor d;
   String loc;
 
-  public Location(ClassDescriptor cd, String loc) {
-    this.cd = cd;
+  public Location(Descriptor d, String loc) {
+    this.d = d;
     this.loc = loc;
     this.type = NORMAL;
   }
 
-  public Location(ClassDescriptor cd) {
-    this.cd = cd;
+  public Location(Descriptor d, int type) {
+    this.d = d;
+    this.type = type;
+    if (type == TOP) {
+      loc = SSJavaLattice.TOP;
+    } else if (type == BOTTOM) {
+      loc = SSJavaLattice.BOTTOM;
+    }
   }
 
   public void setType(int type) {
     this.type = type;
   }
 
-  public ClassDescriptor getClassDescriptor() {
-    return cd;
+  public Descriptor getDescriptor() {
+    return d;
   }
 
   public String getLocIdentifier() {
@@ -47,7 +52,7 @@ public class Location  implements TypeExtension {
 
     Location loc = (Location) o;
 
-    if (loc.getClassDescriptor().equals(getClassDescriptor())) {
+    if (loc.getDescriptor().equals(getDescriptor())) {
       if (loc.getLocIdentifier() == null || getLocIdentifier() == null) {
         if (loc.getType() == getType()) {
           return true;
@@ -64,7 +69,7 @@ public class Location  implements TypeExtension {
 
   public int hashCode() {
 
-    int hash = cd.hashCode();
+    int hash = d.hashCode();
     if (loc != null) {
       hash += loc.hashCode();
     }
@@ -73,25 +78,21 @@ public class Location  implements TypeExtension {
   }
 
   public String toString() {
-    return "Loc[" + cd.getSymbol() + "." + loc + "]";
+    return "Loc[" + d.getSymbol() + "." + loc + "]";
   }
 
-  public static Location createTopLocation(ClassDescriptor cd) {
-    Location topLoc = new Location(cd);
-    topLoc.setType(TOP);
-    topLoc.loc = "_top_";
+  public static Location createTopLocation(Descriptor d) {
+    Location topLoc = new Location(d, TOP);
     return topLoc;
   }
 
-  public static Location createBottomLocation(ClassDescriptor cd) {
-    Location bottomLoc = new Location(cd);
-    bottomLoc.setType(BOTTOM);
-    bottomLoc.loc = "_bottom_";
+  public static Location createBottomLocation(Descriptor d) {
+    Location bottomLoc = new Location(d, BOTTOM);
     return bottomLoc;
   }
 
   public boolean isTop() {
-    return type==TOP;
+    return type == TOP;
   }
 
 }

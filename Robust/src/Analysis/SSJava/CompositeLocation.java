@@ -1,150 +1,155 @@
 package Analysis.SSJava;
 
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import IR.TypeExtension;
 
-import IR.ClassDescriptor;
-
-public class CompositeLocation extends Location {
+public class CompositeLocation implements TypeExtension {
 
   protected NTuple<Location> locTuple;
 
-  public CompositeLocation(ClassDescriptor cd) {
-    super(cd);
+  public CompositeLocation() {
     locTuple = new NTuple<Location>();
+  }
+
+  public CompositeLocation(Location loc) {
+    locTuple = new NTuple<Location>();
+    locTuple.addElement(loc);
   }
 
   public NTuple<Location> getTuple() {
     return locTuple;
   }
 
-  public int getBaseLocationSize() {
-    return getBaseLocationSet().size();
+  public int getSize() {
+    return locTuple.size();
   }
 
   public void addLocation(Location loc) {
-
-    if (loc instanceof DeltaLocation) {
-      type = Location.DELTA;
-    }
     locTuple.addElement(loc);
-
   }
 
-  public void addLocationSet(Set<Location> set) {
-
-    for (Iterator iterator = set.iterator(); iterator.hasNext();) {
-      Location location = (Location) iterator.next();
-      locTuple.addElement(location);
-    }
-
+  public Location get(int idx) {
+    return locTuple.get(idx);
+  }
+  
+  public boolean isEmpty(){
+    return locTuple.size()==0;
   }
 
-  public Location getLocation(ClassDescriptor cd) {
+  // public void addLocationSet(Set<Location> set) {
+  //
+  // for (Iterator iterator = set.iterator(); iterator.hasNext();) {
+  // Location location = (Location) iterator.next();
+  // locTuple.addElement(location);
+  // }
+  //
+  // }
 
-    // need to get more optimization version later
-    Set<Location> locSet = getBaseLocationSet();
-    for (Iterator iterator = locSet.iterator(); iterator.hasNext();) {
-      Location location = (Location) iterator.next();
-      if (location.getClassDescriptor().equals(cd)) {
-        return location;
-      }
-    }
+  // public Location getLocation(ClassDescriptor cd) {
+  //
+  // // need to get more optimization version later
+  // Set<Location> locSet = getBaseLocationSet();
+  // for (Iterator iterator = locSet.iterator(); iterator.hasNext();) {
+  // Location location = (Location) iterator.next();
+  // if (location.getClassDescriptor().equals(cd)) {
+  // return location;
+  // }
+  // }
+  //
+  // return null;
+  //
+  // }
 
-    return null;
-
-  }
-
-  public Map<ClassDescriptor, Location> getCd2Loc() {
-
-    Map<ClassDescriptor, Location> cd2loc = new Hashtable<ClassDescriptor, Location>();
-
-    Set<Location> baseLocSet = getBaseLocationSet();
-    for (Iterator iterator = baseLocSet.iterator(); iterator.hasNext();) {
-      Location location = (Location) iterator.next();
-      cd2loc.put(location.getClassDescriptor(), location);
-    }
-
-    return cd2loc;
-
-  }
+  // public Map<ClassDescriptor, Location> getCd2Loc() {
+  //
+  // Map<ClassDescriptor, Location> cd2loc = new Hashtable<ClassDescriptor,
+  // Location>();
+  //
+  // Set<Location> baseLocSet = getBaseLocationSet();
+  // for (Iterator iterator = baseLocSet.iterator(); iterator.hasNext();) {
+  // Location location = (Location) iterator.next();
+  // cd2loc.put(location.getClassDescriptor(), location);
+  // }
+  //
+  // return cd2loc;
+  //
+  // }
 
   public NTuple<Location> getBaseLocationTuple() {
 
-    NTuple<Location> baseLocationTuple = new NTuple<Location>();
-    int tupleSize = locTuple.size();
-    for (int i = 0; i < tupleSize; i++) {
-      Location locElement = locTuple.at(i);
+    return locTuple;
 
-      if (locElement instanceof DeltaLocation) {
-        // baseLocationSet.addAll(((DeltaLocation)
-        // locElement).getDeltaOperandLocationVec());
-        baseLocationTuple.addAll(((DeltaLocation) locElement).getBaseLocationTuple());
-      } else {
-        baseLocationTuple.addElement(locElement);
-      }
-    }
-    return baseLocationTuple;
+    // NTuple<Location> baseLocationTuple = new NTuple<Location>();
+    // int tupleSize = locTuple.size();
+    // for (int i = 0; i < tupleSize; i++) {
+    // Location locElement = locTuple.at(i);
+    //
+    // if (locElement instanceof DeltaLocation) {
+    // // baseLocationSet.addAll(((DeltaLocation)
+    // // locElement).getDeltaOperandLocationVec());
+    // baseLocationTuple.addAll(((DeltaLocation)
+    // locElement).getBaseLocationTuple());
+    // } else {
+    // baseLocationTuple.addElement(locElement);
+    // }
+    // }
+    // return baseLocationTuple;
 
   }
 
-  public Set<Location> getBaseLocationSet() {
+  // public List<Location> getBaseLocationList() {
+  //
+  // Set<Location> baseLocationSet = new HashSet<Location>();
+  // int tupleSize = locTuple.size();
+  // for (int i = 0; i < tupleSize; i++) {
+  // Location locElement = locTuple.at(i);
+  //
+  // if (locElement instanceof DeltaLocation) {
+  // // baseLocationSet.addAll(((DeltaLocation)
+  // // locElement).getDeltaOperandLocationVec());
+  // baseLocationSet.addAll(((DeltaLocation) locElement).getBaseLocationSet());
+  // } else {
+  // baseLocationSet.add(locElement);
+  // }
+  // }
+  // return baseLocationSet;
+  // }
 
-    Set<Location> baseLocationSet = new HashSet<Location>();
-    int tupleSize = locTuple.size();
-    for (int i = 0; i < tupleSize; i++) {
-      Location locElement = locTuple.at(i);
+  // public int getNumofDelta() {
+  //
+  // int result = 0;
+  //
+  // if (locTuple.size() == 1) {
+  // Location locElement = locTuple.at(0);
+  // if (locElement instanceof DeltaLocation) {
+  // result++;
+  // result += getNumofDelta((DeltaLocation) locElement);
+  // }
+  // }
+  // return result;
+  // }
 
-      if (locElement instanceof DeltaLocation) {
-        // baseLocationSet.addAll(((DeltaLocation)
-        // locElement).getDeltaOperandLocationVec());
-        baseLocationSet.addAll(((DeltaLocation) locElement).getBaseLocationSet());
-      } else {
-        baseLocationSet.add(locElement);
-      }
-    }
-    return baseLocationSet;
-  }
+  // public int getNumofDelta(DeltaLocation delta) {
+  // int result = 0;
+  //
+  // if (delta.getDeltaOperandLocationVec().size() == 1) {
+  // Location locElement = delta.getDeltaOperandLocationVec().at(0);
+  // if (locElement instanceof DeltaLocation) {
+  // result++;
+  // result += getNumofDelta((DeltaLocation) locElement);
+  // }
+  // }
+  //
+  // return result;
+  // }
 
-  public int getNumofDelta() {
-
-    int result = 0;
-
-    if (locTuple.size() == 1) {
-      Location locElement = locTuple.at(0);
-      if (locElement instanceof DeltaLocation) {
-        result++;
-        result += getNumofDelta((DeltaLocation) locElement);
-      }
-    }
-    return result;
-  }
-
-  public int getNumofDelta(DeltaLocation delta) {
-    int result = 0;
-
-    if (delta.getDeltaOperandLocationVec().size() == 1) {
-      Location locElement = delta.getDeltaOperandLocationVec().at(0);
-      if (locElement instanceof DeltaLocation) {
-        result++;
-        result += getNumofDelta((DeltaLocation) locElement);
-      }
-    }
-
-    return result;
-  }
-
-  public void removieLocation(ClassDescriptor cd) {
-    for (int i = 0; i < locTuple.size(); i++) {
-      if (locTuple.at(i).getClassDescriptor().equals(cd)) {
-        locTuple.removeAt(i);
-        return;
-      }
-    }
-  }
+  // public void removieLocation(ClassDescriptor cd) {
+  // for (int i = 0; i < locTuple.size(); i++) {
+  // if (locTuple.at(i).getClassDescriptor().equals(cd)) {
+  // locTuple.removeAt(i);
+  // return;
+  // }
+  // }
+  // }
 
   public String toString() {
 
@@ -162,7 +167,7 @@ public class CompositeLocation extends Location {
 
     int tupleSize = locTuple.size();
     for (int i = 0; i < tupleSize; i++) {
-      Location locElement = locTuple.at(i);
+      Location locElement = locTuple.get(i);
       if (i != 0) {
         rtr += ",";
       }
@@ -181,8 +186,7 @@ public class CompositeLocation extends Location {
 
     CompositeLocation compLoc = (CompositeLocation) o;
 
-    if (compLoc.getClassDescriptor().equals(getClassDescriptor())
-        && compLoc.getTuple().equals(getTuple())) {
+    if (compLoc.getTuple().equals(getTuple())) {
       return true;
     } else {
       return false;
@@ -192,8 +196,7 @@ public class CompositeLocation extends Location {
 
   public int hashCode() {
 
-    int hashCode = getClassDescriptor().hashCode();
-    return hashCode + locTuple.hashCode();
+    return locTuple.hashCode();
 
   }
 

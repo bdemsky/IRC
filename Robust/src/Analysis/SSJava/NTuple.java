@@ -9,7 +9,7 @@ public class NTuple<T> {
 
   private List<T> elements;
 
-  public NTuple(T...elements) {
+  public NTuple(T... elements) {
     this.elements = Arrays.asList(elements);
   }
 
@@ -21,7 +21,7 @@ public class NTuple<T> {
     return elements.toString();
   }
 
-  public T at(int index) {
+  public T get(int index) {
     return elements.get(index);
   }
 
@@ -39,7 +39,7 @@ public class NTuple<T> {
 
   public void addAll(NTuple<T> tuple) {
     for (int i = 0; i < tuple.size(); i++) {
-      elements.add(tuple.at(i));
+      elements.add(tuple.get(i));
     }
   }
 
@@ -57,9 +57,13 @@ public class NTuple<T> {
   public int hashCode() {
     return elements.hashCode();
   }
-  
-  public void removeAt(int i){
+
+  public void removeAt(int i) {
     elements.remove(i);
+  }
+
+  public List<T> getList() {
+    return elements;
   }
 
 }

@@ -6,6 +6,9 @@ import java.util.Set;
 import Util.Lattice;
 
 public class SSJavaLattice<T> extends Lattice<T> {
+  
+  public static final String TOP="_top_";
+  public static final String BOTTOM="_bottom_";
 
   Set<T> spinLocSet;
 

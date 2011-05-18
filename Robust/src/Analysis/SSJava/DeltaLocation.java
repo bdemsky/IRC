@@ -1,26 +1,21 @@
 package Analysis.SSJava;
 
-import java.util.Set;
-
 import IR.ClassDescriptor;
 import IR.Descriptor;
-import IR.TypeDescriptor;
 
 public class DeltaLocation extends CompositeLocation {
 
   private Descriptor refOperand = null;
+  private int numDelta;
 
-  public DeltaLocation(ClassDescriptor cd) {
-    super(cd);
+  public DeltaLocation() {
   }
 
-  public DeltaLocation(ClassDescriptor cd, Set<Location> set) {
-    super(cd);
-    locTuple.addAll(set);
-  }
+  // public DeltaLocation(Set<Location> set) {
+  // locTuple.addAll(set);
+  // }
 
   public DeltaLocation(ClassDescriptor cd, Descriptor refOperand) {
-    super(cd);
     this.refOperand = refOperand;
   }
 
@@ -66,8 +61,7 @@ public class DeltaLocation extends CompositeLocation {
   }
 
   public int hashCode() {
-    int hash = cd.hashCode();
-    hash += locTuple.hashCode();
+    int hash = locTuple.hashCode();
     if (refOperand != null) {
       hash += refOperand.hashCode();
     }
@@ -80,7 +74,7 @@ public class DeltaLocation extends CompositeLocation {
     if (locTuple.size() != 0) {
       int tupleSize = locTuple.size();
       for (int i = 0; i < tupleSize; i++) {
-        Location locElement = locTuple.at(i);
+        Location locElement = locTuple.get(i);
         if (i != 0) {
           rtr += ",";
         }
