@@ -18,7 +18,7 @@ public class SSJavaAnalysis {
   public static final String THISLOC = "THISLOC";
   public static final String GLOBALLOC = "GLOBALLOC";
   public static final String LOC = "LOC";
-  public static final String DELTA = "delta";
+  public static final String DELTA = "DELTA";
   State state;
   FlowDownCheck flowDownChecker;
 
@@ -83,16 +83,19 @@ public class SSJavaAnalysis {
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
         // parsing location hierarchy declaration for the method
-        Vector<AnnotationDescriptor> methodAnnotations = cd.getModifier().getAnnotations();
-        for (int i = 0; i < methodAnnotations.size(); i++) {
-          AnnotationDescriptor an = methodAnnotations.elementAt(i);
-          if (an.getMarker().equals(LATTICE)) {
-            MethodLattice<String> locOrder =
-                new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
-            md2lattice.put(md, locOrder);
-            parseMethodLatticeDefinition(cd, an.getValue(), locOrder);
+        Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
+        if (methodAnnotations != null) {
+          for (int i = 0; i < methodAnnotations.size(); i++) {
+            AnnotationDescriptor an = methodAnnotations.elementAt(i);
+            if (an.getMarker().equals(LATTICE)) {
+              MethodLattice<String> locOrder =
+                  new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
+              md2lattice.put(md, locOrder);
+              parseMethodLatticeDefinition(cd, an.getValue(), locOrder);
+            }
           }
         }
+
       }
 
     }
@@ -199,7 +202,7 @@ public class SSJavaAnalysis {
   }
 
   public MethodLattice<String> getMethodLattice(MethodDescriptor md) {
-    if (md2lattice.contains(md)) {
+    if (md2lattice.containsKey(md)) {
       return md2lattice.get(md);
     } else {
       return cd2methodDefault.get(md.getClassDesc());
