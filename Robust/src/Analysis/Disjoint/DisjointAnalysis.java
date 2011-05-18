@@ -1237,7 +1237,7 @@ public class DisjointAnalysis implements HeapAnalysis {
           stopAfterCapture
           ) {
         System.out.println("!!! Stopping analysis after debug snap captures. !!!");
-        System.exit(0);
+        System.exit(-1);
       }
     }
 
@@ -1287,7 +1287,7 @@ public class DisjointAnalysis implements HeapAnalysis {
       rg.writeGraph("genReach"+fgrn.getGraphName(),
                     true,     // write labels (variables)
                     false, //true,    // selectively hide intermediate temp vars
-                    false, //true,     // prune unreachable heap regions
+                    true,     // prune unreachable heap regions
                     true,    // hide reachability altogether
                     true,    // hide subset reachability states
                     true,     // hide predicates
@@ -1310,8 +1310,10 @@ public class DisjointAnalysis implements HeapAnalysis {
         FlatCall fc        = (FlatCall)   me.getKey();
         ReachGraph rgContrib = (ReachGraph) me.getValue();
 
-        assert fc.getMethod().equals(d);
-
+        // note that "fc.getMethod()" like (Object.toString)
+        // might not be equal to "d" like (String.toString)
+        // because the mapping gets set up when we resolve
+        // virtual dispatch
         rg.merge(rgContrib);
       }
 
@@ -1621,122 +1623,7 @@ public class DisjointAnalysis implements HeapAnalysis {
       FlatMethod fmCallee = state.getMethodFlat(mdCallee);
 
 
-
-      // all this jimma jamma to debug call sites is WELL WORTH the
-      // effort, so so so many bugs or buggy info appears through call
-      // sites
-      boolean debugCallSite = false;
-      if( state.DISJOINTDEBUGCALLEE != null &&
-          state.DISJOINTDEBUGCALLER != null ) {
-
-        boolean debugCalleeMatches = false;
-        boolean debugCallerMatches = false;
-        
-        ClassDescriptor cdCallee = mdCallee.getClassDesc();
-        if( cdCallee != null ) {
-          debugCalleeMatches = 
-            state.DISJOINTDEBUGCALLEE.equals( cdCallee.getSymbol()+
-                                              "."+
-                                              mdCallee.getSymbol()
-                                              );
-        }
-
-
-        if( mdCaller instanceof MethodDescriptor ) {
-          ClassDescriptor cdCaller = ((MethodDescriptor)mdCaller).getClassDesc();
-          if( cdCaller != null ) {
-            debugCallerMatches = 
-              state.DISJOINTDEBUGCALLER.equals( cdCaller.getSymbol()+
-                                                "."+
-                                                mdCaller.getSymbol()
-                                                );
-          }        
-        } else {
-          // for bristlecone style tasks
-          debugCallerMatches =
-            state.DISJOINTDEBUGCALLER.equals( mdCaller.getSymbol() );
-        }
-
-        debugCallSite = debugCalleeMatches && debugCallerMatches;
-      }
-
       
-
-
-      boolean writeDebugDOTs = false;
-      boolean stopAfter      = false;
-      if( debugCallSite ) {
-        ++ReachGraph.debugCallSiteVisitCounter;
-        System.out.println("    $$$ Debug call site visit "+
-                           ReachGraph.debugCallSiteVisitCounter+
-                           " $$$"
-                           );
-        if(
-          (ReachGraph.debugCallSiteVisitCounter >=
-           ReachGraph.debugCallSiteVisitStartCapture)  &&
-
-          (ReachGraph.debugCallSiteVisitCounter <
-           ReachGraph.debugCallSiteVisitStartCapture +
-           ReachGraph.debugCallSiteNumVisitsToCapture)
-          ) {
-          writeDebugDOTs = true;
-          System.out.println("      $$$ Capturing this call site visit $$$");
-          if( ReachGraph.debugCallSiteStopAfter &&
-              (ReachGraph.debugCallSiteVisitCounter ==
-               ReachGraph.debugCallSiteVisitStartCapture +
-               ReachGraph.debugCallSiteNumVisitsToCapture - 1)
-              ) {
-            stopAfter = true;
-          }
-        }
-      }
-
-
-      // calculate the heap this call site can reach--note this is
-      // not used for the current call site transform, we are
-      // grabbing this heap model for future analysis of the callees,
-      // so if different results emerge we will return to this site
-      ReachGraph heapForThisCall_old =
-        getIHMcontribution(mdCallee, fc);
-
-      // the computation of the callee-reachable heap
-      // is useful for making the callee starting point
-      // and for applying the call site transfer function
-      Set<Integer> callerNodeIDsCopiedToCallee =
-        new HashSet<Integer>();
-
-      ReachGraph heapForThisCall_cur =
-        rg.makeCalleeView(fc,
-                          fmCallee,
-                          callerNodeIDsCopiedToCallee,
-                          writeDebugDOTs
-                          );
-
-      // enforce that a call site contribution can only
-      // monotonically increase
-      heapForThisCall_cur.merge(heapForThisCall_old);
-
-      if( !heapForThisCall_cur.equals(heapForThisCall_old) ) {
-        // if heap at call site changed, update the contribution,
-        // and reschedule the callee for analysis
-        addIHMcontribution(mdCallee, fc, heapForThisCall_cur);
-
-        // map a FlatCall to its enclosing method/task descriptor
-        // so we can write that info out later
-        fc2enclosing.put(fc, mdCaller);
-
-        if( state.DISJOINTDEBUGSCHEDULING ) {
-          System.out.println("  context changed, scheduling callee: "+mdCallee);
-        }
-
-        if( state.DISJOINTDVISITSTACKEESONTOP ) {
-          calleesToEnqueue.add(mdCallee);
-        } else {
-          enqueue(mdCallee);
-        }
-
-      }
-
       // the transformation for a call site should update the
       // current heap abstraction with any effects from the callee,
       // or if the method is virtual, the effects from any possible
@@ -1760,8 +1647,10 @@ public class DisjointAnalysis implements HeapAnalysis {
       }
 
 
-
+      DebugCallSiteData dcsd = new DebugCallSiteData();
+      
       ReachGraph rgMergeOfPossibleCallers = new ReachGraph();
+
 
       Iterator<MethodDescriptor> mdItr = setPossibleCallees.iterator();
       while( mdItr.hasNext() ) {
@@ -1770,6 +1659,60 @@ public class DisjointAnalysis implements HeapAnalysis {
 
         addDependent(mdPossible,  // callee
                      d);          // caller
+
+
+        // decide for each possible resolution of the method whether we
+        // want to debug this call site
+        decideDebugCallSite( dcsd, mdCaller, mdPossible );
+
+
+
+        // calculate the heap this call site can reach--note this is
+        // not used for the current call site transform, we are
+        // grabbing this heap model for future analysis of the callees,
+        // so if different results emerge we will return to this site
+        ReachGraph heapForThisCall_old =
+          getIHMcontribution(mdPossible, fc);
+      
+        // the computation of the callee-reachable heap
+        // is useful for making the callee starting point
+        // and for applying the call site transfer function
+        Set<Integer> callerNodeIDsCopiedToCallee =
+          new HashSet<Integer>();
+
+        ReachGraph heapForThisCall_cur =
+          rg.makeCalleeView(fc,
+                            fmPossible,
+                            callerNodeIDsCopiedToCallee,
+                            dcsd.writeDebugDOTs
+                            );
+
+        // enforce that a call site contribution can only
+        // monotonically increase
+        heapForThisCall_cur.merge(heapForThisCall_old);
+
+        if( !heapForThisCall_cur.equals(heapForThisCall_old) ) {
+          // if heap at call site changed, update the contribution,
+          // and reschedule the callee for analysis
+          addIHMcontribution(mdPossible, fc, heapForThisCall_cur);
+
+          // map a FlatCall to its enclosing method/task descriptor
+          // so we can write that info out later
+          fc2enclosing.put(fc, mdCaller);
+
+          if( state.DISJOINTDEBUGSCHEDULING ) {
+            System.out.println("  context changed, scheduling callee: "+mdPossible);
+          }
+
+          if( state.DISJOINTDVISITSTACKEESONTOP ) {
+            calleesToEnqueue.add(mdPossible);
+          } else {
+            enqueue(mdPossible);
+          }
+        }
+
+
+        
 
         // don't alter the working graph (rg) until we compute a
         // result for every possible callee, merge them all together,
@@ -1792,17 +1735,19 @@ public class DisjointAnalysis implements HeapAnalysis {
             System.out.println("  callee hasn't been analyzed, scheduling: "+mdPossible);
           }
 
+
         } else {
+          
           // calculate the method call transform
           rgPossibleCaller.resolveMethodCall(fc,
                                              fmPossible,
                                              rgPossibleCallee,
                                              callerNodeIDsCopiedToCallee,
-                                             writeDebugDOTs
+                                             dcsd.writeDebugDOTs
                                              );
 
+
           if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-//            if( !rgPossibleCallee.isAccessible( ReachGraph.tdReturn ) ) {
             if( !accessible.isAccessible(fn, ReachGraph.tdReturn) ) {
               rgPossibleCaller.makeInaccessible(fc.getReturnTemp() );
             }
@@ -1812,12 +1757,9 @@ public class DisjointAnalysis implements HeapAnalysis {
 
         rgMergeOfPossibleCallers.merge(rgPossibleCaller);
       }
+      
 
-
-      if( stopAfter ) {
-        System.out.println("$$$ Exiting after requested captures of call site. $$$");
-        System.exit(0);
-      }
+      statusDebugCallSite( dcsd );
 
 
       // now that we've taken care of building heap models for
@@ -2871,6 +2813,114 @@ public class DisjointAnalysis implements HeapAnalysis {
   public ReachGraph getEnterReachGraph(FlatNode fn) {
     return fn2rgAtEnter.get(fn);
   }
+
+
+
+  protected class DebugCallSiteData {
+    public boolean debugCallSite;
+    public boolean didOneDebug;
+    public boolean writeDebugDOTs;
+    public boolean stopAfter;
+
+    public DebugCallSiteData() {
+      debugCallSite  = false;
+      didOneDebug    = false;
+      writeDebugDOTs = false;
+      stopAfter      = false;
+    }
+  }
+
+  protected void decideDebugCallSite( DebugCallSiteData dcsd,
+                                      Descriptor        taskOrMethodCaller,
+                                      MethodDescriptor  mdCallee ) {
+    
+    // all this jimma jamma to debug call sites is WELL WORTH the
+    // effort, so so so many bugs or buggy info appears through call
+    // sites
+
+    if( state.DISJOINTDEBUGCALLEE == null ||
+        state.DISJOINTDEBUGCALLER == null ) {
+      return;
+    }
+
+
+    boolean debugCalleeMatches = false;
+    boolean debugCallerMatches = false;
+        
+    ClassDescriptor cdCallee = mdCallee.getClassDesc();
+    if( cdCallee != null ) {
+      debugCalleeMatches = 
+        state.DISJOINTDEBUGCALLEE.equals( cdCallee.getSymbol()+
+                                          "."+
+                                          mdCallee.getSymbol()
+                                          );
+    }
+
+
+    if( taskOrMethodCaller instanceof MethodDescriptor ) {
+      ClassDescriptor cdCaller = ((MethodDescriptor)taskOrMethodCaller).getClassDesc();
+      if( cdCaller != null ) {
+        debugCallerMatches = 
+          state.DISJOINTDEBUGCALLER.equals( cdCaller.getSymbol()+
+                                            "."+
+                                            taskOrMethodCaller.getSymbol()
+                                            );
+      }        
+    } else {
+      // for bristlecone style tasks
+      debugCallerMatches =
+        state.DISJOINTDEBUGCALLER.equals( taskOrMethodCaller.getSymbol() );
+    }
+
+    dcsd.debugCallSite = debugCalleeMatches && debugCallerMatches;
+    dcsd.writeDebugDOTs = dcsd.debugCallSite;
+
+    if( dcsd.debugCallSite ) {
+      dcsd.didOneDebug = true;
+      System.out.println( "       --> Debugging "+taskOrMethodCaller+" calling "+mdCallee );
+    }
+  }
+
+  protected void statusDebugCallSite( DebugCallSiteData dcsd ) {
+
+    dcsd.writeDebugDOTs = false;
+    dcsd.stopAfter      = false;
+
+    if( dcsd.didOneDebug ) {
+      ++ReachGraph.debugCallSiteVisitCounter;
+      System.out.println("    $$$ Debug call site visit "+
+                         ReachGraph.debugCallSiteVisitCounter+
+                         " $$$"
+                         );
+      if(
+         (ReachGraph.debugCallSiteVisitCounter >=
+          ReachGraph.debugCallSiteVisitStartCapture)  &&
+         
+         (ReachGraph.debugCallSiteVisitCounter <
+          ReachGraph.debugCallSiteVisitStartCapture +
+          ReachGraph.debugCallSiteNumVisitsToCapture)
+         ) {
+        dcsd.writeDebugDOTs = true;
+        System.out.println("      $$$ Capturing this call site visit $$$");
+        if( ReachGraph.debugCallSiteStopAfter &&
+            (ReachGraph.debugCallSiteVisitCounter ==
+             ReachGraph.debugCallSiteVisitStartCapture +
+             ReachGraph.debugCallSiteNumVisitsToCapture - 1)
+            ) {
+          dcsd.stopAfter = true;
+        }
+      }
+    }
+
+    if( dcsd.stopAfter ) {
+      System.out.println("$$$ Exiting after requested captures of call site. $$$");
+      System.exit(-1);
+    }
+  }
+  
+
+
+
 
   // get successive captures of the analysis state, use compiler
   // flags to control

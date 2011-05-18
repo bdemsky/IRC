@@ -4466,7 +4466,9 @@ public class ReachGraph {
     try {
       // remove all non-word characters from the graph name so
       // the filename and identifier in dot don't cause errors
-      graphName = graphName.replaceAll("[\\W]", "");
+      // jjenista - also replace underscore '_' to prevent some
+      // really, really long names from IHMS debugging
+      graphName = graphName.replaceAll("[\\W_]", "");
 
       BufferedWriter bw =
         new BufferedWriter(new FileWriter(graphName+".dot") );

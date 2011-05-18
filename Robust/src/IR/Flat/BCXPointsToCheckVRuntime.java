@@ -34,6 +34,7 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
 
   public void additionalIncludesMethodsHeader(PrintWriter outmethodheader) {    
     outmethodheader.println( "#include<stdio.h>" );
+    outmethodheader.println( "#include<execinfo.h>" );
   }
 
 
@@ -216,6 +217,21 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
                     condition+" ) allocsite=%d at %s:%d\\n\", ((struct "+
                     cdObject.getSafeSymbol()+"*)"+
                     pointer+")->allocsite, __FILE__, __LINE__ );" );
+
+    // spit out the stack trace (so fancy!)
+    output.println( "{" );
+    output.println( "void* buffer[100];" );
+    output.println( "char** strings;" );
+    output.println( "int nptrs,j;" );
+    output.println( "nptrs = backtrace(buffer, 100);" );
+    output.println( "strings = backtrace_symbols(buffer, nptrs);" );
+    output.println( "if (strings == NULL) {" );
+    output.println( "  perror(\"backtrace_symbols\");" );
+    output.println( "}" );
+    output.println( "for (j = 0; j < nptrs; j++) {" );
+    output.println( "  printf(\"%s\\n\", strings[j]);" );
+    output.println( "}" );
+    output.println( "}" );
   }
                           
 
