@@ -8,7 +8,7 @@ BSFLAGS= -32bit -ssjava -printlinenum -mainclass $(PROGRAM)  -heapsize-mb 1000 -
 default: $(PROGRAM)s.bin
 
 $(PROGRAM)s.bin: $(SOURCE_FILES) makefile
-	$(BUILDSCRIPT) -thread $(BSFLAGS) -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
 
 clean:
 	rm -f  $(PROGRAM)s.bin
