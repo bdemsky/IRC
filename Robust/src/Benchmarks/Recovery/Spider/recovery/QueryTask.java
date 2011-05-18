@@ -41,6 +41,7 @@ public class QueryTask extends Task {
       atomic {
         hostname = new String(GlobalString.toLocalCharArray(getHostName()));
         path = new String(GlobalString.toLocalCharArray(getPath()));
+        //Debug to check the presence for html files
         System.out.println("hostname= " + hostname + " path= " + path);
         GlobalStringBuffer gsb = global new GlobalStringBuffer(hostname);
         gsb.append("/");

@@ -1,5 +1,5 @@
 #testcase 8 MatrixMultiply:2048 80
 #testcase 8 Spider:"dc-11.calit2.uci.edu" 10
-testcase 8 FileSystem:
+#testcase 8 FileSystem:
 #testcase 8 SpamFilter:-e 500 -n 10
-#testcase 8 Game:
+testcase 8 Game:

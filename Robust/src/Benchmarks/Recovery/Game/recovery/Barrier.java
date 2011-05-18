@@ -6,13 +6,13 @@ public class Barrier extends Thread {
   int rows;
   int cols;
 
-  public Barrier(int n, threadinfo[] tinfo, GameMap[][] land, int maxage, int rows, int cols) {
-    this.land=land;
-    this.maxage=maxage;
-    this.rows=rows;
-    this.cols=cols;
-    this.numthreads=n;
-    this.tinfo=tinfo;
+  public Barrier(int tn, threadinfo[] ttinfo, GameMap[][] tland, int tmaxage, int trows, int tcols) {
+    land=tland;
+    maxage=tmaxage;
+    rows=trows;
+    cols=tcols;
+    numthreads=tn;
+    tinfo=ttinfo;
     /*
     this.tinfo=global new threadinfo[n];
     for(int i=0; i<n; i++) {
@@ -61,7 +61,7 @@ public class Barrier extends Thread {
     boolean cont=true;
     int count=0;
 
-    /* Here we see if we are the first non-failed machine...if so, we operate the barrier...if not we wait for our signal */
+    // Here we see if we are the first non-failed machine...if so, we operate the barrier...if not we wait for our signal 
     while(cont&&count!=threadid) {
       if (Thread.getStatus(count)==-1) {
         count++;
@@ -74,7 +74,7 @@ public class Barrier extends Thread {
     }
 
     if (count==threadid) {
-      /* We are the first non-failed machine...*/
+      // We are the first non-failed machine....
       int waitingon=numthreads-threadid-1;
       boolean waiting[]=new boolean[waitingon];
 

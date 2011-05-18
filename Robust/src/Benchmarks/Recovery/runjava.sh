@@ -10,8 +10,8 @@
 BASEDIR=`pwd`
 RECOVERYDIR='recovery'
 JAVASINGLEDIR='java'
-WAITTIME=120
-KILLDELAY=10
+WAITTIME=180
+KILLDELAY=6
 LOGDIR=~/research/Robust/src/Benchmarks/Recovery/runlog
 DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
@@ -20,7 +20,7 @@ USER='adash'
 # 0 mean new test 
 # 1~8 machine id to be killed
 
-### Sequential Machine failure order ######
+## Sequential Machine failure order ######
 ORDER=( 0 1 3 5 7 8 2    
         0 1 2 3 4 5 6 
         0 1 8 4 6 3 7 
@@ -101,6 +101,12 @@ function runNormalTest {
   echo ${BM_DIR}
   cd ${BM_DIR}
 
+
+  NUMM=$NUM_MACHINE;
+  if [ $NUM_MACHINE == 16 ]; then
+    NUMM=8;
+  fi
+
   tt=1;
   while [ $tt -le $NUM_MACHINE ]; do
     echo "------------------------------- Normal Test $1 ----------------------------" >> log-$tt
@@ -144,9 +150,9 @@ function runSequentialFailureTest {
       outputIter=0;
       for outputIter in 1 2 3 4 5 6 7 8
       do
-        echo "------------------------------- Failure Test $test_iter ----------------------------" >> log-$outputIter
+        echo "------------------------------- Sequential Failure Test $test_iter ----------------------------" >> log-$outputIter
       done
-      echo "------------------------------- Failure Test $test_iter ----------------------------"
+      echo "------------------------------- Sequential Failure Test $test_iter ----------------------------"
       runMachines log   
       sleep 10           # wait until all machine run
       test_iter=`expr $test_iter + 1`
@@ -155,7 +161,7 @@ function runSequentialFailureTest {
       echo "------------------------ dc-$k is killed ------------------------"
       killonemachine $fName $k
       
-      let "delay= $RANDOM % $KILLDELAY + 15"
+      let "delay= $RANDOM % $KILLDELAY + 8"
       sleep $delay
     fi 
   done
@@ -175,9 +181,8 @@ function runSingleFailureTest {
 
   test_iter=1;
 
-#ORDER=( 0 1 8 4 6 3 7 );
-#SINGLE_ORDER=( 1 8 4 6 3 2 7 5 );
- SINGLE_ORDER=( 8 );
+SINGLE_ORDER=( 1 8 4 6 3 2 7 5 );
+#SINGLE_ORDER=( 8 );
 
 
   for machinename in ${SINGLE_ORDER[@]}
@@ -185,9 +190,9 @@ function runSingleFailureTest {
     outputIter=0;
     for outputIter in 1 2 3 4 5 6 7 8
     do
-      echo "------------------------------- Failure Test $test_iter ----------------------------" >> log-$outputIter
+      echo "------------------------------- Single Failure Test $test_iter ----------------------------" >> log-$outputIter
     done
-    echo "------------------------------- Failure Test $test_iter ----------------------------"
+    echo "------------------------------- Single Failure Test $test_iter ----------------------------"
     runMachines log   
     sleep 10           # wait until all machine run
     test_iter=`expr $test_iter + 1`
@@ -343,18 +348,19 @@ function testcase {
   # terminate if it doesn't have parameter
   let "NUM_MACHINE= $nummachines + 0";
 
-#  echo "====================================== Normal Test =============================="
-#  runNormalTest $NUM_MACHINES 1 
-#  echo "================================================================================"
-
-  echo "====================================== Failure Test ============================="
-  runSequentialFailureTest $NUM_MACHINES
-  echo "================================================================================="
+  echo "====================================== Normal Test =============================="
+  runNormalTest $NUM_MACHINES 1 
+  echo "================================================================================"
 
 #  echo "====================================== Single Failure Test ============================="
 #  runSingleFailureTest $NUM_MACHINES
 #  echo "================================================================================="
 
+#  echo "====================================== Sequential Failure Test ============================="
+#  runSequentialFailureTest $NUM_MACHINES
+#  echo "================================================================================="
+
+  
 #  echo "=============== Running javasingle for ${BM_NAME} on 1 machines ================="
 #  javasingle 1 ${BM_NAME}
 #  cd $TOPDIR
@@ -447,6 +453,6 @@ function dsmsingle {
 
 echo "---------- Starting Benchmarks ----------"
 nmach=$1
-source bm_args.txt
-#source bm_args_16threads.txt
+#source bm_args.txt
+source bm_args_16threads.txt
 echo "----------- done ------------"

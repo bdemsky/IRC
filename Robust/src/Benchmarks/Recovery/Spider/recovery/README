@@ -1,0 +1,13 @@
+Running the spider benchmark:
+
+1. cd into directory 
+~/research/Robust/src/Benchmarks/Recovery/Spider/recovery/gendata
+
+2. compile  GenerateWebFile.java 
+  javac  GenerateWebFile.java
+
+3. Run the class file
+  java GenerateWebFile
+
+4. copy the *.html from this directory to 
+ 
