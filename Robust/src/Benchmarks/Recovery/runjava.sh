@@ -11,7 +11,7 @@ BASEDIR=`pwd`
 RECOVERYDIR='recovery'
 JAVASINGLEDIR='java'
 WAITTIME=120
-KILLDELAY=15
+KILLDELAY=10
 LOGDIR=~/research/Robust/src/Benchmarks/Recovery/runlog
 DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
@@ -25,9 +25,10 @@ ORDER=( 0 1 3 5 7 8 2
         0 1 2 3 4 5 6 
         0 1 8 4 6 3 7 
         0 8 7 3 6 5 4
-        0 7 4 6 8 1 2 );
+        0 7 4 6 8 1 2 
+        0 7 5 6 3 8 2 );
 
-#ORDER=( 0 1 8 4 6 3 7 );
+#ORDER=( 0 7 5 6 3 8 2 );
 
 #
 # killClients <fileName> <# of machines>
@@ -68,6 +69,9 @@ function runMachines {
   # Start machines
   echo "Running machines"
   let "k= $NUM_MACHINE"
+  if [ $k == 16 ]; then
+    k=8;
+  fi
   
   DIR=`echo ${BASEDIR}\/${BM_DIR}\/${RECOVERYDIR}`;
   echo "DIR = $DIR";
@@ -114,7 +118,7 @@ function runNormalTest {
 }
 
 ########### Sequential Failure case ##########
-function runFailureTest {
+function runSequentialFailureTest {
 # Run java version
 # j=1;
   BM_DIR=${BM_NAME}
@@ -151,7 +155,7 @@ function runFailureTest {
       echo "------------------------ dc-$k is killed ------------------------"
       killonemachine $fName $k
       
-      let "delay= $RANDOM % $KILLDELAY + 4"
+      let "delay= $RANDOM % $KILLDELAY + 15"
       sleep $delay
     fi 
   done
@@ -173,7 +177,7 @@ function runSingleFailureTest {
 
 #ORDER=( 0 1 8 4 6 3 7 );
 #SINGLE_ORDER=( 1 8 4 6 3 2 7 5 );
-  SINGLE_ORDER=( 8 4 );
+ SINGLE_ORDER=( 8 );
 
 
   for machinename in ${SINGLE_ORDER[@]}
@@ -343,13 +347,13 @@ function testcase {
 #  runNormalTest $NUM_MACHINES 1 
 #  echo "================================================================================"
 
-#  echo "====================================== Failure Test ============================="
-#  runFailureTest $NUM_MACHINES
-#  echo "================================================================================="
-
-  echo "====================================== Single Failure Test ============================="
-  runSingleFailureTest $NUM_MACHINES
+  echo "====================================== Failure Test ============================="
+  runSequentialFailureTest $NUM_MACHINES
   echo "================================================================================="
+
+#  echo "====================================== Single Failure Test ============================="
+#  runSingleFailureTest $NUM_MACHINES
+#  echo "================================================================================="
 
 #  echo "=============== Running javasingle for ${BM_NAME} on 1 machines ================="
 #  javasingle 1 ${BM_NAME}
