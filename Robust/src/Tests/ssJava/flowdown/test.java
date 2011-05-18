@@ -1,76 +1,62 @@
+@LATTICE("testL<testM,testM<testH")
+@METHODDEFAULT("methodL<methodH,methodH<methodT,THISLOC=methodT")
 public class test{
-    locdef{
-	F<D,F<E,D<B,E<C,B<A,C<A,A<T,T<U
-	//C<B,B<A,F<E,E<D,A<T,D<T
-    }
 
-    @A int a;
-    @B int b;
-    @C int c;
-    @D int d;
-    @E int e;
-    @T foo f;
-    @T bar bar;
-    @U foo u;
+    @LOC("testH") int fieldH;
+    @LOC("testM") int fieldM;
+    @LOC("testL") int fieldL;
+    @LOC("testM") Foo fooM;
 
-    public static void main (String args[]){
-	@T test t=new test();
+    public static void main (@LOC("methodH") String args[]){       
+	@LOC("methodH") test t=new test();
 	t.doit();
     }
 
     public void doit(){
-	//f=d+e;
+	@LOC("methodH") int localH; // LOC=[local.methodH]
+	fooM=new Foo(); // LOC=[local.methodT, field.testM]
+	fooM.doSomething();
 
-	@delta("LOC(d2result)") int d3result;
-	@delta("D,FC") int result;
-	@delta("LOC(result)") int d2result;
+	// here, callee expects that arg1 is higher than arg2
+	// so caller should respects callee's constraints
+	fooM.doSomethingArgs(fieldH,fieldM);
 
-	d3result=d2result+a;
-
-	//e=a+c;
+	doit2();
+    }
+    
+    public void doit2(){
+	@LOC("methodH,testL") int localVarL;
 	
-	//result = f.a + f.b; // glb(f.a,f.b)=[T,FB]
-                            // then, compare LOC(result) and [T,FB]
-
-	//result=f.a+u.b;
-
-	//f.b=u.a; // u.a gives us a location: delta(U,FA)
-                 // f.b is at least lower than delta(U,FA)
-	         // by base comparison,
-                 // if LOC(f)<LOC(u) & LOC(foo.b)<LOC(foo.a)
-                 // then, it's okay
-
-	//bar.b=u.a; // u.a gives a new location: delta(U,FA)
-	           // bar.b is at least lower than delta(U,FA)
-                   // by base comparison
-                   // if LOC(bar)<LOC(u) 
-                   // but no ordering relation between LOC(bar.b) and LOC(foo.a)
-	           // is it okay to allow it?
-	           // seems to be okay because there is no way to
-	           // get it back to u.b or something else.	
+	// value flows from the field [local.methodH,field.testH]
+	// to the local variable [local.methodL]
+	localVarL=fieldH;
     }
+
 }
-
-class foo{
-    
-    locdef{
-	FC<FB,FB<FA
-    }
-    
-    @FA int a;
-    @FB int b;
-    @FC int c;
-    
-}
-
-class bar{
-
-    locdef{
-	BC<BB,BB<BA
+@LATTICE("FC<FB,FB<FA")
+@METHODDEFAULT("fm_L<fm_M1,fm_L<fm_M2,fm_M1<fm_H,fm_M2<fm_H,THISLOC=fm_H")
+class Foo{
+	
+    @LOC("FA") int a;
+    @LOC("FB") int b;
+    @LOC("FC") int c;
+	
+    public Foo(){
     }
 
-    @BA int a;
-    @BB int b;
-    @BC int c;
+    public void doSomething(){
+	b=a; // value flows from [fm_H,FA] to [fm_H,FB]
+    }
 
+    // callee has a constraint that arg1 is higher than arg2
+    public int doSomethingArgs(@LOC("fm_H")int argH,
+			       @LOC("fm_M1")int argL){	
+	argL=argH+50;
+	return argL;
+    }
+
+    public int doSomethingRtn(){
+	return a+b; // going to return LOC[local.t,field.FB]
+    }
+        
 }
