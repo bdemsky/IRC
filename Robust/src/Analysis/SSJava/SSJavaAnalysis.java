@@ -127,7 +127,7 @@ public class SSJavaAnalysis {
         locOrder.setGlobalLoc(globalLoc);
       } else if (orderElement.contains("*")) {
         // spin loc definition
-        locOrder.addSpinLoc(orderElement);
+        locOrder.addSpinLoc(orderElement.substring(0,orderElement.length()-1));
       } else {
         // single element
         locOrder.put(orderElement);
@@ -167,7 +167,7 @@ public class SSJavaAnalysis {
         }
       } else if (orderElement.contains("*")) {
         // spin loc definition
-        locOrder.addSpinLoc(orderElement);
+        locOrder.addSpinLoc(orderElement.substring(0,orderElement.length()-1));
       } else {
         // single element
         locOrder.put(orderElement);

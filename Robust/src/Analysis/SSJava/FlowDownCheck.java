@@ -781,7 +781,7 @@ public class FlowDownCheck {
     NameDescriptor nd = nn.getName();
     if (nd.getBase() != null) {
       loc = checkLocationFromExpressionNode(md, nametable, nn.getExpression(), loc);
-      addTypeLocation(nn.getExpression().getType(), loc);
+      // addTypeLocation(nn.getExpression().getType(), loc);
     } else {
       String varname = nd.toString();
 
@@ -862,20 +862,14 @@ public class FlowDownCheck {
     } else {
       destLocation =
           srcLocation = checkLocationFromExpressionNode(md, nametable, an.getDest(), srcLocation);
-      // TODO
-      // if (!((Set<String>) state.getCd2LocationPropertyMap().get(new Pair(cd,
-      // "spin")))
-      // .contains(destLocation.getLocation(cd).getLocIdentifier())) {
-      // throw new Error("Location " + destLocation +
-      // " is not allowed to have spinning values at "
-      // + cd.getSourceFileName() + ":" + an.getNumLine());
-      // }
+
+      if (!CompositeLattice.isGreaterThan(srcLocation, destLocation)) {
+        throw new Error("Location " + destLocation
+            + " is not allowed to have the value flow that moves within the same location at "
+            + cd.getSourceFileName() + "::" + an.getNumLine());
+      }
 
     }
-    // if (an.getSrc() != null) {
-    // addTypeLocation(an.getSrc().getType(), srcLocation);
-    // }
-    // addTypeLocation(an.getDest().getType(), destLocation);
 
     return destLocation;
   }
@@ -956,9 +950,6 @@ public class FlowDownCheck {
     SSJavaLattice<String> localLattice = CompositeLattice.getLatticeByDescriptor(md);
     Location localLoc = new Location(md, localLocId);
     if (localLattice == null || (!localLattice.containsKey(localLocId))) {
-      System.out.println("md=" + md);
-      System.out.println("localLattice=" + localLattice + " l=" + localLocId);
-      System.out.println("localLattice leemtn=" + localLattice.table);
       throw new Error("Location " + localLocId
           + " is not defined in the local variable lattice at "
           + md.getClassDesc().getSourceFileName() + "::" + n.getNumLine() + ".");
@@ -1042,7 +1033,7 @@ public class FlowDownCheck {
         // d2loc.put(fd, loc);
         addTypeLocation(fd.getType(), loc);
 
-      } 
+      }
     }
 
   }
@@ -1062,8 +1053,6 @@ public class FlowDownCheck {
   static class CompositeLattice {
 
     public static boolean isGreaterThan(CompositeLocation loc1, CompositeLocation loc2) {
-
-      // System.out.println("\nisGreaterThan=" + loc1 + " ? " + loc2);
 
       int baseCompareResult = compareBaseLocationSet(loc1, loc2);
       if (baseCompareResult == ComparisonResult.EQUAL) {
@@ -1133,10 +1122,16 @@ public class FlowDownCheck {
         }
 
         if (loc1.getLocIdentifier().equals(loc2.getLocIdentifier())) {
+          // check if the current location is the spinning location
+          if (lattice1.getSpinLocSet().contains(loc1.getLocIdentifier())) {
+            return ComparisonResult.GREATER;
+          }
           numOfTie++;
           continue;
         } else if (lattice1.isGreaterThan(loc1.getLocIdentifier(), loc2.getLocIdentifier())) {
           return ComparisonResult.GREATER;
+        } else {
+          return ComparisonResult.LESS;
         }
 
       }

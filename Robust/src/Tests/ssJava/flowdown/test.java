@@ -27,11 +27,24 @@ public class test{
     }
     
     public void doit2(){
-	@LOC("methodH,testL") int localVarL;
-	
+	@LOC("methodH,testL") int localVarL;	
 	// value flows from the field [local.methodH,field.testH]
 	// to the local variable [local.methodL]
 	localVarL=fieldH;
+    }
+
+    public void doit3(){
+	@LOC("methodT,testL")int localVar=fooM.a+fooM.b;
+	// GLB(fooM.a,fooM.b)=LOC[methodT,testM,FB]
+	// LOC[lovalVar]=[methodT,testL] < GLB(fooM.a,fooM.b)
+    }
+
+    // creating composite location by object references
+    public void doit4(){
+	@LOC("methodT,testM,FC,BB") int localVar=fooM.bar.a; 
+	//LOC(fooM.bar.a)=[methodT,testM,FC,BA]
+	//localVar can flow into lower location of fooM.bar.a	
+	fooM.bar.c=localVar; //[methodT,testM,FC,BB] < [methodT,testM,FC,BA]
     }
 
     // method has its own local variable lattice 
@@ -57,6 +70,41 @@ public class test{
 	fieldM=varDeltax2; //  DELTA[DELTA[mh,testH]] -> [mH,testM]	
     }
 
+    @LATTICE("mL<mSpin,mSpin<mH,mSpin*")
+    public void doSpinLoc(){
+	// if loc is defined with the suffix *, 
+	//value can be flowing around the same location
+	
+	@LOC("mH") int varH;
+	@LOC("mSpin") int varSpin;
+	@LOC("mL") int varL;
+
+	varH=10; 
+	while(varSpin>50000){
+	    // value can be flowing back to the varSpin
+	    // since 'varSpin' is location allowing value to move within
+	    // the same abstract location
+	    varSpin=varSpin+varH;     
+	}
+	varL=varSpin;
+    }
+
+    @LATTICE("mL<mH,THISLOC=mL")
+    public void doSpinField(){
+
+	@LOC("mH") int varH;
+	@LOC("mL") int varL;
+
+	@LOC("mH") Bar localBar=new Bar();
+
+	localBar.b2=localBar.b1; 
+	// LOC(localBar.b1)=[mH,BB]
+	// LOC(localBar.b2)=[mH,BB]
+	// b1 and b2 share the same abstract loc BB
+	// howerver, location BB allows values to be moving within itself
+	
+	localBar.b1++; // value can be moving among the same location
+    }
 }
 
 
@@ -67,6 +115,7 @@ class Foo{
     @LOC("FA") int a;
     @LOC("FB") int b;
     @LOC("FC") int c;
+    @LOC("FC") Bar bar;
 	
     public Foo(){
     }
@@ -85,5 +134,14 @@ class Foo{
     public int doSomethingRtn(){
 	return a+b; // going to return LOC[local.t,field.FB]
     }
-        
+
+}
+
+@LATTICE("BC<BB,BB<BA,BB*")
+class Bar{
+    @LOC("BA") int a;
+    @LOC("BB") int b2;
+    @LOC("BB") int b1;
+    @LOC("BC") int c;   
+
 }
