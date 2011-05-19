@@ -4,13 +4,22 @@ public class DeltaLocation extends CompositeLocation {
 
   private int numDelta;
 
+  public DeltaLocation() {
+    super();
+  }
+
   public DeltaLocation(CompositeLocation comp, int numDelta) {
+    super();
     this.numDelta = numDelta;
-    this.locTuple = comp.getTuple();
+    this.locTuple.addAll(comp.getTuple());
   }
 
   public int getNumDelta() {
     return numDelta;
+  }
+
+  public void setNumDelta(int d) {
+    numDelta = d;
   }
 
   public String toString() {
@@ -34,6 +43,13 @@ public class DeltaLocation extends CompositeLocation {
     }
 
     return rtr;
+  }
+
+  public CompositeLocation clone() {
+    DeltaLocation clone = new DeltaLocation();
+    clone.getTuple().addAll(locTuple);
+    clone.setNumDelta(numDelta);
+    return clone;
   }
 
 }

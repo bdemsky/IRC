@@ -74,4 +74,10 @@ public class CompositeLocation implements TypeExtension {
 
   }
 
+  public CompositeLocation clone() {
+    CompositeLocation clone = new CompositeLocation();
+    clone.getTuple().addAll(locTuple);
+    return clone;
+  }
+
 }

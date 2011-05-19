@@ -91,6 +91,7 @@ public class test{
 
     @LATTICE("mL<mH,THISLOC=mL")
     public void doSpinField(){
+	//only last element of the composite location can be the spinning loc
 
 	@LOC("mH") int varH;
 	@LOC("mL") int varL;
@@ -105,6 +106,7 @@ public class test{
 	
 	localBar.b1++; // value can be moving among the same location
     }
+
 }
 
 

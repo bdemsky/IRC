@@ -799,7 +799,7 @@ public class FlowDownCheck {
         VarDescriptor vd = (VarDescriptor) d;
         // localLoc = d2loc.get(vd);
         // the type of var descriptor has a composite location!
-        loc = (CompositeLocation) vd.getType().getExtension();
+        loc = ((CompositeLocation) vd.getType().getExtension()).clone();
       } else if (d instanceof FieldDescriptor) {
         // the type of field descriptor has a location!
         FieldDescriptor fd = (FieldDescriptor) d;
@@ -813,7 +813,6 @@ public class FlowDownCheck {
         loc.addLocation(fieldLoc);
       }
     }
-
     return loc;
   }
 
@@ -851,9 +850,8 @@ public class FlowDownCheck {
     if (!postinc) {
       srcLocation = new CompositeLocation();
       srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
-      // System.out.println("an=" + an.printNode(0) + " an.getSrc()=" +
-      // an.getSrc().getClass()
-      // + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
+//      System.out.println("an=" + an.printNode(0) + " an.getSrc()=" + an.getSrc().getClass()
+//          + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation)) {
         throw new Error("The value flow from " + srcLocation + " to " + destLocation
             + " does not respect location hierarchy on the assignment " + an.printNode(0) + " at "
@@ -1054,6 +1052,8 @@ public class FlowDownCheck {
 
     public static boolean isGreaterThan(CompositeLocation loc1, CompositeLocation loc2) {
 
+//      System.out.println("isGreaterThan= " + loc1 + " " + loc2);
+
       int baseCompareResult = compareBaseLocationSet(loc1, loc2);
       if (baseCompareResult == ComparisonResult.EQUAL) {
         if (compareDelta(loc1, loc2) == ComparisonResult.GREATER) {
@@ -1116,17 +1116,36 @@ public class FlowDownCheck {
         SSJavaLattice<String> lattice1 = getLatticeByDescriptor(d1);
         SSJavaLattice<String> lattice2 = getLatticeByDescriptor(d2);
 
+        // check if the spin location is appeared only at the end of the
+        // composite location
+        if (lattice1.getSpinLocSet().contains(loc1.getLocIdentifier())) {
+          if (i != (compLoc1.getSize() - 1)) {
+            throw new Error("The spin location " + loc1.getLocIdentifier()
+                + " cannot be appeared in the middle of composite location.");
+          }
+        }
+
+        if (lattice2.getSpinLocSet().contains(loc2.getLocIdentifier())) {
+          if (i != (compLoc2.getSize() - 1)) {
+            throw new Error("The spin location " + loc2.getLocIdentifier()
+                + " cannot be appeared in the middle of composite location.");
+          }
+        }
+
         if (!lattice1.equals(lattice2)) {
           throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
               + " because they are not comparable.");
         }
 
         if (loc1.getLocIdentifier().equals(loc2.getLocIdentifier())) {
+          numOfTie++;
           // check if the current location is the spinning location
-          if (lattice1.getSpinLocSet().contains(loc1.getLocIdentifier())) {
+          // note that the spinning location only can be appeared in the last
+          // part of the composite location
+          if (numOfTie == compLoc1.getSize()
+              && lattice1.getSpinLocSet().contains(loc1.getLocIdentifier())) {
             return ComparisonResult.GREATER;
           }
-          numOfTie++;
           continue;
         } else if (lattice1.isGreaterThan(loc1.getLocIdentifier(), loc2.getLocIdentifier())) {
           return ComparisonResult.GREATER;
