@@ -18,7 +18,8 @@ public class ClassDescriptor extends Descriptor {
   SymbolTable flags;
   SymbolTable methods;
 
-  Hashtable singleImports;
+  Hashtable mandatoryImports;
+  Hashtable multiImports;
 
   int numstaticblocks = 0;
   int numstaticfields = 0;
@@ -402,8 +403,9 @@ public class ClassDescriptor extends Descriptor {
     this.sourceFileName=sourceFileName;
   }
 
-  public void setImports(Hashtable singleImports) {
-    this.singleImports = singleImports;
+  public void setImports(Hashtable singleImports, Hashtable multiImports) {
+    this.mandatoryImports = singleImports;
+    this.multiImports = multiImports;
   }
 
   public String getSourceFileName() {
@@ -411,7 +413,30 @@ public class ClassDescriptor extends Descriptor {
   }
 
   public Hashtable getSingleImportMappings() {
-    return this.singleImports;
+    return this.mandatoryImports;
+  }
+  
+  public Hashtable getMultiImportMappings() {
+    return this.multiImports;
   }
 
+  //Returns the full name/path of another class referenced from this class via imports.
+  public String getCannonicalImportMapName(String otherClassname) {
+    if(mandatoryImports.containsKey(otherClassname)) {
+      return (String) mandatoryImports.get(otherClassname);
+    } else if(multiImports.containsKey(otherClassname)) {
+      //Test for error
+      Object o = multiImports.get(otherClassname);
+      if(o instanceof Error) {
+        throw new Error("Class " + otherClassname + " is ambiguous. Cause: more than 1 package import contain the same class.");
+      } else {
+        //At this point, if we found a unique class
+        //we can treat it as a single, mandatory import.
+        mandatoryImports.put(otherClassname, o);
+        return (String) o;
+      }
+    } else {
+      return otherClassname;
+    }
+  }
 }

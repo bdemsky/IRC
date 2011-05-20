@@ -470,7 +470,7 @@ nextdelta:
       return processFlatCall(bblock, index, (FlatCall) node, delta, newgraph);
 
     default:
-      throw new Error("Unrecognized node:"+node);
+      throw new Error("Unrecognized node:"+node + " of kind " + node.kind());
     }
   }
 

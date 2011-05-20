@@ -240,7 +240,7 @@ public class BuildIR {
 
   private ClassDescriptor parseEnumDecl(ClassDescriptor cn, ParseNode pn) {
     ClassDescriptor ecd=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
-    ecd.setImports(mandatoryImports);
+    ecd.setImports(mandatoryImports, multiimports);
     ecd.setAsEnum();
     if(cn != null) {
       ecd.setSurroundingClass(cn.getSymbol());
@@ -275,7 +275,7 @@ public class BuildIR {
 
   private ClassDescriptor parseAnnotationTypeDecl(ParseNode pn) {
     ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal(), true);
-    cn.setImports(mandatoryImports);
+    cn.setImports(mandatoryImports, multiimports);
     ParseNode modifiers=pn.getChild("modifiers");
     if(modifiers!=null) {
       cn.setModifiers(parseModifiersList(modifiers));
@@ -320,7 +320,7 @@ public class BuildIR {
       cn= new ClassDescriptor(packageName, newClassname, true);
     }
 
-    cn.setImports(mandatoryImports);
+    cn.setImports(mandatoryImports, multiimports);
     //cn.setAsInterface();
     if (!isEmpty(pn.getChild("superIF").getTerminal())) {
       /* parse inherited interface name */
@@ -564,7 +564,7 @@ public class BuildIR {
       String newClassname = packageName + "." + pn.getChild("name").getTerminal();
       cn= new ClassDescriptor(packageName, newClassname, false);
     }
-    cn.setImports(mandatoryImports);
+    cn.setImports(mandatoryImports, multiimports);
     if (!isEmpty(pn.getChild("super").getTerminal())) {
       /* parse superclass name */
       ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
@@ -662,7 +662,7 @@ public class BuildIR {
 
   private ClassDescriptor parseInnerClassDecl(ClassDescriptor cn, ParseNode pn) {
     ClassDescriptor icn=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
-    icn.setImports(mandatoryImports);
+    icn.setImports(mandatoryImports, multiimports);
     icn.setAsInnerClass();
     icn.setSurroundingClass(cn.getSymbol());
     icn.setSurrounding(cn);
@@ -760,6 +760,7 @@ public class BuildIR {
   //This will get the mapping of a terminal class name
   //to a canonical classname (with imports/package locations in them)
   private String resolveName(String terminal) {
+    
     if(mandatoryImports.containsKey(terminal)) {
       return (String) mandatoryImports.get(terminal);
     } else {
@@ -972,7 +973,7 @@ public class BuildIR {
       TypeDescriptor td=parseTypeDescriptor(pn);
       innerCount++;
       ClassDescriptor cnnew=new ClassDescriptor(td.getSymbol()+"$"+innerCount, false);
-      cnnew.setImports(mandatoryImports);
+      cnnew.setImports(mandatoryImports, multiimports);
       cnnew.setSuper(td.getSymbol());
       parseClassBody(cnnew, pn.getChild("decl").getChild("classbody"));
       Vector args=parseArgumentList(pn);

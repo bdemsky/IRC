@@ -54,6 +54,7 @@ public class TypeUtil {
     for (int i = 0; i < state.classpath.size(); i++) {
       String path = (String) state.classpath.get(i);
       File f = new File(path, cl.replace('.', '/') + ".java");
+//      System.out.println("Looking in " + f.getAbsolutePath());
       if (f.exists()) {
         try {
           ParseNode pn = Main.readSourceFile(state, f.getCanonicalPath());
