@@ -140,6 +140,7 @@ class Foo{
 }
 
 @LATTICE("BC<BB,BB<BA,BB*")
+@METHODDEFAULT("BARMD_L<BARMD_H,THISLOC=BARMD_H")
 class Bar{
     @LOC("BA") int a;
     @LOC("BB") int b2;
