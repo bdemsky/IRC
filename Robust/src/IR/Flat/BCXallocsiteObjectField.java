@@ -45,6 +45,15 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
     }
     assert strBytes != null;
   }
+
+
+  protected Integer getIDtoGen( Alloc a, int idWhenNull ) {
+    if( a == null ) {
+      return idWhenNull;
+    }
+    return a.getUniqueAllocSiteID();
+  }
+
   
   
   public void additionalClassObjectFields(PrintWriter outclassdefs) {
@@ -56,24 +65,18 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
 
     String argsAccess = "((struct "+cdString.getSafeSymbol()+
       " **)(((char *)& "+argsVar+"->___length___)+sizeof(int)))";
+
+    Integer argsAllocID     = getIDtoGen( heapAnalysis.getCmdLineArgsAlloc(),     -109 ); 
+    Integer argAllocID      = getIDtoGen( heapAnalysis.getCmdLineArgAlloc(),      -119 ); 
+    Integer argBytesAllocID = getIDtoGen( heapAnalysis.getCmdLineArgBytesAlloc(), -129 ); 
     
-    outmethod.println(argsVar+"->allocsite = "+
-                      heapAnalysis.getCmdLineArgsAlloc().getUniqueAllocSiteID()+
-                      ";"
-                      );
+    outmethod.println(argsVar+"->allocsite = "+argsAllocID+";");
     outmethod.println("{");
     outmethod.println("  int i;" );
     outmethod.println("  for( i = 0; i < "+argsVar+"->___length___; ++i ) {");    
-    outmethod.println("    "+argsAccess+"[i]->allocsite = "+
-                      heapAnalysis.getCmdLineArgAlloc().getUniqueAllocSiteID()+
-                      ";"
-                      );
-    outmethod.println("    "+argsAccess+"[i]->"+
-                      strBytes.getSafeSymbol()+
-                      "->allocsite = "+
-                      heapAnalysis.getCmdLineArgBytesAlloc().getUniqueAllocSiteID()+
-                      ";"
-                      );
+    outmethod.println("    "+argsAccess+"[i]->allocsite = "+argAllocID+";");
+    outmethod.println("    "+argsAccess+"[i]->"+strBytes.getSafeSymbol()+
+                      "->allocsite = "+argBytesAllocID+";");
     outmethod.println("  }");
     outmethod.println("}");
     outmethod.println("");
@@ -81,25 +84,21 @@ public class BCXallocsiteObjectField implements BuildCodeExtension {
 
 
   public void additionalCodeNewObject(PrintWriter outmethod, String dstVar, FlatNew flatNew) {
-    outmethod.println(dstVar+"->allocsite = "+
-                      heapAnalysis.getAllocationSiteFromFlatNew( flatNew ).getUniqueAllocSiteID()+
-                      ";"
-                      );
+
+    Integer allocID = getIDtoGen( heapAnalysis.getAllocationSiteFromFlatNew( flatNew ), -199 ); 
+
+    outmethod.println(dstVar+"->allocsite = "+allocID+";");
   }
 
 
   public void additionalCodeNewStringLiteral(PrintWriter output, String dstVar) {
-    output.println(dstVar+"->allocsite = "+
-                   heapAnalysis.getNewStringLiteralAlloc().getUniqueAllocSiteID()+
-                   ";"
-                   );    
 
-    output.println(dstVar+"->"+
-                   strBytes.getSafeSymbol()+
-                   "->allocsite = "+
-                   heapAnalysis.getNewStringLiteralBytesAlloc().getUniqueAllocSiteID()+
-                   ";"
-                   );
+    Integer stringAllocID      = getIDtoGen( heapAnalysis.getNewStringLiteralAlloc(),      -29 ); 
+    Integer stringBytesAllocID = getIDtoGen( heapAnalysis.getNewStringLiteralBytesAlloc(), -39 ); 
+
+    output.println(dstVar+"->allocsite = "+stringAllocID+";");    
+    output.println(dstVar+"->"+strBytes.getSafeSymbol()+
+                   "->allocsite = "+stringBytesAllocID+";");
   }
 
 

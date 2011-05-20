@@ -469,6 +469,14 @@ nextdelta:
     case FKind.FlatCall:
       return processFlatCall(bblock, index, (FlatCall) node, delta, newgraph);
 
+    case FKind.FlatLiteralNode:
+      // jjenista - the heap analysis abstraction---when used to verify points-to
+      // analysis results against runtime pointers---will eventually need this to
+      // model that a flat literal node can result in a pointer to an implicitly
+      // allocated string.  For now it will pass through like Pointer used to, but
+      // the checks versus runtime pointers will fail for string literals.
+      return delta;
+
     default:
       throw new Error("Unrecognized node:"+node + " of kind " + node.kind());
     }
