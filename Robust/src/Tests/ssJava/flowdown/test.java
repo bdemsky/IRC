@@ -107,6 +107,16 @@ public class test{
 	localBar.b1++; // value can be moving among the same location
     }
 
+    public void uniqueReference(){
+	
+	@LOC("methodH") Foo f_1=new Foo();
+	f_1.bar=new Bar();
+	@LOC("methodL") Bar newBar_2;
+	newBar_2=f_1.bar;
+	f_1.bar=null; // should assign null here 
+	
+    }
+
 }
 
 

@@ -21,6 +21,7 @@ public class String {
     for(@LOC("StringDM_C") int i=0; i<str.length; i++)
       charstr[i]=str[i];
     this.value=charstr;
+    charstr=null;
     this.count=str.length;
     this.offset=0;
   }
@@ -42,6 +43,7 @@ public class String {
     }
 
     newstr.value=charstr;
+    charstr=null;
     // LOC(newstr.value)=[O,STRING_V] 
     // LOC(charstr)=[V]
     // [O,STRING_V] < [V]
@@ -53,6 +55,7 @@ public class String {
     if (o.getType()!=getType()) // values are coming from [StringDM_I] and [THISLOC]
       return false;
     @LOC("StringDM_V") String s=(String)o;
+    o=null;
     if (s.count!=count)
       return false;
     for(@LOC("StringDM_C") int i=0; i<count; i++) {

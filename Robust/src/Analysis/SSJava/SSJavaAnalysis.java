@@ -42,6 +42,7 @@ public class SSJavaAnalysis {
     parseLocationAnnotation();
     doFlowDownCheck();
     doLoopCheck();
+    doSingleReferenceCheck();
   }
 
   public void doFlowDownCheck() {
@@ -52,6 +53,11 @@ public class SSJavaAnalysis {
   public void doLoopCheck() {
     DefinitelyWrittenCheck checker = new DefinitelyWrittenCheck(state);
     checker.definitelyWrittenCheck();
+  }
+
+  public void doSingleReferenceCheck() {
+    SingleReferenceCheck checker = new SingleReferenceCheck(state);
+    checker.singleReferenceCheck();
   }
 
   private void parseLocationAnnotation() {
@@ -127,7 +133,7 @@ public class SSJavaAnalysis {
         locOrder.setGlobalLoc(globalLoc);
       } else if (orderElement.contains("*")) {
         // spin loc definition
-        locOrder.addSpinLoc(orderElement.substring(0,orderElement.length()-1));
+        locOrder.addSpinLoc(orderElement.substring(0, orderElement.length() - 1));
       } else {
         // single element
         locOrder.put(orderElement);
@@ -167,7 +173,7 @@ public class SSJavaAnalysis {
         }
       } else if (orderElement.contains("*")) {
         // spin loc definition
-        locOrder.addSpinLoc(orderElement.substring(0,orderElement.length()-1));
+        locOrder.addSpinLoc(orderElement.substring(0, orderElement.length() - 1));
       } else {
         // single element
         locOrder.put(orderElement);
