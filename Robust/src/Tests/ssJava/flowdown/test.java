@@ -1,17 +1,21 @@
 @LATTICE("testL<testM,testM<testH")
-@METHODDEFAULT("methodL<methodH,methodH<methodT,THISLOC=methodT")
+@METHODDEFAULT("methodL<methodH,methodH<methodT,THISLOC=methodT,GLOBALLOC=methodT")
 public class test{
 
     @LOC("testH") int fieldH;
     @LOC("testM") int fieldM;
     @LOC("testL") int fieldL;
     @LOC("testM") Foo fooM;
+    @LOC("testH") static int globalH;
+    @LOC("testH") static Foo globalFoo;
+    @LOC("testH") static final String finalValue="FINAL";
+
 
     public static void main (@LOC("methodH") String args[]){       
 	@LOC("methodH") test t=new test();
 	t.doit();
     }
-
+    
     public void doit(){
 	@LOC("methodH") int localH; // LOC=[local.methodH]
 	fooM=new Foo(); // LOC=[local.methodT, field.testM]
@@ -114,13 +118,32 @@ public class test{
 	@LOC("methodL") Bar newBar_2;
 	newBar_2=f_1.bar;
 	f_1.bar=null; // should assign null here 
-	
+    }
+    
+
+    @LATTICE("mL<mM,mM<mH,GLOBALLOC=mH,THISLOC=mL")
+    public void globalField(){       
+	@LOC("DELTA(mH,testH,FA)") int value=globalFoo.a; // LOC(globalFoo.a)=[mH,testH,FA]
+	globalFoo.b=value;		
+    }  
+
+    public void globalTopField(){
+	@LOC("methodH") String valueH;
+	valueH=finalValue; // LOC(finalVAlue)=[TOP,testH]
+    }
+
+    public void globalCopy(){
+	// do not allow the below case
+	// it copies something from one calss global variable 
+	// to another class global variable
+
+	//globalH=Foo.d;
     }
 
 }
 
 
-@LATTICE("FC<FB,FB<FA")
+@LATTICE("FD<FC,FC<FB,FB<FA")
 @METHODDEFAULT("fm_L<fm_M1,fm_L<fm_M2,fm_M1<fm_H,fm_M2<fm_H,THISLOC=fm_H")
 class Foo{
 	
@@ -128,6 +151,7 @@ class Foo{
     @LOC("FB") int b;
     @LOC("FC") int c;
     @LOC("FC") Bar bar;
+    @LOC("FA") static int d;
 	
     public Foo(){
     }
@@ -156,5 +180,7 @@ class Bar{
     @LOC("BB") int b2;
     @LOC("BB") int b1;
     @LOC("BC") int c;   
+    @LOC("BC") static int d;
+
 
 }

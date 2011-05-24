@@ -120,33 +120,25 @@ public class SingleReferenceCheck {
   }
 
   private void checkAssignmentNode(AssignmentNode an) {
-
-    if (an.getSrc() != null) {
-      if (an.getSrc().getType().isPtr() && (!an.getSrc().getType().isNull())
-          && !(an.getSrc() instanceof CreateObjectNode)) {
-        if (an.getSrc() instanceof CastNode) {
-          needToNullify = ((CastNode) an.getSrc()).getExpression().printNode(0);
-        } else {
-          needToNullify = an.getSrc().printNode(0);
-        }
-      }
-
-    }
+    needToNullify(an.getSrc());
   }
 
   private void checkDeclarationNode(DeclarationNode dn) {
+    needToNullify(dn.getExpression());
+  }
 
-    if (dn.getExpression() != null) {
-      if (dn.getExpression().getType().isPtr() && !(dn.getExpression() instanceof CreateObjectNode)) {
+  private void needToNullify(ExpressionNode en) {
 
-        if (dn.getExpression() instanceof CastNode) {
-          needToNullify = ((CastNode) dn.getExpression()).getExpression().printNode(0);
+    if (en != null && en.getType().isPtr() && !en.getType().isString()) {
+      if (en.kind() != Kind.CreateObjectNode && en.kind() != Kind.LiteralNode) {
+        if (en.kind() == Kind.CastNode) {
+          needToNullify = ((CastNode) en).getExpression().printNode(0);
         } else {
-          needToNullify = dn.getExpression().printNode(0);
+          needToNullify = en.printNode(0);
         }
-
       }
     }
+
   }
 
 }

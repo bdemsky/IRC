@@ -272,8 +272,8 @@ public class FlowDownCheck {
     return loc;
   }
 
-  private boolean hasOnlyLiteralValue(ExpressionNode returnExp) {
-    if (returnExp.kind() == Kind.LiteralNode) {
+  private boolean hasOnlyLiteralValue(ExpressionNode en) {
+    if (en.kind() == Kind.LiteralNode) {
       return true;
     } else {
       return false;
@@ -397,12 +397,11 @@ public class FlowDownCheck {
 
     CompositeLocation destLoc = d2loc.get(vd);
 
-    ClassDescriptor localCD = md.getClassDesc();
     if (dn.getExpression() != null) {
       CompositeLocation expressionLoc =
           checkLocationFromExpressionNode(md, nametable, dn.getExpression(),
               new CompositeLocation());
-      addTypeLocation(dn.getExpression().getType(), expressionLoc);
+      // addTypeLocation(dn.getExpression().getType(), expressionLoc);
 
       if (expressionLoc != null) {
         // checking location order
@@ -627,7 +626,8 @@ public class FlowDownCheck {
     if (min.getBaseName() != null) {
       Descriptor d = nametable.get(min.getBaseName().getSymbol());
       if (d instanceof VarDescriptor) {
-        CompositeLocation varLoc = (CompositeLocation) ((VarDescriptor) d).getType().getExtension();
+        CompositeLocation varLoc =
+            ((CompositeLocation) ((VarDescriptor) d).getType().getExtension()).clone();
         return varLoc;
       } else {
         // it is field descriptor
@@ -719,9 +719,11 @@ public class FlowDownCheck {
       // addTypeLocation(on.getRight().getType(), rightLoc);
     }
 
-//    System.out.println("checking op node=" + on.printNode(0));
-//    System.out.println("left loc=" + leftLoc + " from " + on.getLeft().getClass());
-//    System.out.println("right loc=" + rightLoc + " from " + on.getRight().getClass());
+    // System.out.println("checking op node=" + on.printNode(0));
+    // System.out.println("left loc=" + leftLoc + " from " +
+    // on.getLeft().getClass());
+    // System.out.println("right loc=" + rightLoc + " from " +
+    // on.getRight().getClass());
 
     Operation op = on.getOp();
 
@@ -783,6 +785,7 @@ public class FlowDownCheck {
 
     NameDescriptor nd = nn.getName();
     if (nd.getBase() != null) {
+
       loc = checkLocationFromExpressionNode(md, nametable, nn.getExpression(), loc);
       // addTypeLocation(nn.getExpression().getType(), loc);
     } else {
@@ -812,11 +815,30 @@ public class FlowDownCheck {
         // the type of field descriptor has a location!
         FieldDescriptor fd = (FieldDescriptor) d;
 
-        // the location of field access starts from this, followed by field
-        // location
-        MethodLattice<String> localLattice = ssjava.getMethodLattice(md);
-        Location thisLoc = new Location(md, localLattice.getThisLoc());
-        loc.addLocation(thisLoc);
+        if (fd.isStatic()) {
+          if (fd.isFinal()) {
+            // if it is 'static final', the location has TOP since no one can
+            // change its value
+            loc.addLocation(Location.createTopLocation(md));
+          } else {
+            // if 'static', the location has pre-assigned global loc
+            MethodLattice<String> localLattice = ssjava.getMethodLattice(md);
+            String globalLocId = localLattice.getGlobalLoc();
+            if (globalLocId == null) {
+              throw new Error("Global location element is not defined in the method " + md);
+            }
+            Location globalLoc = new Location(md, globalLocId);
+
+            loc.addLocation(globalLoc);
+          }
+        } else {
+          // the location of field access starts from this, followed by field
+          // location
+          MethodLattice<String> localLattice = ssjava.getMethodLattice(md);
+          Location thisLoc = new Location(md, localLattice.getThisLoc());
+          loc.addLocation(thisLoc);
+        }
+
         Location fieldLoc = (Location) fd.getType().getExtension();
         loc.addLocation(fieldLoc);
       }
@@ -855,11 +877,19 @@ public class FlowDownCheck {
         checkLocationFromExpressionNode(md, nametable, an.getDest(), new CompositeLocation());
 
     CompositeLocation srcLocation = new CompositeLocation();
+
     if (!postinc) {
+      if (hasOnlyLiteralValue(an.getSrc())) {
+        // if source is literal value, src location is TOP. so do not need to
+        // compare!
+        return destLocation;
+      }
       srcLocation = new CompositeLocation();
       srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
-//      System.out.println("an=" + an.printNode(0) + " an.getSrc()=" + an.getSrc().getClass()
+//      System.out.println(" an= " + an.printNode(0) + " an.getSrc()=" + an.getSrc().getClass()
 //          + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
+//      System.out.println("srcLocation=" + srcLocation);
+//      System.out.println("dstLocation=" + destLocation);
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation)) {
         throw new Error("The value flow from " + srcLocation + " to " + destLocation
             + " does not respect location hierarchy on the assignment " + an.printNode(0) + " at "
@@ -1060,7 +1090,7 @@ public class FlowDownCheck {
 
     public static boolean isGreaterThan(CompositeLocation loc1, CompositeLocation loc2) {
 
-//      System.out.println("isGreaterThan= " + loc1 + " " + loc2);
+      // System.out.println("isGreaterThan= " + loc1 + " " + loc2);
 
       int baseCompareResult = compareBaseLocationSet(loc1, loc2);
       if (baseCompareResult == ComparisonResult.EQUAL) {
