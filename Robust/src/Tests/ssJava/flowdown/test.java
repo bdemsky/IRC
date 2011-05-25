@@ -29,6 +29,15 @@ public class test{
 	doOwnLattice();
 	doDelta();
     }
+
+    public void methodInvoke(){
+	@LOC("methodH") Foo foo=new Foo();
+
+	// callee doesn't have any ordering constrints in-between method parameters.
+	// so the below cases are okay
+	foo.unrelatedTwoParams(fieldH,fieldL);
+	foo.unrelatedTwoParams(fieldL,fieldH);
+    }
     
     public void doit2(){
 	@LOC("methodH,testL") int localVarL;	
@@ -140,6 +149,8 @@ public class test{
 	//globalH=Foo.d;
     }
 
+    
+
 }
 
 
@@ -163,12 +174,37 @@ class Foo{
     // callee has a constraint that arg1 is higher than arg2
     public int doSomethingArgs(@LOC("fm_H")int argH,
 			       @LOC("fm_M1")int argL){	
-	argL=argH+50;
-	return argL;
+	@LOC("fm_L") int value=argL+argH+50;
+	return value;
     }
 
     public int doSomethingRtn(){
 	return a+b; // going to return LOC[local.t,field.FB]
+    }
+
+    @LATTICE("L<M,M<H1,M<H2,THISLOC=M")
+    public void unrelatedTwoParams(@LOC("H1")int param1, @LOC("H2") int param2){
+	//since H1 and H2 are not related, 
+	//callee doesn't have any ordering constraints on method paramters.
+	@LOC("L") int result=param1+param2;
+    }
+    
+    @LATTICE("M<H,X<H")
+    public int callerConstraints(@LOC("H") int param1, @LOC("M") int param2){
+
+	@LOC("X") int returnValue=100;
+	
+	if(param1>50){
+	// ERROR!!!
+	// return value only has ordering relation with param1, not with param2
+	// but caller expects that all input should have higher 
+	// ordering relation than output!
+
+	// return returnValue;
+	}
+
+	
+	return 0;
     }
 
 }

@@ -255,20 +255,28 @@ public class FlowDownCheck {
 
   private CompositeLocation checkLocationFromReturnNode(MethodDescriptor md, SymbolTable nametable,
       ReturnNode rn) {
-    ClassDescriptor cd = md.getClassDesc();
-    CompositeLocation loc = new CompositeLocation();
 
     ExpressionNode returnExp = rn.getReturnExpression();
 
-    if (rn == null || hasOnlyLiteralValue(returnExp)) {
-      // when it returns literal value, return node has "bottom" location no
-      // matter what it is going to return.
-      loc.addLocation(Location.createBottomLocation(md));
-    } else {
-      // by default, return node has "bottom" location
-      // loc = checkLocationFromExpressionNode(md, nametable, returnExp, loc);
-      loc.addLocation(Location.createBottomLocation(md));
+    CompositeLocation expLoc =
+        checkLocationFromExpressionNode(md, nametable, returnExp, new CompositeLocation());
+
+    // callee should have a relative ordering in-between parameters and return
+    // value, which is required by caller's constraint
+    for (int i = 0; i < md.numParameters(); i++) {
+      Descriptor calleevd = md.getParameter(i);
+      CompositeLocation calleeParamLoc = d2loc.get(calleevd);
+
+      // here, parameter(input value) should be higher than result(output)
+      if ((!expLoc.get(0).isTop()) && !CompositeLattice.isGreaterThan(calleeParamLoc, expLoc)) {
+        throw new Error("Callee " + md + " doesn't have the ordering relation between parameter '"
+            + calleevd + "' and its return value '" + returnExp.printNode(0) + "'.");
+      }
     }
+
+    // by default, return node has "bottom" location
+    CompositeLocation loc = new CompositeLocation();
+    loc.addLocation(Location.createBottomLocation(md));
     return loc;
   }
 
@@ -358,28 +366,31 @@ public class FlowDownCheck {
     glbInputSet.add(condLoc);
 
     CompositeLocation locTrueBlock = checkLocationFromBlockNode(md, nametable, isn.getTrueBlock());
-    glbInputSet.add(locTrueBlock);
-
-    // here, the location of conditional block should be higher than the
-    // location of true/false blocks
-
-    if (!CompositeLattice.isGreaterThan(condLoc, locTrueBlock)) {
-      // error
-      throw new Error(
-          "The location of the if-condition statement is lower than the conditional block at "
-              + localCD.getSourceFileName() + ":" + isn.getCondition().getNumLine());
+    if (locTrueBlock != null) {
+      glbInputSet.add(locTrueBlock);
+      // here, the location of conditional block should be higher than the
+      // location of true/false blocks
+      if (locTrueBlock != null && !CompositeLattice.isGreaterThan(condLoc, locTrueBlock)) {
+        // error
+        throw new Error(
+            "The location of the if-condition statement is lower than the conditional block at "
+                + localCD.getSourceFileName() + ":" + isn.getCondition().getNumLine());
+      }
     }
 
     if (isn.getFalseBlock() != null) {
       CompositeLocation locFalseBlock =
           checkLocationFromBlockNode(md, nametable, isn.getFalseBlock());
-      glbInputSet.add(locFalseBlock);
 
-      if (!CompositeLattice.isGreaterThan(condLoc, locFalseBlock)) {
-        // error
-        throw new Error(
-            "The location of the if-condition statement is lower than the conditional block at "
-                + localCD.getSourceFileName() + ":" + isn.getCondition().getNumLine());
+      if (locFalseBlock != null) {
+        glbInputSet.add(locFalseBlock);
+
+        if (!CompositeLattice.isGreaterThan(condLoc, locFalseBlock)) {
+          // error
+          throw new Error(
+              "The location of the if-condition statement is lower than the conditional block at "
+                  + localCD.getSourceFileName() + ":" + isn.getCondition().getNumLine());
+        }
       }
 
     }
@@ -559,6 +570,33 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromMethodInvokeNode(MethodDescriptor md,
       SymbolTable nametable, MethodInvokeNode min, CompositeLocation loc) {
 
+    checkCalleeConstraints(md, nametable, min);
+
+    // all we need to care about is that
+    // method output(return value) should be lower than input values(method
+    // parameters)
+    Set<CompositeLocation> inputGLBSet = new HashSet<CompositeLocation>();
+    for (int i = 0; i < min.numArgs(); i++) {
+      ExpressionNode en = min.getArg(i);
+      CompositeLocation callerArg =
+          checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation());
+      inputGLBSet.add(callerArg);
+    }
+
+    if (inputGLBSet.size() > 0) {
+      return CompositeLattice.calculateGLB(inputGLBSet);
+    } else {
+      // if there are no arguments, just return TOP location
+      CompositeLocation compLoc = new CompositeLocation();
+      compLoc.addLocation(Location.createTopLocation(md));
+      return compLoc;
+    }
+
+  }
+
+  private void checkCalleeConstraints(MethodDescriptor md, SymbolTable nametable,
+      MethodInvokeNode min) {
+
     if (min.numArgs() > 1) {
       // caller needs to guarantee that it passes arguments in regarding to
       // callee's hierarchy
@@ -604,54 +642,9 @@ public class FlowDownCheck {
 
     }
 
-    // all arguments should be higher than the location of return value
-    Set<CompositeLocation> inputGLBSet = new HashSet<CompositeLocation>();
-    for (int i = 0; i < min.numArgs(); i++) {
-      ExpressionNode en = min.getArg(i);
-      CompositeLocation callerArg =
-          checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation());
-      inputGLBSet.add(callerArg);
-    }
-
-    // if (inputGLBSet.size() > 0) {
-    // return CompositeLattice.calculateGLB(inputGLBSet);
-    // } else {
-    // // if there are no arguments,
-    // // method invocation from the same class
-    // CompositeLocation compLoc = new CompositeLocation();
-    // return compLoc;
-    // }
-
-    Location baseLoc = null;
-    if (min.getBaseName() != null) {
-      Descriptor d = nametable.get(min.getBaseName().getSymbol());
-      if (d instanceof VarDescriptor) {
-        CompositeLocation varLoc =
-            ((CompositeLocation) ((VarDescriptor) d).getType().getExtension()).clone();
-        return varLoc;
-      } else {
-        // it is field descriptor
-        assert (d instanceof FieldDescriptor);
-        Location fieldLoc = (Location) min.getExpression().getType().getExtension();
-        CompositeLocation compLoc = new CompositeLocation();
-        MethodLattice<String> methodLattice = ssjava.getMethodLattice(md);
-        Location thisLoc = new Location(md, methodLattice.getThisLoc());
-        compLoc.addLocation(thisLoc);
-        compLoc.addLocation(fieldLoc);
-        return compLoc;
-      }
-    } else {
-      // method invocation starting from this
-      MethodLattice<String> methodLattice = ssjava.getMethodLattice(md);
-      String thisLocId = methodLattice.getThisLoc();
-      baseLoc = new Location(md, thisLocId);
-      CompositeLocation compLoc = new CompositeLocation();
-      compLoc.addLocation(baseLoc);
-      return compLoc;
-    }
-
   }
 
+ 
   private CompositeLocation checkLocationFromArrayAccessNode(MethodDescriptor md,
       SymbolTable nametable, ArrayAccessNode aan) {
 
@@ -719,11 +712,9 @@ public class FlowDownCheck {
       // addTypeLocation(on.getRight().getType(), rightLoc);
     }
 
-    // System.out.println("checking op node=" + on.printNode(0));
-    // System.out.println("left loc=" + leftLoc + " from " +
-    // on.getLeft().getClass());
-    // System.out.println("right loc=" + rightLoc + " from " +
-    // on.getRight().getClass());
+//    System.out.println("checking op node=" + on.printNode(0));
+//    System.out.println("left loc=" + leftLoc + " from " + on.getLeft().getClass());
+//    System.out.println("right loc=" + rightLoc + " from " + on.getRight().getClass());
 
     Operation op = on.getOp();
 
