@@ -88,8 +88,6 @@ int sendRemoteReq = 0;
 int getResponse = 0;
 
 #ifdef RECOVERY
-
-
 #define INCREASE_EPOCH(x,y,z) ((x/y+1)*y + z)
 /***********************************
  * Global variables for Duplication
@@ -122,8 +120,6 @@ unsigned int currentBackupMachine;
   int numRecovery = 0;
   recovery_stat_t* recoverStat;
 #endif
-
-
 #endif
 
 void printhex(unsigned char *, int);
@@ -2757,7 +2753,7 @@ void *transPrefetch(void *t) {
       /* Send  Prefetch Request */
       prefetchpile_t *ptr = pilehead;
       while(ptr != NULL) {
-        int sd = getSock2(transPrefetchSockPool, ptr->mid);
+        int sd = getSockWithLock(transPrefetchSockPool, ptr->mid);
         sendPrefetchReq(ptr, sd);
         ptr = ptr->next;
       }

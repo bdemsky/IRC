@@ -47,7 +47,11 @@ void *objstrAlloc(objstr_t **osptr, unsigned int size) {
 
   {
     unsigned int newsize=size>DEFAULT_OBJ_STORE_SIZE?size:DEFAULT_OBJ_STORE_SIZE;
-    objstr_t *os=(objstr_t *)calloc(1,(sizeof(objstr_t) + newsize));
+    objstr_t *os;
+    if((os =(objstr_t *)calloc(1,(sizeof(objstr_t) + newsize))) == NULL) {
+      printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
+      return NULL;
+    }
     void *ptr=&os[1];
     os->next=*osptr;
     (*osptr)=os;
