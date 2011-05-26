@@ -71,7 +71,14 @@ int CALL01(___FileInputStream______nativeOpen_____AR_B, struct ArrayObject * ___
 #else
   int length=VAR(___filename___)->___length___;
   char* filename= (((char *)&VAR(___filename___)->___length___)+sizeof(int));
-  int fd=open(filename, O_RDONLY, 0);
+  int fd;
+  if ((fd=open(filename, O_RDONLY, 0)) < 0) {
+    printf(">>>\n");
+    perror("open failed");
+    printf("filename is %s\n", filename);
+    system("pwd");
+    printf("<<<\n");
+  }
   return fd;
 #endif
 }
@@ -98,7 +105,9 @@ int CALL23(___FileInputStream______nativeRead____I__AR_B_I, int fd, int numBytes
   if (numBytes<toread)
     toread=numBytes;
 
-  status=read(fd, string, toread);
+  if ((status=read(fd, string, toread)) < 0) {
+    perror("");
+  }
   return status;
 #endif
 }
