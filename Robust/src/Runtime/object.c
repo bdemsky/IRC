@@ -37,6 +37,7 @@ int CALL01(___Object______getType____, struct ___Object___ * ___this___) {
 #ifdef THREADS
 #ifdef D___Object______MonitorEnter____
 void CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
+#ifndef NOLOCK
 #ifdef MAC
   struct lockvector *lptr=(struct lockvector *)pthread_getspecific(threadlocks);
   int self=(int)(long)pthread_getspecific(macthreadid);
@@ -65,6 +66,7 @@ void CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
       }
     }
   }
+#endif
 }
 #endif
 
@@ -117,6 +119,7 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
 
 #ifdef D___Object______MonitorExit____
 void CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
+#ifndef NOLOCK
 #ifdef MAC
   struct lockvector *lptr=(struct lockvector *)pthread_getspecific(threadlocks);
 #else
@@ -128,6 +131,7 @@ void CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
     MBARRIER();
     lpair->object->tid=0;
   }
+#endif
 }
 #endif
 #endif
