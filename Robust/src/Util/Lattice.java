@@ -220,4 +220,31 @@ public class Lattice<T> {
     return lowerSet;
   }
 
+  public Set<Pair<T, T>> getOrderingPairSet() {
+    // return the set of pairs in the lattice
+
+    Set<Pair<T, T>> set = new HashSet<Pair<T, T>>();
+
+    Set<T> visited = new HashSet<T>();
+    Set<T> needtovisit = new HashSet<T>();
+    needtovisit.add(top);
+
+    while (!needtovisit.isEmpty()) {
+      T key = needtovisit.iterator().next();
+      Set<T> lowerSet = table.get(key);
+      if(lowerSet!=null){
+        for (Iterator iterator = lowerSet.iterator(); iterator.hasNext();) {
+          T lowerItem = (T) iterator.next();
+          set.add(new Pair(key, lowerItem));
+          if (!visited.contains(key)) {
+            needtovisit.add(lowerItem);
+          }
+        }
+      }
+      visited.add(key);
+      needtovisit.remove(key);
+    }
+    return set;
+  }
+
 }

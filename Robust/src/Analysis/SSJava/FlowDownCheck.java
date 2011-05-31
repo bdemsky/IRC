@@ -41,6 +41,7 @@ import IR.Tree.ReturnNode;
 import IR.Tree.SubBlockNode;
 import IR.Tree.TertiaryNode;
 import IR.Tree.TreeNode;
+import Util.Pair;
 
 public class FlowDownCheck {
 
@@ -97,6 +98,13 @@ public class FlowDownCheck {
       toanalyze.remove(cd);
 
       if (!cd.isInterface()) {
+
+        ClassDescriptor superDesc = cd.getSuperDesc();
+        if (superDesc != null && (!superDesc.isInterface())
+            && (!superDesc.getSymbol().equals("Object"))) {
+          checkOrderingInheritance(superDesc, cd);
+        }
+
         checkDeclarationInClass(cd);
         for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
           MethodDescriptor md = (MethodDescriptor) method_it.next();
@@ -128,6 +136,28 @@ public class FlowDownCheck {
           System.out.println("Error in " + md);
           throw e;
         }
+      }
+    }
+
+  }
+
+  private void checkOrderingInheritance(ClassDescriptor superCd, ClassDescriptor cd) {
+    // here, we're going to check that sub class keeps same relative orderings
+    // in respect to super class
+
+    SSJavaLattice<String> superLattice = ssjava.getClassLattice(superCd);
+    SSJavaLattice<String> subLattice = ssjava.getClassLattice(cd);
+
+    Set<Pair<String, String>> superPairSet = superLattice.getOrderingPairSet();
+    Set<Pair<String, String>> subPairSet = subLattice.getOrderingPairSet();
+
+    for (Iterator iterator = superPairSet.iterator(); iterator.hasNext();) {
+      Pair<String, String> pair = (Pair<String, String>) iterator.next();
+
+      if (!subPairSet.contains(pair)) {
+        throw new Error("Subclass '" + cd + "' does not have the relative ordering '"
+            + pair.getSecond() + " < " + pair.getFirst() + "' that is defined by its superclass '"
+            + superCd + "'.");
       }
     }
 
@@ -644,7 +674,6 @@ public class FlowDownCheck {
 
   }
 
- 
   private CompositeLocation checkLocationFromArrayAccessNode(MethodDescriptor md,
       SymbolTable nametable, ArrayAccessNode aan) {
 
@@ -712,9 +741,11 @@ public class FlowDownCheck {
       // addTypeLocation(on.getRight().getType(), rightLoc);
     }
 
-//    System.out.println("checking op node=" + on.printNode(0));
-//    System.out.println("left loc=" + leftLoc + " from " + on.getLeft().getClass());
-//    System.out.println("right loc=" + rightLoc + " from " + on.getRight().getClass());
+    // System.out.println("checking op node=" + on.printNode(0));
+    // System.out.println("left loc=" + leftLoc + " from " +
+    // on.getLeft().getClass());
+    // System.out.println("right loc=" + rightLoc + " from " +
+    // on.getRight().getClass());
 
     Operation op = on.getOp();
 
@@ -877,10 +908,11 @@ public class FlowDownCheck {
       }
       srcLocation = new CompositeLocation();
       srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
-//      System.out.println(" an= " + an.printNode(0) + " an.getSrc()=" + an.getSrc().getClass()
-//          + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
-//      System.out.println("srcLocation=" + srcLocation);
-//      System.out.println("dstLocation=" + destLocation);
+      // System.out.println(" an= " + an.printNode(0) + " an.getSrc()=" +
+      // an.getSrc().getClass()
+      // + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
+      // System.out.println("srcLocation=" + srcLocation);
+      // System.out.println("dstLocation=" + destLocation);
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation)) {
         throw new Error("The value flow from " + srcLocation + " to " + destLocation
             + " does not respect location hierarchy on the assignment " + an.printNode(0) + " at "
