@@ -41,7 +41,14 @@ public class FlatIRGraph {
       for(Iterator it_methods=cd.getMethods(); it_methods.hasNext(); ) {
         MethodDescriptor md = (MethodDescriptor)it_methods.next();
         FlatMethod fm = state.getMethodFlat(md);
-        writeFlatIRGraph(fm,cd.getSymbol()+"."+md.getSymbol());
+
+        // make sure the graph name reflects the method signature so
+        // overloaded methods don't clobber one another
+        String graphName = cd.getSymbol()+"."+md.getSymbol();        
+        for (int i = 0; i < fm.numParameters(); ++i) {
+          graphName += fm.getParameter(i).getSymbol();
+        }
+        writeFlatIRGraph(fm, graphName);
       }
     }
   }
@@ -58,7 +65,7 @@ public class FlatIRGraph {
     // take symbols out of graphname that cause dot to fail
     graphname = graphname.replaceAll("[\\W]", "");
 
-    flatbw=new BufferedWriter(new FileWriter(graphname+"_flatIRGraph.dot") );
+    flatbw=new BufferedWriter(new FileWriter("FLATIR_"+graphname+".dot") );
     flatbw.write("digraph "+graphname+" {\n");
 
     visited=new HashSet<FlatNode>();
