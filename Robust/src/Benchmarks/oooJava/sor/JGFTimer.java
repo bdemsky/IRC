@@ -17,7 +17,7 @@
  *                         All rights reserved.                            *
  *                                                                         *
  **************************************************************************/
-import java.util.*;
+//import java.util.*;
 
 public class JGFTimer {
 
