@@ -677,10 +677,24 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
       output.println( buildCode.strObjType+"* objOneHop;" );
       
       if( f != null ) {
-        output.println( "objOneHop = ("+buildCode.strObjType+"*) "+
-                        buildCode.generateTemp( context, x )+
-                        "->"+f.getSafeSymbol()+";");
+        if( f.isStatic() ) {
+
+          // jjenista - DON'T DEAL WITH THIS RIGHT NOW
+          //ClassDescriptor cdX = ;
+          //output.println( "objOneHop = ("+buildCode.strObjType+"*) "+
+          //                
+          //                "->"+f.getSafeSymbol()+";");          
+          output.println( "}" );
+          output.println( "}" );
+          return;
+
+        } else {
+          output.println( "objOneHop = ("+buildCode.strObjType+"*) "+
+                          buildCode.generateTemp( context, x )+
+                          "->"+f.getSafeSymbol()+";");
+        }
       } else {
+        // element access
         output.println( "objOneHop = ("+buildCode.strObjType+"*) "+
                         "((struct "+x.getType().dereference().getSafeSymbol()+"**)"+
                         "(((void*) &("+buildCode.generateTemp( context, x )+"->___length___))+sizeof(int)))"+
