@@ -18,6 +18,8 @@ extern unsigned int gcmem_mixed_usedmem;
 volatile bool gcflag;
 gc_status_t gc_status_info;
 
+unsigned long long gc_output_cache_policy_time=0;
+
 #ifdef GC_DEBUG
 // dump whole mem in blocks
 void dumpSMem() {
@@ -182,6 +184,7 @@ void initGC() {
   gcforwardobjtbl = allocateMGCHash(20, 3);
 
   GCPROFILE_INIT();
+  gc_output_cache_policy_time=0;
 } 
 
 bool gc_checkAllCoreStatus() {
@@ -786,8 +789,6 @@ void master_updaterefs(struct garbagelist * stackptr) {
   GC_PRINTF("Start flush phase \n");
   // flush phase
   flush(stackptr);
-  // now the master core need to decide the new cache strategy
-  CACHEADAPT_MASTER();
   GC_CHECK_ALL_CORE_STATUS(FLUSHPHASE==gc_status_info.gcphase);
   GC_PRINTF("Finish flush phase \n");
 }
@@ -804,6 +805,9 @@ void master_finish() {
   bamboo_smem_zero_top = NULL;
   
   GCPROFILE_END();
+  unsigned long long tmpt = BAMBOO_GET_EXE_TIME();
+  CACHEADAPT_OUTPUT_CACHE_POLICY();
+  gc_output_cache_policy_time += (BAMBOO_GET_EXE_TIME()-tmpt);
   gcflag = false;
   GC_SEND_MSG_1_TO_CLIENT(GCFINISH);
   
@@ -833,7 +837,9 @@ void gc_master(struct garbagelist * stackptr) {
   GC_PRINTF("Check core status \n");
   GC_CHECK_ALL_CORE_STATUS(true);
   GCPROFILE_ITEM();
+  unsigned long long tmpt = BAMBOO_GET_EXE_TIME();
   CACHEADAPT_OUTPUT_CACHE_SAMPLING();
+  gc_output_cache_policy_time += (BAMBOO_GET_EXE_TIME()-tmpt);
 
   // do mark phase
   master_mark(stackptr);

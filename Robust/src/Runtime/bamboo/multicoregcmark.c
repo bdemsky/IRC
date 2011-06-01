@@ -53,15 +53,25 @@ INLINE bool isLarge(void * ptr, int * ttype, unsigned int * tsize) {
   // ptr is a start of a block  OR it acrosses the boundary of current block
   return (((((unsigned int)ptr-gcbaseva)%(bound))==0)||
 	  ((bound-(((unsigned int)ptr-gcbaseva)%bound)) < (*tsize)));
-} 
+}
 
 INLINE unsigned int hostcore(void * ptr) {
   // check the host core of ptr
   unsigned int host = 0;
-  RESIDECORE(ptr, &host);
+  if(1 == (NUMCORES4GC)) { 
+    host = 0; 
+  } else { 
+    unsigned int b;
+    unsigned int t = (unsigned int)ptr - (unsigned int)gcbaseva; 
+    if(t < (BAMBOO_LARGE_SMEM_BOUND)) { 
+      b = t / (BAMBOO_SMEM_SIZE_L); 
+    } else { 
+      b = NUMCORES4GC+((t-(BAMBOO_LARGE_SMEM_BOUND))/(BAMBOO_SMEM_SIZE)); 
+    } 
+    host = gc_block2core[(b%(NUMCORES4GC*2))];
+  }
   return host;
-} 
-
+}
 //push the null check into the mark macro
 //#define MARKOBJ(objptr, ii) {void * marktmpptr=objptr; if (marktmpptr!=NULL) markObj(marktmpptr, __LINE__, ii);}
 

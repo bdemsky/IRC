@@ -17,10 +17,10 @@ typedef union
   struct
   {
     // policy type
-    unsigned int cache_mode   : 2;
-	// Reserved.
-    unsigned int __reserved_0 : 6;
-	// Location Override Target Y
+    unsigned int cache_mode   : 3;
+    // Reserved.
+    unsigned int __reserved_0 : 5;
+    // Location Override Target Y
     unsigned int lotar_y      : 4;
     // Reserved.
     unsigned int __reserved_1 : 4;
@@ -31,10 +31,10 @@ typedef union
   };
 } bamboo_cache_policy_t;
 
-#define BAMBOO_CACHE_MODE_LOCAL 0
-#define BAMBOO_CACHE_MODE_HASH 1
-#define BAMBOO_CACHE_MODE_NONE 2
-#define BAMBOO_CACHE_MODE_COORDS 3
+#define BAMBOO_CACHE_MODE_LOCAL 1
+#define BAMBOO_CACHE_MODE_HASH 2
+#define BAMBOO_CACHE_MODE_NONE 3
+#define BAMBOO_CACHE_MODE_COORDS 4
 
 typedef struct gc_cache_revise_info {
   unsigned int orig_page_start_va;

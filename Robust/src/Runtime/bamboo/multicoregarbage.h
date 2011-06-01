@@ -35,9 +35,10 @@ typedef enum {
   MAPPHASE,                // 0x4
   FLUSHPHASE,              // 0x5
 #ifdef GC_CACHE_ADAPT
-  PREFINISHPHASE,          // 0x6
+  CACHEPOLICYPHASE,        // 0x6
+  PREFINISHPHASE,          // 0x7
 #endif 
-  FINISHPHASE              // 0x6/0x7
+  FINISHPHASE              // 0x6/0x8
 } GCPHASETYPE;
 
 typedef struct gc_status {
@@ -156,6 +157,13 @@ unsigned int size_cachepolicytbl;
       (*((unsigned int*)c)) = gc_block2core[(b%(NUMCORES4GC*2))]; \
     } \
   }
+
+INLINE static unsigned int hostcore(void * ptr) {
+  // check the host core of ptr
+  unsigned int host = 0;
+  RESIDECORE(ptr, &host);
+  return host;
+}
 
 // NOTE: n starts from 0
 // mapping of heaptop (how many bytes there are in the local heap) to

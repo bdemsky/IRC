@@ -175,6 +175,7 @@ INLINE void flushPtrsInObj(void * ptr) {
 }
 
 void flush(struct garbagelist * stackptr) {
+  //unsigned long long tmpt = BAMBOO_GET_EXE_TIME(); // TODO
   BAMBOO_CACHE_MF();
 
   flushRuntimeObj(stackptr);
@@ -212,6 +213,8 @@ void flush(struct garbagelist * stackptr) {
   } else {
     send_msg_2(STARTUPCORE,GCFINISHFLUSH,BAMBOO_NUM_OF_CORE);
   }
+
+  //tprintf("flush: %lld \n", BAMBOO_GET_EXE_TIME()-tmpt); // TODO
 } 
 
 #endif // MULTICORE_GC

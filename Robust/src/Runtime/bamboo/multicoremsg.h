@@ -192,8 +192,10 @@ typedef enum {
   GCPROFILES,            // 0xF3
 #endif // GC_PROFILE
 #ifdef GC_CACHE_ADAPT
-  GCSTARTPREF,           // 0xF4
-  GCFINISHPREF,          // 0xF5
+  GCSTARTCACHEPOLICY,    // 0xF4
+  GCFINISHCACHEPOLICY,   // 0xF5
+  GCSTARTPREF,           // 0xF6
+  GCFINISHPREF,          // 0xF7
 #endif // GC_CACHE_ADAPT
 #endif // MULTICORE_GC
   MSGEND

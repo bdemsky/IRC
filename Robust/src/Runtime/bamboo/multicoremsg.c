@@ -47,7 +47,9 @@ int msgsizearray[] = {
   4, //GCPROFILES,            // 0xF3
 #endif // GC_PROFILE
 #ifdef GC_CACHE_ADAPT
-  1, //GCSTARTPREF,           // 0xF5
+  1, //GCSTARTCACHEPOLICY     // 0xF4
+  2, //GCFINISHCACHEPOLICY    // 0xF5
+  1, //GCSTARTPREF,           // 0xF6
   2, //GCFINISHPREF,          // 0xF7
 #endif // GC_CACHE_ADAPT
 #endif // MULTICORE_GC
@@ -661,6 +663,21 @@ INLINE void processmsg_gcprofiles_I() {
 #endif // GC_PROFILE
 
 #ifdef GC_CACHE_ADAPT
+INLINE void processmsg_gcstartcachepolicy_I() {
+  gc_status_info.gcphase = CACHEPOLICYPHASE;
+}
+
+INLINE void processmsg_gcfinishcachepolicy_I() {
+  int data1 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
+
+  // all cores should do flush
+  if(data1 < NUMCORESACTIVE) {
+    gccorestatus[data1] = 0;
+  }
+}
+
 INLINE void processmsg_gcstartpref_I() {
   gc_status_info.gcphase = PREFINISHPHASE;
 }
@@ -944,6 +961,18 @@ processmsg:
 #endif // GC_PROFILE
 
 #ifdef GC_CACHE_ADAPT
+    case GCSTARTCACHEPOLICY: {
+      // received a gcstartcachepolicy msg
+      processmsg_gcstartcachepolicy_I();
+      break;
+    }
+
+    case GCFINISHCACHEPOLICY: {
+      // received a gcfinishcachepolicy msg
+      processmsg_gcfinishcachepolicy_I();
+      break;
+    }
+
     case GCSTARTPREF: {
       // received a gcstartpref msg
       processmsg_gcstartpref_I();

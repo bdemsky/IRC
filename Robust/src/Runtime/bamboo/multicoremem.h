@@ -67,13 +67,11 @@
 
 #else // GC_DEBUG
 #ifdef GC_LARGESHAREDHEAP
-#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+2)))
-#elif defined GC_LARGESHAREDHEAP2
-#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+2)))
+#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+5)))
 #elif defined MGC
 #define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*72)) // 72M per core
 #else
-#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+3))) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
+#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+2))) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
 #endif
 #ifdef GC_LARGEPAGESIZE
 #define BAMBOO_PAGE_SIZE ((unsigned int)(4 * 1024 * 1024))  // (4096)
