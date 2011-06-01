@@ -40,21 +40,21 @@ public class test{
     }
     
     public void doit2(){
-	@LOC("methodH,testL") int localVarL;	
+	@LOC("methodH,test.testL") int localVarL;	
 	// value flows from the field [local.methodH,field.testH]
 	// to the local variable [local.methodL]
 	localVarL=fieldH;
     }
 
     public void doit3(){
-	@LOC("methodT,testL")int localVar=fooM.a+fooM.b;
+	@LOC("methodT,test.testL")int localVar=fooM.a+fooM.b;
 	// GLB(fooM.a,fooM.b)=LOC[methodT,testM,FB]
 	// LOC[lovalVar]=[methodT,testL] < GLB(fooM.a,fooM.b)
     }
 
     // creating composite location by object references
     public void doit4(){
-	@LOC("methodT,testM,FC,BB") int localVar=fooM.bar.a; 
+	@LOC("methodT,test.testM,Foo.FC,Bar.BB") int localVar=fooM.bar.a; 
 	//LOC(fooM.bar.a)=[methodT,testM,FC,BA]
 	//localVar can flow into lower location of fooM.bar.a	
 	fooM.bar.c=localVar; //[methodT,testM,FC,BB] < [methodT,testM,FC,BA]
@@ -71,10 +71,10 @@ public class test{
       
     @LATTICE("mL<mH,THISLOC=mH")
     public void doDelta(){
-	@LOC("DELTA(mH,testH)") int varDelta;
+	@LOC("DELTA(mH,test.testH)") int varDelta;
 	// LOC(varDelta) is slightly lower than [mH, testH]
 
-	@LOC("DELTA(DELTA(mH,testH))") int varDeltax2;
+	@LOC("DELTA(DELTA(mH,test.testH))") int varDeltax2;
 	// applying double delta to [mH,testH]
 	
 	varDelta=fieldH; // [mH,testH] -> DELTA[mh,testH]
@@ -132,7 +132,7 @@ public class test{
 
     @LATTICE("mL<mM,mM<mH,GLOBALLOC=mH,THISLOC=mL")
     public void globalField(){       
-	@LOC("DELTA(mH,testH,FA)") int value=globalFoo.a; // LOC(globalFoo.a)=[mH,testH,FA]
+	@LOC("DELTA(mH,test.testH,Foo.FA)") int value=globalFoo.a; // LOC(globalFoo.a)=[mH,testH,FA]
 	globalFoo.b=value;		
     }  
 
@@ -217,6 +217,5 @@ class Bar{
     @LOC("BB") int b1;
     @LOC("BC") int c;   
     @LOC("BC") static int d;
-
-
 }
+

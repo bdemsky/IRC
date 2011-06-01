@@ -1,7 +1,5 @@
 package Analysis.SSJava;
 
-import Util.Lattice;
-
 public class MethodLattice<T> extends SSJavaLattice<T> {
 
   private T thisLoc;

@@ -988,6 +988,24 @@ public class FlowDownCheck {
     return deltaLoc;
   }
 
+  private Location parseFieldLocDeclaraton(String decl) {
+
+    int idx = decl.indexOf(".");
+    String className = decl.substring(0, idx);
+    String fieldName = decl.substring(idx + 1);
+
+    Descriptor d = state.getClassSymbolTable().get(className);
+
+    assert (d instanceof ClassDescriptor);
+    SSJavaLattice<String> lattice = ssjava.getClassLattice((ClassDescriptor) d);
+    if (!lattice.containsKey(fieldName)) {
+      throw new Error("The location " + fieldName + " is not defined in the field lattice of '"
+          + className + "'.");
+    }
+
+    return new Location(d, fieldName);
+  }
+
   private CompositeLocation parseLocationDeclaration(MethodDescriptor md, TreeNode n, String locDec) {
 
     CompositeLocation compLoc = new CompositeLocation();
@@ -1017,16 +1035,18 @@ public class FlowDownCheck {
 
     for (int i = 1; i < locIdList.size(); i++) {
       String locName = locIdList.get(i);
-      ClassDescriptor cd = fieldLocName2cd.get(locName);
 
-      SSJavaLattice<String> fieldLattice = CompositeLattice.getLatticeByDescriptor(cd);
-
-      if (fieldLattice == null || (!fieldLattice.containsKey(locName))) {
-        throw new Error("Location " + locName + " is not defined in the field lattice at "
-            + cd.getSourceFileName() + ".");
-      }
-
-      Location fieldLoc = new Location(cd, locName);
+      Location fieldLoc = parseFieldLocDeclaraton(locName);
+      // ClassDescriptor cd = fieldLocName2cd.get(locName);
+      // SSJavaLattice<String> fieldLattice =
+      // CompositeLattice.getLatticeByDescriptor(cd);
+      //
+      // if (fieldLattice == null || (!fieldLattice.containsKey(locName))) {
+      // throw new Error("Location " + locName +
+      // " is not defined in the field lattice at "
+      // + cd.getSourceFileName() + ".");
+      // }
+      // Location fieldLoc = new Location(cd, locName);
       compLoc.addLocation(fieldLoc);
     }
 
