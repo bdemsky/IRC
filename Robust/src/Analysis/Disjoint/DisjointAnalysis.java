@@ -521,6 +521,17 @@ public class DisjointAnalysis implements HeapAnalysis {
   protected Hashtable<Descriptor, ReachGraph>
   mapDescriptorToInitialContext;
 
+  // mapping of current partial results for a given node.  Note that
+  // to reanalyze a method we discard all partial results because a
+  // null reach graph indicates the node needs to be visited on the
+  // way to the fixed point.
+  // The reason for a persistent mapping is so after the analysis we
+  // can ask for the graph of any node at the fixed point, but this
+  // option is only enabled with a compiler flag.
+  protected Hashtable<FlatNode, ReachGraph> mapFlatNodeToReachGraphPersist;
+  protected Hashtable<FlatNode, ReachGraph> mapFlatNodeToReachGraph;
+
+
   // make the result for back edges analysis-wide STRICTLY
   // MONOTONIC as well, but notice we use FlatNode as the
   // key for this map: in case we want to consider other
@@ -672,6 +683,9 @@ public class DisjointAnalysis implements HeapAnalysis {
 
     mapDescriptorToInitialContext =
       new Hashtable<Descriptor, ReachGraph>();
+
+    mapFlatNodeToReachGraphPersist =
+      new Hashtable<FlatNode, ReachGraph>();
 
     mapBackEdgeToMonotone =
       new Hashtable<FlatNode, ReachGraph>();
@@ -877,12 +891,16 @@ public class DisjointAnalysis implements HeapAnalysis {
         writeFinalGraphs();
       }
 
-      if( state.DISJOINTWRITEIHMS && !suppressOutput ) {
+      if( state.DISJOINTWRITEIHMS ) {
         writeFinalIHMs();
       }
 
-      if( state.DISJOINTWRITEINITCONTEXTS && !suppressOutput ) {
+      if( state.DISJOINTWRITEINITCONTEXTS ) {
         writeInitialContexts();
+      }
+
+      if( state.DISJOINT_WRITE_ALL_NODE_FINAL_GRAPHS ) {
+        writeFinalGraphsForEveryNode();
       }
 
       if( state.DISJOINTALIASFILE != null && !suppressOutput ) {
@@ -1111,8 +1129,8 @@ public class DisjointAnalysis implements HeapAnalysis {
       flatNodesToVisitQ.add(fm);
     }
 
-    // mapping of current partial results
-    Hashtable<FlatNode, ReachGraph> mapFlatNodeToReachGraph =
+    // start a new mapping of partial results
+    mapFlatNodeToReachGraph =
       new Hashtable<FlatNode, ReachGraph>();
 
     // the set of return nodes partial results that will be combined as
@@ -1197,6 +1215,12 @@ public class DisjointAnalysis implements HeapAnalysis {
       if( !rg.equals(rgPrev) ) {
         mapFlatNodeToReachGraph.put(fn, rg);
 
+        // we don't necessarily want to keep the reach graph for every
+        // node in the program unless a client or the user wants it
+        if( state.DISJOINT_WRITE_ALL_NODE_FINAL_GRAPHS ) {
+          mapFlatNodeToReachGraphPersist.put(fn, rg);
+        }
+
         for( int i = 0; i < pm.numNext(fn); i++ ) {
           FlatNode nn = pm.getNext(fn, i);
 
@@ -1214,6 +1238,10 @@ public class DisjointAnalysis implements HeapAnalysis {
     // states after the flat method returns
     ReachGraph completeGraph = new ReachGraph();
 
+    if( setReturns.isEmpty() ) {
+      System.out.println( "d = "+d );
+      
+    }
     assert !setReturns.isEmpty();
     Iterator retItr = setReturns.iterator();
     while( retItr.hasNext() ) {
@@ -1337,7 +1365,6 @@ public class DisjointAnalysis implements HeapAnalysis {
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
           if(rblockRel.isPotentialStallSite(fn)) {
             // x gets status of y
-//            if(!rg.isAccessible(rhs)){
             if(!accessible.isAccessible(fn, rhs)) {
               rg.makeInaccessible(lhs);
             }
@@ -1361,7 +1388,6 @@ public class DisjointAnalysis implements HeapAnalysis {
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
         if(rblockRel.isPotentialStallSite(fn)) {
           // x gets status of y
-//          if(!rg.isAccessible(rhs)){
           if(!accessible.isAccessible(fn,rhs)) {
             rg.makeInaccessible(lhs);
           }
@@ -1386,7 +1412,6 @@ public class DisjointAnalysis implements HeapAnalysis {
         if(rblockRel.isPotentialStallSite(fn)) {
           // x=y.f, stall y if not accessible
           // contributes read effects on stall site of y
-//          if(!rg.isAccessible(rhs)) {
           if(!accessible.isAccessible(fn,rhs)) {
             rg.taintStallSite(fn, rhs);
           }
@@ -1425,12 +1450,10 @@ public class DisjointAnalysis implements HeapAnalysis {
         if(rblockRel.isPotentialStallSite(fn)) {
           // x.y=f , stall x and y if they are not accessible
           // also contribute write effects on stall site of x
-//          if(!rg.isAccessible(lhs)) {
           if(!accessible.isAccessible(fn,lhs)) {
             rg.taintStallSite(fn, lhs);
           }
 
-//          if(!rg.isAccessible(rhs)) {
           if(!accessible.isAccessible(fn,rhs)) {
             rg.taintStallSite(fn, rhs);
           }
@@ -1471,7 +1494,6 @@ public class DisjointAnalysis implements HeapAnalysis {
           // x=y.f, stall y if not accessible
           // contributes read effects on stall site of y
           // after this, x and y are accessbile.
-//          if(!rg.isAccessible(rhs)) {
           if(!accessible.isAccessible(fn,rhs)) {
             rg.taintStallSite(fn, rhs);
           }
@@ -1511,12 +1533,10 @@ public class DisjointAnalysis implements HeapAnalysis {
         if(rblockRel.isPotentialStallSite(fn)) {
           // x.y=f , stall x and y if they are not accessible
           // also contribute write effects on stall site of x
-//          if(!rg.isAccessible(lhs)) {
           if(!accessible.isAccessible(fn,lhs)) {
             rg.taintStallSite(fn, lhs);
           }
 
-//          if(!rg.isAccessible(rhs)) {
           if(!accessible.isAccessible(fn,rhs)) {
             rg.taintStallSite(fn, rhs);
           }
@@ -1621,6 +1641,12 @@ public class DisjointAnalysis implements HeapAnalysis {
       FlatCall fc       = (FlatCall) fn;
       MethodDescriptor mdCallee = fc.getMethod();
       FlatMethod fmCallee = state.getMethodFlat(mdCallee);
+
+
+
+
+
+
 
 
       
@@ -1790,7 +1816,6 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       // before transfer, do effects analysis support
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-//        if(!rg.isAccessible(rhs)){
         if(!accessible.isAccessible(fn,rhs)) {
           rg.makeInaccessible(ReachGraph.tdReturn);
         }
@@ -1927,6 +1952,25 @@ public class DisjointAnalysis implements HeapAnalysis {
                     true,    // hide subset reachability states
                     true,    // hide predicates
                     false);  // hide edge taints
+    }
+  }
+
+  private void writeFinalGraphsForEveryNode() {
+    Set entrySet = mapFlatNodeToReachGraphPersist.entrySet();
+    Iterator itr = entrySet.iterator();
+    while( itr.hasNext() ) {
+      Map.Entry  me = (Map.Entry)  itr.next();
+      FlatNode   fn = (FlatNode)   me.getKey();
+      ReachGraph rg = (ReachGraph) me.getValue();
+
+      rg.writeGraph("NODEFINAL"+fn,
+                    true,    // write labels (variables)
+                    false,   // selectively hide intermediate temp vars
+                    true,    // prune unreachable heap regions
+                    true,    // hide all reachability
+                    true,    // hide subset reachability states
+                    true,    // hide predicates
+                    true);   // hide edge taints
     }
   }
 
@@ -2983,18 +3027,6 @@ public class DisjointAnalysis implements HeapAnalysis {
 
     return rgAtEnter.canPointTo( x );
   }
-
-
-  public Set<Alloc> canPointToAfter( TempDescriptor x,
-                                     FlatNode programPoint ) {
-
-    ReachGraph rgAtExit = fn2rgAtExit.get( programPoint );
-    if( rgAtExit == null ) {
-      return null; 
-    }
-
-    return rgAtExit.canPointTo( x );
-  }
   
 
   public Hashtable< Alloc, Set<Alloc> > canPointToAt( TempDescriptor x,
@@ -3022,5 +3054,46 @@ public class DisjointAnalysis implements HeapAnalysis {
     assert x.getType().isArray();
 
     return rgAtEnter.canPointTo( x, arrayElementFieldName, x.getType().dereference() );
+  }
+
+
+  public Set<Alloc> canPointToAfter( TempDescriptor x,
+                                     FlatNode programPoint ) {
+
+    ReachGraph rgAtExit = fn2rgAtExit.get( programPoint );
+
+    if( rgAtExit == null ) {
+      return null; 
+    }
+
+    return rgAtExit.canPointTo( x );
+  }
+
+
+  public Hashtable< Alloc, Set<Alloc> > canPointToAfter( TempDescriptor x,
+                                                         FieldDescriptor f,
+                                                         FlatNode programPoint ) {
+
+    ReachGraph rgAtExit = fn2rgAtExit.get( programPoint );
+    if( rgAtExit == null ) {
+      return null; 
+    }
+    
+    return rgAtExit.canPointTo( x, f.getSymbol(), f.getType() );
+  }
+
+
+  public Hashtable< Alloc, Set<Alloc> > canPointToAfterElement( TempDescriptor x,
+                                                                FlatNode programPoint ) {
+
+    ReachGraph rgAtExit = fn2rgAtExit.get( programPoint );
+    if( rgAtExit == null ) {
+      return null; 
+    }
+
+    assert x.getType() != null;
+    assert x.getType().isArray();
+
+    return rgAtExit.canPointTo( x, arrayElementFieldName, x.getType().dereference() );
   }
 }

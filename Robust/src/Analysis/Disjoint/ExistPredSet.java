@@ -60,7 +60,8 @@ public class ExistPredSet extends Canonical {
   // only consider the subest of the caller elements that
   // are reachable by callee when testing predicates
   public ExistPredSet isSatisfiedBy(ReachGraph rg,
-                                    Set<Integer> calleeReachableNodes
+                                    Set<Integer> calleeReachableNodes,
+                                    Set<RefSrcNode> callerSrcMatches
                                     ) {
     ExistPredSet predsOut = null;
 
@@ -68,7 +69,8 @@ public class ExistPredSet extends Canonical {
     while( predItr.hasNext() ) {
       ExistPredSet predsFromSatisfier =
         predItr.next().isSatisfiedBy(rg,
-                                     calleeReachableNodes);
+                                     calleeReachableNodes,
+                                     callerSrcMatches);
 
       if( predsFromSatisfier != null ) {
         if( predsOut == null ) {
@@ -82,6 +84,23 @@ public class ExistPredSet extends Canonical {
 
     return predsOut;
   }
+
+
+  // this method returns the source node of any
+  // edge predicates in the set for the given graph
+  public Set<RefSrcNode> getEdgeSources( ReachGraph rg ) {
+    Set<RefSrcNode> out = new HashSet<RefSrcNode>();
+    
+    for( ExistPred pred: preds ) {
+      RefSrcNode rsn = pred.getEdgeSource( rg );
+      if( rsn != null ) {
+        out.add( rsn );
+      }
+    }
+
+    return out;
+  }
+
 
 
   public boolean isEmpty() {

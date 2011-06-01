@@ -2125,11 +2125,6 @@ nextdelta:
     return null; 
   }
 
-  public Set<Alloc> canPointToAfter( TempDescriptor x,
-                                     FlatNode programPoint ) {
-    return null; 
-  }
-
   public Hashtable< Alloc, Set<Alloc> > canPointToAt( TempDescriptor x,
                                                       FieldDescriptor f,
                                                       FlatNode programPoint ) {
@@ -2139,5 +2134,21 @@ nextdelta:
   public Hashtable< Alloc, Set<Alloc> > canPointToAtElement( TempDescriptor x,
                                                              FlatNode programPoint ) {
     return null; 
+  }
+
+  public Set<Alloc> canPointToAfter( TempDescriptor x,
+                                     FlatNode programPoint ) {
+    return null; 
+  }
+
+  public Hashtable< Alloc, Set<Alloc> > canPointToAfter( TempDescriptor x,
+                                                         FieldDescriptor f,
+                                                         FlatNode programPoint ) {
+    return null;
+  }
+
+  public Hashtable< Alloc, Set<Alloc> > canPointToAfterElement( TempDescriptor x, // x[i]
+                                                                FlatNode programPoint ) {
+    return null;
   }
 }

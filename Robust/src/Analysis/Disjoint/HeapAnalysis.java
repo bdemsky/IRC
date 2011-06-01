@@ -49,14 +49,21 @@ public interface HeapAnalysis {
   public Set<Alloc> canPointToAt( TempDescriptor x,
                                   FlatNode programPoint );
 
-  public Set<Alloc> canPointToAfter( TempDescriptor x,
-                                     FlatNode programPoint );
-  
   public Hashtable< Alloc, Set<Alloc> > canPointToAt( TempDescriptor x,
                                                       FieldDescriptor f,
                                                       FlatNode programPoint );
 
   public Hashtable< Alloc, Set<Alloc> > canPointToAtElement( TempDescriptor x, // x[i]
                                                              FlatNode programPoint );
+
+  public Set<Alloc> canPointToAfter( TempDescriptor x,
+                                     FlatNode programPoint );
+
+  public Hashtable< Alloc, Set<Alloc> > canPointToAfter( TempDescriptor x,
+                                                         FieldDescriptor f,
+                                                         FlatNode programPoint );
+
+  public Hashtable< Alloc, Set<Alloc> > canPointToAfterElement( TempDescriptor x, // x[i]
+                                                                FlatNode programPoint );  
 }
 

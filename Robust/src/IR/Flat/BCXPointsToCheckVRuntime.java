@@ -16,19 +16,31 @@ import java.util.*;
 
 public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
   
+  protected State        state;
   protected BuildCode    buildCode;
   protected TypeUtil     typeUtil;
   protected HeapAnalysis heapAnalysis;
   
   protected ClassDescriptor cdObject;
 
+  protected TypeDescriptor stringType;
 
-  public BCXPointsToCheckVRuntime( BuildCode    buildCode,
+  private boolean DEBUG = false;
+
+
+
+  public BCXPointsToCheckVRuntime( State        state,
+                                   BuildCode    buildCode,
                                    TypeUtil     typeUtil,
                                    HeapAnalysis heapAnalysis ) {
+    this.state        = state;
     this.buildCode    = buildCode;
     this.typeUtil     = typeUtil;
     this.heapAnalysis = heapAnalysis;
+
+    ClassDescriptor cdString = typeUtil.getClass( typeUtil.StringClass );
+    assert cdString != null;
+    stringType = new TypeDescriptor( cdString );
   }
 
 
@@ -44,11 +56,20 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
       TempDescriptor td   = fm.getParameter( i );
       TypeDescriptor type = td.getType();
       if( type.isPtr() ) {
+        output.println( "// Generating points-to checks for method params" );
+
         genAssertRuntimePtrVsHeapResults( output,
                                           fm,
                                           td,
                                           heapAnalysis.canPointToAfter( td, fm )
                                           );
+
+        output.println( "// end method params" );
+
+        if( DEBUG ) {
+          System.out.println( "\nGenerating code for "+fm );
+          System.out.println( "  arg "+td+" can point to "+heapAnalysis.canPointToAfter( td, fm ) );
+        }
       }
     }
   }
@@ -61,10 +82,42 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
     FieldDescriptor fld;
     TempDescriptor  idx;
     TypeDescriptor  type;
+    TempDescriptor  arg;
+    TempDescriptor  ret;
     
+
+    // for PRE-NODE checks, only look at pointers we are reading from because
+    // pointers about to be set may be undefined and don't pass runtime checks nicely
+
     
     switch( fn.kind() ) {
     
+      /*
+      case FKind.FlatLiteralNode: {
+        FlatLiteralNode fln = (FlatLiteralNode) fn;
+        
+        if( fln.getType().equals( stringType ) ) {
+          lhs = fln.getDst();
+
+          output.println( "// Generating points-to checks for pre-node string literal" );
+
+          genAssertRuntimePtrVsHeapResults( output,
+                                            fm,
+                                            lhs,
+                                            heapAnalysis.canPointToAt( lhs, fn )
+                                            );
+      
+          output.println( "// end pre-node string literal" );
+
+
+          if( DEBUG ) {
+            System.out.println( "  before "+fn );
+            System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAt( lhs, fn ) );
+          }            
+        }  
+      } break;
+      */
+
       case FKind.FlatOpNode: {
         FlatOpNode fon = (FlatOpNode) fn;
         if( fon.getOp().getOp() == Operation.ASSIGN ) {
@@ -73,17 +126,30 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
       
           type = lhs.getType();
           if( type.isPtr() ) {
-            genAssertRuntimePtrVsHeapResults( output,
-                                              fm,
-                                              lhs,
-                                              heapAnalysis.canPointToAt( lhs, fn )
-                                              );
+
+            output.println( "// Generating points-to checks for pre-node op assign" );
+            
+
+            //genAssertRuntimePtrVsHeapResults( output,
+            //                                  fm,
+            //                                  lhs,
+            //                                  heapAnalysis.canPointToAt( lhs, fn )
+            //                                  );
       
             genAssertRuntimePtrVsHeapResults( output,
                                               fm,
                                               rhs,
                                               heapAnalysis.canPointToAt( rhs, fn )
                                               );
+
+            output.println( "// end pre-node op assign" );
+
+            
+            if( DEBUG ) {
+              System.out.println( "  before "+fn );
+              //System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAt( lhs, fn ) );
+              System.out.println( "    "+rhs+" can point to "+heapAnalysis.canPointToAt( rhs, fn ) );
+            }            
           }
         }
       } break;
@@ -96,17 +162,29 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
       
         type = fcn.getType();
         if( type.isPtr() ) {
-          genAssertRuntimePtrVsHeapResults( output,
-                                            fm,
-                                            lhs,
-                                            heapAnalysis.canPointToAt( lhs, fn )
-                                            );
+
+          output.println( "// Generating points-to checks for pre-node cast" );
+
+          //genAssertRuntimePtrVsHeapResults( output,
+          //                                  fm,
+          //                                  lhs,
+          //                                  heapAnalysis.canPointToAt( lhs, fn )
+          //                                  );
       
           genAssertRuntimePtrVsHeapResults( output,
                                             fm,
                                             rhs,
                                             heapAnalysis.canPointToAt( rhs, fn )
                                             );
+
+          output.println( "// end pre-node cast" );
+
+
+          if( DEBUG ) {
+            System.out.println( "  before "+fn );
+            //System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAt( lhs, fn ) );
+            System.out.println( "    "+rhs+" can point to "+heapAnalysis.canPointToAt( rhs, fn ) );
+          }            
         }
       } break;
       
@@ -119,11 +197,14 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
       
         type = lhs.getType();
         if( type.isPtr() ) {
-          genAssertRuntimePtrVsHeapResults( output,
-                                            fm,
-                                            lhs,
-                                            heapAnalysis.canPointToAt( lhs, fn )
-                                            );
+
+          output.println( "// Generating points-to checks for pre-node field" );
+
+          //genAssertRuntimePtrVsHeapResults( output,
+          //                                  fm,
+          //                                  lhs,
+          //                                  heapAnalysis.canPointToAt( lhs, fn )
+          //                                  );
 
           genAssertRuntimePtrVsHeapResults( output,
                                             fm,
@@ -138,6 +219,16 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
                                             null,
                                             heapAnalysis.canPointToAt( rhs, fld, fn )
                                             );
+
+          output.println( "// end pre-node field" );
+
+
+          if( DEBUG ) {
+            System.out.println( "  before "+fn );
+            //System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAt( lhs, fn ) );
+            System.out.println( "    "+rhs+" can point to "+heapAnalysis.canPointToAt( rhs, fn ) );
+            System.out.println( "    "+rhs+"."+fld+" can point to "+heapAnalysis.canPointToAt( rhs, fld, fn ) );
+          }            
         }
       } break;
       
@@ -150,11 +241,14 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
       
         type = lhs.getType();
         if( type.isPtr() ) {
-          genAssertRuntimePtrVsHeapResults( output,
-                                            fm,
-                                            lhs,
-                                            heapAnalysis.canPointToAt( lhs, fn )
-                                            );
+
+          output.println( "// Generating points-to checks for pre-node element" );
+
+          //genAssertRuntimePtrVsHeapResults( output,
+          //                                  fm,
+          //                                  lhs,
+          //                                  heapAnalysis.canPointToAt( lhs, fn )
+          //                                  );
 
           genAssertRuntimePtrVsHeapResults( output,
                                             fm,
@@ -169,31 +263,287 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
                                             idx,
                                             heapAnalysis.canPointToAtElement( rhs, fn )
                                             );
+
+          output.println( "// end pre-node element" );
+
+
+          if( DEBUG ) {
+            System.out.println( "  before "+fn );
+            //System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAt( lhs, fn ) );
+            System.out.println( "    "+rhs+" can point to "+heapAnalysis.canPointToAt( rhs, fn ) );
+            System.out.println( "    "+rhs+"["+idx+"] can point to "+heapAnalysis.canPointToAtElement( rhs, fn ) );
+          }            
         }
       } break;
-    
-    }
 
+
+      case FKind.FlatCall: {
+        FlatCall fc = (FlatCall) fn;
+        //ret = fc.getReturnTemp();
+        
+        FlatMethod fmCallee = state.getMethodFlat( fc.getMethod() );
+
+        boolean somethingChecked = false;
+
+        output.println( "// Generating points-to checks for pre-node call" );
+
+        for( int i = 0; i < fmCallee.numParameters(); ++i ) {
+          arg  = fc.getArgMatchingParamIndex( fmCallee, i );
+          type = arg.getType();
+          if( type.isPtr() ) {
+            genAssertRuntimePtrVsHeapResults( output,
+                                              fm,
+                                              arg,
+                                              heapAnalysis.canPointToAt( arg, fn )
+                                              );
+            somethingChecked = true;
+          }
+        }
+        
+        //if( ret != null ) {
+        //  type = ret.getType();
+        //  if( type.isPtr() ) {
+        //    genAssertRuntimePtrVsHeapResults( output,
+        //                                      fm,
+        //                                      ret,
+        //                                      heapAnalysis.canPointToAt( ret, fn )
+        //                                      );
+        //    somethingChecked = true;
+        //  }
+        //}
+         
+        output.println( "// end pre-node call" );
+
+        if( DEBUG && somethingChecked ) {
+
+          System.out.println( "  before "+fn+":" );
+              
+          for( int i = 0; i < fmCallee.numParameters(); ++i ) {
+            arg  = fc.getArgMatchingParamIndex( fmCallee, i );
+            type = arg.getType();
+            if( type.isPtr() ) {
+              System.out.println( "    arg "+arg+" can point to "+heapAnalysis.canPointToAt( arg, fn ) );
+            }
+          }  
+
+          //if( ret != null ) {
+          //  type = ret.getType();
+          //  if( type.isPtr() ) {
+          //    System.out.println( "    return temp "+ret+" can point to "+heapAnalysis.canPointToAt( ret, fn ) );
+          //  }
+          //}
+          
+        }
+      } break;    
+    }
   }
+
 
 
   public void additionalCodePostNode(FlatMethod fm,
                                      FlatNode fn,
                                      PrintWriter output) {
+
+    TempDescriptor  lhs;
+    TempDescriptor  rhs;
+    FieldDescriptor fld;
+    TempDescriptor  idx;
+    TypeDescriptor  type;
+    TempDescriptor  arg;
+    TempDescriptor  ret;
+
+
+
     switch( fn.kind() ) {
+
+
+      case FKind.FlatLiteralNode: {
+        FlatLiteralNode fln = (FlatLiteralNode) fn;
+        
+        if( fln.getType().equals( stringType ) ) {
+          lhs = fln.getDst();
+          
+          output.println( "// Generating points-to checks for post-node string literal" );
+
+          genAssertRuntimePtrVsHeapResults( output,
+                                            fm,
+                                            lhs,
+                                            heapAnalysis.canPointToAfter( lhs, fn )
+                                            );
+      
+          output.println( "// end post-node string literal" );
+
+
+          if( DEBUG ) {
+            System.out.println( "  after "+fn );
+            System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAfter( lhs, fn ) );
+          }            
+        }  
+      } break;
+
+
+      case FKind.FlatOpNode: {
+        FlatOpNode fon = (FlatOpNode) fn;
+        if( fon.getOp().getOp() == Operation.ASSIGN ) {
+          lhs = fon.getDest();
+      
+          type = lhs.getType();
+          if( type.isPtr() ) {
+
+            output.println( "// Generating points-to checks for post-node op assign" );
+            
+            genAssertRuntimePtrVsHeapResults( output,
+                                              fm,
+                                              lhs,
+                                              heapAnalysis.canPointToAfter( lhs, fn )
+                                              );
+      
+            output.println( "// end post-node op assign" );
+
+            
+            if( DEBUG ) {
+              System.out.println( "  after "+fn );
+              System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAfter( lhs, fn ) );
+            }            
+          }
+        }
+      } break;
+      
+      
+      case FKind.FlatCastNode: {
+        FlatCastNode fcn = (FlatCastNode) fn;
+        lhs = fcn.getDst();
+      
+        type = fcn.getType();
+        if( type.isPtr() ) {
+
+          output.println( "// Generating points-to checks for post-node cast" );
+
+          genAssertRuntimePtrVsHeapResults( output,
+                                            fm,
+                                            lhs,
+                                            heapAnalysis.canPointToAfter( lhs, fn )
+                                            );
+      
+          output.println( "// end post-node cast" );
+
+
+          if( DEBUG ) {
+            System.out.println( "  after "+fn );
+            System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAfter( lhs, fn ) );
+          }            
+        }
+      } break;
+      
+      
+      case FKind.FlatFieldNode: {
+        FlatFieldNode ffn = (FlatFieldNode) fn;
+        lhs = ffn.getDst();
+      
+        type = lhs.getType();
+        if( type.isPtr() ) {
+
+          output.println( "// Generating points-to checks for post-node field" );
+
+          genAssertRuntimePtrVsHeapResults( output,
+                                            fm,
+                                            lhs,
+                                            heapAnalysis.canPointToAfter( lhs, fn )
+                                            );
+
+          output.println( "// end post-node field" );
+
+
+          if( DEBUG ) {
+            System.out.println( "  after "+fn );
+            System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAfter( lhs, fn ) );
+          }            
+        }
+      } break;
+      
+      
+      case FKind.FlatElementNode: {
+        FlatElementNode fen = (FlatElementNode) fn;
+        lhs = fen.getDst();
+      
+        type = lhs.getType();
+        if( type.isPtr() ) {
+
+          output.println( "// Generating points-to checks for post-node element" );
+
+          genAssertRuntimePtrVsHeapResults( output,
+                                            fm,
+                                            lhs,
+                                            heapAnalysis.canPointToAfter( lhs, fn )
+                                            );
+
+          output.println( "// end post-node element" );
+
+
+          if( DEBUG ) {
+            System.out.println( "  after "+fn );
+            System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAfter( lhs, fn ) );
+          }            
+        }
+      } break;
+
+
       case FKind.FlatCall: {
-        FlatCall       fc = (FlatCall) fn;
-        TempDescriptor td = fc.getReturnTemp();
-         
-        if( td != null ) {
-          TypeDescriptor type = td.getType();
+        FlatCall fc = (FlatCall) fn;
+        ret = fc.getReturnTemp();
+        
+        FlatMethod fmCallee = state.getMethodFlat( fc.getMethod() );
+
+        boolean somethingChecked = false;
+
+        output.println( "// Generating points-to checks for post-node call" );
+
+        for( int i = 0; i < fmCallee.numParameters(); ++i ) {
+          arg  = fc.getArgMatchingParamIndex( fmCallee, i );
+          type = arg.getType();
           if( type.isPtr() ) {
             genAssertRuntimePtrVsHeapResults( output,
                                               fm,
-                                              td,
-                                              heapAnalysis.canPointToAfter( td, fn )
+                                              arg,
+                                              heapAnalysis.canPointToAfter( arg, fn )
                                               );
+            somethingChecked = true;
           }
+        }
+        
+        if( ret != null ) {
+          type = ret.getType();
+          if( type.isPtr() ) {
+            genAssertRuntimePtrVsHeapResults( output,
+                                              fm,
+                                              ret,
+                                              heapAnalysis.canPointToAfter( ret, fn )
+                                              );
+            somethingChecked = true;
+          }
+        }
+         
+        output.println( "// end post-node call" );
+
+        if( DEBUG && somethingChecked ) {
+
+          System.out.println( "  after "+fn+":" );
+              
+          for( int i = 0; i < fmCallee.numParameters(); ++i ) {
+            arg  = fc.getArgMatchingParamIndex( fmCallee, i );
+            type = arg.getType();
+            if( type.isPtr() ) {
+              System.out.println( "    arg "+arg+" can point to "+heapAnalysis.canPointToAfter( arg, fn ) );
+            }
+          }  
+
+          if( ret != null ) {
+            type = ret.getType();
+            if( type.isPtr() ) {
+              System.out.println( "    return temp "+ret+" can point to "+heapAnalysis.canPointToAfter( ret, fn ) );
+            }
+          }
+          
         }
       } break;
     }

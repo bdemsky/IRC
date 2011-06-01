@@ -232,14 +232,14 @@ public class ExistPred extends Canonical {
   // predicate is satisfied, return the predicate set of the
   // element that satisfied it, or null for false
   public ExistPredSet isSatisfiedBy(ReachGraph rg,
-                                    Set<Integer> calleeReachableNodes
+                                    Set<Integer> calleeReachableNodes,
+                                    Set<RefSrcNode> callerSrcMatches
                                     ) {
     if( predType == TYPE_TRUE ) {
       return ExistPredSet.factory(ExistPred.factory() );
     }
 
     if( predType == TYPE_NODE ) {
-
       // first find node
       HeapRegionNode hrn = rg.id2hrn.get(n_hrnID);
       if( hrn == null ) {
@@ -348,7 +348,13 @@ public class ExistPred extends Canonical {
       // when the state and taint are null we're done!
       if( ne_state == null &&
           e_taint  == null ) {
+
+        if( callerSrcMatches != null ) {
+          callerSrcMatches.add( rsn );
+        }
+
         return edge.getPreds();
+
 
       } else if( ne_state != null ) {
         // otherwise look for state too
@@ -374,6 +380,10 @@ public class ExistPred extends Canonical {
 
         } else {
           // it was here, return the predicates on the taint!!
+          if( callerSrcMatches != null ) {
+            callerSrcMatches.add( rsn );
+          }
+
           return tCaller.getPreds();
         }
       }
@@ -382,6 +392,26 @@ public class ExistPred extends Canonical {
     }
 
     throw new Error("Unknown predicate type");
+  }
+
+
+
+  // if this pred is an edge type pred, then given
+  // a reach graph, find the element of the graph that
+  // may exist and represents the source of the edge
+  public RefSrcNode getEdgeSource( ReachGraph rg ) {
+    if( predType != TYPE_EDGE ) {
+      return null;
+    }
+
+    if( e_tdSrc != null ) {
+      // variable node is the source, look for it in the graph
+      return rg.getVariableNodeNoMutation( e_tdSrc );
+    }
+
+    // otherwise a heap region node is the source, look for it
+    assert e_hrnDstID != null;
+    return rg.id2hrn.get( e_hrnDstID );
   }
 
 

@@ -77,14 +77,21 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # -disjoint-debug-snap-method Remove 10 3 true
 
 DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions
+#	-disjoint-write-dots final \
+#	-flatirusermethods \
+#	-disjoint-debug-callsite System.println Barneshut.run 1 1000 true \
+#	-disjoint-debug-snap-method Barneshut.run 1 1000 false
+#	-disjoint-debug-snap-method String.indexOf 1 1000 true
+#	-disjoint-debug-callsite String.concat2 FileInputStream.readLine 1 1000 true \
+#	-disjoint-debug-snap-method String.concat2 1 1000 true
+#	-disjoint-debug-snap-method FileInputStream.readLine 1 1000 true
+#	-disjoint-write-all-node-graphs
+#
+#       -justanalyze \
 #	-disjoint-debug-callsite String.toString String.valueOf 1 1000 true \
-#	-disjoint-debug-snap-method String.toString 1 1000 true \
 #	-disjoint-write-initial-contexts \
-#	-disjoint-write-dots final
 #	-disjoint-debug-scheduling \
 #	-disjoint-write-ihms
-#	-flatirusermethods
-#       -justanalyze
 #	-disjoint-desire-determinism
 #	-disjoint-debug-callsite Demand.add Lateral.compute 1 1000 true
 #	-disjoint-debug-snap-method ComputeCenterOfMass 6 2 true

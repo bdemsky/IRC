@@ -204,6 +204,9 @@ public class Main {
       } else if (option.equals("-disjoint-write-ihms")) {
         state.DISJOINTWRITEIHMS = true;
 
+      } else if (option.equals("-disjoint-write-all-node-graphs")) {
+        state.DISJOINT_WRITE_ALL_NODE_FINAL_GRAPHS = true;
+
       } else if (option.equals("-disjoint-alias-file")) {
         state.DISJOINTALIASFILE = args[++i];
         String arg = args[++i];
@@ -678,7 +681,7 @@ public class Main {
 
       if( state.POINTSTO_CHECK_V_RUNTIME &&
           heapAnalysis != null ) {
-        BCXPointsToCheckVRuntime bcx = new BCXPointsToCheckVRuntime( bc, tu, heapAnalysis );
+        BCXPointsToCheckVRuntime bcx = new BCXPointsToCheckVRuntime( state, bc, tu, heapAnalysis );
         bc.registerExtension( bcx );
       }
 

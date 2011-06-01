@@ -126,6 +126,7 @@ public class State {
 
   public boolean DISJOINTDEBUGSCHEDULING=false;
 
+  public boolean DISJOINT_WRITE_ALL_NODE_FINAL_GRAPHS=false;
 
   public boolean POINTSTO_CHECK_V_RUNTIME=false;
 

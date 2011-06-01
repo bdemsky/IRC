@@ -2247,8 +2247,8 @@ public class ReachGraph {
   private static boolean resolveMethodDebugDOTpruneGarbage    = true;
   private static boolean resolveMethodDebugDOThideReach       = true;
   private static boolean resolveMethodDebugDOThideSubsetReach = true;
-  private static boolean resolveMethodDebugDOThidePreds       = true;
-  private static boolean resolveMethodDebugDOThideEdgeTaints  = false;
+  private static boolean resolveMethodDebugDOThidePreds       = false;
+  private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
 
   static String debugGraphPrefix;
   static int debugCallSiteVisitCounter;
@@ -2332,6 +2332,7 @@ public class ReachGraph {
       new Hashtable< RefEdge, Set<RefSrcNode> >();
 
 
+
     Iterator meItr = rgCallee.id2hrn.entrySet().iterator();
     while( meItr.hasNext() ) {
       Map.Entry me        = (Map.Entry)meItr.next();
@@ -2344,8 +2345,8 @@ public class ReachGraph {
       // should have, and it is inefficient to find this again later
       ExistPredSet predsIfSatis =
         hrnCallee.getPreds().isSatisfiedBy(this,
-                                           callerNodeIDsCopiedToCallee
-                                           );
+                                           callerNodeIDsCopiedToCallee,
+                                           null);
 
       if( predsIfSatis != null ) {
         calleeNodesSatisfied.put(hrnCallee, predsIfSatis);
@@ -2364,8 +2365,8 @@ public class ReachGraph {
 
         predsIfSatis =
           stateCallee.getPreds().isSatisfiedBy(this,
-                                               callerNodeIDsCopiedToCallee
-                                               );
+                                               callerNodeIDsCopiedToCallee,
+                                               null);
         if( predsIfSatis != null ) {
 
           Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
@@ -2434,8 +2435,8 @@ public class ReachGraph {
 
             predsIfSatis =
               hrnSrcCallee.getPreds().isSatisfiedBy(this,
-                                                    callerNodeIDsCopiedToCallee
-                                                    );
+                                                    callerNodeIDsCopiedToCallee,
+                                                    null);
             if( predsIfSatis != null ) {
               calleeNodesSatisfied.put(hrnSrcCallee, predsIfSatis);
             } else {
@@ -2445,55 +2446,18 @@ public class ReachGraph {
 
           } else {
             // hrnSrcCallee is out-of-context
-
             assert !calleeEdges2oocCallerSrcMatches.containsKey(reCallee);
 
             Set<RefSrcNode> rsnCallers = new HashSet<RefSrcNode>();
 
-            // is the target node in the caller?
-            HeapRegionNode hrnDstCaller = this.id2hrn.get(hrnCallee.getID() );
-            if( hrnDstCaller == null ) {
-              continue;
-            }
-
-            Iterator<RefEdge> reDstItr = hrnDstCaller.iteratorToReferencers();
-            while( reDstItr.hasNext() ) {
-              // the edge and field (either possibly null) must match
-              RefEdge reCaller = reDstItr.next();
-
-              if( !reCaller.typeEquals(reCallee.getType()  ) ||
-                  !reCaller.fieldEquals(reCallee.getField() )
-                  ) {
-                continue;
-              }
-
-              RefSrcNode rsnCaller = reCaller.getSrc();
-              if( rsnCaller instanceof VariableNode ) {
-
-                // a variable node matches an OOC region with null type
-                if( hrnSrcCallee.getType() != null ) {
-                  continue;
-                }
-
-              } else {
-                // otherwise types should match
-                HeapRegionNode hrnCallerSrc = (HeapRegionNode) rsnCaller;
-                if( hrnSrcCallee.getType() == null ) {
-                  if( hrnCallerSrc.getType() != null ) {
-                    continue;
-                  }
-                } else {
-                  if( !hrnSrcCallee.getType().equals(hrnCallerSrc.getType() ) ) {
-                    continue;
-                  }
-                }
-              }
-
-              rsnCallers.add(rsnCaller);
-              matchedOutOfContext = true;
-            }
+            // use the isSatisfiedBy with a non-null callers set to capture
+            // nodes in the caller that match the predicates
+            reCallee.getPreds().isSatisfiedBy( this,
+                                               callerNodeIDsCopiedToCallee,
+                                               rsnCallers );
 
             if( !rsnCallers.isEmpty() ) {
+              matchedOutOfContext = true;
               calleeEdges2oocCallerSrcMatches.put(reCallee, rsnCallers);
             }
           }
@@ -2507,8 +2471,9 @@ public class ReachGraph {
 
         predsIfSatis =
           reCallee.getPreds().isSatisfiedBy(this,
-                                            callerNodeIDsCopiedToCallee
-                                            );
+                                            callerNodeIDsCopiedToCallee,
+                                            null);
+
 
         if( predsIfSatis != null ) {
           calleeEdgesSatisfied.put(reCallee, predsIfSatis);
@@ -2523,8 +2488,8 @@ public class ReachGraph {
 
             predsIfSatis =
               stateCallee.getPreds().isSatisfiedBy(this,
-                                                   callerNodeIDsCopiedToCallee
-                                                   );
+                                                   callerNodeIDsCopiedToCallee,
+                                                   null);
             if( predsIfSatis != null ) {
 
               Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
@@ -2551,8 +2516,8 @@ public class ReachGraph {
 
             predsIfSatis =
               tCallee.getPreds().isSatisfiedBy(this,
-                                               callerNodeIDsCopiedToCallee
-                                               );
+                                               callerNodeIDsCopiedToCallee,
+                                               null);
             if( predsIfSatis != null ) {
 
               Hashtable<Taint, ExistPredSet> calleeTaintsSatisfied =
@@ -4218,7 +4183,6 @@ public class ReachGraph {
 
     //System.out.println( "*** Asking if A is no smaller than B ***" );
 
-
     Iterator iA = rgA.id2hrn.entrySet().iterator();
     while( iA.hasNext() ) {
       Map.Entry meA  = (Map.Entry)iA.next();
@@ -4229,14 +4193,6 @@ public class ReachGraph {
         System.out.println("  regions smaller");
         return false;
       }
-
-      //HeapRegionNode hrnB = rgB.id2hrn.get( idA );
-      /* NOT EQUALS, NO SMALLER THAN!
-         if( !hrnA.equalsIncludingAlphaAndPreds( hrnB ) ) {
-         System.out.println( "  regions smaller" );
-         return false;
-         }
-       */
     }
 
     // this works just fine, no smaller than
@@ -4282,14 +4238,6 @@ public class ReachGraph {
           System.out.println("  edges smaller:");
           return false;
         }
-
-        // REMEMBER, IS NO SMALLER THAN
-        /*
-           System.out.println( "  edges smaller" );
-           return false;
-           }
-         */
-
       }
     }
 
