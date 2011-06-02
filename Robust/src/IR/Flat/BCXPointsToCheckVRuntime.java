@@ -52,11 +52,12 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
 
   public void additionalCodeAtTopFlatMethodBody(PrintWriter output, FlatMethod fm) {
     
+    output.println( "// Generating points-to checks for method params" );
+
     for( int i = 0; i < fm.numParameters(); ++i ) {
       TempDescriptor td   = fm.getParameter( i );
       TypeDescriptor type = td.getType();
       if( type.isPtr() ) {
-        output.println( "// Generating points-to checks for method params" );
 
         genAssertRuntimePtrVsHeapResults( output,
                                           fm,
@@ -64,14 +65,14 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
                                           heapAnalysis.canPointToAfter( td, fm )
                                           );
 
-        output.println( "// end method params" );
-
         if( DEBUG ) {
           System.out.println( "\nGenerating code for "+fm );
           System.out.println( "  arg "+td+" can point to "+heapAnalysis.canPointToAfter( td, fm ) );
         }
       }
     }
+
+    output.println( "// end method params" );
   }
 
 
@@ -92,32 +93,6 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
     
     switch( fn.kind() ) {
     
-      /*
-      case FKind.FlatLiteralNode: {
-        FlatLiteralNode fln = (FlatLiteralNode) fn;
-        
-        if( fln.getType().equals( stringType ) ) {
-          lhs = fln.getDst();
-
-          output.println( "// Generating points-to checks for pre-node string literal" );
-
-          genAssertRuntimePtrVsHeapResults( output,
-                                            fm,
-                                            lhs,
-                                            heapAnalysis.canPointToAt( lhs, fn )
-                                            );
-      
-          output.println( "// end pre-node string literal" );
-
-
-          if( DEBUG ) {
-            System.out.println( "  before "+fn );
-            System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAt( lhs, fn ) );
-          }            
-        }  
-      } break;
-      */
-
       case FKind.FlatOpNode: {
         FlatOpNode fon = (FlatOpNode) fn;
         if( fon.getOp().getOp() == Operation.ASSIGN ) {
@@ -128,14 +103,7 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
           if( type.isPtr() ) {
 
             output.println( "// Generating points-to checks for pre-node op assign" );
-            
-
-            //genAssertRuntimePtrVsHeapResults( output,
-            //                                  fm,
-            //                                  lhs,
-            //                                  heapAnalysis.canPointToAt( lhs, fn )
-            //                                  );
-      
+                  
             genAssertRuntimePtrVsHeapResults( output,
                                               fm,
                                               rhs,
@@ -147,7 +115,6 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
             
             if( DEBUG ) {
               System.out.println( "  before "+fn );
-              //System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAt( lhs, fn ) );
               System.out.println( "    "+rhs+" can point to "+heapAnalysis.canPointToAt( rhs, fn ) );
             }            
           }
@@ -164,12 +131,6 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
         if( type.isPtr() ) {
 
           output.println( "// Generating points-to checks for pre-node cast" );
-
-          //genAssertRuntimePtrVsHeapResults( output,
-          //                                  fm,
-          //                                  lhs,
-          //                                  heapAnalysis.canPointToAt( lhs, fn )
-          //                                  );
       
           genAssertRuntimePtrVsHeapResults( output,
                                             fm,
@@ -182,7 +143,6 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
 
           if( DEBUG ) {
             System.out.println( "  before "+fn );
-            //System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAt( lhs, fn ) );
             System.out.println( "    "+rhs+" can point to "+heapAnalysis.canPointToAt( rhs, fn ) );
           }            
         }
@@ -199,12 +159,6 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
         if( type.isPtr() ) {
 
           output.println( "// Generating points-to checks for pre-node field" );
-
-          //genAssertRuntimePtrVsHeapResults( output,
-          //                                  fm,
-          //                                  lhs,
-          //                                  heapAnalysis.canPointToAt( lhs, fn )
-          //                                  );
 
           genAssertRuntimePtrVsHeapResults( output,
                                             fm,
@@ -225,7 +179,6 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
 
           if( DEBUG ) {
             System.out.println( "  before "+fn );
-            //System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAt( lhs, fn ) );
             System.out.println( "    "+rhs+" can point to "+heapAnalysis.canPointToAt( rhs, fn ) );
             System.out.println( "    "+rhs+"."+fld+" can point to "+heapAnalysis.canPointToAt( rhs, fld, fn ) );
           }            
@@ -243,12 +196,6 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
         if( type.isPtr() ) {
 
           output.println( "// Generating points-to checks for pre-node element" );
-
-          //genAssertRuntimePtrVsHeapResults( output,
-          //                                  fm,
-          //                                  lhs,
-          //                                  heapAnalysis.canPointToAt( lhs, fn )
-          //                                  );
 
           genAssertRuntimePtrVsHeapResults( output,
                                             fm,
@@ -269,7 +216,6 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
 
           if( DEBUG ) {
             System.out.println( "  before "+fn );
-            //System.out.println( "    "+lhs+" can point to "+heapAnalysis.canPointToAt( lhs, fn ) );
             System.out.println( "    "+rhs+" can point to "+heapAnalysis.canPointToAt( rhs, fn ) );
             System.out.println( "    "+rhs+"["+idx+"] can point to "+heapAnalysis.canPointToAtElement( rhs, fn ) );
           }            
@@ -279,7 +225,6 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
 
       case FKind.FlatCall: {
         FlatCall fc = (FlatCall) fn;
-        //ret = fc.getReturnTemp();
         
         FlatMethod fmCallee = state.getMethodFlat( fc.getMethod() );
 
@@ -299,19 +244,7 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
             somethingChecked = true;
           }
         }
-        
-        //if( ret != null ) {
-        //  type = ret.getType();
-        //  if( type.isPtr() ) {
-        //    genAssertRuntimePtrVsHeapResults( output,
-        //                                      fm,
-        //                                      ret,
-        //                                      heapAnalysis.canPointToAt( ret, fn )
-        //                                      );
-        //    somethingChecked = true;
-        //  }
-        //}
-         
+                 
         output.println( "// end pre-node call" );
 
         if( DEBUG && somethingChecked ) {
@@ -324,15 +257,7 @@ public class BCXPointsToCheckVRuntime implements BuildCodeExtension {
             if( type.isPtr() ) {
               System.out.println( "    arg "+arg+" can point to "+heapAnalysis.canPointToAt( arg, fn ) );
             }
-          }  
-
-          //if( ret != null ) {
-          //  type = ret.getType();
-          //  if( type.isPtr() ) {
-          //    System.out.println( "    return temp "+ret+" can point to "+heapAnalysis.canPointToAt( ret, fn ) );
-          //  }
-          //}
-          
+          }            
         }
       } break;    
     }
