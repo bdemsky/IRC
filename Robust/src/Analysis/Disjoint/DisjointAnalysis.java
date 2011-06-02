@@ -1785,7 +1785,9 @@ public class DisjointAnalysis implements HeapAnalysis {
       }
       
 
+
       statusDebugCallSite( dcsd );
+
 
 
       // now that we've taken care of building heap models for
@@ -2917,11 +2919,23 @@ public class DisjointAnalysis implements HeapAnalysis {
     }
 
     dcsd.debugCallSite = debugCalleeMatches && debugCallerMatches;
-    dcsd.writeDebugDOTs = dcsd.debugCallSite;
+
+
+    dcsd.writeDebugDOTs = 
+      
+      dcsd.debugCallSite &&
+
+      (ReachGraph.debugCallSiteVisitCounter >=
+       ReachGraph.debugCallSiteVisitStartCapture)  &&
+         
+      (ReachGraph.debugCallSiteVisitCounter <
+       ReachGraph.debugCallSiteVisitStartCapture +
+       ReachGraph.debugCallSiteNumVisitsToCapture);
+         
+
 
     if( dcsd.debugCallSite ) {
       dcsd.didOneDebug = true;
-      System.out.println( "       --> Debugging "+taskOrMethodCaller+" calling "+mdCallee );
     }
   }
 
