@@ -90,7 +90,7 @@ typedef unsigned long long ticks;
 #include "dmalloc.h"
 #endif
 
-int instanceof(struct ___Object___ *ptr, int type) {
+int instanceof(ObjectPtr *ptr, int type) {
   int i=ptr->type;
   do {
     if (i==type)
@@ -808,7 +808,7 @@ __attribute__((malloc)) void * allocate_new_mlp(void * ptr, int type, int oid, i
 #else
 __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
 #endif
-  struct ___Object___ * v=(struct ___Object___ *) mygcmalloc((struct garbagelist *) ptr, classsize[type]);
+  struct ObjectPtr * v=(struct ObjectPtr *) mygcmalloc((struct garbagelist *) ptr, classsize[type]);
   v->type=type;
   v->hashcode=(int)(INTPTR)v;
 #ifdef THREADS
@@ -856,7 +856,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
 
 #else
 __attribute__((malloc)) void * allocate_new(int type) {
-  struct ___Object___ * v=FREEMALLOC(classsize[type]);
+  struct ObjectPtr * v=FREEMALLOC(classsize[type]);
   v->type=type;
   v->hashcode=(int)(INTPTR)v;
 #ifdef OPTIONAL
