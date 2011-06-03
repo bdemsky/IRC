@@ -983,9 +983,7 @@ class_member_declaration ::=
 	{:
 	RESULT=ed; 
 	:}
-//    |       interface_declaration:interfaced {: 
-//	RESULT=(new ParseNode("interface",parser.lexer.line_num)).addChild(interfaced).getRoot(); 
-//	:}
+    |       interface_declaration:interfaced {: RESULT=interfaced; :}
 	|	SEMICOLON	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	;
 	
@@ -1287,8 +1285,8 @@ SUPER LPAREN argument_list_opt:alo RPAREN SEMICOLON {:
 	pn.addChild(alo);
 	RESULT=pn;
 :}
-//	|	primary DOT THIS LPAREN argument_list_opt RPAREN SEMICOLON
-//	|	primary DOT SUPER LPAREN argument_list_opt RPAREN SEMICOLON
+	|	primary DOT THIS LPAREN argument_list_opt RPAREN SEMICOLON
+	|	primary DOT SUPER LPAREN argument_list_opt RPAREN SEMICOLON
 	;
 
 // 19.9) Interfaces
@@ -1356,7 +1354,7 @@ interface_member_declaration ::=
 	   RESULT=(new ParseNode("enum_declaration",parser.lexer.line_num)).addChild(ed).getRoot();
 	   :}
 //       |       class_declaration:class 
-//       |       interface_declaration:interface 
+       |       interface_declaration:interfaced {: RESULT=interfaced; :}
        |       SEMICOLON {: 
        RESULT=new ParseNode("empty",parser.lexer.line_num); 
        :}
@@ -1954,7 +1952,11 @@ primary_no_new_array ::=
 	    pn.addChild("type").addChild("class").addChild(name);
 	    RESULT=pn;
 	:}
-//	|	name DOT THIS
+	|	name:name DOT THIS {: 
+	    ParseNode pn=new ParseNode("parentclass",parser.lexer.line_num);
+	    pn.addChild("name").addChild(name);
+	    RESULT=pn;
+	:}
 	;
 class_instance_creation_expression ::=
 	NEWFLAG class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 

@@ -195,6 +195,10 @@ public class MethodDescriptor extends Descriptor {
     else throw new Error();
   }
 
+  public String getSafeSymbol() {
+    return safename.replace(".","___________");
+  }
+
   public String toString() {
     String st="";
     String type="";

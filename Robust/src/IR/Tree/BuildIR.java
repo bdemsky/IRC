@@ -32,16 +32,31 @@ public class BuildIR {
 
   //This is all single imports and a subset of the
   //multi imports that have been resolved.
-  Hashtable mandatoryImports;
+  ChainHashMap mandatoryImports;
   //maps class names in file to full name
   //Note may map a name to an ERROR.
-  Hashtable multiimports;
-  NameDescriptor packages;
+  ChainHashMap multiimports;
+  String packageName;
+
+  String currsourcefile;
+  Set analyzeset;
+
+  void pushChainMaps() {
+    mandatoryImports=mandatoryImports.makeChild();
+    multiimports=multiimports.makeChild();
+  }
+  
+  void popChainMaps() {
+    mandatoryImports=mandatoryImports.getParent();
+    multiimports=multiimports.getParent();
+  }
 
   /** Parse the classes in this file */
   public void parseFile(ParseNode pn, Set toanalyze, String sourcefile) {
-    mandatoryImports = new Hashtable();
-    multiimports = new Hashtable();
+    mandatoryImports = new ChainHashMap();
+    multiimports = new ChainHashMap();
+    currsourcefile=sourcefile;
+    analyzeset=toanalyze;
 
     if(state.JNI) {
       //add java.lang as our default multi-import
@@ -70,7 +85,7 @@ public class BuildIR {
     }
 
     ParseNode ppn=pn.getChild("packages").getChild("package");
-    String packageName = null;
+    packageName = null;
     if ((ppn!=null) && !state.MGC){
       NameDescriptor nd = parseClassName(ppn.getChild("name"));
       packageName = nd.getPathFromRootToHere();
@@ -87,12 +102,9 @@ public class BuildIR {
         if (isEmpty(type_pn)) /* Skip the semicolon */
           continue;
         if (isNode(type_pn, "class_declaration")) {
-          ClassDescriptor cn = parseTypeDecl(type_pn, packageName);
-          cn.setSourceFileName(sourcefile);
+          ClassDescriptor cn = parseTypeDecl(type_pn);
           parseInitializers(cn);
-          if (toanalyze != null)
-            toanalyze.add(cn);
-          state.addClass(cn);
+
           // for inner classes/enum
           HashSet tovisit = new HashSet();
           Iterator it_icds = cn.getInnerClasses();
@@ -104,36 +116,11 @@ public class BuildIR {
             ClassDescriptor cd = (ClassDescriptor) tovisit.iterator().next();
             tovisit.remove(cd);
             parseInitializers(cd);
-            if (toanalyze != null) {
-              toanalyze.add(cd);
-            }
-            cd.setSourceFileName(sourcefile);
-            state.addClass(cd);
 
             Iterator it_ics = cd.getInnerClasses();
             while (it_ics.hasNext()) {
               tovisit.add(it_ics.next());
             }
-
-            Iterator it_ienums = cd.getEnum();
-            while (it_ienums.hasNext()) {
-              ClassDescriptor iecd = (ClassDescriptor) it_ienums.next();
-              if (toanalyze != null) {
-                toanalyze.add(iecd);
-              }
-              iecd.setSourceFileName(sourcefile);
-              state.addClass(iecd);
-            }
-          }
-
-          Iterator it_enums = cn.getEnum();
-          while (it_enums.hasNext()) {
-            ClassDescriptor ecd = (ClassDescriptor) it_enums.next();
-            if (toanalyze != null) {
-              toanalyze.add(ecd);
-            }
-            ecd.setSourceFileName(sourcefile);
-            state.addClass(ecd);
           }
         } else if (isNode(type_pn, "task_declaration")) {
           TaskDescriptor td = parseTaskDecl(type_pn);
@@ -142,42 +129,19 @@ public class BuildIR {
           state.addTask(td);
         } else if (isNode(type_pn, "interface_declaration")) {
           // TODO add version for normal Java later
-          ClassDescriptor cn = parseInterfaceDecl(type_pn, packageName);
-          if (toanalyze != null)
-            toanalyze.add(cn);
-          cn.setSourceFileName(sourcefile);
-          state.addClass(cn);
-
-          // for enum
-          Iterator it_enums = cn.getEnum();
-          while (it_enums.hasNext()) {
-            ClassDescriptor ecd = (ClassDescriptor) it_enums.next();
-            if (toanalyze != null) {
-              toanalyze.add(ecd);
-            }
-            ecd.setSourceFileName(sourcefile);
-            state.addClass(ecd);
-          }
+          ClassDescriptor cn = parseInterfaceDecl(type_pn, null);
         } else if (isNode(type_pn, "enum_declaration")) {
           // TODO add version for normal Java later
           ClassDescriptor cn = parseEnumDecl(null, type_pn);
-          if (toanalyze != null)
-            toanalyze.add(cn);
-          cn.setSourceFileName(sourcefile);
-          state.addClass(cn);
+
         } else if(isNode(type_pn,"annotation_type_declaration")) {
           ClassDescriptor cn=parseAnnotationTypeDecl(type_pn);
-          if (toanalyze != null)
-            toanalyze.add(cn);
-          cn.setSourceFileName(sourcefile);
-          state.addClass(cn);
         } else {
           throw new Error(type_pn.getLabel());
         }
       }
     }
   }
-
 
 
   //This kind of breaks away from tradition a little bit by doing the file checks here
@@ -210,7 +174,6 @@ public class BuildIR {
       }
     }
 
-
     if(!found) {
       throw new Error("Import package " + importPath + " in  " + currentSource
                       + " cannot be resolved.");
@@ -237,9 +200,20 @@ public class BuildIR {
       }
     }
   }
+  
+  private ClassDescriptor parseEnumDecl(ClassDescriptor cn, ParseNode pn) {    
+    String basename=pn.getChild("name").getTerminal();
+    String classname=(cn!=null)?cn.getClassName()+"$"+basename:basename;
+    ClassDescriptor ecd=new ClassDescriptor(cn!=null?cn.getPackage():null, classname, false);
+    
+    if (cn!=null) {
+      if (packageName==null)
+	cn.getSingleImportMappings().put(basename,classname);
+      else
+	cn.getSingleImportMappings().put(basename,packageName+"."+classname);
+    }
 
-  private ClassDescriptor parseEnumDecl(ClassDescriptor cn, ParseNode pn) {
-    ClassDescriptor ecd=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
+    pushChainMaps();
     ecd.setImports(mandatoryImports, multiimports);
     ecd.setAsEnum();
     if(cn != null) {
@@ -253,6 +227,13 @@ public class BuildIR {
     }
     ecd.setModifiers(parseModifiersList(pn.getChild("modifiers")));
     parseEnumBody(ecd, pn.getChild("enumbody"));
+
+    if (analyzeset != null)
+      analyzeset.add(ecd);
+    ecd.setSourceFileName(currsourcefile);
+    state.addClass(ecd);
+
+    popChainMaps();
     return ecd;
   }
 
@@ -275,12 +256,20 @@ public class BuildIR {
 
   private ClassDescriptor parseAnnotationTypeDecl(ParseNode pn) {
     ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal(), true);
+    pushChainMaps();
     cn.setImports(mandatoryImports, multiimports);
     ParseNode modifiers=pn.getChild("modifiers");
     if(modifiers!=null) {
       cn.setModifiers(parseModifiersList(modifiers));
     }
     parseAnnotationTypeBody(cn,pn.getChild("body"));
+    popChainMaps();
+
+    if (analyzeset != null)
+      analyzeset.add(cn);
+    cn.setSourceFileName(currsourcefile);
+    state.addClass(cn);
+
     return cn;
   }
 
@@ -311,15 +300,18 @@ public class BuildIR {
     }
   }
 
-  public ClassDescriptor parseInterfaceDecl(ParseNode pn, String packageName) {
-    ClassDescriptor cn;
-    if(packageName == null) {
-      cn=new ClassDescriptor(pn.getChild("name").getTerminal(), true);
-    } else  {
-      String newClassname = packageName + "." + pn.getChild("name").getTerminal();
-      cn= new ClassDescriptor(packageName, newClassname, true);
+  public ClassDescriptor parseInterfaceDecl(ParseNode pn, ClassDescriptor outerclass) {
+    String basename=pn.getChild("name").getTerminal();
+    String classname=((outerclass==null)?"":(outerclass.getClassName()+"$"))+basename;
+    if (outerclass!=null) {
+      if (packageName==null)
+	outerclass.getSingleImportMappings().put(basename,classname);
+      else
+	outerclass.getSingleImportMappings().put(basename,packageName+"."+classname);
     }
+    ClassDescriptor cn= new ClassDescriptor(packageName, classname, true);
 
+    pushChainMaps();
     cn.setImports(mandatoryImports, multiimports);
     //cn.setAsInterface();
     if (!isEmpty(pn.getChild("superIF").getTerminal())) {
@@ -331,11 +323,18 @@ public class BuildIR {
         if (isNode(decl,"type")) {
           NameDescriptor nd=parseClassName(decl.getChild("class").getChild("name"));
           cn.addSuperInterface(nd.toString());
-        }
+        } else if (isNode(decl, "interface_declaration")) {
+          ClassDescriptor innercn = parseInterfaceDecl(decl, cn);
+	} else throw new Error();
       }
     }
     cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
     parseInterfaceBody(cn, pn.getChild("interfacebody"));
+    if (analyzeset != null)
+      analyzeset.add(cn);
+    cn.setSourceFileName(currsourcefile);
+    state.addClass(cn);
+    popChainMaps();
     return cn;
   }
 
@@ -350,7 +349,9 @@ public class BuildIR {
           parseInterfaceConstant(cn,decl);
         } else if (isNode(decl,"method")) {
           parseInterfaceMethod(cn,decl.getChild("method_declaration"));
-        } else throw new Error();
+        } else if (isNode(decl, "interface_declaration")) {
+	  parseInterfaceDecl(decl, cn);
+	} else throw new Error(decl.PPrint(2, true));
       }
     }
   }
@@ -375,17 +376,6 @@ public class BuildIR {
       BlockNode bn=parseBlock(bodyn);
       cn.addMethod(md);
       state.addTreeCode(md,bn);
-
-      // this is a hack for investigating new language features
-      // at the AST level, someday should evolve into a nice compiler
-      // option *wink*
-      //if( cn.getSymbol().equals( ***put a class in here like:     "Test" ) &&
-      //    md.getSymbol().equals( ***put your method in here like: "main" )
-      //) {
-      //  bn.setStyle( BlockNode.NORMAL );
-      //  System.out.println( bn.printNode( 0 ) );
-      //}
-
     } catch (Exception e) {
       System.out.println("Error with method:"+md.getSymbol());
       e.printStackTrace();
@@ -554,16 +544,9 @@ public class BuildIR {
     return tel;
   }
 
-  public ClassDescriptor parseTypeDecl(ParseNode pn, String packageName) {
-    ClassDescriptor cn;
-    // if is in no package, then create a class descriptor with just the name.
-    // else add the package on
-    if(packageName == null) {
-      cn=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
-    } else  {
-      String newClassname = packageName + "." + pn.getChild("name").getTerminal();
-      cn= new ClassDescriptor(packageName, newClassname, false);
-    }
+  public ClassDescriptor parseTypeDecl(ParseNode pn) {
+    ClassDescriptor cn=new ClassDescriptor(packageName, pn.getChild("name").getTerminal(), false);
+    pushChainMaps();
     cn.setImports(mandatoryImports, multiimports);
     if (!isEmpty(pn.getChild("super").getTerminal())) {
       /* parse superclass name */
@@ -605,6 +588,13 @@ public class BuildIR {
       md.setDefaultConstructor();
       cn.addMethod(md);
     }
+    popChainMaps();
+
+    cn.setSourceFileName(currsourcefile);
+    if (analyzeset != null)
+      analyzeset.add(cn);
+    state.addClass(cn);
+
     return cn;
   }
 
@@ -642,9 +632,15 @@ public class BuildIR {
       parseInnerClassDecl(cn,innerclassnode);
       return;
     }
+ 
+    ParseNode innerinterfacenode=pn.getChild("interface_declaration");
+    if (innerinterfacenode!=null) {
+      parseInterfaceDecl(innerinterfacenode, cn);
+    }
+
     ParseNode enumnode=pn.getChild("enum_declaration");
     if (enumnode!=null) {
-      parseEnumDecl(cn,enumnode);
+      ClassDescriptor ecn=parseEnumDecl(cn,enumnode);
       return;
     }
     ParseNode flagnode=pn.getChild("flag");
@@ -661,7 +657,16 @@ public class BuildIR {
   }
 
   private ClassDescriptor parseInnerClassDecl(ClassDescriptor cn, ParseNode pn) {
-    ClassDescriptor icn=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
+    String basename=pn.getChild("name").getTerminal();
+    String classname=cn.getClassName()+"$"+basename;
+
+    if (cn.getPackage()==null)
+      cn.getSingleImportMappings().put(basename,classname);
+    else
+      cn.getSingleImportMappings().put(basename,cn.getPackage()+"."+classname);
+    
+    ClassDescriptor icn=new ClassDescriptor(cn.getPackage(), classname, false);
+    pushChainMaps();
     icn.setImports(mandatoryImports, multiimports);
     icn.setAsInnerClass();
     icn.setSurroundingClass(cn.getSymbol());
@@ -691,11 +696,14 @@ public class BuildIR {
       }
     }
     icn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
-    if(!icn.isStatic()) {
-      throw new Error("Error: inner class " + icn.getSymbol() + " in Class " +
-                      cn.getSymbol() + " is not a nested class and is not supported yet!");
-    }
+
     parseClassBody(icn, pn.getChild("classbody"));
+    popChainMaps();
+    if (analyzeset != null)
+      analyzeset.add(icn);
+    icn.setSourceFileName(currsourcefile);
+    state.addClass(icn);
+
     return icn;
   }
 
@@ -972,7 +980,8 @@ public class BuildIR {
       //TODO:::  FIX BUG!!!  static fields in caller context need to become parameters
       TypeDescriptor td=parseTypeDescriptor(pn);
       innerCount++;
-      ClassDescriptor cnnew=new ClassDescriptor(td.getSymbol()+"$"+innerCount, false);
+      ClassDescriptor cnnew=new ClassDescriptor(packageName,td.getSymbol()+"$"+innerCount, false);
+      pushChainMaps();
       cnnew.setImports(mandatoryImports, multiimports);
       cnnew.setSuper(td.getSymbol());
       parseClassBody(cnnew, pn.getChild("decl").getChild("classbody"));
@@ -983,6 +992,12 @@ public class BuildIR {
       for(int i=0; i<args.size(); i++) {
         con.addArgument((ExpressionNode)args.get(i));
       }
+      popChainMaps();
+
+      if (analyzeset != null)
+	analyzeset.add(cnnew);
+      cnnew.setSourceFileName(currsourcefile);
+      state.addClass(cnnew);
 
       return con;
     } else if (isNode(pn,"createarray")) {
@@ -1032,6 +1047,14 @@ public class BuildIR {
       NameNode nn=new NameNode(nd);
       nn.setNumLine(pn.getLine());
       return nn;
+    } else if (isNode(pn,"parentclass")) {
+      NameDescriptor nd=new NameDescriptor("this");
+      NameNode nn=new NameNode(nd);
+      nn.setNumLine(pn.getLine());
+
+      FieldAccessNode fan=new FieldAccessNode(nn,"this$parent");
+      fan.setNumLine(pn.getLine());
+      return fan;
     } else if (isNode(pn,"isavailable")) {
       NameDescriptor nd=new NameDescriptor(pn.getTerminal());
       NameNode nn=new NameNode(nd);

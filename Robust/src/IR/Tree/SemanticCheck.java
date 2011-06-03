@@ -40,7 +40,6 @@ public class SemanticCheck {
   public ClassDescriptor getClass(ClassDescriptor context, String classnameIn, int fullcheck) {
     String classname = classnameIn;
     if (context!=null) {
-//      System.out.println(context.getSymbol() + " is looking for " + classname);
       classname = context.getCannonicalImportMapName(classnameIn);
     }
     ClassDescriptor cd=typeutil.getClass(classname, toanalyze);
@@ -1202,7 +1201,7 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
         checkExpressionNode(md, nametable, min.getExpression(), null);
         typetolookin=min.getExpression().getType();
       } else {
-        if(!min.getBaseName().getSymbol().equals("System.out")) {
+        if(!min.getBaseName().getSymbol().equals("System.out")||state.JNI) {
           ExpressionNode nn = translateNameDescriptorintoExpression(min.getBaseName(),min.getNumLine());
           checkExpressionNode(md, nametable, nn, null);
           typetolookin = nn.getType();
@@ -1213,12 +1212,8 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
           }
         } else {
           //we have a type
-          ClassDescriptor cd = null;
-          //if (min.getBaseName().getSymbol().equals("System.out"))
-          cd=getClass(null, "System");
-          /*else {
-             cd=getClass(min.getBaseName().getSymbol());
-             }*/
+          ClassDescriptor cd = getClass(null, "System");
+
           if (cd==null)
             throw new Error("md = "+ md.toString()+ "  "+min.getBaseName()+" undefined");
           typetolookin=new TypeDescriptor(cd);

@@ -76,8 +76,10 @@ public class JavaBuilder implements CallGraph {
     return set;
   }
 
+  /* Returns whether there is a reachable call to this method descriptor...Not whether the implementation is called */
+
   public boolean isCalled(MethodDescriptor md) {
-    return !getMethods(md).isEmpty();
+    return canCall.containsKey(md);
   }
 
   public boolean isCallable(MethodDescriptor md) {

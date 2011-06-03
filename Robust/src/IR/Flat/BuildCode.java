@@ -992,7 +992,7 @@ public class BuildCode {
     cdarray=new ClassDescriptor[state.numClasses()];
     ifarray = new ClassDescriptor[state.numInterfaces()];
     cdarray[0] = null;
-    int interfaceid = 0;
+
     while(it.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)it.next();
       if(cd.isInterface()) {

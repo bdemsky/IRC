@@ -36,8 +36,9 @@ public abstract class Descriptor {
   //the text replacement is done here because SOMEWHERE someone
   //modifies safename without going through the constructor...
   public String getSafeSymbol() {
-    return safename.replaceAll("\\.", "___________");
+    return safename;
   }
+
   public int getNum() {
     return uniqueid;
   }

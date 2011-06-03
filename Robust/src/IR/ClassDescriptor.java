@@ -10,6 +10,7 @@ public class ClassDescriptor extends Descriptor {
   ClassDescriptor superdesc;
   boolean hasFlags=false;
   String packagename;
+  String classname;
 
   Modifiers modifiers;
 
@@ -18,8 +19,8 @@ public class ClassDescriptor extends Descriptor {
   SymbolTable flags;
   SymbolTable methods;
 
-  Hashtable mandatoryImports;
-  Hashtable multiImports;
+  ChainHashMap mandatoryImports;
+  ChainHashMap multiImports;
 
   int numstaticblocks = 0;
   int numstaticfields = 0;
@@ -51,7 +52,8 @@ public class ClassDescriptor extends Descriptor {
 
   public ClassDescriptor(String packagename, String classname, boolean isInterface) {
     //make the name canonical by class file path (i.e. package)
-    super(classname);
+    super(packagename!=null?packagename+"."+classname:classname);
+    this.classname=classname;
     superclass=null;
     flags=new SymbolTable();
     fields=new SymbolTable();
@@ -101,6 +103,10 @@ public class ClassDescriptor extends Descriptor {
     return fieldvec;
   }
 
+  public String getClassName() {
+    return classname;
+  }
+
   public String getPackage() {
     return packagename;
   }
@@ -118,7 +124,11 @@ public class ClassDescriptor extends Descriptor {
   }
 
   public String getSafeDescriptor() {
-    return "L"+safename.replace('.','/');
+    return "L"+safename.replace(".","___________");
+  }
+
+  public String getSafeSymbol() {
+    return safename.replace(".","___________");
   }
 
   public String printTree(State state) {
@@ -403,7 +413,7 @@ public class ClassDescriptor extends Descriptor {
     this.sourceFileName=sourceFileName;
   }
 
-  public void setImports(Hashtable singleImports, Hashtable multiImports) {
+  public void setImports(ChainHashMap singleImports, ChainHashMap multiImports) {
     this.mandatoryImports = singleImports;
     this.multiImports = multiImports;
   }
@@ -412,11 +422,11 @@ public class ClassDescriptor extends Descriptor {
     return this.sourceFileName;
   }
 
-  public Hashtable getSingleImportMappings() {
+  public ChainHashMap getSingleImportMappings() {
     return this.mandatoryImports;
   }
   
-  public Hashtable getMultiImportMappings() {
+  public ChainHashMap getMultiImportMappings() {
     return this.multiImports;
   }
 
