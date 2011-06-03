@@ -2,6 +2,8 @@
 #define JNI_PRIVATE_H
 #include "jni.h"
 
+extern struct JNINativeInterface_ JNI_vtable;
+
 struct _jmethodID {
   char *methodname;
 };
