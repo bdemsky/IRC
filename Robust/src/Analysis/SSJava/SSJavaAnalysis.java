@@ -10,17 +10,25 @@ import IR.AnnotationDescriptor;
 import IR.ClassDescriptor;
 import IR.MethodDescriptor;
 import IR.State;
+import IR.TypeUtil;
 
 public class SSJavaAnalysis {
 
+  public static final String SSJAVA = "SSJAVA";
   public static final String LATTICE = "LATTICE";
   public static final String METHODDEFAULT = "METHODDEFAULT";
   public static final String THISLOC = "THISLOC";
   public static final String GLOBALLOC = "GLOBALLOC";
+  public static final String RETURNLOC = "RETURNLOC";
   public static final String LOC = "LOC";
   public static final String DELTA = "DELTA";
   State state;
+  TypeUtil tu;
   FlowDownCheck flowDownChecker;
+  MethodAnnotationCheck methodAnnotationChecker;
+
+  // if a method has annotations, the mapping has true
+  Hashtable<MethodDescriptor, Boolean> md2hasAnnotation;
 
   // class -> field lattice
   Hashtable<ClassDescriptor, SSJavaLattice<String>> cd2lattice;
@@ -31,18 +39,27 @@ public class SSJavaAnalysis {
   // method -> local variable lattice
   Hashtable<MethodDescriptor, MethodLattice<String>> md2lattice;
 
-  public SSJavaAnalysis(State state) {
+  public SSJavaAnalysis(State state, TypeUtil tu) {
     this.state = state;
-    cd2lattice = new Hashtable<ClassDescriptor, SSJavaLattice<String>>();
-    cd2methodDefault = new Hashtable<ClassDescriptor, MethodLattice<String>>();
-    md2lattice = new Hashtable<MethodDescriptor, MethodLattice<String>>();
+    this.tu = tu;
+    this.cd2lattice = new Hashtable<ClassDescriptor, SSJavaLattice<String>>();
+    this.cd2methodDefault = new Hashtable<ClassDescriptor, MethodLattice<String>>();
+    this.md2lattice = new Hashtable<MethodDescriptor, MethodLattice<String>>();
+    this.md2hasAnnotation = new Hashtable<MethodDescriptor, Boolean>();
   }
 
   public void doCheck() {
+    doMethodAnnotationCheck();
     parseLocationAnnotation();
     doFlowDownCheck();
     doLoopCheck();
     doSingleReferenceCheck();
+  }
+
+  private void doMethodAnnotationCheck() {
+    methodAnnotationChecker = new MethodAnnotationCheck(this, state, tu);
+    methodAnnotationChecker.methodAnnoatationCheck();
+    methodAnnotationChecker.methodAnnoataionInheritanceCheck();
   }
 
   public void doFlowDownCheck() {
@@ -81,23 +98,23 @@ public class SSJavaAnalysis {
           parseMethodLatticeDefinition(cd, an.getValue(), locOrder);
         }
       }
-      if (!cd2lattice.containsKey(cd)) {
-        throw new Error("Class " + cd.getSymbol()
-            + " doesn't have any location hierarchy declaration at " + cd.getSourceFileName());
-      }
 
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
         // parsing location hierarchy declaration for the method
-        Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
-        if (methodAnnotations != null) {
-          for (int i = 0; i < methodAnnotations.size(); i++) {
-            AnnotationDescriptor an = methodAnnotations.elementAt(i);
-            if (an.getMarker().equals(LATTICE)) {
-              MethodLattice<String> locOrder =
-                  new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
-              md2lattice.put(md, locOrder);
-              parseMethodLatticeDefinition(cd, an.getValue(), locOrder);
+
+        if (hasAnnotation(md)) {
+          Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
+          if (methodAnnotations != null) {
+            for (int i = 0; i < methodAnnotations.size(); i++) {
+              AnnotationDescriptor an = methodAnnotations.elementAt(i);
+              if (an.getMarker().equals(LATTICE)) {
+                // developer explicitly defines method lattice
+                MethodLattice<String> locOrder =
+                    new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
+                md2lattice.put(md, locOrder);
+                parseMethodLatticeDefinition(cd, an.getValue(), locOrder);
+              }
             }
           }
         }
@@ -213,6 +230,18 @@ public class SSJavaAnalysis {
     } else {
       return cd2methodDefault.get(md.getClassDesc());
     }
+  }
+
+  public boolean hasAnnotation(MethodDescriptor md) {
+    return md2hasAnnotation.containsKey(md);
+  }
+
+  public void putHasAnnotation(MethodDescriptor md) {
+    md2hasAnnotation.put(md, new Boolean(true));
+  }
+
+  public Hashtable<MethodDescriptor, Boolean> getMd2hasAnnotation() {
+    return md2hasAnnotation;
   }
 
 }

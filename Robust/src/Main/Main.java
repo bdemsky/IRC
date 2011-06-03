@@ -421,7 +421,7 @@ public class Main {
     State.logEvent("Done Parsing Commands");
     System.out.println("Classpath: "+state.classpath);
 
-    SSJavaAnalysis ssjava=new SSJavaAnalysis(state);
+    
 
     TypeUtil tu;
     BuildFlat bf;
@@ -480,6 +480,7 @@ public class Main {
 
     // SSJava
     if(state.SSJAVA) {
+      SSJavaAnalysis ssjava=new SSJavaAnalysis(state,tu);
       ssjava.doCheck();
       State.logEvent("Done SSJava Checking");
     }

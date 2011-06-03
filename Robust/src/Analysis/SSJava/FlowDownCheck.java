@@ -45,7 +45,7 @@ import Util.Pair;
 
 public class FlowDownCheck {
 
-  static State state;
+  State state;
   static SSJavaAnalysis ssjava;
 
   HashSet toanalyze;
@@ -62,7 +62,6 @@ public class FlowDownCheck {
     this.toanalyze = new HashSet();
     this.d2loc = new Hashtable<Descriptor, CompositeLocation>();
     this.fieldLocName2cd = new Hashtable<String, ClassDescriptor>();
-    init();
   }
 
   public void init() {
@@ -108,11 +107,8 @@ public class FlowDownCheck {
         checkDeclarationInClass(cd);
         for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
           MethodDescriptor md = (MethodDescriptor) method_it.next();
-          try {
+          if (ssjava.hasAnnotation(md)) {
             checkDeclarationInMethodBody(cd, md);
-          } catch (Error e) {
-            System.out.println("Error in " + md);
-            throw e;
           }
         }
       }
@@ -130,11 +126,8 @@ public class FlowDownCheck {
       checkClass(cd);
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
-        try {
+        if (ssjava.hasAnnotation(md)) {
           checkMethodBody(cd, md);
-        } catch (Error e) {
-          System.out.println("Error in " + md);
-          throw e;
         }
       }
     }
@@ -147,6 +140,11 @@ public class FlowDownCheck {
 
     SSJavaLattice<String> superLattice = ssjava.getClassLattice(superCd);
     SSJavaLattice<String> subLattice = ssjava.getClassLattice(cd);
+
+    if (superLattice != null && subLattice == null) {
+      throw new Error("If a parent class '" + superCd + "' has a ordering lattice, its subclass '"
+          + cd + "' should have one.");
+    }
 
     Set<Pair<String, String>> superPairSet = superLattice.getOrderingPairSet();
     Set<Pair<String, String>> subPairSet = subLattice.getOrderingPairSet();
@@ -230,6 +228,11 @@ public class FlowDownCheck {
     bn.getVarTable().setParent(nametable);
     // it will return the lowest location in the block node
     CompositeLocation lowestLoc = null;
+
+    // if(bn.get(0).kind() == Kind.LoopNode){
+    // System.out.println("####="+bn.get(0).printNode(0));
+    // }
+
     for (int i = 0; i < bn.size(); i++) {
       BlockStatementNode bsn = bn.get(i);
       CompositeLocation bLoc = checkLocationFromBlockStatementNode(md, bn.getVarTable(), bsn);
