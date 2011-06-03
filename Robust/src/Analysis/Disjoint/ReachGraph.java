@@ -1786,8 +1786,10 @@ public class ReachGraph {
 
     // caller edges from arg vars, and the matching param index
     // because these become a special edge in callee
-    Hashtable<RefEdge, Integer> reachableCallerArgEdges2paramIndex =
-      new Hashtable<RefEdge, Integer>();
+    // NOTE! One argument may be passed in as more than one parameter,
+    // so map to a set of parameter indices!
+    Hashtable< RefEdge, Set<Integer> > reachableCallerArgEdges2paramIndices =
+      new Hashtable< RefEdge, Set<Integer> >();
 
     // caller edges from local vars or callee-unreachable nodes
     // (out-of-context sources) to callee-reachable nodes
@@ -1821,8 +1823,17 @@ public class ReachGraph {
           if( reCaller.getSrc() instanceof HeapRegionNode ) {
             reachableCallerEdges.add(reCaller);
           } else {
+
             if( rsnCaller.equals(vnArgCaller) ) {
-              reachableCallerArgEdges2paramIndex.put(reCaller, i);
+              Set<Integer> pIndices = 
+                reachableCallerArgEdges2paramIndices.get( reCaller );
+
+              if( pIndices == null ) {
+                pIndices = new HashSet<Integer>();
+                reachableCallerArgEdges2paramIndices.put( reCaller, pIndices );
+              }
+              pIndices.add( i );
+
             } else {
               oocCallerEdges.add(reCaller);
             }
@@ -1835,6 +1846,7 @@ public class ReachGraph {
         } // end edge iteration
       } // end visiting heap nodes in caller
     } // end iterating over parameters as starting points
+
 
 
     // now collect out-of-callee-context IDs and
@@ -1931,17 +1943,14 @@ public class ReachGraph {
 
     // add param edges to callee graph
     Iterator argEdges =
-      reachableCallerArgEdges2paramIndex.entrySet().iterator();
+      reachableCallerArgEdges2paramIndices.entrySet().iterator();
     while( argEdges.hasNext() ) {
-      Map.Entry me    = (Map.Entry)argEdges.next();
-      RefEdge reArg = (RefEdge)   me.getKey();
-      Integer index = (Integer)   me.getValue();
+      Map.Entry    me    = (Map.Entry)    argEdges.next();
+      RefEdge      reArg = (RefEdge)      me.getKey();
+      Set<Integer> pInxs = (Set<Integer>) me.getValue();
 
-      VariableNode vnCaller  = (VariableNode) reArg.getSrc();
+      VariableNode   vnCaller  = (VariableNode) reArg.getSrc();
       TempDescriptor argCaller = vnCaller.getTempDescriptor();
-
-      TempDescriptor paramCallee = fmCallee.getParameter(index);
-      VariableNode vnCallee    = rg.getVariableNodeFromTemp(paramCallee);
 
       HeapRegionNode hrnDstCaller = reArg.getDst();
       HeapRegionNode hrnDstCallee = rg.id2hrn.get(hrnDstCaller.getID() );
@@ -1962,24 +1971,30 @@ public class ReachGraph {
       ExistPredSet preds =
         ExistPredSet.factory(pred);
 
-      RefEdge reCallee =
-        new RefEdge(vnCallee,
-                    hrnDstCallee,
-                    reArg.getType(),
-                    reArg.getField(),
-                    toCalleeContext(reArg.getBeta(),
-                                    preds,
-                                    oocHrnIdOoc2callee
-                                    ),
-                    preds,
-                    toCalleeContext(reArg.getTaints(),
-                                    preds)
-                    );
+      for( Integer index: pInxs ) {
 
-      rg.addRefEdge(vnCallee,
-                    hrnDstCallee,
-                    reCallee
-                    );
+        TempDescriptor paramCallee = fmCallee.getParameter(index);
+        VariableNode vnCallee    = rg.getVariableNodeFromTemp(paramCallee);
+
+        RefEdge reCallee =
+          new RefEdge(vnCallee,
+                      hrnDstCallee,
+                      reArg.getType(),
+                      reArg.getField(),
+                      toCalleeContext(reArg.getBeta(),
+                                      preds,
+                                      oocHrnIdOoc2callee
+                                      ),
+                      preds,
+                      toCalleeContext(reArg.getTaints(),
+                                      preds)
+                      );
+        
+        rg.addRefEdge(vnCallee,
+                      hrnDstCallee,
+                      reCallee
+                      );
+      }
     }
 
     // add in-context edges to callee graph

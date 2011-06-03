@@ -77,10 +77,12 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # -disjoint-debug-snap-method Remove 10 3 true
 
 DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions
+#	-disjoint-debug-callsite RayTracer.trace RayTracer.shade 10000 1 true
 #	-disjoint-write-dots final \
 #	-flatirusermethods \
-#	-disjoint-debug-callsite System.println Barneshut.run 1 1000 true \
-#	-disjoint-debug-snap-method Barneshut.run 1 1000 false
+#	-disjoint-write-ihms \
+#	-disjoint-write-initial-contexts \
+#	-disjoint-debug-snap-method RayTracer.shade 300 999 true
 #	-disjoint-debug-snap-method String.indexOf 1 1000 true
 #	-disjoint-debug-callsite String.concat2 FileInputStream.readLine 1 1000 true \
 #	-disjoint-debug-snap-method String.concat2 1 1000 true
@@ -89,9 +91,7 @@ DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions
 #
 #       -justanalyze \
 #	-disjoint-debug-callsite String.toString String.valueOf 1 1000 true \
-#	-disjoint-write-initial-contexts \
 #	-disjoint-debug-scheduling \
-#	-disjoint-write-ihms
 #	-disjoint-desire-determinism
 #	-disjoint-debug-callsite Demand.add Lateral.compute 1 1000 true
 #	-disjoint-debug-snap-method ComputeCenterOfMass 6 2 true

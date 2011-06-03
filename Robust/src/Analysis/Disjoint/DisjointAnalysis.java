@@ -1706,12 +1706,14 @@ public class DisjointAnalysis implements HeapAnalysis {
         Set<Integer> callerNodeIDsCopiedToCallee =
           new HashSet<Integer>();
 
+
         ReachGraph heapForThisCall_cur =
           rg.makeCalleeView(fc,
                             fmPossible,
                             callerNodeIDsCopiedToCallee,
                             dcsd.writeDebugDOTs
                             );
+
 
         // enforce that a call site contribution can only
         // monotonically increase
@@ -2918,6 +2920,7 @@ public class DisjointAnalysis implements HeapAnalysis {
         state.DISJOINTDEBUGCALLER.equals( taskOrMethodCaller.getSymbol() );
     }
 
+
     dcsd.debugCallSite = debugCalleeMatches && debugCallerMatches;
 
 
@@ -2945,7 +2948,6 @@ public class DisjointAnalysis implements HeapAnalysis {
     dcsd.stopAfter      = false;
 
     if( dcsd.didOneDebug ) {
-      ++ReachGraph.debugCallSiteVisitCounter;
       System.out.println("    $$$ Debug call site visit "+
                          ReachGraph.debugCallSiteVisitCounter+
                          " $$$"
@@ -2968,6 +2970,8 @@ public class DisjointAnalysis implements HeapAnalysis {
           dcsd.stopAfter = true;
         }
       }
+
+      ++ReachGraph.debugCallSiteVisitCounter;
     }
 
     if( dcsd.stopAfter ) {
