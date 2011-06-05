@@ -29,6 +29,7 @@
 #ifdef DELAYCOMP
 #include "delaycomp.h"
 #endif
+#include "objtypes.h"
 
 
 #ifndef INITIALHEAPSIZE_MB
@@ -329,7 +330,7 @@ void searchjnitable(struct jnireferences *jniptr) {
     int i;
     //update table
     for(i=0; i<jniptr->index; i++) {
-      ENQUEUE((struct ___Object___ *)jniptr->array[i].ref, *((struct ___Object___**)&jniptr->array[i].ref));
+      ENQUEUE((ObjectPtr)jniptr->array[i].ref, *((ObjectPtr *)&jniptr->array[i].ref));
     }
     //go to next table
     jniptr=jniptr->next;
@@ -354,7 +355,7 @@ void searchthreadroots(struct garbagelist * stackptr) {
     struct lockvector * lvector=listptr->lvector;
     int i;
     for(i=0; i<lvector->index; i++) {
-      struct ___Object___ *orig=lvector->locks[i].object;
+      ObjectPtr orig=lvector->locks[i].object;
       ENQUEUE(orig, lvector->locks[i].object);
     }
 #endif
@@ -501,7 +502,7 @@ void checkcollect2(void * ptr) {
   int ptrarray[]={1, (int)ptr, (int) revertlist};
   stopforgc((struct garbagelist *)ptrarray);
   restartaftergc();
-  revertlist=(struct ___Object___*)ptrarray[2];
+  revertlist=(ObjectPtr)ptrarray[2];
 }
 #endif
 

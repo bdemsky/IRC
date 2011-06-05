@@ -77,7 +77,7 @@ void threadexit() {
 #endif
   for(lptr->index--; lptr->index>=0; lptr->index--) {
     if (lptr->locks[lptr->index].islastlock) {
-      struct ___Object___ *ll=lptr->locks[lptr->index].object;
+      ObjectPtr ll=lptr->locks[lptr->index].object;
       ll->tid=0;
     }
   }
@@ -122,9 +122,9 @@ transstart:
   {
     transStart();
     ptr = transRead(oidvalue);
-    struct ___Thread___ *p = (struct ___Thread___ *) ptr;
+    ThreadPtr p = (ThreadPtr) ptr;
     p->___threadDone___ = 1;
-    *((unsigned int *)&((struct ___Object___ *) p)->___localcopy___) |=DIRTY;
+    *((unsigned int *)&((ObjectPtr) p)->___localcopy___) |=DIRTY;
     if(transCommit() != 0) {
       goto transstart;
     }
@@ -304,7 +304,7 @@ void initializethreads() {
 int threadcounter=0;
 
 #ifdef D___Thread______nativeCreate____
-void initthread(struct ___Thread___ * ___this___) {
+void initthread(ThreadPtr ___this___) {
 #ifdef AFFINITY
   set_affinity();
 #endif
@@ -401,7 +401,7 @@ void initthread(struct ___Thread___ * ___this___) {
   free(lockedobjs);
 #endif
 #endif
-  ___this___=(struct ___Thread___ *) p[2];
+  ___this___=(ThreadPtr) p[2];
 #else
   ___Thread______staticStart____L___Thread___(___this___);
 #endif
@@ -460,13 +460,13 @@ void CALL00(___Thread______abort____) {
 #ifdef RECOVERY
 // return if the machine is dead
 #ifdef D___Thread______nativeGetStatus____I
-int CALL12(___Thread______nativeGetStatus____I, int ___mid___, struct ___Thread___ * ___this___, int ___mid___) {
+int CALL12(___Thread______nativeGetStatus____I, int ___mid___, ThreadPtr ___this___, int ___mid___) {
   return getStatus(___mid___);
 }
 #endif
 #else
 #ifdef D___Thread______nativeGetStatus____I
-int CALL12(___Thread______nativeGetStatus____I, int ___mid___, struct ___Thread___ * ___this___, int ___mid___) {
+int CALL12(___Thread______nativeGetStatus____I, int ___mid___, ThreadPtr ___this___, int ___mid___) {
   return 0;
 }
 #endif
@@ -475,7 +475,7 @@ int CALL12(___Thread______nativeGetStatus____I, int ___mid___, struct ___Thread_
 #ifdef DSTM
 /* Add thread join capability */
 #ifdef D___Thread______join____
-void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {
+void CALL01(___Thread______join____, ThreadPtr ___this___) {
   unsigned int *oidarray;
   unsigned short *versionarray, version;
   objheader_t *ptr;
@@ -483,7 +483,7 @@ void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {
 transstart:
   transStart();
   ptr = transRead((unsigned int) VAR(___this___));
-  struct ___Thread___ *p = (struct ___Thread___ *) ptr;
+  ThreadPtr p = (ThreadPtr) ptr;
 #ifdef THREADJOINDEBUG
   printf("Start join process for Oid = %x\n", (unsigned int) VAR(___this___));
 #endif
@@ -541,7 +541,7 @@ transstart:
 
 #if defined(THREADS)||defined(STM)
 #ifdef D___Thread______nativeJoin____
-void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
+void CALL01(___Thread______nativeJoin____, ThreadPtr ___this___) {
   pthread_mutex_lock(&joinlock);
   while(!VAR(___this___)->___finished___) {
 #ifdef PRECISE_GC
@@ -557,7 +557,7 @@ void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
 #endif
 
 #ifdef D___Thread______nativeCreate____
-void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
+void CALL01(___Thread______nativeCreate____, ThreadPtr ___this___) {
   pthread_t thread;
   int retval;
   pthread_attr_t nattr;
@@ -583,7 +583,7 @@ void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
 
 #ifdef DSTM
 #ifdef D___Thread______start____I
-void CALL12(___Thread______start____I, int ___mid___, struct ___Thread___ * ___this___, int ___mid___) {
+void CALL12(___Thread______start____I, int ___mid___, ThreadPtr ___this___, int ___mid___) {
   startRemoteThread((unsigned int)VAR(___this___), ___mid___);
 }
 #endif
@@ -646,7 +646,7 @@ transstart:
   {
     transStart();
     tmp  = transRead((unsigned int) oid);
-    ((struct ___Thread___ *)tmp)->___threadDone___ = 1;
+    ((ThreadPtr)tmp)->___threadDone___ = 1;
     *((unsigned int *)&((struct ___Object___ *) tmp)->___localcopy___) |=DIRTY;
     if(transCommit()!= 0) {
       goto transstart;

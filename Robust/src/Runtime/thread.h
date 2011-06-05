@@ -2,6 +2,7 @@
 #define THREAD_H
 #include "methodheaders.h"
 #include <pthread.h>
+#include "objtypes.h"
 
 extern int threadcount;
 extern pthread_mutex_t gclock;
@@ -32,7 +33,7 @@ extern pthread_key_t memorytopkey;
 #endif
 
 #if defined(THREADS)||defined(STM)
-void initthread(struct ___Thread___ * ___this___);
+void initthread(ThreadPtr ___this___);
 #endif
 #ifdef DSTM
 void initDSMthread(int *ptr);

@@ -1,6 +1,7 @@
 #ifndef RUNTIME
 #define RUNTIME
 #include <stdlib.h>
+#include "objtypes.h"
 #ifndef MULTICORE
 #include <setjmp.h>
 extern jmp_buf error_handler;
@@ -79,20 +80,20 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
 __attribute__((malloc)) void * allocate_new(void *, int type);
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void *, int type, int length);
 #endif
-__attribute__((malloc)) struct ___String___ * NewString(void *, const char *str,int length);
-__attribute__((malloc)) struct ___String___ * NewStringShort(void *, const short *str,int length);
+__attribute__((malloc)) StringPtr NewString(void *, const char *str,int length);
+__attribute__((malloc)) StringPtr NewStringShort(void *, const short *str,int length);
 __attribute__((malloc)) struct ___TagDescriptor___ * allocate_tag(void *ptr, int index);
 #elif defined MULTICORE_GC
 __attribute__((malloc)) void * allocate_new(void *, int type);
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void *, int type, int length);
-__attribute__((malloc)) struct ___String___ * NewString(void *, const char *str,int length);
-__attribute__((malloc)) struct ___String___ * NewStringShort(void *, const short *str,int length);
+__attribute__((malloc)) StringPtr NewString(void *, const char *str,int length);
+__attribute__((malloc)) StringPtr NewStringShort(void *, const short *str,int length);
 __attribute__((malloc)) struct ___TagDescriptor___ * allocate_tag(void *ptr, int index);
 #else
 __attribute__((malloc)) void * allocate_new(int type);
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(int type, int length);
-__attribute__((malloc)) struct ___String___ * NewString(const char *str,int length);
-__attribute__((malloc)) struct ___String___ * NewStringShort(const short *str,int length);
+__attribute__((malloc)) StringPtr NewString(const char *str,int length);
+__attribute__((malloc)) StringPtr NewStringShort(const short *str,int length);
 __attribute__((malloc)) struct ___TagDescriptor___ * allocate_tag(int index);
 #endif
 
@@ -161,7 +162,7 @@ inline void setupsmemmode(void);
 #define MAXLOCKS 256
 
 struct lockpair {
-  struct ___Object___ *object;
+  ObjectPtr object;
   int islastlock;
 };
 
@@ -208,7 +209,7 @@ struct transObjInfo {
 #endif
 
 #ifdef FASTCHECK
-extern struct ___Object___ * ___fcrevert___;
+extern ObjectPtr ___fcrevert___;
 #endif
 
 #ifdef MULTICORE
@@ -278,7 +279,7 @@ void toiNext(struct tagobjectiterator *it, void ** objectarray OPTARG(int * fail
 void processobject(struct parameterwrapper *parameter, int index, struct parameterdescriptor *pd, int *iteratorcount, int * statusarray, int numparams);
 void processtags(struct parameterdescriptor *pd, int index, struct parameterwrapper *parameter, int * iteratorcount, int *statusarray, int numparams);
 void builditerators(struct taskdescriptor * task, int index, struct parameterwrapper * parameter);
-int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags);
+int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, ObjectPtr ptr, int * enterflags, int numenterflags);
 
 #endif
 
@@ -295,12 +296,4 @@ static __inline__ unsigned long long rdtsc(void) {
   return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
 }
 #endif
-
-#ifdef JNI
-typedef struct ___java___________lang___________Object___ * ObjectPtr
-#else
-typedef struct ___Object___ * ObjectPtr
-#endif
-
-
 #endif
