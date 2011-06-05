@@ -1958,7 +1958,7 @@ fldloop:
         outmethod.print(md.getReturnType().getSafeSymbol()+" retval=");
     }
     outmethod.print("Java_");
-    outmethod.print(cd.getPackage().replace('.','_'));
+    outmethod.print(cd.getPackage().replace('.','_')+"_"+cd.getClassName().replace('.','_'));
     outmethod.print("_"+md.getSymbol()+"(");
     outmethod.print("JNI_vtable, rec");
 
