@@ -414,10 +414,13 @@ public class BuildCode {
     outmethod.println("  for(i=1;i<argc;i++) {");
     outmethod.println("    int length=strlen(argv[i]);");
 
+    ClassDescriptor stringclass=typeutil.getClass(TypeUtil.StringClass);
+    String stringclassstring="struct "+stringclass.getSafeSymbol();
+
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-      outmethod.println("    struct ___String___ *newstring=NewString(NULL, argv[i], length);");
+      outmethod.println("    "+stringclassstring+" *newstring=NewString(NULL, argv[i], length);");
     } else {
-      outmethod.println("    struct ___String___ *newstring=NewString(argv[i], length);");
+      outmethod.println("    "+stringclassstring+" *newstring=NewString(argv[i], length);");
     }
     outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
     outmethod.println("  }");
