@@ -86,7 +86,6 @@ public class SemanticCheck {
           if (oldstatus<REFERENCE) {
             cd.addSuperInterfaces(superif);
             cd.getFieldTable().addParentIF(superif.getFieldTable());
-            cd.getMethodTable().addParentIF(superif.getMethodTable());
           }
         }
       }
@@ -646,6 +645,8 @@ public class SemanticCheck {
     ExpressionNode left=fan.getExpression();
     checkExpressionNode(md,nametable,left,null);
     TypeDescriptor ltd=left.getType();
+    if (!ltd.isArray())
+      checkClass(ltd.getClassDesc(), INIT);
     String fieldname=fan.getFieldName();
 
     FieldDescriptor fd=null;
@@ -1194,6 +1195,7 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
       ExpressionNode en=min.getArg(i);
       checkExpressionNode(md,nametable,en,null);
       tdarray[i]=en.getType();
+
       if(en.getType().isClass() && en.getType().getClassDesc().isEnum()) {
         tdarray[i] = new TypeDescriptor(TypeDescriptor.INT);
       }
@@ -1202,9 +1204,6 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
     if (min.getExpression()!=null) {
       checkExpressionNode(md,nametable,min.getExpression(),null);
       typetolookin=min.getExpression().getType();
-      //if (typetolookin==null)
-      //throw new Error(md+" has null return type");
-
     } else if (min.getBaseName()!=null) {
       String rootname=min.getBaseName().getRoot();
       if (rootname.equals("super")) {
@@ -1252,7 +1251,7 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
       throw new Error("Unknown method call to "+min.getMethodName()+"in task"+md.getSymbol());
     }
     if (!typetolookin.isClass())
-      throw new Error("Error with method call to "+min.getMethodName());
+      throw new Error("Error with method call to "+min.getMethodName()+" in class "+typetolookin);
     ClassDescriptor classtolookin=typetolookin.getClassDesc();
     checkClass(classtolookin, INIT);
 
