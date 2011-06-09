@@ -18,6 +18,8 @@ public class ClassDescriptor extends Descriptor {
   Vector fieldvec;
   SymbolTable flags;
   SymbolTable methods;
+  boolean inline=false;
+  
 
   ChainHashMap mandatoryImports;
   ChainHashMap multiImports;
@@ -265,6 +267,14 @@ public class ClassDescriptor extends Descriptor {
     this.modifiers=modifiers;
   }
 
+  public void setInline() {
+    this.inline=true;
+  }
+
+  public boolean getInline() {
+    return inline;
+  }
+
   public void setSuper(String superclass) {
     this.superclass=superclass;
   }
@@ -273,7 +283,7 @@ public class ClassDescriptor extends Descriptor {
     return superdesc;
   }
 
-  public void setSuper(ClassDescriptor scd) {
+  public void setSuperDesc(ClassDescriptor scd) {
     this.superdesc=scd;
   }
 
@@ -431,7 +441,7 @@ public class ClassDescriptor extends Descriptor {
   }
 
   //Returns the full name/path of another class referenced from this class via imports.
-  public String getCannonicalImportMapName(String otherClassname) {
+  public String getCanonicalImportMapName(String otherClassname) {
     if(mandatoryImports.containsKey(otherClassname)) {
       return (String) mandatoryImports.get(otherClassname);
     } else if(multiImports.containsKey(otherClassname)) {

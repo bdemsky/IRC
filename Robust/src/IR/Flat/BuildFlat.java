@@ -220,36 +220,41 @@ public class BuildFlat {
     NodePair np=flattenBlockNode(bn);
     FlatNode fn=np.getBegin();
     if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
-      MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
-      FlatNode first = null;
-      FlatNode end = null;
-
-      {
-        if (lockStack.size()!=1) {
-          throw new Error("TOO MANY THINGS ON LOCKSTACK");
-        }
-        TempDescriptor thistd = this.lockStack.elementAt(0);
-        FlatCall fc = new FlatCall(memd, null, thistd, new TempDescriptor[0]);
-        fc.setNumLine(bn.getNumLine());
-        first = end = fc;
-      }
-
-      end.addNext(fn);
-      fn=first;
-      end = np.getEnd();
-      if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
-        MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
-        while(!this.lockStack.isEmpty()) {
-          TempDescriptor thistd = this.lockStack.pop();
-          FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
-          fcunlock.setNumLine(bn.getNumLine());
-          end.addNext(fcunlock);
-          end = fcunlock;
-        }
-        FlatNode rnflat=spliceReturn(end);
-        rnflat.addNext(fe);
+      if (state.JNI) {
+	//XXXXXXXX: FIX THIS
+	this.lockStack.clear();
       } else {
-        this.lockStack.clear();
+	MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
+	FlatNode first = null;
+	FlatNode end = null;
+	
+	{
+	  if (lockStack.size()!=1) {
+	    throw new Error("TOO MANY THINGS ON LOCKSTACK");
+	  }
+	  TempDescriptor thistd = this.lockStack.elementAt(0);
+	  FlatCall fc = new FlatCall(memd, null, thistd, new TempDescriptor[0]);
+	  fc.setNumLine(bn.getNumLine());
+	  first = end = fc;
+	}
+	
+	end.addNext(fn);
+	fn=first;
+	end = np.getEnd();
+	if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
+	  MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
+	  while(!this.lockStack.isEmpty()) {
+	    TempDescriptor thistd = this.lockStack.pop();
+	    FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
+	    fcunlock.setNumLine(bn.getNumLine());
+	    end.addNext(fcunlock);
+	    end = fcunlock;
+	  }
+	  FlatNode rnflat=spliceReturn(end);
+	  rnflat.addNext(fe);
+	} else {
+	  this.lockStack.clear();
+	}
       }
     } else if (state.DSM&&currmd.getModifiers().isAtomic()) {
       curran.addNext(fn);
@@ -1408,19 +1413,23 @@ public class BuildFlat {
     rnflat.addNext(fe);
     FlatNode ln=rnflat;
     if ((state.THREAD||state.MGC)&&!this.lockStack.isEmpty()) {
-      FlatNode end = null;
-      MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
-      for(int j = this.lockStack.size(); j > 0; j--) {
-        TempDescriptor thistd = this.lockStack.elementAt(j-1);
-        FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
-        fcunlock.setNumLine(rntree.getNumLine());
-        if(end != null) {
-          end.addNext(fcunlock);
-        }
-        end = fcunlock;
+      if (state.JNI) {
+	//XXXXXXXXX: FIX THIS
+      } else {
+	FlatNode end = null;
+	MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
+	for(int j = this.lockStack.size(); j > 0; j--) {
+	  TempDescriptor thistd = this.lockStack.elementAt(j-1);
+	  FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
+	  fcunlock.setNumLine(rntree.getNumLine());
+	  if(end != null) {
+	    end.addNext(fcunlock);
+	  }
+	  end = fcunlock;
+	}
+	end.addNext(ln);
+	ln=end;
       }
-      end.addNext(ln);
-      ln=end;
     }
     if (state.DSM&&currmd.getModifiers().isAtomic()) {
       FlatAtomicExitNode faen=new FlatAtomicExitNode(curran);
@@ -1493,29 +1502,33 @@ public class BuildFlat {
     }
     this.lockStack.push(montmp);
     NodePair npblock=flattenBlockNode(sbn.getBlockNode());
-
-    MethodDescriptor menmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
-    FlatCall fcen=new FlatCall(menmd, null, montmp, new TempDescriptor[0]);
-    fcen.setNumLine(sbn.getNumLine());
-
-    MethodDescriptor mexmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
-    FlatCall fcex=new FlatCall(mexmd, null, montmp, new TempDescriptor[0]);
-    fcex.setNumLine(sbn.getNumLine());
-
-    this.lockStack.pop();
-
-    if(first != null) {
-      end.addNext(fcen);
+    if (state.JNI) {
+      this.lockStack.pop();
+      return npblock;
     } else {
-      first = fcen;
-    }
-    fcen.addNext(npblock.getBegin());
-
-    if (npblock.getEnd()!=null&&npblock.getEnd().kind()!=FKind.FlatReturnNode) {
-      npblock.getEnd().addNext(fcex);
-      return new NodePair(first, fcex);
-    } else {
-      return new NodePair(first, null);
+      MethodDescriptor menmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
+      FlatCall fcen=new FlatCall(menmd, null, montmp, new TempDescriptor[0]);
+      fcen.setNumLine(sbn.getNumLine());
+      
+      MethodDescriptor mexmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
+      FlatCall fcex=new FlatCall(mexmd, null, montmp, new TempDescriptor[0]);
+      fcex.setNumLine(sbn.getNumLine());
+      
+      this.lockStack.pop();
+      
+      if(first != null) {
+	end.addNext(fcen);
+      } else {
+	first = fcen;
+      }
+      fcen.addNext(npblock.getBegin());
+      
+      if (npblock.getEnd()!=null&&npblock.getEnd().kind()!=FKind.FlatReturnNode) {
+	npblock.getEnd().addNext(fcex);
+	return new NodePair(first, fcex);
+      } else {
+	return new NodePair(first, null);
+      }
     }
   }
 

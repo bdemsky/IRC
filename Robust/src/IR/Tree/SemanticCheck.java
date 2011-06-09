@@ -38,13 +38,8 @@ public class SemanticCheck {
     return getClass(context, classname, INIT);
   }
   public ClassDescriptor getClass(ClassDescriptor context, String classnameIn, int fullcheck) {
-    String classname = classnameIn;
-    if (context!=null) {
-      classname = context.getCannonicalImportMapName(classnameIn);
-    }
-    ClassDescriptor cd=typeutil.getClass(classname, toanalyze);
+    ClassDescriptor cd=typeutil.getClass(context, classnameIn, toanalyze);
     checkClass(cd, fullcheck);
-
     return cd;
   }
 
@@ -60,17 +55,25 @@ public class SemanticCheck {
       if (fullcheck>=REFERENCE&&oldstatus<INIT) {
         //Set superclass link up
         if (cd.getSuper()!=null) {
-          cd.setSuper(getClass(cd, cd.getSuper(), fullcheck));
-          if(cd.getSuperDesc().isInterface()) {
-            throw new Error("Error! Class " + cd.getSymbol() + " extends interface " + cd.getSuper());
-          }
-          // Link together Field, Method, and Flag tables so classes
-          // inherit these from their superclasses
-          if (oldstatus<REFERENCE) {
-            cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
-            cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
-            cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
-          }
+	  ClassDescriptor superdesc=getClass(cd, cd.getSuper(), fullcheck);
+	  if (superdesc.isInterface()) {
+	    if (cd.getInline()) {
+	      cd.setSuper(null);
+	      cd.getSuperInterface().add(superdesc.getSymbol());
+	    } else {
+	      throw new Error("Error! Class " + cd.getSymbol() + " extends interface " + cd.getSuper());
+	    }
+	  } else {
+	    cd.setSuperDesc(superdesc);
+
+	    // Link together Field, Method, and Flag tables so classes
+	    // inherit these from their superclasses
+	    if (oldstatus<REFERENCE) {
+	      cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
+	      cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
+	      cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
+	    }
+	  }
         }
         // Link together Field, Method tables do classes inherit these from
         // their ancestor interfaces
@@ -91,11 +94,21 @@ public class SemanticCheck {
         /* Check to see that fields are well typed */
         for(Iterator field_it=cd.getFields(); field_it.hasNext(); ) {
           FieldDescriptor fd=(FieldDescriptor)field_it.next();
+	  try {
           checkField(cd,fd);
+	  } catch (Error e) {
+	    System.out.println("Class/Field in "+cd+":"+fd);
+	    throw e;
+	  }
         }
         for(Iterator method_it=cd.getMethods(); method_it.hasNext(); ) {
           MethodDescriptor md=(MethodDescriptor)method_it.next();
+	  try {
           checkMethod(cd,md);
+	  } catch (Error e) {
+	    System.out.println("Class/Method in "+cd+":"+md);
+	    throw e;
+	  }
         }
       }
     }
@@ -613,6 +626,17 @@ public class SemanticCheck {
     if (typeutil.isCastable(etd, cast_type))
       return;
 
+    //rough hack to handle interfaces...should clean up
+    if (etd.isClass()&&cast_type.isClass()) {
+      ClassDescriptor cdetd=etd.getClassDesc();
+      ClassDescriptor cdcast_type=cast_type.getClassDesc();
+
+      if (cdetd.isInterface()&&!cdcast_type.getModifier().isFinal())
+	return;
+      
+      if (cdcast_type.isInterface()&&!cdetd.getModifier().isFinal())
+	return;
+    }
     /* Different branches */
     /* TODO: change if add interfaces */
     throw new Error("Cast will always fail\n"+cn.printNode(0));
@@ -854,8 +878,6 @@ public class SemanticCheck {
 
     if (td!=null) {
       if (!typeutil.isSuperorType(td, ofn.getType())) {
-        System.out.println(td);
-        System.out.println(ofn.getType());
         throw new Error("Type of rside not compatible with type of lside"+ofn.printNode(0));
       }
     }
@@ -883,8 +905,8 @@ public class SemanticCheck {
       vec_type.add(ain.getVarInitializer(i).getType());
     }
     // descide the type of this variableInitializerNode
-    TypeDescriptor out_type = vec_type.elementAt(0);
-    for(int i = 1; i < vec_type.size(); i++) {
+    TypeDescriptor out_type = null;
+    for(int i = 0; i < vec_type.size(); i++) {
       TypeDescriptor tmp_type = vec_type.elementAt(i);
       if(out_type == null) {
         if(tmp_type != null) {
@@ -918,7 +940,6 @@ public class SemanticCheck {
     }
     if(out_type != null) {
       out_type = out_type.makeArray(state);
-      //out_type.setStatic();
     }
     ain.setType(out_type);
   }
@@ -1083,7 +1104,7 @@ public class SemanticCheck {
       ClassDescriptor classtolookin = typetolookin.getClassDesc();
       checkClass(classtolookin, INIT);
 
-      Set methoddescriptorset = classtolookin.getMethodTable().getSet(typetolookin.getSymbol());
+      Set methoddescriptorset = classtolookin.getMethodTable().getSet(classtolookin.getSymbol());
       MethodDescriptor bestmd = null;
 NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.hasNext(); ) {
         MethodDescriptor currmd = (MethodDescriptor) methodit.next();
@@ -1116,8 +1137,9 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
           /* Is this more specific than bestmd */
         }
       }
-      if (bestmd == null)
+      if (bestmd == null) {
         throw new Error("No method found for " + con.printNode(0) + " in " + md);
+      }
       con.setConstructor(bestmd);
     }
   }
@@ -1233,7 +1255,6 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
       throw new Error("Error with method call to "+min.getMethodName());
     ClassDescriptor classtolookin=typetolookin.getClassDesc();
     checkClass(classtolookin, INIT);
-    //System.out.println("Method name="+min.getMethodName());
 
     Set methoddescriptorset=classtolookin.getMethodTable().getSet(min.getMethodName());
     MethodDescriptor bestmd=null;
@@ -1526,8 +1547,6 @@ NextMethod:
 
     if (td!=null)
       if (!typeutil.isSuperorType(td, on.getType())) {
-        System.out.println(td);
-        System.out.println(on.getType());
         throw new Error("Type of rside not compatible with type of lside"+on.printNode(0));
       }
   }

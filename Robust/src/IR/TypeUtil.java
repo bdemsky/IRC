@@ -54,7 +54,6 @@ public class TypeUtil {
     for (int i = 0; i < state.classpath.size(); i++) {
       String path = (String) state.classpath.get(i);
       File f = new File(path, cl.replace('.', '/') + ".java");
-//      System.out.println("Looking in " + f.getAbsolutePath());
       if (f.exists()) {
         try {
           ParseNode pn = Main.readSourceFile(state, f.getCanonicalPath());
@@ -65,7 +64,6 @@ public class TypeUtil {
         }
       }
     }
-    throw new Error("Couldn't find class " + cl);
   }
 
 
@@ -80,25 +78,59 @@ public class TypeUtil {
     return cd;
   }
 
-  public ClassDescriptor getClass(String classname, HashSet todo) {
+  public ClassDescriptor getClass(ClassDescriptor context, String classnameIn, HashSet todo) {
+    int fileindex=0;
+    do {
+      int dotindex=classnameIn.indexOf('.',fileindex);
+      fileindex=dotindex+1;
+
+      if(dotindex==-1) {
+	//get entire class name
+	dotindex=classnameIn.length();
+      }
+
+      String classnamestr = classnameIn.substring(0, dotindex);
+      String remainder = classnameIn.substring(dotindex, classnameIn.length());
+      
+      if (context!=null) {
+	classnamestr = context.getCanonicalImportMapName(classnamestr);
+      }
+      ClassDescriptor cd=helperGetClass(classnamestr, remainder, todo);
+
+      if (cd!=null) {
+	return cd;
+      }
+    } while(fileindex!=0);
+    throw new Error("Cannot find class: "+classnameIn);
+  }
+
+  private ClassDescriptor helperGetClass(String classname, String remainder, HashSet todo) {
     String cl = classname;
     if(state.MGC) {
       // do not consider package or import when compiling MGC version
       cl = (cl.lastIndexOf('.')==-1)?cl:cl.substring(cl.lastIndexOf('.')+1);
     }
+
     ClassDescriptor cd=(ClassDescriptor)state.getClassSymbolTable().get(cl);
     if (cd==null) {
       //have to find class
       addNewClass(cl, todo);
-      cd=(ClassDescriptor)state.getClassSymbolTable().get(cl);
-
+      String cl2=cl+remainder.replace('.','$');
+      cd=(ClassDescriptor)state.getClassSymbolTable().get(cl2);
+      if (cd==null)
+	return null;
       System.out.println("Build class:"+cd);
       todo.add(cd);
+    } else {
+      String cl2=cl+remainder.replace('.','$');
+      cd=(ClassDescriptor)state.getClassSymbolTable().get(cl2);
+      if (cd==null)
+	return null;
     }
     if (!supertable.containsKey(cd)) {
       String superc=cd.getSuper();
       if (superc!=null) {
-        ClassDescriptor cd_super=getClass(superc, todo);
+        ClassDescriptor cd_super=getClass(cd, superc, todo);
         supertable.put(cd,cd_super);
       }
     }
@@ -109,7 +141,7 @@ public class TypeUtil {
       Vector<String> superifv = cd.getSuperInterface();
       for(int i = 0; i < superifv.size(); i++) {
         String superif = superifv.elementAt(i);
-        ClassDescriptor if_super = getClass(superif, todo);
+        ClassDescriptor if_super = getClass(cd, superif, todo);
         hs.add(if_super);
       }
     }

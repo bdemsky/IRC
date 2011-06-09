@@ -632,10 +632,10 @@ public class BuildIR {
       parseInnerClassDecl(cn,innerclassnode);
       return;
     }
- 
-    ParseNode innerinterfacenode=pn.getChild("interface_declaration");
+     ParseNode innerinterfacenode=pn.getChild("interface_declaration");
     if (innerinterfacenode!=null) {
       parseInterfaceDecl(innerinterfacenode, cn);
+      return;
     }
 
     ParseNode enumnode=pn.getChild("enum_declaration");
@@ -653,6 +653,7 @@ public class BuildIR {
     if(emptynode != null) {
       return;
     }
+    System.out.println("Unrecognized node:"+pn.PPrint(2,true));
     throw new Error();
   }
 
@@ -984,10 +985,13 @@ public class BuildIR {
       pushChainMaps();
       cnnew.setImports(mandatoryImports, multiimports);
       cnnew.setSuper(td.getSymbol());
+      cnnew.setInline();
       parseClassBody(cnnew, pn.getChild("decl").getChild("classbody"));
+      TypeDescriptor tdnew=state.getTypeDescriptor(cnnew.getSymbol());
+
       Vector args=parseArgumentList(pn);
 
-      CreateObjectNode con=new CreateObjectNode(td, false, null);
+      CreateObjectNode con=new CreateObjectNode(tdnew, false, null);
       con.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
         con.addArgument((ExpressionNode)args.get(i));

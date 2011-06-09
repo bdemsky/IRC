@@ -157,7 +157,7 @@ public class JavaBuilder implements CallGraph {
   }
 
   void initClassDesc(ClassDescriptor cd, int init) {
-    if (classStatus.get(cd)==null||classStatus.get(cd)!=init) {
+    if (classStatus.get(cd)==null||classStatus.get(cd)<init) {
       if (classStatus.get(cd)==null) {
         MethodDescriptor mdstaticinit = (MethodDescriptor)cd.getMethodTable().get("staticblocks");
         if (mdstaticinit!=null) {
@@ -313,12 +313,30 @@ searchimp:
       callMap.put(md, new HashSet<MethodDescriptor>());
 
     FlatMethod fm=state.getMethodFlat(md);
-    for(FlatNode fn : fm.getNodeSet()) {
+    for(FlatNode fn: fm.getNodeSet()) {
       switch(fn.kind()) {
-      case FKind.FlatCall : {
-          FlatCall fcall=(FlatCall)fn;
-          processCall(md, fcall);
-          break;
+      case FKind.FlatFieldNode: {
+	FieldDescriptor fd=((FlatFieldNode)fn).getField();
+	if (fd.isStatic()) {
+	  ClassDescriptor cd=fd.getClassDescriptor();
+	  initClassDesc(cd, CDINIT);
+	}
+	break;
+      }
+
+      case FKind.FlatSetFieldNode: {
+	FieldDescriptor fd=((FlatSetFieldNode)fn).getField();
+	if (fd.isStatic()) {
+	  ClassDescriptor cd=fd.getClassDescriptor();
+	  initClassDesc(cd, CDINIT);
+	}
+	break;
+      }
+
+      case FKind.FlatCall: {
+	FlatCall fcall=(FlatCall)fn;
+	processCall(md, fcall);
+	break;
       }
 
       case FKind.FlatNew: {
