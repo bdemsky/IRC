@@ -179,7 +179,8 @@ public class ReachSet extends Canonical {
   }
 
 
-  public String toStringEscNewline(boolean hideSubsetReachability) {
+  public String toStringEscNewline(boolean hideSubsetReachability,
+                                   boolean hidePreds) {
     String s = "[";
 
     Iterator<ReachState> i = this.iterator();
@@ -192,7 +193,12 @@ public class ReachSet extends Canonical {
         continue;
       }
 
-      s += state;
+      // jjenista - Use this version if you REALLY want to
+      // the see the preds for heap region nodes, edges,
+      // AND every reach state on all those elements!
+      //s += state.toString( hidePreds );
+      s += state.toString();
+
       if( i.hasNext() ) {
         s += "\\n";
       }
@@ -241,5 +247,15 @@ public class ReachSet extends Canonical {
 
     s += "]";
     return s;
+  }
+
+  public String toStringPreds() {
+    String s = "[\n";
+    
+    for( ReachState state: reachStates ) {
+      s += "  "+state.toStringPreds()+"\n";
+    }
+
+    return s+"]";
   }
 }

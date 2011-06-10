@@ -1314,9 +1314,9 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       rg.writeGraph("genReach"+fgrn.getGraphName(),
                     true,     // write labels (variables)
-                    false, //true,    // selectively hide intermediate temp vars
+                    true,    // selectively hide intermediate temp vars
                     true,     // prune unreachable heap regions
-                    true,    // hide reachability altogether
+                    false,    // hide reachability altogether
                     true,    // hide subset reachability states
                     true,     // hide predicates
                     true); //false);    // hide edge taints
@@ -1854,6 +1854,7 @@ public class DisjointAnalysis implements HeapAnalysis {
     ReachGraph rgOnExit = new ReachGraph();
     rgOnExit.merge(rg);
     fn2rgAtExit.put(fn, rgOnExit);
+
 
 
     // at this point rg should be the correct update
@@ -3027,7 +3028,7 @@ public class DisjointAnalysis implements HeapAnalysis {
                     true,    // prune unreachable heap regions
                     false,   // hide reachability
                     false,   // hide subset reachability states
-                    true,    // hide predicates
+                    false,    // hide predicates
                     true);   // hide edge taints
     }
   }

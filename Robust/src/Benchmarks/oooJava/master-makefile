@@ -76,13 +76,13 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # EX: (skip first 10 visits, capture the next 3, then halt)
 # -disjoint-debug-snap-method Remove 10 3 true
 
-DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions
-#	-disjoint-debug-callsite RayTracer.trace RayTracer.shade 10000 1 true
+DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE)
+#	-disjoint-debug-snap-method ArrayIndexedGraph.createNode 1 100 true \
+#	-disjoint-debug-callsite ArrayIndexedGraph.createNode Barneshut.run 1 100 true
 #	-disjoint-write-dots final \
 #	-flatirusermethods \
 #	-disjoint-write-ihms \
 #	-disjoint-write-initial-contexts \
-#	-disjoint-debug-snap-method RayTracer.shade 300 999 true
 #	-disjoint-debug-snap-method String.indexOf 1 1000 true
 #	-disjoint-debug-callsite String.concat2 FileInputStream.readLine 1 1000 true \
 #	-disjoint-debug-snap-method String.concat2 1 1000 true
@@ -132,7 +132,7 @@ $(PROGRAM)p.bin: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
 
 ooo-debug: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(OOODEBUG) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(OOODEBUG) $(DISJOINTDEBUG) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
 
 
 disjoint-debug: $(SOURCE_FILES) ../master-makefile

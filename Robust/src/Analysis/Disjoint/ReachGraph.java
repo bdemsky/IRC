@@ -871,8 +871,8 @@ public class ReachGraph {
 
     // after tokens have been aged, reset newest node's reachability
     // and a brand new node has a "true" predicate
-    hrn0.setAlpha(hrn0.getInherent() );
-    hrn0.setPreds(predsTrue);
+    hrn0.setAlpha( Canonical.changePredsTo( hrn0.getInherent(), predsTrue ) );
+    hrn0.setPreds( predsTrue);
   }
 
 
@@ -2260,8 +2260,8 @@ public class ReachGraph {
   private static boolean resolveMethodDebugDOTwriteLabels     = true;
   private static boolean resolveMethodDebugDOTselectTemps     = true;
   private static boolean resolveMethodDebugDOTpruneGarbage    = true;
-  private static boolean resolveMethodDebugDOThideReach       = true;
-  private static boolean resolveMethodDebugDOThideSubsetReach = true;
+  private static boolean resolveMethodDebugDOThideReach       = false;
+  private static boolean resolveMethodDebugDOThideSubsetReach = false;
   private static boolean resolveMethodDebugDOThidePreds       = false;
   private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
 
@@ -2369,6 +2369,8 @@ public class ReachGraph {
         // otherwise don't bother looking at edges to this node
         continue;
       }
+
+
 
       // since the node is coming over, find out which reach
       // states on it should come over, too
