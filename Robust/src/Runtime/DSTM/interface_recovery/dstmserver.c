@@ -1499,6 +1499,27 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 	printf("nummod: %d, numlocked: %d\n", nummod, numlocked);
 #endif
 
+  char* ptr;
+  objheader_t* headaddr;
+  objheader_t* ttmp;
+  ptr = (char *) modptr;
+  for(i = 0 ; i < nummod; i++){
+    int tmpsize=0;
+    headaddr = (objheader_t *) ptr;
+//    printf("44 before OID = %u version = %d Type = %d\n",OID(headaddr),headaddr->version,TYPE(headaddr));
+    ttmp = (objheader_t*)mhashSearch(oidmod[i]);
+    if(ttmp != NULL && TYPE(ttmp) != TYPE(headaddr)) {
+      printf("before OID = %u Type = %d\n",OID(headaddr),TYPE(headaddr));
+      printf("After  OID = %u Type = %d\n",OID(ttmp),TYPE(ttmp));
+      printf("\n");
+    }
+//      printf("44 after  OID = %u version = %d Type = %d\n",OID(headaddr),headaddr->version,TYPE(headaddr));
+//    else
+//      printf("44 after  OID = %u version = %d Type = %d\n",OID(ttmp),ttmp->version,TYPE(ttmp));
+    GETSIZE(tmpsize, headaddr);
+    ptr += sizeof(objheader_t) + tmpsize;
+  }
+
   /* Process each modified object saved in the mainobject store */
   for(i = 0; i < nummod; i++) {
     if((header = (objheader_t *) mhashSearch(oidmod[i])) == NULL) {
@@ -1541,6 +1562,7 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
       dst->___cachedHash___=src->___cachedHash___;
       memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
     }
+    CFENCE;
     header->version += 1;
 #ifdef DEBUG
     printf("oid: %u, new header version: %d\n", oidmod[i], header->version);

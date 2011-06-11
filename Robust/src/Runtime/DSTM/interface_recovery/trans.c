@@ -112,6 +112,9 @@ char ip[16];      // for debugging purpose
 extern tlist_t* transList;
 extern pthread_mutex_t translist_mutex;
 extern pthread_mutex_t clearNotifyList_mutex;
+pthread_mutex_t oidlock;
+pthread_mutex_t tidlock;
+
 
 unsigned int currentEpoch;
 unsigned int currentBackupMachine;
@@ -571,6 +574,12 @@ void transInit() {
   pthread_mutex_init(&prefetchcache_mutex, &prefetchcache_mutex_attr);
   pthread_mutex_init(&notifymutex, NULL);
   pthread_mutex_init(&atomicObjLock, NULL);
+#ifdef RECOVERY                      
+  pthread_mutex_init(&oidlock,NULL);
+  pthread_mutex_init(&tidlock,NULL);
+#endif
+
+
 #ifdef CACHE
   //Create prefetch cache lookup table
   if(prehashCreate(PHASH_SIZE, PLOADFACTOR)) {
@@ -973,6 +982,7 @@ remoteread:
 
 /* This function creates objects in the transaction record */
 objheader_t *transCreateObj(unsigned int size) {
+  pthread_mutex_lock(&oidlock);
   objheader_t *tmp = (objheader_t *) objstrAlloc(&t_cache, (sizeof(objheader_t) + size));
   OID(tmp) = getNewOID();
   tmp->notifylist = NULL;
@@ -980,6 +990,7 @@ objheader_t *transCreateObj(unsigned int size) {
   tmp->isBackup = 0;
   STATUS(tmp) = NEW;
   t_chashInsert(OID(tmp), tmp);
+  pthread_mutex_unlock(&oidlock);
 #ifdef COMPILER
   return &tmp[1]; //want space after object header
 #else
@@ -2462,6 +2473,9 @@ int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
       memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
     }
 
+    // memory barrier
+    CFENCE;
+
     header->version += 1;
     if(header->notifylist != NULL) {
 #ifdef RECOVERY
@@ -3062,10 +3076,12 @@ unsigned int getNewOID(void) {
 #ifdef RECOVERY
 static unsigned int tid = 0xFFFFFFFF;
 unsigned int getNewTransID(void) {
-  tid++;
+  pthread_mutex_lock(&tidlock);
+  tid+=2;
   if (tid > transIDMax || tid < transIDMin) {
     tid = (transIDMin | 1);
   }
+  pthread_mutex_unlock(&tidlock);
   return tid;
 }
 #endif
