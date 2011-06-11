@@ -165,7 +165,7 @@ public class MethodAnnotationCheck {
       break;
 
     case Kind.DeclarationNode:
-      // checkLocationFromDeclarationNode(md, nametable, (DeclarationNode) bsn);
+      checkDeclarationNode(md, nametable, (DeclarationNode) bsn, flag);
       break;
 
     case Kind.IfStatementNode:
@@ -183,14 +183,15 @@ public class MethodAnnotationCheck {
     }
   }
 
-  void checkDeclarationNode(MethodDescriptor md, SymbolTable nametable, DeclarationNode dn,
+  private void checkDeclarationNode(MethodDescriptor md, SymbolTable nametable, DeclarationNode dn,
       boolean flag) {
     if (dn.getExpression() != null) {
       checkExpressionNode(md, nametable, dn.getExpression(), flag);
     }
   }
 
-  void checkReturnNode(MethodDescriptor md, SymbolTable nametable, ReturnNode rn, boolean flag) {
+  private void checkReturnNode(MethodDescriptor md, SymbolTable nametable, ReturnNode rn,
+      boolean flag) {
     if (rn.getReturnExpression() != null) {
       if (md.getReturnType() != null) {
         checkExpressionNode(md, nametable, rn.getReturnExpression(), flag);
@@ -198,7 +199,7 @@ public class MethodAnnotationCheck {
     }
   }
 
-  void checkLoopNode(MethodDescriptor md, SymbolTable nametable, LoopNode ln, boolean flag) {
+  private void checkLoopNode(MethodDescriptor md, SymbolTable nametable, LoopNode ln, boolean flag) {
     if (ln.getType() == LoopNode.WHILELOOP || ln.getType() == LoopNode.DOWHILELOOP) {
       checkExpressionNode(md, nametable, ln.getCondition(), flag);
       checkBlockNode(md, nametable, ln.getBody(), flag);
@@ -218,8 +219,8 @@ public class MethodAnnotationCheck {
     }
   }
 
-  void checkIfStatementNode(MethodDescriptor md, SymbolTable nametable, IfStatementNode isn,
-      boolean flag) {
+  private void checkIfStatementNode(MethodDescriptor md, SymbolTable nametable,
+      IfStatementNode isn, boolean flag) {
     checkExpressionNode(md, nametable, isn.getCondition(), flag);
     checkBlockNode(md, nametable, isn.getTrueBlock(), flag);
     if (isn.getFalseBlock() != null) {

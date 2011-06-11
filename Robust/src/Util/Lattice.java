@@ -125,6 +125,25 @@ public class Lattice<T> {
     return table.containsKey(o);
   }
 
+  public boolean isComparable(T a, T b) {
+
+    Set<T> neighborSet = get(a);
+
+    if (neighborSet == null) {
+      return false;
+    } else if (neighborSet.contains(b)) {
+      return true;
+    } else {
+      boolean reachable = false;
+      for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext();) {
+        T neighbor = iterator.next();
+        reachable = reachable || isComparable(neighbor, b);
+      }
+      return reachable;
+    }
+
+  }
+
   public boolean isGreaterThan(T a, T b) {
 
     if (a.equals(top)) {
@@ -232,7 +251,7 @@ public class Lattice<T> {
     while (!needtovisit.isEmpty()) {
       T key = needtovisit.iterator().next();
       Set<T> lowerSet = table.get(key);
-      if(lowerSet!=null){
+      if (lowerSet != null) {
         for (Iterator iterator = lowerSet.iterator(); iterator.hasNext();) {
           T lowerItem = (T) iterator.next();
           set.add(new Pair(key, lowerItem));

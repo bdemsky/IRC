@@ -52,4 +52,24 @@ public class DeltaLocation extends CompositeLocation {
     return clone;
   }
 
+  public boolean equals(Object o) {
+
+    if (!(o instanceof DeltaLocation)) {
+      return false;
+    }
+
+    DeltaLocation deltaLoc = (DeltaLocation) o;
+
+    if (deltaLoc.getTuple().equals(getTuple()) && deltaLoc.getNumDelta() == numDelta) {
+      return true;
+    } else {
+      return false;
+    }
+
+  }
+
+  public int hashCode() {
+    return locTuple.hashCode() + numDelta;
+  }
+
 }
