@@ -2261,7 +2261,7 @@ public class ReachGraph {
   private static boolean resolveMethodDebugDOTselectTemps     = true;
   private static boolean resolveMethodDebugDOTpruneGarbage    = true;
   private static boolean resolveMethodDebugDOThideReach       = false;
-  private static boolean resolveMethodDebugDOThideSubsetReach = false;
+  private static boolean resolveMethodDebugDOThideSubsetReach = true;
   private static boolean resolveMethodDebugDOThidePreds       = false;
   private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
 

@@ -76,9 +76,9 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # EX: (skip first 10 visits, capture the next 3, then halt)
 # -disjoint-debug-snap-method Remove 10 3 true
 
-DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE)
+DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) \
+	-disjoint-debug-callsite Barneshut.Insert Barneshut.run 50 500 true
 #	-disjoint-debug-snap-method ArrayIndexedGraph.createNode 1 100 true \
-#	-disjoint-debug-callsite ArrayIndexedGraph.createNode Barneshut.run 1 100 true
 #	-disjoint-write-dots final \
 #	-flatirusermethods \
 #	-disjoint-write-ihms \
