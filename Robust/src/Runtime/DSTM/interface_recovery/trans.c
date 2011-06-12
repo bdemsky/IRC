@@ -19,6 +19,7 @@
 #include "abortreaders.h"
 #endif
 #include "trans.h"
+#include "mlp_lock.h"
 
 #ifdef RECOVERY
 #include <unistd.h>
@@ -112,8 +113,6 @@ char ip[16];      // for debugging purpose
 extern tlist_t* transList;
 extern pthread_mutex_t translist_mutex;
 extern pthread_mutex_t clearNotifyList_mutex;
-pthread_mutex_t oidlock;
-pthread_mutex_t tidlock;
 
 
 unsigned int currentEpoch;
@@ -574,10 +573,6 @@ void transInit() {
   pthread_mutex_init(&prefetchcache_mutex, &prefetchcache_mutex_attr);
   pthread_mutex_init(&notifymutex, NULL);
   pthread_mutex_init(&atomicObjLock, NULL);
-#ifdef RECOVERY                      
-  pthread_mutex_init(&oidlock,NULL);
-  pthread_mutex_init(&tidlock,NULL);
-#endif
 
 
 #ifdef CACHE
@@ -982,7 +977,6 @@ remoteread:
 
 /* This function creates objects in the transaction record */
 objheader_t *transCreateObj(unsigned int size) {
-  pthread_mutex_lock(&oidlock);
   objheader_t *tmp = (objheader_t *) objstrAlloc(&t_cache, (sizeof(objheader_t) + size));
   OID(tmp) = getNewOID();
   tmp->notifylist = NULL;
@@ -990,7 +984,6 @@ objheader_t *transCreateObj(unsigned int size) {
   tmp->isBackup = 0;
   STATUS(tmp) = NEW;
   t_chashInsert(OID(tmp), tmp);
-  pthread_mutex_unlock(&oidlock);
 #ifdef COMPILER
   return &tmp[1]; //want space after object header
 #else
@@ -3066,23 +3059,29 @@ int startRemoteThread(unsigned int oid, unsigned int mid) {
 //TODO: when reusing oids, make sure they are not already in use!
 static unsigned int id = 0xFFFFFFFF;
 unsigned int getNewOID(void) {
-  id += 2;
-  if (id > oidMax || id < oidMin) {
-    id = (oidMin | 1);
-  }
-  return id;
+  do {
+    unsigned int origid=id;
+    unsigned int newid=id+2;
+    if (newid> oidMax || newid < oidMin) {
+      newid=oidMin | 1;
+    }
+    if (CAS32(&id, origid, newid)==origid)
+      return newid;
+  } while(1);
 }
 
 #ifdef RECOVERY
 static unsigned int tid = 0xFFFFFFFF;
 unsigned int getNewTransID(void) {
-  pthread_mutex_lock(&tidlock);
-  tid+=2;
-  if (tid > transIDMax || tid < transIDMin) {
-    tid = (transIDMin | 1);
-  }
-  pthread_mutex_unlock(&tidlock);
-  return tid;
+  do {
+    unsigned int origtid=tid;
+    unsigned int newtid=tid+2;
+    if (newtid>transIDMax || newtid < transIDMin) {
+      newtid=transIDMin | 1;
+    }
+    if (CAS32(&tid, origtid, newtid)==origtid)
+      return newtid;
+  } while(1);
 }
 #endif
 
