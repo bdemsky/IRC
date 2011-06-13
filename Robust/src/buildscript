@@ -1208,6 +1208,7 @@ cp ../Runtime/ObjectHash.h ./
 cp ../Runtime/Queue.h ./
 cp ../Runtime/runtime.h ./
 cp ../Runtime/SimpleHash.h ./
+cp ../Runtime/objtypes.h ./
 cp $BAMBOORUNTIME/*.c ./
 cp $BAMBOORUNTIME/*.h ./
 cp ../Tilera/Runtime/*.c ./

@@ -53,16 +53,20 @@ INLINE void * mallocmem(int tofindb,
   return mem;
 }
 
+// 06/07/11 add a parameter minremain, it specifies the minimum number of 
+// blocks to leave for each core for local allocation. 
 INLINE void * searchBlock4Mem(int* tofindb, 
                               int* totest,
                               int gccorenum,
                               int isize,
-                              int * allocsize) {
+                              int * allocsize,
+                              int minremain) {
   int i=0;
   int j=0;
   int size = 0;
   int bound = BAMBOO_SMEM_SIZE_L;
-  while(*totest<(gcnumblock-bamboo_reserved_smem)) {
+  int freeblocks=(gcnumblock-bamboo_reserved_smem-1)/NUMCORES4GC+1;
+  while((*totest<(gcnumblock-bamboo_reserved_smem))&&(freeblocks>minremain)) {
     bound = BLOCKSIZE(*totest<NUMCORES4GC);
     int nsize = bamboo_smemtbl[*totest];
     if((nsize==bound)||((nsize != 0)&&(*totest != *tofindb))) {
@@ -74,6 +78,7 @@ INLINE void * searchBlock4Mem(int* tofindb,
         j++;
       }
       *tofindb=*totest=gc_core2block[2*gccorenum+i]+(NUMCORES4GC*2)*j;
+      freeblocks--;
     } else {
       // an empty block or a partially occupied block that can be set as the 
       // first block
@@ -141,17 +146,19 @@ INLINE void * searchBlock4Mem_global(int* tofindb,
 void * localmalloc_I(int coren,
                      int isize,
                      int * allocsize) {
-  void * mem = NULL;
-  int gccorenum = (coren<NUMCORES4GC)?(coren):(coren%NUMCORES4GC);
-  int tofindb = gc_core2block[2*gccorenum];
-  int totest = tofindb;
-  mem = searchBlock4Mem(&tofindb, &totest, gccorenum, isize, allocsize);
-  if(mem == NULL) {
+  void * mem=NULL;
+  int gccorenum=(coren<NUMCORES4GC)?(coren):(coren%NUMCORES4GC);
+  int tofindb=gc_core2block[2*gccorenum];
+  int totest=tofindb;
+  mem=searchBlock4Mem(&tofindb,&totest,gccorenum,isize,allocsize,0);
+  if(mem==NULL) {
     // no more local mem, do not find suitable block
-    *allocsize = 0;
+    *allocsize=0;
   }
   return mem;
 } 
+
+#define LOCALMEMRESERVATION 2
 
 #ifdef SMEMF
 // Allocate the local shared memory to each core with the highest priority,
@@ -162,25 +169,24 @@ void * fixedmalloc_I(int coren,
                      int * allocsize) {
   void * mem;
   int k;
-  int gccorenum = (coren<NUMCORES4GC)?(coren):(coren%NUMCORES4GC);
-  int totest, tofindb;
-  int bound = BAMBOO_SMEM_SIZE_L;
-  int foundsmem = 0;
-  int size = 0;
-  for(k=0; k<NUM_CORES2TEST; k++) {
-    if(core2test[gccorenum][k] == -1) {
+  int gccorenum=(coren<NUMCORES4GC)?(coren):(coren%NUMCORES4GC);
+  int totest,tofindb;
+  int bound=BAMBOO_SMEM_SIZE_L;
+  int foundsmem=0;
+  int size=0;
+  for(k=0;k<NUM_CORES2TEST;k++) {
+    if(core2test[gccorenum][k]==-1) {
       // try next neighbour
       continue;
     }
     tofindb=totest=gc_core2block[2*core2test[gccorenum][k]];
-    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],
-        isize,allocsize);
-    if(mem != NULL) {
+    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],isize,allocsize,(k==0)?0:((gcnumblock/NUMCORES4GC)>>LOCALMEMRESERVATION));
+    if(mem!=NULL) {
       return mem;
     }
   }
   // no more memory available on either coren or its neighbour cores
-  *allocsize = 0;
+  *allocsize=0;
   return NULL;
 } 
 #endif 
@@ -197,33 +203,32 @@ void * mixedmalloc_I(int coren,
                      int * allocsize) {
   void * mem;
   int k;
-  int gccorenum = (coren < NUMCORES4GC) ? (coren) : (coren % NUMCORES4GC);
+  int gccorenum=(coren<NUMCORES4GC)?(coren):(coren%NUMCORES4GC);
   int totest,tofindb;
-  int bound = BAMBOO_SMEM_SIZE_L;
-  int foundsmem = 0;
-  int size = 0;
-  for(k=0; k<NUM_CORES2TEST; k++) {
-    if(core2test[gccorenum][k] == -1) {
+  int bound=BAMBOO_SMEM_SIZE_L;
+  int foundsmem=0;
+  int size=0;
+  for(k=0;k<NUM_CORES2TEST;k++) {
+    if(core2test[gccorenum][k]==-1) {
       // try next neighbour
       continue;
     }
     tofindb=totest=gc_core2block[2*core2test[gccorenum][k]];
-    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],
-        isize,allocsize);
-    if(mem != NULL) {
-      gcmem_mixed_usedmem += size;
+    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],isize,allocsize,(k==0)?0:((gcnumblock/NUMCORES4GC)>>LOCALMEMRESERVATION));
+    if(mem!=NULL) {
+      gcmem_mixed_usedmem+=size;
       return mem;
     }
   }
-  if(gcmem_mixed_usedmem >= gcmem_mixed_threshold) {
+  if(gcmem_mixed_usedmem>=gcmem_mixed_threshold) {
     // no more memory available on either coren or its neighbour cores
     *allocsize = 0;
     return NULL; 
   } else {
     // try allocate globally
-    mem = globalmalloc_I(coren, isize, allocsize);
-    if(mem != NULL) {
-      gcmem_mixed_usedmem += size;
+    mem=globalmalloc_I(coren,isize,allocsize);
+    if(mem!=NULL) {
+      gcmem_mixed_usedmem+=size;
     }
     return mem;
   }
@@ -314,6 +319,11 @@ void * smemalloc_I(int coren,
     }
     return NULL;
   }
+  /*if(coren == hostcore(mem)) {
+    tprintf("Allocate host mem: %d, %d, %d \n", coren, hostcore(mem), mem);
+  } else {
+    tprintf("---Allocate non-host mem: %d, %d, %d \n", coren, hostcore(mem), mem);
+  }*/
   return mem;
 }
 #else

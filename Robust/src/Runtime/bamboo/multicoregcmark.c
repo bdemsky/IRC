@@ -288,6 +288,8 @@ INLINE void mark(bool isfirst, struct garbagelist * stackptr) {
         // ptr is a large object and not marked or enqueued
         gc_lobjenqueue(ptr, size, BAMBOO_NUM_OF_CORE);
         gcnumlobjs++;
+        // mark this obj
+        //((struct ___Object___ *)ptr)->marked = COMPACTED;
       } else {
         // ptr is an unmarked active object on this core
         ALIGNSIZE(size, &isize);
@@ -296,6 +298,8 @@ INLINE void mark(bool isfirst, struct garbagelist * stackptr) {
         if((unsigned int)(ptr + size) > (unsigned int)gcmarkedptrbound) {
           gcmarkedptrbound = (unsigned int)(ptr + size);
         }
+        // mark this obj
+        //((struct ___Object___ *)ptr)->marked = MARKED;
       }
       // mark this obj
       ((struct ___Object___ *)ptr)->marked = MARKED;

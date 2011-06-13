@@ -34,7 +34,7 @@ int msgsizearray[] = {
   4, //GCFINISHPRE,           // 0xE7
   2, //GCFINISHINIT,          // 0xE8
   4, //GCFINISHMARK,          // 0xE9
-  5, //GCFINISHCOMPACT,       // 0xEa
+  6, //GCFINISHCOMPACT,       // 0xEa
   2, //GCFINISHFLUSH,         // 0xEb
   1, //GCFINISH,              // 0xEc
   1, //GCMARKCONFIRM,         // 0xEd
@@ -505,7 +505,9 @@ INLINE void processmsg_gcfinishcompact_I() {
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
 
   int cnum = msgdata[msgdataindex];
-  MSG_INDEXINC_I();      
+  MSG_INDEXINC_I();  
+  bool loadbalancemove = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
   int filledblocks = msgdata[msgdataindex];
   MSG_INDEXINC_I();    
   int heaptop = msgdata[msgdataindex];
@@ -514,7 +516,7 @@ INLINE void processmsg_gcfinishcompact_I() {
   MSG_INDEXINC_I(); 
   // only gc cores need to do compact
   if(cnum < NUMCORES4GC) {
-    if(COMPACTPHASE == gc_status_info.gcphase) {
+    if(!loadbalancemove && (COMPACTPHASE == gc_status_info.gcphase)) {
       gcfilledblocks[cnum] = filledblocks;
       gcloads[cnum] = heaptop;
     }

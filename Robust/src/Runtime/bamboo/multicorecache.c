@@ -466,13 +466,13 @@ void gc_output_cache_sampling() {
     unsigned int block = 0;
     BLOCKINDEX(page_sva, &block);
     unsigned int coren = gc_block2core[block%(NUMCORES4GC*2)];
-    tprintf("va: %x page_index: %d host: %d\t",(int)page_sva,page_index,coren);
+    printf("%x,  %d,  %d,  ",(int)page_sva,page_index,coren);
     for(int i = 0; i < NUMCORESACTIVE; i++) {
       int * local_tbl = (int *)((void *)gccachesamplingtbl+size_cachesamplingtbl_local*i);
       int freq = local_tbl[page_index];
-      if(freq != 0) {
-        printf("(%d) %d,  ", i, freq);
-      }
+      //if(freq != 0) {
+        printf("%d,  ", freq);
+      //}
     }
     printf("\n");
   }
@@ -481,11 +481,12 @@ void gc_output_cache_sampling() {
 
 void gc_output_cache_sampling_r() {
   // TODO summary data
-  unsigned int sumdata[4][NUMCORESACTIVE]; // 0 -- single core accessed
-                                           // 1 -- all cores accessed
-                                           // 2 -- less than 5 cores accessed
-                                           // 3 -- multiple cores(5<=n<all) accessed
-  memset(sumdata, '0', sizeof(unsigned int)*4*NUMCORESACTIVE);
+  unsigned int sumdata[NUMCORESACTIVE][NUMCORESACTIVE];
+  for(int i = 0; i < NUMCORESACTIVE; i++) {
+    for(int j = 0; j < NUMCORESACTIVE; j++) {
+      sumdata[i][j] = 0;
+    }
+  }
   tprintf("cache sampling_r \n");
   unsigned int page_index = 0;
   VA page_sva = 0;
@@ -495,40 +496,21 @@ void gc_output_cache_sampling_r() {
     unsigned int block = 0;
     BLOCKINDEX(page_sva, &block);
     unsigned int coren = gc_block2core[block%(NUMCORES4GC*2)];
-    tprintf("va: %x page_index: %d host: %d\t",(int)page_sva,page_index,coren);
+    printf(" %x,  %d,  %d,  ",(int)page_sva,page_index,coren);
     int accesscore = 0; // TODO
     for(int i = 0; i < NUMCORESACTIVE; i++) {
       int * local_tbl = (int *)((void *)gccachesamplingtbl_r+size_cachesamplingtbl_local_r*i);
       int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
+      printf("%d,  ", freq);
       if(freq != 0) {
-        printf("(%d) %d,  ", i, freq);
         accesscore++;// TODO
       }
     }
-    if(accesscore==0) {
-    } else if(accesscore==1) {
+    if(accesscore!=0) {
       for(int i = 0; i < NUMCORESACTIVE; i++) {
         int * local_tbl = (int *)((void *)gccachesamplingtbl_r+size_cachesamplingtbl_local_r*i);
         int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
-        sumdata[0][i]+=freq;
-      }
-    } else if(accesscore<5) {
-      for(int i = 0; i < NUMCORESACTIVE; i++) {
-        int * local_tbl = (int *)((void *)gccachesamplingtbl_r+size_cachesamplingtbl_local_r*i);
-        int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
-        sumdata[2][i]+=freq;
-      }
-    } else if(accesscore<NUMCORESACTIVE) {
-      for(int i = 0; i < NUMCORESACTIVE; i++) {
-        int * local_tbl = (int *)((void *)gccachesamplingtbl_r+size_cachesamplingtbl_local_r*i);
-        int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
-        sumdata[3][i]+=freq;
-      }
-    } else {
-      for(int i = 0; i < NUMCORESACTIVE; i++) {
-        int * local_tbl = (int *)((void *)gccachesamplingtbl_r+size_cachesamplingtbl_local_r*i);
-        int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
-        sumdata[1][i]+=freq;
+        sumdata[accesscore-1][i]+=freq;
       }
     }
   
@@ -536,7 +518,11 @@ void gc_output_cache_sampling_r() {
   }
   // TODO printout the summary data
   for(int i = 0; i < NUMCORESACTIVE; i++) {
-    tprintf("core %d:  %d,  %d,  %d,  %d \n", i, sumdata[0][i], sumdata[2][i], sumdata[3][i], sumdata[1][i]);
+    printf("%d  ", i);
+    for(int j = 0; j < NUMCORESACTIVE; j++) {
+      printf(" %d  ", sumdata[j][i]);
+    }
+    printf("\n");
   }
   printf("=================\n");
 } 

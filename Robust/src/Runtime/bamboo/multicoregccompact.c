@@ -344,8 +344,7 @@ INLINE unsigned int findValidObj(struct moveHelper * orig,struct moveHelper * to
       struct ArrayObject *ao=(struct ArrayObject *)(origptr);
       unsigned int elementsize=classsize[*type];
       unsigned int length=ao->___length___;
-      size=(unsigned int)sizeof(struct ArrayObject)
-        +(unsigned int)(length*elementsize);
+      size=(unsigned int)sizeof(struct ArrayObject)+(unsigned int)(length*elementsize);
     }
     return size;
   }
@@ -371,6 +370,7 @@ INLINE bool moveobj(struct moveHelper * orig, struct moveHelper * to, unsigned i
   if(((struct ___Object___ *)origptr)->marked == MARKED) {
     unsigned int totop = (unsigned int)to->top;
     unsigned int tobound = (unsigned int)to->bound;
+    BAMBOO_ASSERT(totop<=tobound);
     GCPROFILE_RECORD_LIVE_OBJ();
     // marked obj, copy it to current heap top
     // check to see if remaining space is enough
@@ -384,6 +384,8 @@ INLINE bool moveobj(struct moveHelper * orig, struct moveHelper * to, unsigned i
       unsigned int tmp_ptr = to->ptr;
 #endif 
       nextBlock(to);
+      if((to->top+isize)>(to->bound)) tprintf("%x, %x, %d, %d, %d, %d \n", to->ptr, orig->ptr, to->top, to->bound, isize, size);
+      BAMBOO_ASSERT((to->top+isize)<=(to->bound));
 #ifdef GC_CACHE_ADAPT
       CACHEADAPT_COMPLETE_PAGE_CONVERT(orig, to, tmp_ptr, true);
 #endif 
@@ -391,7 +393,8 @@ INLINE bool moveobj(struct moveHelper * orig, struct moveHelper * to, unsigned i
         // already fulfilled the block
         return true;
       }  
-    } 
+    }
+    BAMBOO_ASSERT((to->top+isize)<=(to->bound));
     // set the mark field to 2, indicating that this obj has been moved
     // and need to be flushed
     ((struct ___Object___ *)origptr)->marked = COMPACTED;
@@ -411,6 +414,7 @@ INLINE bool moveobj(struct moveHelper * orig, struct moveHelper * to, unsigned i
     to->ptr += isize;
     to->offset += isize;
     to->top += isize;
+    BAMBOO_ASSERT((to->top)<=(to->bound));
 #ifdef GC_CACHE_ADAPT
     unsigned int tmp_ptr = to->ptr;
 #endif // GC_CACHE_ADAPT
@@ -463,7 +467,8 @@ bool gcfindSpareMem(unsigned int * startaddr,unsigned int * tomove,unsigned int 
   return false;
 }
 
-INLINE bool compacthelper(struct moveHelper * orig,struct moveHelper * to,int * filledblocks,unsigned int * heaptopptr,bool * localcompact) {
+INLINE bool compacthelper(struct moveHelper * orig,struct moveHelper * to,int * filledblocks,unsigned int * heaptopptr,bool * localcompact, bool lbmove) {
+  bool loadbalancemove = lbmove;
   // scan over all objs in this block, compact the marked objs
   // loop stop when finishing either scanning all active objs or
   // fulfilled the gcstopblock
@@ -487,12 +492,20 @@ innercompact:
     *heaptopptr = to->ptr;
     *filledblocks = to->numblocks;
   }
+  /*if(loadbalancemove) {
+    // write back to the Main Memory and release any DTLB entry for the 
+    // last block as someone else might later write into it
+    // flush the shared heap
+    BAMBOO_CACHE_FLUSH_L2();
+    //loadbalancemove = false;
+  }*/
   
   // send msgs to core coordinator indicating that the compact is finishing
   // send compact finish message to core coordinator
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     gcfilledblocks[BAMBOO_NUM_OF_CORE] = *filledblocks;
     gcloads[BAMBOO_NUM_OF_CORE] = *heaptopptr;
+    //tprintf("--finish compact: %d, %d, %d, %x, %x \n", BAMBOO_NUM_OF_CORE, loadbalancemove, *filledblocks, *heaptopptr, gccurr_heaptop);
     if((unsigned int)(orig->ptr) < (unsigned int)gcmarkedptrbound) {
       // ask for more mem
       gctomove = false;
@@ -504,25 +517,37 @@ innercompact:
     } else {
       gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
       gctomove = false;
+      // write back to the Main Memory and release any DTLB entry for the 
+      // last block as someone else might later write into it
+      // flush the shared heap
+      //BAMBOO_CACHE_FLUSH_L2();
       return true;
     }
   } else {
     if((unsigned int)(orig->ptr) < (unsigned int)gcmarkedptrbound) {
       // ask for more mem
       gctomove = false;
-      send_msg_5(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE,*filledblocks,*heaptopptr,gccurr_heaptop);
+      //tprintf("finish compact: %d, %d, %d, %x, %x \n", BAMBOO_NUM_OF_CORE, loadbalancemove, *filledblocks, *heaptopptr, gccurr_heaptop);
+      send_msg_6(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE,loadbalancemove,*filledblocks,*heaptopptr,gccurr_heaptop);
     } else {
+      //tprintf("++ finish compact: %d, %d, %d, %x, %x \n", BAMBOO_NUM_OF_CORE, loadbalancemove, *filledblocks, *heaptopptr, 0);
       // finish compacting
-      send_msg_5(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE,*filledblocks,*heaptopptr, 0);
+      send_msg_6(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE,loadbalancemove,*filledblocks,*heaptopptr, 0);
+      // write back to the Main Memory and release any DTLB entry for the 
+      // last block as someone else might later write into it.
+      // flush the shared heap
+      //BAMBOO_CACHE_FLUSH_L2();
     }
-  } 
+  }
 
   if(orig->ptr < gcmarkedptrbound) {
     // still have unpacked obj
     while(!gctomove) ;
+    BAMBOO_CACHE_MF();
+    loadbalancemove = true;
+    //tprintf("move start: %x, %d \n", gcmovestartaddr, gcdstcore);
     
     gctomove = false;
-
     to->ptr = gcmovestartaddr;
     to->numblocks = gcblock2fill - 1;
     to->bound = BLOCKBOUND(to->numblocks);
@@ -542,6 +567,7 @@ innercompact:
 
 void compact() {
   BAMBOO_ASSERT(COMPACTPHASE == gc_status_info.gcphase);
+  BAMBOO_CACHE_MF();
   
   // initialize pointers for comapcting
   struct moveHelper * orig = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
@@ -549,7 +575,7 @@ void compact() {
   if(!initOrig_Dst(orig, to)) {
     // no available data to compact
     // send compact finish msg to STARTUP core
-    send_msg_5(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE,0,to->base,0);
+    send_msg_6(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE,false,0,to->base,0);
     RUNFREE(orig);
     RUNFREE(to);
   } else {
@@ -558,7 +584,7 @@ void compact() {
     unsigned int filledblocks = 0;
     unsigned int heaptopptr = 0;
     bool localcompact = true;
-    compacthelper(orig, to, &filledblocks, &heaptopptr, &localcompact);
+    compacthelper(orig, to, &filledblocks, &heaptopptr, &localcompact, false);
     RUNFREE(orig);
     RUNFREE(to);
   }
@@ -573,9 +599,10 @@ void compact_master(struct moveHelper * orig, struct moveHelper * to) {
   bool finishcompact = false;
   bool iscontinue = true;
   bool localcompact = true;
+  bool lbmove = false;
   while((COMPACTPHASE == gc_status_info.gcphase) || (SUBTLECOMPACTPHASE == gc_status_info.gcphase)) {
     if((!finishcompact) && iscontinue) {
-      finishcompact = compacthelper(orig,to,&filledblocks,&heaptopptr,&localcompact);
+      finishcompact = compacthelper(orig,to,&filledblocks,&heaptopptr,&localcompact, lbmove);
     }
     
     if(gc_checkCoreStatus()) {
@@ -592,6 +619,7 @@ void compact_master(struct moveHelper * orig, struct moveHelper * to) {
     } 
 
     if(gctomove) {
+      BAMBOO_CACHE_MF();
       to->ptr = gcmovestartaddr;
       to->numblocks = gcblock2fill - 1;
       to->bound = BLOCKBOUND(to->numblocks);
@@ -605,9 +633,11 @@ void compact_master(struct moveHelper * orig, struct moveHelper * to) {
       localcompact = (gcdstcore == BAMBOO_NUM_OF_CORE);
       gctomove = false;
       iscontinue = true;
+      lbmove = true;
     } else if(!finishcompact) {
       // still pending
       iscontinue = false;
+      lbmove = false;
     }
   }
 }

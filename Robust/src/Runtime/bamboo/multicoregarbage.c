@@ -386,6 +386,7 @@ INLINE bool cacheLObjs() {
     // set the mark field to , indicating that this obj has been moved
     // and need to be flushed
     ((struct ___Object___ *)(gclobjtail2->lobjs[gclobjtailindex2]))->marked=COMPACTED;
+    BAMBOO_CACHE_FLUSH_LINE(gclobjtail2->lobjs[gclobjtailindex2]);
     dst -= size;
     if((unsigned int)dst<(unsigned int)(gclobjtail2->lobjs[gclobjtailindex2]+size)) {
       memmove(dst, gclobjtail2->lobjs[gclobjtailindex2], size);
@@ -736,6 +737,7 @@ void master_compact() {
   // predict number of blocks to fill for each core
   unsigned int tmpheaptop = 0;
   int numpbc = loadbalance(&tmpheaptop);
+  //tprintf("numpbc: %d \n", numpbc);
 
   numpbc = (BAMBOO_SHARED_MEM_SIZE)/(BAMBOO_SMEM_SIZE);
   GC_PRINTF("mark phase finished \n");
@@ -751,21 +753,21 @@ void master_compact() {
     gccorestatus[i] = 1;
     //send start compact messages to all cores
     //TODO bug here, do not know if the direction is positive or negtive?
-    if (tmpcoreptr < tmpheaptop) {
-      gcstopblock[i] = numpbc + 1;
+    //if (tmpcoreptr < tmpheaptop) {
+      gcstopblock[i] = numpbc+1;
       if(i != STARTUPCORE) {
         send_msg_2(i, GCSTARTCOMPACT, numpbc+1);
       } else {
         gcblock2fill = numpbc+1;
       }
-    } else {
+    /*} else {
       gcstopblock[i] = numpbc;
       if(i != STARTUPCORE) {
         send_msg_2(i, GCSTARTCOMPACT, numpbc);
       } else {
         gcblock2fill = numpbc;
       }
-    }
+    }*/
   }
   BAMBOO_CACHE_MF();
   GCPROFILE_ITEM();
@@ -825,7 +827,7 @@ void master_finish() {
 }
 
 void gc_master(struct garbagelist * stackptr) {
-  //tprintf("start GC !!!!!!!!!!!!! \n");
+  tprintf("start GC !!!!!!!!!!!!! \n");
   gc_status_info.gcprocessing = true;
   gc_status_info.gcphase = INITPHASE;
 
@@ -860,7 +862,7 @@ void gc_master(struct garbagelist * stackptr) {
   master_finish();
 
   GC_PRINTF("gc finished   \n");
-  //tprintf("finish GC ! %d \n",gcflag);
+  tprintf("finish GC ! %d \n",gcflag);
 } 
 
 void pregccheck() {

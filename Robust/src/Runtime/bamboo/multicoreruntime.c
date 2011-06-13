@@ -281,6 +281,7 @@ void CALL35(___System______arraycopy____L___Object____I_L___Object____I_I,
 }
 #endif
 
+#ifdef D___System______exit____I
 void CALL11(___System______exit____I,
             int ___status___, 
             int ___status___) {
@@ -295,6 +296,7 @@ void CALL11(___System______exit____I,
 #endif 
   BAMBOO_EXIT_APP(___status___);
 }
+#endif
 
 #ifdef D___Vector______removeElement_____AR_L___Object____I_I
 void CALL23(___Vector______removeElement_____AR_L___Object____I_I, 
@@ -310,17 +312,21 @@ void CALL23(___Vector______removeElement_____AR_L___Object____I_I,
 }
 #endif
 
+#ifdef D___System______printI____I
 void CALL11(___System______printI____I,
             int ___status___, 
             int ___status___) {
   BAMBOO_PRINT(0x1111);
   BAMBOO_PRINT_REG(___status___);
 }
+#endif
 
+#ifdef D___System______currentTimeMillis____
 long long CALL00(___System______currentTimeMillis____) {
   //TilePro64 is 700mHz
   return ((unsigned long long)BAMBOO_GET_EXE_TIME())/700000;
 }
+#endif
 
 void CALL00(___System______setgcprofileflag____) {
 #ifdef GC_PROFILE
@@ -340,6 +346,7 @@ void CALL00(___System______resetgcprofileflag____) {
 #endif
 }
 
+#ifdef D___System______printString____L___String___
 void CALL01(___System______printString____L___String___,
             struct ___String___ * ___s___) {
 #ifdef MGC
@@ -356,6 +363,7 @@ void CALL01(___System______printString____L___String___,
 #endif // TILERA_BME
 #endif // MGC
 }
+#endif
 
 /* Object allocation function */
 
@@ -498,7 +506,7 @@ struct ___String___ * NewString(const char *str,
 
 void failedboundschk(int num) {
 #ifndef TASK
-  printf("Array out of bounds\n");
+  printf("Array out of bounds, %d \n", num);
 #ifdef THREADS
   threadexit();
 #elif defined MGC
