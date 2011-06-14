@@ -10,7 +10,6 @@ import IR.Tree.BlockExpressionNode;
 import IR.Tree.BlockNode;
 import IR.Tree.BlockStatementNode;
 import IR.Tree.CastNode;
-import IR.Tree.CreateObjectNode;
 import IR.Tree.DeclarationNode;
 import IR.Tree.ExpressionNode;
 import IR.Tree.Kind;
@@ -20,9 +19,11 @@ import IR.Tree.SubBlockNode;
 public class SingleReferenceCheck {
 
   static State state;
+  SSJavaAnalysis ssjava;
   String needToNullify = null;
 
-  public SingleReferenceCheck(State state) {
+  public SingleReferenceCheck(SSJavaAnalysis ssjava, State state) {
+    this.ssjava = ssjava;
     this.state = state;
   }
 
@@ -32,7 +33,9 @@ public class SingleReferenceCheck {
       ClassDescriptor cd = (ClassDescriptor) it.next();
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
-        checkMethodBody(cd, md);
+        if (ssjava.needAnnotation(md)) {
+          checkMethodBody(cd, md);
+        }
       }
     }
   }

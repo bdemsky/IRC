@@ -114,7 +114,7 @@ public class FlowDownCheck {
         checkDeclarationInClass(cd);
         for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
           MethodDescriptor md = (MethodDescriptor) method_it.next();
-          if (ssjava.hasAnnotation(md)) {
+          if (ssjava.needAnnotation(md)) {
             checkDeclarationInMethodBody(cd, md);
           }
         }
@@ -133,7 +133,7 @@ public class FlowDownCheck {
       checkClass(cd);
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
-        if (ssjava.hasAnnotation(md)) {
+        if (ssjava.needAnnotation(md)) {
           checkMethodBody(cd, md);
         }
       }
@@ -176,7 +176,8 @@ public class FlowDownCheck {
     BlockNode bn = state.getMethodBody(md);
 
     // parsing returnloc annotation
-    if (ssjava.hasAnnotation(md)) {
+    if (ssjava.needAnnotation(md)) {
+
       Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
       if (methodAnnotations != null) {
         for (int i = 0; i < methodAnnotations.size(); i++) {
@@ -340,10 +341,17 @@ public class FlowDownCheck {
     CompositeLocation expLoc =
         checkLocationFromExpressionNode(md, nametable, returnExp, new CompositeLocation());
 
-    // by default, return node has "bottom" location
-    CompositeLocation loc = new CompositeLocation();
-    loc.addLocation(Location.createBottomLocation(md));
-    return loc;
+    // check if return value is equal or higher than RETRUNLOC of method
+    // declaration annotation
+    CompositeLocation returnLocAt = md2ReturnLoc.get(md);
+
+    if (CompositeLattice.isGreaterThan(returnLocAt, expLoc)) {
+      throw new Error(
+          "Return value location is not equal or higher than the declaraed return location at "
+              + md.getClassDesc().getSourceFileName() + "::" + rn.getNumLine());
+    }
+
+    return new CompositeLocation();
   }
 
   private boolean hasOnlyLiteralValue(ExpressionNode en) {
@@ -630,8 +638,22 @@ public class FlowDownCheck {
       SymbolTable nametable, MethodInvokeNode min, CompositeLocation loc) {
 
     checkCalleeConstraints(md, nametable, min);
+
+    CompositeLocation baseLocation = null;
+    if (min.getExpression() != null) {
+      baseLocation =
+          checkLocationFromExpressionNode(md, nametable, min.getExpression(),
+              new CompositeLocation());
+    } else {
+      String thisLocId = ssjava.getMethodLattice(md).getThisLoc();
+      baseLocation = new CompositeLocation(new Location(md, thisLocId));
+    }
+
     if (!min.getMethod().getReturnType().isVoid()) {
-      CompositeLocation ceilingLoc = computeCeilingLocationForCaller(md, nametable, min);
+      // If method has a return value, compute the highest possible return
+      // location in the caller's perspective
+      CompositeLocation ceilingLoc =
+          computeCeilingLocationForCaller(md, nametable, min, baseLocation);
       return ceilingLoc;
     }
 
@@ -640,13 +662,11 @@ public class FlowDownCheck {
   }
 
   private CompositeLocation computeCeilingLocationForCaller(MethodDescriptor md,
-      SymbolTable nametable, MethodInvokeNode min) {
-
+      SymbolTable nametable, MethodInvokeNode min, CompositeLocation baseLocation) {
     List<CompositeLocation> argList = new ArrayList<CompositeLocation>();
 
-    String thisLocId = ssjava.getMethodLattice(md).getThisLoc();
-    CompositeLocation thisLoc = new CompositeLocation(new Location(md, thisLocId));
-    argList.add(thisLoc);
+    // by default, method has a THIS parameter
+    argList.add(baseLocation);
 
     for (int i = 0; i < min.numArgs(); i++) {
       ExpressionNode en = min.getArg(i);
@@ -1120,8 +1140,8 @@ public class FlowDownCheck {
 
     // currently enforce every field to have corresponding location
     if (annotationVec.size() == 0) {
-      throw new Error("Location is not assigned to the field " + fd.getSymbol() + " of the class "
-          + cd.getSymbol());
+      throw new Error("Location is not assigned to the field '" + fd.getSymbol()
+          + "' of the class " + cd.getSymbol() + " at " + cd.getSourceFileName());
     }
 
     if (annotationVec.size() > 1) {
@@ -1187,7 +1207,7 @@ public class FlowDownCheck {
 
     public static int compare(CompositeLocation loc1, CompositeLocation loc2) {
 
-//      System.out.println("compare=" + loc1 + " " + loc2);
+      // System.out.println("compare=" + loc1 + " " + loc2);
       int baseCompareResult = compareBaseLocationSet(loc1, loc2);
 
       if (baseCompareResult == ComparisonResult.EQUAL) {
@@ -1312,8 +1332,15 @@ public class FlowDownCheck {
       // mapping from the priority loc ID to its full representation by the
       // composite location
 
+      int maxTupleSize = 0;
+      CompositeLocation maxCompLoc = null;
+
       for (Iterator iterator = inputSet.iterator(); iterator.hasNext();) {
         CompositeLocation compLoc = (CompositeLocation) iterator.next();
+        if (compLoc.getSize() > maxTupleSize) {
+          maxTupleSize = compLoc.getSize();
+          maxCompLoc = compLoc;
+        }
         Location priorityLoc = compLoc.get(0);
         String priorityLocId = priorityLoc.getLocIdentifier();
         priorityLocIdentifierSet.add(priorityLocId);
@@ -1341,13 +1368,27 @@ public class FlowDownCheck {
       glbCompLoc.addLocation(new Location(priorityDescriptor, glbOfPriorityLoc));
       Set<CompositeLocation> compSet = locId2CompLocSet.get(glbOfPriorityLoc);
 
+      // here find out composite location that has a maximum length tuple
+      // if we have three input set: [A], [A,B], [A,B,C]
+      // maximum length tuple will be [A,B,C]
+      int max = 0;
+      CompositeLocation maxFromCompSet = null;
+      for (Iterator iterator = compSet.iterator(); iterator.hasNext();) {
+        CompositeLocation c = (CompositeLocation) iterator.next();
+        if (c.getSize() > max) {
+          max = c.getSize();
+          maxFromCompSet = c;
+        }
+      }
+
       if (compSet == null) {
         // when GLB(x1,x2)!=x1 and !=x2 : GLB case 4
         // mean that the result is already lower than <x1,y1> and <x2,y2>
         // assign TOP to the rest of the location elements
 
         // in this case, do not take care about delta
-        CompositeLocation inputComp = inputSet.iterator().next();
+        // CompositeLocation inputComp = inputSet.iterator().next();
+        CompositeLocation inputComp = maxCompLoc;
         for (int i = 1; i < inputComp.getSize(); i++) {
           glbCompLoc.addLocation(Location.createTopLocation(inputComp.get(i).getDescriptor()));
         }
@@ -1371,17 +1412,20 @@ public class FlowDownCheck {
           // if more than one location shares the same priority GLB
           // need to calculate the rest of GLB loc
 
-          int compositeLocSize = compSet.iterator().next().getSize();
+          // int compositeLocSize = compSet.iterator().next().getSize();
+          int compositeLocSize = maxFromCompSet.getSize();
 
           Set<String> glbInputSet = new HashSet<String>();
           Descriptor currentD = null;
           for (int i = 1; i < compositeLocSize; i++) {
             for (Iterator iterator = compSet.iterator(); iterator.hasNext();) {
               CompositeLocation compositeLocation = (CompositeLocation) iterator.next();
-              Location currentLoc = compositeLocation.get(i);
-              currentD = currentLoc.getDescriptor();
-              // making set of the current location sharing the same idx
-              glbInputSet.add(currentLoc.getLocIdentifier());
+              if (compositeLocation.getSize() > i) {
+                Location currentLoc = compositeLocation.get(i);
+                currentD = currentLoc.getDescriptor();
+                // making set of the current location sharing the same idx
+                glbInputSet.add(currentLoc.getLocIdentifier());
+              }
             }
             // calculate glb for the current lattice
 
@@ -1482,7 +1526,6 @@ class ReturnLocGenerator {
       CompositeLocation argLoc = args.get(i);
       if (type == PARAMISHIGHER) {
         // return loc is lower than param
-        System.out.println("argLoc=" + argLoc);
         DeltaLocation delta = new DeltaLocation(argLoc, 1);
         inputGLB.add(delta);
       } else if (type == PARAMISSAME) {

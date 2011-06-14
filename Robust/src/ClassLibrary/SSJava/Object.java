@@ -1,7 +1,10 @@
+import String;
+
 @LATTICE("")
-@METHODDEFAULT("THIS<IN,THISLOC=IN")
+@METHODDEFAULT("TH<IN,THISLOC=IN")
 public class Object {
-  
+
+  @RETURNLOC("TH")
   public native int hashCode();
 
   /* DON'T USE THIS METHOD UNLESS NECESSARY */
@@ -9,8 +12,14 @@ public class Object {
   public native int getType();
 
   public boolean equals(@LOC("IN") Object o) {
-    if (o==this)
+    if (o == this)
       return true;
     return false;
   }
+
+  @RETURNLOC("TH")
+  public String toString() {
+    return "Object" + hashCode();
+  }
+
 }

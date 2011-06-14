@@ -28,7 +28,7 @@ public class SSJavaAnalysis {
   MethodAnnotationCheck methodAnnotationChecker;
 
   // if a method has annotations, the mapping has true
-  Hashtable<MethodDescriptor, Boolean> md2hasAnnotation;
+  Hashtable<MethodDescriptor, Boolean> md2needAnnotation;
 
   // class -> field lattice
   Hashtable<ClassDescriptor, SSJavaLattice<String>> cd2lattice;
@@ -45,7 +45,7 @@ public class SSJavaAnalysis {
     this.cd2lattice = new Hashtable<ClassDescriptor, SSJavaLattice<String>>();
     this.cd2methodDefault = new Hashtable<ClassDescriptor, MethodLattice<String>>();
     this.md2lattice = new Hashtable<MethodDescriptor, MethodLattice<String>>();
-    this.md2hasAnnotation = new Hashtable<MethodDescriptor, Boolean>();
+    this.md2needAnnotation = new Hashtable<MethodDescriptor, Boolean>();
   }
 
   public void doCheck() {
@@ -73,7 +73,7 @@ public class SSJavaAnalysis {
   }
 
   public void doSingleReferenceCheck() {
-    SingleReferenceCheck checker = new SingleReferenceCheck(state);
+    SingleReferenceCheck checker = new SingleReferenceCheck(this, state);
     checker.singleReferenceCheck();
   }
 
@@ -103,7 +103,7 @@ public class SSJavaAnalysis {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
         // parsing location hierarchy declaration for the method
 
-        if (hasAnnotation(md)) {
+        if (needAnnotation(md)) {
           Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
           if (methodAnnotations != null) {
             for (int i = 0; i < methodAnnotations.size(); i++) {
@@ -232,16 +232,16 @@ public class SSJavaAnalysis {
     }
   }
 
-  public boolean hasAnnotation(MethodDescriptor md) {
-    return md2hasAnnotation.containsKey(md);
+  public boolean needAnnotation(MethodDescriptor md) {
+    return md2needAnnotation.containsKey(md);
   }
 
-  public void putHasAnnotation(MethodDescriptor md) {
-    md2hasAnnotation.put(md, new Boolean(true));
+  public void putNeedAnnotation(MethodDescriptor md) {
+    md2needAnnotation.put(md, new Boolean(true));
   }
 
   public Hashtable<MethodDescriptor, Boolean> getMd2hasAnnotation() {
-    return md2hasAnnotation;
+    return md2needAnnotation;
   }
 
 }

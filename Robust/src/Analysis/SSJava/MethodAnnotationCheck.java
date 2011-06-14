@@ -59,17 +59,19 @@ public class MethodAnnotationCheck {
       Object obj = toanalyze.iterator().next();
       ClassDescriptor cd = (ClassDescriptor) obj;
       toanalyze.remove(cd);
+
       if (!cd.isInterface()) {
         for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
           MethodDescriptor md = (MethodDescriptor) method_it.next();
           checkMethodBody(cd, md);
         }
       }
+
     }
 
     for (Iterator iterator = annotatedMDSet.iterator(); iterator.hasNext();) {
       MethodDescriptor md = (MethodDescriptor) iterator.next();
-      ssjava.putHasAnnotation(md);
+      ssjava.putNeedAnnotation(md);
     }
 
     Set<Pair> visited = new HashSet<Pair>();
@@ -87,7 +89,7 @@ public class MethodAnnotationCheck {
           if (!visited.contains(p)) {
             visited.add(p);
             tovisit.add(calleeMD);
-            ssjava.putHasAnnotation(calleeMD);
+            ssjava.putNeedAnnotation(calleeMD);
           }
         }
       }
@@ -117,7 +119,7 @@ public class MethodAnnotationCheck {
             MethodDescriptor matchmd = (MethodDescriptor) methodit.next();
             if (md.matches(matchmd)) {
               if (matchmd.getClassDesc().equals(subCD)) {
-                ssjava.putHasAnnotation(matchmd);
+                ssjava.putNeedAnnotation(matchmd);
               }
             }
           }
