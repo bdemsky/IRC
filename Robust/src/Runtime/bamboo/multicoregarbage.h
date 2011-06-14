@@ -108,9 +108,9 @@ int * gcsbstarttbl;
 unsigned int gcsbstarttbl_len;
 #endif
 unsigned int gcnumblock; // number of total blocks in the shared mem
-unsigned int gcbaseva; // base va for shared memory without reserved sblocks
+void * gcbaseva; // base va for shared memory without reserved sblocks
 #ifdef GC_CACHE_ADAPT
-unsigned int gctopva; // top va for shared memory without reserved sblocks
+void * gctopva; // top va for shared memory without reserved sblocks
 volatile bool gccachestage;
 // table recording the sampling data collected for cache adaption 
 int * gccachesamplingtbl;
