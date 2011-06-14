@@ -87,12 +87,11 @@ INLINE void markObj(void * objptr) {
     }
   } else {
     // check if this obj has been forwarded already
-    if(!MGCHashcontains(gcforwardobjtbl, (int)objptr)) {
+    if(MGCHashadd(gcforwardobjtbl, (unsigned int)objptr)) {
       // if not, send msg to host informing that objptr is active
       send_msg_2(host,GCMARKEDOBJ,objptr);
       GCPROFILE_RECORD_FORWARD_OBJ();
       gcself_numsendobjs++;
-      MGCHashadd(gcforwardobjtbl, (int)objptr);
     }
   }
 } 

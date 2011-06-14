@@ -118,7 +118,7 @@ void initmulticoregcdata() {
   gcself_numsendobjs = 0;
   gcself_numreceiveobjs = 0;
   gcmarkedptrbound = 0;
-  gcforwardobjtbl = allocateMGCHash_I(20, 3);
+  gcforwardobjtbl = allocateMGCHash_I(128);
   gcnumlobjs = 0;
   gcheaptop = 0;
   gctopcore = 0;
@@ -180,8 +180,7 @@ void initGC() {
 
   gc_queueinit();
 
-  freeMGCHash(gcforwardobjtbl);
-  gcforwardobjtbl = allocateMGCHash(20, 3);
+  MGCHashreset(gcforwardobjtbl);
 
   GCPROFILE_INIT();
   gc_output_cache_policy_time=0;

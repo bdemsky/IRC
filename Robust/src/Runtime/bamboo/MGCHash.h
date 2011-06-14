@@ -43,27 +43,24 @@ void mgchashreset(mgchashtable_t * tbl);
 
 
 /** MGCHash *******************************************************************/
-struct MGCHash * allocateMGCHash(int size, int conflicts);
+//must be a power of 2
+struct MGCHash * allocateMGCHash(int size);
 void freeMGCHash(struct MGCHash *);
-
-int MGCHashadd(struct MGCHash *, int data);
+void MGCHashreset(struct MGCHash *thisvar);
+int MGCHashadd(struct MGCHash *, unsigned INTPTR data);
 #ifdef MULTICORE
-struct MGCHash * allocateMGCHash_I(int size, int conflicts);
-int MGCHashadd_I(struct MGCHash *, int data);
+struct MGCHash * allocateMGCHash_I(int size);
+int MGCHashadd_I(struct MGCHash *, unsigned INTPTR data);
 #endif
-int MGCHashcontains(struct MGCHash *,int data);
+int MGCHashcontains(struct MGCHash *, unsigned INTPTR data);
 
 struct MGCHash {
-  int num4conflicts;
+  int mask;
   int size;
-  struct MGCNode *bucket;
+  unsigned INTPTR *bucket;
 };
 
 /* MGCHashException  *************************************************/
 
-struct MGCNode {
-  struct MGCNode * next;
-  int data;
-};
 
 #endif

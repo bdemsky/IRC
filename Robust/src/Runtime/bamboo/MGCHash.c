@@ -350,139 +350,81 @@ void mgchashDelete(mgchashtable_t * tbl) {
 
 /* MGCHASH ********************************************************/
 
-struct MGCHash * allocateMGCHash(int size,
-                                 int conflicts) {
+//Must be a power of 2
+struct MGCHash * allocateMGCHash(int size) {
   struct MGCHash *thisvar;
-  if (size <= 0) {
-#ifdef MULTICORE
-    BAMBOO_EXIT();
-#else
-    printf("Negative Hashtable size Exception\n");
-    exit(-1);
-#endif
-  }
+
   thisvar=(struct MGCHash *)RUNMALLOC(sizeof(struct MGCHash));
   thisvar->size = size;
-  thisvar->bucket=(struct MGCNode *) RUNMALLOC(sizeof(struct MGCNode)*size);
+  thisvar->mask = ((size>>1)-1)<<1;
+  thisvar->bucket=(int *) RUNCALLOC(sizeof(unsigned int)*size);
   //Set data counts
   thisvar->num4conflicts = conflicts;
   return thisvar;
 }
 
 void freeMGCHash(struct MGCHash *thisvar) {
-  int i = 0;
-  for(i=thisvar->size-1; i>=0; i--) {
-    struct MGCNode *ptr;
-    for(ptr=thisvar->bucket[i].next; ptr!=NULL; ) {
-      struct MGCNode * nextptr=ptr->next;
-      RUNFREE(ptr);
-      ptr=nextptr;
-    }
-  }
   RUNFREE(thisvar->bucket);
   RUNFREE(thisvar);
 }
 
-int MGCHashadd(struct MGCHash * thisvar, int data) {
-  // Rehash code
-  unsigned int hashkey;
-  struct MGCNode *ptr;
-
-  int mask = (thisvar->size << (GC_SHIFT_BITS))-1;
-  hashkey = (((unsigned INTPTR)data)&mask)>>(GC_SHIFT_BITS); 
-  ptr = &thisvar->bucket[hashkey];
-
-  struct MGCNode * prev = NULL;
-  if(ptr->data < thisvar->num4conflicts) {
-    struct MGCNode *node=RUNMALLOC(sizeof(struct MGCNode));
-    node->data=data;
-    node->next=(ptr->next);
-    ptr->next=node;
-    ptr->data++;
-  } else {
-    while (ptr->next!=NULL) {
-      prev = ptr;
-      ptr = ptr->next;
-    }
-    ptr->data = data;
-    ptr->next = thisvar->bucket[hashkey].next;
-    thisvar->bucket[hashkey].next = ptr;
-    prev->next = NULL;
-  }
-
-  return 1;
+void MGCHashreset(struct MGCHash *thisvar) {
+  for(int i=0;i<thisvar->size;i++)
+    thisvar->bucket[i]=0;
 }
+
+int MGCHashadd(struct MGCHash * thisvar, unsigned INTPTR data) {
+  // Rehash code
+
+  unsigned int hashkey = (data>>GC_SHIFT_BITS)&thisvar->mask;
+  int * ptr = &thisvar->bucket[hashkey];
+  int ptrval= *ptr;
+  if (ptrval == 0) {
+    *ptr=data;
+    return 1;
+  } else if (ptrval==data) {
+    return 0;
+  }
+  ptr++;
+
+  if (*ptr == data) {
+    return 0;
+  } else {
+    *ptr=data;
+    return 1;
+  }
+}
+
 
 #ifdef MULTICORE
 struct MGCHash * allocateMGCHash_I(int size,int conflicts) {
   struct MGCHash *thisvar;
-  if (size <= 0) {
-#ifdef MULTICORE
-    BAMBOO_EXIT();
-#else
-    printf("Negative Hashtable size Exception\n");
-    exit(-1);
-#endif
-  }
+
   thisvar=(struct MGCHash *)RUNMALLOC_I(sizeof(struct MGCHash));
-  thisvar->size = size;
-  thisvar->bucket=(struct MGCNode *) RUNMALLOC_I(sizeof(struct MGCNode)*size);
+  thisvar->mask = ((size>>1)-1)<<1;
+  thisvar->bucket=(int *) RUNCALLOC_I(sizeof(int)*size);
   //Set data counts
   thisvar->num4conflicts = conflicts;
   return thisvar;
 }
 
-int MGCHashadd_I(struct MGCHash * thisvar, int data) {
-  // Rehash code
-  unsigned int hashkey;
-  struct MGCNode *ptr;
-
-  int mask = (thisvar->size << (GC_SHIFT_BITS))-1;
-  hashkey = (((unsigned INTPTR)data)&mask)>>(GC_SHIFT_BITS);
-  ptr = &thisvar->bucket[hashkey];
-
-  struct MGCNode * prev = NULL;
-  if(ptr->data < thisvar->num4conflicts) {
-    struct MGCNode *node=RUNMALLOC_I(sizeof(struct MGCNode));
-    node->data=data;
-    node->next=(ptr->next);
-    ptr->next=node;
-    ptr->data++;
-  } else {
-    while (ptr->next!=NULL) {
-      prev = ptr;
-      ptr = ptr->next;
-    }
-    ptr->data = data;
-    ptr->next = thisvar->bucket[hashkey].next;
-    thisvar->bucket[hashkey].next = ptr;
-    prev->next = NULL;
-  }
-
-  return 1;
+int MGCHashadd_I(struct MGCHash * thisvar, unsigned INTPTR data) {
+  return MGCHashadd(thisvar, data);
 }
 #endif
 
-int MGCHashcontains(struct MGCHash *thisvar, int data) {
-  int mask = (thisvar->size << (GC_SHIFT_BITS))-1;
-  unsigned int hashkey = (((unsigned INTPTR)data)&mask)>>(GC_SHIFT_BITS);
+int MGCHashcontains(struct MGCHash *thisvar, unsigned INTPTR data) {
+  // Rehash code
 
-  struct MGCNode *ptr = thisvar->bucket[hashkey].next;
-  struct MGCNode *prev = NULL;
-  while (ptr!=NULL) {
-    if (ptr->data == data) {
-      if(prev != NULL) {
-        prev->next = NULL;
-        ptr->next = thisvar->bucket[hashkey].next;
-        thisvar->bucket[hashkey].next = ptr;
-      }
+  unsigned int hashkey = (data>>GC_SHIFT_BITS)&thisvar->mask;
+  int * ptr = &thisvar->bucket[hashkey];
 
-      return 1;       // success
-    }
-    prev = ptr;
-    ptr = ptr->next;
+  if (*ptr==data) {
+    return 1;
   }
-
-  return 0;   // failure
+  ptr++;
+  
+  return (*ptr == data);
 }
+
 
