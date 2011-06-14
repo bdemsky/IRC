@@ -28,7 +28,6 @@ extern struct lockvector bamboo_threadlocks;
 
 INLINE void gettype_size(void * ptr, int * ttype, unsigned int * tsize) {
   int type = ((int *)ptr)[0];
-  unsigned int size;
   if(type < NUMCLASSES) {
     // a normal object
     *tsize = classsize[type];
@@ -43,16 +42,15 @@ INLINE void gettype_size(void * ptr, int * ttype, unsigned int * tsize) {
   } 
 }
 
+/* THIS FUNCTION IS BAD!!!!!!!!!!!!!! */
 INLINE bool isLarge(void * ptr, int * ttype, unsigned int * tsize) {
-  // check if a pointer is referring to a large object
+  // check if a pointer refers to a large object
   gettype_size(ptr, ttype, tsize);
-  unsigned int bound = (BAMBOO_SMEM_SIZE);
-  if(((unsigned int)ptr-gcbaseva) < (BAMBOO_LARGE_SMEM_BOUND)) {
-    bound = (BAMBOO_SMEM_SIZE_L);
-  }
-  // ptr is a start of a block  OR it acrosses the boundary of current block
-  return (((((unsigned int)ptr-gcbaseva)%(bound))==0)||
-	  ((bound-(((unsigned int)ptr-gcbaseva)%bound)) < (*tsize)));
+  unsigned int blocksize = (((unsigned int)ptr-gcbaseva) < (BAMBOO_LARGE_SMEM_BOUND))? BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
+
+  // ptr is a start of a block  OR it crosses the boundary of current block
+  return (((((unsigned int)ptr-gcbaseva)%blocksize)==0)||
+	  ((blocksize-(((unsigned int)ptr-gcbaseva)%blocksize)) < (*tsize)));
 }
 
 INLINE unsigned int hostcore(void * ptr) {
@@ -61,17 +59,13 @@ INLINE unsigned int hostcore(void * ptr) {
   if(1 == (NUMCORES4GC)) { 
     host = 0; 
   } else { 
-    unsigned int b;
     unsigned int t = (unsigned int)ptr - (unsigned int)gcbaseva; 
-    if(t < (BAMBOO_LARGE_SMEM_BOUND)) { 
-      b = t / (BAMBOO_SMEM_SIZE_L); 
-    } else { 
-      b = NUMCORES4GC+((t-(BAMBOO_LARGE_SMEM_BOUND))/(BAMBOO_SMEM_SIZE)); 
-    } 
+    unsigned int b = (t < BAMBOO_LARGE_SMEM_BOUND) ? t / (BAMBOO_SMEM_SIZE_L) : NUMCORES4GC+((t-(BAMBOO_LARGE_SMEM_BOUND))/(BAMBOO_SMEM_SIZE));
     host = gc_block2core[(b%(NUMCORES4GC*2))];
   }
   return host;
 }
+
 //push the null check into the mark macro
 //#define MARKOBJ(objptr, ii) {void * marktmpptr=objptr; if (marktmpptr!=NULL) markObj(marktmpptr, __LINE__, ii);}
 
@@ -94,9 +88,9 @@ INLINE void markObj(void * objptr) {
       gc_enqueue(objptr);
     }
   } else {
-    // check if this obj has been forwarded
+    // check if this obj has been forwarded already
     if(!MGCHashcontains(gcforwardobjtbl, (int)objptr)) {
-      // send a msg to host informing that objptr is active
+      // if not, send msg to host informing that objptr is active
       send_msg_2(host,GCMARKEDOBJ,objptr);
       GCPROFILE_RECORD_FORWARD_OBJ();
       gcself_numsendobjs++;

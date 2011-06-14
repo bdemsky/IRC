@@ -107,7 +107,6 @@ int * gcsbstarttbl;
 #ifdef GC_TBL_DEBUG
 unsigned int gcsbstarttbl_len;
 #endif
-unsigned int gcreservedsb;  // number of reserved sblock for sbstarttbl
 unsigned int gcnumblock; // number of total blocks in the shared mem
 unsigned int gcbaseva; // base va for shared memory without reserved sblocks
 #ifdef GC_CACHE_ADAPT
@@ -131,8 +130,10 @@ unsigned int size_cachepolicytbl;
 #define ISSHAREDOBJ(p) \
   ((((unsigned int)p)>=gcbaseva)&&(((unsigned int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
 
-#define ALIGNSIZE(s, as) \
-  (*((unsigned int*)as))=((((unsigned int)(s-1))&(~(BAMBOO_CACHE_LINE_MASK)))+(BAMBOO_CACHE_LINE_SIZE))
+
+#define ALIGNMENTBYTES 32
+#define ALIGNMENTSHIFT 5
+#define ALIGNSIZE(x) (x>>ALIGNMENTSHIFT)
 
 // mapping of pointer to block # (start from 0), here the block # is
 // the global index
