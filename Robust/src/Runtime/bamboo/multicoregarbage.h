@@ -20,14 +20,6 @@
 // for the computation of NUMBLOCKS(s, n), DO NOT change this!
 
 typedef enum {
-  INIT = 0,           // 0
-  DISCOVERED = 2,     // 2
-  MARKED = 4,         // 4
-  COMPACTED = 8,      // 8
-  END = 9             // 9
-} GCOBJFLAG;
-
-typedef enum {
   INITPHASE = 0x0,         // 0x0
   MARKPHASE,               // 0x1
   COMPACTPHASE,            // 0x2
@@ -97,6 +89,9 @@ volatile unsigned int gcmovepending;
 unsigned int * gcmappingtbl;
 unsigned int bamboo_rmsp_size;
 
+unsigned int * gcmarktbl;
+
+
 // table recording the starting address of each small block
 // (size is BAMBOO_SMEM_SIZE)
 // Note: 1. this table always resides on the very bottom of the shared memory
@@ -108,6 +103,7 @@ unsigned int gcsbstarttbl_len;
 #endif
 unsigned int gcnumblock; // number of total blocks in the shared mem
 void * gcbaseva; // base va for shared memory without reserved sblocks
+
 #ifdef GC_CACHE_ADAPT
 void * gctopva; // top va for shared memory without reserved sblocks
 volatile bool gccachestage;
@@ -133,6 +129,27 @@ unsigned int size_cachepolicytbl;
 #define ALIGNMENTBYTES 32
 #define ALIGNMENTSHIFT 5
 #define ALIGNOBJSIZE(x) (x>>ALIGNMENTSHIFT)
+
+//There are two bits per object
+//00 means not marked
+//11 means first block of object
+//10 means marked block
+
+#define UNMARKED 0
+#define MARKEDFIRST 3
+#define MARKEDLATER 2
+
+//sets y to the marked status of x
+#define GETMARKED(y,x) { unsigned int offset=ALIGNOBJSIZE(x-gcbaseva);	\
+    y=(gcmarktbl[offset>>4]>>((offset&15)<<1))&3; }
+
+//sets the marked status of x to y (assumes zero'd)
+#define SETMARKED(y,x) { unsigned int offset=ALIGNOBJSIZE(x-gcbaseva);	\
+    gcmarktbl[offset>>4]|=y<<((offset&15)<<1); }
+
+//sets the marked status of x to y (assumes zero'd)
+#define RESETMARKED(x) { unsigned int offset=ALIGNOBJSIZE(x-gcbaseva);	\
+    gcmarktbl[offset>>4]&=~(3<<((offset&15)<<1)); }
 
 #define ALIGNSIZE(s, as) (*((unsigned int*)as))=((((unsigned int)(s-1))&(~(BAMBOO_CACHE_LINE_MASK)))+(BAMBOO_CACHE_LINE_SIZE))
 

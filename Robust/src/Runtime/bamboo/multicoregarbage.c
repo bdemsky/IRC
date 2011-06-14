@@ -385,8 +385,6 @@ INLINE bool cacheLObjs() {
     size = gclobjtail2->lengths[gclobjtailindex2];
     // set the mark field to , indicating that this obj has been moved
     // and need to be flushed
-    ((struct ___Object___ *)(gclobjtail2->lobjs[gclobjtailindex2]))->marked=COMPACTED;
-    BAMBOO_CACHE_FLUSH_LINE(gclobjtail2->lobjs[gclobjtailindex2]);
     dst -= size;
     if((unsigned int)dst<(unsigned int)(gclobjtail2->lobjs[gclobjtailindex2]+size)) {
       memmove(dst, gclobjtail2->lobjs[gclobjtailindex2], size);

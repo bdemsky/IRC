@@ -42,15 +42,13 @@ INLINE void gettype_size(void * ptr, int * ttype, unsigned int * tsize) {
   } 
 }
 
-/* THIS FUNCTION IS BAD!!!!!!!!!!!!!! */
 INLINE bool isLarge(void * ptr, int * ttype, unsigned int * tsize) {
   // check if a pointer refers to a large object
   gettype_size(ptr, ttype, tsize);
   unsigned int blocksize = (((unsigned int)ptr-gcbaseva) < (BAMBOO_LARGE_SMEM_BOUND))? BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
 
   // ptr is a start of a block  OR it crosses the boundary of current block
-  return (((((unsigned int)ptr-gcbaseva)%blocksize)==0)||
-	  ((blocksize-(((unsigned int)ptr-gcbaseva)%blocksize)) < (*tsize)));
+  return *tsize > blocksize;
 }
 
 INLINE unsigned int hostcore(void * ptr) {
@@ -68,7 +66,6 @@ INLINE unsigned int hostcore(void * ptr) {
 
 //push the null check into the mark macro
 //#define MARKOBJ(objptr, ii) {void * marktmpptr=objptr; if (marktmpptr!=NULL) markObj(marktmpptr, __LINE__, ii);}
-
 //#define MARKOBJNONNULL(objptr, ii) {markObj(objptr, __LINE__, ii);}
 
 #define MARKOBJ(objptr, ii) {void * marktmpptr=objptr; if (marktmpptr!=NULL) markObj(marktmpptr);}
@@ -79,12 +76,13 @@ INLINE unsigned int hostcore(void * ptr) {
 INLINE void markObj(void * objptr) {
   unsigned int host = hostcore(objptr);
   if(BAMBOO_NUM_OF_CORE == host) {
+    int markedbit;
+    GETMARKED(markedbit, objptr);
     // on this core
-    if(((struct ___Object___ *)objptr)->marked == INIT) {
+    if(markedbit == UNMARKED) {
       // this is the first time that this object is discovered,
       // set the flag as DISCOVERED
-      ((struct ___Object___ *)objptr)->marked = DISCOVERED;
-      BAMBOO_CACHE_FLUSH_LINE(objptr);
+      SETMARKED(MARKEDFIRST, objptr);
       gc_enqueue(objptr);
     }
   } else {
@@ -111,18 +109,18 @@ INLINE void markgarbagelist(struct garbagelist * listptr) {
 // enqueue root objs
 INLINE void tomark(struct garbagelist * stackptr) {
   BAMBOO_ASSERT(MARKPHASE == gc_status_info.gcphase);
-
+  
   gc_status_info.gcbusystatus = true;
   gcnumlobjs = 0;
-
+  
   // enqueue current stack
   markgarbagelist(stackptr);
-
+  
   // enqueue static pointers global_defs_p
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     markgarbagelist((struct garbagelist *)global_defs_p);
   }
-
+  
 #ifdef TASK
   // enqueue objectsets
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
@@ -139,8 +137,8 @@ INLINE void tomark(struct garbagelist * stackptr) {
       }
     }
   }
-
-  // euqueue current task descriptor
+  
+  // enqueue current task descriptor
   if(currtpd != NULL) {
     for(int i=0; i<currtpd->numParameters; i++) {
       // currtpd->parameterArray[i] can not be NULL
@@ -148,7 +146,7 @@ INLINE void tomark(struct garbagelist * stackptr) {
     }
   }
 
-  // euqueue active tasks
+  // enqueue active tasks
   if(activetasks != NULL) {
     struct genpointerlist * ptr=activetasks->list;
     for(;ptr!=NULL;ptr=ptr->inext) {
@@ -272,35 +270,26 @@ INLINE void mark(bool isfirst, struct garbagelist * stackptr) {
       unsigned int ptr = gc_dequeue2();
 
       unsigned int size = 0;
-      unsigned int isize = 0;
       unsigned int type = 0;
-      // check if it is a local obj on this core
-      if(((struct ___Object___ *)ptr)->marked!=DISCOVERED) {
-        // ptr has been marked
-        continue;
-      } else if(isLarge(ptr, &type, &size)) {
+
+      if(isLarge(ptr, &type, &size)) {
         // ptr is a large object and not marked or enqueued
         gc_lobjenqueue(ptr, size, BAMBOO_NUM_OF_CORE);
         gcnumlobjs++;
-        // mark this obj
-        //((struct ___Object___ *)ptr)->marked = COMPACTED;
       } else {
         // ptr is an unmarked active object on this core
+	unsigned int isize = 0;
         ALIGNSIZE(size, &isize);
         gccurr_heaptop += isize;
-	
+
         if((unsigned int)(ptr + size) > (unsigned int)gcmarkedptrbound) {
           gcmarkedptrbound = (unsigned int)(ptr + size);
         }
-        // mark this obj
-        //((struct ___Object___ *)ptr)->marked = MARKED;
       }
-      // mark this obj
-      ((struct ___Object___ *)ptr)->marked = MARKED;
-      BAMBOO_CACHE_FLUSH_LINE(ptr);
+
       // scan the pointers in object
-      scanPtrsInObj(ptr, type);      
-    }   
+      scanPtrsInObj(ptr, type);
+    }
     gc_status_info.gcbusystatus = false;
     // send mark finish msg to core coordinator
     if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {

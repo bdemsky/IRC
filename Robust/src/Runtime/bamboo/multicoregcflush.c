@@ -175,7 +175,6 @@ INLINE void flushPtrsInObj(void * ptr) {
 }
 
 void flush(struct garbagelist * stackptr) {
-  //unsigned long long tmpt = BAMBOO_GET_EXE_TIME(); // TODO
   BAMBOO_CACHE_MF();
 
   flushRuntimeObj(stackptr);
@@ -184,11 +183,13 @@ void flush(struct garbagelist * stackptr) {
     // should be a local shared obj and should have mapping info
     FLUSHOBJNONNULL(ptr, 0);
     BAMBOO_ASSERT(ptr != NULL);
+    int markedstatus;
+    GETMARKED(markedstatus, ptr);
 
-    if(((struct ___Object___ *)ptr)->marked == COMPACTED) {
+    if(markedstatus==MARKEDFIRST) {
       flushPtrsInObj((void *)ptr);
       // restore the mark field, indicating that this obj has been flushed
-      ((struct ___Object___ *)ptr)->marked = INIT;
+      RESETMARKED(ptr);
     }
   } 
 
@@ -200,10 +201,12 @@ void flush(struct garbagelist * stackptr) {
     FLUSHOBJ(ptr, 0);
     BAMBOO_ASSERT(ptr!=NULL);
 
-    if(((struct ___Object___ *)ptr)->marked == COMPACTED) {
+    GETMARKED(markedstatus, ptr);
+
+    if(markedstatus==MARKEDFIRST) {
       flushPtrsInObj((void *)ptr);
       // restore the mark field, indicating that this obj has been flushed
-      ((struct ___Object___ *)ptr)->marked = INIT;
+      RESETMARKED(ptr);
     }     
   } 
 

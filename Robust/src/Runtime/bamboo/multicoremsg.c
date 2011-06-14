@@ -597,10 +597,13 @@ INLINE void processmsg_gcmarkedobj_I() {
   BAMBOO_ASSERT(ISSHAREDOBJ(data1));
 
   // received a markedObj msg
-  if(((struct ___Object___ *)data1)->marked == INIT) {
+  int markedbit;
+  GETMARKED(markedbit, data1);
+
+  if(markedbit==UNMARKED) {
     // this is the first time that this object is discovered,
     // set the flag as DISCOVERED
-    ((struct ___Object___ *)data1)->marked = DISCOVERED;
+    SETMARKED(MARKEDFIRST, data1);
     gc_enqueue_I(data1);
   }
   gcself_numreceiveobjs++;
