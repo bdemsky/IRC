@@ -522,7 +522,7 @@ INLINE void moveLObjs() {
     gc_lobjqueueinit4_I();
     while(gc_lobjmoreItems4_I()) {
       ptr = (unsigned int)(gc_lobjdequeue4_I(&size, &host));
-      ALIGNSIZE(size, &isize);
+      isize=ALIGNSIZE(size, &isize);
       if(remain >= isize) {
         remain -= isize;
         // move the large obj

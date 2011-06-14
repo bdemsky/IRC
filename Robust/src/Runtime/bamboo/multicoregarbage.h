@@ -96,7 +96,6 @@ volatile unsigned int gcmovepending;
 // memory and will never be moved or garbage collected
 unsigned int * gcmappingtbl;
 unsigned int bamboo_rmsp_size;
-unsigned int bamboo_baseobjsize;
 
 // table recording the starting address of each small block
 // (size is BAMBOO_SMEM_SIZE)
@@ -133,7 +132,10 @@ unsigned int size_cachepolicytbl;
 
 #define ALIGNMENTBYTES 32
 #define ALIGNMENTSHIFT 5
-#define ALIGNSIZE(x) (x>>ALIGNMENTSHIFT)
+#define ALIGNOBJSIZE(x) (x>>ALIGNMENTSHIFT)
+
+#define ALIGNSIZE(s, as) (*((unsigned int*)as))=((((unsigned int)(s-1))&(~(BAMBOO_CACHE_LINE_MASK)))+(BAMBOO_CACHE_LINE_SIZE))
+
 
 // mapping of pointer to block # (start from 0), here the block # is
 // the global index
