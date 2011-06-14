@@ -592,7 +592,7 @@ INLINE void processmsg_gcmarkreport_I() {
 }
 
 INLINE void processmsg_gcmarkedobj_I() {
-  int data1 = msgdata[msgdataindex];
+  void * data1 = (void *) msgdata[msgdataindex];
   MSG_INDEXINC_I();
   BAMBOO_ASSERT(ISSHAREDOBJ(data1));
 

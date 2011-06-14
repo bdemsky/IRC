@@ -128,6 +128,9 @@ unsigned int size_cachepolicytbl;
 
 #define ALIGNMENTBYTES 32
 #define ALIGNMENTSHIFT 5
+
+/* Number of bits used for each alignment unit */
+#define BITSPERALIGNMENT 2
 #define ALIGNOBJSIZE(x) (x>>ALIGNMENTSHIFT)
 
 //There are two bits per object
@@ -140,15 +143,15 @@ unsigned int size_cachepolicytbl;
 #define MARKEDLATER 2
 
 //sets y to the marked status of x
-#define GETMARKED(y,x) { unsigned int offset=ALIGNOBJSIZE(x-gcbaseva);	\
+#define GETMARKED(y,x) { unsigned INTPTR offset=ALIGNOBJSIZE((unsigned INTPTR)(x-gcbaseva)); \
     y=(gcmarktbl[offset>>4]>>((offset&15)<<1))&3; }
 
 //sets the marked status of x to y (assumes zero'd)
-#define SETMARKED(y,x) { unsigned int offset=ALIGNOBJSIZE(x-gcbaseva);	\
+#define SETMARKED(y,x) { unsigned INTPTR offset=ALIGNOBJSIZE((unsigned INTPTR)(x-gcbaseva)); \
     gcmarktbl[offset>>4]|=y<<((offset&15)<<1); }
 
 //sets the marked status of x to y (assumes zero'd)
-#define RESETMARKED(x) { unsigned int offset=ALIGNOBJSIZE(x-gcbaseva);	\
+#define RESETMARKED(x) { unsigned INTPTR offset=ALIGNOBJSIZE((unsigned INTPTR)(x-gcbaseva)); \
     gcmarktbl[offset>>4]&=~(3<<((offset&15)<<1)); }
 
 #define ALIGNSIZE(s, as) (*((unsigned int*)as))=((((unsigned int)(s-1))&(~(BAMBOO_CACHE_LINE_MASK)))+(BAMBOO_CACHE_LINE_SIZE))
@@ -158,11 +161,11 @@ unsigned int size_cachepolicytbl;
 // the global index
 #define BLOCKINDEX(p, b) \
   { \
-    unsigned int t = (p) - gcbaseva; \
-    if(t < (BAMBOO_LARGE_SMEM_BOUND)) { \
-      (*((unsigned int*)b)) = t / (BAMBOO_SMEM_SIZE_L); \
+    unsigned INTPTR t = (unsigned INTPTR)(p - gcbaseva);	\
+    if(t < BAMBOO_LARGE_SMEM_BOUND) { \
+      b = t / BAMBOO_SMEM_SIZE_L; \
     } else { \
-      (*((unsigned int*)b)) = NUMCORES4GC+((t-(BAMBOO_LARGE_SMEM_BOUND))/(BAMBOO_SMEM_SIZE)); \
+      b = NUMCORES4GC+((t-BAMBOO_LARGE_SMEM_BOUND)/BAMBOO_SMEM_SIZE); \
     } \
   }
 
@@ -172,16 +175,16 @@ unsigned int size_cachepolicytbl;
     if(1 == (NUMCORES4GC)) { \
       (*((unsigned int*)c)) = 0; \
     } else { \
-      unsigned int b; \
-      BLOCKINDEX((p), &b); \
-      (*((unsigned int*)c)) = gc_block2core[(b%(NUMCORES4GC*2))]; \
+      unsigned INTPTR b; \
+      BLOCKINDEX(p, b); \
+      c = gc_block2core[(b%(NUMCORES4GC*2))]; \
     } \
   }
 
 INLINE static unsigned int hostcore(void * ptr) {
   // check the host core of ptr
   unsigned int host = 0;
-  RESIDECORE(ptr, &host);
+  RESIDECORE(ptr, host);
   return host;
 }
 

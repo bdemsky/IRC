@@ -6,10 +6,10 @@
 
 struct moveHelper {
   unsigned int numblocks;       // block num for heap
-  unsigned int base;       // base virtual address of current heap block
-  unsigned int ptr;       // virtual address of current heap top
+  void * base;       // base virtual address of current heap block
+  void * ptr;       // virtual address of current heap top
   unsigned int offset;       // offset in current heap block
-  unsigned int blockbase;   // virtual address of current small block to check
+  void * blockbase;   // virtual address of current small block to check
   unsigned int blockbound;     // bound virtual address of current small blcok
   unsigned int sblockindex;       // index of the small blocks
   unsigned int top;       // real size of current heap block to check

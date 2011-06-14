@@ -27,7 +27,7 @@ INLINE void gc_resetCoreStatus() {
 // should be invoked with interrupt closed
 INLINE int assignSpareMem_I(unsigned int sourcecore,unsigned int * requiredmem,unsigned int * tomove,unsigned int * startaddr) {
   unsigned int b = 0;
-  BLOCKINDEX(gcloads[sourcecore], &b);
+  BLOCKINDEX(gcloads[sourcecore], b);
   unsigned int boundptr = BOUNDPTR(b);
   unsigned int remain = boundptr - gcloads[sourcecore];
   unsigned int memneed = requiredmem + BAMBOO_CACHE_LINE_SIZE;
@@ -86,7 +86,7 @@ INLINE void compact2Heaptophelper_I(unsigned int coren,unsigned int* p,unsigned 
     gctopblock++;
     *numblocks = gcstopblock[gctopcore];
     *p = gcloads[gctopcore];
-    BLOCKINDEX(*p, &b);
+    BLOCKINDEX(*p, b);
     *remain=GC_BLOCK_REMAIN_SIZE(b, (*p));
   }  
   gcmovepending--;
@@ -99,7 +99,7 @@ INLINE void compact2Heaptop() {
   unsigned int numblocks = gcfilledblocks[gctopcore];
   p = gcloads[gctopcore];
   unsigned int b;
-  BLOCKINDEX(p, &b);
+  BLOCKINDEX(p, b);
   unsigned int remain=GC_BLOCK_REMAIN_SIZE(b, p);
   // check if the top core finishes
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
@@ -212,7 +212,7 @@ outernextSBlock:
     orig->sblockindex=(unsigned int)(orig->blockbase-gcbaseva)/BAMBOO_SMEM_SIZE;
     sbchanged = true;
     unsigned int blocknum = 0;
-    BLOCKINDEX(orig->base, &blocknum);
+    BLOCKINDEX(orig->base, blocknum);
     if(bamboo_smemtbl[blocknum] == 0) {
       // goto next block
       goto innernextSBlock;
@@ -264,7 +264,7 @@ INLINE bool initOrig_Dst(struct moveHelper * orig,struct moveHelper * to) {
   orig->numblocks = 0;
   orig->base = tobase;
   unsigned int blocknum = 0;
-  BLOCKINDEX(orig->base, &blocknum);
+  BLOCKINDEX(orig->base, blocknum);
   unsigned int origbase = orig->base;
   // check the bamboo_smemtbl to decide the real bound
   orig->bound = origbase + (unsigned int)bamboo_smemtbl[blocknum];
@@ -349,7 +349,7 @@ INLINE bool moveobj(struct moveHelper * orig, struct moveHelper * to, unsigned i
   }
   ALIGNSIZE(size, &isize);       // no matter is the obj marked or not
                                  // should be able to across
-  unsigned int origptr = (unsigned int)(orig->ptr);
+  void * origptr = orig->ptr;
   int markedstatus;
   GETMARKED(markedstatus, origptr);
   

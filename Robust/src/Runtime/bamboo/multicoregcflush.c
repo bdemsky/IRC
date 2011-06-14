@@ -179,7 +179,7 @@ void flush(struct garbagelist * stackptr) {
 
   flushRuntimeObj(stackptr);
   while(gc_moreItems()) {
-    unsigned int ptr = gc_dequeue();
+    void * ptr = (void *) gc_dequeue();
     // should be a local shared obj and should have mapping info
     FLUSHOBJNONNULL(ptr, 0);
     BAMBOO_ASSERT(ptr != NULL);
@@ -197,14 +197,15 @@ void flush(struct garbagelist * stackptr) {
   // lobjs are flushed in sequence.
   // flush lobjs
   while(gc_lobjmoreItems_I()) {
-    unsigned int ptr = gc_lobjdequeue_I(NULL, NULL);
+    void * ptr = (void *) gc_lobjdequeue_I(NULL, NULL);
     FLUSHOBJ(ptr, 0);
     BAMBOO_ASSERT(ptr!=NULL);
 
+    int markedstatus;
     GETMARKED(markedstatus, ptr);
 
     if(markedstatus==MARKEDFIRST) {
-      flushPtrsInObj((void *)ptr);
+      flushPtrsInObj(ptr);
       // restore the mark field, indicating that this obj has been flushed
       RESETMARKED(ptr);
     }     

@@ -45,7 +45,7 @@ INLINE void gettype_size(void * ptr, int * ttype, unsigned int * tsize) {
 INLINE bool isLarge(void * ptr, int * ttype, unsigned int * tsize) {
   // check if a pointer refers to a large object
   gettype_size(ptr, ttype, tsize);
-  unsigned int blocksize = (((unsigned int)ptr-gcbaseva) < (BAMBOO_LARGE_SMEM_BOUND))? BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
+  unsigned INTPTR blocksize = (((unsigned INTPTR)(ptr-gcbaseva)) < BAMBOO_LARGE_SMEM_BOUND)? BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
 
   // ptr is a start of a block  OR it crosses the boundary of current block
   return *tsize > blocksize;

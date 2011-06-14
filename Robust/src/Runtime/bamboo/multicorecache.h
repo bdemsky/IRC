@@ -49,13 +49,13 @@ typedef struct gc_cache_revise_info {
 extern gc_cache_revise_info_t gc_cache_revise_information;
 
 INLINE static void samplingDataReviseInit(struct moveHelper * orig,struct moveHelper * to) {
-  gc_cache_revise_information.to_page_start_va=(unsigned int)to->ptr;
-  unsigned int toindex=(unsigned int)(to->base-gcbaseva)/(BAMBOO_PAGE_SIZE);
-  gc_cache_revise_information.to_page_end_va=gcbaseva+(BAMBOO_PAGE_SIZE)*(toindex+1);
+  gc_cache_revise_information.to_page_start_va=to->ptr;
+  unsigned int toindex=(unsigned INTPTR)(to->base-gcbaseva)/BAMBOO_PAGE_SIZE;
+  gc_cache_revise_information.to_page_end_va=gcbaseva+BAMBOO_PAGE_SIZE*(toindex+1);
   gc_cache_revise_information.to_page_index=toindex;
-  gc_cache_revise_information.orig_page_start_va=(unsigned int)orig->ptr;
-  gc_cache_revise_information.orig_page_end_va=gcbaseva+(BAMBOO_PAGE_SIZE)*(((unsigned int)(orig->ptr)-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-  gc_cache_revise_information.orig_page_index=((unsigned int)(orig->blockbase)-gcbaseva)/(BAMBOO_PAGE_SIZE);
+  gc_cache_revise_information.orig_page_start_va=orig->ptr;
+  gc_cache_revise_information.orig_page_end_va=gcbaseva+BAMBOO_PAGE_SIZE*(((unsigned INTPTR)(orig->ptr-gcbaseva))/BAMBOO_PAGE_SIZE+1);
+  gc_cache_revise_information.orig_page_index=((unsigned INTPTR)(orig->blockbase-gcbaseva))/BAMBOO_PAGE_SIZE;
 }
 
 INLINE static void samplingDataConvert(unsigned int current_ptr) {
@@ -87,14 +87,14 @@ INLINE static void completePageConvert(struct moveHelper * orig,struct moveHelpe
     // compute the impact of this page for the new page
     samplingDataConvert(current_ptr);
     // prepare for an new orig page
-    unsigned int tmp_index=(unsigned int)((unsigned int)orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
+    unsigned INTPTR tmp_index=((unsigned INTPTR)(orig->ptr-gcbaseva))/BAMBOO_PAGE_SIZE;
     gc_cache_revise_information.orig_page_start_va=orig->ptr;
-    gc_cache_revise_information.orig_page_end_va=gcbaseva+(BAMBOO_PAGE_SIZE)*(unsigned int)(tmp_index+1);
+    gc_cache_revise_information.orig_page_end_va=gcbaseva+BAMBOO_PAGE_SIZE*(unsigned int)(tmp_index+1);
     gc_cache_revise_information.orig_page_index=tmp_index;
     gc_cache_revise_information.to_page_start_va=to->ptr;
     if(closeToPage) {
-      gc_cache_revise_information.to_page_end_va=gcbaseva+(BAMBOO_PAGE_SIZE)*(((unsigned int)(to->ptr)-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-      gc_cache_revise_information.to_page_index=((unsigned int)(to->ptr)-gcbaseva)/(BAMBOO_PAGE_SIZE);
+      gc_cache_revise_information.to_page_end_va=gcbaseva+BAMBOO_PAGE_SIZE*(((unsigned INTPTR)(to->ptr-gcbaseva))/BAMBOO_PAGE_SIZE+1);
+      gc_cache_revise_information.to_page_index=((unsigned INTPTR)(to->ptr-gcbaseva))/BAMBOO_PAGE_SIZE;
     }
   }
 } 

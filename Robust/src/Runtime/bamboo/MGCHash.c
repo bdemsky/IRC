@@ -359,7 +359,6 @@ struct MGCHash * allocateMGCHash(int size) {
   thisvar->mask = ((size>>1)-1)<<1;
   thisvar->bucket=(int *) RUNCALLOC(sizeof(unsigned int)*size);
   //Set data counts
-  thisvar->num4conflicts = conflicts;
   return thisvar;
 }
 
@@ -397,14 +396,13 @@ int MGCHashadd(struct MGCHash * thisvar, unsigned INTPTR data) {
 
 
 #ifdef MULTICORE
-struct MGCHash * allocateMGCHash_I(int size,int conflicts) {
+struct MGCHash * allocateMGCHash_I(int size) {
   struct MGCHash *thisvar;
 
   thisvar=(struct MGCHash *)RUNMALLOC_I(sizeof(struct MGCHash));
   thisvar->mask = ((size>>1)-1)<<1;
+  thisvar->size = size;
   thisvar->bucket=(int *) RUNCALLOC_I(sizeof(int)*size);
-  //Set data counts
-  thisvar->num4conflicts = conflicts;
   return thisvar;
 }
 

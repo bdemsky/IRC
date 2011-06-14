@@ -287,7 +287,7 @@ INLINE void checkMarkStatus() {
 } 
 
 // compute load balance for all cores
-INLINE int loadbalance(unsigned int * heaptop) {
+INLINE int loadbalance(void ** heaptop) {
   // compute load balance
   // get the total loads
   unsigned int tloads = gcloads[STARTUPCORE];
@@ -297,11 +297,11 @@ INLINE int loadbalance(unsigned int * heaptop) {
   *heaptop = gcbaseva + tloads;
 
   unsigned int b = 0;
-  BLOCKINDEX(*heaptop, &b);
+  BLOCKINDEX(*heaptop, b);
   // num of blocks per core
   unsigned int numbpc = (unsigned int)b/(unsigned int)(NUMCORES4GC);
   gctopblock = b;
-  RESIDECORE(heaptop, &gctopcore);
+  RESIDECORE(heaptop, gctopcore);
   return numbpc;
 }
 
@@ -398,7 +398,7 @@ INLINE bool cacheLObjs() {
 void updateSmemTbl(unsigned int coren, unsigned int localtop) {
   unsigned int ltopcore = 0;
   unsigned int bound = BAMBOO_SMEM_SIZE_L;
-  BLOCKINDEX(localtop, &ltopcore);
+  BLOCKINDEX(localtop, ltopcore);
   if((unsigned int)localtop>=(unsigned int)(gcbaseva+BAMBOO_LARGE_SMEM_BOUND)){
     bound = BAMBOO_SMEM_SIZE;
   }
@@ -482,7 +482,7 @@ INLINE void moveLObjs() {
 #endif
   unsigned int size = 0;
   unsigned int bound = 0;
-  unsigned int tmpheaptop = checkCurrHeapTop();
+  void * tmpheaptop = checkCurrHeapTop();
 
   // move large objs from gcheaptop to tmpheaptop
   // write the header first
@@ -496,11 +496,11 @@ INLINE void moveLObjs() {
     gcheaptop = tmpheaptop;
   } else {
     // check how many blocks it acrosses
-    unsigned int remain = tmpheaptop-gcbaseva;
+    unsigned INTPTR remain = (unsigned INTPTR) (tmpheaptop-gcbaseva);
     //number of the sblock
     unsigned int sb = remain/BAMBOO_SMEM_SIZE+(unsigned int)gcreservedsb;
     unsigned int b = 0;  // number of the block
-    BLOCKINDEX(tmpheaptop, &b);
+    BLOCKINDEX(tmpheaptop, b);
     // check the remaining space in this block
     bound = (BAMBOO_SMEM_SIZE);
     if(remain < (BAMBOO_LARGE_SMEM_BOUND)) {
@@ -539,7 +539,7 @@ INLINE void moveLObjs() {
           }
           remain -= BAMBOO_CACHE_LINE_SIZE;
           tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
-          BLOCKINDEX(tmpheaptop, &b);
+          BLOCKINDEX(tmpheaptop, b);
           sb = (unsigned int)(tmpheaptop-gcbaseva)/(BAMBOO_SMEM_SIZE)+gcreservedsb;
         } 
         // move the obj
@@ -552,7 +552,7 @@ INLINE void moveLObjs() {
         }
         sb += tmpsbs;
         bound = BLOCKSIZE(b<NUMCORES4GC);
-        BLOCKINDEX(tmpheaptop-1, &tmpsbs);
+        BLOCKINDEX(tmpheaptop-1, tmpsbs);
         for(; b < tmpsbs; b++) {
           bamboo_smemtbl[b] = bound;
           if(b==NUMCORES4GC-1) {
@@ -732,14 +732,14 @@ void master_getlargeobjs() {
 
 void master_compact() {
   // predict number of blocks to fill for each core
-  unsigned int tmpheaptop = 0;
+  void * tmpheaptop = 0;
   int numpbc = loadbalance(&tmpheaptop);
   //tprintf("numpbc: %d \n", numpbc);
 
-  numpbc = (BAMBOO_SHARED_MEM_SIZE)/(BAMBOO_SMEM_SIZE);
+  numpbc = BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE;
   GC_PRINTF("mark phase finished \n");
   
-  tmpheaptop = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
+  tmpheaptop = gcbaseva + BAMBOO_SHARED_MEM_SIZE;
   for(int i = 0; i < NUMCORES4GC; i++) {
     unsigned int tmpcoreptr = 0;
     BASEPTR(i, numpbc, &tmpcoreptr);
