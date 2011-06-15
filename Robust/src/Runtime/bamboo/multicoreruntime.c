@@ -747,7 +747,6 @@ INLINE void checkCoreStatus() {
 
 // main function for each core
 inline void run(int argc, char** argv) {
-  int i = 0;
   bool sendStall = false;
   bool isfirst = true;
   bool tocontinue = false;

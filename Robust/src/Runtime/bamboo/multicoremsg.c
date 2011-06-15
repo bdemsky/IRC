@@ -5,6 +5,7 @@
 #include "multicoregarbage.h"
 #include "multicoretaskprofile.h"
 #include "gcqueue.h"
+#include "runtime_arch.h"
 
 int msgsizearray[] = {
   0, //MSGSTART,
@@ -510,7 +511,7 @@ INLINE void processmsg_gcfinishcompact_I() {
   MSG_INDEXINC_I();
   int filledblocks = msgdata[msgdataindex];
   MSG_INDEXINC_I();    
-  int heaptop = msgdata[msgdataindex];
+  void * heaptop = (void *) msgdata[msgdataindex];
   MSG_INDEXINC_I();   
   int data4 = msgdata[msgdataindex];
   MSG_INDEXINC_I(); 
@@ -522,7 +523,7 @@ INLINE void processmsg_gcfinishcompact_I() {
     }
     if(data4 > 0) {
       // ask for more mem
-      int startaddr = 0;
+      void * startaddr = NULL;
       int tomove = 0;
       int dstcore = 0;
       if(gcfindSpareMem_I(&startaddr, &tomove, &dstcore, data4, cnum)) {

@@ -92,7 +92,6 @@ INLINE void * searchBlock4Mem(int* tofindb,
       if(size >= isize) {
         // have enough space in the block, malloc
         return mallocmem(*tofindb, *totest, size, allocsize);
-        break;
       } else {
         // no enough space yet, try to append next continuous block
         *totest = *totest + 1;
@@ -106,8 +105,6 @@ INLINE void * searchBlock4Mem_global(int* tofindb,
                                      int* totest,
                                      int isize,
                                      int * allocsize) {
-  int i=0;
-  int j=0;
   int size = 0;
   int bound = BAMBOO_SMEM_SIZE_L;
   while(*totest<(gcnumblock-bamboo_reserved_smem)) {
@@ -131,7 +128,6 @@ INLINE void * searchBlock4Mem_global(int* tofindb,
       if(size >= isize) {
         // have enough space in the block, malloc
         return mallocmem(*tofindb, *totest, size, allocsize);
-        break;
       } else {
         // no enough space yet, try to append next continuous block
         *totest = *totest + 1;
@@ -205,8 +201,6 @@ void * mixedmalloc_I(int coren,
   int k;
   int gccorenum=(coren<NUMCORES4GC)?(coren):(coren%NUMCORES4GC);
   int totest,tofindb;
-  int bound=BAMBOO_SMEM_SIZE_L;
-  int foundsmem=0;
   int size=0;
   for(k=0;k<NUM_CORES2TEST;k++) {
     if(core2test[gccorenum][k]==-1) {
@@ -243,9 +237,6 @@ void * globalmalloc_I(int coren,
   void * mem = NULL;
   int tofindb = bamboo_free_block;
   int totest = tofindb;
-  int bound = BAMBOO_SMEM_SIZE_L;
-  int foundsmem = 0;
-  int size = 0;
   if(tofindb > gcnumblock-1-bamboo_reserved_smem) {
     // Out of shared memory
     *allocsize = 0;

@@ -9,14 +9,14 @@
 #define NUMPTRS 120
 
 struct pointerblock {
-  unsigned int ptrs[NUMPTRS];
+  void * ptrs[NUMPTRS];
   struct pointerblock *next;
 };
 
 #define NUMLOBJPTRS 20
 
 struct lobjpointerblock {
-  unsigned int lobjs[NUMLOBJPTRS];
+  void * lobjs[NUMLOBJPTRS];
   int lengths[NUMLOBJPTRS];
   int hosts[NUMLOBJPTRS];
   struct lobjpointerblock *next;
@@ -65,7 +65,7 @@ static void gc_queueinit() {
 ////////////////////////////////////////////////////////////////////
 // functions that should be invoked with interrupts off
 ////////////////////////////////////////////////////////////////////
-static void gc_enqueue_I(unsigned int ptr) {
+static void gc_enqueue_I(void * ptr) {
   if (gcheadindex==NUMPTRS) {
     struct pointerblock * tmp;
     if (gcspare!=NULL) {
@@ -83,7 +83,7 @@ static void gc_enqueue_I(unsigned int ptr) {
 }
 
 // dequeue and destroy the queue
-static unsigned int gc_dequeue_I() {
+static void * gc_dequeue_I() {
   if (gctailindex==NUMPTRS) {
     struct pointerblock *tmp=gctail;
     gctail=gctail->next;
@@ -99,9 +99,8 @@ static unsigned int gc_dequeue_I() {
 } 
 
 // dequeue and do not destroy the queue
-static unsigned int gc_dequeue2_I() {
+static void * gc_dequeue2_I() {
   if (gctailindex2==NUMPTRS) {
-    struct pointerblock *tmp=gctail2;
     gctail2=gctail2->next;
     gctailindex2=0;
   } 
@@ -118,7 +117,7 @@ static int gc_moreItems2_I() {
 
 // should be invoked with interruption closed 
 // enqueue a large obj: start addr & length
-static void gc_lobjenqueue_I(unsigned int ptr,
+static void gc_lobjenqueue_I(void * ptr,
                              unsigned int length,
                              unsigned int host) {
   if (gclobjheadindex==NUMLOBJPTRS) {
@@ -142,7 +141,7 @@ static void gc_lobjenqueue_I(unsigned int ptr,
 } 
 
 // dequeue and destroy the queue
-static unsigned int gc_lobjdequeue_I(unsigned int * length,
+static void * gc_lobjdequeue_I(unsigned int * length,
                                      unsigned int * host) {
   if (gclobjtailindex==NUMLOBJPTRS) {
     struct lobjpointerblock *tmp=gclobjtail;
@@ -203,7 +202,7 @@ static void gc_lobjqueueinit4_I() {
   gclobjtailindex2 = gclobjtailindex;
 } 
 
-static unsigned int gc_lobjdequeue4_I(unsigned int * length,
+static void * gc_lobjdequeue4_I(unsigned int * length,
                                       unsigned int * host) {
   if (gclobjtailindex2==NUMLOBJPTRS) {
     gclobjtail2=gclobjtail2->next;
@@ -225,7 +224,7 @@ static int gc_lobjmoreItems4_I() {
 ////////////////////////////////////////////////////////////////////
 // functions that can be invoked in normal places
 ////////////////////////////////////////////////////////////////////
-static void gc_enqueue(unsigned int ptr) {
+static void gc_enqueue(void * ptr) {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   if (gcheadindex==NUMPTRS) {
     struct pointerblock * tmp;
@@ -244,7 +243,7 @@ static void gc_enqueue(unsigned int ptr) {
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 }
 
-static unsigned int gc_dequeue() {
+static void * gc_dequeue() {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   if (gctailindex==NUMPTRS) {
     struct pointerblock *tmp=gctail;
@@ -257,7 +256,7 @@ static unsigned int gc_dequeue() {
       gcspare->next = NULL;
     } 
   } 
-  unsigned int r = gctail->ptrs[gctailindex++];
+  void * r = gctail->ptrs[gctailindex++];
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return r;
 } 
@@ -270,14 +269,13 @@ static int gc_moreItems() {
 }
 
 // dequeue and do not destroy the queue
-static unsigned int gc_dequeue2() {
+static void * gc_dequeue2() {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   if (gctailindex2==NUMPTRS) {
-    struct pointerblock *tmp=gctail2;
     gctail2=gctail2->next;
     gctailindex2=0;
   } 
-  unsigned int r = gctail2->ptrs[gctailindex2++];
+  void * r = gctail2->ptrs[gctailindex2++];
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return r;
 }
@@ -289,7 +287,7 @@ static int gc_moreItems2() {
   return r;
 }
 
-static void gc_lobjenqueue(unsigned int ptr,
+static void gc_lobjenqueue(void * ptr,
                            unsigned int length,
                            unsigned int host) {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();

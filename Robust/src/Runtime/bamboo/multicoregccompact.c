@@ -53,7 +53,7 @@ INLINE int assignSpareMem(unsigned int sourcecore,unsigned int * requiredmem,uns
   return retval;
 }
 
-INLINE void compact2Heaptophelper_I(unsigned int coren,unsigned int* p,unsigned int* numblocks,unsigned int* remain) {
+INLINE void compact2Heaptophelper_I(unsigned int coren, void ** p,unsigned int* numblocks,unsigned int* remain) {
   unsigned int b;
   unsigned int memneed = gcrequiredmems[coren] + BAMBOO_CACHE_LINE_SIZE;
   if(STARTUPCORE == coren) {
@@ -393,7 +393,7 @@ INLINE bool moveobj(struct moveHelper * orig, struct moveHelper * to, unsigned i
       BAMBOO_MEMSET_WH((unsigned int)(toptr+size), -2, isize-size);
     }
     // store mapping info
-    gcmappingtbl[OBJMAPPINGINDEX((unsigned int)origptr)]=(unsigned int)toptr;
+    gcmappingtbl[OBJMAPPINGINDEX(origptr)]=(unsigned int)toptr;
     gccurr_heaptop -= isize;
     to->ptr += isize;
     to->offset += isize;

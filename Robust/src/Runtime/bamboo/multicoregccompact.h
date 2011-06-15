@@ -17,9 +17,10 @@ struct moveHelper {
 };
 
 // compute the remaining size of block #b
-// p--relative position to the bottom of the shared heap
+// p--ptr
+
 #define GC_BLOCK_REMAIN_SIZE(b, p) \
-  ((b)<NUMCORES4GC)?((BAMBOO_SMEM_SIZE_L)-((p)%(BAMBOO_SMEM_SIZE_L))):((BAMBOO_SMEM_SIZE)-((p)%(BAMBOO_SMEM_SIZE)))
+  b<NUMCORES4GC?BAMBOO_SMEM_SIZE_L-(((unsigned INTPTR)(p-gcbaseva))%BAMBOO_SMEM_SIZE_L):BAMBOO_SMEM_SIZE-(((unsigned INTPTR)(p-gcbaseva))%BAMBOO_SMEM_SIZE)
 
 bool gcfindSpareMem_I(unsigned int * startaddr,unsigned int * tomove,unsigned int * dstcore,unsigned int requiredmem,unsigned int requiredcore);
 void compact();

@@ -37,11 +37,11 @@ typedef union
 #define BAMBOO_CACHE_MODE_COORDS 4
 
 typedef struct gc_cache_revise_info {
-  unsigned int orig_page_start_va;
-  unsigned int orig_page_end_va;
+  void * orig_page_start_va;
+  void * orig_page_end_va;
   unsigned int orig_page_index;
-  unsigned int to_page_start_va;
-  unsigned int to_page_end_va;
+  void * to_page_start_va;
+  void * to_page_end_va;
   unsigned int to_page_index;
   unsigned int revised_sampling[NUMCORESACTIVE];
 } gc_cache_revise_info_t;
@@ -58,10 +58,10 @@ INLINE static void samplingDataReviseInit(struct moveHelper * orig,struct moveHe
   gc_cache_revise_information.orig_page_index=((unsigned INTPTR)(orig->blockbase-gcbaseva))/BAMBOO_PAGE_SIZE;
 }
 
-INLINE static void samplingDataConvert(unsigned int current_ptr) {
-  unsigned int tmp_factor=current_ptr-gc_cache_revise_information.to_page_start_va;
-  unsigned int topage=gc_cache_revise_information.to_page_index;
-  unsigned int oldpage=gc_cache_revise_information.orig_page_index;
+INLINE static void samplingDataConvert(void * current_ptr) {
+  unsigned INTPTR tmp_factor=(unsigned INTPTR)(current_ptr-gc_cache_revise_information.to_page_start_va);
+  unsigned INTPTR topage=gc_cache_revise_information.to_page_index;
+  unsigned INTPTR oldpage=gc_cache_revise_information.orig_page_index;
   int * newtable=&gccachesamplingtbl_r[topage];
   int * oldtable=&gccachesamplingtbl[oldpage];
   
@@ -73,8 +73,8 @@ INLINE static void samplingDataConvert(unsigned int current_ptr) {
 } 
 
 INLINE static void completePageConvert(struct moveHelper * orig,struct moveHelper * to,unsigned int current_ptr,bool closeToPage) {
-  unsigned int ptr=0;
-  unsigned int tocompare=0;
+  void *ptr;
+  void *tocompare;
   if(closeToPage) {
     ptr=to->ptr;
     tocompare=gc_cache_revise_information.to_page_end_va;
@@ -89,7 +89,7 @@ INLINE static void completePageConvert(struct moveHelper * orig,struct moveHelpe
     // prepare for an new orig page
     unsigned INTPTR tmp_index=((unsigned INTPTR)(orig->ptr-gcbaseva))/BAMBOO_PAGE_SIZE;
     gc_cache_revise_information.orig_page_start_va=orig->ptr;
-    gc_cache_revise_information.orig_page_end_va=gcbaseva+BAMBOO_PAGE_SIZE*(unsigned int)(tmp_index+1);
+    gc_cache_revise_information.orig_page_end_va=gcbaseva+BAMBOO_PAGE_SIZE*(tmp_index+1);
     gc_cache_revise_information.orig_page_index=tmp_index;
     gc_cache_revise_information.to_page_start_va=to->ptr;
     if(closeToPage) {

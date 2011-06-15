@@ -152,7 +152,7 @@ void initGC() {
       gccorestatus[i] = 1;
       gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
       gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
-      gcloads[i] = 0;
+      gcloads[i] = NULL;
       gcrequiredmems[i] = 0;
       gcfilledblocks[i] = 0;
       gcstopblock[i] = 0;
@@ -744,7 +744,7 @@ void master_compact() {
     unsigned int tmpcoreptr = 0;
     BASEPTR(i, numpbc, &tmpcoreptr);
     // init some data strutures for compact phase
-    gcloads[i] = 0;
+    gcloads[i] = NULL;
     gcfilledblocks[i] = 0;
     gcrequiredmems[i] = 0;
     gccorestatus[i] = 1;
