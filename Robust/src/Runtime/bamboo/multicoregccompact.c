@@ -28,8 +28,8 @@ INLINE void gc_resetCoreStatus() {
 INLINE int assignSpareMem_I(unsigned int sourcecore,unsigned int * requiredmem, void ** tomove, void ** startaddr) {
   unsigned int b = 0;
   BLOCKINDEX(gcloads[sourcecore], b);
-  unsigned int boundptr = BOUNDPTR(b);
-  unsigned int remain = boundptr - gcloads[sourcecore];
+  void * boundptr = BOUNDPTR(b);
+  unsigned INTPTR remain = (unsigned INTPTR) (boundptr - gcloads[sourcecore]);
   unsigned int memneed = requiredmem + BAMBOO_CACHE_LINE_SIZE;
   *startaddr = gcloads[sourcecore];
   *tomove = gcfilledblocks[sourcecore] + 1;
@@ -39,7 +39,7 @@ INLINE int assignSpareMem_I(unsigned int sourcecore,unsigned int * requiredmem, 
   } else {
     // next available block
     gcfilledblocks[sourcecore] += 1;
-    unsigned int newbase = 0;
+    void * newbase = NULL;
     BASEPTR(sourcecore, gcfilledblocks[sourcecore], &newbase);
     gcloads[sourcecore] = newbase;
     return requiredmem-remain;
@@ -77,7 +77,7 @@ INLINE void compact2Heaptophelper_I(unsigned int coren,unsigned int* p,unsigned 
     // next available block
     *p = *p + *remain;
     gcfilledblocks[gctopcore] += 1;
-    unsigned int newbase = 0;
+    void * newbase = NULL;
     BASEPTR(gctopcore, gcfilledblocks[gctopcore], &newbase);
     gcloads[gctopcore] = newbase;
     gcrequiredmems[coren] -= *remain - BAMBOO_CACHE_LINE_SIZE;
@@ -95,7 +95,7 @@ INLINE void compact2Heaptophelper_I(unsigned int coren,unsigned int* p,unsigned 
 INLINE void compact2Heaptop() {
   // no cores with spare mem and some cores are blocked with pending move
   // find the current heap top and make them move to the heap top
-  unsigned int p = gcloads[gctopcore];
+  void * p = gcloads[gctopcore];
   unsigned int numblocks = gcfilledblocks[gctopcore];
   unsigned int b;
   BLOCKINDEX(p, b);
@@ -366,7 +366,7 @@ INLINE bool moveobj(struct moveHelper * orig, struct moveHelper * to, unsigned i
       to->offset += tobound - totop;
       CLOSEBLOCK(to->base, to->offset);
 #ifdef GC_CACHE_ADAPT
-      unsigned int tmp_ptr = to->ptr;
+      void * tmp_ptr = to->ptr;
 #endif 
       nextBlock(to);
       if((to->top+isize)>(to->bound)) tprintf("%x, %x, %d, %d, %d, %d \n", to->ptr, orig->ptr, to->top, to->bound, isize, size);
@@ -382,7 +382,7 @@ INLINE bool moveobj(struct moveHelper * orig, struct moveHelper * to, unsigned i
     BAMBOO_ASSERT((to->top+isize)<=(to->bound));
     // set the mark field to 2, indicating that this obj has been moved
     // and need to be flushed
-    unsigned int toptr = (unsigned int)to->ptr;
+    void * toptr = to->ptr;
     if(toptr != origptr) {
       if((unsigned int)(origptr) < (unsigned int)(toptr+size)) {
         memmove(toptr, origptr, size);
@@ -400,7 +400,7 @@ INLINE bool moveobj(struct moveHelper * orig, struct moveHelper * to, unsigned i
     to->top += isize;
     BAMBOO_ASSERT((to->top)<=(to->bound));
 #ifdef GC_CACHE_ADAPT
-    unsigned int tmp_ptr = to->ptr;
+    void * tmp_ptr = to->ptr;
 #endif // GC_CACHE_ADAPT
     if(to->top == to->bound) {
       CLOSEBLOCK(to->base, to->offset);
@@ -440,7 +440,7 @@ bool gcfindSpareMem(unsigned int * startaddr,unsigned int * tomove,unsigned int 
   return retval;
 }
 
-bool compacthelper(struct moveHelper * orig,struct moveHelper * to,int * filledblocks,unsigned int * heaptopptr,bool * localcompact, bool lbmove) {
+bool compacthelper(struct moveHelper * orig,struct moveHelper * to,int * filledblocks, void ** heaptopptr,bool * localcompact, bool lbmove) {
   bool loadbalancemove = lbmove;
   // scan over all objs in this block, compact the marked objs
   // loop stop when finishing either scanning all active objs or
@@ -544,7 +544,7 @@ void compact() {
     CACHEADAPT_SAMPLING_DATA_REVISE_INIT(orig, to);
 
     unsigned int filledblocks = 0;
-    unsigned int heaptopptr = 0;
+    void * heaptopptr = NULL;
     bool localcompact = true;
     compacthelper(orig, to, &filledblocks, &heaptopptr, &localcompact, false);
     RUNFREE(orig);
@@ -557,7 +557,7 @@ void compact_master(struct moveHelper * orig, struct moveHelper * to) {
   initOrig_Dst(orig, to);
   CACHEADAPT_SAMPLING_DATA_REVISE_INIT(orig, to);
   int filledblocks = 0;
-  unsigned int heaptopptr = 0;
+  void * heaptopptr = NULL;
   bool finishcompact = false;
   bool iscontinue = true;
   bool localcompact = true;
