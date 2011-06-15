@@ -62,7 +62,8 @@ unsigned int gcself_numreceiveobjs;
 
 // for load balancing
 unsigned int gcheaptop;
-void * gcloads[NUMCORES4GC];
+unsigned INTPTR gcloads[NUMCORES4GC];
+void * topptrs[NUMCORES4GC];
 unsigned int gctopcore; // the core host the top of the heap
 unsigned int gctopblock; // the number of current top block
 

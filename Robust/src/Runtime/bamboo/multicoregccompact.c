@@ -27,21 +27,21 @@ INLINE void gc_resetCoreStatus() {
 // should be invoked with interrupt closed
 INLINE int assignSpareMem_I(unsigned int sourcecore,unsigned int * requiredmem, void ** tomove, void ** startaddr) {
   unsigned int b = 0;
-  BLOCKINDEX(gcloads[sourcecore], b);
+  BLOCKINDEX(topptrs[sourcecore], b);
   void * boundptr = BOUNDPTR(b);
-  unsigned INTPTR remain = (unsigned INTPTR) (boundptr - gcloads[sourcecore]);
+  unsigned INTPTR remain = (unsigned INTPTR) (boundptr - topptrs[sourcecore]);
   unsigned int memneed = requiredmem + BAMBOO_CACHE_LINE_SIZE;
-  *startaddr = gcloads[sourcecore];
+  *startaddr = topptrs[sourcecore];
   *tomove = gcfilledblocks[sourcecore] + 1;
   if(memneed < remain) {
-    gcloads[sourcecore] += memneed;
+    topptrs[sourcecore] += memneed;
     return 0;
   } else {
     // next available block
     gcfilledblocks[sourcecore] += 1;
     void * newbase = NULL;
     BASEPTR(sourcecore, gcfilledblocks[sourcecore], &newbase);
-    gcloads[sourcecore] = newbase;
+    topptrs[sourcecore] = newbase;
     return requiredmem-remain;
   }
 }
@@ -71,7 +71,7 @@ INLINE void compact2Heaptophelper_I(unsigned int coren,unsigned int* p,unsigned 
   if(memneed < *remain) {
     *p = *p + memneed;
     gcrequiredmems[coren] = 0;
-    gcloads[gctopcore] += memneed;
+    topptrs[gctopcore] += memneed;
     *remain = *remain - memneed;
   } else {
     // next available block
@@ -79,13 +79,13 @@ INLINE void compact2Heaptophelper_I(unsigned int coren,unsigned int* p,unsigned 
     gcfilledblocks[gctopcore] += 1;
     void * newbase = NULL;
     BASEPTR(gctopcore, gcfilledblocks[gctopcore], &newbase);
-    gcloads[gctopcore] = newbase;
+    topptrs[gctopcore] = newbase;
     gcrequiredmems[coren] -= *remain - BAMBOO_CACHE_LINE_SIZE;
     gcstopblock[gctopcore]++;
     gctopcore = NEXTTOPCORE(gctopblock);
     gctopblock++;
     *numblocks = gcstopblock[gctopcore];
-    *p = gcloads[gctopcore];
+    *p = topptrs[gctopcore];
     BLOCKINDEX(*p, b);
     *remain=GC_BLOCK_REMAIN_SIZE(b, (*p));
   }  
@@ -95,7 +95,7 @@ INLINE void compact2Heaptophelper_I(unsigned int coren,unsigned int* p,unsigned 
 INLINE void compact2Heaptop() {
   // no cores with spare mem and some cores are blocked with pending move
   // find the current heap top and make them move to the heap top
-  void * p = gcloads[gctopcore];
+  void * p = topptrs[gctopcore];
   unsigned int numblocks = gcfilledblocks[gctopcore];
   unsigned int b;
   BLOCKINDEX(p, b);
@@ -470,7 +470,7 @@ bool compacthelper(struct moveHelper * orig,struct moveHelper * to,int * filledb
     // send compact finish message to core coordinator
     if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
       gcfilledblocks[BAMBOO_NUM_OF_CORE] = *filledblocks;
-      gcloads[BAMBOO_NUM_OF_CORE] = *heaptopptr;
+      topptrs[BAMBOO_NUM_OF_CORE] = *heaptopptr;
       //tprintf("--finish compact: %d, %d, %d, %x, %x \n", BAMBOO_NUM_OF_CORE, loadbalancemove, *filledblocks, *heaptopptr, gccurr_heaptop);
       if((unsigned int)(orig->ptr) < (unsigned int)gcmarkedptrbound) {
 	// ask for more mem

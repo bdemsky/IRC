@@ -518,7 +518,7 @@ INLINE void processmsg_gcfinishcompact_I() {
   if(cnum < NUMCORES4GC) {
     if(!loadbalancemove && (COMPACTPHASE == gc_status_info.gcphase)) {
       gcfilledblocks[cnum] = filledblocks;
-      gcloads[cnum] = heaptop;
+      topptrs[cnum] = heaptop;
     }
     if(data4 > 0) {
       // ask for more mem
