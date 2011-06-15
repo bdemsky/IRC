@@ -25,7 +25,7 @@ INLINE void gc_resetCoreStatus() {
 }
 
 // should be invoked with interrupt closed
-INLINE int assignSpareMem_I(unsigned int sourcecore,unsigned int * requiredmem,unsigned int * tomove,unsigned int * startaddr) {
+INLINE int assignSpareMem_I(unsigned int sourcecore,unsigned int * requiredmem, void ** tomove, void ** startaddr) {
   unsigned int b = 0;
   BLOCKINDEX(gcloads[sourcecore], b);
   unsigned int boundptr = BOUNDPTR(b);
@@ -46,7 +46,7 @@ INLINE int assignSpareMem_I(unsigned int sourcecore,unsigned int * requiredmem,u
   }
 }
 
-INLINE int assignSpareMem(unsigned int sourcecore,unsigned int * requiredmem,unsigned int * tomove,unsigned int * startaddr) {
+INLINE int assignSpareMem(unsigned int sourcecore,unsigned int * requiredmem,unsigned int * tomove, void ** startaddr) {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   int retval=assignSpareMem_I(sourcecore, requiredmem, tomove, startaddr);
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
@@ -95,9 +95,8 @@ INLINE void compact2Heaptophelper_I(unsigned int coren,unsigned int* p,unsigned 
 INLINE void compact2Heaptop() {
   // no cores with spare mem and some cores are blocked with pending move
   // find the current heap top and make them move to the heap top
-  unsigned int p;
+  unsigned int p = gcloads[gctopcore];
   unsigned int numblocks = gcfilledblocks[gctopcore];
-  p = gcloads[gctopcore];
   unsigned int b;
   BLOCKINDEX(p, b);
   unsigned int remain=GC_BLOCK_REMAIN_SIZE(b, p);
@@ -219,7 +218,7 @@ outernextSBlock:
     }
     // check the bamboo_smemtbl to decide the real bound
     orig->bound = orig->base + bamboo_smemtbl[blocknum];
-  } else if(0 == (orig->blockbase%BAMBOO_SMEM_SIZE)) {
+  } else if(0 == ((unsigned INTPTR)orig->blockbase)%BAMBOO_SMEM_SIZE) {
     orig->sblockindex += 1;
     sbchanged = true;
   }  
@@ -257,7 +256,7 @@ INLINE bool initOrig_Dst(struct moveHelper * orig,struct moveHelper * to) {
   to->bound = BAMBOO_SMEM_SIZE_L;
   BASEPTR(BAMBOO_NUM_OF_CORE, to->numblocks, &(to->base));
 
-  unsigned int tobase = to->base;
+  void * tobase = to->base;
   to->ptr = tobase + to->offset;
 
   // init the orig ptr
@@ -265,11 +264,11 @@ INLINE bool initOrig_Dst(struct moveHelper * orig,struct moveHelper * to) {
   orig->base = tobase;
   unsigned int blocknum = 0;
   BLOCKINDEX(orig->base, blocknum);
-  unsigned int origbase = orig->base;
+  void * origbase = orig->base;
   // check the bamboo_smemtbl to decide the real bound
-  orig->bound = origbase + (unsigned int)bamboo_smemtbl[blocknum];
+  orig->bound = origbase + (unsigned INTPTR)bamboo_smemtbl[blocknum];
   orig->blockbase = origbase;
-  orig->sblockindex = (unsigned int)(origbase - gcbaseva) / BAMBOO_SMEM_SIZE;
+  orig->sblockindex = (unsigned INTPTR)(origbase - gcbaseva) / BAMBOO_SMEM_SIZE;
 
   int sbstart = gcsbstarttbl[orig->sblockindex];
   if(sbstart == -1) {

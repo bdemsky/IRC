@@ -62,7 +62,7 @@ unsigned int gcself_numreceiveobjs;
 
 // for load balancing
 unsigned int gcheaptop;
-unsigned int gcloads[NUMCORES4GC];
+unsigned INTPTR gcloads[NUMCORES4GC];
 unsigned int gctopcore; // the core host the top of the heap
 unsigned int gctopblock; // the number of current top block
 
@@ -86,7 +86,7 @@ volatile unsigned int gcmovepending;
 // The bottom of the shared memory = sbstart tbl + smemtbl + bamboo_rmsp
 // These three types of table are always reside at the bottom of the shared 
 // memory and will never be moved or garbage collected
-unsigned int * gcmappingtbl;
+void ** gcmappingtbl;
 unsigned int bamboo_rmsp_size;
 
 unsigned int * gcmarktbl;
@@ -120,7 +120,7 @@ unsigned int size_cachepolicytbl;
 
 #define WAITFORGCPHASE(phase) while(gc_status_info.gcphase != phase) ;
 
-#define OBJMAPPINGINDEX(p) (((unsigned int)p-gcbaseva)/bamboo_baseobjsize)
+
 
 #define ISSHAREDOBJ(p) \
   ((((unsigned int)p)>=gcbaseva)&&(((unsigned int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
@@ -132,6 +132,7 @@ unsigned int size_cachepolicytbl;
 /* Number of bits used for each alignment unit */
 #define BITSPERALIGNMENT 2
 #define ALIGNOBJSIZE(x) (x>>ALIGNMENTSHIFT)
+#define OBJMAPPINGINDEX(p) ALIGNOBJSIZE((unsigned INTPTR)(p-gcbaseva))
 
 //There are two bits per object
 //00 means not marked
@@ -169,11 +170,9 @@ unsigned int size_cachepolicytbl;
     } \
   }
 
-// mapping of pointer to core #
-#define RESIDECORE(p, c) \
-  { \
+#define RESIDECORE(p, c) { \
     if(1 == (NUMCORES4GC)) { \
-      (*((unsigned int*)c)) = 0; \
+      c = 0; \
     } else { \
       unsigned INTPTR b; \
       BLOCKINDEX(p, b); \

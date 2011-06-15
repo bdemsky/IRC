@@ -46,7 +46,7 @@ void dumpSMem() {
         *((int *)(i + 4*12)), *((int *)(i + 4*13)),
         *((int *)(i + 4*14)), *((int *)(i + 4*15)));
   }
-  sblock = gcreservedsb;
+  sblock = 0;
   bool advanceblock = false;
   // remaining memory
   for(i=gcbaseva; (unsigned int)i<(unsigned int)(gcbaseva+BAMBOO_SHARED_MEM_SIZE); i+=4*16) {
@@ -301,7 +301,7 @@ INLINE int loadbalance(void ** heaptop) {
   // num of blocks per core
   unsigned int numbpc = (unsigned int)b/(unsigned int)(NUMCORES4GC);
   gctopblock = b;
-  RESIDECORE(heaptop, gctopcore);
+  RESIDECORE(*heaptop, gctopcore);
   return numbpc;
 }
 
@@ -395,14 +395,14 @@ INLINE bool cacheLObjs() {
 } 
 
 // update the bmmboo_smemtbl to record current shared mem usage
-void updateSmemTbl(unsigned int coren, unsigned int localtop) {
+void updateSmemTbl(unsigned int coren, void * localtop) {
   unsigned int ltopcore = 0;
   unsigned int bound = BAMBOO_SMEM_SIZE_L;
   BLOCKINDEX(localtop, ltopcore);
   if((unsigned int)localtop>=(unsigned int)(gcbaseva+BAMBOO_LARGE_SMEM_BOUND)){
     bound = BAMBOO_SMEM_SIZE;
   }
-  unsigned int load = (unsigned int)(localtop-gcbaseva)%(unsigned int)bound;
+  unsigned int load = (unsigned INTPTR)(localtop-gcbaseva)%(unsigned int)bound;
   unsigned int toset = 0;
   for(int j=0; 1; j++) {
     for(int i=0; i<2; i++) {
@@ -460,7 +460,7 @@ INLINE unsigned int checkCurrHeapTop() {
   return gcbaseva;
 }
 
-INLINE void movelobj(unsigned int tmpheaptop,unsigned int ptr,int size,int isize) {
+INLINE void movelobj(void * tmpheaptop, void * ptr,int size,int isize) {
   // move the large obj
   if((unsigned int)gcheaptop < (unsigned int)(tmpheaptop+size)) {
     memmove(tmpheaptop, gcheaptop, size);
@@ -471,7 +471,7 @@ INLINE void movelobj(unsigned int tmpheaptop,unsigned int ptr,int size,int isize
   BAMBOO_MEMSET_WH(tmpheaptop+size, -2, isize-size);
   gcheaptop += size;
   // cache the mapping info 
-  gcmappingtbl[OBJMAPPINGINDEX((unsigned int)ptr)]=(unsigned int)tmpheaptop;
+  gcmappingtbl[OBJMAPPINGINDEX(ptr)]=tmpheaptop;
   tmpheaptop += isize;
 }
 
@@ -491,14 +491,14 @@ INLINE void moveLObjs() {
   gcmem_mixed_usedmem += tomove;
 #endif
   // flush the sbstartbl
-  BAMBOO_MEMSET_WH(&(gcsbstarttbl[gcreservedsb]),'\0',(BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE-(unsigned int)gcreservedsb)*sizeof(unsigned int));
+  BAMBOO_MEMSET_WH(gcsbstarttbl,'\0',(BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE)*sizeof(unsigned int));
   if(tomove == 0) {
     gcheaptop = tmpheaptop;
   } else {
     // check how many blocks it acrosses
     unsigned INTPTR remain = (unsigned INTPTR) (tmpheaptop-gcbaseva);
     //number of the sblock
-    unsigned int sb = remain/BAMBOO_SMEM_SIZE+(unsigned int)gcreservedsb;
+    unsigned int sb = remain/BAMBOO_SMEM_SIZE;
     unsigned int b = 0;  // number of the block
     BLOCKINDEX(tmpheaptop, b);
     // check the remaining space in this block
@@ -540,7 +540,7 @@ INLINE void moveLObjs() {
           remain -= BAMBOO_CACHE_LINE_SIZE;
           tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
           BLOCKINDEX(tmpheaptop, b);
-          sb = (unsigned int)(tmpheaptop-gcbaseva)/(BAMBOO_SMEM_SIZE)+gcreservedsb;
+          sb = (unsigned int)(tmpheaptop-gcbaseva)/(BAMBOO_SMEM_SIZE);
         } 
         // move the obj
         movelobj(tmpheaptop,ptr,size,isize);

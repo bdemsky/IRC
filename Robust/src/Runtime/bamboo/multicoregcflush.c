@@ -28,7 +28,7 @@ extern struct lockvector bamboo_threadlocks;
 #define FLUSHOBJNONNULL(obj, tt) {void *flushtmpptr=obj; obj=flushObj(flushtmpptr);}
 
 INLINE void * flushObj(void * objptr) {
-  return gcmappingtbl[OBJMAPPINGINDEX((unsigned int)objptr)];
+  return gcmappingtbl[OBJMAPPINGINDEX(objptr)];
 }
 
 INLINE void updategarbagelist(struct garbagelist *listptr) {

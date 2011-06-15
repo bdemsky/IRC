@@ -92,7 +92,7 @@ void cacheAdapt_policy_local(int coren){
   for(; page_index < page_index_end; page_index++) {
     bamboo_cache_policy_t policy = {0};
     unsigned int block = 0;
-    BLOCKINDEX(page_sva, block);
+    BLOCKINDEX((void *) page_sva, block);
     unsigned int coren = gc_block2core[block%(NUMCORES4GC*2)];
     CACHEADAPT_POLICY_SET_HOST_CORE(policy, coren);
     CACHEADAPT_CHANGE_POLICY_4_PAGE(tmp_p,page_index,policy);
@@ -464,7 +464,7 @@ void gc_output_cache_sampling() {
   for(page_index = 0; page_index < page_num; page_index++) {
     page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
     unsigned int block = 0;
-    BLOCKINDEX(page_sva, block);
+    BLOCKINDEX((void *) page_sva, block);
     unsigned int coren = gc_block2core[block%(NUMCORES4GC*2)];
     printf("%x,  %d,  %d,  ",(int)page_sva,page_index,coren);
     for(int i = 0; i < NUMCORESACTIVE; i++) {
@@ -494,7 +494,7 @@ void gc_output_cache_sampling_r() {
   for(page_index = 0; page_index < page_num; page_index++) {
     page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
     unsigned int block = 0;
-    BLOCKINDEX(page_sva, block);
+    BLOCKINDEX((void *)page_sva, block);
     unsigned int coren = gc_block2core[block%(NUMCORES4GC*2)];
     printf(" %x,  %d,  %d,  ",(int)page_sva,page_index,coren);
     int accesscore = 0; // TODO
