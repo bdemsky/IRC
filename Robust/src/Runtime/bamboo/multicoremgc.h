@@ -16,6 +16,6 @@
 // data structures for threads
 unsigned int * bamboo_thread_queue;
 unsigned int bamboo_max_thread_num_mask;
-unsigned int bamboo_current_thread;
+void * bamboo_current_thread;
 #endif // MGC
 #endif // BAMBOO_MULTICORE_MGC_H

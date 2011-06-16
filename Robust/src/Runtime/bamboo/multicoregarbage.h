@@ -43,7 +43,7 @@ extern volatile bool gcflag;
 extern gc_status_t gc_status_info;
 volatile bool gcprecheck; // indicates if there are updated pregc information
 
-unsigned int gccurr_heaptop;
+unsigned INTPTR gccurr_heaptop;
 struct MGCHash * gcforwardobjtbl; // cache forwarded objs in mark phase
 // for mark phase termination
 volatile unsigned int gccorestatus[NUMCORESACTIVE];//records status of each core
@@ -131,32 +131,13 @@ unsigned int size_cachepolicytbl;
 #define ALIGNMENTSHIFT 5
 
 /* Number of bits used for each alignment unit */
-#define BITSPERALIGNMENT 2
+
 #define ALIGNOBJSIZE(x) (x>>ALIGNMENTSHIFT)
 #define OBJMAPPINGINDEX(p) ALIGNOBJSIZE((unsigned INTPTR)(p-gcbaseva))
+#define ALIGNUNITS(s) (((s-1)>>ALIGNMENTSHIFT)+1)
 
-//There are two bits per object
-//00 means not marked
-//11 means first block of object
-//10 means marked block
 
-#define UNMARKED 0
-#define MARKEDFIRST 3
-#define MARKEDLATER 2
-
-//sets y to the marked status of x
-#define GETMARKED(y,x) { unsigned INTPTR offset=ALIGNOBJSIZE((unsigned INTPTR)(x-gcbaseva)); \
-    y=(gcmarktbl[offset>>4]>>((offset&15)<<1))&3; }
-
-//sets the marked status of x to y (assumes zero'd)
-#define SETMARKED(y,x) { unsigned INTPTR offset=ALIGNOBJSIZE((unsigned INTPTR)(x-gcbaseva)); \
-    gcmarktbl[offset>>4]|=y<<((offset&15)<<1); }
-
-//sets the marked status of x to y (assumes zero'd)
-#define RESETMARKED(x) { unsigned INTPTR offset=ALIGNOBJSIZE((unsigned INTPTR)(x-gcbaseva)); \
-    gcmarktbl[offset>>4]&=~(3<<((offset&15)<<1)); }
-
-#define ALIGNSIZE(s, as) (*((unsigned int*)as))=((((unsigned int)(s-1))&(~(BAMBOO_CACHE_LINE_MASK)))+(BAMBOO_CACHE_LINE_SIZE))
+#define ALIGNSIZE(s) ((((unsigned int)(s-1))&~(ALIGNMENTBYTES-1))+ALIGNMENTBYTES)
 
 
 // mapping of pointer to block # (start from 0), here the block # is

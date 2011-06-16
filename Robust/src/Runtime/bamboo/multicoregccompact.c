@@ -524,38 +524,74 @@ bool compacthelper(struct moveHelper * orig,struct moveHelper * to,int * filledb
       CACHEADAPT_SAMPLING_DATA_REVISE_INIT(orig, to);
     } else
       return true;
-}
+  }
 }
 
 void compact() {
   BAMBOO_ASSERT(COMPACTPHASE == gc_status_info.gcphase);
   BAMBOO_CACHE_MF();
   
-  // initialize pointers for comapcting
-  struct moveHelper * orig = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
-  struct moveHelper * to = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
-  if(!initOrig_Dst(orig, to)) {
+  // initialize structs for compacting
+  struct moveHelper orig={0,NULL,NULL,0,NULL,0,0,0,0};
+  struct moveHelper to={0,NULL,NULL,0,NULL,0,0,0,0};
+  if(!initOrig_Dst(&orig, &to)) {
     // no available data to compact
     // send compact finish msg to STARTUP core
-    send_msg_6(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE,false,0,to->base,0);
-    RUNFREE(orig);
-    RUNFREE(to);
+    send_msg_6(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE,false,0,to.base,0);
   } else {
     CACHEADAPT_SAMPLING_DATA_REVISE_INIT(orig, to);
 
     unsigned int filledblocks = 0;
     void * heaptopptr = NULL;
     bool localcompact = true;
-    compacthelper(orig, to, &filledblocks, &heaptopptr, &localcompact, false);
-    RUNFREE(orig);
-    RUNFREE(to);
+    compacthelper(&orig, &to, &filledblocks, &heaptopptr, &localcompact, false);
   }
 } 
 
-void compact_master(struct moveHelper * orig, struct moveHelper * to) {
-  // initialize pointers for comapcting
-  initOrig_Dst(orig, to);
-  CACHEADAPT_SAMPLING_DATA_REVISE_INIT(orig, to);
+void master_compact() {
+  // predict number of blocks to fill for each core
+  void * tmpheaptop = 0;
+  int numpbc = loadbalance(&tmpheaptop);
+
+  numpbc = BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE;
+  GC_PRINTF("mark phase finished \n");
+  
+  tmpheaptop = gcbaseva + BAMBOO_SHARED_MEM_SIZE;
+  for(int i = 0; i < NUMCORES4GC; i++) {
+    unsigned int tmpcoreptr = 0;
+    BASEPTR(i, numpbc, &tmpcoreptr);
+    // init some data strutures for compact phase
+    gcloads[i] = NULL;
+    gcfilledblocks[i] = 0;
+    gcrequiredmems[i] = 0;
+    gccorestatus[i] = 1;
+    //send start compact messages to all cores
+    gcstopblock[i] = numpbc+1;
+    if(i != STARTUPCORE) {
+      send_msg_2(i, GCSTARTCOMPACT, numpbc+1);
+    } else {
+      gcblock2fill = numpbc+1;
+    }
+  }
+  BAMBOO_CACHE_MF();
+  GCPROFILE_ITEM();
+  // compact phase
+  compact_master();
+  GCPROFILE_ITEM();
+  GC_PRINTF("prepare to move large objs \n");
+  // move largeObjs
+  moveLObjs();
+  GC_PRINTF("compact phase finished \n");
+}
+
+
+void compact_master() {
+  // initialize pointers for compacting
+  struct moveHelper orig={0,NULL,NULL,0,NULL,0,0,0,0};
+  struct moveHelper to={0,NULL,NULL,0,NULL,0,0,0,0};
+
+  initOrig_Dst(&orig, &to);
+  CACHEADAPT_SAMPLING_DATA_REVISE_INIT(&orig, &to);
   int filledblocks = 0;
   void * heaptopptr = NULL;
   bool finishcompact = false;
@@ -564,7 +600,7 @@ void compact_master(struct moveHelper * orig, struct moveHelper * to) {
   bool lbmove = false;
   while((COMPACTPHASE == gc_status_info.gcphase) || (SUBTLECOMPACTPHASE == gc_status_info.gcphase)) {
     if((!finishcompact) && iscontinue) {
-      finishcompact = compacthelper(orig,to,&filledblocks,&heaptopptr,&localcompact, lbmove);
+      finishcompact = compacthelper(&orig,&to,&filledblocks,&heaptopptr,&localcompact, lbmove);
     }
     
     if(gc_checkCoreStatus()) {
@@ -582,16 +618,16 @@ void compact_master(struct moveHelper * orig, struct moveHelper * to) {
 
     if(gctomove) {
       BAMBOO_CACHE_MF();
-      to->ptr = gcmovestartaddr;
-      to->numblocks = gcblock2fill - 1;
-      to->bound = BLOCKBOUND(to->numblocks);
-      BASEPTR(gcdstcore, to->numblocks, &(to->base));
-      to->offset = to->ptr - to->base;
-      to->top = (to->numblocks==0)?(to->offset):(to->bound-BAMBOO_SMEM_SIZE+to->offset);
-      to->base = to->ptr;
-      to->offset = BAMBOO_CACHE_LINE_SIZE;
-      to->ptr += to->offset;  // for header
-      to->top += to->offset;
+      to.ptr = gcmovestartaddr;
+      to.numblocks = gcblock2fill - 1;
+      to.bound = BLOCKBOUND(to.numblocks);
+      BASEPTR(gcdstcore, to.numblocks, &(to.base));
+      to.offset = to.ptr - to.base;
+      to.top = (to.numblocks==0)?(to.offset):(to.bound-BAMBOO_SMEM_SIZE+to.offset);
+      to.base = to.ptr;
+      to.offset = BAMBOO_CACHE_LINE_SIZE;
+      to.ptr += to.offset;  // for header
+      to.top += to.offset;
       localcompact = (gcdstcore == BAMBOO_NUM_OF_CORE);
       gctomove = false;
       iscontinue = true;

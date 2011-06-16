@@ -11,7 +11,19 @@ extern unsigned int revmarkmappingarray[];
 #define OBJMASK 0x40000000  //set towhatever smallest object mark is
 #define MARKMASK 0xc0000000  //set towhatever smallest object mark is
 
+/* 
+   The bitmap mark array uses 2 mark bits per alignment unit.
 
+   The clever trick is that we encode the length of the object (in
+   units of alignment units) using just these two bits.  The basic
+   idea is to generate a variable length encoding of the length in
+   which the length of the encoding is shorter than number of mark
+   bits taken up by the object.
+
+   To make this efficient, it is table driven for objects that are
+   less than 16 alignment units in length.  For larger objects, we
+   just use addition.
+*/
 
 /* Return length in units of ALIGNSIZE */
 

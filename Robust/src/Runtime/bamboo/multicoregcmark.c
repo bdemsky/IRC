@@ -48,7 +48,7 @@ INLINE bool isLarge(void * ptr, int * ttype, unsigned int * tsize) {
   unsigned INTPTR blocksize = (((unsigned INTPTR)(ptr-gcbaseva)) < BAMBOO_LARGE_SMEM_BOUND)? BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
 
   // ptr is a start of a block  OR it crosses the boundary of current block
-  return *tsize > blocksize;
+  return (*tsize) > blocksize;
 }
 
 INLINE unsigned int hostcore(void * ptr) {
@@ -73,16 +73,14 @@ INLINE unsigned int hostcore(void * ptr) {
 #define MARKOBJNONNULL(objptr, ii) {markObj(objptr);}
 
 // NOTE: the objptr should not be NULL and should be a shared obj
-INLINE void markObj(void * objptr) {
+void markObj(void * objptr) {
   unsigned int host = hostcore(objptr);
   if(BAMBOO_NUM_OF_CORE == host) {
-    int markedbit;
-    GETMARKED(markedbit, objptr);
     // on this core
-    if(markedbit == UNMARKED) {
+    if(!checkMark(objptr)) {
       // this is the first time that this object is discovered,
       // set the flag as DISCOVERED
-      SETMARKED(MARKEDFIRST, objptr);
+      setMark(objptr);
       gc_enqueue(objptr);
     }
   } else {
@@ -94,7 +92,7 @@ INLINE void markObj(void * objptr) {
       gcself_numsendobjs++;
     }
   }
-} 
+}
 
 INLINE void markgarbagelist(struct garbagelist * listptr) {
   for(;listptr!=NULL;listptr=listptr->next) {
@@ -202,7 +200,7 @@ INLINE void tomark(struct garbagelist * stackptr) {
   }
 
   // enqueue the bamboo_current_thread
-  MARKOBJ((void *)bamboo_current_thread, 0);
+  MARKOBJ(bamboo_current_thread, 0);
 #endif
 }
 
@@ -250,7 +248,7 @@ INLINE void scanPtrsInObj(void * ptr, int type) {
   }
 }
 
-INLINE void mark(bool isfirst, struct garbagelist * stackptr) {
+void mark(bool isfirst, struct garbagelist * stackptr) {
   if(isfirst) {
     // enqueue root objs
     tomark(stackptr);
@@ -263,29 +261,32 @@ INLINE void mark(bool isfirst, struct garbagelist * stackptr) {
   // mark phase
   while(MARKPHASE == gc_status_info.gcphase) {
     int counter = 0;
+
     while(gc_moreItems2()) {
       sendStall = false;
       gc_status_info.gcbusystatus = true;
-      unsigned int ptr = gc_dequeue2();
+      void * ptr = gc_dequeue2();
 
       unsigned int size = 0;
       unsigned int type = 0;
+      bool islarge=isLarge(ptr, &type, &size);
+      unsigned int iunits = ALIGNUNITS(size);
 
-      if(isLarge(ptr, &type, &size)) {
+      setLengthMarked(ptr,iunits);
+	
+      if(islarge) {
         // ptr is a large object and not marked or enqueued
         gc_lobjenqueue(ptr, size, BAMBOO_NUM_OF_CORE);
         gcnumlobjs++;
       } else {
         // ptr is an unmarked active object on this core
-	unsigned int isize = 0;
-        ALIGNSIZE(size, &isize);
+	unsigned int isize=iunits<<ALIGNMENTSHIFT;
         gccurr_heaptop += isize;
-
-        if((unsigned int)(ptr + size) > (unsigned int)gcmarkedptrbound) {
-          gcmarkedptrbound = (unsigned int)(ptr + size);
-        }
+	void *top=ptr+isize;
+	if (top>gcmarkedptrbound)
+	  gcmarkedptrbound=top;
       }
-
+      
       // scan the pointers in object
       scanPtrsInObj(ptr, type);
     }

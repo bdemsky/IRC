@@ -622,7 +622,7 @@ INLINE void initruntimedata() {
 
 #ifdef MGC
   initializethreads();
-  bamboo_current_thread = 0;
+  bamboo_current_thread = NULL;
 #endif // MGC
 
   INITTASKDATA();

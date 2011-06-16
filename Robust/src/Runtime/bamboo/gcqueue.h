@@ -27,37 +27,32 @@ extern struct pointerblock *gchead;
 extern int gcheadindex;
 extern struct pointerblock *gctail;
 extern int gctailindex;
-extern struct pointerblock *gctail2;
-extern int gctailindex2;
 extern struct pointerblock *gcspare;
 
 extern struct lobjpointerblock *gclobjhead;
 extern int gclobjheadindex;
 extern struct lobjpointerblock *gclobjtail;
 extern int gclobjtailindex;
-extern struct lobjpointerblock *gclobjtail2;
-extern int gclobjtailindex2;
 extern struct lobjpointerblock *gclobjspare;
 
 static void gc_queueinit() {
   // initialize queue
   if (gchead==NULL) {
     gcheadindex=gctailindex=gctailindex2 = 0;
-    gchead=gctail=gctail2=RUNMALLOC(sizeof(struct pointerblock));
+    gchead=gctail=RUNMALLOC(sizeof(struct pointerblock));
   } else {
-    gctailindex=gctailindex2=gcheadindex=0;
-    gctail=gctail2=gchead;
+    gctailindex=gcheadindex=0;
+    gctail=gchead;
   }
   gchead->next=NULL;
   // initialize the large obj queues
   if (gclobjhead==NULL) {
     gclobjheadindex=0;
     gclobjtailindex=0;
-    gclobjtailindex2=0;
-    gclobjhead=gclobjtail=gclobjtail2=RUNMALLOC(sizeof(struct lobjpointerblock));
+    gclobjhead=gclobjtail=RUNMALLOC(sizeof(struct lobjpointerblock));
   } else {
-    gclobjtailindex=gclobjtailindex2=gclobjheadindex=0;
-    gclobjtail=gclobjtail2=gclobjhead;
+    gclobjtailindex=gclobjheadindex=0;
+    gclobjtail=gclobjhead;
   }
   gclobjhead->next=gclobjhead->prev=NULL;
 }
@@ -98,21 +93,8 @@ static void * gc_dequeue_I() {
   return gctail->ptrs[gctailindex++];
 } 
 
-// dequeue and do not destroy the queue
-static void * gc_dequeue2_I() {
-  if (gctailindex2==NUMPTRS) {
-    gctail2=gctail2->next;
-    gctailindex2=0;
-  } 
-  return gctail2->ptrs[gctailindex2++];
-}
-
 static int gc_moreItems_I() {
   return !((gchead==gctail)&&(gctailindex==gcheadindex));
-} 
-
-static int gc_moreItems2_I() {
-  return !((gchead==gctail2)&&(gctailindex2==gcheadindex));
 } 
 
 // should be invoked with interruption closed 
@@ -169,58 +151,6 @@ static int gc_lobjmoreItems_I() {
   return !((gclobjhead==gclobjtail)&&(gclobjtailindex==gclobjheadindex));
 } 
 
-// dequeue and don't destroy the queue
-static void gc_lobjdequeue2_I() {
-  if (gclobjtailindex2==NUMLOBJPTRS) {
-    gclobjtail2=gclobjtail2->next;
-    gclobjtailindex2=1;
-  } else {
-    gclobjtailindex2++;
-  }  
-}
-
-static int gc_lobjmoreItems2_I() {
-  return !((gclobjhead==gclobjtail2)&&(gclobjtailindex2==gclobjheadindex));
-} 
-
-// 'reversly' dequeue and don't destroy the queue
-static void gc_lobjdequeue3_I() {
-  if (gclobjtailindex2==0) {
-    gclobjtail2=gclobjtail2->prev;
-    gclobjtailindex2=NUMLOBJPTRS-1;
-  } else {
-    gclobjtailindex2--;
-  }  
-}
-
-static int gc_lobjmoreItems3_I() {
-  return !((gclobjtail==gclobjtail2)&&(gclobjtailindex2==gclobjtailindex));
-} 
-
-static void gc_lobjqueueinit4_I() {
-  gclobjtail2 = gclobjtail;
-  gclobjtailindex2 = gclobjtailindex;
-} 
-
-static void * gc_lobjdequeue4_I(unsigned int * length,
-                                      unsigned int * host) {
-  if (gclobjtailindex2==NUMLOBJPTRS) {
-    gclobjtail2=gclobjtail2->next;
-    gclobjtailindex2=0;
-  } 
-  if(length != NULL) {
-    *length = gclobjtail2->lengths[gclobjtailindex2];
-  }
-  if(host != NULL) {
-    *host = (unsigned int)(gclobjtail2->hosts[gclobjtailindex2]);
-  }
-  return gclobjtail2->lobjs[gclobjtailindex2++];
-} 
-
-static int gc_lobjmoreItems4_I() {
-  return !((gclobjhead==gclobjtail2)&&(gclobjtailindex2==gclobjheadindex));
-}
-
 ////////////////////////////////////////////////////////////////////
 // functions that can be invoked in normal places
 ////////////////////////////////////////////////////////////////////
@@ -264,25 +194,6 @@ static void * gc_dequeue() {
 static int gc_moreItems() {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   int r = !((gchead==gctail)&&(gctailindex==gcheadindex));
-  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-  return r;
-}
-
-// dequeue and do not destroy the queue
-static void * gc_dequeue2() {
-  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  if (gctailindex2==NUMPTRS) {
-    gctail2=gctail2->next;
-    gctailindex2=0;
-  } 
-  void * r = gctail2->ptrs[gctailindex2++];
-  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-  return r;
-}
-
-static int gc_moreItems2() {
-  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  int r = !((gchead==gctail2)&&(gctailindex2==gcheadindex));
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return r;
 }

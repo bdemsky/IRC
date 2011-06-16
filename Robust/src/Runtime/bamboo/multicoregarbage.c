@@ -730,56 +730,6 @@ void master_getlargeobjs() {
   BAMBOO_ASSERTMSG(cacheLObjs(), "Not enough space to cache large objects\n");
 }
 
-void master_compact() {
-  // predict number of blocks to fill for each core
-  void * tmpheaptop = 0;
-  int numpbc = loadbalance(&tmpheaptop);
-  //tprintf("numpbc: %d \n", numpbc);
-
-  numpbc = BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE;
-  GC_PRINTF("mark phase finished \n");
-  
-  tmpheaptop = gcbaseva + BAMBOO_SHARED_MEM_SIZE;
-  for(int i = 0; i < NUMCORES4GC; i++) {
-    unsigned int tmpcoreptr = 0;
-    BASEPTR(i, numpbc, &tmpcoreptr);
-    // init some data strutures for compact phase
-    gcloads[i] = NULL;
-    gcfilledblocks[i] = 0;
-    gcrequiredmems[i] = 0;
-    gccorestatus[i] = 1;
-    //send start compact messages to all cores
-    //TODO bug here, do not know if the direction is positive or negtive?
-    //if (tmpcoreptr < tmpheaptop) {
-      gcstopblock[i] = numpbc+1;
-      if(i != STARTUPCORE) {
-        send_msg_2(i, GCSTARTCOMPACT, numpbc+1);
-      } else {
-        gcblock2fill = numpbc+1;
-      }
-    /*} else {
-      gcstopblock[i] = numpbc;
-      if(i != STARTUPCORE) {
-        send_msg_2(i, GCSTARTCOMPACT, numpbc);
-      } else {
-        gcblock2fill = numpbc;
-      }
-    }*/
-  }
-  BAMBOO_CACHE_MF();
-  GCPROFILE_ITEM();
-  // compact phase
-  struct moveHelper * orig = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
-  struct moveHelper * to = (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
-  compact_master(orig, to); 
-  GCPROFILE_ITEM();
-  GC_PRINTF("prepare to move large objs \n");
-  // move largeObjs
-  moveLObjs();
-  GC_PRINTF("compact phase finished \n");
-  RUNFREE(orig);
-  RUNFREE(to);
-}
 
 void master_updaterefs(struct garbagelist * stackptr) {
   gc_status_info.gcphase = FLUSHPHASE;
