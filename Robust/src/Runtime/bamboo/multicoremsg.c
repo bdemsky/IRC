@@ -6,6 +6,7 @@
 #include "multicoretaskprofile.h"
 #include "gcqueue.h"
 #include "runtime_arch.h"
+#include "markbit.h"
 
 int msgsizearray[] = {
   0, //MSGSTART,
@@ -393,10 +394,10 @@ INLINE void processmsg_memresponse_I() {
     bamboo_smem_zero_top = NULL;
 #endif
     bamboo_smem_size = 0;
-    bamboo_cur_msp = 0;
+    bamboo_cur_msp = NULL;
   } else {
 #ifdef MULTICORE_GC
-    CLOSEBLOCK(data1, data2);
+    //CLOSEBLOCK(data1, data2);
     bamboo_smem_size = data2 - BAMBOO_CACHE_LINE_SIZE;
     bamboo_cur_msp = data1 + BAMBOO_CACHE_LINE_SIZE;
     bamboo_smem_zero_top = bamboo_cur_msp;
@@ -549,7 +550,7 @@ INLINE void processmsg_gcfinish_I() {
 
 INLINE void processmsg_gcmarkconfirm_I() {
   BAMBOO_ASSERT(((BAMBOO_NUM_OF_CORE!=STARTUPCORE)&&(BAMBOO_NUM_OF_CORE<=NUMCORESACTIVE-1)));
-  gc_status_info.gcbusystatus = gc_moreItems2_I();
+  gc_status_info.gcbusystatus = gc_moreItems_I();
   // send response msg, cahce the msg first
   if(BAMBOO_CHECK_SEND_MODE()) {
     cache_msg_5_I(STARTUPCORE,GCMARKREPORT,BAMBOO_NUM_OF_CORE,gc_status_info.gcbusystatus,gcself_numsendobjs,gcself_numreceiveobjs);

@@ -72,7 +72,7 @@ INLINE static void samplingDataConvert(void * current_ptr) {
   }
 } 
 
-INLINE static void completePageConvert(struct moveHelper * orig,struct moveHelper * to,unsigned int current_ptr,bool closeToPage) {
+INLINE static void completePageConvert(struct moveHelper * orig,struct moveHelper * to, void * current_ptr,bool closeToPage) {
   void *ptr;
   void *tocompare;
   if(closeToPage) {

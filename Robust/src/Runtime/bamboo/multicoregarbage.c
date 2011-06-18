@@ -119,7 +119,6 @@ void initmulticoregcdata() {
   gcself_numreceiveobjs = 0;
   gcmarkedptrbound = 0;
   gcforwardobjtbl = allocateMGCHash_I(128);
-  gcnumlobjs = 0;
   gcheaptop = 0;
   gctopcore = 0;
   gctopblock = 0;
@@ -170,7 +169,6 @@ void initGC() {
   gcself_numsendobjs = 0;
   gcself_numreceiveobjs = 0;
   gcmarkedptrbound = 0;
-  gcnumlobjs = 0;
   gcmovestartaddr = 0;
   gctomove = false;
   gcblock2fill = 0;
@@ -367,7 +365,7 @@ void gc_collect(struct garbagelist * stackptr) {
 
   GC_PRINTF("Start flush phase\n");
   GCPROFILE_INFO_2_MASTER();
-  flush(stackptr);
+  update(stackptr);
   GC_PRINTF("Finish flush phase\n");
 
   CACHEADAPT_PHASE_CLIENT();
@@ -408,7 +406,7 @@ void gc_nocollect(struct garbagelist * stackptr) {
 
   GC_PRINTF("Start flush phase\n");
   GCPROFILE_INFO_2_MASTER();
-  flush(stackptr);
+  update(stackptr);
   GC_PRINTF("Finish flush phase\n"); 
 
   CACHEADAPT_PHASE_CLIENT();
@@ -467,7 +465,7 @@ void master_updaterefs(struct garbagelist * stackptr) {
   GCPROFILE_ITEM();
   GC_PRINTF("Start flush phase \n");
   // flush phase
-  flush(stackptr);
+  update(stackptr);
   GC_CHECK_ALL_CORE_STATUS(UPDATEPHASE==gc_status_info.gcphase);
   GC_PRINTF("Finish flush phase \n");
 }

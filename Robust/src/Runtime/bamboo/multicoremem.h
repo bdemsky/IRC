@@ -134,12 +134,12 @@ struct freeMemList {
 
 // Zero out the remaining bamboo_cur_msp. Only zero out the first 4 bytes 
 // of the remaining memory
-#define BAMBOO_CLOSE_CUR_MSP() \
-  { \
-    if((bamboo_cur_msp!=0)&&(bamboo_smem_zero_top==bamboo_cur_msp) \
-        &&(bamboo_smem_size>0)) { \
-      *((int *)bamboo_cur_msp) = 0; \
-    } \
+#define BAMBOO_CLOSE_CUR_MSP()					   \
+  {								   \
+    if((bamboo_cur_msp!=NULL)&&(bamboo_smem_zero_top==bamboo_cur_msp) \
+       &&(bamboo_smem_size>0)) {				   \
+      *bamboo_cur_msp = NULL;					   \
+    }								   \
   }
 
 // table recording the number of allocated bytes on each block
@@ -161,7 +161,7 @@ unsigned int bamboo_free_smemp;
 int bamboo_free_smem_size;
 #endif // MULTICORE_GC
 volatile bool smemflag;
-volatile unsigned int bamboo_cur_msp;
+volatile unsigned int * bamboo_cur_msp;
 volatile int bamboo_smem_size;
 
 #endif // BAMBOO_MULTICORE_MEM_H

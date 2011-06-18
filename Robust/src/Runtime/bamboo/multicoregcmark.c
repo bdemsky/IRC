@@ -262,10 +262,10 @@ void mark(bool isfirst, struct garbagelist * stackptr) {
   while(MARKPHASE == gc_status_info.gcphase) {
     int counter = 0;
 
-    while(gc_moreItems2()) {
+    while(gc_moreItems()) {
       sendStall = false;
       gc_status_info.gcbusystatus = true;
-      void * ptr = gc_dequeue2();
+      void * ptr = gc_dequeue();
 
       unsigned int size = 0;
       unsigned int type = 0;
@@ -276,8 +276,7 @@ void mark(bool isfirst, struct garbagelist * stackptr) {
 	
       if(islarge) {
         // ptr is a large object and not marked or enqueued
-        gc_lobjenqueue(ptr, size, BAMBOO_NUM_OF_CORE);
-        gcnumlobjs++;
+	printf("NEED TO SUPPORT LARGE OBJECTS!\n");
       } else {
         // ptr is an unmarked active object on this core
 	unsigned int isize=iunits<<ALIGNMENTSHIFT;

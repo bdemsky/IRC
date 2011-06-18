@@ -132,9 +132,6 @@ unsigned int size_cachepolicytbl;
 
 /* Number of bits used for each alignment unit */
 
-//Takes in size and converts into alignment units
-#define ALIGNOBJSIZE(x) (x>>ALIGNMENTSHIFT)
-
 //Takes in pointer to heap object and converts to offset in alignment units
 #define OBJMAPPINGINDEX(p) ALIGNOBJSIZE((unsigned INTPTR)(p-gcbaseva))
 

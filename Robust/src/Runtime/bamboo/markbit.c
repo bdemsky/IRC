@@ -1,3 +1,6 @@
+#include "runtime.h"
+#include "multicoremem.h"
+#include "multicoregarbage.h"
 #include "markbit.h"
 
 unsigned int markmappingarray[]={0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 

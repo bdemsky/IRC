@@ -50,8 +50,7 @@ static inline unsigned int getMarkedLength(void *ptr) {
     val=gcmarktbl[hibits];
   else {
     unsigned INTPTR revlobits=32-lobits;
-    unsigned INTPTR val=(gcmarktbl[hibits]<<lobits)
-      |(gcmarktbl[hibits+1]>>(revlobits));
+    val=(gcmarktbl[hibits]<<lobits)|(gcmarktbl[hibits+1]>>(revlobits));
   }
   unsigned int index=val>>26;
   if (index>48)

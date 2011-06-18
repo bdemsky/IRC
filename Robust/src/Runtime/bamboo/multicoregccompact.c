@@ -93,30 +93,13 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
 
 /* Should be invoked with interrupt turned off. */
 
-unsigned int assignSpareMem_I(unsigned int sourcecore, unsigned int requiredmem, void ** tomove, void ** startaddr) {
-  unsigned int blockindex;
-  BLOCKINDEX(blockindex, topptrs[sourcecore]);
-  void * boundptr = BOUNDPTR(blockindex);
-  unsigned INTPTR remain = (unsigned INTPTR) (boundptr - topptrs[sourcecore]);
-  unsigned int memneed = requiredmem + BAMBOO_CACHE_LINE_SIZE;
-  *startaddr = topptrs[sourcecore];
-  *tomove = gcfilledblocks[sourcecore] + 1;
-  if(memneed < remain) {
-    topptrs[sourcecore] += memneed;
-    return 0;
-  } else {
-    // next available block
-    gcfilledblocks[sourcecore]++;
-    void * newbase = NULL;
-    BASEPTR(newbase, sourcecore, gcfilledblocks[sourcecore]);
-    topptrs[sourcecore] = newbase;
-    return requiredmem-remain;
-  }
+void * assignSpareMem_I(unsigned int sourcecore, unsigned int requiredmem) {
+  return NULL;
 }
 
-unsigned int assignSpareMem(unsigned int sourcecore,unsigned int requiredmem,unsigned int * tomove, void ** startaddr) {
+void * assignSpareMem(unsigned int sourcecore,unsigned int requiredmem) {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  int retval=assignSpareMem_I(sourcecore, requiredmem, tomove, startaddr);
+  void * retval=assignSpareMem_I(sourcecore, requiredmem);
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return retval;
 }
@@ -128,7 +111,7 @@ void * gcfindSpareMem_I(unsigned int requiredmem,unsigned int requiredcore) {
   for(int k = 0; k < NUMCORES4GC; k++) {
     if((gccorestatus[k] == 0) && (gcfilledblocks[k] < gcstopblock[k])) {
       // check if this stopped core has enough mem
-      assignSpareMem_I(k, requiredmem, tomove, &startaddr);
+      startaddr=assignSpareMem_I(k, requiredmem);
       return startaddr;
     }
   }
@@ -203,7 +186,7 @@ void compact() {
   struct moveHelper to={0,NULL,NULL,0,NULL,0,0,0,0};
   initOrig_Dst(&orig, &to);
 
-  CACHEADAPT_SAMPLING_DATA_REVISE_INIT(orig, to);
+  CACHEADAPT_SAMPLING_DATA_REVISE_INIT(&orig, &to);
 
   compacthelper(&orig, &to);
 } 
