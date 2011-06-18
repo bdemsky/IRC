@@ -13,7 +13,7 @@ struct moveHelper {
 
 void initOrig_Dst(struct moveHelper * orig,struct moveHelper * to);
 void compacthelper(struct moveHelper * orig,struct moveHelper * to);
-void compactblocks(struct moveHelper * orig,struct moveHelper * to);
+unsigned int compactblocks(struct moveHelper * orig,struct moveHelper * to);
 void compact();
 void compact_master(struct moveHelper * orig, struct moveHelper * to);
 #endif // MULTICORE_GC

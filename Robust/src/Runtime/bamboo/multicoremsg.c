@@ -518,9 +518,9 @@ INLINE void processmsg_gcfinishcompact_I() {
     if(startaddr) {
       // cache the msg first
       if(BAMBOO_CHECK_SEND_MODE()) {
-	cache_msg_4_I(cnum,GCMOVESTART,startaddr);
+	cache_msg_2_I(cnum,GCMOVESTART,startaddr);
       } else {
-	send_msg_4_I(cnum,GCMOVESTART,startaddr);
+	send_msg_2_I(cnum,GCMOVESTART,startaddr);
       }
     }
   } else {
@@ -582,16 +582,15 @@ INLINE void processmsg_gcmarkreport_I() {
 }
 
 INLINE void processmsg_gcmarkedobj_I() {
-  void * data1 = (void *) msgdata[msgdataindex];
+  void * objptr = (void *) msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  BAMBOO_ASSERT(ISSHAREDOBJ(data1));
   
   // received a markedObj msg
   if(!checkMark(objptr)) {
     // this is the first time that this object is discovered,
     // set the flag as DISCOVERED
-    setMark(data1);
-    gc_enqueue_I(data1);
+    setMark(objptr);
+    gc_enqueue_I(objptr);
   }
   gcself_numreceiveobjs++;
   gc_status_info.gcbusystatus = true;
@@ -625,7 +624,6 @@ INLINE void processmsg_gclobjinfo_I(unsigned int data1) {
     int length = msgdata[msgdataindex];
     MSG_INDEXINC_I();   
     gc_lobjenqueue_I(lobj, length, cnum);
-    gcnumlobjs++;
   }
 }
 

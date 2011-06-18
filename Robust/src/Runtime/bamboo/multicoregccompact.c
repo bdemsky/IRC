@@ -3,6 +3,7 @@
 #include "runtime_arch.h"
 #include "multicoreruntime.h"
 #include "multicoregarbage.h"
+#include "markbit.h"
 
 bool gc_checkCoreStatus() {
   for(int i = 0; i < NUMCORES4GC; ++i) {
@@ -21,15 +22,15 @@ void gc_resetCoreStatus() {
 
 void initOrig_Dst(struct moveHelper * orig,struct moveHelper * to) {
   // init the dst ptr
-  to->blocknum = 0;
-  BASEPTR(to->base, BAMBOO_NUM_OF_CORE, to->blocknum);
+  to->localblocknum = 0;
+  BASEPTR(to->base, BAMBOO_NUM_OF_CORE, to->localblocknum);
   to->ptr = to->base;
-  to->bound=to->base+BLOCKSIZE(to->blocknum);
+  to->bound=to->base+BLOCKSIZE(to->localblocknum);
   
   // init the orig ptr
-  orig->blocknum = 0;
+  orig->localblocknum = 0;
   orig->ptr=orig->base = to->base;
-  orig->bound = orig->base + BLOCKSIZE(orig->blocknum);
+  orig->bound = orig->base + BLOCKSIZE(orig->localblocknum);
 }
 
 void getSpaceLocally(struct moveHelper *to) {
@@ -107,7 +108,7 @@ unsigned int assignSpareMem_I(unsigned int sourcecore, unsigned int requiredmem,
     // next available block
     gcfilledblocks[sourcecore]++;
     void * newbase = NULL;
-    BASEPTR(sourcecore, gcfilledblocks[sourcecore], &newbase);
+    BASEPTR(newbase, sourcecore, gcfilledblocks[sourcecore]);
     topptrs[sourcecore] = newbase;
     return requiredmem-remain;
   }
@@ -137,9 +138,9 @@ void * gcfindSpareMem_I(unsigned int requiredmem,unsigned int requiredcore) {
   return NULL;
 } 
 
-bool gcfindSpareMem(unsigned int * startaddr,unsigned int * tomove,unsigned int * dstcore,unsigned int requiredmem,unsigned int requiredcore) {
+bool gcfindSpareMem(unsigned int requiredmem,unsigned int requiredcore) {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  bool retval=gcfindSpareMem_I(startaddr, tomove, dstcore, requiredmem, requiredcore);
+  bool retval=gcfindSpareMem_I(requiredmem, requiredcore);
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return retval;
 }
@@ -151,12 +152,12 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
   void *tobound=to->bound;
   void *origptr=orig->ptr;
   void *origbound=orig->bound;
-  unsigned INTPTR origendoffset=ALIGNTOTABLEINDEX((unsigned INTPTR)(origbound-gcbase));
+  unsigned INTPTR origendoffset=ALIGNTOTABLEINDEX((unsigned INTPTR)(origbound-gcbaseva));
   unsigned int objlength;
 
   while(origptr<origbound) {
     //Try to skip over stuff fast first
-    unsigned INTPTR offset=(unsigned INTPTR) (origptr-gcbase);
+    unsigned INTPTR offset=(unsigned INTPTR) (origptr-gcbaseva);
     unsigned INTPTR arrayoffset=ALIGNTOTABLEINDEX(offset);
     if (!gcmarktbl[arrayoffset]) {
       do {
@@ -189,7 +190,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
       origptr+=length;
       toptr=endtoptr;
     } else
-      origptr+=ALIGNSIZE;
+      origptr+=ALIGNMENTSIZE;
   }
 }
 

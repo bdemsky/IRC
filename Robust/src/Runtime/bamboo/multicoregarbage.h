@@ -127,11 +127,6 @@ unsigned int size_cachepolicytbl;
   ((((unsigned int)p)>=gcbaseva)&&(((unsigned int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
 
 
-//Minimum alignment unit
-#define ALIGNMENTBYTES 32
-
-//Bytes to shift to get minimum alignment units
-#define ALIGNMENTSHIFT 5
 #define MAXBLOCK 0x4fffffff //local block number that can never be reached...
 
 
@@ -265,7 +260,7 @@ void gc_master(struct garbagelist * stackptr);
 
 
 void transferMarkResults_I();
-bool gcfindSpareMem_I(unsigned int * startaddr,unsigned int * tomove,unsigned int * dstcore,unsigned int requiredmem,unsigned int requiredcore);
+void * gcfindSpareMem_I(unsigned int requiredmem,unsigned int requiredcore);
 
 #define INITMULTICOREGCDATA() initmulticoregcdata()
 #define DISMULTICOREGCDATA() dismulticoregcdata()

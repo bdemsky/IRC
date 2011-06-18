@@ -5,11 +5,21 @@ extern unsigned int markmappingarray[];
 extern unsigned int bitmarkmappingarray[];
 extern unsigned int revmarkmappingarray[];
 
+#define ALIGNMENTSIZE 32
+//Bytes to shift to get minimum alignment units
+#define ALIGNMENTSHIFT 5
+
 #define NOTMARKED 0
-#define ALIGNOBJSIZE(x) (x)>>5
-#define ALIGNSIZETOBYTES(x) (x)<<5
-#define ALIGNTOTABLEINDEX(x) (x)>>(5+4)
-#define CONVERTTABLEINDEXTOPTR(x) (((unsigned INTPTR)((x)<<(5+4)))+gcbase)
+#define BITSPERALIGNMENT 2
+#define ALIGNOBJSIZE(x) (x)>>ALIGNMENTSHIFT
+#define ALIGNSIZETOBYTES(x) (x)<<ALIGNMENTSHIFT
+#define ALIGNTOTABLEINDEX(x) (x)>>(ALIGNMENTSHIFT+4)
+#define CONVERTTABLEINDEXTOPTR(x) (((unsigned INTPTR)((x)<<(ALIGNMENTSHIFT+4)))+gcbaseva)
+//Minimum alignment unit
+
+
+
+
 
 
 #define OBJMASK 0x40000000  //set towhatever smallest object mark is
@@ -32,7 +42,7 @@ extern unsigned int revmarkmappingarray[];
 /* Return length in units of ALIGNSIZE */
 
 static inline unsigned int getMarkedLength(void *ptr) {
-  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbase));
+  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbaseva));
   unsigned INTPTR hibits=alignsize>>4;
   unsigned INTPTR lobits=(alignsize&15)<<1;
   unsigned INTPTR val;
@@ -53,7 +63,7 @@ static inline unsigned int getMarkedLength(void *ptr) {
 /* Return non-zero value if the object is marked */
 
 static inline unsigned int checkMark(void *ptr) {
-  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbase));
+  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbaseva));
   unsigned INTPTR hibits=alignsize>>4;
   unsigned INTPTR lobits=(alignsize&15)<<1;
 
@@ -63,7 +73,7 @@ static inline unsigned int checkMark(void *ptr) {
 /* Set length in units of ALIGNSIZE */
 
 static inline void setLength(void *ptr, unsigned int length) {
-  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbase));
+  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbaseva));
   unsigned INTPTR hibits=alignsize>>4;
   unsigned INTPTR lobits=(alignsize&15)<<1;
   unsigned int ormask=(length>=16)?0xc4000000+(length-16):revmarkmappingarray[length];
@@ -78,7 +88,7 @@ static inline void setLength(void *ptr, unsigned int length) {
 /* Set length for premarked object */
 
 static inline void setLengthMarked(void *ptr, unsigned int length) {
-  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbase));
+  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbaseva));
   unsigned INTPTR hibits=alignsize>>4;
   unsigned INTPTR lobits=(alignsize&15)<<1;
   unsigned int ormask=(length>=16)?0xc4000000+(length-16):revmarkmappingarray[length];
@@ -92,14 +102,14 @@ static inline void setLengthMarked(void *ptr, unsigned int length) {
 /* Set length in units of ALIGNSIZE */
 
 static inline void setMark(void *ptr) {
-  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbase));
+  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbaseva));
   unsigned INTPTR hibits=alignsize>>4;
   unsigned INTPTR lobits=(alignsize&15)<<1;
   gcmarktbl[hibits]|=OBJMASK>>lobits;
 }
 
 static inline void clearMark(void *ptr) {
-  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbase));
+  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbaseva));
   unsigned INTPTR hibits=alignsize>>4;
   unsigned INTPTR lobits=(alignsize&15)<<1;
 

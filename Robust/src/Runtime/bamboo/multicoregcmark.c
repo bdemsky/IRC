@@ -1,9 +1,10 @@
 #ifdef MULTICORE_GC
-#include "multicoregcmark.h"
 #include "runtime.h"
 #include "multicoreruntime.h"
 #include "GenericHashtable.h"
 #include "gcqueue.h"
+#include "multicoregcmark.h"
+#include "markbit.h"
 
 #ifdef TASK
 extern struct parameterwrapper ** objectqueues[][NUMCLASSES];
@@ -94,7 +95,7 @@ void markObj(void * objptr) {
   }
 }
 
-INLINE void markgarbagelist(struct garbagelist * listptr) {
+void markgarbagelist(struct garbagelist * listptr) {
   for(;listptr!=NULL;listptr=listptr->next) {
     int size=listptr->size;
     for(int i=0; i<size; i++) {
@@ -104,11 +105,10 @@ INLINE void markgarbagelist(struct garbagelist * listptr) {
 }
 
 // enqueue root objs
-INLINE void tomark(struct garbagelist * stackptr) {
+void tomark(struct garbagelist * stackptr) {
   BAMBOO_ASSERT(MARKPHASE == gc_status_info.gcphase);
   
   gc_status_info.gcbusystatus = true;
-  gcnumlobjs = 0;
   
   // enqueue current stack
   markgarbagelist(stackptr);

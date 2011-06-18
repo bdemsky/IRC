@@ -55,7 +55,7 @@ INLINE static void samplingDataReviseInit(struct moveHelper * orig,struct moveHe
   gc_cache_revise_information.to_page_index=toindex;
   gc_cache_revise_information.orig_page_start_va=orig->ptr;
   gc_cache_revise_information.orig_page_end_va=gcbaseva+BAMBOO_PAGE_SIZE*(((unsigned INTPTR)(orig->ptr-gcbaseva))/BAMBOO_PAGE_SIZE+1);
-  gc_cache_revise_information.orig_page_index=((unsigned INTPTR)(orig->blockbase-gcbaseva))/BAMBOO_PAGE_SIZE;
+  gc_cache_revise_information.orig_page_index=((unsigned INTPTR)(orig->base-gcbaseva))/BAMBOO_PAGE_SIZE;
 }
 
 INLINE static void samplingDataConvert(void * current_ptr) {

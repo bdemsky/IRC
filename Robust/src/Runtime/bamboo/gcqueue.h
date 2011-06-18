@@ -38,7 +38,7 @@ extern struct lobjpointerblock *gclobjspare;
 static void gc_queueinit() {
   // initialize queue
   if (gchead==NULL) {
-    gcheadindex=gctailindex=gctailindex2 = 0;
+    gcheadindex=gctailindex=0;
     gchead=gctail=RUNMALLOC(sizeof(struct pointerblock));
   } else {
     gctailindex=gcheadindex=0;

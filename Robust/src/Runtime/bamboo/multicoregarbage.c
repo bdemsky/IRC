@@ -306,94 +306,6 @@ int loadbalance(void ** heaptop, unsigned int * topblock, unsigned int * topcore
   return numbpc;
 }
 
-// compute total mem size required and sort the lobjs in ascending order
-unsigned int sortLObjs() {
-  unsigned int tmp_lobj = 0;
-  unsigned int tmp_len = 0;
-  unsigned int tmp_host = 0;
-  unsigned int sumsize = 0;
-
-  gclobjtail2 = gclobjtail;
-  gclobjtailindex2 = gclobjtailindex;
-  // TODO USE QUICK SORT INSTEAD?
-  while(gc_lobjmoreItems2_I()) {
-    gc_lobjdequeue2_I();
-    tmp_lobj = gclobjtail2->lobjs[gclobjtailindex2-1];
-    tmp_host = gclobjtail2->hosts[gclobjtailindex2-1];
-    tmp_len = gclobjtail2->lengths[gclobjtailindex2 - 1];
-    sumsize += tmp_len;
-    GCPROFILE_RECORD_LOBJ();
-    unsigned int i = gclobjtailindex2-1;
-    struct lobjpointerblock * tmp_block = gclobjtail2;
-    // find the place to insert
-    while(true) {
-      if(i == 0) {
-        if(tmp_block->prev == NULL) {
-          break;
-        }
-        if(tmp_block->prev->lobjs[NUMLOBJPTRS-1] > tmp_lobj) {
-          tmp_block->lobjs[i] = tmp_block->prev->lobjs[NUMLOBJPTRS-1];
-          tmp_block->lengths[i] = tmp_block->prev->lengths[NUMLOBJPTRS-1];
-          tmp_block->hosts[i] = tmp_block->prev->hosts[NUMLOBJPTRS-1];
-          tmp_block = tmp_block->prev;
-          i = NUMLOBJPTRS-1;
-        } else {
-          break;
-        }  // if(tmp_block->prev->lobjs[NUMLOBJPTRS-1] < tmp_lobj)
-      } else {
-        if(tmp_block->lobjs[i-1] > tmp_lobj) {
-          tmp_block->lobjs[i] = tmp_block->lobjs[i-1];
-          tmp_block->lengths[i] = tmp_block->lengths[i-1];
-          tmp_block->hosts[i] = tmp_block->hosts[i-1];
-          i--;
-        } else {
-          break;
-        }  
-      } 
-    }  
-    // insert it
-    if(i != gclobjtailindex2 - 1) {
-      tmp_block->lobjs[i] = tmp_lobj;
-      tmp_block->lengths[i] = tmp_len;
-      tmp_block->hosts[i] = tmp_host;
-    }
-  }
-  return sumsize;
-}
-
-bool cacheLObjs() {
-  // check the total mem size need for large objs
-  unsigned long long sumsize = 0;
-  unsigned int size = 0;
-  
-  sumsize = sortLObjs();
-
-  GCPROFILE_RECORD_LOBJSPACE();
-
-  // check if there are enough space to cache these large objs
-  unsigned int dst = gcbaseva + (BAMBOO_SHARED_MEM_SIZE) -sumsize;
-  if((unsigned long long)gcheaptop > (unsigned long long)dst) {
-    // do not have enough room to cache large objs
-    return false;
-  }
-
-  gcheaptop = dst; // Note: record the start of cached lobjs with gcheaptop
-  // cache the largeObjs to the top of the shared heap
-  dst = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
-  while(gc_lobjmoreItems3_I()) {
-    gc_lobjdequeue3_I();
-    size = gclobjtail2->lengths[gclobjtailindex2];
-    // set the mark field to , indicating that this obj has been moved
-    // and need to be flushed
-    dst -= size;
-    if((unsigned int)dst<(unsigned int)(gclobjtail2->lobjs[gclobjtailindex2]+size)) {
-      memmove(dst, gclobjtail2->lobjs[gclobjtailindex2], size);
-    } else {
-      memcpy(dst, gclobjtail2->lobjs[gclobjtailindex2], size);
-    }
-  }
-  return true;
-} 
 
 // update the bmmboo_smemtbl to record current shared mem usage
 void updateSmemTbl(unsigned int coren, void * localtop) {
@@ -451,7 +363,7 @@ void gc_collect(struct garbagelist * stackptr) {
   compact();
   GC_PRINTF("Finish compact phase\n");
 
-  WAITFORGCPHASE(FLUSHPHASE);
+  WAITFORGCPHASE(UPDATEPHASE);
 
   GC_PRINTF("Start flush phase\n");
   GCPROFILE_INFO_2_MASTER();
@@ -492,7 +404,7 @@ void gc_nocollect(struct garbagelist * stackptr) {
   GC_PRINTF("Finish mark phase, wait for flush\n");
 
   // non-gc core collector routine
-  WAITFORGCPHASE(FLUSHPHASE);
+  WAITFORGCPHASE(UPDATEPHASE);
 
   GC_PRINTF("Start flush phase\n");
   GCPROFILE_INFO_2_MASTER();
@@ -546,19 +458,17 @@ void master_getlargeobjs() {
   GCPROFILE_ITEM();
   GC_PRINTF("prepare to cache large objs \n");
 
-  // cache all large objs
-  BAMBOO_ASSERTMSG(cacheLObjs(), "Not enough space to cache large objects\n");
 }
 
 
 void master_updaterefs(struct garbagelist * stackptr) {
-  gc_status_info.gcphase = FLUSHPHASE;
-  GC_SEND_MSG_1_TO_CLIENT(GCSTARTFLUSH);
+  gc_status_info.gcphase = UPDATEPHASE;
+  GC_SEND_MSG_1_TO_CLIENT(GCSTARTUPDATE);
   GCPROFILE_ITEM();
   GC_PRINTF("Start flush phase \n");
   // flush phase
   flush(stackptr);
-  GC_CHECK_ALL_CORE_STATUS(FLUSHPHASE==gc_status_info.gcphase);
+  GC_CHECK_ALL_CORE_STATUS(UPDATEPHASE==gc_status_info.gcphase);
   GC_PRINTF("Finish flush phase \n");
 }
 

@@ -4,6 +4,7 @@
 #include "ObjectHash.h"
 #include "GenericHashtable.h"
 #include "gcqueue.h"
+#include "markbit.h"
 
 /* Task specific includes */
 
@@ -175,17 +176,17 @@ INLINE void updatePtrsInObj(void * ptr) {
 
 /* This function is performance critical...  spend more time optimizing it */
 
-unsigned int updateblocks(struct moveHelper * orig, struct moveHelper * to) {
+void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
   void *tobase=to->base;
   void *tobound=to->bound;
   void *origptr=orig->ptr;
   void *origbound=orig->bound;
-  unsigned INTPTR origendoffset=ALIGNTOTABLEINDEX((unsigned INTPTR)(origbound-gcbase));
+  unsigned INTPTR origendoffset=ALIGNTOTABLEINDEX((unsigned INTPTR)(origbound-gcbaseva));
   unsigned int objlength;
 
   while(origptr<origbound) {
     //Try to skip over stuff fast first
-    unsigned INTPTR offset=(unsigned INTPTR) (origptr-gcbase);
+    unsigned INTPTR offset=(unsigned INTPTR) (origptr-gcbaseva);
     unsigned INTPTR arrayoffset=ALIGNTOTABLEINDEX(offset);
     if (!gcmarktbl[arrayoffset]) {
       do {
@@ -193,7 +194,6 @@ unsigned int updateblocks(struct moveHelper * orig, struct moveHelper * to) {
 	if (arrayoffset<origendoffset) {
 	  //finished with block...
 	  origptr=origbound;
-	  to->ptr=toptr;
 	  orig->ptr=origptr;
 	  return 0;
 	}
@@ -210,17 +210,17 @@ unsigned int updateblocks(struct moveHelper * orig, struct moveHelper * to) {
       void *endtoptr=dstptr+length;
 
       if (endtoptr>tobound||endtoptr<tobase) {
-	toptr=tobound;
-	to->ptr=toptr;
+	//get use the next block of memory
+	to->ptr=tobound;
 	orig->ptr=origptr;
-	return length;
+	return dstptr;
       }
       
       /* Move the object */
-      if(origptr <= dstptr+size) {
-        memmove(dstptr, origptr, size);
+      if(origptr <= endtoptr) {
+        memmove(dstptr, origptr, length);
       } else {
-        memcpy(dstptr, origptr, size);
+        memcpy(dstptr, origptr, length);
       }
       
       /* Update the pointers in the object */
@@ -232,7 +232,7 @@ unsigned int updateblocks(struct moveHelper * orig, struct moveHelper * to) {
       //good to move objects and update pointers
       origptr+=length;
     } else
-      origptr+=ALIGNSIZE;
+      origptr+=ALIGNMENTSIZE;
   }
 }
 
