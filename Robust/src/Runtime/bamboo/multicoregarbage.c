@@ -565,10 +565,6 @@ void pregcprocessing() {
   // disable the timer interrupt
   bamboo_mask_timer_intr();
 #endif
-  // Zero out the remaining memory here because for the GC_CACHE_ADAPT version,
-  // we need to make sure during the gcinit phase the shared heap is not 
-  // touched. Otherwise, there would be problem when adapt the cache strategy.
-  BAMBOO_CLOSE_CUR_MSP();
 #if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)
   // get the sampling data 
   bamboo_output_dtlb_sampling();

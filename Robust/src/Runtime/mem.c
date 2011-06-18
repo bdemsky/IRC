@@ -5,6 +5,8 @@
 #include "runtime_arch.h"
 
 #ifdef MULTICORE_GC
+#include "bambooalign.h"
+
 extern volatile bool gcflag;
 void * mycalloc_share(struct garbagelist * stackptr, int size) {
   void * p = NULL;

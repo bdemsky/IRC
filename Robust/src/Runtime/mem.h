@@ -27,8 +27,12 @@ void * mycalloc(int size, char * file, int line);
 void * mycalloc_i(int size, char * file, int line);
 void myfree(void * ptr);
 void myfree_i(void * ptr);
+
 #define RUNMALLOC(x) mycalloc(x,__FILE__,__LINE__) // handle interruption inside
+#define RUNCALLOC(x) mycalloc(x,__FILE__,__LINE__) // handle interruption inside
 #define RUNMALLOC_I(x) mycalloc_i(x,__FILE__,__LINE__) //with interruption blocked beforehand
+#define RUNCALLOC_I(x) mycalloc_i(x,__FILE__,__LINE__) //with interruption blocked beforehand
+
 #define RUNFREE(x) myfree(x)
 #define RUNFREE_I(x) myfree_i(x)
 #ifdef MULTICORE_GC

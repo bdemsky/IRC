@@ -1,24 +1,13 @@
 #ifndef MARKBIT_H
 #define MARKBIT_H
+#include "bambooalign.h"
 
 extern unsigned int markmappingarray[];
 extern unsigned int bitmarkmappingarray[];
 extern unsigned int revmarkmappingarray[];
 
-#define ALIGNMENTSIZE 32
-//Bytes to shift to get minimum alignment units
-#define ALIGNMENTSHIFT 5
-
-#define NOTMARKED 0
-#define BITSPERALIGNMENT 2
-#define ALIGNOBJSIZE(x) (x)>>ALIGNMENTSHIFT
-#define ALIGNSIZETOBYTES(x) (x)<<ALIGNMENTSHIFT
-#define ALIGNTOTABLEINDEX(x) (x)>>(ALIGNMENTSHIFT+4)
 #define CONVERTTABLEINDEXTOPTR(x) (((unsigned INTPTR)((x)<<(ALIGNMENTSHIFT+4)))+gcbaseva)
 //Minimum alignment unit
-
-
-
 
 
 

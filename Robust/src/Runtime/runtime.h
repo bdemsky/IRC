@@ -153,9 +153,6 @@ void createstartupobject();
 inline void run(int argc, char** argv);
 int receiveObject_I();
 void * smemalloc_I(int coren, int size, int * allocsize);
-#ifdef MULTICORE_GC
-inline void setupsmemmode(void);
-#endif
 #endif
 
 #if (defined(THREADS)||defined(MGC))
