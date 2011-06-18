@@ -23,25 +23,25 @@
 #endif
 #else
 #ifdef MULTICORE
-void * mycalloc(int m, int size, char * file, int line);
-void * mycalloc_i(int m, int size, char * file, int line);
+void * mycalloc(int size, char * file, int line);
+void * mycalloc_i(int size, char * file, int line);
 void myfree(void * ptr);
 void myfree_i(void * ptr);
-#define RUNMALLOC(x) mycalloc(1,x,__FILE__,__LINE__) // handle interruption inside
-#define RUNMALLOC_I(x) mycalloc_i(1,x,__FILE__,__LINE__) //with interruption blocked beforehand
+#define RUNMALLOC(x) mycalloc(x,__FILE__,__LINE__) // handle interruption inside
+#define RUNMALLOC_I(x) mycalloc_i(x,__FILE__,__LINE__) //with interruption blocked beforehand
 #define RUNFREE(x) myfree(x)
 #define RUNFREE_I(x) myfree_i(x)
 #ifdef MULTICORE_GC
 #include "multicoregc.h"
-void * mycalloc_share(struct garbagelist * stackptr, int m, int size);
-void * mycalloc_share_ngc(int m, int size);
-void * mycalloc_share_ngc_I(int m, int size);
+void * mycalloc_share(struct garbagelist * stackptr, int size);
+void * mycalloc_share_ngc(int size);
+void * mycalloc_share_ngc_I(int size);
 void mycalloc_free_ngc(void * ptr);
 void mycalloc_free_ngc_I(void * ptr);
-#define FREEMALLOC(s, x) mycalloc_share((s),1,(x))
+#define FREEMALLOC(s, x) mycalloc_share(s,x)
 #else
-void * mycalloc_share(int m, int size);
-#define FREEMALLOC(x) mycalloc_share(1,x)
+void * mycalloc_share(int size);
+#define FREEMALLOC(x) mycalloc_share(x)
 #endif // #ifdef MULTICORE_GC
 //#define PTR(x) (32+(x-1)&~31)
 #endif  // #ifdef MULTICORE

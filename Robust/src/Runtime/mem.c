@@ -6,65 +6,49 @@
 
 #ifdef MULTICORE_GC
 extern volatile bool gcflag;
-void * mycalloc_share(struct garbagelist * stackptr,
-                      int m,
-                      int size) {
+void * mycalloc_share(struct garbagelist * stackptr, int size) {
   void * p = NULL;
-  //int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
-  int isize = ((size-1)&(~(BAMBOO_CACHE_LINE_MASK)))+(BAMBOO_CACHE_LINE_SIZE);
-  int hasgc = 0;
-memalloc:
-  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  while(gcflag) {
-    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-    gc(stackptr);
-    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  }
-  p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
-  if(p == NULL) {
-    // no more global shared memory
-    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-    if(hasgc < 5) {
-      // start gc
-      while(gcflag) {
-        gc(stackptr);
-      }
-      hasgc++;
-    } else {
-      // no more global shared memory
-      BAMBOO_EXIT();
-    }
 
-    // try to malloc again
-    goto memalloc;
+  int isize = ((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
+  int hasgc = 0;
+
+  while(true) {
+    if(gcflag) {
+      gc(stackptr);
+    }
+    p = BAMBOO_SHARE_MEM_CALLOC(isize); // calloc(m, isize);
+
+    if(p == NULL) {
+      // no more global shared memory
+      if(hasgc < 5) {
+	// start gc
+	if(gcflag) {
+	  gc(stackptr);
+	}
+	hasgc++;
+      } else {
+	// no more global shared memory
+	BAMBOO_EXIT();
+      }
+    } else
+      break;
   }
-  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-  void * alignedp =
-    (void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
-  BAMBOO_MEMSET_WH(p, -2, (alignedp - p));
-  BAMBOO_MEMSET_WH(alignedp + size, -2, p + isize - alignedp - size);
-  return alignedp;
+  
+  return p;
 }
 #else
-void * mycalloc_share(int m,
-                      int size) {
-  void * p = NULL;
-  //int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
+void * mycalloc_share(int size) {
   int isize = ((size-1)&(~(BAMBOO_CACHE_LINE_MASK)))+(BAMBOO_CACHE_LINE_SIZE);
-  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
+  void * p = BAMBOO_SHARE_MEM_CALLOC(isize); // calloc(m, isize);
   if(p == NULL) {
     // no more global shared memory
     BAMBOO_EXIT();
   }
-  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-  return
-    (void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
+  return (void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
 }
 #endif
 
-void * mycalloc(int m,
-                int size,
+void * mycalloc(int size,
                 char * file,
                 int line) {
   void * p = NULL;
@@ -73,10 +57,10 @@ void * mycalloc(int m,
 #ifdef MULTICORE_GC
   extern bool gc_localheap_s;
 inermycalloc_i:
-  p = gc_localheap_s ? BAMBOO_LOCAL_MEM_CALLOC_S(m, isize) :
-      BAMBOO_LOCAL_MEM_CALLOC(m, isize);
+  p = gc_localheap_s ? BAMBOO_LOCAL_MEM_CALLOC_S(isize) :
+      BAMBOO_LOCAL_MEM_CALLOC(isize);
 #else
-  p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);
+  p = BAMBOO_LOCAL_MEM_CALLOC(isize); // calloc(m, isize);
 #endif
   if(p == NULL) {
 #ifdef MULTICORE_GC
@@ -93,8 +77,7 @@ inermycalloc_i:
 }
 
 
-void * mycalloc_i(int m,
-                  int size,
+void * mycalloc_i(int size,
                   char * file,
                   int line) {
   void * p = NULL;
@@ -102,10 +85,10 @@ void * mycalloc_i(int m,
 #ifdef MULTICORE_GC
   extern bool gc_localheap_s;
 inermycalloc_i:
-  p = gc_localheap_s ? BAMBOO_LOCAL_MEM_CALLOC_S(m, isize) :
-      BAMBOO_LOCAL_MEM_CALLOC(m, isize);
+  p = gc_localheap_s ? BAMBOO_LOCAL_MEM_CALLOC_S(isize) :
+      BAMBOO_LOCAL_MEM_CALLOC(isize);
 #else
-  p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);
+  p = BAMBOO_LOCAL_MEM_CALLOC(isize); // calloc(m, isize);
 #endif
   if(p == NULL) {
 #ifdef MULTICORE_GC
