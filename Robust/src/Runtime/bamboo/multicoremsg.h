@@ -73,11 +73,11 @@ volatile bool isMsgHanging;
  *      12 -- GC init phase start
  *      13 -- GC start
  *      14 -- compact phase start
- *      15 -- flush phase start
+ *      15 -- update phase start
  *      16 -- init phase finish
  *      17 -- mark phase finish
  *      18 -- compact phase finish
- *      19 -- flush phase finish
+ *      19 -- update phase finish
  *      1a -- GC finish
  *      1b -- marked phase finish confirm request
  *      1c -- marked phase finish confirm response
@@ -175,12 +175,12 @@ typedef enum {
   GCSTARTINIT,           // 0xE3
   GCSTART,               // 0xE4
   GCSTARTCOMPACT,        // 0xE5
-  GCSTARTFLUSH,          // 0xE6
+  GCSTARTUPDATE,          // 0xE6
   GCFINISHPRE,           // 0xE7
   GCFINISHINIT,          // 0xE8
   GCFINISHMARK,          // 0xE9
   GCFINISHCOMPACT,       // 0xEa
-  GCFINISHFLUSH,         // 0xEb
+  GCFINISHUPDATE,         // 0xEb
   GCFINISH,              // 0xEc
   GCMARKCONFIRM,         // 0xEd
   GCMARKREPORT,          // 0xEe

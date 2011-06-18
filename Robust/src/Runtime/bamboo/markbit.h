@@ -7,6 +7,10 @@ extern unsigned int revmarkmappingarray[];
 
 #define NOTMARKED 0
 #define ALIGNOBJSIZE(x) (x)>>5
+#define ALIGNSIZETOBYTES(x) (x)<<5
+#define ALIGNTOTABLEINDEX(x) (x)>>(5+4)
+#define CONVERTTABLEINDEXTOPTR(x) (((unsigned INTPTR)((x)<<(5+4)))+gcbase)
+
 
 #define OBJMASK 0x40000000  //set towhatever smallest object mark is
 #define MARKMASK 0xc0000000  //set towhatever smallest object mark is

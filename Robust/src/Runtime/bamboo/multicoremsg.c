@@ -31,17 +31,17 @@ int msgsizearray[] = {
   1, //GCSTARTINIT,           // 0xE3
   1, //GCSTART,               // 0xE4
   2, //GCSTARTCOMPACT,        // 0xE5
-  1, //GCSTARTFLUSH,          // 0xE6
+  1, //GCSTARTUPDATE,          // 0xE6
   4, //GCFINISHPRE,           // 0xE7
   2, //GCFINISHINIT,          // 0xE8
   4, //GCFINISHMARK,          // 0xE9
-  6, //GCFINISHCOMPACT,       // 0xEa
-  2, //GCFINISHFLUSH,         // 0xEb
+  4, //GCFINISHCOMPACT,       // 0xEa
+  2, //GCFINISHUPDATE,         // 0xEb
   1, //GCFINISH,              // 0xEc
   1, //GCMARKCONFIRM,         // 0xEd
   5, //GCMARKREPORT,          // 0xEe
   2, //GCMARKEDOBJ,           // 0xEf
-  4, //GCMOVESTART,           // 0xF0
+  2, //GCMOVESTART,           // 0xF0
   1, //GCLOBJREQUEST,         // 0xF1   
  -1, //GCLOBJINFO,            // 0xF2
 #ifdef GC_PROFILE
@@ -443,8 +443,8 @@ INLINE void processmsg_gcstartcompact_I() {
   gc_status_info.gcphase = COMPACTPHASE;
 }
 
-INLINE void processmsg_gcstartflush_I() {
-  gc_status_info.gcphase = FLUSHPHASE;
+INLINE void processmsg_gcstartupdate_I() {
+  gc_status_info.gcphase = UPDATEPHASE;
 }
 
 INLINE void processmsg_gcfinishpre_I() {
@@ -507,46 +507,35 @@ INLINE void processmsg_gcfinishcompact_I() {
 
   int cnum = msgdata[msgdataindex];
   MSG_INDEXINC_I();  
-  bool loadbalancemove = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  int filledblocks = msgdata[msgdataindex];
-  MSG_INDEXINC_I();    
   void * heaptop = (void *) msgdata[msgdataindex];
   MSG_INDEXINC_I();   
-  int data4 = msgdata[msgdataindex];
+  unsigned int bytesneeded = msgdata[msgdataindex];
   MSG_INDEXINC_I(); 
-  // only gc cores need to do compact
-  if(cnum < NUMCORES4GC) {
-    if(!loadbalancemove && (COMPACTPHASE == gc_status_info.gcphase)) {
-      gcfilledblocks[cnum] = filledblocks;
-      topptrs[cnum] = heaptop;
-    }
-    if(data4 > 0) {
-      // ask for more mem
-      void * startaddr = NULL;
-      int tomove = 0;
-      int dstcore = 0;
-      if(gcfindSpareMem_I(&startaddr, &tomove, &dstcore, data4, cnum)) {
-        // cache the msg first
-        if(BAMBOO_CHECK_SEND_MODE()) {
-          cache_msg_4_I(cnum,GCMOVESTART,dstcore,startaddr,tomove);
-        } else {
-          send_msg_4_I(cnum,GCMOVESTART,dstcore,startaddr,tomove);
-        }
+
+  if(bytesneeded > 0) {
+    // ask for more mem
+    void * startaddr = gcfindSpareMem_I(bytesneeded, cnum);
+    if(startaddr) {
+      // cache the msg first
+      if(BAMBOO_CHECK_SEND_MODE()) {
+	cache_msg_4_I(cnum,GCMOVESTART,startaddr);
+      } else {
+	send_msg_4_I(cnum,GCMOVESTART,startaddr);
       }
-    } else {
-      gccorestatus[cnum] = 0;
-    } 
-  }  
+    }
+  } else {
+    //done with compacting
+    gccorestatus[cnum] = 0;
+  }
 }
 
-INLINE void processmsg_gcfinishflush_I() {
+INLINE void processmsg_gcfinishupdate_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  // received a flush phase finish msg
+  // received a update phase finish msg
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
 
-  // all cores should do flush
+  // all cores should do update
   if(data1 < NUMCORESACTIVE) {
     gccorestatus[data1] = 0;
   }
@@ -610,11 +599,7 @@ INLINE void processmsg_gcmarkedobj_I() {
 
 INLINE void processmsg_gcmovestart_I() {
   gctomove = true;
-  gcdstcore = msgdata[msgdataindex];
-  MSG_INDEXINC_I();       
   gcmovestartaddr = msgdata[msgdataindex];
-  MSG_INDEXINC_I();     
-  gcblock2fill = msgdata[msgdataindex];
   MSG_INDEXINC_I();     
 }
 
@@ -675,7 +660,7 @@ INLINE void processmsg_gcfinishcachepolicy_I() {
   MSG_INDEXINC_I();
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
 
-  // all cores should do flush
+  // all cores should do update
   if(data1 < NUMCORESACTIVE) {
     gccorestatus[data1] = 0;
   }
@@ -688,10 +673,10 @@ INLINE void processmsg_gcstartpref_I() {
 INLINE void processmsg_gcfinishpref_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  // received a flush phase finish msg
+  // received a update phase finish msg
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
 
-  // all cores should do flush
+  // all cores should do update
   if(data1 < NUMCORESACTIVE) {
     gccorestatus[data1] = 0;
   }
@@ -883,9 +868,9 @@ processmsg:
       break;
     }
 
-    case GCSTARTFLUSH: {
-      // received a flush phase start msg
-      processmsg_gcstartflush_I();
+    case GCSTARTUPDATE: {
+      // received a update phase start msg
+      processmsg_gcstartupdate_I();
       break;
     }
 
@@ -910,8 +895,8 @@ processmsg:
       break;
     }
 
-    case GCFINISHFLUSH: {
-      processmsg_gcfinishflush_I();
+    case GCFINISHUPDATE: {
+      processmsg_gcfinishupdate_I();
       break;
     }  
 

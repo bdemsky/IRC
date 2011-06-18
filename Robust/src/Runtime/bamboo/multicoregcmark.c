@@ -297,7 +297,6 @@ void mark(bool isfirst, struct garbagelist * stackptr) {
       gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
       gcnumsendobjs[entry_index][BAMBOO_NUM_OF_CORE]=gcself_numsendobjs;
       gcnumreceiveobjs[entry_index][BAMBOO_NUM_OF_CORE]=gcself_numreceiveobjs;
-      gcloads[BAMBOO_NUM_OF_CORE] = gccurr_heaptop;
     } else {
       if(!sendStall) {
         send_msg_4(STARTUPCORE,GCFINISHMARK,BAMBOO_NUM_OF_CORE,gcself_numsendobjs,gcself_numreceiveobjs);

@@ -25,7 +25,7 @@ typedef enum {
   COMPACTPHASE,            // 0x2
   SUBTLECOMPACTPHASE,      // 0x3
   MAPPHASE,                // 0x4
-  FLUSHPHASE,              // 0x5
+  UPDATEPHASE,              // 0x5
 #ifdef GC_CACHE_ADAPT
   CACHEPOLICYPHASE,        // 0x6
   PREFINISHPHASE,          // 0x7
@@ -63,20 +63,21 @@ unsigned int gcself_numreceiveobjs;
 // for load balancing
 unsigned int gcheaptop;
 unsigned INTPTR gcloads[NUMCORES4GC];
+
+//Top of each core's heap
 void * topptrs[NUMCORES4GC];
+
 unsigned int gctopcore; // the core host the top of the heap
 unsigned int gctopblock; // the number of current top block
-
-unsigned int gcnumlobjs;
 
 // compact instruction
 unsigned int gcmarkedptrbound;
 unsigned int gcblock2fill;
 unsigned int gcstopblock[NUMCORES4GC]; // indicate when to stop compact phase
 unsigned int gcfilledblocks[NUMCORES4GC]; //indicate how many blocks have been fulfilled
+
 // move instruction;
 unsigned int gcmovestartaddr;
-unsigned int gcdstcore;
 volatile bool gctomove;
 unsigned int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
 volatile unsigned int gcmovepending;
@@ -96,8 +97,7 @@ unsigned int * gcmarktbl;
 // table recording the starting address of each small block
 // (size is BAMBOO_SMEM_SIZE)
 // Note: 1. this table always resides on the very bottom of the shared memory
-//       2. it is not counted in the shared heap, would never be garbage 
-//          collected
+
 int * gcsbstarttbl;
 #ifdef GC_TBL_DEBUG
 unsigned int gcsbstarttbl_len;
@@ -127,29 +127,38 @@ unsigned int size_cachepolicytbl;
   ((((unsigned int)p)>=gcbaseva)&&(((unsigned int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
 
 
+//Minimum alignment unit
 #define ALIGNMENTBYTES 32
+
+//Bytes to shift to get minimum alignment units
 #define ALIGNMENTSHIFT 5
+#define MAXBLOCK 0x4fffffff //local block number that can never be reached...
+
 
 /* Number of bits used for each alignment unit */
 
+//Takes in size and converts into alignment units
 #define ALIGNOBJSIZE(x) (x>>ALIGNMENTSHIFT)
+
+//Takes in pointer to heap object and converts to offset in alignment units
 #define OBJMAPPINGINDEX(p) ALIGNOBJSIZE((unsigned INTPTR)(p-gcbaseva))
+
+//Converts size of object into alignment units (need to round up)
 #define ALIGNUNITS(s) (((s-1)>>ALIGNMENTSHIFT)+1)
 
-
+//Rounds object size up to next alignment unit size
 #define ALIGNSIZE(s) ((((unsigned int)(s-1))&~(ALIGNMENTBYTES-1))+ALIGNMENTBYTES)
-
 
 // mapping of pointer to block # (start from 0), here the block # is
 // the global index
-#define BLOCKINDEX(p, b) \
-  { \
+#define BLOCKINDEX(b, p)			\
+  {								\
     unsigned INTPTR t = (unsigned INTPTR)(p - gcbaseva);	\
-    if(t < BAMBOO_LARGE_SMEM_BOUND) { \
-      b = t / BAMBOO_SMEM_SIZE_L; \
-    } else { \
+    if(t < BAMBOO_LARGE_SMEM_BOUND) {				\
+      b = t / BAMBOO_SMEM_SIZE_L;				\
+    } else {							      \
       b = NUMCORES4GC+((t-BAMBOO_LARGE_SMEM_BOUND)/BAMBOO_SMEM_SIZE); \
-    } \
+    }								      \
   }
 
 #define RESIDECORE(p, c) { \
@@ -157,7 +166,7 @@ unsigned int size_cachepolicytbl;
       c = 0; \
     } else { \
       unsigned INTPTR b; \
-      BLOCKINDEX(p, b); \
+      BLOCKINDEX(b, p);		      \
       c = gc_block2core[(b%(NUMCORES4GC*2))]; \
     } \
   }
@@ -169,62 +178,53 @@ INLINE static unsigned int hostcore(void * ptr) {
   return host;
 }
 
-// NOTE: n starts from 0
-// mapping of heaptop (how many bytes there are in the local heap) to
-// the number of the block
-// the number of the block indicates that the block is the xth block on
-// the local heap
+/*This macro takes in a number of bytes (the current offset into the
+  heap) and returns the number of local blocks needed for that many
+  bytes */
+
 #define NUMBLOCKS(s, n) \
   if(s < (BAMBOO_SMEM_SIZE_L)) { \
-    (*((unsigned int*)(n))) = 0; \
+    (n) = 0; \
   } else { \
-    (*((unsigned int*)(n))) = 1 + ((s) - (BAMBOO_SMEM_SIZE_L)) / (BAMBOO_SMEM_SIZE); \
+    (n) = 1 + ((s) - (BAMBOO_SMEM_SIZE_L)) / (BAMBOO_SMEM_SIZE); \
   }
 
-#define OFFSET(s, o) \
-  if(s < BAMBOO_SMEM_SIZE_L) { \
-    (*((unsigned int*)(o))) = (s); \
-  } else { \
-    (*((unsigned int*)(o))) = ((s)-(BAMBOO_SMEM_SIZE_L))%(BAMBOO_SMEM_SIZE); \
-  }
-
+//this macro takes in a global block identifier and returns the base
+//offset into the heap
 #define OFFSET2BASEVA(i) \
   (((i)<NUMCORES4GC)?(BAMBOO_SMEM_SIZE_L*(i)):(BAMBOO_SMEM_SIZE*((i)-NUMCORES4GC)+BAMBOO_LARGE_SMEM_BOUND))
 
+
+//This macro takes in a local block number and returns the size of the block
 #define BLOCKSIZE(c) \
   ((c)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE)
 
-// mapping of (core #, index of the block) to the global block index
-#define BLOCKINDEX2(c, n) \
-  (gc_core2block[(2*(c))+((n)%2)]+((NUMCORES4GC*2)*((n)/2)))
+//Takes as input the core number c and the local block index n and
+//returns the global block index
 
+#define BLOCKINDEX2(c, n) \
+  (gc_core2block[2*(c)+((n)&1)]+(NUMCORES4GC*2)*((n)>>1))
+
+//This macro takes in a global block number and returns the base
+//pointer of the next block
 #define BOUNDPTR(b) \
   (((b)<NUMCORES4GC)?(((b)+1)*BAMBOO_SMEM_SIZE_L):(BAMBOO_LARGE_SMEM_BOUND+((b)-NUMCORES4GC+1)*BAMBOO_SMEM_SIZE))
 
-#define BLOCKBOUND(n) \
-  (((n)==0)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE_L+BAMBOO_SMEM_SIZE*(n))
+//This macro takes in the core number c and the local block number and
+//sets p to the base pointer
 
-// mapping of (core #, number of the block) to the base pointer of the block
-#define BASEPTR(c, n, p) \
-  { \
-    unsigned int b = BLOCKINDEX2((c), (n)); \
-    if(b < (NUMCORES4GC)) { \
-      (*((unsigned int*)p)) = gcbaseva + b * (BAMBOO_SMEM_SIZE_L); \
-    } else { \
-      (*((unsigned int*)p)) = gcbaseva+(BAMBOO_LARGE_SMEM_BOUND)+ \
-                     (b-(NUMCORES4GC))*(BAMBOO_SMEM_SIZE); \
-    } \
+#define BASEPTR(p, c, n) {				   \
+    unsigned int b = BLOCKINDEX2((c), (n));		   \
+    if(b < (NUMCORES4GC)) {				   \
+      p = gcbaseva + b * (BAMBOO_SMEM_SIZE_L);		   \
+    } else {						   \
+      p = gcbaseva+(BAMBOO_LARGE_SMEM_BOUND)+		   \
+	(b-(NUMCORES4GC))*(BAMBOO_SMEM_SIZE);		   \
+    }							   \
   }
 
 // the next core in the top of the heap
 #define NEXTTOPCORE(b) (gc_block2core[((b)+1)%(NUMCORES4GC*2)])
-
-// close current block, fill the header
-#define CLOSEBLOCK(base, size) \
-  { \
-    BAMBOO_MEMSET_WH((base), '\0', BAMBOO_CACHE_LINE_SIZE); \
-    *((int*)(base)) = (size); \
-  }
 
 // check if all cores are stall now
 #define GC_CHECK_ALL_CORE_STATUS(f) \

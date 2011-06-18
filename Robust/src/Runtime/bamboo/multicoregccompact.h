@@ -5,24 +5,15 @@
 #include "multicore.h"
 
 struct moveHelper {
-  unsigned int numblocks;       // block num for heap
-  void * base;       // base virtual address of current heap block
-  void * ptr;       // virtual address of current heap top
-  unsigned int offset;       // offset in current heap block
-  void * blockbase;   // virtual address of current small block to check
-  unsigned int blockbound;     // bound virtual address of current small blcok
-  unsigned int sblockindex;       // index of the small blocks
-  unsigned int top;       // real size of current heap block to check
-  unsigned int bound;       // bound size of current heap block to check
+  unsigned int localblocknum;   // local block num for heap
+  void * base;             // base virtual address of current heap block
+  void * ptr;              // current pointer into block
+  void * bound;            // upper bound of current block
 };
 
-// compute the remaining size of block #b
-// p--ptr
-
-#define GC_BLOCK_REMAIN_SIZE(b, p) \
-  b<NUMCORES4GC?BAMBOO_SMEM_SIZE_L-(((unsigned INTPTR)(p-gcbaseva))%BAMBOO_SMEM_SIZE_L):BAMBOO_SMEM_SIZE-(((unsigned INTPTR)(p-gcbaseva))%BAMBOO_SMEM_SIZE)
-
-bool gcfindSpareMem_I(unsigned int * startaddr,unsigned int * tomove,unsigned int * dstcore,unsigned int requiredmem,unsigned int requiredcore);
+void initOrig_Dst(struct moveHelper * orig,struct moveHelper * to);
+void compacthelper(struct moveHelper * orig,struct moveHelper * to);
+void compactblocks(struct moveHelper * orig,struct moveHelper * to);
 void compact();
 void compact_master(struct moveHelper * orig, struct moveHelper * to);
 #endif // MULTICORE_GC

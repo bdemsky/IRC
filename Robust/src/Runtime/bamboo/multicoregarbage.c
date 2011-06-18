@@ -152,7 +152,7 @@ void initGC() {
       gccorestatus[i] = 1;
       gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
       gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
-      gcloads[i] = NULL;
+      gcloads[i] = 0;
       gcrequiredmems[i] = 0;
       gcfilledblocks[i] = 0;
       gcstopblock[i] = 0;
@@ -176,7 +176,6 @@ void initGC() {
   gcblock2fill = 0;
   gcmovepending = 0;
   gccurr_heaptop = 0;
-  gcdstcore = 0;
 
   gc_queueinit();
 
@@ -208,7 +207,7 @@ bool gc_checkAllCoreStatus_I() {
   return true;
 }
 
-INLINE void checkMarkStatus_p2() {
+void checkMarkStatus_p2() {
   // check if the sum of send objs and receive obj are the same
   // yes->check if the info is the latest; no->go on executing
   unsigned int sumsendobj = 0;
@@ -250,7 +249,7 @@ INLINE void checkMarkStatus_p2() {
   }
 }
 
-INLINE void checkMarkStatus() {
+void checkMarkStatus() {
   if((!waitconfirm)||(waitconfirm && (numconfirm == 0))) {
     unsigned int entry_index = 0;
     if(waitconfirm) {
@@ -287,26 +286,28 @@ INLINE void checkMarkStatus() {
 } 
 
 // compute load balance for all cores
-INLINE int loadbalance(void ** heaptop) {
+int loadbalance(void ** heaptop, unsigned int * topblock, unsigned int * topcore) {
   // compute load balance
   // get the total loads
-  unsigned int tloads = gcloads[STARTUPCORE];
-  for(int i = 1; i < NUMCORES4GC; i++) {
+  unsigned int tloads = 0;
+  for(int i = 0; i < NUMCORES4GC; i++) {
     tloads += gcloads[i];
   }
   *heaptop = gcbaseva + tloads;
 
-  unsigned int b = 0;
-  BLOCKINDEX(*heaptop, b);
+  unsigned int topblockindex;
+  
+  BLOCKINDEX(topblockindex, *heaptop);
   // num of blocks per core
-  unsigned int numbpc = (unsigned int)b/(unsigned int)(NUMCORES4GC);
-  gctopblock = b;
-  RESIDECORE(*heaptop, gctopcore);
+  unsigned int numbpc = (topblockindex+NUMCORES4GC-1)/NUMCORES4GC;
+  
+  *topblock = topblockindex;
+  RESIDECORE(*heaptop, *topcore);
   return numbpc;
 }
 
 // compute total mem size required and sort the lobjs in ascending order
-INLINE unsigned int sortLObjs() {
+unsigned int sortLObjs() {
   unsigned int tmp_lobj = 0;
   unsigned int tmp_len = 0;
   unsigned int tmp_host = 0;
@@ -360,7 +361,7 @@ INLINE unsigned int sortLObjs() {
   return sumsize;
 }
 
-INLINE bool cacheLObjs() {
+bool cacheLObjs() {
   // check the total mem size need for large objs
   unsigned long long sumsize = 0;
   unsigned int size = 0;
@@ -398,7 +399,7 @@ INLINE bool cacheLObjs() {
 void updateSmemTbl(unsigned int coren, void * localtop) {
   unsigned int ltopcore = 0;
   unsigned int bound = BAMBOO_SMEM_SIZE_L;
-  BLOCKINDEX(localtop, ltopcore);
+  BLOCKINDEX(ltopcore, localtop);
   if((unsigned int)localtop>=(unsigned int)(gcbaseva+BAMBOO_LARGE_SMEM_BOUND)){
     bound = BAMBOO_SMEM_SIZE;
   }
@@ -424,187 +425,6 @@ void updateSmemTbl(unsigned int coren, void * localtop) {
     }
   }
 }
-
-INLINE unsigned int checkCurrHeapTop() {
-  // update the smemtbl
-  BAMBOO_MEMSET_WH(bamboo_smemtbl, 0, sizeof(int)*gcnumblock);
-  // flush all gcloads to indicate the real heap top on one core
-  // previous it represents the next available ptr on a core
-  if(((unsigned int)gcloads[0]>(unsigned int)(gcbaseva+BAMBOO_SMEM_SIZE_L))&&(((unsigned int)gcloads[0]%(BAMBOO_SMEM_SIZE)) == 0)) {
-    // edge of a block, check if this is exactly the heaptop
-    BASEPTR(0, gcfilledblocks[0]-1, &(gcloads[0]));
-    gcloads[0]+=BLOCKSIZE(gcfilledblocks[0]<=1);
-  }
-  updateSmemTbl(0, gcloads[0]);
-  for(int i = 1; i < NUMCORES4GC; i++) {
-    unsigned int tmptop = 0;
-    if((gcfilledblocks[i] > 0)&&(((unsigned int)gcloads[i]%(BAMBOO_SMEM_SIZE)) == 0)) {
-      // edge of a block, check if this is exactly the heaptop
-      BASEPTR(i, gcfilledblocks[i]-1, &gcloads[i]);
-      gcloads[i]+=BLOCKSIZE(gcfilledblocks[i]<=1);
-      tmptop = gcloads[i];
-    }
-    updateSmemTbl(i, gcloads[i]);
-  } 
-
-  // find current heap top
-  // TODO
-  // a bug here: when using local allocation, directly move large objects
-  // to the highest free chunk might not be memory efficient
-  unsigned int tmpheaptop = 0;
-  for(int i = gcnumblock-1; i >= 0; i--) {
-    if(bamboo_smemtbl[i] > 0) {
-      return gcbaseva+bamboo_smemtbl[i]+OFFSET2BASEVA(i);
-    }
-  }
-  return gcbaseva;
-}
-
-INLINE void movelobj(void * tmpheaptop, void * ptr,int size,int isize) {
-  // move the large obj
-  if((unsigned int)gcheaptop < (unsigned int)(tmpheaptop+size)) {
-    memmove(tmpheaptop, gcheaptop, size);
-  } else {
-    memcpy(tmpheaptop, gcheaptop, size);
-  }
-  // fill the remaining space with -2 padding
-  BAMBOO_MEMSET_WH(tmpheaptop+size, -2, isize-size);
-  gcheaptop += size;
-  // cache the mapping info 
-  gcmappingtbl[OBJMAPPINGINDEX(ptr)]=tmpheaptop;
-  tmpheaptop += isize;
-}
-
-INLINE void moveLObjs() {
-#ifdef SMEMM
-  // update the gcmem_mixed_usedmem
-  gcmem_mixed_usedmem = 0;
-#endif
-  unsigned int size = 0;
-  unsigned int bound = 0;
-  void * tmpheaptop = checkCurrHeapTop();
-
-  // move large objs from gcheaptop to tmpheaptop
-  // write the header first
-  unsigned int tomove = gcbaseva+(BAMBOO_SHARED_MEM_SIZE)-gcheaptop;
-#ifdef SMEMM
-  gcmem_mixed_usedmem += tomove;
-#endif
-  // flush the sbstartbl
-  BAMBOO_MEMSET_WH(gcsbstarttbl,'\0',(BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE)*sizeof(unsigned int));
-  if(tomove == 0) {
-    gcheaptop = tmpheaptop;
-  } else {
-    // check how many blocks it acrosses
-    unsigned INTPTR remain = (unsigned INTPTR) (tmpheaptop-gcbaseva);
-    //number of the sblock
-    unsigned int sb = remain/BAMBOO_SMEM_SIZE;
-    unsigned int b = 0;  // number of the block
-    BLOCKINDEX(tmpheaptop, b);
-    // check the remaining space in this block
-    bound = (BAMBOO_SMEM_SIZE);
-    if(remain < (BAMBOO_LARGE_SMEM_BOUND)) {
-      bound = (BAMBOO_SMEM_SIZE_L);
-    }
-    remain = bound - remain%bound;
-
-    size = 0;
-    unsigned int isize = 0;
-    unsigned int host = 0;
-    unsigned int ptr = 0;
-    unsigned int base = tmpheaptop;
-    unsigned int cpysize = 0;
-    remain -= BAMBOO_CACHE_LINE_SIZE;
-    tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
-    gc_lobjqueueinit4_I();
-    while(gc_lobjmoreItems4_I()) {
-      ptr = (unsigned int)(gc_lobjdequeue4_I(&size, &host));
-      isize=ALIGNSIZE(size, &isize);
-      if(remain >= isize) {
-        remain -= isize;
-        // move the large obj
-        movelobj(tmpheaptop,ptr,size,isize);
-        cpysize += isize;
-        // update bamboo_smemtbl
-        bamboo_smemtbl[b] += isize;
-      } else {
-        // this object acrosses blocks
-        if(cpysize > 0) {
-          CLOSEBLOCK(base, cpysize+BAMBOO_CACHE_LINE_SIZE);
-          bamboo_smemtbl[b] += BAMBOO_CACHE_LINE_SIZE;
-          cpysize = 0;
-          base = tmpheaptop;
-          if(remain == 0) {
-            remain = BLOCKSIZE((tmpheaptop-gcbaseva)<(BAMBOO_LARGE_SMEM_BOUND));
-          }
-          remain -= BAMBOO_CACHE_LINE_SIZE;
-          tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
-          BLOCKINDEX(tmpheaptop, b);
-          sb = (unsigned int)(tmpheaptop-gcbaseva)/(BAMBOO_SMEM_SIZE);
-        } 
-        // move the obj
-        movelobj(tmpheaptop,ptr,size,isize);
-        	
-        // set the gcsbstarttbl and bamboo_smemtbl
-        unsigned int tmpsbs=1+(unsigned int)(isize-remain-1)/BAMBOO_SMEM_SIZE;
-        for(int k = 1; k < tmpsbs; k++) {
-          gcsbstarttbl[sb+k] = -1;
-        }
-        sb += tmpsbs;
-        bound = BLOCKSIZE(b<NUMCORES4GC);
-        BLOCKINDEX(tmpheaptop-1, tmpsbs);
-        for(; b < tmpsbs; b++) {
-          bamboo_smemtbl[b] = bound;
-          if(b==NUMCORES4GC-1) {
-            bound = BAMBOO_SMEM_SIZE;
-          }
-        }
-        if(((unsigned int)(isize-remain)%(BAMBOO_SMEM_SIZE)) == 0) {
-          gcsbstarttbl[sb] = -1;
-          remain = BLOCKSIZE((tmpheaptop-gcbaseva)<(BAMBOO_LARGE_SMEM_BOUND));
-          bamboo_smemtbl[b] = bound;
-        } else {
-          gcsbstarttbl[sb] = (int)tmpheaptop;
-          remain = tmpheaptop-gcbaseva;
-          bamboo_smemtbl[b] = remain%bound;
-          remain = bound - bamboo_smemtbl[b];
-        } 
-	
-        CLOSEBLOCK(base, isize+BAMBOO_CACHE_LINE_SIZE);
-        cpysize = 0;
-        base = tmpheaptop;
-        if(remain == BAMBOO_CACHE_LINE_SIZE) {
-          // fill with 0 in case
-          BAMBOO_MEMSET_WH(tmpheaptop, '\0', remain);
-        }
-        remain -= BAMBOO_CACHE_LINE_SIZE;
-        tmpheaptop += BAMBOO_CACHE_LINE_SIZE;
-      } 
-    }
-    
-    if(cpysize > 0) {
-      CLOSEBLOCK(base, cpysize+BAMBOO_CACHE_LINE_SIZE);
-      bamboo_smemtbl[b] += BAMBOO_CACHE_LINE_SIZE;
-    } else {
-      tmpheaptop -= BAMBOO_CACHE_LINE_SIZE;
-    }
-    gcheaptop = tmpheaptop;
-  } 
-
-  bamboo_free_block = 0;
-  unsigned int tbound = 0;
-  do {
-    tbound=BLOCKSIZE(bamboo_free_block<NUMCORES4GC);
-    if(bamboo_smemtbl[bamboo_free_block] == tbound) {
-      bamboo_free_block++;
-    } else {
-      // the first non-full partition
-      break;
-    }
-  } while(true);
-
-  GCPROFILE_RECORD_SPACE();
-} 
 
 void gc_collect(struct garbagelist * stackptr) {
   gc_status_info.gcprocessing = true;

@@ -24,32 +24,31 @@ extern struct lockvector bamboo_threadlocks;
 #endif
 
 // NOTE: the objptr should not be NULL and should not be non shared ptr
-#define FLUSHOBJ(obj, tt) {void *flushtmpptr=obj; if (flushtmpptr!=NULL) obj=flushObj(flushtmpptr);}
-#define FLUSHOBJNONNULL(obj, tt) {void *flushtmpptr=obj; obj=flushObj(flushtmpptr);}
+#define updateObj(objptr) gcmappingtbl[OBJMAPPINGINDEX(objptr)]
+#define UPDATEOBJ(obj, tt) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) obj=updateObj(updatetmpptr);}
+#define UPDATEOBJNONNULL(obj, tt) {void *updatetmpptr=obj; obj=updateObj(updatetmpptr);}
 
-INLINE void * flushObj(void * objptr) {
-  return gcmappingtbl[OBJMAPPINGINDEX(objptr)];
-}
+
 
 INLINE void updategarbagelist(struct garbagelist *listptr) {
   for(;listptr!=NULL; listptr=listptr->next) {
     for(int i=0; i<listptr->size; i++) {
-      FLUSHOBJ(listptr->array[i], i);
+      UPDATEOBJ(listptr->array[i], i);
     }
   }
 }
 
-INLINE void flushRuntimeObj(struct garbagelist * stackptr) {
-  // flush current stack
+INLINE void updateRuntimePtrs(struct garbagelist * stackptr) {
+  // update current stack
   updategarbagelist(stackptr);
 
-  // flush static pointers global_defs_p
+  // update static pointers global_defs_p
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     updategarbagelist((struct garbagelist *)global_defs_p);
   }
 
 #ifdef TASK
-  // flush objectsets
+  // update objectsets
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
     for(int i=0; i<NUMCLASSES; i++) {
       struct parameterwrapper ** queues = objectqueues[BAMBOO_NUM_OF_CORE][i];
@@ -58,72 +57,72 @@ INLINE void flushRuntimeObj(struct garbagelist * stackptr) {
         struct parameterwrapper * parameter = queues[j];
         struct ObjectHash * set=parameter->objectset;
         for(struct ObjectNode * ptr=set->listhead;ptr!=NULL;ptr=ptr->lnext) {
-          FLUSHOBJNONNULL(ptr->key, 0);
+          UPDATEOBJNONNULL(ptr->key, 0);
         }
         ObjectHashrehash(set);
       }
     }
   }
 
-  // flush current task descriptor
+  // update current task descriptor
   if(currtpd != NULL) {
     for(int i=0; i<currtpd->numParameters; i++) {
       // the parameter can not be NULL
-      FLUSHOBJNONNULL(currtpd->parameterArray[i], i);
+      UPDATEOBJNONNULL(currtpd->parameterArray[i], i);
     }
   }
 
-  // flush active tasks
+  // update active tasks
   if(activetasks != NULL) {
     for(struct genpointerlist * ptr=activetasks->list;ptr!=NULL;ptr=ptr->inext){
       struct taskparamdescriptor *tpd=ptr->src;
       for(int i=0; i<tpd->numParameters; i++) {
         // the parameter can not be NULL
-	FLUSHOBJNONNULL(tpd->parameterArray[i], i);
+	UPDATEOBJNONNULL(tpd->parameterArray[i], i);
       }
     }
     genrehash(activetasks);
   }
 
-  // flush cached transferred obj
+  // update cached transferred obj
   for(struct QueueItem * tmpobjptr =  getHead(&objqueue);tmpobjptr != NULL;tmpobjptr = getNextQueueItem(tmpobjptr)) {
     struct transObjInfo * objInfo=(struct transObjInfo *)(tmpobjptr->objectptr);
     // the obj can not be NULL
-    FLUSHOBJNONNULL(objInfo->objptr, 0);
+    UPDATEOBJNONNULL(objInfo->objptr, 0);
   }
 
-  // flush cached objs to be transferred
+  // update cached objs to be transferred
   for(struct QueueItem * item = getHead(totransobjqueue);item != NULL;item = getNextQueueItem(item)) {
     struct transObjInfo * totransobj = (struct transObjInfo *)(item->objectptr);
     // the obj can not be NULL
-    FLUSHOBJNONNULL(totransobj->objptr, 0);
+    UPDATEOBJNONNULL(totransobj->objptr, 0);
   }  
 
   // enqueue lock related info
   for(int i = 0; i < runtime_locklen; ++i) {
-    FLUSHOBJ(runtime_locks[i].redirectlock, i);
-    FLUSHOBJ(runtime_locks[i].value, i);
+    UPDATEOBJ(runtime_locks[i].redirectlock, i);
+    UPDATEOBJ(runtime_locks[i].value, i);
   }
 #endif
 
 #ifdef MGC
-  // flush the bamboo_threadlocks
+  // update the bamboo_threadlocks
   for(int i = 0; i < bamboo_threadlocks.index; i++) {
     // the locked obj can not be NULL
-    FLUSHOBJNONNULL(bamboo_threadlocks.locks[i].object, i);
+    UPDATEOBJNONNULL(bamboo_threadlocks.locks[i].object, i);
   }
 
-  // flush the bamboo_current_thread
-  FLUSHOBJ(bamboo_current_thread, 0);
+  // update the bamboo_current_thread
+  UPDATEOBJ(bamboo_current_thread, 0);
 
-  // flush global thread queue
+  // update global thread queue
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     unsigned int thread_counter = *((unsigned int*)(bamboo_thread_queue+1));
     if(thread_counter > 0) {
       unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
       for(int i = thread_counter; i > 0; i--) {
         // the thread obj can not be NULL
-        FLUSHOBJNONNULL(bamboo_thread_queue[4+start], 0);
+        UPDATEOBJNONNULL(bamboo_thread_queue[4+start], 0);
         start = (start+1)&bamboo_max_thread_num_mask;
       }
     }
@@ -132,7 +131,7 @@ INLINE void flushRuntimeObj(struct garbagelist * stackptr) {
 #endif
 }
 
-INLINE void flushPtrsInObj(void * ptr) {
+INLINE void updatePtrsInObj(void * ptr) {
   int type = ((int *)(ptr))[0];
   // scan all pointers in ptr
   unsigned int * pointer=pointerarray[type];
@@ -144,7 +143,7 @@ INLINE void flushPtrsInObj(void * ptr) {
     unsigned int size=pointer[0];
     for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
-      FLUSHOBJ(*((void **)(((char *)ptr)+offset)), i);
+      UPDATEOBJ(*((void **)(((char *)ptr)+offset)), i);
     }
 #endif
   } else if (((unsigned int)pointer)==1) {
@@ -152,7 +151,7 @@ INLINE void flushPtrsInObj(void * ptr) {
     struct ArrayObject *ao=(struct ArrayObject *) ptr;
     int length=ao->___length___;
     for(int j=0; j<length; j++) {
-      FLUSHOBJ(((void **)(((char *)&ao->___length___)+sizeof(int)))[j], j);
+      UPDATEOBJ(((void **)(((char *)&ao->___length___)+sizeof(int)))[j], j);
     }
 #ifdef OBJECTHASPOINTERS
     pointer=pointerarray[OBJECTTYPE];
@@ -161,7 +160,7 @@ INLINE void flushPtrsInObj(void * ptr) {
     
     for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];     
-      FLUSHOBJ(*((void **)(((char *)ptr)+offset)), i);
+      UPDATEOBJ(*((void **)(((char *)ptr)+offset)), i);
     }
 #endif
   } else {
@@ -169,56 +168,117 @@ INLINE void flushPtrsInObj(void * ptr) {
     
     for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
-      FLUSHOBJ(*((void **)(((char *)ptr)+offset)), i);
+      UPDATEOBJ(*((void **)(((char *)ptr)+offset)), i);
     }
   }  
 }
 
-void flush(struct garbagelist * stackptr) {
+/* This function is performance critical...  spend more time optimizing it */
+
+unsigned int updateblocks(struct moveHelper * orig, struct moveHelper * to) {
+  void *tobase=to->base;
+  void *tobound=to->bound;
+  void *origptr=orig->ptr;
+  void *origbound=orig->bound;
+  unsigned INTPTR origendoffset=ALIGNTOTABLEINDEX((unsigned INTPTR)(origbound-gcbase));
+  unsigned int objlength;
+
+  while(origptr<origbound) {
+    //Try to skip over stuff fast first
+    unsigned INTPTR offset=(unsigned INTPTR) (origptr-gcbase);
+    unsigned INTPTR arrayoffset=ALIGNTOTABLEINDEX(offset);
+    if (!gcmarktbl[arrayoffset]) {
+      do {
+	arrayoffset++;
+	if (arrayoffset<origendoffset) {
+	  //finished with block...
+	  origptr=origbound;
+	  to->ptr=toptr;
+	  orig->ptr=origptr;
+	  return 0;
+	}
+      } while(!gcmarktbl[arrayoffset]);
+      origptr=CONVERTTABLEINDEXTOPTR(arrayoffset);
+    }
+
+    //Scan more carefully next
+    objlength=getMarkedLength(origptr);
+    void *dstptr=gcmappingtbl[OBJMAPPINGINDEX(origptr)];
+    
+    if (objlength!=NOTMARKED) {
+      unsigned int length=ALIGNSIZETOBYTES(objlength);
+      void *endtoptr=dstptr+length;
+
+      if (endtoptr>tobound||endtoptr<tobase) {
+	toptr=tobound;
+	to->ptr=toptr;
+	orig->ptr=origptr;
+	return length;
+      }
+      
+      /* Move the object */
+      if(origptr <= dstptr+size) {
+        memmove(dstptr, origptr, size);
+      } else {
+        memcpy(dstptr, origptr, size);
+      }
+      
+      /* Update the pointers in the object */
+      updatePtrsInObj(dstptr);
+
+      /* Clear the mark */
+      clearMark(origptr);
+
+      //good to move objects and update pointers
+      origptr+=length;
+    } else
+      origptr+=ALIGNSIZE;
+  }
+}
+
+void updatehelper(struct moveHelper * orig,struct moveHelper * to) {
+  while(true) {
+    unsigned int minimumbytes=updateblocks(orig, to);
+    if (orig->ptr==orig->bound) {
+      //need more data to compact
+      //increment the core
+      orig->localblocknum++;
+      BASEPTR(orig->base,BAMBOO_NUM_OF_CORE, orig->localblocknum);
+      orig->ptr=orig->base;
+      orig->bound = orig->base + BLOCKSIZE(orig->localblocknum);
+      if (orig->base >= gcbaseva+BAMBOO_SHARED_MEM_SIZE)
+	break;
+    }
+    if (minimumbytes!=0) {
+      getSpace(to, minimumbytes);
+    }
+  }
+}
+
+void updateheap() {
   BAMBOO_CACHE_MF();
 
-  flushRuntimeObj(stackptr);
-  while(gc_moreItems()) {
-    void * ptr = (void *) gc_dequeue();
-    // should be a local shared obj and should have mapping info
-    FLUSHOBJNONNULL(ptr, 0);
-    BAMBOO_ASSERT(ptr != NULL);
-    int markedstatus;
-    GETMARKED(markedstatus, ptr);
+  // initialize structs for compacting
+  struct moveHelper orig={0,NULL,NULL,0,NULL,0,0,0,0};
+  struct moveHelper to={0,NULL,NULL,0,NULL,0,0,0,0};
+  initOrig_Dst(&orig, &to);
 
-    if(markedstatus==MARKEDFIRST) {
-      flushPtrsInObj((void *)ptr);
-      // restore the mark field, indicating that this obj has been flushed
-      RESETMARKED(ptr);
-    }
-  } 
+  updatehelper(&orig, &to);
+}
 
-  // TODO bug here: the startup core contains all lobjs' info, thus all the
-  // lobjs are flushed in sequence.
-  // flush lobjs
-  while(gc_lobjmoreItems_I()) {
-    void * ptr = (void *) gc_lobjdequeue_I(NULL, NULL);
-    FLUSHOBJ(ptr, 0);
-    BAMBOO_ASSERT(ptr!=NULL);
+void update(struct garbagelist * stackptr) {
+  BAMBOO_CACHE_MF();
 
-    int markedstatus;
-    GETMARKED(markedstatus, ptr);
+  updateRuntimePtrs(stackptr);
 
-    if(markedstatus==MARKEDFIRST) {
-      flushPtrsInObj(ptr);
-      // restore the mark field, indicating that this obj has been flushed
-      RESETMARKED(ptr);
-    }     
-  } 
+  updateheap();
 
-  // send flush finish message to core coordinator
+  // send update finish message to core coordinator
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
   } else {
-    send_msg_2(STARTUPCORE,GCFINISHFLUSH,BAMBOO_NUM_OF_CORE);
+    send_msg_2(STARTUPCORE,GCFINISHUPDATE,BAMBOO_NUM_OF_CORE);
   }
-
-  //tprintf("flush: %lld \n", BAMBOO_GET_EXE_TIME()-tmpt); // TODO
 } 
 
 #endif // MULTICORE_GC
