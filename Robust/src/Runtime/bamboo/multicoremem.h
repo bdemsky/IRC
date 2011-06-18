@@ -106,18 +106,6 @@
 
 volatile bool gc_localheap_s;
 
-typedef enum {
-  SMEMLOCAL = 0x0,// 0x0, using local mem only
-  SMEMFIXED,      // 0x1, use local mem in lower address space(1 block only)
-                  //      and global mem in higher address space
-  SMEMMIXED,      // 0x2, like FIXED mode but use a threshold to control
-  SMEMGLOBAL,     // 0x3, using global mem only
-  SMEMEND
-} SMEMSTRATEGY;
-
-SMEMSTRATEGY bamboo_smem_mode; //-DSMEML: LOCAL; -DSMEMF: FIXED;
-                               //-DSMEMM: MIXED; -DSMEMG: GLOBAL;
-
 struct freeMemItem {
   unsigned int ptr;
   int size;
@@ -132,16 +120,6 @@ struct freeMemList {
                                    // only maintain 1 freemMemItem
 };
 
-// Zero out the remaining bamboo_cur_msp. Only zero out the first 4 bytes 
-// of the remaining memory
-#define BAMBOO_CLOSE_CUR_MSP()					   \
-  {								   \
-    if((bamboo_cur_msp!=NULL)&&(bamboo_smem_zero_top==bamboo_cur_msp) \
-       &&(bamboo_smem_size>0)) {				   \
-      *bamboo_cur_msp = NULL;					   \
-    }								   \
-  }
-
 // table recording the number of allocated bytes on each block
 // Note: this table resides on the bottom of the shared heap for all cores
 //       to access
@@ -154,7 +132,10 @@ unsigned int bamboo_reserved_smem; // reserved blocks on the top of the shared
                                    // heap e.g. 20% of the heap and should not 
 								   // be allocated otherwise gc is invoked
 volatile unsigned int bamboo_smem_zero_top;
-#define BAMBOO_SMEM_ZERO_UNIT_SIZE ((unsigned int)(4 * 1024)) // 4KB
+
+//BAMBOO_SMEM_ZERO_UNIT_SIZE must evenly divide the page size and be a
+//power of two(we rely on both in the allocation function)
+#define BAMBOO_SMEM_ZERO_UNIT_SIZE 4096
 #else
 //volatile mspace bamboo_free_msp;
 unsigned int bamboo_free_smemp;

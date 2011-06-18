@@ -27,13 +27,13 @@ volatile bool isMsgHanging;
   msgdata[msgdatalast] = (n); \
   MSG_LASTINDEXINC_I()
 
-#define MSG_REMAINSIZE_I(s) \
-  if(msgdataindex < msgdatalast) { \
-    (*(int*)s) = msgdatalast - msgdataindex; \
+#define MSG_REMAINSIZE_I(s)				       \
+  if(msgdataindex < msgdatalast) {			       \
+    s = msgdatalast - msgdataindex;			       \
   } else if((msgdataindex == msgdatalast) && (!msgdatafull)) { \
-    (*(int*)s) = 0; \
-  } else { \
-    (*(int*)s) = (BAMBOO_MSG_BUF_LENGTH) - msgdataindex + msgdatalast; \
+    s = 0;						       \
+  } else {						       \
+    s = (BAMBOO_MSG_BUF_LENGTH) - msgdataindex + msgdatalast;  \
   }
 
 #define OUTMSG_INDEXINC() \

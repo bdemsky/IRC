@@ -67,9 +67,6 @@ unsigned INTPTR gcloads[NUMCORES4GC];
 //Top of each core's heap
 void * topptrs[NUMCORES4GC];
 
-unsigned int gctopcore; // the core host the top of the heap
-unsigned int gctopblock; // the number of current top block
-
 // compact instruction
 unsigned int gcmarkedptrbound;
 unsigned int gcblock2fill;

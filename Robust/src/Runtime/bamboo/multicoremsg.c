@@ -375,35 +375,29 @@ INLINE void processmsg_memrequest_I() {
 }
 
 INLINE void processmsg_memresponse_I() {
-  int data1 = msgdata[msgdataindex];
+  void * memptr = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];
+  unsigned int numbytes = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   // receive a shared memory response msg
 #ifdef MULTICORE_GC
   // if is currently doing gc, dump this msg
   if(!gc_status_info.gcprocessing) {
 #endif
-  if(data2 == 0) {
+  if(numbytes == 0) {
 #ifdef MULTICORE_GC
-    // Zero out the remaining memory here because for the GC_CACHE_ADAPT 
-    // version, we need to make sure during the gcinit phase the shared heap 
-    // is not touched. Otherwise, there would be problem when adapt the cache 
-    // strategy.
-    BAMBOO_CLOSE_CUR_MSP();
     bamboo_smem_zero_top = NULL;
 #endif
     bamboo_smem_size = 0;
     bamboo_cur_msp = NULL;
   } else {
 #ifdef MULTICORE_GC
-    //CLOSEBLOCK(data1, data2);
-    bamboo_smem_size = data2 - BAMBOO_CACHE_LINE_SIZE;
-    bamboo_cur_msp = data1 + BAMBOO_CACHE_LINE_SIZE;
+    bamboo_smem_size = numbytes;
+    bamboo_cur_msp = memptr;
     bamboo_smem_zero_top = bamboo_cur_msp;
 #else
-    bamboo_smem_size = data2;
-    bamboo_cur_msp =(void*)(data1);
+    bamboo_smem_size = numbytes;
+    bamboo_cur_msp =memptr;
 #endif
   }
   smemflag = true;
@@ -421,7 +415,6 @@ INLINE void processmsg_gcstartpre_I() {
     // version, we need to make sure during the gcinit phase the shared heap 
     // is not touched. Otherwise, there would be problem when adapt the cache 
     // strategy.
-    BAMBOO_CLOSE_CUR_MSP();
     bamboo_smem_size = 0;
     bamboo_cur_msp = NULL;
     smemflag = true;
@@ -711,8 +704,8 @@ msg:
   }
 processmsg:
   // processing received msgs
-  int size = 0;
-  MSG_REMAINSIZE_I(&size);
+  int size;
+  MSG_REMAINSIZE_I(size);
   if(size == 0) {
     // not a whole msg
     // have new coming msg

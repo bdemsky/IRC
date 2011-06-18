@@ -7,34 +7,6 @@
 #include "multicorehelper.h"
 #include "multicoremem_helper.h"
 
-INLINE void setupsmemmode(void) {
-#ifdef SMEML
-  // Only allocate local mem chunks to each core.
-  // If a core has used up its local shared memory, start gc.
-  bamboo_smem_mode = SMEMLOCAL;
-#elif defined SMEMF
-  // Allocate the local shared memory to each core with the highest priority,
-  // if a core has used up its local shared memory, try to allocate the 
-  // shared memory that belong to its neighbours, if also failed, start gc.
-  bamboo_smem_mode = SMEMFIXED;
-#elif defined SMEMM
-  // Allocate the local shared memory to each core with the highest priority,
-  // if a core has used up its local shared memory, try to allocate the 
-  // shared memory that belong to its neighbours first, if failed, check 
-  // current memory allocation rate, if it has already reached the threshold,
-  // start gc, otherwise, allocate the shared memory globally.  If all the 
-  // shared memory has been used up, start gc.
-  bamboo_smem_mode = SMEMMIXED;
-#elif defined SMEMG
-  // Allocate all the memory chunks globally, do not consider the host cores
-  // When all the shared memory are used up, start gc.
-  bamboo_smem_mode = SMEMGLOBAL;
-#else
-  // defaultly using local mode
-  bamboo_smem_mode = SMEMLOCAL;
-#endif 
-} 
-
 INLINE void * mallocmem(int tofindb,
                         int totest,
                         int size,
@@ -72,11 +44,9 @@ INLINE void * searchBlock4Mem(int* tofindb,
     if((nsize==bound)||((nsize != 0)&&(*totest != *tofindb))) {
       // a fully/partially occupied partition, can not be appended 
       //the last continuous block is not big enough,check the next local block
-      i++;
-      if(2==i) {
-        i = 0;
-        j++;
-      }
+      j+=i;
+      i=(i+1)&1;
+
       *tofindb=*totest=gc_core2block[2*gccorenum+i]+(NUMCORES4GC*2)*j;
       freeblocks--;
     } else {
@@ -249,51 +219,28 @@ void * globalmalloc_I(int coren,
   return mem;
 } 
 
+void * smemalloc(int coren, int isize, int * allocsize) {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  void *retval=smemalloc(coren, isize, allocsize);
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  return retval;
+}
+
 // malloc from the shared memory
-void * smemalloc_I(int coren,
-                   int size,
-                   int * allocsize) {
-  void * mem = NULL;
-  int isize = size+(BAMBOO_CACHE_LINE_SIZE);
-
-  // go through the bamboo_smemtbl for suitable partitions
-  switch(bamboo_smem_mode) {
-  case SMEMLOCAL: {
-    mem = localmalloc_I(coren, isize, allocsize);
-    break;
-  }
-
-  case SMEMFIXED: {
-#ifdef SMEMF
-    mem = fixedmalloc_I(coren, isize, allocsize);
-#else
-    // not supported yet
-    BAMBOO_EXIT();
+void * smemalloc_I(int coren, int isize, int * allocsize) {
+#ifdef SMEML
+  void *mem = localmalloc_I(coren, isize, allocsize);
+#elif defined(SMEMF)
+  void *mem = fixedmalloc_I(coren, isize, allocsize);
+#elif defined(SMEMM)
+  void *mem = mixedmalloc_I(coren, isize, allocsize);
+#elif defined(SMEMG)
+  void *mem = globalmalloc_I(coren, isize, allocsize);
 #endif
-    break;
-  }
-
-  case SMEMMIXED: {
-#ifdef SMEMM
-    mem = mixedmalloc_I(coren, isize, allocsize);
-#else
-    // not supported yet
-    BAMBOO_EXIT();
-#endif
-    break;
-  }
-
-  case SMEMGLOBAL: {
-    mem = globalmalloc_I(coren, isize, allocsize);
-    break;
-  }
-
-  default:
-    break;
-  }
 
   if(mem == NULL) {
     // no enough shared global memory
+    // trigger gc
     *allocsize = 0;
     if(!gcflag) {
       gcflag = true;
@@ -310,11 +257,6 @@ void * smemalloc_I(int coren,
     }
     return NULL;
   }
-  /*if(coren == hostcore(mem)) {
-    tprintf("Allocate host mem: %d, %d, %d \n", coren, hostcore(mem), mem);
-  } else {
-    tprintf("---Allocate non-host mem: %d, %d, %d \n", coren, hostcore(mem), mem);
-  }*/
   return mem;
 }
 #else

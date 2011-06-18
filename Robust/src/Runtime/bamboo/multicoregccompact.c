@@ -194,7 +194,7 @@ void compact() {
 void master_compact() {
   // predict number of blocks to fill for each core
   void * tmpheaptop = 0;
-  int numblockspercore = loadbalance(&tmpheaptop, &gctopblock, &gctopcore);
+  int numblockspercore = loadbalance(&tmpheaptop);
   
   GC_PRINTF("mark phase finished \n");
   

@@ -120,8 +120,6 @@ void initmulticoregcdata() {
   gcmarkedptrbound = 0;
   gcforwardobjtbl = allocateMGCHash_I(128);
   gcheaptop = 0;
-  gctopcore = 0;
-  gctopblock = 0;
   gcmovestartaddr = 0;
   gctomove = false;
   gcmovepending = 0;
@@ -162,8 +160,6 @@ void initGC() {
       gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
     }
     gcheaptop = 0;
-    gctopcore = 0;
-    gctopblock = 0;
     gcnumsrobjs_index = 0;
   } 
   gcself_numsendobjs = 0;
@@ -284,7 +280,7 @@ void checkMarkStatus() {
 } 
 
 // compute load balance for all cores
-int loadbalance(void ** heaptop, unsigned int * topblock, unsigned int * topcore) {
+int loadbalance(void ** heaptop) {
   // compute load balance
   // get the total loads
   unsigned int tloads = 0;
@@ -299,8 +295,6 @@ int loadbalance(void ** heaptop, unsigned int * topblock, unsigned int * topcore
   // num of blocks per core
   unsigned int numbpc = (topblockindex+NUMCORES4GC-1)/NUMCORES4GC;
   
-  *topblock = topblockindex;
-  RESIDECORE(*heaptop, *topcore);
   return numbpc;
 }
 
