@@ -99,7 +99,6 @@ void initmulticoregcdata() {
 #ifdef MGC_SPEC
   gc_profile_flag = false;
 #endif
-  gc_localheap_s = false;
 #ifdef GC_CACHE_ADAPT
   gccachestage = false;
 #endif 
