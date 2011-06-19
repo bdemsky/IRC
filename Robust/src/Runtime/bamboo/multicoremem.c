@@ -13,15 +13,6 @@ INLINE void * mallocmem(int tofindb,
                         int * allocsize) {
   void * mem = NULL;
   // find suitable block
-  mem=gcbaseva+bamboo_smemtbl[tofindb]+OFFSET2BASEVA(tofindb);
-  *allocsize = size;
-  // set bamboo_smemtbl
-  for(int i = tofindb; i <= totest; i++) {
-    bamboo_smemtbl[i]=BLOCKSIZE(i<NUMCORES4GC);
-  }
-  if(tofindb == bamboo_free_block) {
-    bamboo_free_block = totest+1;
-  }
   return mem;
 }
 
@@ -33,41 +24,7 @@ INLINE void * searchBlock4Mem(int* tofindb,
                               int isize,
                               int * allocsize,
                               int minremain) {
-  int i=0;
-  int j=0;
-  int size = 0;
-  int bound = BAMBOO_SMEM_SIZE_L;
-  int freeblocks=(gcnumblock-bamboo_reserved_smem-1)/NUMCORES4GC+1;
-  while((*totest<(gcnumblock-bamboo_reserved_smem))&&(freeblocks>minremain)) {
-    bound = BLOCKSIZE(*totest<NUMCORES4GC);
-    int nsize = bamboo_smemtbl[*totest];
-    if((nsize==bound)||((nsize != 0)&&(*totest != *tofindb))) {
-      // a fully/partially occupied partition, can not be appended 
-      //the last continuous block is not big enough,check the next local block
-      j+=i;
-      i=(i+1)&1;
 
-      *tofindb=*totest=gc_core2block[2*gccorenum+i]+(NUMCORES4GC*2)*j;
-      freeblocks--;
-    } else {
-      // an empty block or a partially occupied block that can be set as the 
-      // first block
-      if(*totest == *tofindb) {
-        // the first partition
-        size = bound - nsize;
-      } else if(nsize == 0) {
-        // an empty partition, can be appended
-        size += bound;
-      } 
-      if(size >= isize) {
-        // have enough space in the block, malloc
-        return mallocmem(*tofindb, *totest, size, allocsize);
-      } else {
-        // no enough space yet, try to append next continuous block
-        *totest = *totest + 1;
-      }  
-    }
-  }
   return NULL;
 }
 
@@ -75,35 +32,7 @@ INLINE void * searchBlock4Mem_global(int* tofindb,
                                      int* totest,
                                      int isize,
                                      int * allocsize) {
-  int size = 0;
-  int bound = BAMBOO_SMEM_SIZE_L;
-  while(*totest<(gcnumblock-bamboo_reserved_smem)) {
-    bound = BLOCKSIZE(*totest<NUMCORES4GC);
-    int nsize = bamboo_smemtbl[*totest];
-    if((nsize==bound)||((nsize != 0)&&(*totest != *tofindb))) {
-      // a fully/partially occupied partition, can not be appended 
-      // set the next block as a new start
-      *totest = *totest+1;
-      *tofindb = *totest;
-    } else {
-      // an empty block or a partially occupied block that can be set as the 
-      // first block
-      if(*totest == *tofindb) {
-        // the first partition
-        size = bound - nsize;
-      } else if(nsize == 0) {
-        // an empty partition, can be appended
-        size += bound;
-      } 
-      if(size >= isize) {
-        // have enough space in the block, malloc
-        return mallocmem(*tofindb, *totest, size, allocsize);
-      } else {
-        // no enough space yet, try to append next continuous block
-        *totest = *totest + 1;
-      }  
-    }
-  }
+
   return NULL;
 }
 
@@ -180,22 +109,13 @@ void * mixedmalloc_I(int coren,
     tofindb=totest=gc_core2block[2*core2test[gccorenum][k]];
     mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],isize,allocsize,(k==0)?0:((gcnumblock/NUMCORES4GC)>>LOCALMEMRESERVATION));
     if(mem!=NULL) {
-      gcmem_mixed_usedmem+=size;
       return mem;
     }
   }
-  if(gcmem_mixed_usedmem>=gcmem_mixed_threshold) {
-    // no more memory available on either coren or its neighbour cores
-    *allocsize = 0;
-    return NULL; 
-  } else {
-    // try allocate globally
-    mem=globalmalloc_I(coren,isize,allocsize);
-    if(mem!=NULL) {
-      gcmem_mixed_usedmem+=size;
-    }
-    return mem;
-  }
+
+  // try allocate globally
+  mem=globalmalloc_I(coren,isize,allocsize);
+  return mem;
 } 
 #endif 
 
@@ -204,19 +124,7 @@ void * mixedmalloc_I(int coren,
 void * globalmalloc_I(int coren,
                       int isize,
                       int * allocsize) {
-  void * mem = NULL;
-  int tofindb = bamboo_free_block;
-  int totest = tofindb;
-  if(tofindb > gcnumblock-1-bamboo_reserved_smem) {
-    // Out of shared memory
-    *allocsize = 0;
-    return NULL;
-  }
-  mem=searchBlock4Mem_global(&tofindb, &totest, isize, allocsize);
-  if(mem == NULL) {
-    *allocsize = 0;
-  }
-  return mem;
+  return NULL;
 } 
 
 void * smemalloc(int coren, int isize, int * allocsize) {

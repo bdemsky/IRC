@@ -10,11 +10,6 @@
 #include "multicoregcprofile.h"
 #include "gcqueue.h"
 
-#ifdef SMEMM
-extern unsigned int gcmem_mixed_threshold;
-extern unsigned int gcmem_mixed_usedmem;
-#endif // SMEMM
-
 volatile bool gcflag;
 gc_status_t gc_status_info;
 
@@ -93,41 +88,14 @@ void dumpSMem() {
 #endif
 
 void initmulticoregcdata() {
-  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-    // startup core to initialize corestatus[]
-    for(int i = 0; i < NUMCORESACTIVE; i++) {
-      gccorestatus[i] = 1;
-      gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
-      gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
-    } 
-    for(int i = 0; i < NUMCORES4GC; i++) {
-      gcloads[i] = 0;
-      gcrequiredmems[i] = 0;
-      gcstopblock[i] = 0;
-      gcfilledblocks[i] = 0;
-    }
-  }
-
   bamboo_smem_zero_top = NULL;
   gcflag = false;
   gc_status_info.gcprocessing = false;
   gc_status_info.gcphase = FINISHPHASE;
 
   gcprecheck = true;
-  gccurr_heaptop = 0;
-  gcself_numsendobjs = 0;
-  gcself_numreceiveobjs = 0;
-  gcmarkedptrbound = 0;
   gcforwardobjtbl = allocateMGCHash_I(128);
   gcheaptop = 0;
-  gcmovestartaddr = 0;
-  gctomove = false;
-  gcmovepending = 0;
-  gcblock2fill = 0;
-#ifdef SMEMM
-  gcmem_mixed_threshold=(unsigned int)((BAMBOO_SHARED_MEM_SIZE-bamboo_reserved_smem*BAMBOO_SMEM_SIZE)*0.8);
-  gcmem_mixed_usedmem = 0;
-#endif
 #ifdef MGC_SPEC
   gc_profile_flag = false;
 #endif
@@ -296,38 +264,6 @@ int loadbalance(void ** heaptop) {
   unsigned int numbpc = (topblockindex+NUMCORES4GC-1)/NUMCORES4GC;
   
   return numbpc;
-}
-
-
-// update the bmmboo_smemtbl to record current shared mem usage
-void updateSmemTbl(unsigned int coren, void * localtop) {
-  unsigned int ltopcore = 0;
-  unsigned int bound = BAMBOO_SMEM_SIZE_L;
-  BLOCKINDEX(ltopcore, localtop);
-  if((unsigned int)localtop>=(unsigned int)(gcbaseva+BAMBOO_LARGE_SMEM_BOUND)){
-    bound = BAMBOO_SMEM_SIZE;
-  }
-  unsigned int load = (unsigned INTPTR)(localtop-gcbaseva)%(unsigned int)bound;
-  unsigned int toset = 0;
-  for(int j=0; 1; j++) {
-    for(int i=0; i<2; i++) {
-      toset = gc_core2block[2*coren+i]+(unsigned int)(NUMCORES4GC*2)*j;
-      if(toset < ltopcore) {
-        bamboo_smemtbl[toset]=BLOCKSIZE(toset<NUMCORES4GC);
-#ifdef SMEMM
-        gcmem_mixed_usedmem += bamboo_smemtbl[toset];
-#endif
-      } else if(toset == ltopcore) {
-        bamboo_smemtbl[toset] = load;
-#ifdef SMEMM
-        gcmem_mixed_usedmem += bamboo_smemtbl[toset];
-#endif
-        return;
-      } else {
-        return;
-      }
-    }
-  }
 }
 
 void gc_collect(struct garbagelist * stackptr) {

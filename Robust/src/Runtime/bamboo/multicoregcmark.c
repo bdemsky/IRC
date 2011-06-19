@@ -18,11 +18,6 @@ extern int runtime_locklen;
 
 extern struct global_defs_t * global_defs_p;
 
-#ifdef SMEMM
-extern unsigned int gcmem_mixed_threshold;
-extern unsigned int gcmem_mixed_usedmem;
-#endif
-
 #ifdef MGC
 extern struct lockvector bamboo_threadlocks;
 #endif

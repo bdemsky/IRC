@@ -7,10 +7,4 @@ struct garbagelist {
   void * array[];
 };
 
-struct listitem {
-  struct listitem * prev;
-  struct listitem * next;
-  struct garbagelist * stackptr;
-};
-
 #endif // BAMBOO_MULTICORE_GC_H

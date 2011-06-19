@@ -104,45 +104,22 @@
 #define BAMBOO_THREAD_QUEUE_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
 #endif // GC_SMALLPAGESIZE
 
-volatile bool gc_localheap_s;
-
-struct freeMemItem {
-  unsigned int ptr;
-  int size;
-  int startblock;
-  int endblock;
-  struct freeMemItem * next;
-};
-
-struct freeMemList {
-  struct freeMemItem * head;
-  struct freeMemItem * backuplist; // hold removed freeMemItem for reuse;
-                                   // only maintain 1 freemMemItem
-};
-
-// table recording the number of allocated bytes on each block
-// Note: this table resides on the bottom of the shared heap for all cores
-//       to access
-volatile unsigned int * bamboo_smemtbl;
-#ifdef GC_TBL_DEBUG
-// the length of the bamboo_smemtbl is gcnumblock
-#endif
-volatile unsigned int bamboo_free_block;
-unsigned int bamboo_reserved_smem; // reserved blocks on the top of the shared 
-                                   // heap e.g. 20% of the heap and should not 
-								   // be allocated otherwise gc is invoked
+//keeps track of the top address that has been zero'd by the allocator
 volatile unsigned int bamboo_smem_zero_top;
 
 //BAMBOO_SMEM_ZERO_UNIT_SIZE must evenly divide the page size and be a
 //power of two(we rely on both in the allocation function)
 #define BAMBOO_SMEM_ZERO_UNIT_SIZE 4096
 #else
-//volatile mspace bamboo_free_msp;
+//This is for memory allocation with no garbage collection
 unsigned int bamboo_free_smemp;
 int bamboo_free_smem_size;
 #endif // MULTICORE_GC
+//This flag indicates that a memory request was services
 volatile bool smemflag;
+//Pointer to new block of memory after request
 volatile unsigned int * bamboo_cur_msp;
+//Number of bytes in new block of memory
 volatile int bamboo_smem_size;
 
 #endif // BAMBOO_MULTICORE_MEM_H

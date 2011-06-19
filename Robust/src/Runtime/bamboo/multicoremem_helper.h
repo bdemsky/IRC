@@ -57,8 +57,6 @@ int core2test[62][NUM_CORES2TEST] = {
 };
 #endif // GC_1
 #elif defined SMEMM
-unsigned int gcmem_mixed_threshold = 0;
-unsigned int gcmem_mixed_usedmem = 0;
 #define NUM_CORES2TEST 13
 #ifdef GC_1
 int core2test[1][NUM_CORES2TEST] = {

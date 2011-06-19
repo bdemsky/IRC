@@ -26,10 +26,8 @@ typedef enum {
   SUBTLECOMPACTPHASE,      // 0x3
   MAPPHASE,                // 0x4
   UPDATEPHASE,              // 0x5
-#ifdef GC_CACHE_ADAPT
   CACHEPOLICYPHASE,        // 0x6
   PREFINISHPHASE,          // 0x7
-#endif 
   FINISHPHASE              // 0x6/0x8
 } GCPHASETYPE;
 
@@ -74,8 +72,12 @@ unsigned int gcstopblock[NUMCORES4GC]; // indicate when to stop compact phase
 unsigned int gcfilledblocks[NUMCORES4GC]; //indicate how many blocks have been fulfilled
 
 // move instruction;
-unsigned int gcmovestartaddr;
+//this points to memory handed to core from master
+volatile unsigned int gcmovestartaddr;
+//this flag tells core that it is okay to start compacting
 volatile bool gctomove;
+
+//keeps track of memory request master was not able to serve
 unsigned int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
 volatile unsigned int gcmovepending;
 
@@ -85,20 +87,16 @@ volatile unsigned int gcmovepending;
 // The bottom of the shared memory = sbstart tbl + smemtbl + bamboo_rmsp
 // These three types of table are always reside at the bottom of the shared 
 // memory and will never be moved or garbage collected
+//gcmappingtable gives new pointer location
 void ** gcmappingtbl;
+//number of bytes in mapping table
 unsigned int bamboo_rmsp_size;
 
+//mark table....keep track of mark bits
 unsigned int * gcmarktbl;
 
 
-// table recording the starting address of each small block
-// (size is BAMBOO_SMEM_SIZE)
-// Note: 1. this table always resides on the very bottom of the shared memory
 
-int * gcsbstarttbl;
-#ifdef GC_TBL_DEBUG
-unsigned int gcsbstarttbl_len;
-#endif
 unsigned int gcnumblock; // number of total blocks in the shared mem
 void * gcbaseva; // base va for shared memory without reserved sblocks
 
@@ -118,11 +116,8 @@ unsigned int size_cachepolicytbl;
 
 #define WAITFORGCPHASE(phase) while(gc_status_info.gcphase != phase) ;
 
-
-
 #define ISSHAREDOBJ(p) \
   ((((unsigned int)p)>=gcbaseva)&&(((unsigned int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
-
 
 #define MAXBLOCK 0x4fffffff //local block number that can never be reached...
 

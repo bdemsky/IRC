@@ -47,7 +47,6 @@ void mycalloc_free_ngc_I(void * ptr);
 void * mycalloc_share(int size);
 #define FREEMALLOC(x) mycalloc_share(x)
 #endif // #ifdef MULTICORE_GC
-//#define PTR(x) (32+(x-1)&~31)
 #endif  // #ifdef MULTICORE
 #endif  // #ifdef PRECISE_GC
 #endif  // #ifdef BOEHM_GC
