@@ -180,6 +180,7 @@ typedef enum {
   GCFINISHINIT,          // 0xE8
   GCFINISHMARK,          // 0xE9
   GCFINISHCOMPACT,       // 0xEa
+  GCRETURNMEM,
   GCFINISHUPDATE,         // 0xEb
   GCFINISH,              // 0xEc
   GCMARKCONFIRM,         // 0xEd

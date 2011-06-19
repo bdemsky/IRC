@@ -103,6 +103,16 @@ void initmulticoregcdata() {
   gccachestage = false;
 #endif 
 
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+    allocationinfo.blocktable=RUNMALLOC(sizeof(struct blockrecord)*GCNUMBLOCK);
+    for(int i=0; i<GCNUMBLOCK;i++) {
+      if (1==NUMCORES4GC)
+	allocationinfo.blocktable[i].corenum=0;
+      else
+	allocationinfo.blocktable[i].corenum=gc_block2core[(i%(NUMCORES4GC*2))];
+    }
+  }
+
   INIT_MULTICORE_GCPROFILE_DATA();
 }
 
@@ -112,6 +122,10 @@ void dismulticoregcdata() {
 
 void initGC() {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+    for(int i=0; i<GCNUMBLOCK;i++) {
+      allocationinfo.blocktable[i].status=BS_INIT;
+    }
+    allocationinfo.lowestfreeblock=NOFREEBLOCK;
     for(int i = 0; i < NUMCORES4GC; i++) {
       gccorestatus[i] = 1;
       gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
@@ -147,14 +161,11 @@ void initGC() {
 } 
 
 bool gc_checkAllCoreStatus() {
-  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   for(int i = 0; i < NUMCORESACTIVE; i++) {
     if(gccorestatus[i] != 0) {
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       return false;
     }  
   }  
-  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return true;
 }
 

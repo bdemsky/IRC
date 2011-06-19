@@ -50,29 +50,16 @@ void * mycalloc_share(int size) {
 }
 #endif
 
-void * mycalloc(int size,
-                char * file,
-                int line) {
-  void * p = NULL;
-  int isize = size;
+void * mycalloc(int size, char * file, int line) {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  p = BAMBOO_LOCAL_MEM_CALLOC(isize);
-
-  if(p == NULL) {
-    printf("mycalloc %s %d \n", file, line);
-    BAMBOO_EXIT();
-  }
+  void * p = mycalloc_i(size, file, line);
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return p;
 }
 
 
-void * mycalloc_i(int size,
-                  char * file,
-                  int line) {
-  void * p = NULL;
-  int isize = size;
-  p = BAMBOO_LOCAL_MEM_CALLOC(isize);
+void * mycalloc_i(int size, char * file, int line) {
+  void * p = BAMBOO_LOCAL_MEM_CALLOC(size);
   if(p == NULL) {
     tprintf("mycalloc_i %s %d \n", file, line);
     BAMBOO_EXIT();

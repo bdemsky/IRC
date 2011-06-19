@@ -75,7 +75,7 @@ void * fixedmalloc_I(int coren,
       continue;
     }
     tofindb=totest=gc_core2block[2*core2test[gccorenum][k]];
-    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],isize,allocsize,(k==0)?0:((gcnumblock/NUMCORES4GC)>>LOCALMEMRESERVATION));
+    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],isize,allocsize,(k==0)?0:((GCNUMBLOCK/NUMCORES4GC)>>LOCALMEMRESERVATION));
     if(mem!=NULL) {
       return mem;
     }
@@ -107,7 +107,7 @@ void * mixedmalloc_I(int coren,
       continue;
     }
     tofindb=totest=gc_core2block[2*core2test[gccorenum][k]];
-    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],isize,allocsize,(k==0)?0:((gcnumblock/NUMCORES4GC)>>LOCALMEMRESERVATION));
+    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],isize,allocsize,(k==0)?0:((GCNUMBLOCK/NUMCORES4GC)>>LOCALMEMRESERVATION));
     if(mem!=NULL) {
       return mem;
     }

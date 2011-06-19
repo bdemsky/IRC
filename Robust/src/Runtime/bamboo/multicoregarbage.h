@@ -1,4 +1,4 @@
-#ifndef BAMBOO_MULTICORE_GARBAGE_H
+m#ifndef BAMBOO_MULTICORE_GARBAGE_H
 #define BAMBOO_MULTICORE_GARBAGE_H
 #ifdef MULTICORE_GC
 #include "multicore.h"
@@ -25,10 +25,10 @@ typedef enum {
   COMPACTPHASE,            // 0x2
   SUBTLECOMPACTPHASE,      // 0x3
   MAPPHASE,                // 0x4
-  UPDATEPHASE,              // 0x5
+  UPDATEPHASE,             // 0x5
   CACHEPOLICYPHASE,        // 0x6
   PREFINISHPHASE,          // 0x7
-  FINISHPHASE              // 0x6/0x8
+  FINISHPHASE              // 0x8
 } GCPHASETYPE;
 
 typedef struct gc_status {
@@ -50,10 +50,10 @@ volatile unsigned int gccorestatus[NUMCORESACTIVE];//records status of each core
 volatile unsigned int gcnumsendobjs[2][NUMCORESACTIVE];//# of objects sent out
 volatile unsigned int gcnumreceiveobjs[2][NUMCORESACTIVE];//# of objects received
 volatile unsigned int gcnumsrobjs_index;//indicates which entry to record the  
-		                        // info received before phase 1 of the mark finish 
-						                // checking process
-								            // the info received in phase 2 must be 
-								            // recorded in the other entry
+                 // info received before phase 1 of the mark finish 
+                 // checking process
+                 // the info received in phase 2 must be 
+                 // recorded in the other entry
 
 unsigned int gcself_numsendobjs;
 unsigned int gcself_numreceiveobjs;
@@ -95,10 +95,32 @@ unsigned int bamboo_rmsp_size;
 //mark table....keep track of mark bits
 unsigned int * gcmarktbl;
 
-
-
-unsigned int gcnumblock; // number of total blocks in the shared mem
 void * gcbaseva; // base va for shared memory without reserved sblocks
+
+/* Structure to keep track of free space in block */
+enum blockstatus {
+  /* BS_INIT indicates that we don't have information for this block yet */
+  BS_INIT,
+  /* BS_LARGEOBJECT indicates that the beginning of this block has a large object*/
+  BS_LARGEOBJECT,
+  /* BS_FREE indicates that the block is at least partially free */
+  BS_FREE
+};
+
+struct blockrecord {
+  enum blockstatus status;
+  unsigned INTPTR usedspace;
+  unsigned int corenum;
+
+};
+
+#define NOFREEBLOCK 0xffffffff
+struct allocrecord {
+  unsigned int lowestfreeblock;
+  struct blockrecord * blocktable;
+};
+
+struct allocrecord allocationinfo;
 
 #ifdef GC_CACHE_ADAPT
 void * gctopva; // top va for shared memory without reserved sblocks
@@ -114,15 +136,15 @@ int * gccachepolicytbl;
 unsigned int size_cachepolicytbl;
 #endif
 
+/* Total number of blocks in heap */
+
+#define GCNUMBLOCK (NUMCORES4GC+(BAMBOO_SHARED_MEM_SIZE-BAMBOO_LARGE_SMEM_BOUND)/BAMBOO_SMEM_SIZE)
+
+/* This macro waits for the given gc phase */
 #define WAITFORGCPHASE(phase) while(gc_status_info.gcphase != phase) ;
 
-#define ISSHAREDOBJ(p) \
-  ((((unsigned int)p)>=gcbaseva)&&(((unsigned int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
-
-#define MAXBLOCK 0x4fffffff //local block number that can never be reached...
-
-
-/* Number of bits used for each alignment unit */
+/* Local block number that can never be reached...*/
+#define MAXBLOCK 0x4fffffff 
 
 //Takes in pointer to heap object and converts to offset in alignment units
 #define OBJMAPPINGINDEX(p) ALIGNOBJSIZE((unsigned INTPTR)(p-gcbaseva))
@@ -145,7 +167,7 @@ unsigned int size_cachepolicytbl;
     }								      \
   }
 
-#define RESIDECORE(p, c) { \
+#define RESIDECORE(c, p) {     \
     if(1 == (NUMCORES4GC)) { \
       c = 0; \
     } else { \
@@ -157,8 +179,8 @@ unsigned int size_cachepolicytbl;
 
 INLINE static unsigned int hostcore(void * ptr) {
   // check the host core of ptr
-  unsigned int host = 0;
-  RESIDECORE(ptr, host);
+  unsigned int host;
+  RESIDECORE(host, ptr);
   return host;
 }
 

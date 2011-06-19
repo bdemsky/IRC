@@ -266,7 +266,7 @@ void mark(bool isfirst, struct garbagelist * stackptr) {
       unsigned int type = 0;
       bool islarge=isLarge(ptr, &type, &size);
       unsigned int iunits = ALIGNUNITS(size);
-
+      
       setLengthMarked(ptr,iunits);
 	
       if(islarge) {

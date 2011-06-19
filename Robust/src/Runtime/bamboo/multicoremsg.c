@@ -36,7 +36,8 @@ int msgsizearray[] = {
   4, //GCFINISHPRE,           // 0xE7
   2, //GCFINISHINIT,          // 0xE8
   4, //GCFINISHMARK,          // 0xE9
-  4, //GCFINISHCOMPACT,       // 0xEa
+  3, //GCFINISHCOMPACT,       // 0xEa
+  3, //GCRETURNMEM,
   2, //GCFINISHUPDATE,         // 0xEb
   1, //GCFINISH,              // 0xEc
   1, //GCMARKCONFIRM,         // 0xEd
@@ -495,14 +496,25 @@ INLINE void processmsg_gcfinishmark_I() {
     gcnumreceiveobjs[entry_index][data1] = data3;
   }
 }
+ 
+void processmsg_returnmem_I() {
+  unsigned int cnum = msgdata[msgdataindex];
+  MSG_INDEXINC_I();  
+  void * heaptop = (void *) msgdata[msgdataindex];
+  MSG_INDEXINC_I();   
+  unsigned int blockindex;
+  BLOCKINDEX(blockindex, heaptop);
+  struct blockrecord * blockrecord=&allocationinfo.blocktable[blockindex];
+  if (cnum==blockrecord) {
+    //this is our own memory...need to clear our lower blocks
+  }
+}
 
 INLINE void processmsg_gcfinishcompact_I() {
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
 
   int cnum = msgdata[msgdataindex];
   MSG_INDEXINC_I();  
-  void * heaptop = (void *) msgdata[msgdataindex];
-  MSG_INDEXINC_I();   
   unsigned int bytesneeded = msgdata[msgdataindex];
   MSG_INDEXINC_I(); 
 
@@ -878,6 +890,11 @@ processmsg:
 
     case GCFINISHMARK: {
       processmsg_gcfinishmark_I();
+      break;
+    }
+
+    case GCRETURNMEM: {
+      processmsg_returnmem_I();
       break;
     }
 

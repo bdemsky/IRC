@@ -46,7 +46,7 @@ void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes) {
   //set flag to wait for memory
   gctomove=false;
   //send request for memory
-  send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, to->ptr, minimumbytes);
+  send_msg_3(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, minimumbytes);
   //wait for flag to be set that we received message
   while(!gctomove) ;
 
@@ -71,7 +71,15 @@ void getSpace(struct moveHelper *to, unsigned int minimumbytes) {
 }
 
 void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
+  bool senttopmessage=false;
   while(true) {
+    if ((gcheaptop < ((unsigned INTPTR)(to->bound-to->ptr)))&&!senttopmessage) {
+      //This block is the last for this core...let the startup know
+      send_msg_3(STARTUPCORE, GCRETURNMEM, BAMBOO_NUM_OF_CORE, to->ptr+gcheaptop);
+      //Only send the message once
+      senttopmessage=true;
+    }
+
     unsigned int minimumbytes=compactblocks(orig, to);
     if (orig->ptr==orig->bound) {
       //need more data to compact
@@ -87,8 +95,8 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
       getSpace(to, minimumbytes);
     }
   }
-
-  send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, to->ptr, 0);
+  
+  send_msg_3(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, 0);
 }
 
 /* Should be invoked with interrupt turned off. */
@@ -131,7 +139,8 @@ bool gcfindSpareMem(unsigned int requiredmem,unsigned int requiredcore) {
 /* This function is performance critical...  spend more time optimizing it */
 
 unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
-  void *toptr=to->ptr;
+  void *toptrinit=to->ptr;
+  void *toptr=toptr;
   void *tobound=to->bound;
   void *origptr=orig->ptr;
   void *origbound=orig->bound;
@@ -150,6 +159,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 	  origptr=origbound;
 	  to->ptr=toptr;
 	  orig->ptr=origptr;
+	  gcheaptop-=(unsigned INTPTR)(toptr-toptrinit)
 	  return 0;
 	}
       } while(!gcmarktbl[arrayoffset]);
@@ -163,8 +173,8 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
       unsigned int length=ALIGNSIZETOBYTES(objlength);
       void *endtoptr=toptr+length;
       if (endtoptr>tobound) {
-	toptr=tobound;
-	to->ptr=toptr;
+	gcheaptop-=(unsigned INTPTR)(toptr-toptrinit)	
+	to->ptr=tobound;
 	orig->ptr=origptr;
 	return length;
       }

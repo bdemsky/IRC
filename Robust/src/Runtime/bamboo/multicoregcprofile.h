@@ -112,7 +112,7 @@ INLINE static void gc_profileEnd(void) {
   { \
     if(gc_profile_flag) { \
       gc_num_livespace = 0; \
-      for(int tmpi = 0; tmpi < gcnumblock; tmpi++) { \
+      for(int tmpi = 0; tmpi < GCNUMBLOCK; tmpi++) { \
         gc_num_livespace += bamboo_smemtbl[tmpi]; \
       } \
       gc_num_freespace = (BAMBOO_SHARED_MEM_SIZE) - gc_num_livespace; \
@@ -152,7 +152,7 @@ INLINE static void gc_profileEnd(void) {
 #define GCPROFILE_RECORD_SPACE() \
   { \
     gc_num_livespace = 0; \
-    for(int tmpi = 0; tmpi < gcnumblock; tmpi++) { \
+    for(int tmpi = 0; tmpi < GCNUMBLOCK; tmpi++) { \
       gc_num_livespace += bamboo_smemtbl[tmpi]; \
     } \
     gc_num_freespace = (BAMBOO_SHARED_MEM_SIZE) - gc_num_livespace; \
