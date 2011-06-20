@@ -5,6 +5,16 @@
 #include "multicoregarbage.h"
 #include "markbit.h"
 
+int gc_countRunningCores() {
+  int count=0;
+  for(int i = 0; i < NUMCORES4GC; ++i) {
+    if(gccorestatus[i] != 0) {
+      count++;
+    }
+  }
+  return count;
+}
+
 bool gc_checkCoreStatus() {
   for(int i = 0; i < NUMCORES4GC; ++i) {
     if(gccorestatus[i] != 0) {
@@ -99,29 +109,80 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
   send_msg_3(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, 0);
 }
 
-/* Should be invoked with interrupt turned off. */
-
-void * assignSpareMem_I(unsigned int sourcecore, unsigned int requiredmem) {
+void * checkNeighbors(int corenum, unsigned INTPTR requiredmem) {
+  int minblockindex=allocation.lowestfreeblock/NUMCORES4GC;
+  block_t toplocalblock=topblock/NUMCORES4GC;
+  for(int i=0;i<NUM_CORES2TEST;i++) {
+    int neighborcore=core2test[corenum][i];
+    if (neighborcore!=-1) {
+      for(block_t lblock=minblockindex;lblock<numblockspercore;lblock++) {
+	block_t globalblockindex=BLOCKINDEX2(neighborcore, lblock);
+	struct blockrecord * block=&allocationinfo.blocktable[globalblockindex];
+	if (block->status==BS_FREE) {
+	  unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
+	  if (requiredmem<freespace) {
+	    //we have a block
+	    //mark block as used
+	    block->status=BS_USED;
+	    void *blockptr=OFFSET2BASEVA(globalblockindex)+gcbaseva;
+	    unsigned INTPTR usedspace=((block->usedspace-1)&~BAMBOO_CACHE_LINE_MASK)+BAMBOO_CACHE_LINE_SIZE;
+	    return blockptr+usedspace;
+	  }
+	}
+      }
+    }
+  }
   return NULL;
 }
 
-void * assignSpareMem(unsigned int sourcecore,unsigned int requiredmem) {
-  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  void * retval=assignSpareMem_I(sourcecore, requiredmem);
-  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-  return retval;
+void * globalSearch(unsigned int topblock) {
+  unsigned int firstfree=NOFREEBLOCK;
+  for(block_t i=allocationinfo.lowestfreeblock;i<topblock;i++) {
+    struct blockrecord * block=&allocationinfo.blocktable[i];
+    if (block->status==BS_FREE) {
+      if(firstfree==NOFREEBLOCK)
+	firstfree=i;
+      unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
+      if (requiredmem<freespace) {
+	//we have a block
+	//mark block as used
+	block->status=BS_USED;
+	void *blockptr=OFFSET2BASEVA(globalblockindex)+gcbaseva;
+	unsigned INTPTR usedspace=((block->usedspace-1)&~BAMBOO_CACHE_LINE_MASK)+BAMBOO_CACHE_LINE_SIZE;
+	allocationinfo.lowestfreeblock=firstfree;
+	return blockptr+usedspace;
+      }
+    }
+  }
+  allocationinfo.lowestfreeblock=firstfree;
+  return NULL;
 }
 
 /* should be invoked with interrupt turned off */
 
 void * gcfindSpareMem_I(unsigned int requiredmem,unsigned int requiredcore) {
-  void * startaddr;
-  for(int k = 0; k < NUMCORES4GC; k++) {
+  if (allocationinfo.lowestfreeblock!=NOFREEBLOCK) {
+    //There are spare blocks
+    unsigned int topblock=numblockspercore*NUMCORES4GC;
+    void *memblock;
     
+    if (memblock=checkNeighbors(requiredcore, requiredmem)) {
+      return memblock;
+    } else if (memblock=globalSearch(topblock, requiredmem)) {
+      return memblock;
+    }
   }
+  
   // If we cannot find spare mem right now, hold the request
   gcrequiredmems[requiredcore] = requiredmem;
   gcmovepending++;
+
+  int count=gc_countRunningCores();
+  if (gcmovepending==count) {
+    // All cores have stopped...hand out memory as necessary to handle all requests
+    
+  }
+
   return NULL;
 } 
 
@@ -199,8 +260,7 @@ void compact() {
 
 void master_compact() {
   // predict number of blocks to fill for each core
-  void * tmpheaptop = 0;
-  numblockspercore = loadbalance(&tmpheaptop);
+  numblockspercore = loadbalance()+1;
   
   GC_PRINTF("mark phase finished \n");
   
@@ -211,13 +271,15 @@ void master_compact() {
 
   //assigned blocks
   for(int i=0;i<initblocks;i++) {
-    allocationinfo.blocktable[i].status=BS_INIT;
+    allocationinfo.blocktable[i].status=BS_USED;
   }
 
   //free blocks
   for(int i=initblocks;i<GCNUMBLOCK;i++) {
     allocationinfo.blocktable[i].status=BS_FREE;
     allocationinfo.blocktable[i].usedspace=0;
+    //this is true because all cores have at least one block already...
+    allocationinfo.blocktable[i].freespace=BLOCKSIZE(1);
   }
 
   //start all of the cores

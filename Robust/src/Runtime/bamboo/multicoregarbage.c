@@ -1,4 +1,3 @@
-// TODO: DO NOT support tag!!!
 #ifdef MULTICORE_GC
 #include "runtime.h"
 #include "multicoreruntime.h"
@@ -9,6 +8,7 @@
 #include "multicoregcflush.h"
 #include "multicoregcprofile.h"
 #include "gcqueue.h"
+#include "multicoremem_helper.h"
 
 volatile bool gcflag;
 gc_status_t gc_status_info;
@@ -111,6 +111,7 @@ void initmulticoregcdata() {
       else
 	allocationinfo.blocktable[i].corenum=gc_block2core[(i%(NUMCORES4GC*2))];
     }
+    buildCore2Test();
   }
 
   INIT_MULTICORE_GCPROFILE_DATA();
@@ -251,18 +252,19 @@ void checkMarkStatus() {
 } 
 
 // compute load balance for all cores
-int loadbalance(void ** heaptop) {
+int loadbalance() {
   // compute load balance
   // get the total loads
+  void * heaptop;
   unsigned int tloads = 0;
   for(int i = 0; i < NUMCORES4GC; i++) {
     tloads += gcloads[i];
   }
-  *heaptop = gcbaseva + tloads;
+  heaptop = gcbaseva + tloads;
 
   unsigned int topblockindex;
   
-  BLOCKINDEX(topblockindex, *heaptop);
+  BLOCKINDEX(topblockindex, heaptop);
   // num of blocks per core
   unsigned int numbpc = (topblockindex+NUMCORES4GC-1)/NUMCORES4GC;
   

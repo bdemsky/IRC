@@ -19,6 +19,8 @@ m#ifndef BAMBOO_MULTICORE_GARBAGE_H
 // let each gc core to have one big block, this is very important
 // for the computation of NUMBLOCKS(s, n), DO NOT change this!
 
+typedef int block_t;
+
 typedef enum {
   INITPHASE = 0x0,         // 0x0
   MARKPHASE,               // 0x1
@@ -61,7 +63,7 @@ unsigned int gcself_numreceiveobjs;
 // for load balancing
 unsigned int gcheaptop;
 unsigned INTPTR gcloads[NUMCORES4GC];
-unsigned INTPTR numblockspercore;
+block_t numblockspercore;
 
 //Top of each core's heap
 void * topptrs[NUMCORES4GC];
@@ -98,8 +100,8 @@ void * gcbaseva; // base va for shared memory without reserved sblocks
 
 /* Structure to keep track of free space in block */
 enum blockstatus {
-  /* BS_INIT indicates that we don't have information for this block yet */
-  BS_INIT,
+  /* BS_USED indicates that we don't have information for this block yet */
+  BS_USED,
   /* BS_LARGEOBJECT indicates that the beginning of this block has a large object*/
   BS_LARGEOBJECT,
   /* BS_FREE indicates that the block is at least partially free */
@@ -109,8 +111,8 @@ enum blockstatus {
 struct blockrecord {
   enum blockstatus status;
   unsigned INTPTR usedspace;
+  unsigned INTPTR freespace;
   unsigned int corenum;
-
 };
 
 #define NOFREEBLOCK 0xffffffff
