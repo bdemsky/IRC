@@ -3,7 +3,6 @@
 #include "multicoreruntime.h"
 #include "multicoregarbage.h"
 #include "multicoregcmark.h"
-#include "gcqueue.h"
 #include "multicoregccompact.h"
 #include "multicoregcflush.h"
 #include "multicoregcprofile.h"
@@ -95,7 +94,6 @@ void initmulticoregcdata() {
 
   gcprecheck = true;
   gcforwardobjtbl = allocateMGCHash_I(128);
-  gcheaptop = 0;
 #ifdef MGC_SPEC
   gc_profile_flag = false;
 #endif
@@ -135,7 +133,6 @@ void initGC() {
       gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
       gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
     }
-    gcheaptop = 0;
     gcnumsrobjs_index = 0;
   } 
   gcself_numsendobjs = 0;

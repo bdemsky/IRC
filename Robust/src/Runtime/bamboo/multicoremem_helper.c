@@ -1,5 +1,9 @@
-#include "multicoremem_helper.h"
+#include "runtime.h"
+#include "multicoreruntime.h"
 #include "runtime_arch.h"
+#include "multicore_arch.h"
+#include "multicoremem_helper.h"
+
 
 void buildCore2Test() {
   for(int i=0;i<NUMCORES4GC;i++) {

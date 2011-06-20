@@ -4,6 +4,7 @@
 #include "multicoreruntime.h"
 #include "multicoregarbage.h"
 #include "markbit.h"
+#include "multicoremem_helper.h"
 
 int gc_countRunningCores() {
   int count=0;
@@ -83,9 +84,9 @@ void getSpace(struct moveHelper *to, unsigned int minimumbytes) {
 void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
   bool senttopmessage=false;
   while(true) {
-    if ((gcheaptop < ((unsigned INTPTR)(to->bound-to->ptr)))&&!senttopmessage) {
+    if ((gccurr_heaptop < ((unsigned INTPTR)(to->bound-to->ptr)))&&!senttopmessage) {
       //This block is the last for this core...let the startup know
-      send_msg_3(STARTUPCORE, GCRETURNMEM, BAMBOO_NUM_OF_CORE, to->ptr+gcheaptop);
+      send_msg_3(STARTUPCORE, GCRETURNMEM, BAMBOO_NUM_OF_CORE, to->ptr+gccurr_heaptop);
       //Only send the message once
       senttopmessage=true;
     }
@@ -110,8 +111,7 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
 }
 
 void * checkNeighbors(int corenum, unsigned INTPTR requiredmem) {
-  int minblockindex=allocation.lowestfreeblock/NUMCORES4GC;
-  block_t toplocalblock=topblock/NUMCORES4GC;
+  int minblockindex=allocationinfo.lowestfreeblock/NUMCORES4GC;
   for(int i=0;i<NUM_CORES2TEST;i++) {
     int neighborcore=core2test[corenum][i];
     if (neighborcore!=-1) {
@@ -135,7 +135,7 @@ void * checkNeighbors(int corenum, unsigned INTPTR requiredmem) {
   return NULL;
 }
 
-void * globalSearch(unsigned int topblock) {
+void * globalSearch(unsigned int topblock, unsigned INTPTR requiredmem) {
   unsigned int firstfree=NOFREEBLOCK;
   for(block_t i=allocationinfo.lowestfreeblock;i<topblock;i++) {
     struct blockrecord * block=&allocationinfo.blocktable[i];
@@ -147,7 +147,7 @@ void * globalSearch(unsigned int topblock) {
 	//we have a block
 	//mark block as used
 	block->status=BS_USED;
-	void *blockptr=OFFSET2BASEVA(globalblockindex)+gcbaseva;
+	void *blockptr=OFFSET2BASEVA(i)+gcbaseva;
 	unsigned INTPTR usedspace=((block->usedspace-1)&~BAMBOO_CACHE_LINE_MASK)+BAMBOO_CACHE_LINE_SIZE;
 	allocationinfo.lowestfreeblock=firstfree;
 	return blockptr+usedspace;
@@ -160,7 +160,7 @@ void * globalSearch(unsigned int topblock) {
 
 /* should be invoked with interrupt turned off */
 
-void * gcfindSpareMem_I(unsigned int requiredmem,unsigned int requiredcore) {
+void * gcfindSpareMem_I(unsigned INTPTR requiredmem,unsigned int requiredcore) {
   if (allocationinfo.lowestfreeblock!=NOFREEBLOCK) {
     //There are spare blocks
     unsigned int topblock=numblockspercore*NUMCORES4GC;
@@ -216,7 +216,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 	  origptr=origbound;
 	  to->ptr=toptr;
 	  orig->ptr=origptr;
-	  gcheaptop-=(unsigned INTPTR)(toptr-toptrinit)
+	  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
 	  return 0;
 	}
       } while(!gcmarktbl[arrayoffset]);
@@ -230,7 +230,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
       unsigned int length=ALIGNSIZETOBYTES(objlength);
       void *endtoptr=toptr+length;
       if (endtoptr>tobound) {
-	gcheaptop-=(unsigned INTPTR)(toptr-toptrinit)	
+	gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
 	to->ptr=tobound;
 	orig->ptr=origptr;
 	return length;
@@ -267,7 +267,7 @@ void master_compact() {
   gc_resetCoreStatus();
   //initialize local data structures first....we don't want remote requests messing data up
   unsigned int initblocks=numblockspercore*NUMCORES4GC;
-  allocationinfo.lowestfreeblock=NOFREEBLOCKS;
+  allocationinfo.lowestfreeblock=NOFREEBLOCK;
 
   //assigned blocks
   for(int i=0;i<initblocks;i++) {

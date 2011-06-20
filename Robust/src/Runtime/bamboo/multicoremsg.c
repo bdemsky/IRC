@@ -504,7 +504,7 @@ void processmsg_returnmem_I() {
   MSG_INDEXINC_I();   
   unsigned int blockindex;
   BLOCKINDEX(blockindex, heaptop);
-  unsigned INTPTR localblocknum=GLOBALBLOCK2LOCK(blockindex);
+  unsigned INTPTR localblocknum=GLOBALBLOCK2LOCAL(blockindex);
 
   struct blockrecord * blockrecord=&allocationinfo.blocktable[blockindex];
 
@@ -628,23 +628,18 @@ INLINE void processmsg_gcmovestart_I() {
   MSG_INDEXINC_I();     
 }
 
-INLINE void processmsg_gclobjinfo_I(unsigned int data1) {
+INLINE void processmsg_gclobjinfo_I(unsigned int msglength) {
   numconfirm--;
-  int data2 = msgdata[msgdataindex];
+  int cnum = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE <= NUMCORES4GC - 1);
 
   // store the mark result info
-  int cnum = data2;
   gcloads[cnum] = msgdata[msgdataindex];
   MSG_INDEXINC_I();     
-  int data4 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  if(gcheaptop < data4) {
-    gcheaptop = data4;
-  }
+
   // large obj info here
-  for(int k = 4; k < data1; k+=2) {
+  for(int k = 3; k < msglength; k+=2) {
     int lobj = msgdata[msgdataindex];
     MSG_INDEXINC_I();  
     int length = msgdata[msgdataindex];

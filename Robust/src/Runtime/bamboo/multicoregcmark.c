@@ -247,8 +247,6 @@ void mark(bool isfirst, struct garbagelist * stackptr) {
   if(isfirst) {
     // enqueue root objs
     tomark(stackptr);
-    gccurr_heaptop = 0; // record the size of all active objs in this core
-                        // aligned but does not consider block boundaries
   }
   unsigned int isize = 0;
   bool sendStall = false;

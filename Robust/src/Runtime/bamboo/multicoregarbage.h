@@ -1,4 +1,4 @@
-m#ifndef BAMBOO_MULTICORE_GARBAGE_H
+#ifndef BAMBOO_MULTICORE_GARBAGE_H
 #define BAMBOO_MULTICORE_GARBAGE_H
 #ifdef MULTICORE_GC
 #include "multicore.h"
@@ -61,7 +61,6 @@ unsigned int gcself_numsendobjs;
 unsigned int gcself_numreceiveobjs;
 
 // for load balancing
-unsigned int gcheaptop;
 unsigned INTPTR gcloads[NUMCORES4GC];
 block_t numblockspercore;
 
