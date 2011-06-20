@@ -61,15 +61,14 @@ unsigned int gcself_numreceiveobjs;
 // for load balancing
 unsigned int gcheaptop;
 unsigned INTPTR gcloads[NUMCORES4GC];
+unsigned INTPTR numblockspercore;
 
 //Top of each core's heap
 void * topptrs[NUMCORES4GC];
 
 // compact instruction
-unsigned int gcmarkedptrbound;
+//keep track of what block we can fill to
 unsigned int gcblock2fill;
-unsigned int gcstopblock[NUMCORES4GC]; // indicate when to stop compact phase
-unsigned int gcfilledblocks[NUMCORES4GC]; //indicate how many blocks have been fulfilled
 
 // move instruction;
 //this points to memory handed to core from master
@@ -139,6 +138,7 @@ unsigned int size_cachepolicytbl;
 /* Total number of blocks in heap */
 
 #define GCNUMBLOCK (NUMCORES4GC+(BAMBOO_SHARED_MEM_SIZE-BAMBOO_LARGE_SMEM_BOUND)/BAMBOO_SMEM_SIZE)
+#define GCNUMLOCALBLOCK (GCNUMBLOCK/NUMCORES4GC)
 
 /* This macro waits for the given gc phase */
 #define WAITFORGCPHASE(phase) while(gc_status_info.gcphase != phase) ;
@@ -154,6 +154,8 @@ unsigned int size_cachepolicytbl;
 
 //Rounds object size up to next alignment unit size
 #define ALIGNSIZE(s) ((((unsigned int)(s-1))&~(ALIGNMENTBYTES-1))+ALIGNMENTBYTES)
+
+#define GLOBALBLOCK2LOCAL(s) (s/NUMCORES4GC)
 
 // mapping of pointer to block # (start from 0), here the block # is
 // the global index

@@ -117,11 +117,7 @@ void * assignSpareMem(unsigned int sourcecore,unsigned int requiredmem) {
 void * gcfindSpareMem_I(unsigned int requiredmem,unsigned int requiredcore) {
   void * startaddr;
   for(int k = 0; k < NUMCORES4GC; k++) {
-    if((gccorestatus[k] == 0) && (gcfilledblocks[k] < gcstopblock[k])) {
-      // check if this stopped core has enough mem
-      startaddr=assignSpareMem_I(k, requiredmem);
-      return startaddr;
-    }
+    
   }
   // If we cannot find spare mem right now, hold the request
   gcrequiredmems[requiredcore] = requiredmem;
@@ -204,19 +200,32 @@ void compact() {
 void master_compact() {
   // predict number of blocks to fill for each core
   void * tmpheaptop = 0;
-  int numblockspercore = loadbalance(&tmpheaptop);
+  numblockspercore = loadbalance(&tmpheaptop);
   
   GC_PRINTF("mark phase finished \n");
   
   gc_resetCoreStatus();
-  tmpheaptop = gcbaseva + BAMBOO_SHARED_MEM_SIZE;
+  //initialize local data structures first....we don't want remote requests messing data up
+  unsigned int initblocks=numblockspercore*NUMCORES4GC;
+  allocationinfo.lowestfreeblock=NOFREEBLOCKS;
+
+  //assigned blocks
+  for(int i=0;i<initblocks;i++) {
+    allocationinfo.blocktable[i].status=BS_INIT;
+  }
+
+  //free blocks
+  for(int i=initblocks;i<GCNUMBLOCK;i++) {
+    allocationinfo.blocktable[i].status=BS_FREE;
+    allocationinfo.blocktable[i].usedspace=0;
+  }
+
+  //start all of the cores
   for(int i = 0; i < NUMCORES4GC; i++) {
     // init some data strutures for compact phase
-    gcfilledblocks[i] = 0;
     gcrequiredmems[i] = 0;
     gccorestatus[i] = 1;
     //send start compact messages to all cores
-    gcstopblock[i] = numblockspercore;
     if(i != STARTUPCORE) {
       send_msg_2(i, GCSTARTCOMPACT, numblockspercore);
     } else {

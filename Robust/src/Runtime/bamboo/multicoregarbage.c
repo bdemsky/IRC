@@ -122,18 +122,12 @@ void dismulticoregcdata() {
 
 void initGC() {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-    for(int i=0; i<GCNUMBLOCK;i++) {
-      allocationinfo.blocktable[i].status=BS_INIT;
-    }
-    allocationinfo.lowestfreeblock=NOFREEBLOCK;
     for(int i = 0; i < NUMCORES4GC; i++) {
       gccorestatus[i] = 1;
       gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
       gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
       gcloads[i] = 0;
       gcrequiredmems[i] = 0;
-      gcfilledblocks[i] = 0;
-      gcstopblock[i] = 0;
     } 
     for(int i = NUMCORES4GC; i < NUMCORESACTIVE; i++) {
       gccorestatus[i] = 1;
@@ -145,7 +139,6 @@ void initGC() {
   } 
   gcself_numsendobjs = 0;
   gcself_numreceiveobjs = 0;
-  gcmarkedptrbound = 0;
   gcmovestartaddr = 0;
   gctomove = false;
   gcblock2fill = 0;
@@ -389,10 +382,6 @@ void master_getlargeobjs() {
   //spin until we have all responses
   while(numconfirm!=0) ;
 
-  // check the heaptop
-  if(gcheaptop < gcmarkedptrbound) {
-    gcheaptop = gcmarkedptrbound;
-  }
   GCPROFILE_ITEM();
   GC_PRINTF("prepare to cache large objs \n");
 

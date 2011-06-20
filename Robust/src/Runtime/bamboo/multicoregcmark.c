@@ -249,7 +249,6 @@ void mark(bool isfirst, struct garbagelist * stackptr) {
     tomark(stackptr);
     gccurr_heaptop = 0; // record the size of all active objs in this core
                         // aligned but does not consider block boundaries
-    gcmarkedptrbound = 0;
   }
   unsigned int isize = 0;
   bool sendStall = false;
@@ -276,9 +275,6 @@ void mark(bool isfirst, struct garbagelist * stackptr) {
         // ptr is an unmarked active object on this core
 	unsigned int isize=iunits<<ALIGNMENTSHIFT;
         gccurr_heaptop += isize;
-	void *top=ptr+isize;
-	if (top>gcmarkedptrbound)
-	  gcmarkedptrbound=top;
       }
       
       // scan the pointers in object

@@ -505,8 +505,22 @@ void processmsg_returnmem_I() {
   unsigned int blockindex;
   BLOCKINDEX(blockindex, heaptop);
   struct blockrecord * blockrecord=&allocationinfo.blocktable[blockindex];
-  if (cnum==blockrecord) {
-    //this is our own memory...need to clear our lower blocks
+  blockrecord->status=BS_FREE;
+  blockrecord->usedspace=(unsigned INTPTR)(heaptop-OFFSET2BASEVA(blockindex));
+  /* Update the lowest free block */
+  if (blockindex < allocationinfo.lowestfreeblock) {
+    blockindex=allocationinfo.lowestfreeblock;
+  }
+
+  /* This is our own block...means we should mark other blocks above us as free*/
+  if (cnum==blockrecord->corenum) {
+    unsigned INTPTR nextlocalblocknum=GLOBALBLOCK2LOCK(blockindex)+1;
+    for(;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
+      unsigned INTPTR blocknum=BLOCKINDEX2(cnum, nextlocalblocknum);
+      struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blockindex];
+      nextblockrecord->status=BS_FREE;
+      nextblockrecord->usedspace=0;
+    }
   }
 }
 
