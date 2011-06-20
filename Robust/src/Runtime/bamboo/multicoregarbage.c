@@ -288,7 +288,7 @@ void gc_collect(struct garbagelist * stackptr) {
   WAITFORGCPHASE(MARKPHASE);
 
   GC_PRINTF("Start mark phase\n");
-  mark(true, stackptr);
+  mark(stackptr);
   GC_PRINTF("Finish mark phase, start compact phase\n");
   compact();
   GC_PRINTF("Finish compact phase\n");
@@ -330,7 +330,7 @@ void gc_nocollect(struct garbagelist * stackptr) {
   WAITFORGCPHASE(MARKPHASE);
 
   GC_PRINTF("Start mark phase\n"); 
-  mark(true, stackptr);
+  mark(stackptr);
   GC_PRINTF("Finish mark phase, wait for flush\n");
 
   // non-gc core collector routine
@@ -355,19 +355,13 @@ void gc_nocollect(struct garbagelist * stackptr) {
 }
 
 void master_mark(struct garbagelist *stackptr) {
-  bool isfirst = true;
 
   GC_PRINTF("Start mark phase \n");
   GC_SEND_MSG_1_TO_CLIENT(GCSTART);
   gc_status_info.gcphase = MARKPHASE;
   // mark phase
 
-  while(MARKPHASE == gc_status_info.gcphase) {
-    mark(isfirst, stackptr);
-    isfirst=false;
-    // check gcstatus
-    checkMarkStatus();
-  }
+  mark(stackptr);
 }
 
 void master_getlargeobjs() {

@@ -243,11 +243,10 @@ INLINE void scanPtrsInObj(void * ptr, int type) {
   }
 }
 
-void mark(bool isfirst, struct garbagelist * stackptr) {
-  if(isfirst) {
-    // enqueue root objs
-    tomark(stackptr);
-  }
+void mark(struct garbagelist * stackptr) {
+  // enqueue root objs
+  tomark(stackptr);
+
   unsigned int isize = 0;
   bool sendStall = false;
   // mark phase
@@ -293,7 +292,7 @@ void mark(bool isfirst, struct garbagelist * stackptr) {
     }
     
     if(BAMBOO_NUM_OF_CORE == STARTUPCORE)
-      return;
+      checkMarkStatus();
   }
 
   BAMBOO_CACHE_MF();
