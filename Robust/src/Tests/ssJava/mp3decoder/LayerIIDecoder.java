@@ -27,7 +27,6 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.decoder;
 
 /**
  * Implements decoding of MPEG Audio Layer II frames. 

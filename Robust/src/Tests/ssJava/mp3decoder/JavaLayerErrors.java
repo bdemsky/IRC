@@ -18,7 +18,6 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.decoder;
 
 /**
  * Exception erorr codes for components of the JavaLayer API.

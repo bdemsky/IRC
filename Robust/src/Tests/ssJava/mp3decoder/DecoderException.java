@@ -18,7 +18,6 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.decoder;
 
 /**
  * The <code>DecoderException</code> represents the class of

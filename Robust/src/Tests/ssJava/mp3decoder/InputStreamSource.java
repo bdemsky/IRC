@@ -18,8 +18,6 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.decoder;
-
 import java.io.IOException;
 import java.io.InputStream;
 

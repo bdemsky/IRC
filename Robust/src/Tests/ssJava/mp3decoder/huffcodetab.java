@@ -37,7 +37,6 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.decoder;
 
 /**
  * Class to implements Huffman decoder.

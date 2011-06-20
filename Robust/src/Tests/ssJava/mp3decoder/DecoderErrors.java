@@ -19,7 +19,6 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.decoder;
 
 /**
  * This interface provides constants describing the error

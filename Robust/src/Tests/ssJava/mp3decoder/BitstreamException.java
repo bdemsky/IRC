@@ -18,8 +18,6 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.decoder;
-
 /**
  * Instances of <code>BitstreamException</code> are thrown 
  * when operations on a <code>Bitstream</code> fail. 

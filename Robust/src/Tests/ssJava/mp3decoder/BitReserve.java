@@ -24,8 +24,6 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *----------------------------------------------------------------------
  */
-
-package javazoom.jl.decoder;
 	
 /**
  * Implementation of Bit Reservoir for Layer III.

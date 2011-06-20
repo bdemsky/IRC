@@ -19,8 +19,6 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.decoder;
-
 /**
  * This interface describes all error codes that can be thrown 
  * in <code>BistreamException</code>s.

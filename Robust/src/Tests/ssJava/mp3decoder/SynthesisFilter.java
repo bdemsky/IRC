@@ -28,7 +28,6 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *----------------------------------------------------------------------
  */
-package javazoom.jl.decoder;
 
 import java.io.IOException;
 
@@ -318,6 +317,7 @@ final class SynthesisFilter
 	p7 = (pp6 - pp7) * cos1_4;
 	p8 = pp8 + pp9;
 	p9 = (pp8 - pp9) * cos1_4;
+
 	p10 = pp10 + pp11;
 	p11 = (pp10 - pp11) * cos1_4;
 	p12 = pp12 + pp13;

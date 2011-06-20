@@ -19,7 +19,6 @@
  */
 
 
-package javazoom.jl.decoder;
 
 /**
  * The <code>Equalizer</code> class can be used to specify

@@ -17,7 +17,6 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.decoder;
 
 import java.io.InputStream;
 

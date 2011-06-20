@@ -18,16 +18,9 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.player;
 
 import java.io.InputStream;
 
-import javazoom.jl.decoder.Bitstream;
-import javazoom.jl.decoder.BitstreamException;
-import javazoom.jl.decoder.Decoder;
-import javazoom.jl.decoder.Header;
-import javazoom.jl.decoder.JavaLayerException;
-import javazoom.jl.decoder.SampleBuffer;
 	
 /**
  * The <code>Player</code> class implements a simple player for playback
@@ -60,7 +53,7 @@ public class Player
 	/**
 	 * The AudioDevice the audio samples are written to. 
 	 */
-	private AudioDevice	audio;
+	//private AudioDevice	audio; 
 	
 	/**
 	 * Has the player been closed?
@@ -79,9 +72,10 @@ public class Player
 	 */
 	public Player(InputStream stream) throws JavaLayerException
 	{
-		this(stream, null);	
+		//this(stream, null);	
 	}
-	
+
+	/* temporarily disabled by eom
 	public Player(InputStream stream, AudioDevice device) throws JavaLayerException
 	{
 		bitstream = new Bitstream(stream);		
@@ -98,6 +92,7 @@ public class Player
 		}
 		audio.open(decoder);
 	}
+	*/
 	
 	public void play() throws JavaLayerException
 	{
@@ -114,12 +109,13 @@ public class Player
 	public boolean play(int frames) throws JavaLayerException
 	{
 		boolean ret = true;
-			
+		
+		
 		while (frames-- > 0 && ret)
 		{
 			ret = decodeFrame();			
 		}
-		
+		/*
 		if (!ret)
 		{
 			// last frame, ensure all data flushed to the audio device. 
@@ -134,6 +130,7 @@ public class Player
 				}				
 			}
 		}
+		*/
 		return ret;
 	}
 		
@@ -141,8 +138,10 @@ public class Player
 	 * Cloases this player. Any audio currently playing is stopped
 	 * immediately. 
 	 */
+	
 	public synchronized void close()
 	{		
+/*
 		AudioDevice out = audio;
 		if (out!=null)
 		{ 
@@ -160,7 +159,9 @@ public class Player
 			{
 			}
 		}
+*/
 	}
+	
 	
 	/**
 	 * Returns the completed status of this player.
@@ -181,14 +182,15 @@ public class Player
 	 */
 	public int getPosition()
 	{
-		int position = lastPosition;
+		//int position = lastPosition;
 		
-		AudioDevice out = audio;		
-		if (out!=null)
-		{
-			position = out.getPosition();	
-		}
-		return position;
+		//AudioDevice out = audio;		
+		//if (out!=null)
+		//{
+		//	position = out.getPosition();	
+		//}
+		//return position;
+		return 0;
 	}		
 	
 	/**
@@ -200,9 +202,9 @@ public class Player
 	{		
 		try
 		{
-			AudioDevice out = audio;
-			if (out==null)
-				return false;
+			//AudioDevice out = audio;
+			//if (out==null)
+			//	return false;
 
 			Header h = bitstream.readFrame();	
 			
@@ -212,14 +214,14 @@ public class Player
 			// sample buffer set when decoder constructed
 			SampleBuffer output = (SampleBuffer)decoder.decodeFrame(h, bitstream);
 																																					
-			synchronized (this)
-			{
-				out = audio;
-				if (out!=null)
-				{					
-					out.write(output.getBuffer(), 0, output.getBufferLength());
-				}				
-			}
+			//synchronized (this)
+			//{
+			//	out = audio;
+			//	if (out!=null)
+			//	{					
+			//		out.write(output.getBuffer(), 0, output.getBufferLength());
+			//	}				
+			//}
 																			
 			bitstream.closeFrame();
 		}		

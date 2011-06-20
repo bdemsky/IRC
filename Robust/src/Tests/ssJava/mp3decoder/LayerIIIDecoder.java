@@ -32,7 +32,6 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.decoder;
 
 /**
  * Class Implementing Layer 3 Decoder.
@@ -50,14 +49,14 @@ final class LayerIIIDecoder implements FrameDecoder {
   private int[] is_1d;
   private float[][][] ro;
   private float[][][] lr;
-  private float[] out_1d;
+  private float[] out_1d; // 576 samples
   private float[][] prevblck;
   private float[][] k;
   private int[] nonzero;
   private Bitstream stream;
-  @HEADER private Header header;
+  private Header header;
   private SynthesisFilter filter1, filter2;
-  private Obuffer buffer;
+  private Obuffer buffer; // output buffer
   private int which_channels;
   private BitReserve br;
   private III_side_info_t si;
@@ -288,20 +287,26 @@ final class LayerIIIDecoder implements FrameDecoder {
     for (; bytes_to_discard > 0; bytes_to_discard--) // bytes_to_discard > br
       br.hgetbits(8);
     
+    // doing something from here
+    
     // here 'gr' and 'max_gr' should be higher than 'ch','channels', and more
-    for (gr = 0; gr < max_gr; gr++) { 
+    for (gr = 0; gr < max_gr; gr++) { // two granules per channel 
       // in the loop body, access set={part2_start}      
       
       // 'ch', 'channels' should be higher than all locs in the below body
       for (ch = 0; ch < channels; ch++) { 
         part2_start = br.hsstell(); // part2_start < br
 
+        // grab scale factors from the main data. 
+        // following the scale factors is the actual compressed data
         if (header.version() == Header.MPEG1)
           get_scale_factors(ch, gr); // no need to care from this side
+          // here move scale factor data from 'br' buffer to 'scalefac' field
         else
           // MPEG-2 LSF, SZD: MPEG-2.5 LSF
           get_LSF_scale_factors(ch, gr); // no need to care from this side
 
+        // here, decoding the compressed audio data 
         huffman_decode(ch, gr); // no need to care from this side
         // System.out.println("CheckSum HuffMan = " + CheckSumHuff);
         dequantize_sample(ro[ch], ch, gr); // no need to care from this side
@@ -1039,6 +1044,12 @@ final class LayerIIIDecoder implements FrameDecoder {
 	 *
 	 */
   private void reorder(float xr[][], int ch, int gr) {
+    // the purpose of reordering: move 'short samples' back to their original position
+    // after reorder, the samples are no long ordered by frequency
+    
+    // the format of input data to reorder: 
+    // three small chunks of 192 samples each are combined to 576 samples ordered by frequency 
+    
     gr_info_s gr_info = (si.ch[ch].gr[gr]);
     int freq, freq3;
     int index;
@@ -2452,3 +2463,4 @@ final class LayerIIIDecoder implements FrameDecoder {
       { { 8, 8, 5, 0 }, { 15, 12, 9, 0 }, { 6, 18, 9, 0 } } };
 
 }
+

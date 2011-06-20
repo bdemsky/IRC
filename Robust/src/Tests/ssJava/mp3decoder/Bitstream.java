@@ -33,8 +33,6 @@
  *----------------------------------------------------------------------
  */
 
-package javazoom.jl.decoder;
-
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

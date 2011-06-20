@@ -18,7 +18,6 @@
  *----------------------------------------------------------------------
  */
  
-package javazoom.jl.decoder;
 
 /**
  * The <code>Decoder</code> class encapsulates the details of
