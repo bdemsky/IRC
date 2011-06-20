@@ -16,12 +16,17 @@ import IR.Flat.TempDescriptor;
 
 public class LoopTerminate {
 
+  FlatMethod fm;
   LoopInvariant loopInv;
   Set<TempDescriptor> inductionSet;
 
-  public void terminateAnalysis(FlatMethod fm, LoopInvariant loopInv) {
+  public LoopTerminate(FlatMethod fm, LoopInvariant loopInv) {
+    this.fm = fm;
     this.loopInv = loopInv;
     this.inductionSet = new HashSet<TempDescriptor>();
+  }
+
+  public void terminateAnalysis() {
     Loops loopFinder = loopInv.root;
     if (loopFinder.nestedLoops().size() > 0) {
       for (Iterator lpit = loopFinder.nestedLoops().iterator(); lpit.hasNext();) {
@@ -36,15 +41,17 @@ public class LoopTerminate {
 
     boolean changed = true;
 
-    Set elements = l.loopIncElements();
-    Set toprocess = l.loopIncElements();
-    Set entrances = l.loopEntrances();
+    Set elements = l.loopIncElements(); // loop body elements
+    Set entrances = l.loopEntrances(); // loop entrance
     assert entrances.size() == 1;
     FlatNode entrance = (FlatNode) entrances.iterator().next();
 
+    // mapping from Induction Variable TempDescriptor to Definiton Flat Node
     Hashtable<TempDescriptor, FlatNode> inductionVar2DefNode =
         new Hashtable<TempDescriptor, FlatNode>();
 
+    // mapping from Derived Induction Variable TempDescriptor to its root
+    // induction variable TempDescriptor
     Hashtable<TempDescriptor, TempDescriptor> derivedVar2basicInduction =
         new Hashtable<TempDescriptor, TempDescriptor>();
 
@@ -54,7 +61,7 @@ public class LoopTerminate {
 
     // #1 find out basic induction variable
     // variable i is a basic induction variable in loop if the only definitions
-    // of i within L are of the form i=i+c or i=i-c where c is loop invariant
+    // of i within L are of the form i=i+c where c is loop invariant
     for (Iterator elit = elements.iterator(); elit.hasNext();) {
       FlatNode fn = (FlatNode) elit.next();
       if (fn.kind() == FKind.FlatOpNode) {
@@ -78,6 +85,8 @@ public class LoopTerminate {
             }
 
             Set<FlatNode> defSetOfLoop = getDefinitionInsideLoop(l, fn, candidateTemp);
+            // basic induction variable must have only one definition within the
+            // loop
             if (defSetOfLoop.size() == 1) {
               FlatNode defNode = defSetOfLoop.iterator().next();
               assert defNode.readsTemps().length == 1;
@@ -188,7 +197,7 @@ public class LoopTerminate {
       if (fn.kind() == FKind.FlatCondBranch) {
         FlatCondBranch fcb = (FlatCondBranch) fn;
 
-        if (fcb.isLoopBranch() || hasLoopExitNode(l, fcb, true)) {
+        if (fcb.isLoopBranch() || hasLoopExitNode(fcb, true, entrance, elements)) {
           // only need to care about conditional branch that leads it out of the
           // loop
           Set<FlatNode> condSet = getDefinitionInsideLoop(l, fn, fcb.getTest());
@@ -250,7 +259,8 @@ public class LoopTerminate {
       return false;
     }
 
-    if (!IsInductionVar(l, fon, induction)) {
+    // here, verify that guard operand is an induction variable
+    if (!hasInductionVar(l, fon, induction)) {
       return false;
     }
 
@@ -267,29 +277,40 @@ public class LoopTerminate {
     return true;
   }
 
-  private boolean IsInductionVar(Loops l, FlatNode fn, TempDescriptor td) {
+  private boolean hasInductionVar(Loops l, FlatNode fn, TempDescriptor td) {
+    // check if TempDescriptor td has at least one induction variable and is
+    // composed only by induction vars +loop invariants
 
     if (inductionSet.contains(td)) {
       return true;
     } else {
-      // check if td is composed by induction variables
+      // check if td is composed by induction variables or loop invariants
       Set<FlatNode> defSet = getDefinitionInsideLoop(l, fn, td);
       for (Iterator iterator = defSet.iterator(); iterator.hasNext();) {
         FlatNode defNode = (FlatNode) iterator.next();
 
+        int inductionVarCount = 0;
         TempDescriptor[] readTemps = defNode.readsTemps();
         for (int i = 0; i < readTemps.length; i++) {
-
-          if (!IsInductionVar(l, defNode, readTemps[i])) {
+          if (!hasInductionVar(l, defNode, readTemps[i])) {
             if (!isLoopInvariantVar(l, defNode, readTemps[i])) {
               return false;
             }
+          } else {
+            inductionVarCount++;
           }
         }
 
+        // check definition of td has at least one induction var
+        if (inductionVarCount > 0) {
+          return true;
+        }
+
       }
+
+      return false;
     }
-    return true;
+
   }
 
   private boolean isLoopInvariantVar(Loops l, FlatNode fn, TempDescriptor td) {
@@ -338,11 +359,8 @@ public class LoopTerminate {
 
   }
 
-  private boolean hasLoopExitNode(Loops l, FlatCondBranch fcb, boolean fromTrueBlock) {
-
-    Set loopElements = l.loopIncElements();
-    Set entrances = l.loopEntrances();
-    FlatNode fn = (FlatNode) entrances.iterator().next();
+  private boolean hasLoopExitNode(FlatCondBranch fcb, boolean fromTrueBlock, FlatNode loopHeader,
+      Set loopElements) {
 
     if (!fromTrueBlock) {
       // in this case, FlatCondBranch must have two next flat node, one for true
@@ -357,7 +375,7 @@ public class LoopTerminate {
       next = fcb.getNext(1);
     }
 
-    if (hasLoopExitNode(fn, next, loopElements)) {
+    if (hasLoopExitNode(loopHeader, next, loopElements)) {
       return true;
     } else {
       return false;
