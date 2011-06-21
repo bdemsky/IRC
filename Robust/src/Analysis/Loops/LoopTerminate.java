@@ -28,6 +28,14 @@ public class LoopTerminate {
 
   Set<FlatNode> computed;
 
+  /**
+   * Constructor for Loop Termination Analysis
+   * 
+   * @param fm
+   *          FlatMethod for termination analysis
+   * @param loopInv
+   *          LoopInvariants for given method
+   */
   public LoopTerminate(FlatMethod fm, LoopInvariant loopInv) {
     this.fm = fm;
     this.loopInv = loopInv;
@@ -37,14 +45,23 @@ public class LoopTerminate {
     this.computed = new HashSet<FlatNode>();
   }
 
+  /**
+   * starts loop termination analysis
+   */
   public void terminateAnalysis() {
-    // starts loop termination analysis
     Loops loopFinder = loopInv.root;
     recurse(fm, loopFinder);
   }
 
+  /**
+   * iterate over the current level of loops and spawn analysis for its child
+   * 
+   * @param fm
+   *          FlatMethod for loop analysis
+   * @param parent
+   *          the current level of loop
+   */
   private void recurse(FlatMethod fm, Loops parent) {
-    // iterate over the current level of loops and spawn analysis for its child
     for (Iterator lpit = parent.nestedLoops().iterator(); lpit.hasNext();) {
       Loops child = (Loops) lpit.next();
       processLoop(fm, child);
@@ -52,13 +69,23 @@ public class LoopTerminate {
     }
   }
 
+  /**
+   * initialize internal data structure
+   */
   private void init() {
-    // initialize internal data structure
     inductionSet.clear();
     inductionVar2DefNode.clear();
     derivedVar2basicInduction.clear();
   }
 
+  /**
+   * analysis loop for termination property
+   * 
+   * @param fm
+   *          FlatMethod that contains loop l
+   * @param l
+   *          analysis target loop l
+   */
   private void processLoop(FlatMethod fm, Loops l) {
 
     Set loopElements = l.loopIncElements(); // loop body elements
@@ -73,8 +100,15 @@ public class LoopTerminate {
 
   }
 
+  /**
+   * check if condition branch node satisfies loop condition
+   * 
+   * @param loopEntrance
+   *          loop entrance flat node
+   * @param loopElements
+   *          elements of current loop and all nested loop
+   */
   private void checkConditionBranch(FlatNode loopEntrance, Set loopElements) {
-    // #3 check condition branch
     // In the loop, every guard condition of the loop must be composed by
     // induction & invariants
     // every guard condition of the if-statement that leads it to the exit must
@@ -144,6 +178,12 @@ public class LoopTerminate {
 
   }
 
+  /**
+   * detect derived induction variable
+   * 
+   * @param loopElements
+   *          elements of current loop and all nested loop
+   */
   private void detectDerivedInductionVar(Set loopElements) {
     // 2) detect derived induction variables
     // variable k is a derived induction variable if
@@ -246,6 +286,12 @@ public class LoopTerminate {
 
   }
 
+  /**
+   * detect basic induction variable
+   * 
+   * @param loopElements
+   *          elements of current loop and all nested loop
+   */
   private void detectBasicInductionVar(Set loopElements) {
     // 1) find out basic induction variable
     // variable i is a basic induction variable in loop if the only definitions
@@ -299,13 +345,32 @@ public class LoopTerminate {
 
   }
 
+  /**
+   * check whether there is no definition node 'def' on any path between 'start'
+   * node and 'end' node
+   * 
+   * @param def
+   * @param start
+   * @param end
+   * @return true if there is no def in-bet start and end
+   */
   private boolean checkPath(FlatNode def, FlatNode start, FlatNode end) {
-    // return true if there is no def in-bet start and end
     Set<FlatNode> endSet = new HashSet<FlatNode>();
     endSet.add(end);
     return !(start.getReachableSet(endSet)).contains(def);
   }
 
+  /**
+   * check condition node satisfies termination condition
+   * 
+   * @param fon
+   *          condition node FlatOpNode
+   * @param isLoopCondition
+   *          true if condition is loop condition
+   * @param loopElements
+   *          elements of current loop and all nested loop
+   * @return true if it satisfies termination condition
+   */
   private boolean checkConditionNode(FlatOpNode fon, boolean isLoopCondition, Set loopElements) {
     // check flatOpNode that computes loop guard condition
     // currently we assume that induction variable is always getting bigger
@@ -360,9 +425,19 @@ public class LoopTerminate {
     return true;
   }
 
+  /**
+   * check if TempDescriptor td has at least one induction variable and is
+   * composed only by induction vars +loop invariants
+   * 
+   * @param fn
+   *          FlatNode that contains TempDescriptor 'td'
+   * @param td
+   *          TempDescriptor representing target variable
+   * @param loopElements
+   *          elements of current loop and all nested loop
+   * @return true if 'td' is induction variable
+   */
   private boolean hasInductionVar(FlatNode fn, TempDescriptor td, Set loopElements) {
-    // check if TempDescriptor td has at least one induction variable and is
-    // composed only by induction vars +loop invariants
 
     if (inductionSet.contains(td)) {
       return true;
@@ -396,6 +471,18 @@ public class LoopTerminate {
 
   }
 
+  /**
+   * check if TempDescriptor td is loop invariant variable or constant value wrt
+   * the current loop
+   * 
+   * @param fn
+   *          FlatNode that contains TempDescriptor 'td'
+   * @param td
+   *          TempDescriptor representing target variable
+   * @param loopElements
+   *          elements of current loop and all nested loop
+   * @return true if 'td' is loop invariant variable
+   */
   private boolean isLoopInvariantVar(FlatNode fn, TempDescriptor td, Set loopElements) {
 
     Set<FlatNode> defset = loopInv.usedef.defMap(fn, td);
@@ -424,6 +511,17 @@ public class LoopTerminate {
 
   }
 
+  /**
+   * compute the set of definitions of variable 'td' inside of the loop
+   * 
+   * @param fn
+   *          FlatNode that uses 'td'
+   * @param td
+   *          target node that we want to have the set of definitions
+   * @param loopElements
+   *          elements of current loop and all nested loop
+   * @return the set of definition nodes for 'td' in the current loop
+   */
   private Set<FlatNode> getDefinitionInLoop(FlatNode fn, TempDescriptor td, Set loopElements) {
 
     Set<FlatNode> defSetOfLoop = new HashSet<FlatNode>();
@@ -440,6 +538,19 @@ public class LoopTerminate {
 
   }
 
+  /**
+   * check whether FlatCondBranch introduces loop exit
+   * 
+   * @param fcb
+   *          target node
+   * @param fromTrueBlock
+   *          specify which block is possible to have loop exit
+   * @param loopHeader
+   *          loop header of current loop
+   * @param loopElements
+   *          elements of current loop and all nested loop
+   * @return true if input 'fcb' intrroduces loop exit
+   */
   private boolean hasLoopExitNode(FlatCondBranch fcb, boolean fromTrueBlock, FlatNode loopHeader,
       Set loopElements) {
     // return true if fcb possibly introduces loop exit
@@ -455,8 +566,15 @@ public class LoopTerminate {
 
   }
 
+  /**
+   * check whether start node reaches loop exit
+   * 
+   * @param loopHeader
+   * @param start
+   * @param loopElements
+   * @return true if a path exist from start to loop exit
+   */
   private boolean hasLoopExitNode(FlatNode loopHeader, FlatNode start, Set loopElements) {
-    // return true if a path exist from start to loop exit
 
     Set<FlatNode> tovisit = new HashSet<FlatNode>();
     Set<FlatNode> visited = new HashSet<FlatNode>();
