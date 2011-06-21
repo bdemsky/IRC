@@ -105,6 +105,7 @@ void * gcbaseva; // base va for shared memory without reserved sblocks
 static bool gc_checkCoreStatus() {
   for(int i = 0; i < NUMCORES4GC; i++) {
     if(gccorestatus[i]) {
+      printf("CHECK\n");
       return false;
     }
   }  

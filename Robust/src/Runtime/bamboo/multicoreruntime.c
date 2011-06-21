@@ -579,11 +579,10 @@ void abort_task() {
 }
 
 INLINE void initruntimedata() {
-  int i;
   // initialize the arrays
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     // startup core to initialize corestatus[]
-    for(i = 0; i < NUMCORESACTIVE; ++i) {
+    for(int i = 0; i < NUMCORESACTIVE; ++i) {
       corestatus[i] = 1;
       numsendobjs[i] = 0;
       numreceiveobjs[i] = 0;
@@ -596,20 +595,23 @@ INLINE void initruntimedata() {
   self_numsendobjs = 0;
   self_numreceiveobjs = 0;
 
-  for(i = 0; i < BAMBOO_MSG_BUF_LENGTH; ++i) {
+  for(int i = 0; i < BAMBOO_MSG_BUF_LENGTH; ++i) {
     msgdata[i] = -1;
   }
   msgdataindex = 0;
   msgdatalast = 0;
   //msglength = BAMBOO_MSG_BUF_LENGTH;
   msgdatafull = false;
-  for(i = 0; i < BAMBOO_OUT_BUF_LENGTH; ++i) {
+  for(int i = 0; i < BAMBOO_OUT_BUF_LENGTH; ++i) {
     outmsgdata[i] = -1;
   }
   outmsgindex = 0;
   outmsglast = 0;
   outmsgleft = 0;
   isMsgHanging = false;
+  
+
+
 
   smemflag = true;
   bamboo_cur_msp = NULL;
@@ -755,9 +757,6 @@ inline void run(int argc, char** argv) {
 
   // initialize runtime data structures
   initruntimedata();
-
-  // other architecture related initialization
-  initialization();
   initCommunication();
 
   CACHEADAPT_ENABLE_TIMER();
@@ -775,28 +774,28 @@ inline void run(int argc, char** argv) {
 #ifdef TASK
     /* Create queue of active tasks */
     activetasks= genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd,
-        (int (*)(void *,void *)) &comparetpd);
-
+				      (int (*)(void *,void *)) &comparetpd);
+    
     /* Process task information */
     processtasks();
-
+    
     if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
       /* Create startup object */
       createstartupobject(argc, argv);
     }
 #endif
-
-	if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+    
+    if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
 #ifdef TASK
-	  // run the initStaticAndGlobal method to initialize the static blocks and
-	  // global fields
-	  initStaticAndGlobal();
+      // run the initStaticAndGlobal method to initialize the static blocks and
+      // global fields
+      initStaticAndGlobal();
 #elif defined MGC
-	  // run the main method in the specified mainclass
-	  mgc_main(argc, argv);
+      // run the main method in the specified mainclass
+      mgc_main(argc, argv);
 #endif // TASK
-	}
-
+    }
+    
     while(true) {
       GCCHECK(NULL);
 #ifdef TASK
@@ -818,7 +817,7 @@ inline void run(int argc, char** argv) {
         sendStall = false;
       }
 #endif
-
+      
       if(!tocontinue) {
         // check if stop
         if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
@@ -831,20 +830,20 @@ inline void run(int argc, char** argv) {
 #ifdef PROFILE
             if(!stall) {
 #endif
-            if(isfirst) {
-              // wait for some time
-              int halt = 10000;
-              while(halt--) {
-              }
-              isfirst = false;
-            } else {
-              // send StallMsg to startup core
-              // send stall msg
-              send_msg_4(STARTUPCORE,TRANSTALL,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
-              sendStall = true;
-              isfirst = true;
-              busystatus = false;
-            }
+	      if(isfirst) {
+		// wait for some time
+		int halt = 10000;
+		while(halt--) {
+		}
+		isfirst = false;
+	      } else {
+		// send StallMsg to startup core
+		// send stall msg
+		send_msg_4(STARTUPCORE,TRANSTALL,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
+		sendStall = true;
+		isfirst = true;
+		busystatus = false;
+	      }
 #ifdef PROFILE
             }
 #endif
@@ -856,6 +855,6 @@ inline void run(int argc, char** argv) {
       }
     }
   }
-} 
-
+}
+ 
 #endif // MULTICORE

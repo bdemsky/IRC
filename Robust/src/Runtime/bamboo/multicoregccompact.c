@@ -335,7 +335,7 @@ void master_compact() {
   compact();
   /* wait for all cores to finish compacting */
 
-  while(gc_checkCoreStatus())
+  while(!gc_checkCoreStatus())
     ;
 
   GCPROFILE_ITEM();

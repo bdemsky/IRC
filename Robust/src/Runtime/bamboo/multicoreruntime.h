@@ -65,7 +65,6 @@ int self_numreceiveobjs;
 // these are functions should be implemented in           //
 // multicore runtime for any multicore processors         //
 ////////////////////////////////////////////////////////////
-INLINE void initialization(void);
 INLINE void initCommunication(void);
 INLINE void fakeExecution(void);
 INLINE void terminate(void);

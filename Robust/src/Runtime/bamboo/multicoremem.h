@@ -118,7 +118,7 @@ int bamboo_free_smem_size;
 //This flag indicates that a memory request was services
 volatile bool smemflag;
 //Pointer to new block of memory after request
-volatile unsigned int * bamboo_cur_msp;
+volatile void * bamboo_cur_msp;
 //Number of bytes in new block of memory
 volatile int bamboo_smem_size;
 
