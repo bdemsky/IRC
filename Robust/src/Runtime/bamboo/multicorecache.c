@@ -29,7 +29,7 @@ void cacheAdapt_gc(bool isgccachestage) {
     int *local_tbl=&gccachesamplingtbl_r[page_index]; \
     for(int i = 0; i < NUMCORESACTIVE; i++) { \
       int freq = *local_tbl; \
-      local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r); \
+      local_tbl=(int *)(((void *)local_tbl)+size_cachesamplingtbl_local_r); \
       if(hotfreq < freq) { \
         hotfreq = freq; \
         hottestcore = i; \
@@ -43,7 +43,7 @@ void cacheAdapt_gc(bool isgccachestage) {
     int *local_tbl=&gccachesamplingtbl_r[page_index]; \
     for(int i = 0; i < NUMCORESACTIVE; i++) { \
       int freq = *local_tbl; \
-      local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r); \
+      local_tbl=(int *)(((void *)local_tbl)+size_cachesamplingtbl_local_r); \
       totalfreq += freq; \
       if(hotfreq < freq) { \
         hotfreq = freq; \
@@ -127,7 +127,7 @@ void cacheAdapt_policy_hottest(int coren){
   }
 } 
 
-#define GC_CACHE_ADAPT_DOMINATE_THRESHOLD  64
+#define GC_CACHE_ADAPT_DOMINATE_THRESHOLD  1
 // cache the page on the core that accesses it the most if that core accesses 
 // it more than (GC_CACHE_ADAPT_DOMINATE_THRESHOLD)% of the total.  Otherwise,
 // h4h the page.
@@ -141,7 +141,7 @@ void cacheAdapt_policy_dominate(int coren){
   for(; page_index < page_index_end; page_index++) {
     bamboo_cache_policy_t policy = {0};
     unsigned int hottestcore = 0;
-    unsigned long long totalfreq = 0;
+    unsigned int totalfreq = 0;
     unsigned int hotfreq = 0;
     CACHEADAPT_FIND_HOTTEST_CORE_W_TOTALFREQ(page_index,hottestcore,hotfreq,totalfreq);
     // Decide the cache strategy for this page
@@ -149,10 +149,14 @@ void cacheAdapt_policy_dominate(int coren){
     // the gcpolicytbl 
     // Format: page start va + cache policy
     if(hotfreq != 0) {
-      totalfreq=(totalfreq*GC_CACHE_ADAPT_DOMINATE_THRESHOLD)>>7;
-      if(hotfreq < totalfreq) {
+      totalfreq=totalfreq>>GC_CACHE_ADAPT_DOMINATE_THRESHOLD;
+      if((unsigned int)hotfreq < (unsigned int)totalfreq) {
         // use hfh
-        policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
+        //policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
+        unsigned int block = 0;
+        BLOCKINDEX(page_sva, &block);
+        unsigned int coren = gc_block2core[block%(NUMCORES4GC*2)];
+        CACHEADAPT_POLICY_SET_HOST_CORE(policy, coren);
       } else {
         // locally cache the page in the hottest core
         CACHEADAPT_POLICY_SET_HOST_CORE(policy, hottestcore);
@@ -458,6 +462,8 @@ void cacheAdapt_phase_master() {
 }
 
 void gc_output_cache_sampling() {
+  //extern volatile bool gc_profile_flag;
+  //if(!gc_profile_flag) return;
   unsigned int page_index = 0;
   VA page_sva = 0;
   unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
@@ -480,6 +486,8 @@ void gc_output_cache_sampling() {
 } 
 
 void gc_output_cache_sampling_r() {
+  //extern volatile bool gc_profile_flag;
+  //if(!gc_profile_flag) return;
   // TODO summary data
   unsigned int sumdata[NUMCORESACTIVE][NUMCORESACTIVE];
   for(int i = 0; i < NUMCORESACTIVE; i++) {

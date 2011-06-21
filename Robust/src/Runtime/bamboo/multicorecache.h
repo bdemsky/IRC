@@ -7,8 +7,8 @@
 #include "multicoregarbage.h"
 
 #ifdef GC_CACHE_ADAPT
-#define GC_CACHE_SAMPLING_UNIT 100000000
-#define GC_TILE_TIMER_EVENT_SETTING 10000000 //0  
+#define GC_CACHE_SAMPLING_UNIT 0x40000 //100000 //000
+#define GC_TILE_TIMER_EVENT_SETTING (GC_CACHE_SAMPLING_UNIT) //100000 //000  
 
 // should be consistent with multicoreruntime.h
 typedef union
