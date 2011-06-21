@@ -81,7 +81,7 @@ void * globalmalloc_I(int coren, unsigned INTPTR memcheck, int * allocsize) {
 
 void * smemalloc(int coren, int isize, int * allocsize) {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  void *retval=smemalloc(coren, isize, allocsize);
+  void *retval=smemalloc_I(coren, isize, allocsize);
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return retval;
 }
@@ -97,7 +97,6 @@ void * smemalloc_I(int coren, int isize, int * allocsize) {
 #elif defined(SMEMG)
   void *mem = globalmalloc_I(coren, isize, allocsize);
 #endif
-
   if(mem == NULL) {
     // no enough shared global memory
     // trigger gc

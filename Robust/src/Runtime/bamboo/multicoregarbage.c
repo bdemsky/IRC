@@ -108,6 +108,9 @@ void initmulticoregcdata() {
 	allocationinfo.blocktable[i].corenum=0;
       else
 	allocationinfo.blocktable[i].corenum=gc_block2core[(i%(NUMCORES4GC*2))];
+      allocationinfo.blocktable[i].status=BS_FREE;
+      allocationinfo.blocktable[i].usedspace=0;
+      allocationinfo.blocktable[i].freespace=GLOBALBLOCKSIZE(i);
     }
     buildCore2Test();
   }
