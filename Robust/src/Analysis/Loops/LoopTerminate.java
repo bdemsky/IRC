@@ -28,25 +28,28 @@ public class LoopTerminate {
 
   public void terminateAnalysis() {
     Loops loopFinder = loopInv.root;
-    if (loopFinder.nestedLoops().size() > 0) {
-      for (Iterator lpit = loopFinder.nestedLoops().iterator(); lpit.hasNext();) {
-        Loops loop = (Loops) lpit.next();
-        Set entrances = loop.loopEntrances();
-        processLoop(fm, loop, loopInv);
-      }
+    recurse(fm, loopFinder);
+  }
+
+  private void recurse(FlatMethod fm, Loops parent) {
+    for (Iterator lpit = parent.nestedLoops().iterator(); lpit.hasNext();) {
+      Loops child = (Loops) lpit.next();
+      processLoop(fm, child);
+      recurse(fm, child);
     }
   }
 
-  public void processLoop(FlatMethod fm, Loops l, LoopInvariant loopInv) {
+  public void processLoop(FlatMethod fm, Loops l) {
 
     boolean changed = true;
+    inductionSet.clear();
+    Set loopElements = l.loopIncElements(); // loop body elements
+    Set loopEntrances = l.loopEntrances(); // loop entrance
+    assert loopEntrances.size() == 1;
+    FlatNode loopEntrance = (FlatNode) loopEntrances.iterator().next();
 
-    Set elements = l.loopIncElements(); // loop body elements
-    Set entrances = l.loopEntrances(); // loop entrance
-    assert entrances.size() == 1;
-    FlatNode entrance = (FlatNode) entrances.iterator().next();
-
-    // mapping from Induction Variable TempDescriptor to Definiton Flat Node
+    // mapping from Induction Variable TempDescriptor to Flat Node that defines
+    // it
     Hashtable<TempDescriptor, FlatNode> inductionVar2DefNode =
         new Hashtable<TempDescriptor, FlatNode>();
 
@@ -57,10 +60,10 @@ public class LoopTerminate {
 
     Set<FlatNode> computed = new HashSet<FlatNode>();
 
-    // #1 find out basic induction variable
+    // 1) find out basic induction variable
     // variable i is a basic induction variable in loop if the only definitions
     // of i within L are of the form i=i+c where c is loop invariant
-    for (Iterator elit = elements.iterator(); elit.hasNext();) {
+    for (Iterator elit = loopElements.iterator(); elit.hasNext();) {
       FlatNode fn = (FlatNode) elit.next();
       if (fn.kind() == FKind.FlatOpNode) {
         FlatOpNode fon = (FlatOpNode) fn;
@@ -69,8 +72,8 @@ public class LoopTerminate {
           TempDescriptor tdLeft = fon.getLeft();
           TempDescriptor tdRight = fon.getRight();
 
-          boolean isLeftLoopInvariant = isLoopInvariantVar(l, fn, tdLeft);
-          boolean isRightLoopInvariant = isLoopInvariantVar(l, fn, tdRight);
+          boolean isLeftLoopInvariant = isLoopInvariantVar(fn, tdLeft, loopElements);
+          boolean isRightLoopInvariant = isLoopInvariantVar(fn, tdRight, loopElements);
 
           if (isLeftLoopInvariant ^ isRightLoopInvariant) {
 
@@ -82,17 +85,19 @@ public class LoopTerminate {
               candidateTemp = tdLeft;
             }
 
-            Set<FlatNode> defSetOfLoop = getDefinitionInsideLoop(l, fn, candidateTemp);
+            Set<FlatNode> defSetOfLoop = getDefinitionInLoop(fn, candidateTemp, loopElements);
             // basic induction variable must have only one definition within the
             // loop
             if (defSetOfLoop.size() == 1) {
+              // find out definition of induction var, form of Flat
+              // Assign:inductionVar = candidateTemp
               FlatNode indNode = defSetOfLoop.iterator().next();
               assert indNode.readsTemps().length == 1;
               TempDescriptor readTemp = indNode.readsTemps()[0];
               if (readTemp.equals(fon.getDest())) {
                 inductionVar2DefNode.put(candidateTemp, defSetOfLoop.iterator().next());
                 inductionVar2DefNode.put(readTemp, defSetOfLoop.iterator().next());
-                inductionSet.add(readTemp);
+                inductionSet.add(fon.getDest());
                 inductionSet.add(candidateTemp);
                 computed.add(fn);
               }
@@ -105,7 +110,7 @@ public class LoopTerminate {
       }
     }
 
-    // #2 detect derived induction variables
+    // 2) detect derived induction variables
     // variable k is a derived induction variable if
     // 1) there is only one definition of k within the loop, of the form k=j*c
     // or k=j+d where j is induction variable, c, d are loop-invariant
@@ -119,7 +124,7 @@ public class LoopTerminate {
 
     while (changed) {
       changed = false;
-      for (Iterator elit = elements.iterator(); elit.hasNext();) {
+      nextfn: for (Iterator elit = loopElements.iterator(); elit.hasNext();) {
         FlatNode fn = (FlatNode) elit.next();
         if (!computed.contains(fn)) {
           if (fn.kind() == FKind.FlatOpNode) {
@@ -130,8 +135,8 @@ public class LoopTerminate {
               TempDescriptor tdRight = fon.getRight();
               TempDescriptor tdDest = fon.getDest();
 
-              boolean isLeftLoopInvariant = isLoopInvariantVar(l, fn, tdLeft);
-              boolean isRightLoopInvariant = isLoopInvariantVar(l, fn, tdRight);
+              boolean isLeftLoopInvariant = isLoopInvariantVar(fn, tdLeft, loopElements);
+              boolean isRightLoopInvariant = isLoopInvariantVar(fn, tdRight, loopElements);
 
               if (isLeftLoopInvariant ^ isRightLoopInvariant) {
                 TempDescriptor inductionOp;
@@ -145,9 +150,13 @@ public class LoopTerminate {
                   // find new derived one k
 
                   if (!basicInductionSet.contains(inductionOp)) {
+                    // in this case, induction variable 'j' is derived from
+                    // basic induction var
+
                     // check if only definition of j that reaches k is the one
                     // in the loop
-                    Set defSet = getDefinitionInsideLoop(l, fn, inductionOp);
+
+                    Set<FlatNode> defSet = getDefinitionInLoop(fn, inductionOp, loopElements);
                     if (defSet.size() == 1) {
                       // check if there is no def of i on any path bet' def of j
                       // and def of k
@@ -158,26 +167,35 @@ public class LoopTerminate {
                       FlatNode defk = fn;
 
                       if (!checkPath(defI, defJ, defk)) {
-                        continue;
+                        continue nextfn;
                       }
 
                     }
                   }
                   // add new induction var
 
+                  // when tdDest has the form of srctmp(tdDest) = inductionOp +
+                  // loopInvariant
+                  // want to have the definition of srctmp
                   Set<FlatNode> setUseNode = loopInv.usedef.useMap(fn, tdDest);
                   assert setUseNode.size() == 1;
                   assert setUseNode.iterator().next().writesTemps().length == 1;
 
-                  TempDescriptor derivedInd = setUseNode.iterator().next().writesTemps()[0];
-                  FlatNode defNode = setUseNode.iterator().next();
+                  FlatNode srcDefNode = setUseNode.iterator().next();
+                  if (srcDefNode instanceof FlatOpNode) {
+                    if (((FlatOpNode) srcDefNode).getOp().getOp() == Operation.ASSIGN) {
+                      TempDescriptor derivedIndVar = setUseNode.iterator().next().writesTemps()[0];
+                      FlatNode defNode = setUseNode.iterator().next();
 
-                  computed.add(fn);
-                  computed.add(defNode);
-                  inductionSet.add(derivedInd);
-                  inductionVar2DefNode.put(derivedInd, defNode);
-                  derivedVar2basicInduction.put(derivedInd, inductionOp);
-                  changed = true;
+                      computed.add(fn);
+                      computed.add(defNode);
+                      inductionSet.add(derivedIndVar);
+                      inductionVar2DefNode.put(derivedIndVar, defNode);
+                      derivedVar2basicInduction.put(derivedIndVar, inductionOp);
+                      changed = true;
+                    }
+                  }
+
                 }
 
               }
@@ -190,6 +208,7 @@ public class LoopTerminate {
       }
     }
 
+
     // #3 check condition branch
     // In the loop, every guard condition of the loop must be composed by
     // induction & invariants
@@ -198,10 +217,10 @@ public class LoopTerminate {
 
     Set<FlatNode> tovisit = new HashSet<FlatNode>();
     Set<FlatNode> visited = new HashSet<FlatNode>();
-    tovisit.add(entrance);
+    tovisit.add(loopEntrance);
 
-    int countLoopGuardCondtion = 0;
-    int countLoop = 0;
+    int numMustTerminateGuardCondtion = 0;
+    int numLoop = 0;
     while (!tovisit.isEmpty()) {
       FlatNode fnvisit = tovisit.iterator().next();
       tovisit.remove(fnvisit);
@@ -211,14 +230,14 @@ public class LoopTerminate {
         FlatCondBranch fcb = (FlatCondBranch) fnvisit;
 
         if (fcb.isLoopBranch()) {
-          countLoop++;
+          numLoop++;
         }
 
-        if (fcb.isLoopBranch() || hasLoopExitNode(fcb, true, entrance, elements)) {
+        if (fcb.isLoopBranch() || hasLoopExitNode(fcb, true, loopEntrance, loopElements)) {
           // current FlatCondBranch can introduce loop exits
           // in this case, guard condition of it should be composed only by loop
           // invariants and induction variables
-          Set<FlatNode> condSet = getDefinitionInsideLoop(l, fnvisit, fcb.getTest());
+          Set<FlatNode> condSet = getDefinitionInLoop(fnvisit, fcb.getTest(), loopElements);
           assert condSet.size() == 1;
           FlatNode condFn = condSet.iterator().next();
           // assume that guard condition node is always a conditional inequality
@@ -226,8 +245,17 @@ public class LoopTerminate {
             FlatOpNode condOp = (FlatOpNode) condFn;
             // check if guard condition is composed only with induction
             // variables
-            if (checkConditionNode(l, condOp, fcb.isLoopBranch())) {
-              countLoopGuardCondtion++;
+            if (checkConditionNode(condOp, fcb.isLoopBranch(), loopElements)) {
+              numMustTerminateGuardCondtion++;
+            } else {
+              if (!fcb.isLoopBranch()) {
+                // if it is if-condition and it leads us to loop exit,
+                // corresponding guard condition should be composed by induction
+                // and invariants
+                throw new Error("Loop may never terminate at "
+                    + fm.getMethod().getClassDesc().getSourceFileName() + "::"
+                    + loopEntrance.numLine);
+              }
             }
           }
         }
@@ -235,7 +263,7 @@ public class LoopTerminate {
 
       for (int i = 0; i < fnvisit.numNext(); i++) {
         FlatNode next = fnvisit.getNext(i);
-        if (!visited.contains(next)) {
+        if (loopElements.contains(next) && !visited.contains(next)) {
           tovisit.add(next);
         }
       }
@@ -244,9 +272,9 @@ public class LoopTerminate {
 
     // # of must-terminate loop condition must be equal to or larger than # of
     // loop
-    if (countLoopGuardCondtion < countLoop) {
+    if (numMustTerminateGuardCondtion < numLoop) {
       throw new Error("Loop may never terminate at "
-          + fm.getMethod().getClassDesc().getSourceFileName() + "::" + entrance.numLine);
+          + fm.getMethod().getClassDesc().getSourceFileName() + "::" + loopEntrance.numLine);
     }
 
   }
@@ -264,7 +292,7 @@ public class LoopTerminate {
     return true;
   }
 
-  private boolean checkConditionNode(Loops l, FlatOpNode fon, boolean isLoopCondition) {
+  private boolean checkConditionNode(FlatOpNode fon, boolean isLoopCondition, Set loopElements) {
     // check flatOpNode that computes loop guard condition
     // currently we assume that induction variable is always getting bigger
     // and guard variable is constant
@@ -301,12 +329,12 @@ public class LoopTerminate {
     }
 
     // here, verify that guard operand is an induction variable
-    if (!hasInductionVar(l, fon, induction)) {
+    if (!hasInductionVar(fon, induction, loopElements)) {
       return false;
     }
 
     if (guard != null) {
-      Set guardDefSet = getDefinitionInsideLoop(l, fon, guard);
+      Set guardDefSet = getDefinitionInLoop(fon, guard, loopElements);
       for (Iterator iterator = guardDefSet.iterator(); iterator.hasNext();) {
         FlatNode guardDef = (FlatNode) iterator.next();
         if (!(guardDef instanceof FlatLiteralNode) && !loopInv.hoisted.contains(guardDef)) {
@@ -318,7 +346,7 @@ public class LoopTerminate {
     return true;
   }
 
-  private boolean hasInductionVar(Loops l, FlatNode fn, TempDescriptor td) {
+  private boolean hasInductionVar(FlatNode fn, TempDescriptor td, Set loopElements) {
     // check if TempDescriptor td has at least one induction variable and is
     // composed only by induction vars +loop invariants
 
@@ -326,15 +354,15 @@ public class LoopTerminate {
       return true;
     } else {
       // check if td is composed by induction variables or loop invariants
-      Set<FlatNode> defSet = getDefinitionInsideLoop(l, fn, td);
+      Set<FlatNode> defSet = getDefinitionInLoop(fn, td, loopElements);
       for (Iterator iterator = defSet.iterator(); iterator.hasNext();) {
         FlatNode defNode = (FlatNode) iterator.next();
 
         int inductionVarCount = 0;
         TempDescriptor[] readTemps = defNode.readsTemps();
         for (int i = 0; i < readTemps.length; i++) {
-          if (!hasInductionVar(l, defNode, readTemps[i])) {
-            if (!isLoopInvariantVar(l, defNode, readTemps[i])) {
+          if (!hasInductionVar(defNode, readTemps[i], loopElements)) {
+            if (!isLoopInvariantVar(defNode, readTemps[i], loopElements)) {
               return false;
             }
           } else {
@@ -354,15 +382,14 @@ public class LoopTerminate {
 
   }
 
-  private boolean isLoopInvariantVar(Loops l, FlatNode fn, TempDescriptor td) {
+  private boolean isLoopInvariantVar(FlatNode fn, TempDescriptor td, Set loopElements) {
 
-    Set elements = l.loopIncElements();
     Set<FlatNode> defset = loopInv.usedef.defMap(fn, td);
 
     Set<FlatNode> defSetOfLoop = new HashSet<FlatNode>();
     for (Iterator<FlatNode> defit = defset.iterator(); defit.hasNext();) {
       FlatNode def = defit.next();
-      if (elements.contains(def)) {
+      if (loopElements.contains(def)) {
         defSetOfLoop.add(def);
       }
     }
@@ -399,10 +426,9 @@ public class LoopTerminate {
 
   }
 
-  private Set<FlatNode> getDefinitionInsideLoop(Loops l, FlatNode fn, TempDescriptor td) {
+  private Set<FlatNode> getDefinitionInLoop(FlatNode fn, TempDescriptor td, Set loopElements) {
 
     Set<FlatNode> defSetOfLoop = new HashSet<FlatNode>();
-    Set loopElements = l.loopIncElements();
 
     Set defSet = loopInv.usedef.defMap(fn, td);
     for (Iterator iterator = defSet.iterator(); iterator.hasNext();) {
@@ -418,7 +444,6 @@ public class LoopTerminate {
 
   private boolean hasLoopExitNode(FlatCondBranch fcb, boolean fromTrueBlock, FlatNode loopHeader,
       Set loopElements) {
-
     if (!fromTrueBlock) {
       // in this case, FlatCondBranch must have two next flat node, one for true
       // block and one for false block
@@ -452,20 +477,19 @@ public class LoopTerminate {
       tovisit.remove(fn);
       visited.add(fn);
 
-      // check if this loop exit is derived from start node
-      // if not, it has an exit in regarding to the loop header
-      if (!loopElements.contains(fn)) {
-        return true;
-      }
-
       for (int i = 0; i < fn.numNext(); i++) {
         FlatNode next = fn.getNext(i);
         if (!visited.contains(next)) {
+          // check that if-body statment introduces loop exit.
+          if (!loopElements.contains(next)) {
+            return true;
+          }
+
           if (loopInv.domtree.idom(next).equals(fn)) {
             // add next node only if current node is immediate dominator of the
             // next node
             tovisit.add(next);
-          }
+          } 
         }
       }
 
