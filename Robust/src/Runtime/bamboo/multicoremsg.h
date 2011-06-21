@@ -188,6 +188,8 @@ typedef enum {
   GCMARKEDOBJ,           // 0xEf
   GCMOVESTART,           // 0xF0
   GCLOBJREQUEST,         // 0xF1   
+  GCREQBLOCK,
+  GCGRANTBLOCK,  
   GCLOBJINFO,            // 0xF2
 #ifdef GC_PROFILE
   GCPROFILES,            // 0xF3

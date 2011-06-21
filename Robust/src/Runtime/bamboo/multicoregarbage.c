@@ -20,7 +20,7 @@ void dumpSMem() {
   int block = 0;
   int sblock = 0;
   unsigned int j = 0;
-  void * i = 0;
+  unsigned int i = 0;
   int coren = 0;
   int x = 0;
   int y = 0;
@@ -28,7 +28,7 @@ void dumpSMem() {
   // reserved blocks for sblocktbl
   printf("(%x,%x) ++++ reserved sblocks ++++ \n", udn_tile_coord_x(),
 	 udn_tile_coord_y());
-  for(i=BAMBOO_BASE_VA; (unsinged int)i<(unsigned int)gcbaseva; i+= 4*16) {
+  for(i=BAMBOO_BASE_VA; i<gcbaseva; i+= 4*16) {
     printf("(%x,%x) 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n",
         udn_tile_coord_x(), udn_tile_coord_y(),
         *((int *)(i)), *((int *)(i + 4)),
@@ -115,6 +115,12 @@ void initmulticoregcdata() {
     buildCore2Test();
   }
 
+  //initialize update structures
+  origarraycount=0;
+  for(int i=0;i<NUMCORES4GC;i++) {
+    origblockarray[i]=NULL;
+  }
+
   INIT_MULTICORE_GCPROFILE_DATA();
 }
 
@@ -145,7 +151,7 @@ void initGC() {
   gcblock2fill = 0;
   gcmovepending = 0;
   gccurr_heaptop = 0;
-
+  update_origblockptr=NULL;
   gc_queueinit();
 
   MGCHashreset(gcforwardobjtbl);

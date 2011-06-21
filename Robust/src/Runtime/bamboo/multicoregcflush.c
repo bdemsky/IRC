@@ -195,7 +195,7 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
 	  //finished with block...
 	  origptr=origbound;
 	  orig->ptr=origptr;
-	  return 0;
+	  return NULL;
 	}
       } while(!gcmarktbl[arrayoffset]);
       origptr=CONVERTTABLEINDEXTOPTR(arrayoffset);
@@ -211,7 +211,6 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
 
       if (endtoptr>tobound||endtoptr<tobase) {
 	//get use the next block of memory
-	to->ptr=tobound;
 	orig->ptr=origptr;
 	return dstptr;
       }
@@ -236,21 +235,58 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
   }
 }
 
+void updateOrigPtr(void *currtop) {
+  //Ordering is important...
+  //Update heap top first...
+  update_origblockptr=currtop;
+
+  //Then check for waiting cores
+  if (origarraycount>0) {
+    for(int i=0;i<NUMCORES4GC;i++) {
+      void *ptr=origblockarray[i];
+      if (ptr!=NULL&&ptr<currtop) {
+	origarraycount--;
+	origblockarray[i]=NULL;
+	send_msg_1(i,GCGRANTBLOCK);
+      }
+    }
+  }
+}
+
 void updatehelper(struct moveHelper * orig,struct moveHelper * to) {
   while(true) {
-    unsigned int minimumbytes=updateblocks(orig, to);
+    void *dstptr=updateblocks(orig, to);
+    if (dstptr) {
+      //need more memory to compact into
+      block_t blockindex;
+      BLOCKINDEX(blockindex, dstptr);
+      unsigned int corenum;
+      BLOCK2CORE(corenum, blockindex);
+      to->base=OFFSET2BASEVA(blockindex)+gcbaseva;
+      to->bound=BOUNDPTR(blockindex)+gcbaseva;
+      if (corenum!=BAMBOO_NUM_OF_CORE) {
+	//we have someone elses memory...need to ask to use it
+	//first set flag to false
+	blockgranted=false;
+	send_msg_3(corenum,GCREQBLOCK, BAMBOO_NUM_OF_CORE, to->bound);
+	//wait for permission
+	while(!blockgranted)
+	  ;
+      }
+    }
     if (orig->ptr==orig->bound) {
+      //inform others that we are done with previous block
+      updateOrigPtr(orig->bound);
+
       //need more data to compact
       //increment the core
       orig->localblocknum++;
       BASEPTR(orig->base,BAMBOO_NUM_OF_CORE, orig->localblocknum);
+      update_origblockptr=orig->base;
       orig->ptr=orig->base;
       orig->bound = orig->base + BLOCKSIZE(orig->localblocknum);
       if (orig->base >= gcbaseva+BAMBOO_SHARED_MEM_SIZE)
 	break;
-    }
-    if (minimumbytes!=0) {
-      getSpace(to, minimumbytes);
     }
   }
 }

@@ -44,8 +44,10 @@ int msgsizearray[] = {
   5, //GCMARKREPORT,          // 0xEe
   2, //GCMARKEDOBJ,           // 0xEf
   2, //GCMOVESTART,           // 0xF0
-  1, //GCLOBJREQUEST,         // 0xF1   
- -1, //GCLOBJINFO,            // 0xF2
+  1, //GCLOBJREQUEST,         // 0xF1
+  3, //GCREQBLOCK,
+  1, //GCGRANTBLOCK,  
+  -1, //GCLOBJINFO,            // 0xF2
 #ifdef GC_PROFILE
   4, //GCPROFILES,            // 0xF3
 #endif // GC_PROFILE
@@ -469,6 +471,30 @@ INLINE void processmsg_gcfinishinit_I() {
     gccorestatus[data1] = 0;
   }
 }
+
+INLINE void processmsg_reqblock_I() {
+  int cnum=msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  void * topptr=msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  if (topptr<=update_origblockptr) {
+    //send message
+    if(BAMBOO_CHECK_SEND_MODE()) {
+      cache_msg_1_I(cnum,GCGRANTBLOCK);
+    } else {
+      send_msg_1_I(cnum,GCGRANTBLOCK);
+    }
+  } else {
+    //store message
+    origblockarray[cnum]=topptr;
+    origarraycount++;
+  }
+}
+
+INLINE void processmsg_grantblock_I() {
+  blockgranted=true;
+}
+
 
 INLINE void processmsg_gcfinishmark_I() {
   int data1 = msgdata[msgdataindex];
@@ -964,6 +990,16 @@ processmsg:
       transferMarkResults_I();
       break;
     } 
+
+    case GCREQBLOCK: {
+      processmsg_reqblock_I();
+      break;
+    }
+
+    case GCGRANTBLOCK: {
+      processmsg_grantblock_I();
+      break;
+    }
 
     case GCLOBJINFO: {
       // received a large objs info response msg

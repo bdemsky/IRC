@@ -5,7 +5,6 @@
 
 INLINE void gettype_size(void * ptr, int * ttype, unsigned int * tsize);
 INLINE bool isLarge(void * ptr, int * ttype, unsigned int * tsize);
-INLINE unsigned int hostcore(void * ptr);
 INLINE void markgarbagelist(struct garbagelist * listptr);
 INLINE void tomark(struct garbagelist * stackptr);
 INLINE void scanPtrsInObj(void * ptr, int type);

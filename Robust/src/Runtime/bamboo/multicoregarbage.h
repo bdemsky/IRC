@@ -7,11 +7,11 @@
 #include "structdefs.h"
 #include "multicoregcprofile.h"
 
-#ifdef GC_DEBUG
+//#ifdef GC_DEBUG
 #define GC_PRINTF tprintf
-#else
-#define GC_PRINTF if(0) tprintf
-#endif 
+//#else
+//#define GC_PRINTF if(0) tprintf
+//#endif 
 
 // data structures for GC
 #define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE * 2)
@@ -85,6 +85,13 @@ volatile bool gctomove;
 volatile unsigned int maxusefulmems[NUMCORES4GC]; //record pending mem requests
 volatile unsigned int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
 volatile unsigned int gcmovepending;
+
+//keep track of current base block pointer for orig block
+volatile void * update_origblockptr;
+volatile void * origblockarray[NUMCORES4GC];
+volatile int origarraycount;
+volatile bool blockgranted;
+
 
 // shared memory pointer for pointer mapping tbls
 // In GC version, this block of memory is located at the bottom of the 
@@ -204,6 +211,14 @@ unsigned int size_cachepolicytbl;
       BLOCKINDEX(b, p);		      \
       c = gc_block2core[(b%(NUMCORES4GC*2))]; \
     } \
+  }
+
+#define BLOCK2CORE(c, b) {			\
+    if(1 == (NUMCORES4GC)) {			\
+      c = 0;					\
+    } else {					\
+      c = gc_block2core[(b%(NUMCORES4GC*2))];	\
+    }						\
   }
 
 INLINE static unsigned int hostcore(void * ptr) {
