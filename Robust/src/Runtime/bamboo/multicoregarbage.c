@@ -151,25 +151,6 @@ void initGC() {
   gc_output_cache_policy_time=0;
 } 
 
-bool gc_checkAllCoreStatus() {
-  for(int i = 0; i < NUMCORESACTIVE; i++) {
-    if(gccorestatus[i] != 0) {
-      return false;
-    }  
-  }  
-  return true;
-}
-
-// NOTE: should be invoked with interrupts turned off
-bool gc_checkAllCoreStatus_I() {
-  for(int i = 0; i < NUMCORESACTIVE; i++) {
-    if(gccorestatus[i] != 0) {
-      return false;
-    }  
-  }  
-  return true;
-}
-
 void checkMarkStatus_p2() {
   // check if the sum of send objs and receive obj are the same
   // yes->check if the info is the latest; no->go on executing
@@ -227,7 +208,7 @@ void checkMarkStatus() {
     gcnumsendobjs[entry_index][BAMBOO_NUM_OF_CORE] = gcself_numsendobjs;
     gcnumreceiveobjs[entry_index][BAMBOO_NUM_OF_CORE] = gcself_numreceiveobjs;
     // check the status of all cores
-    if (gc_checkAllCoreStatus_I()) {
+    if (gc_checkCoreStatus()) {
       // ask for confirm
       if(!waitconfirm) {
         // the first time found all cores stall
@@ -518,7 +499,7 @@ bool gc(struct garbagelist * stackptr) {
   if(0 == BAMBOO_NUM_OF_CORE) {
     GC_PRINTF("Check if we can do gc or not\n");
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-    if(!gc_checkAllCoreStatus()) {
+    if(!gc_checkCoreStatus()) {
       // some of the cores are still executing the mutator and did not reach
       // some gc safe point, therefore it is not ready to do gc
       gcflag = true;

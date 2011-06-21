@@ -36,7 +36,7 @@ int msgsizearray[] = {
   4, //GCFINISHPRE,           // 0xE7
   2, //GCFINISHINIT,          // 0xE8
   4, //GCFINISHMARK,          // 0xE9
-  3, //GCFINISHCOMPACT,       // 0xEa
+  4, //GCFINISHCOMPACT,       // 0xEa
   3, //GCRETURNMEM,
   2, //GCFINISHUPDATE,         // 0xEb
   1, //GCFINISH,              // 0xEc
@@ -353,14 +353,13 @@ INLINE void processmsg_memrequest_I() {
   MSG_INDEXINC_I();
   // receive a shared memory request msg
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
-  int allocsize = 0;
-  void * mem = NULL;
 #ifdef MULTICORE_GC
   if(!gc_status_info.gcprocessing || !gcflag) {
     // either not doing GC or the master core has decided to stop GC but 
     // // still sending msgs to other cores to inform them to stop the GC
 #endif
-    mem = smemalloc_I(data2, data1, &allocsize);
+    int allocsize = 0;
+    void * mem = smemalloc_I(data2, data1, &allocsize);
     if(mem != NULL) {
       // send the start_va to request core, cache the msg first
       if(BAMBOO_CHECK_SEND_MODE()) {
@@ -506,6 +505,9 @@ void processmsg_returnmem_I() {
   BLOCKINDEX(blockindex, heaptop);
   unsigned INTPTR localblocknum=GLOBALBLOCK2LOCAL(blockindex);
 
+  //this core is done as far as memory usage is concerned
+  returnedmem[cnum]=0;
+
   struct blockrecord * blockrecord=&allocationinfo.blocktable[blockindex];
 
   blockrecord->status=BS_FREE;
@@ -537,10 +539,12 @@ INLINE void processmsg_gcfinishcompact_I() {
   MSG_INDEXINC_I();  
   unsigned int bytesneeded = msgdata[msgdataindex];
   MSG_INDEXINC_I(); 
+  unsigned int maxbytesneeded = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
 
   if(bytesneeded > 0) {
     // ask for more mem
-    void * startaddr = gcfindSpareMem_I(bytesneeded, cnum);
+    void * startaddr = gcfindSpareMem_I(bytesneeded, maxbytesneeded, cnum);
     if(startaddr) {
       // cache the msg first
       if(BAMBOO_CHECK_SEND_MODE()) {
@@ -548,6 +552,9 @@ INLINE void processmsg_gcfinishcompact_I() {
       } else {
 	send_msg_2_I(cnum,GCMOVESTART,startaddr);
       }
+    } else {
+      maxusefulmems[cnum]=maxbytesneeded;
+      gcrequiredmems[cnum]=bytesneeded;
     }
   } else {
     //done with compacting

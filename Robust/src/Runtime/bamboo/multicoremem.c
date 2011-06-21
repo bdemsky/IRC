@@ -16,44 +16,14 @@ INLINE void * mallocmem(int tofindb,
   return mem;
 }
 
-// 06/07/11 add a parameter minremain, it specifies the minimum number of 
-// blocks to leave for each core for local allocation. 
-INLINE void * searchBlock4Mem(int* tofindb, 
-                              int* totest,
-                              int gccorenum,
-                              int isize,
-                              int * allocsize,
-                              int minremain) {
-
-  return NULL;
-}
-
-INLINE void * searchBlock4Mem_global(int* tofindb, 
-                                     int* totest,
-                                     int isize,
-                                     int * allocsize) {
-
-  return NULL;
-}
-
 // Only allocate local mem chunks to each core.
 // If a core has used up its local shared memory, start gc.
 void * localmalloc_I(int coren,
                      int isize,
                      int * allocsize) {
-  void * mem=NULL;
-  int gccorenum=(coren<NUMCORES4GC)?(coren):(coren%NUMCORES4GC);
-  int tofindb=gc_core2block[2*gccorenum];
-  int totest=tofindb;
-  mem=searchBlock4Mem(&tofindb,&totest,gccorenum,isize,allocsize,0);
-  if(mem==NULL) {
-    // no more local mem, do not find suitable block
-    *allocsize=0;
-  }
+  void * mem=globalmalloc_I(coren,isize,allocsize);
   return mem;
 } 
-
-#define LOCALMEMRESERVATION 2
 
 #ifdef SMEMF
 // Allocate the local shared memory to each core with the highest priority,
@@ -62,27 +32,8 @@ void * localmalloc_I(int coren,
 void * fixedmalloc_I(int coren,
                      int isize,
                      int * allocsize) {
-  void * mem;
-  int k;
-  int gccorenum=(coren<NUMCORES4GC)?(coren):(coren%NUMCORES4GC);
-  int totest,tofindb;
-  int bound=BAMBOO_SMEM_SIZE_L;
-  int foundsmem=0;
-  int size=0;
-  for(k=0;k<NUM_CORES2TEST;k++) {
-    if(core2test[gccorenum][k]==-1) {
-      // try next neighbour
-      continue;
-    }
-    tofindb=totest=gc_core2block[2*core2test[gccorenum][k]];
-    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],isize,allocsize,(k==0)?0:((GCNUMBLOCK/NUMCORES4GC)>>LOCALMEMRESERVATION));
-    if(mem!=NULL) {
-      return mem;
-    }
-  }
-  // no more memory available on either coren or its neighbour cores
-  *allocsize=0;
-  return NULL;
+  void * mem=globalmalloc_I(coren,isize,allocsize);
+  return mem;
 } 
 #endif 
 
@@ -96,34 +47,35 @@ void * fixedmalloc_I(int coren,
 void * mixedmalloc_I(int coren,
                      int isize,
                      int * allocsize) {
-  void * mem;
-  int k;
-  int gccorenum=(coren<NUMCORES4GC)?(coren):(coren%NUMCORES4GC);
-  int totest,tofindb;
-  int size=0;
-  for(k=0;k<NUM_CORES2TEST;k++) {
-    if(core2test[gccorenum][k]==-1) {
-      // try next neighbour
-      continue;
-    }
-    tofindb=totest=gc_core2block[2*core2test[gccorenum][k]];
-    mem=searchBlock4Mem(&tofindb,&totest,core2test[gccorenum][k],isize,allocsize,(k==0)?0:((GCNUMBLOCK/NUMCORES4GC)>>LOCALMEMRESERVATION));
-    if(mem!=NULL) {
-      return mem;
-    }
-  }
-
-  // try allocate globally
-  mem=globalmalloc_I(coren,isize,allocsize);
+  void * mem=globalmalloc_I(coren,isize,allocsize);
   return mem;
 } 
 #endif 
 
 // Allocate all the memory chunks globally, do not consider the host cores
 // When all the shared memory are used up, start gc.
-void * globalmalloc_I(int coren,
-                      int isize,
-                      int * allocsize) {
+void * globalmalloc_I(int coren, unsigned INTPTR memcheck, int * allocsize) {
+  block_t firstfree=NOFREEBLOCK;
+  block_t lowestblock=allocationinfo.lowestfreeblock;
+  for(block_t searchblock=lowestblock;searchblock<GCNUMBLOCK;searchblock++) {
+    struct blockrecord * block=&allocationinfo.blocktable[searchblock];
+    if (block->status==BS_FREE) {
+      if(firstfree==NOFREEBLOCK)
+	firstfree=searchblock;
+      unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
+      if (freespace>=memcheck) {
+	//we have a block
+	//mark block as used
+	block->status=BS_USED;
+	void *blockptr=OFFSET2BASEVA(searchblock)+gcbaseva;
+	unsigned INTPTR usedspace=((block->usedspace-1)&~BAMBOO_CACHE_LINE_MASK)+BAMBOO_CACHE_LINE_SIZE;
+	allocationinfo.lowestfreeblock=firstfree;
+	void *startaddr=blockptr+usedspace;
+	*allocsize=freespace;
+	return startaddr;
+      }
+    }
+  }
   return NULL;
 } 
 
@@ -149,7 +101,6 @@ void * smemalloc_I(int coren, int isize, int * allocsize) {
   if(mem == NULL) {
     // no enough shared global memory
     // trigger gc
-    *allocsize = 0;
     if(!gcflag) {
       gcflag = true;
       if(!gc_status_info.gcprocessing) {

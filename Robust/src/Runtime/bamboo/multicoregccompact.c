@@ -8,27 +8,12 @@
 
 int gc_countRunningCores() {
   int count=0;
-  for(int i = 0; i < NUMCORES4GC; ++i) {
-    if(gccorestatus[i] != 0) {
+  for(int i = 0; i < NUMCORES4GC; i++) {
+    if(returnedmem[i]) {
       count++;
     }
   }
   return count;
-}
-
-bool gc_checkCoreStatus() {
-  for(int i = 0; i < NUMCORES4GC; ++i) {
-    if(gccorestatus[i] != 0) {
-      return false;
-    }
-  }  
-  return true;
-}
-
-void gc_resetCoreStatus() {
-  for(int i = 0; i < NUMCORES4GC; ++i) {
-    gccorestatus[i] = 1;
-  }
 }
 
 void initOrig_Dst(struct moveHelper * orig,struct moveHelper * to) {
@@ -57,7 +42,7 @@ void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes) {
   //set flag to wait for memory
   gctomove=false;
   //send request for memory
-  send_msg_3(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, minimumbytes);
+  send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, minimumbytes, gccurr_heaptop);
   //wait for flag to be set that we received message
   while(!gctomove) ;
 
@@ -107,11 +92,14 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
     }
   }
   
-  send_msg_3(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, 0);
+  send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, 0, 0);
 }
 
-void * checkNeighbors(int corenum, unsigned INTPTR requiredmem) {
+void * checkNeighbors_I(int corenum, unsigned INTPTR requiredmem, unsigned INTPTR desiredmem) {
   int minblockindex=allocationinfo.lowestfreeblock/NUMCORES4GC;
+  unsigned INTPTR threshold=(desiredmem<MINMEMORYCHUNKSIZE)? desiredmem: MINMEMORYCHUNKSIZE;
+  unsigned INTPTR memcheck=requiredmem>threshold?requiredmem:threshold;
+
   for(int i=0;i<NUM_CORES2TEST;i++) {
     int neighborcore=core2test[corenum][i];
     if (neighborcore!=-1) {
@@ -120,7 +108,7 @@ void * checkNeighbors(int corenum, unsigned INTPTR requiredmem) {
 	struct blockrecord * block=&allocationinfo.blocktable[globalblockindex];
 	if (block->status==BS_FREE) {
 	  unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
-	  if (requiredmem<freespace) {
+	  if (memcheck<=freespace) {
 	    //we have a block
 	    //mark block as used
 	    block->status=BS_USED;
@@ -135,15 +123,18 @@ void * checkNeighbors(int corenum, unsigned INTPTR requiredmem) {
   return NULL;
 }
 
-void * globalSearch(unsigned int topblock, unsigned INTPTR requiredmem) {
+void * globalSearch_I(unsigned int topblock, unsigned INTPTR requiredmem, unsigned INTPTR desiredmem) {
   unsigned int firstfree=NOFREEBLOCK;
+  unsigned INTPTR threshold=(desiredmem<MINMEMORYCHUNKSIZE)? desiredmem: MINMEMORYCHUNKSIZE;
+  unsigned INTPTR memcheck=requiredmem>threshold?requiredmem:threshold;
+
   for(block_t i=allocationinfo.lowestfreeblock;i<topblock;i++) {
     struct blockrecord * block=&allocationinfo.blocktable[i];
     if (block->status==BS_FREE) {
       if(firstfree==NOFREEBLOCK)
 	firstfree=i;
       unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
-      if (requiredmem<freespace) {
+      if (memcheck<=freespace) {
 	//we have a block
 	//mark block as used
 	block->status=BS_USED;
@@ -158,17 +149,69 @@ void * globalSearch(unsigned int topblock, unsigned INTPTR requiredmem) {
   return NULL;
 }
 
+void handleOneMemoryRequest(int core, unsigned int lowestblock) {
+  unsigned INTPTR requiredmem=gcrequiredmems[core];
+  unsigned INTPTR desiredmem=maxusefulmems[core];
+  block_t firstfree=NOFREEBLOCK;
+  unsigned INTPTR threshold=(desiredmem<MINMEMORYCHUNKSIZE)? desiredmem: MINMEMORYCHUNKSIZE;
+  unsigned INTPTR memcheck=requiredmem>threshold?requiredmem:threshold;
+
+  for(block_t searchblock=lowestblock;searchblock<GCNUMBLOCK;searchblock++) {
+    struct blockrecord * block=&allocationinfo.blocktable[searchblock];
+    if (block->status==BS_FREE) {
+      if(firstfree==NOFREEBLOCK)
+	firstfree=searchblock;
+      unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
+      if (freespace>=memcheck) {
+	//TODO: should check memory block at same level on our own core...if that works, use it to preserve locality
+
+	//we have a block
+	//mark block as used
+	block->status=BS_USED;
+	void *blockptr=OFFSET2BASEVA(searchblock)+gcbaseva;
+	unsigned INTPTR usedspace=((block->usedspace-1)&~BAMBOO_CACHE_LINE_MASK)+BAMBOO_CACHE_LINE_SIZE;
+	allocationinfo.lowestfreeblock=firstfree;
+	//taken care of one block
+	gcmovepending--;
+	void *startaddr=blockptr+usedspace;
+	if(BAMBOO_CHECK_SEND_MODE()) {
+	  cache_msg_2_I(core,GCMOVESTART,startaddr);
+	} else {
+	  send_msg_2_I(core,GCMOVESTART,startaddr);
+	}
+	return;
+      }
+    }
+  }
+  //this is bad...ran out of memory
+  BAMBOO_EXIT();
+}
+
+void handleMemoryRequests_I() {
+  unsigned int lowestblock=allocationinfo.lowestfreeblock;
+  if (lowestblock==NOFREEBLOCK) {
+    lowestblock=numblockspercore*NUMCORES4GC;
+  }
+  
+  for(int i=0;i < NUMCORES4GC; i++) {
+    if (gcrequiredmems[i]) {
+      handleOneMemoryRequest(i, lowestblock);
+      lowestblock=allocationinfo.lowestfreeblock;
+    }
+  }
+}
+
 /* should be invoked with interrupt turned off */
 
-void * gcfindSpareMem_I(unsigned INTPTR requiredmem,unsigned int requiredcore) {
+void * gcfindSpareMem_I(unsigned INTPTR requiredmem, unsigned INTPTR desiredmem,unsigned int requiredcore) {
   if (allocationinfo.lowestfreeblock!=NOFREEBLOCK) {
     //There are spare blocks
     unsigned int topblock=numblockspercore*NUMCORES4GC;
     void *memblock;
     
-    if (memblock=checkNeighbors(requiredcore, requiredmem)) {
+    if (memblock=checkNeighbors_I(requiredcore, requiredmem, desiredmem)) {
       return memblock;
-    } else if (memblock=globalSearch(topblock, requiredmem)) {
+    } else if (memblock=globalSearch_I(topblock, requiredmem, desiredmem)) {
       return memblock;
     }
   }
@@ -180,18 +223,11 @@ void * gcfindSpareMem_I(unsigned INTPTR requiredmem,unsigned int requiredcore) {
   int count=gc_countRunningCores();
   if (gcmovepending==count) {
     // All cores have stopped...hand out memory as necessary to handle all requests
-    
+    handleMemoryRequests_I();
   }
 
   return NULL;
 } 
-
-bool gcfindSpareMem(unsigned int requiredmem,unsigned int requiredcore) {
-  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  bool retval=gcfindSpareMem_I(requiredmem, requiredcore);
-  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-  return retval;
-}
 
 /* This function is performance critical...  spend more time optimizing it */
 
@@ -246,7 +282,6 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 
 void compact() {
   BAMBOO_ASSERT(COMPACTPHASE == gc_status_info.gcphase);
-  BAMBOO_CACHE_MF();
   
   // initialize structs for compacting
   struct moveHelper orig={0,NULL,NULL,0,NULL,0,0,0,0};
@@ -287,6 +322,7 @@ void master_compact() {
     // init some data strutures for compact phase
     gcrequiredmems[i] = 0;
     gccorestatus[i] = 1;
+    returnedmem[i] = 1;
     //send start compact messages to all cores
     if(i != STARTUPCORE) {
       send_msg_2(i, GCSTARTCOMPACT, numblockspercore);
@@ -294,7 +330,6 @@ void master_compact() {
       gcblock2fill = numblockspercore;
     }
   }
-  BAMBOO_CACHE_MF();
   GCPROFILE_ITEM();
   // compact phase
   compact();
@@ -304,6 +339,10 @@ void master_compact() {
     ;
 
   GCPROFILE_ITEM();
+
+  //just in case we didn't get blocks back...
+  if (allocationinfo.lowestfreeblock=NOFREEBLOCK)
+    allocationinfo.lowestfreeblock=numblockspercore*NUMCORES4GC;
 
   GC_PRINTF("compact phase finished \n");
 }

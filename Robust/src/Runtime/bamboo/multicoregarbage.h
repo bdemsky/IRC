@@ -49,6 +49,10 @@ struct MGCHash * gcforwardobjtbl; // cache forwarded objs in mark phase
 volatile unsigned int gccorestatus[NUMCORESACTIVE];//records status of each core
                                                    // 1: running gc
                                                    // 0: stall
+
+volatile unsigned int returnedmem[NUMCORESACTIVE];//records status of each core
+                                                   // 1: running gc
+                                                   // 0: stall
 volatile unsigned int gcnumsendobjs[2][NUMCORESACTIVE];//# of objects sent out
 volatile unsigned int gcnumreceiveobjs[2][NUMCORESACTIVE];//# of objects received
 volatile unsigned int gcnumsrobjs_index;//indicates which entry to record the  
@@ -78,7 +82,8 @@ volatile unsigned int gcmovestartaddr;
 volatile bool gctomove;
 
 //keeps track of memory request master was not able to serve
-unsigned int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
+volatile unsigned int maxusefulmems[NUMCORES4GC]; //record pending mem requests
+volatile unsigned int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
 volatile unsigned int gcmovepending;
 
 // shared memory pointer for pointer mapping tbls
@@ -96,6 +101,22 @@ unsigned int bamboo_rmsp_size;
 unsigned int * gcmarktbl;
 
 void * gcbaseva; // base va for shared memory without reserved sblocks
+
+static bool gc_checkCoreStatus() {
+  for(int i = 0; i < NUMCORES4GC; i++) {
+    if(gccorestatus[i]) {
+      return false;
+    }
+  }  
+  return true;
+}
+
+static void gc_resetCoreStatus() {
+  for(int i = 0; i < NUMCORES4GC; i++) {
+    gccorestatus[i] = 1;
+  }
+}
+
 
 /* Structure to keep track of free space in block */
 enum blockstatus {
@@ -140,6 +161,10 @@ unsigned int size_cachepolicytbl;
 
 #define GCNUMBLOCK (NUMCORES4GC+(BAMBOO_SHARED_MEM_SIZE-BAMBOO_LARGE_SMEM_BOUND)/BAMBOO_SMEM_SIZE)
 #define GCNUMLOCALBLOCK (GCNUMBLOCK/NUMCORES4GC)
+
+/* This macro defines the smallest memoy chunk the master will hand out to another core during compacting */
+
+#define MINMEMORYCHUNKSIZE 32768
 
 /* This macro waits for the given gc phase */
 #define WAITFORGCPHASE(phase) while(gc_status_info.gcphase != phase) ;
@@ -240,7 +265,7 @@ INLINE static unsigned int hostcore(void * ptr) {
   { \
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0; \
     while(f) { \
-      if(gc_checkAllCoreStatus()) { \
+      if(gc_checkCoreStatus()) { \
         break; \
       } \
     } \
@@ -261,7 +286,6 @@ INLINE static unsigned int hostcore(void * ptr) {
 
 void initmulticoregcdata();
 void dismulticoregcdata();
-bool gc_checkAllCoreStatus();
 bool gc(struct garbagelist * stackptr); // core coordinator routine
 void gc_collect(struct garbagelist* stackptr); //core collector routine
 void gc_nocollect(struct garbagelist* stackptr); //non-gc core collector routine
@@ -274,7 +298,7 @@ void gc_master(struct garbagelist * stackptr);
 
 
 void transferMarkResults_I();
-void * gcfindSpareMem_I(unsigned int requiredmem,unsigned int requiredcore);
+void * gcfindSpareMem_I(unsigned INTPTR requiredmem, unsigned INTPTR maxbytesneeded, unsigned int requiredcore);
 
 #define INITMULTICOREGCDATA() initmulticoregcdata()
 #define DISMULTICOREGCDATA() dismulticoregcdata()
