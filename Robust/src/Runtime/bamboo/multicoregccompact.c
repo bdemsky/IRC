@@ -51,11 +51,11 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
   struct blockrecord * blockrecord=&allocationinfo.blocktable[blockindex];
 
   blockrecord->status=BS_FREE;
-  blockrecord->usedspace=(unsigned INTPTR)(heaptop-OFFSET2BASEVA(blockindex));
+  blockrecord->usedspace=(unsigned INTPTR)(heaptop-OFFSET2BASEVA(blockindex)-gcbaseva);
   blockrecord->freespace=BLOCKSIZE(localblocknum)-blockrecord->usedspace;
   /* Update the lowest free block */
   if (blockindex < allocationinfo.lowestfreeblock) {
-    blockindex=allocationinfo.lowestfreeblock;
+    allocationinfo.lowestfreeblock=blockindex;
   }
 
   /* This is our own block...means we should mark other blocks above us as free*/
@@ -412,7 +412,7 @@ void master_compact() {
   GCPROFILE_ITEM();
 
   //just in case we didn't get blocks back...
-  if (allocationinfo.lowestfreeblock=NOFREEBLOCK)
+  if (allocationinfo.lowestfreeblock==NOFREEBLOCK)
     allocationinfo.lowestfreeblock=numblockspercore*NUMCORES4GC;
 
   GC_PRINTF("compact phase finished \n");
