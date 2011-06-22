@@ -534,19 +534,12 @@ void processmsg_returnmem_I() {
 void * handlegcfinishcompact_I(int cnum, unsigned int bytesneeded, unsigned int maxbytesneeded) {
   if(bytesneeded > 0) {
     // ask for more mem
-    void * startaddr = gcfindSpareMem_I(bytesneeded, maxbytesneeded, cnum);
-    if(startaddr) {
-      // cache the msg first
-      return startaddr;
-    } else {
-      maxusefulmems[cnum]=maxbytesneeded;
-      gcrequiredmems[cnum]=bytesneeded;
-    }
+    return gcfindSpareMem_I(bytesneeded, maxbytesneeded, cnum);
   } else {
     //done with compacting
     gccorestatus[cnum] = 0;
+    return NULL;
   }
-  return NULL;
 }
 
 void processmsg_gcfinishcompact_I() {

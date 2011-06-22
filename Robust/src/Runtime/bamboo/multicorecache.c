@@ -154,7 +154,7 @@ void cacheAdapt_policy_dominate(int coren){
         // use hfh
         //policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
         unsigned int block = 0;
-        BLOCKINDEX(page_sva, &block);
+        BLOCKINDEX(block, (void *) page_sva);
         unsigned int coren = gc_block2core[block%(NUMCORES4GC*2)];
         CACHEADAPT_POLICY_SET_HOST_CORE(policy, coren);
       } else {

@@ -44,6 +44,7 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
   unsigned int blockindex;
   BLOCKINDEX(blockindex, heaptop);
   unsigned INTPTR localblocknum=GLOBALBLOCK2LOCAL(blockindex);
+  tprintf("Returned mem for core %d\n", cnum);
 
   //this core is done as far as memory usage is concerned
   returnedmem[cnum]=0;
@@ -93,15 +94,21 @@ void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes) {
     } else {
       while(!gctomove) ;
     }
-    printf("B: %d\n", BAMBOO_NUM_OF_CORE);
+    printf("BX: %d\n", BAMBOO_NUM_OF_CORE);
   } else {
-    printf("C: %d\n", BAMBOO_NUM_OF_CORE);
+    printf("CX: %d\n", BAMBOO_NUM_OF_CORE);
     gctomove=false;
     //send request for memory
     send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, minimumbytes, gccurr_heaptop);
     //wait for flag to be set that we received message
-    while(!gctomove) ;
-    printf("D: %d\n", BAMBOO_NUM_OF_CORE);
+    printf("XD: %d\n", BAMBOO_NUM_OF_CORE);
+    int cc=0;
+    while(!gctomove) {
+      cc++;
+      if ((cc%100000)==0)
+	printf("Z");
+    }
+    printf("DD: %d\n", BAMBOO_NUM_OF_CORE);
   }
 
   //store pointer
@@ -129,6 +136,8 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
   while(true) {
     if ((gccurr_heaptop < ((unsigned INTPTR)(to->bound-to->ptr)))&&!senttopmessage) {
       //This block is the last for this core...let the startup know
+      printf("gchtp=%u tobound=%x toptr=%x\n", gccurr_heaptop, to->bound, to->ptr);
+      printf("Sending return %d\n", BAMBOO_NUM_OF_CORE);
       if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
 	handleReturnMem(BAMBOO_NUM_OF_CORE, to->ptr+gccurr_heaptop);
       } else {
@@ -138,6 +147,7 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
       senttopmessage=true;
     }
     unsigned int minimumbytes=compactblocks(orig, to);
+    printf("optr=%x obound=%x\n",orig->ptr, orig->bound);
     if (orig->ptr==orig->bound) {
       //need more data to compact
       //increment the core
@@ -149,6 +159,7 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
 	break;
     }
     if (minimumbytes!=0) {
+      printf("%d needs %u bytes.\n",BAMBOO_NUM_OF_CORE,minimumbytes);
       getSpace(to, minimumbytes);
     }
   }
@@ -160,7 +171,6 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
   } else {
     send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, 0, 0);
   }
-
 }
 
 void * checkNeighbors_I(int corenum, unsigned INTPTR requiredmem, unsigned INTPTR desiredmem) {
@@ -286,6 +296,7 @@ void * gcfindSpareMem_I(unsigned INTPTR requiredmem, unsigned INTPTR desiredmem,
   
   // If we cannot find spare mem right now, hold the request
   gcrequiredmems[requiredcore] = requiredmem;
+  maxusefulmems[requiredcore]=desiredmem;
   gcmovepending++;
 
   int count=gc_countRunningCores();
@@ -307,7 +318,6 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
   void *origbound=orig->bound;
   unsigned INTPTR origendoffset=ALIGNTOTABLEINDEX((unsigned INTPTR)(origbound-gcbaseva));
   unsigned int objlength;
-
   while(origptr<origbound) {
     //Try to skip over stuff fast first
     unsigned INTPTR offset=(unsigned INTPTR) (origptr-gcbaseva);
@@ -346,6 +356,9 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
     } else
       origptr+=ALIGNMENTSIZE;
   }
+  to->ptr=toptr;
+  orig->ptr=origptr;
+  return 0;
 }
 
 void compact() {
@@ -403,6 +416,7 @@ void master_compact() {
   compact();
   /* wait for all cores to finish compacting */
   tprintf("MASTER WAITING\n");
+  
 
   while(!gc_checkCoreStatus())
     ;
