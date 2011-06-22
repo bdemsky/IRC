@@ -1,5 +1,5 @@
 @LATTICE("testL<testM,testM<testH")
-@METHODDEFAULT("methodL<methodH,methodH<methodT,THISLOC=methodT,GLOBALLOC=methodT")
+@METHODDEFAULT("methodL<methodH,methodH<methodT,methodH<methodC,methodC*,THISLOC=methodT,GLOBALLOC=methodT")
 public class test{
 
     @LOC("testH") int fieldH;
@@ -13,7 +13,13 @@ public class test{
 
     public static void main (@LOC("methodH") String args[]){       
 	@LOC("methodH") test t=new test();
-	t.doit();
+	
+	@LOC("methodC") int i=0;
+	SSJAVA:
+	while(i<100){
+	    t.doit();
+	    i++;
+	}
     }
     
     public void doit(){
@@ -171,13 +177,15 @@ class Foo{
 	b=a; // value flows from [fm_H,FA] to [fm_H,FB]
     }
 
-    // callee has a constraint that arg1 is higher than arg2
+    // callee has a constraint that arg1 is higher than arg2    
+    @RETURNLOC("fm_L")
     public int doSomethingArgs(@LOC("fm_H")int argH,
 			       @LOC("fm_M1")int argL){	
 	@LOC("fm_L") int value=argL+argH+50;
 	return value;
     }
 
+    @RETURNLOC("fm_M1")
     public int doSomethingRtn(){
 	return a+b; // going to return LOC[local.t,field.FB]
     }
@@ -189,7 +197,8 @@ class Foo{
 	@LOC("L") int result=param1+param2;
     }
     
-    @LATTICE("M<H,X<H")
+    @RETURNLOC("M")
+    @LATTICE("M<H,X<H,THISLOC=H")
     public int callerConstraints(@LOC("H") int param1, @LOC("M") int param2){
 
 	@LOC("X") int returnValue=100;
