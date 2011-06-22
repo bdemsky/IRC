@@ -1,26 +1,41 @@
 package Analysis.Loops;
 
-import IR.Flat.*;
-import IR.TypeUtil;
-import IR.MethodDescriptor;
-import IR.Operation;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-import java.util.Iterator;
-import java.util.Hashtable;
+
+import IR.Operation;
+import IR.TypeUtil;
+import IR.Flat.FlatMethod;
+import IR.Flat.FlatNode;
+import IR.Flat.FlatOpNode;
+import IR.Flat.TempDescriptor;
+import IR.Flat.TempMap;
 
 public class LoopOptimize {
-  LoopInvariant loopinv;
+  private LoopInvariant loopinv;
+  private GlobalFieldType gft;
+  private TypeUtil typeutil;
+  private Map<FlatMethod, LoopInvariant> fm2loopinv;
+  
+  private Hashtable<FlatNode, FlatNode> ntoomap;
+  private Hashtable<FlatNode, FlatNode> clonemap;
+  private Hashtable<FlatNode, FlatNode> map;
+  
   public LoopOptimize(GlobalFieldType gft, TypeUtil typeutil) {
-    loopinv=new LoopInvariant(typeutil,gft);
+    this.gft = gft;
+    this.typeutil = typeutil;
+    fm2loopinv = new HashMap<FlatMethod, LoopInvariant>();
   }
-  Hashtable<FlatNode, FlatNode> ntoomap;
-  Hashtable<FlatNode, FlatNode> clonemap;
-  Hashtable<FlatNode, FlatNode> map;
 
   public void optimize(FlatMethod fm) {
+    loopinv = new LoopInvariant(typeutil, gft);
     loopinv.analyze(fm);
+    fm2loopinv.put(fm, loopinv);
+    
     ntoomap=new Hashtable<FlatNode, FlatNode>();
     map=new Hashtable<FlatNode, FlatNode>();
     clonemap=new Hashtable<FlatNode, FlatNode>();
@@ -239,5 +254,9 @@ public class LoopOptimize {
         nfn.replace(fon);
       }
     }
+  }
+  
+  public LoopInvariant getLoopInvariant(FlatMethod fm){
+    return fm2loopinv.get(fm);
   }
 }

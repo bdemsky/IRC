@@ -6,11 +6,14 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import Analysis.Loops.LoopOptimize;
+import Analysis.Loops.LoopTerminate;
 import IR.AnnotationDescriptor;
 import IR.ClassDescriptor;
 import IR.MethodDescriptor;
 import IR.State;
 import IR.TypeUtil;
+import IR.Flat.FlatMethod;
 
 public class SSJavaAnalysis {
 
@@ -22,6 +25,8 @@ public class SSJavaAnalysis {
   public static final String RETURNLOC = "RETURNLOC";
   public static final String LOC = "LOC";
   public static final String DELTA = "DELTA";
+  public static final String TERMINATE = "TERMINATE";
+
   State state;
   TypeUtil tu;
   FlowDownCheck flowDownChecker;
@@ -39,6 +44,9 @@ public class SSJavaAnalysis {
   // method -> local variable lattice
   Hashtable<MethodDescriptor, MethodLattice<String>> md2lattice;
 
+  // method set that does not have loop termination analysis
+  Hashtable<MethodDescriptor, Integer> skipLoopTerminate;
+
   public SSJavaAnalysis(State state, TypeUtil tu) {
     this.state = state;
     this.tu = tu;
@@ -46,13 +54,14 @@ public class SSJavaAnalysis {
     this.cd2methodDefault = new Hashtable<ClassDescriptor, MethodLattice<String>>();
     this.md2lattice = new Hashtable<MethodDescriptor, MethodLattice<String>>();
     this.md2needAnnotation = new Hashtable<MethodDescriptor, Boolean>();
+    this.skipLoopTerminate = new Hashtable<MethodDescriptor, Integer>();
   }
 
   public void doCheck() {
     doMethodAnnotationCheck();
     parseLocationAnnotation();
     doFlowDownCheck();
-    doLoopCheck();
+    doDefinitelyWrittenCheck();
     doSingleReferenceCheck();
   }
 
@@ -67,7 +76,7 @@ public class SSJavaAnalysis {
     flowDownChecker.flowDownCheck();
   }
 
-  public void doLoopCheck() {
+  public void doDefinitelyWrittenCheck() {
     DefinitelyWrittenCheck checker = new DefinitelyWrittenCheck(state);
     checker.definitelyWrittenCheck();
   }
@@ -114,6 +123,14 @@ public class SSJavaAnalysis {
                     new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
                 md2lattice.put(md, locOrder);
                 parseMethodLatticeDefinition(cd, an.getValue(), locOrder);
+              } else if (an.getMarker().equals(TERMINATE)) {
+                // developer explicitly wants to skip loop termination analysis
+                String value = an.getValue();
+                int maxIteration = 0;
+                if (value != null) {
+                  maxIteration = Integer.parseInt(value);
+                }
+                skipLoopTerminate.put(md, new Integer(maxIteration));
               }
             }
           }
@@ -242,6 +259,19 @@ public class SSJavaAnalysis {
 
   public Hashtable<MethodDescriptor, Boolean> getMd2hasAnnotation() {
     return md2needAnnotation;
+  }
+
+  public void doLoopTerminationCheck(LoopOptimize lo) {
+    LoopTerminate lt = new LoopTerminate();
+    Set<MethodDescriptor> mdSet = md2needAnnotation.keySet();
+    for (Iterator iterator = mdSet.iterator(); iterator.hasNext();) {
+      MethodDescriptor md = (MethodDescriptor) iterator.next();
+      if (!skipLoopTerminate.containsKey(md)) {
+        FlatMethod fm = state.getMethodFlat(md);
+        lt.terminateAnalysis(fm, lo.getLoopInvariant(fm));
+      }
+    }
+
   }
 
 }

@@ -293,6 +293,11 @@ public class FlowDownCheck {
       }
 
     }
+
+    if (lowestLoc == null) {
+      lowestLoc = new CompositeLocation(Location.createBottomLocation(md));
+    }
+
     return lowestLoc;
   }
 
@@ -325,10 +330,10 @@ public class FlowDownCheck {
       compLoc = checkLocationFromSubBlockNode(md, nametable, (SubBlockNode) bsn);
       break;
 
-    // case Kind.ContinueBreakNode:
-    // checkLocationFromContinueBreakNode(md, nametable,(ContinueBreakNode)
-    // bsn);
-    // return null;
+    case Kind.ContinueBreakNode:
+      compLoc = new CompositeLocation();
+      break;
+
     }
     return compLoc;
   }

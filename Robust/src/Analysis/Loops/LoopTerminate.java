@@ -30,15 +30,8 @@ public class LoopTerminate {
 
   /**
    * Constructor for Loop Termination Analysis
-   * 
-   * @param fm
-   *          FlatMethod for termination analysis
-   * @param loopInv
-   *          LoopInvariants for given method
    */
-  public LoopTerminate(FlatMethod fm, LoopInvariant loopInv) {
-    this.fm = fm;
-    this.loopInv = loopInv;
+  public LoopTerminate() {
     this.inductionSet = new HashSet<TempDescriptor>();
     this.inductionVar2DefNode = new HashMap<TempDescriptor, FlatNode>();
     this.derivedVar2basicInduction = new HashMap<TempDescriptor, TempDescriptor>();
@@ -47,8 +40,15 @@ public class LoopTerminate {
 
   /**
    * starts loop termination analysis
+   * 
+   * @param fm
+   *          FlatMethod for termination analysis
+   * @param loopInv
+   *          LoopInvariants for given method
    */
-  public void terminateAnalysis() {
+  public void terminateAnalysis(FlatMethod fm, LoopInvariant loopInv) {
+    this.fm = fm;
+    this.loopInv = loopInv;
     Loops loopFinder = loopInv.root;
     recurse(fm, loopFinder);
   }
