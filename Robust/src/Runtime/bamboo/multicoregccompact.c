@@ -44,7 +44,6 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
   unsigned int blockindex;
   BLOCKINDEX(blockindex, heaptop);
   unsigned INTPTR localblocknum=GLOBALBLOCK2LOCAL(blockindex);
-  tprintf("Returned mem for core %d\n", cnum);
 
   //this core is done as far as memory usage is concerned
   returnedmem[cnum]=0;
@@ -83,8 +82,6 @@ void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes) {
   //need to get another block from elsewhere
   //set flag to wait for memory
   if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
-    printf("A: %d\n", BAMBOO_NUM_OF_CORE);
-
     gctomove=false;
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     void *startaddr=handlegcfinishcompact_I(BAMBOO_NUM_OF_CORE, minimumbytes, gccurr_heaptop);
@@ -94,21 +91,14 @@ void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes) {
     } else {
       while(!gctomove) ;
     }
-    printf("BX: %d\n", BAMBOO_NUM_OF_CORE);
   } else {
-    printf("CX: %d\n", BAMBOO_NUM_OF_CORE);
     gctomove=false;
     //send request for memory
     send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, minimumbytes, gccurr_heaptop);
     //wait for flag to be set that we received message
-    printf("XD: %d\n", BAMBOO_NUM_OF_CORE);
     int cc=0;
-    while(!gctomove) {
-      cc++;
-      if ((cc%100000)==0)
-	printf("Z");
-    }
-    printf("DD: %d\n", BAMBOO_NUM_OF_CORE);
+    while(!gctomove)
+      ;
   }
 
   //store pointer
@@ -136,8 +126,6 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
   while(true) {
     if ((gccurr_heaptop < ((unsigned INTPTR)(to->bound-to->ptr)))&&!senttopmessage) {
       //This block is the last for this core...let the startup know
-      printf("gchtp=%u tobound=%x toptr=%x\n", gccurr_heaptop, to->bound, to->ptr);
-      printf("Sending return %d\n", BAMBOO_NUM_OF_CORE);
       if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
 	handleReturnMem(BAMBOO_NUM_OF_CORE, to->ptr+gccurr_heaptop);
       } else {
@@ -147,7 +135,6 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
       senttopmessage=true;
     }
     unsigned int minimumbytes=compactblocks(orig, to);
-    printf("optr=%x obound=%x\n",orig->ptr, orig->bound);
     if (orig->ptr==orig->bound) {
       //need more data to compact
       //increment the core
@@ -159,7 +146,6 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
 	break;
     }
     if (minimumbytes!=0) {
-      printf("%d needs %u bytes.\n",BAMBOO_NUM_OF_CORE,minimumbytes);
       getSpace(to, minimumbytes);
     }
   }
@@ -325,7 +311,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
     if (!gcmarktbl[arrayoffset]) {
       do {
 	arrayoffset++;
-	if (arrayoffset<origendoffset) {
+	if (arrayoffset>=origendoffset) {
 	  //finished with block...
 	  origptr=origbound;
 	  to->ptr=toptr;
@@ -339,6 +325,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 
     //Scan more carefully next
     objlength=getMarkedLength(origptr);
+
 
     if (objlength!=NOTMARKED) {
       unsigned int length=ALIGNSIZETOBYTES(objlength);

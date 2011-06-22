@@ -6,6 +6,9 @@
 
 #ifdef MULTICORE_GC
 #include "bambooalign.h"
+#include "multicoremem.h"
+#include "multicoregarbage.h"
+
 
 extern volatile bool gcflag;
 void * mycalloc_share(struct garbagelist * stackptr, int size) {

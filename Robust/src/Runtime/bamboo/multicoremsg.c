@@ -412,16 +412,14 @@ INLINE void processmsg_memresponse_I() {
 INLINE void processmsg_gcstartpre_I() {
   // the first time to be informed to start gc
   gcflag = true;
-  if(!smemflag) {
-    // Zero out the remaining memory here because for the GC_CACHE_ADAPT 
-    // version, we need to make sure during the gcinit phase the shared heap 
-    // is not touched. Otherwise, there would be problem when adapt the cache 
-    // strategy.
-    bamboo_smem_size = 0;
-    bamboo_cur_msp = NULL;
-    smemflag = true;
-    bamboo_smem_zero_top = NULL;
-  }
+  // Zero out the remaining memory here because for the GC_CACHE_ADAPT 
+  // version, we need to make sure during the gcinit phase the shared heap 
+  // is not touched. Otherwise, there would be problem when adapt the cache 
+  // strategy.
+  bamboo_smem_size = 0;
+  bamboo_cur_msp = NULL;
+  smemflag = true;
+  bamboo_smem_zero_top = NULL;
 }
 
 INLINE void processmsg_gcstartinit_I() {

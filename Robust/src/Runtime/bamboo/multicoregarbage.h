@@ -246,7 +246,7 @@ INLINE static unsigned int hostcore(void * ptr) {
 
 //This macro takes in a local block number and returns the size of the block
 #define BLOCKSIZE(c) \
-  ((c)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE)
+  ((c)?BAMBOO_SMEM_SIZE:BAMBOO_SMEM_SIZE_L)
 
 //This macro takes in a local block number and returns the size of the block
 #define GLOBALBLOCKSIZE(c) \
