@@ -37,14 +37,72 @@ void getSpaceLocally(struct moveHelper *to) {
   to->bound = to->base + BLOCKSIZE(to->localblocknum);
 }
 
+//This function is called on the master core only...and typically by
+//the message interrupt handler
+
+void handleReturnMem_I(unsigned int cnum, void *heaptop) {
+  unsigned int blockindex;
+  BLOCKINDEX(blockindex, heaptop);
+  unsigned INTPTR localblocknum=GLOBALBLOCK2LOCAL(blockindex);
+
+  //this core is done as far as memory usage is concerned
+  returnedmem[cnum]=0;
+
+  struct blockrecord * blockrecord=&allocationinfo.blocktable[blockindex];
+
+  blockrecord->status=BS_FREE;
+  blockrecord->usedspace=(unsigned INTPTR)(heaptop-OFFSET2BASEVA(blockindex));
+  blockrecord->freespace=BLOCKSIZE(localblocknum)-blockrecord->usedspace;
+  /* Update the lowest free block */
+  if (blockindex < allocationinfo.lowestfreeblock) {
+    blockindex=allocationinfo.lowestfreeblock;
+  }
+
+  /* This is our own block...means we should mark other blocks above us as free*/
+  if (cnum==blockrecord->corenum) {
+    unsigned INTPTR nextlocalblocknum=localblocknum+1;
+    for(;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
+      unsigned INTPTR blocknum=BLOCKINDEX2(cnum, nextlocalblocknum);
+      struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blockindex];
+      nextblockrecord->status=BS_FREE;
+      nextblockrecord->usedspace=0;
+      //this is true because this cannot be the lowest block
+      nextblockrecord->freespace=BLOCKSIZE(1);
+    }
+  }
+}
+
+void handleReturnMem(unsigned int cnum, void *heaptop) {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  handleReturnMem_I(cnum, heaptop);
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+}
+
 void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes) {
   //need to get another block from elsewhere
   //set flag to wait for memory
-  gctomove=false;
-  //send request for memory
-  send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, minimumbytes, gccurr_heaptop);
-  //wait for flag to be set that we received message
-  while(!gctomove) ;
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    printf("A: %d\n", BAMBOO_NUM_OF_CORE);
+
+    gctomove=false;
+    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+    void *startaddr=handlegcfinishcompact_I(BAMBOO_NUM_OF_CORE, minimumbytes, gccurr_heaptop);
+    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+    if (startaddr) {
+      gcmovestartaddr=startaddr;
+    } else {
+      while(!gctomove) ;
+    }
+    printf("B: %d\n", BAMBOO_NUM_OF_CORE);
+  } else {
+    printf("C: %d\n", BAMBOO_NUM_OF_CORE);
+    gctomove=false;
+    //send request for memory
+    send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, minimumbytes, gccurr_heaptop);
+    //wait for flag to be set that we received message
+    while(!gctomove) ;
+    printf("D: %d\n", BAMBOO_NUM_OF_CORE);
+  }
 
   //store pointer
   to->ptr = gcmovestartaddr;
@@ -71,11 +129,14 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
   while(true) {
     if ((gccurr_heaptop < ((unsigned INTPTR)(to->bound-to->ptr)))&&!senttopmessage) {
       //This block is the last for this core...let the startup know
-      send_msg_3(STARTUPCORE, GCRETURNMEM, BAMBOO_NUM_OF_CORE, to->ptr+gccurr_heaptop);
+      if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+	handleReturnMem(BAMBOO_NUM_OF_CORE, to->ptr+gccurr_heaptop);
+      } else {
+	send_msg_3(STARTUPCORE, GCRETURNMEM, BAMBOO_NUM_OF_CORE, to->ptr+gccurr_heaptop);
+      }
       //Only send the message once
       senttopmessage=true;
     }
-
     unsigned int minimumbytes=compactblocks(orig, to);
     if (orig->ptr==orig->bound) {
       //need more data to compact
@@ -91,8 +152,15 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
       getSpace(to, minimumbytes);
     }
   }
-  
-  send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, 0, 0);
+
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+    handlegcfinishcompact_I(BAMBOO_NUM_OF_CORE, 0, 0);
+    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  } else {
+    send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, 0, 0);
+  }
+
 }
 
 void * checkNeighbors_I(int corenum, unsigned INTPTR requiredmem, unsigned INTPTR desiredmem) {
@@ -233,7 +301,7 @@ void * gcfindSpareMem_I(unsigned INTPTR requiredmem, unsigned INTPTR desiredmem,
 
 unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
   void *toptrinit=to->ptr;
-  void *toptr=toptr;
+  void *toptr=toptrinit;
   void *tobound=to->bound;
   void *origptr=orig->ptr;
   void *origbound=orig->bound;
@@ -334,10 +402,12 @@ void master_compact() {
   // compact phase
   compact();
   /* wait for all cores to finish compacting */
+  tprintf("MASTER WAITING\n");
 
   while(!gc_checkCoreStatus())
     ;
 
+  tprintf("POST_WAIT\n");
   GCPROFILE_ITEM();
 
   //just in case we didn't get blocks back...

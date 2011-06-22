@@ -29,7 +29,7 @@ extern struct lockvector bamboo_threadlocks;
 #define UPDATEOBJ(obj, tt) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) obj=updateObj(updatetmpptr);}
 #define UPDATEOBJNONNULL(obj, tt) {void *updatetmpptr=obj; obj=updateObj(updatetmpptr);}
 
-
+#define dbpr() if (STARTUPCORE==BAMBOO_NUM_OF_CORE) tprintf("FL: %d\n", __LINE__);
 
 INLINE void updategarbagelist(struct garbagelist *listptr) {
   for(;listptr!=NULL; listptr=listptr->next) {
@@ -212,6 +212,14 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
       if (endtoptr>tobound||endtoptr<tobase) {
 	//get use the next block of memory
 	orig->ptr=origptr;
+	if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+	  tprintf("dstptr=%x\n",dstptr);
+	  tprintf("endtoptrptr=%x\n",endtoptr);
+	  tprintf("tobound=%x\n",tobound);
+	  tprintf("tobase=%x\n",tobase);
+	  tprintf("origptr=%x\n",origptr);
+	  tprintf("length=%d\n",length);
+	}
 	return dstptr;
       }
       
@@ -255,9 +263,13 @@ void updateOrigPtr(void *currtop) {
 
 void updatehelper(struct moveHelper * orig,struct moveHelper * to) {
   while(true) {
+    dbpr();
     void *dstptr=updateblocks(orig, to);
+    dbpr();
     if (dstptr) {
-      //need more memory to compact into
+      dbpr();
+      printf("M: %x\n", dstptr);
+   //need more memory to compact into
       block_t blockindex;
       BLOCKINDEX(blockindex, dstptr);
       unsigned int corenum;
@@ -274,7 +286,9 @@ void updatehelper(struct moveHelper * orig,struct moveHelper * to) {
 	  ;
       }
     }
+    dbpr();
     if (orig->ptr==orig->bound) {
+      dbpr();
       //inform others that we are done with previous block
       updateOrigPtr(orig->bound);
 
@@ -285,30 +299,32 @@ void updatehelper(struct moveHelper * orig,struct moveHelper * to) {
       update_origblockptr=orig->base;
       orig->ptr=orig->base;
       orig->bound = orig->base + BLOCKSIZE(orig->localblocknum);
-      if (orig->base >= gcbaseva+BAMBOO_SHARED_MEM_SIZE)
+      if (orig->base >= gcbaseva+BAMBOO_SHARED_MEM_SIZE) {
+	//free our entire memory for others to use
 	break;
+      }
     }
+    dbpr();
   }
 }
 
 void updateheap() {
-  BAMBOO_CACHE_MF();
-
   // initialize structs for compacting
   struct moveHelper orig={0,NULL,NULL,0,NULL,0,0,0,0};
   struct moveHelper to={0,NULL,NULL,0,NULL,0,0,0,0};
+  dbpr();
   initOrig_Dst(&orig, &to);
-
+  dbpr();
   updatehelper(&orig, &to);
+  dbpr();
 }
 
 void update(struct garbagelist * stackptr) {
-  BAMBOO_CACHE_MF();
-
+  dbpr();
   updateRuntimePtrs(stackptr);
-
+  dbpr();
   updateheap();
-
+  dbpr();
   // send update finish message to core coordinator
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0;

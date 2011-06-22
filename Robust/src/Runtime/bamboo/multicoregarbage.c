@@ -285,10 +285,10 @@ void gc_collect(struct garbagelist * stackptr) {
 
   WAITFORGCPHASE(UPDATEPHASE);
 
-  GC_PRINTF("Start flush phase\n");
+  GC_PRINTF("Start update phase\n");
   GCPROFILE_INFO_2_MASTER();
   update(stackptr);
-  GC_PRINTF("Finish flush phase\n");
+  GC_PRINTF("Finish update phase\n");
 
   CACHEADAPT_PHASE_CLIENT();
 
@@ -321,15 +321,15 @@ void gc_nocollect(struct garbagelist * stackptr) {
 
   GC_PRINTF("Start mark phase\n"); 
   mark(stackptr);
-  GC_PRINTF("Finish mark phase, wait for flush\n");
+  GC_PRINTF("Finish mark phase, wait for update\n");
 
   // non-gc core collector routine
   WAITFORGCPHASE(UPDATEPHASE);
 
-  GC_PRINTF("Start flush phase\n");
+  GC_PRINTF("Start update phase\n");
   GCPROFILE_INFO_2_MASTER();
   update(stackptr);
-  GC_PRINTF("Finish flush phase\n"); 
+  GC_PRINTF("Finish update phase\n"); 
 
   CACHEADAPT_PHASE_CLIENT();
 
@@ -375,11 +375,11 @@ void master_updaterefs(struct garbagelist * stackptr) {
   gc_status_info.gcphase = UPDATEPHASE;
   GC_SEND_MSG_1_TO_CLIENT(GCSTARTUPDATE);
   GCPROFILE_ITEM();
-  GC_PRINTF("Start flush phase \n");
-  // flush phase
+  GC_PRINTF("Start update phase \n");
+  // update phase
   update(stackptr);
-  GC_CHECK_ALL_CORE_STATUS(UPDATEPHASE==gc_status_info.gcphase);
-  GC_PRINTF("Finish flush phase \n");
+  GC_CHECK_ALL_CORE_STATUS();
+  GC_PRINTF("Finish update phase \n");
 }
 
 void master_finish() {
@@ -424,7 +424,7 @@ void gc_master(struct garbagelist * stackptr) {
   GC_SEND_MSG_1_TO_CLIENT(GCSTARTINIT);
   CACHEADAPT_GC(true);
   GC_PRINTF("Check core status \n");
-  GC_CHECK_ALL_CORE_STATUS(true);
+  GC_CHECK_ALL_CORE_STATUS();
   GCPROFILE_ITEM();
   unsigned long long tmpt = BAMBOO_GET_EXE_TIME();
   CACHEADAPT_OUTPUT_CACHE_SAMPLING();
@@ -441,7 +441,7 @@ void gc_master(struct garbagelist * stackptr) {
   
   // update the references
   master_updaterefs(stackptr);
-
+  GC_PRINTF("gc master finished update   \n");
   // do cache adaptation
   CACHEADAPT_PHASE_MASTER();
 

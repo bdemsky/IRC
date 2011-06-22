@@ -57,6 +57,7 @@ void * mixedmalloc_I(int coren,
 void * globalmalloc_I(int coren, unsigned INTPTR memcheck, int * allocsize) {
   block_t firstfree=NOFREEBLOCK;
   block_t lowestblock=allocationinfo.lowestfreeblock;
+
   for(block_t searchblock=lowestblock;searchblock<GCNUMBLOCK;searchblock++) {
     struct blockrecord * block=&allocationinfo.blocktable[searchblock];
     if (block->status==BS_FREE) {

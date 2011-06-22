@@ -527,57 +527,17 @@ void processmsg_returnmem_I() {
   MSG_INDEXINC_I();  
   void * heaptop = (void *) msgdata[msgdataindex];
   MSG_INDEXINC_I();   
-  unsigned int blockindex;
-  BLOCKINDEX(blockindex, heaptop);
-  unsigned INTPTR localblocknum=GLOBALBLOCK2LOCAL(blockindex);
 
-  //this core is done as far as memory usage is concerned
-  returnedmem[cnum]=0;
-
-  struct blockrecord * blockrecord=&allocationinfo.blocktable[blockindex];
-
-  blockrecord->status=BS_FREE;
-  blockrecord->usedspace=(unsigned INTPTR)(heaptop-OFFSET2BASEVA(blockindex));
-  blockrecord->freespace=BLOCKSIZE(localblocknum)-blockrecord->usedspace;
-  /* Update the lowest free block */
-  if (blockindex < allocationinfo.lowestfreeblock) {
-    blockindex=allocationinfo.lowestfreeblock;
-  }
-
-  /* This is our own block...means we should mark other blocks above us as free*/
-  if (cnum==blockrecord->corenum) {
-    unsigned INTPTR nextlocalblocknum=localblocknum+1;
-    for(;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
-      unsigned INTPTR blocknum=BLOCKINDEX2(cnum, nextlocalblocknum);
-      struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blockindex];
-      nextblockrecord->status=BS_FREE;
-      nextblockrecord->usedspace=0;
-      //this is true because this cannot be the lowest block
-      nextblockrecord->freespace=BLOCKSIZE(1);
-    }
-  }
+  handleReturnMem_I(cnum, heaptop);
 }
 
-INLINE void processmsg_gcfinishcompact_I() {
-  BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
-
-  int cnum = msgdata[msgdataindex];
-  MSG_INDEXINC_I();  
-  unsigned int bytesneeded = msgdata[msgdataindex];
-  MSG_INDEXINC_I(); 
-  unsigned int maxbytesneeded = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-
+void * handlegcfinishcompact_I(int cnum, unsigned int bytesneeded, unsigned int maxbytesneeded) {
   if(bytesneeded > 0) {
     // ask for more mem
     void * startaddr = gcfindSpareMem_I(bytesneeded, maxbytesneeded, cnum);
     if(startaddr) {
       // cache the msg first
-      if(BAMBOO_CHECK_SEND_MODE()) {
-	cache_msg_2_I(cnum,GCMOVESTART,startaddr);
-      } else {
-	send_msg_2_I(cnum,GCMOVESTART,startaddr);
-      }
+      return startaddr;
     } else {
       maxusefulmems[cnum]=maxbytesneeded;
       gcrequiredmems[cnum]=bytesneeded;
@@ -585,6 +545,25 @@ INLINE void processmsg_gcfinishcompact_I() {
   } else {
     //done with compacting
     gccorestatus[cnum] = 0;
+  }
+  return NULL;
+}
+
+void processmsg_gcfinishcompact_I() {
+  int cnum = msgdata[msgdataindex];
+  MSG_INDEXINC_I();  
+  unsigned int bytesneeded = msgdata[msgdataindex];
+  MSG_INDEXINC_I(); 
+  unsigned int maxbytesneeded = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+
+  void * startaddr=handlegcfinishcompact_I(cnum, bytesneeded, maxbytesneeded);
+  if (startaddr) {
+    if(BAMBOO_CHECK_SEND_MODE()) {
+      cache_msg_2_I(cnum,GCMOVESTART,startaddr);
+    } else {
+      send_msg_2_I(cnum,GCMOVESTART,startaddr);
+    }
   }
 }
 

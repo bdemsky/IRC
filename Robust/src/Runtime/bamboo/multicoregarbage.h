@@ -112,7 +112,6 @@ void * gcbaseva; // base va for shared memory without reserved sblocks
 static bool gc_checkCoreStatus() {
   for(int i = 0; i < NUMCORES4GC; i++) {
     if(gccorestatus[i]) {
-      printf("CHECK\n");
       return false;
     }
   }  
@@ -281,15 +280,8 @@ INLINE static unsigned int hostcore(void * ptr) {
 #define NEXTTOPCORE(b) (gc_block2core[((b)+1)%(NUMCORES4GC*2)])
 
 // check if all cores are stall now
-#define GC_CHECK_ALL_CORE_STATUS(f) \
-  { \
-    gccorestatus[BAMBOO_NUM_OF_CORE] = 0; \
-    while(f) { \
-      if(gc_checkCoreStatus()) { \
-        break; \
-      } \
-    } \
-  }
+#define GC_CHECK_ALL_CORE_STATUS() gccorestatus[BAMBOO_NUM_OF_CORE] = 0; \
+  while(!gc_checkCoreStatus()) ;
 
 // send a 1-word msg to all clients
 #define GC_SEND_MSG_1_TO_CLIENT(m) \

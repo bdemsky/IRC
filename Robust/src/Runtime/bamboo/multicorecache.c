@@ -439,7 +439,7 @@ void cacheAdapt_phase_master() {
   GC_PRINTF("Start cachepolicy phase \n");
   // cache adapt phase
   cacheAdapt_decision(BAMBOO_NUM_OF_CORE);
-  GC_CHECK_ALL_CORE_STATUS(CACHEPOLICYPHASE==gc_status_info.gcphase);
+  GC_CHECK_ALL_CORE_STATUS();
   BAMBOO_CACHE_MF();
 
   // let all cores to adopt new policies
@@ -450,7 +450,7 @@ void cacheAdapt_phase_master() {
   // cache adapt phase
   cacheAdapt_mutator();
   cacheAdapt_gc(false);
-  GC_CHECK_ALL_CORE_STATUS(PREFINISHPHASE==gc_status_info.gcphase);
+  GC_CHECK_ALL_CORE_STATUS();
 
   CACHEADAPT_SAMPING_RESET();
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {

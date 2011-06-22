@@ -10,7 +10,6 @@
 extern volatile bool gcflag;
 void * mycalloc_share(struct garbagelist * stackptr, int size) {
   void * p = NULL;
-
   int isize = ((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
   int hasgc = 0;
 
