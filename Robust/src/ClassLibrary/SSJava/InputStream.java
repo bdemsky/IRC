@@ -35,8 +35,8 @@ this exception to your version of the library, but you are not
 obligated to do so.  If you do not wish to do so, delete this
 exception statement from your version. */
 
-//removed because no packages
-//package java.io;
+ 
+//package java.io; //NO PACKAGES FOR CLASS FILES
 
 /**
   * This abstract class forms the base of the hierarchy of classes that read
@@ -50,7 +50,7 @@ exception statement from your version. */
   */
 @LATTICE("")
 @METHODDEFAULT("OUT<IN,THISLOC=IN,GLOBALLOC=IN")
-public abstract class InputStream
+    public abstract class InputStream //implements Closeable //COMPILER CANNOT HANDLE IMPLEMENTS
 {
   /**
    * Default, no-arg, public constructor
@@ -70,7 +70,7 @@ public abstract class InputStream
    *
    * @exception IOException If an error occurs
    */
-  @RETURNLOC("")
+  @RETURNLOC("OUT")
   public int available() throws IOException
   {
     return 0;
@@ -126,7 +126,7 @@ public abstract class InputStream
    * @return <code>true</code> if mark/reset functionality is
    * supported, <code>false</code> otherwise 
    */
-  @RETURN
+  @RETURNLOC("OUT")
   public boolean markSupported()
   {
     return false;
@@ -162,7 +162,7 @@ public abstract class InputStream
    *
    * @exception IOException If an error occurs.
    */
-  @RETURN
+  @RETURNLOC("OUT")
   public int read(@LOC("IN") byte[] b) throws IOException
   {
     return read(b, 0, b.length);
@@ -196,14 +196,15 @@ public abstract class InputStream
    *
    * @exception IOException If an error occurs.
    */
-  @LATTICE("OUT<")
-  @RETURN("")
-  public int read(byte[] b, int off, int len) throws IOException
+  @LATTICE("OUT<SH,SH<IN,SH*")
+  @RETURNLOC("OUT")
+      public int read(@LOC("OUT") byte[] b, @LOC("IN") int off, @LOC("IN") int len) throws IOException
   {
     if (off < 0 || len < 0 || b.length - off < len)
       throw new IndexOutOfBoundsException();
 
-    int i, ch;
+    @LOC("SH") int i;
+    @LOC("SH") int ch;
 
     for (i = 0; i < len; ++i)
       try
@@ -247,7 +248,7 @@ public abstract class InputStream
    * This method reads and discards bytes into a byte array until the
    * specified number of bytes were skipped or until either the end of stream
    * is reached or a read attempt returns a short count.  Subclasses can
-   * override this metho to provide a more efficient implementation where
+   * override this method to provide a more efficient implementation where
    * one exists.
    *
    * @param n The requested number of bytes to skip
@@ -256,6 +257,7 @@ public abstract class InputStream
    *
    * @exception IOException If an error occurs
    */
+
   public long skip(long n) throws IOException
   {
     // Throw away n bytes by reading them into a temp byte[].
@@ -264,9 +266,9 @@ public abstract class InputStream
     byte[] tmpbuf = new byte[buflen];
     final long origN = n;
 
-    while (n > 0L)
+    while (n > 0)
       {
-	int numread = read(tmpbuf, 0, n > buflen ? buflen : (int) n);
+        int numread = read(tmpbuf, 0, n > buflen ? buflen : (int) n);
 	if (numread <= 0)
 	  break;
 	n -= numread;

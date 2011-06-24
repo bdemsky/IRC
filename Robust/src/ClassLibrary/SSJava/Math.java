@@ -40,8 +40,9 @@ public class Math {
   public static long max(long a, long b) {
     return (a>b)?a:b;
   }
-
-  public static double min(double a, double b) {
+  
+  @RETURNLOC("IN")
+  public static double min(@LOC("IN") double a, @LOC("IN") double b) {
     return (a<b)?a:b;
   }
 

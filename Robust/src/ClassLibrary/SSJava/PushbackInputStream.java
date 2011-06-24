@@ -51,7 +51,7 @@ exception statement from your version. */
   * @author Aaron M. Renn (arenn@urbanophile.com)
   * @author Warren Levy (warrenl@cygnus.com)
   */
-@LATTICE("IN<T,IN<SH,SH<F,SH*")
+@LATTICE("IN<T,IN<POS,POS<SH,SH<F,SH*,POS*")
 @METHODDEFAULT("OUT<SH,SH<IN,SH*,THISLOC=OUT,GLOBALLOC=OUT")
 public class PushbackInputStream extends FilterInputStream
 {
@@ -72,7 +72,7 @@ public class PushbackInputStream extends FilterInputStream
    * <code>pos</code> is 0 the buffer is full and <code>buf.length</code> when 
    * it is empty
    */
-  @LOC("SH") protected int pos;
+  @LOC("POS") protected int pos;
 
   /**
    * This method initializes a <code>PushbackInputStream</code> to
@@ -207,11 +207,13 @@ public class PushbackInputStream extends FilterInputStream
    *
    * @exception IOException If an error occurs.
    */
-  @LATTICE("OUT<SH,SH*,THISLOCAL=SH")
-  @RETURNLOC("OUT")
-  public synchronized int read(@LOC("OUT") byte[] b, @LOC("SH") int off, @LOC("SH") int len) throws IOException
+  @LATTICE("THIS<BUF,THISLOCAL=THIS")
+  @RETURNLOC("THIS")
+  public synchronized int read(@LOC("THIS,PushbackInputStream.POS") byte[] b,
+                               @LOC("THIS,PushbackInputStream.POS") int off,
+                               @LOC("THIS,PushbackInputStream.POS") int len) throws IOException
   {
-    @LOC("SH") int numBytes = Math.min(buf.length - pos,len);
+    @LOC("THIS,PushbackInputStream.POS") int numBytes = Math.min(buf.length - pos,len);
 
     if (numBytes > 0)
       {

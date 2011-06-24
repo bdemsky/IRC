@@ -1,3 +1,5 @@
+@LATTICE("")
+@METHODDEFAULT("OUT<IN")
 public class System {
   public static void printInt(int x) {
     String s = String.valueOf(x);
@@ -14,7 +16,7 @@ public class System {
 
   public static native void printString(String s);
 
-  public static void println(String s) {
+    public static void println(@LOC("IN") String s) {
     System.printString(s + "\n");
   }
 
