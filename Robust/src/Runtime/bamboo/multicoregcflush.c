@@ -190,7 +190,7 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
     if (!gcmarktbl[arrayoffset]) {
       do {
 	arrayoffset++;
-	if (arrayoffset<origendoffset) {
+	if (arrayoffset>=origendoffset) {
 	  //finished with block...
 	  origptr=origbound;
 	  orig->ptr=origptr;
@@ -213,16 +213,17 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
 	orig->ptr=origptr;
 	return dstptr;
       }
-      
+
       /* Move the object */
       if(origptr <= endtoptr) {
         memmove(dstptr, origptr, length);
       } else {
         memcpy(dstptr, origptr, length);
       }
-      
+
       /* Update the pointers in the object */
       updatePtrsInObj(dstptr);
+
 
       /* Clear the mark */
       clearMark(origptr);

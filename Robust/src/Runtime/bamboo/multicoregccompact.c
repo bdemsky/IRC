@@ -135,6 +135,7 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
       senttopmessage=true;
     }
     unsigned int minimumbytes=compactblocks(orig, to);
+
     if (orig->ptr==orig->bound) {
       //need more data to compact
       //increment the core
@@ -325,7 +326,6 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 
     //Scan more carefully next
     objlength=getMarkedLength(origptr);
-
 
     if (objlength!=NOTMARKED) {
       unsigned int length=ALIGNSIZETOBYTES(objlength);
