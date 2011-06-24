@@ -337,6 +337,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 	return length;
       }
       //good to move objects and update pointers
+
       gcmappingtbl[OBJMAPPINGINDEX(origptr)]=toptr;
       origptr+=length;
       toptr=endtoptr;
@@ -345,6 +346,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
   }
   to->ptr=toptr;
   orig->ptr=origptr;
+  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
   return 0;
 }
 

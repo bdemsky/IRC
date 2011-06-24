@@ -48,12 +48,12 @@ INLINE bool isLarge(void * ptr, int * ttype, unsigned int * tsize) {
 }
 
 //push the null check into the mark macro
-//#define MARKOBJ(objptr, ii) {void * marktmpptr=objptr; if (marktmpptr!=NULL) markObj(marktmpptr, __LINE__, ii);}
-//#define MARKOBJNONNULL(objptr, ii) {markObj(objptr, __LINE__, ii);}
 
-#define MARKOBJ(objptr, ii) {void * marktmpptr=objptr; if (marktmpptr!=NULL) markObj(marktmpptr);}
+//#define MARKOBJ(objptr) {void * marktmpptr=objptr; if (marktmpptr!=NULL) {markObj(marktmpptr);if ((marktmpptr<gcbaseva)||(marktmpptr>(gcbaseva+BAMBOO_SHARED_MEM_SIZE))) tprintf("Bad pointer %x in line %u\n",marktmpptr, __LINE__);  }}
 
-#define MARKOBJNONNULL(objptr, ii) {markObj(objptr);}
+#define MARKOBJ(objptr) {void * marktmpptr=objptr; if (marktmpptr!=NULL) {markObj(marktmpptr);}}
+
+#define MARKOBJNONNULL(objptr) {markObj(objptr);}
 
 // NOTE: the objptr should not be NULL and should be a shared obj
 void markObj(void * objptr) {
@@ -81,7 +81,7 @@ void markgarbagelist(struct garbagelist * listptr) {
   for(;listptr!=NULL;listptr=listptr->next) {
     int size=listptr->size;
     for(int i=0; i<size; i++) {
-      MARKOBJ(listptr->array[i], i);
+      MARKOBJ(listptr->array[i]);
     }
   }
 }
@@ -111,7 +111,7 @@ void tomark(struct garbagelist * stackptr) {
         struct ObjectHash * set=parameter->objectset;
         struct ObjectNode * ptr=set->listhead;
         for(;ptr!=NULL;ptr=ptr->lnext) {
-          MARKOBJNONNULL((void *)ptr->key, 0);
+          MARKOBJNONNULL((void *)ptr->key);
         }
       }
     }
@@ -121,7 +121,7 @@ void tomark(struct garbagelist * stackptr) {
   if(currtpd != NULL) {
     for(int i=0; i<currtpd->numParameters; i++) {
       // currtpd->parameterArray[i] can not be NULL
-      MARKOBJNONNULL(currtpd->parameterArray[i], i);
+      MARKOBJNONNULL(currtpd->parameterArray[i]);
     }
   }
 
@@ -132,7 +132,7 @@ void tomark(struct garbagelist * stackptr) {
       struct taskparamdescriptor *tpd=ptr->src;
       for(int i=0; i<tpd->numParameters; i++) {
         // the tpd->parameterArray[i] can not be NULL
-        MARKOBJNONNULL(tpd->parameterArray[i], i);
+        MARKOBJNONNULL(tpd->parameterArray[i]);
       }
     }
   }
@@ -142,7 +142,7 @@ void tomark(struct garbagelist * stackptr) {
   for(;tmpobjptr != NULL;tmpobjptr=getNextQueueItem(tmpobjptr)) {
     struct transObjInfo * objInfo=(struct transObjInfo *)(tmpobjptr->objectptr);
     // the objptr can not be NULL
-    MARKOBJNONNULL(objInfo->objptr, 0);
+    MARKOBJNONNULL(objInfo->objptr);
   }
 
   // enqueue cached objs to be transferred
@@ -150,13 +150,13 @@ void tomark(struct garbagelist * stackptr) {
   for(;item != NULL;item=getNextQueueItem(item)) {
     struct transObjInfo * totransobj=(struct transObjInfo *)(item->objectptr);
     // the objptr can not be NULL
-    MARKOBJNONNULL(totransobj->objptr, 0);
+    MARKOBJNONNULL(totransobj->objptr);
   }
 
   // enqueue lock related info
   for(int i = 0; i < runtime_locklen; i++) {
-    MARKOBJ((void *)(runtime_locks[i].redirectlock), 0);
-    MARKOBJ((void *)(runtime_locks[i].value), i);
+    MARKOBJ((void *)(runtime_locks[i].redirectlock));
+    MARKOBJ((void *)(runtime_locks[i].value));
   }
 #endif 
 
@@ -169,7 +169,7 @@ void tomark(struct garbagelist * stackptr) {
       unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
       for(int i = thread_counter; i > 0; i--) {
         // the thread obj can not be NULL
-        MARKOBJNONNULL((void *)bamboo_thread_queue[4+start], 0);
+        MARKOBJNONNULL((void *)bamboo_thread_queue[4+start]);
         start = (start+1)&bamboo_max_thread_num_mask;
       }
     }
@@ -178,11 +178,11 @@ void tomark(struct garbagelist * stackptr) {
   // enqueue the bamboo_threadlocks
   for(int i = 0; i < bamboo_threadlocks.index; i++) {
     // the locks can not be NULL
-    MARKOBJNONNULL((void *)(bamboo_threadlocks.locks[i].object), i);
+    MARKOBJNONNULL((void *)(bamboo_threadlocks.locks[i].object));
   }
 
   // enqueue the bamboo_current_thread
-  MARKOBJ(bamboo_current_thread, 0);
+  MARKOBJ(bamboo_current_thread);
 #endif
 }
 
@@ -198,7 +198,7 @@ INLINE void scanPtrsInObj(void * ptr, int type) {
     for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
       void * objptr=*((void **)(((char *)ptr)+offset));
-      MARKOBJ(objptr, i);
+      MARKOBJ(objptr);
     }
 #endif
   } else if (((unsigned int)pointer)==1) {
@@ -207,7 +207,7 @@ INLINE void scanPtrsInObj(void * ptr, int type) {
     int length=ao->___length___;
     for(int i=0; i<length; i++) {
       void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
-      MARKOBJ(objptr, i);
+      MARKOBJ(objptr);
     }
 #ifdef OBJECTHASPOINTERS
     pointer=pointerarray[OBJECTTYPE];
@@ -216,7 +216,7 @@ INLINE void scanPtrsInObj(void * ptr, int type) {
     for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
       void * objptr=*((void **)(((char *)ptr)+offset));
-      MARKOBJ(objptr, i);
+      MARKOBJ(objptr);
     }
 #endif
   } else {
@@ -225,7 +225,7 @@ INLINE void scanPtrsInObj(void * ptr, int type) {
     for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
       void * objptr=*((void **)(((char *)ptr)+offset));
-      MARKOBJ(objptr, i);
+      MARKOBJ(objptr);
     }
   }
 }
@@ -239,19 +239,16 @@ void mark(struct garbagelist * stackptr) {
   // mark phase
   while(MARKPHASE == gc_status_info.gcphase) {
     int counter = 0;
-
     while(gc_moreItems()) {
       sendStall = false;
       gc_status_info.gcbusystatus = true;
       void * ptr = gc_dequeue();
-
       unsigned int size = 0;
       unsigned int type = 0;
       bool islarge=isLarge(ptr, &type, &size);
       unsigned int iunits = ALIGNUNITS(size);
-      
       setLengthMarked(ptr,iunits);
-	
+
       if(islarge) {
         // ptr is a large object and not marked or enqueued
 	printf("NEED TO SUPPORT LARGE OBJECTS!\n");
@@ -260,7 +257,6 @@ void mark(struct garbagelist * stackptr) {
 	unsigned int isize=iunits<<ALIGNMENTSHIFT;
         gccurr_heaptop += isize;
       }
-      
       // scan the pointers in object
       scanPtrsInObj(ptr, type);
     }
@@ -277,12 +273,9 @@ void mark(struct garbagelist * stackptr) {
         sendStall = true;
       }
     }
-    
     if(BAMBOO_NUM_OF_CORE == STARTUPCORE)
       checkMarkStatus();
   }
-
-  BAMBOO_CACHE_MF();
 } 
 
 #endif // MULTICORE_GC

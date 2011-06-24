@@ -13,6 +13,8 @@
 //#define GC_PRINTF if(0) tprintf
 //#endif 
 
+#define TR() tprintf("%u\n",__LINE__)
+
 // data structures for GC
 #define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE * 2)
 #define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC)

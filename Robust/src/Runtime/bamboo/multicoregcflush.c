@@ -26,13 +26,14 @@ extern struct lockvector bamboo_threadlocks;
 
 // NOTE: the objptr should not be NULL and should not be non shared ptr
 #define updateObj(objptr) gcmappingtbl[OBJMAPPINGINDEX(objptr)]
-#define UPDATEOBJ(obj, tt) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) obj=updateObj(updatetmpptr);}
-#define UPDATEOBJNONNULL(obj, tt) {void *updatetmpptr=obj; obj=updateObj(updatetmpptr);}
+//#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) obj=updateObj(updatetmpptr);if (obj<gcbaseva) tprintf("BAD PTR %x to %x in %u\n", updatetmpptr, obj, __LINE__);}
+#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) obj=updateObj(updatetmpptr);}
+#define UPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=updateObj(updatetmpptr);}
 
 INLINE void updategarbagelist(struct garbagelist *listptr) {
   for(;listptr!=NULL; listptr=listptr->next) {
     for(int i=0; i<listptr->size; i++) {
-      UPDATEOBJ(listptr->array[i], i);
+      UPDATEOBJ(listptr->array[i]);
     }
   }
 }
@@ -56,7 +57,7 @@ INLINE void updateRuntimePtrs(struct garbagelist * stackptr) {
         struct parameterwrapper * parameter = queues[j];
         struct ObjectHash * set=parameter->objectset;
         for(struct ObjectNode * ptr=set->listhead;ptr!=NULL;ptr=ptr->lnext) {
-          UPDATEOBJNONNULL(ptr->key, 0);
+          UPDATEOBJNONNULL(ptr->key);
         }
         ObjectHashrehash(set);
       }
@@ -67,7 +68,7 @@ INLINE void updateRuntimePtrs(struct garbagelist * stackptr) {
   if(currtpd != NULL) {
     for(int i=0; i<currtpd->numParameters; i++) {
       // the parameter can not be NULL
-      UPDATEOBJNONNULL(currtpd->parameterArray[i], i);
+      UPDATEOBJNONNULL(currtpd->parameterArray[i]);
     }
   }
 
@@ -77,7 +78,7 @@ INLINE void updateRuntimePtrs(struct garbagelist * stackptr) {
       struct taskparamdescriptor *tpd=ptr->src;
       for(int i=0; i<tpd->numParameters; i++) {
         // the parameter can not be NULL
-	UPDATEOBJNONNULL(tpd->parameterArray[i], i);
+	UPDATEOBJNONNULL(tpd->parameterArray[i]);
       }
     }
     genrehash(activetasks);
@@ -87,20 +88,20 @@ INLINE void updateRuntimePtrs(struct garbagelist * stackptr) {
   for(struct QueueItem * tmpobjptr =  getHead(&objqueue);tmpobjptr != NULL;tmpobjptr = getNextQueueItem(tmpobjptr)) {
     struct transObjInfo * objInfo=(struct transObjInfo *)(tmpobjptr->objectptr);
     // the obj can not be NULL
-    UPDATEOBJNONNULL(objInfo->objptr, 0);
+    UPDATEOBJNONNULL(objInfo->objptr);
   }
 
   // update cached objs to be transferred
   for(struct QueueItem * item = getHead(totransobjqueue);item != NULL;item = getNextQueueItem(item)) {
     struct transObjInfo * totransobj = (struct transObjInfo *)(item->objectptr);
     // the obj can not be NULL
-    UPDATEOBJNONNULL(totransobj->objptr, 0);
+    UPDATEOBJNONNULL(totransobj->objptr);
   }  
 
   // enqueue lock related info
   for(int i = 0; i < runtime_locklen; ++i) {
-    UPDATEOBJ(runtime_locks[i].redirectlock, i);
-    UPDATEOBJ(runtime_locks[i].value, i);
+    UPDATEOBJ(runtime_locks[i].redirectlock);
+    UPDATEOBJ(runtime_locks[i].value);
   }
 #endif
 
@@ -108,11 +109,11 @@ INLINE void updateRuntimePtrs(struct garbagelist * stackptr) {
   // update the bamboo_threadlocks
   for(int i = 0; i < bamboo_threadlocks.index; i++) {
     // the locked obj can not be NULL
-    UPDATEOBJNONNULL(bamboo_threadlocks.locks[i].object, i);
+    UPDATEOBJNONNULL(bamboo_threadlocks.locks[i].object);
   }
 
   // update the bamboo_current_thread
-  UPDATEOBJ(bamboo_current_thread, 0);
+  UPDATEOBJ(bamboo_current_thread);
 
   // update global thread queue
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
@@ -121,7 +122,7 @@ INLINE void updateRuntimePtrs(struct garbagelist * stackptr) {
       unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
       for(int i = thread_counter; i > 0; i--) {
         // the thread obj can not be NULL
-        UPDATEOBJNONNULL(bamboo_thread_queue[4+start], 0);
+        UPDATEOBJNONNULL(bamboo_thread_queue[4+start]);
         start = (start+1)&bamboo_max_thread_num_mask;
       }
     }
@@ -142,7 +143,7 @@ INLINE void updatePtrsInObj(void * ptr) {
     unsigned int size=pointer[0];
     for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
-      UPDATEOBJ(*((void **)(((char *)ptr)+offset)), i);
+      UPDATEOBJ(*((void **)(((char *)ptr)+offset)));
     }
 #endif
   } else if (((unsigned int)pointer)==1) {
@@ -150,7 +151,7 @@ INLINE void updatePtrsInObj(void * ptr) {
     struct ArrayObject *ao=(struct ArrayObject *) ptr;
     int length=ao->___length___;
     for(int j=0; j<length; j++) {
-      UPDATEOBJ(((void **)(((char *)&ao->___length___)+sizeof(int)))[j], j);
+      UPDATEOBJ(((void **)(((char *)&ao->___length___)+sizeof(int)))[j]);
     }
 #ifdef OBJECTHASPOINTERS
     pointer=pointerarray[OBJECTTYPE];
@@ -159,7 +160,7 @@ INLINE void updatePtrsInObj(void * ptr) {
     
     for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];     
-      UPDATEOBJ(*((void **)(((char *)ptr)+offset)), i);
+      UPDATEOBJ(*((void **)(((char *)ptr)+offset)));
     }
 #endif
   } else {
@@ -167,7 +168,7 @@ INLINE void updatePtrsInObj(void * ptr) {
     
     for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
-      UPDATEOBJ(*((void **)(((char *)ptr)+offset)), i);
+      UPDATEOBJ(*((void **)(((char *)ptr)+offset)));
     }
   }  
 }

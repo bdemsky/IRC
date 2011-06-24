@@ -21,7 +21,6 @@ void * mycalloc_share(struct garbagelist * stackptr, int size) {
       gc(stackptr);
     }
     p = BAMBOO_SHARE_MEM_CALLOC(isize); // calloc(m, isize);
-
     if(p == NULL) {
       // no more global shared memory
       if(hasgc < 5) {
