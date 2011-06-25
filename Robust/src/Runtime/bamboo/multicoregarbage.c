@@ -508,15 +508,13 @@ bool gc(struct garbagelist * stackptr) {
   if(0 == BAMBOO_NUM_OF_CORE) {
     GC_PRINTF("Check if we can do gc or not\n");
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-    if(!gc_checkCoreStatus()) {
-      // some of the cores are still executing the mutator and did not reach
-      // some gc safe point, therefore it is not ready to do gc
-      gcflag = true;
-      return false;
-    } else {
-      GCPROFILE_START();
-      pregccheck();
-    }
+
+    //wait for other cores to catch up
+    while(!gc_checkCoreStatus())
+      ;
+
+    GCPROFILE_START();
+    pregccheck();
     GC_PRINTF("start gc! \n");
     pregcprocessing();
     gc_master(stackptr);

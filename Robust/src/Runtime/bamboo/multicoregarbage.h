@@ -7,11 +7,11 @@
 #include "structdefs.h"
 #include "multicoregcprofile.h"
 
-//#ifdef GC_DEBUG
+#ifdef GC_DEBUG
 #define GC_PRINTF tprintf
-//#else
-//#define GC_PRINTF if(0) tprintf
-//#endif 
+#else
+#define GC_PRINTF if(0) tprintf
+#endif 
 
 #define TR() tprintf("%u\n",__LINE__)
 
