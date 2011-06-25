@@ -70,6 +70,52 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
       nextblockrecord->freespace=BLOCKSIZE(1);
     }
   }
+
+  //this could be the last one....
+  int count=gc_countRunningCores();
+  if (gcmovepending==count) {
+    // All cores have stopped...hand out memory as necessary to handle all requests
+    handleMemoryRequests_I();
+  } else {
+    //see if returned memory blocks let us resolve requests
+    useReturnedMem();
+  }
+}
+
+void useReturnedMem(unsigned int corenum, block_t localblockindex) {
+  for(int i=0;i<NUMCORES4GC;i++) {
+    unsigned INTPTR requiredmem=gcrequiredmems[i];
+    if (requiredmem) {
+      unsigned INTPTR desiredmem=maxusefulmems[i];
+      unsigned INTPTR threshold=(desiredmem<MINMEMORYCHUNKSIZE)? desiredmem: MINMEMORYCHUNKSIZE;
+      unsigned INTPTR memcheck=requiredmem>threshold?requiredmem:threshold;
+
+
+      for(block_t nextlocalblocknum=localblockindex;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
+	unsigned INTPTR blocknum=BLOCKINDEX2(cnum, nextlocalblocknum);
+	struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blockindex];
+	if (nextblockrecord->status==BS_FREE) {
+	  unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
+	  if (freespace>=memcheck) {
+	    block->status=BS_USED;
+	    void *blockptr=OFFSET2BASEVA(searchblock)+gcbaseva;
+	    unsigned INTPTR usedspace=((block->usedspace-1)&~BAMBOO_CACHE_LINE_MASK)+BAMBOO_CACHE_LINE_SIZE;
+	    allocationinfo.lowestfreeblock=firstfree;
+	    //taken care of one block
+	    gcmovepending--;
+	    void *startaddr=blockptr+usedspace;
+	    gcrequiredmems[i]=0;
+	    maxusefulmems[i]=0;
+	    if(BAMBOO_CHECK_SEND_MODE()) {
+	      cache_msg_2_I(core,GCMOVESTART,startaddr);
+	    } else {
+	      send_msg_2_I(core,GCMOVESTART,startaddr);
+	    }
+	  }
+	}
+      }
+    }
+  }
 }
 
 void handleReturnMem(unsigned int cnum, void *heaptop) {
@@ -96,7 +142,6 @@ void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes) {
     //send request for memory
     send_msg_4(STARTUPCORE,GCFINISHCOMPACT,BAMBOO_NUM_OF_CORE, minimumbytes, gccurr_heaptop);
     //wait for flag to be set that we received message
-    int cc=0;
     while(!gctomove)
       ;
   }
