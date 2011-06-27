@@ -85,6 +85,7 @@ public class SemanticCheck {
           }
           if (oldstatus<REFERENCE) {
             cd.addSuperInterfaces(superif);
+            cd.getMethodTable().addParentIF(superif.getMethodTable());
             cd.getFieldTable().addParentIF(superif.getFieldTable());
           }
         }
@@ -1253,8 +1254,7 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
     if (!typetolookin.isClass())
       throw new Error("Error with method call to "+min.getMethodName()+" in class "+typetolookin);
     ClassDescriptor classtolookin=typetolookin.getClassDesc();
-    checkClass(classtolookin, INIT);
-
+    checkClass(classtolookin, REFERENCE);
     Set methoddescriptorset=classtolookin.getMethodTable().getSet(min.getMethodName());
     MethodDescriptor bestmd=null;
 NextMethod:

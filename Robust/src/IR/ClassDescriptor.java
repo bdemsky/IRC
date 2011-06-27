@@ -130,7 +130,7 @@ public class ClassDescriptor extends Descriptor {
   }
 
   public String getSafeSymbol() {
-    return safename.replace(".","___________");
+    return safename.replace(".","___________").replace("$","___DOLLAR___");
   }
 
   public String printTree(State state) {

@@ -45,10 +45,8 @@ public class SymbolTable {
     else
       hs=new HashSet();
     if(this.parentIFs != null) {
-      for(int i = 0; i < this.parentIFs.size(); i++) {
-        if(this.parentIFs.elementAt(i).contains(name)) {
-          hs.addAll((HashSet)(this.parentIFs.elementAt(i).getPSet(name)));
-        }
+      for(int i = 0; i < parentIFs.size(); i++) {
+	hs.addAll(parentIFs.elementAt(i).getPSet(name));
       }
     }
     if (table.containsKey(name)) {
