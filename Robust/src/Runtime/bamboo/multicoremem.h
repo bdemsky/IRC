@@ -105,7 +105,8 @@
 #endif // GC_SMALLPAGESIZE
 
 //keeps track of the top address that has been zero'd by the allocator
-volatile unsigned int bamboo_smem_zero_top;
+volatile void * bamboo_smem_zero_top;
+volatile unsigned int totalbytestozero;
 
 //BAMBOO_SMEM_ZERO_UNIT_SIZE must evenly divide the page size and be a
 //power of two(we rely on both in the allocation function)

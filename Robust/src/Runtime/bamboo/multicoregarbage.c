@@ -8,6 +8,7 @@
 #include "multicoregcprofile.h"
 #include "gcqueue.h"
 #include "multicoremem_helper.h"
+#include "bambooalign.h"
 
 volatile bool gcflag;
 gc_status_t gc_status_info;

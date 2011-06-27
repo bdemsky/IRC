@@ -78,7 +78,7 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
     handleMemoryRequests_I();
   } else {
     //see if returned memory blocks let us resolve requests
-    useReturnedMem();
+    useReturnedMem(cnum, allocationinfo.lowestfreeblock);
   }
 }
 
@@ -92,24 +92,24 @@ void useReturnedMem(unsigned int corenum, block_t localblockindex) {
 
 
       for(block_t nextlocalblocknum=localblockindex;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
-	unsigned INTPTR blocknum=BLOCKINDEX2(cnum, nextlocalblocknum);
-	struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blockindex];
+	unsigned INTPTR blocknum=BLOCKINDEX2(corenum, nextlocalblocknum);
+	struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blocknum];
 	if (nextblockrecord->status==BS_FREE) {
-	  unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
+	  unsigned INTPTR freespace=nextblockrecord->freespace&~BAMBOO_CACHE_LINE_MASK;
+
 	  if (freespace>=memcheck) {
-	    block->status=BS_USED;
-	    void *blockptr=OFFSET2BASEVA(searchblock)+gcbaseva;
-	    unsigned INTPTR usedspace=((block->usedspace-1)&~BAMBOO_CACHE_LINE_MASK)+BAMBOO_CACHE_LINE_SIZE;
-	    allocationinfo.lowestfreeblock=firstfree;
+	    nextblockrecord->status=BS_USED;
+	    void *blockptr=OFFSET2BASEVA(blocknum)+gcbaseva;
+	    unsigned INTPTR usedspace=((nextblockrecord->usedspace-1)&~BAMBOO_CACHE_LINE_MASK)+BAMBOO_CACHE_LINE_SIZE;
 	    //taken care of one block
 	    gcmovepending--;
 	    void *startaddr=blockptr+usedspace;
 	    gcrequiredmems[i]=0;
 	    maxusefulmems[i]=0;
 	    if(BAMBOO_CHECK_SEND_MODE()) {
-	      cache_msg_2_I(core,GCMOVESTART,startaddr);
+	      cache_msg_2_I(corenum,GCMOVESTART,startaddr);
 	    } else {
-	      send_msg_2_I(core,GCMOVESTART,startaddr);
+	      send_msg_2_I(corenum,GCMOVESTART,startaddr);
 	    }
 	  }
 	}
@@ -374,6 +374,16 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 
     if (objlength!=NOTMARKED) {
       unsigned int length=ALIGNSIZETOBYTES(objlength);
+
+      /*      unsigned int size;
+      unsigned int type;
+      gettype_size(origptr, &type, &size);
+      size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
+
+      if (size!=length) {
+	tprintf("BAD SIZE IN BITMAP: type=%u object=%x size=%u length=%u\n", type, origptr, size, length);
+	}*/
+
       void *endtoptr=toptr+length;
       if (endtoptr>tobound) {
 	gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
@@ -382,6 +392,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 	return length;
       }
       //good to move objects and update pointers
+      //tprintf("Decided to compact obj %x to %x\n", origptr, toptr);
 
       gcmappingtbl[OBJMAPPINGINDEX(origptr)]=toptr;
       origptr+=length;

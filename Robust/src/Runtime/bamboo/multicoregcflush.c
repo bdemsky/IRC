@@ -221,6 +221,8 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
         memcpy(dstptr, origptr, length);
       }
 
+      //tprintf("Moving object %x to %x with lenght %u\n", origptr, dstptr, length);
+
       /* Update the pointers in the object */
       updatePtrsInObj(dstptr);
 
