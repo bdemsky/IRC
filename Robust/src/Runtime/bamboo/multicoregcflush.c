@@ -217,7 +217,8 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
       /* Move the object */
       if(origptr <= endtoptr) {
         memmove(dstptr, origptr, length);
-      } else {
+      } else if (origptr!=dstptr) {
+	//no need to copy if the source & dest are equal....
         memcpy(dstptr, origptr, length);
       }
 
