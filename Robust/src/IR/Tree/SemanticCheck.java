@@ -87,6 +87,7 @@ public class SemanticCheck {
             cd.addSuperInterfaces(superif);
             cd.getMethodTable().addParentIF(superif.getMethodTable());
             cd.getFieldTable().addParentIF(superif.getFieldTable());
+            cd.getMethodTable().addParentIF(superif.getMethodTable());
           }
         }
       }
