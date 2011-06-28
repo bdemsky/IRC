@@ -254,8 +254,6 @@ void mark(struct garbagelist * stackptr) {
 
       setLengthMarked(ptr,iunits);
 
-      //tprintf("Marking object %x, type %u, length %u, units %u\n", ptr, type, size, iunits);
-
       if(islarge) {
         // ptr is a large object and not marked or enqueued
 	printf("NEED TO SUPPORT LARGE OBJECTS!\n");

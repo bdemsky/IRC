@@ -214,9 +214,6 @@ void checkMarkStatus() {
       entry_index = gcnumsrobjs_index;
     }
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-    gccorestatus[BAMBOO_NUM_OF_CORE] = 0;  
-    gcnumsendobjs[entry_index][BAMBOO_NUM_OF_CORE] = gcself_numsendobjs;
-    gcnumreceiveobjs[entry_index][BAMBOO_NUM_OF_CORE] = gcself_numreceiveobjs;
     // check the status of all cores
     if (gc_checkCoreStatus()) {
       // ask for confirm

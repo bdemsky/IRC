@@ -44,7 +44,6 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
   unsigned int blockindex;
   BLOCKINDEX(blockindex, heaptop);
   unsigned INTPTR localblocknum=GLOBALBLOCK2LOCAL(blockindex);
-
   //this core is done as far as memory usage is concerned
   returnedmem[cnum]=0;
 
@@ -63,7 +62,7 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
     unsigned INTPTR nextlocalblocknum=localblocknum+1;
     for(;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
       unsigned INTPTR blocknum=BLOCKINDEX2(cnum, nextlocalblocknum);
-      struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blockindex];
+      struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blocknum];
       nextblockrecord->status=BS_FREE;
       nextblockrecord->usedspace=0;
       //this is true because this cannot be the lowest block
@@ -376,6 +375,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
     if (objlength!=NOTMARKED) {
       unsigned int length=ALIGNSIZETOBYTES(objlength);
 
+      //code between this and next comment should be removed
       unsigned int size;
       unsigned int type;
       gettype_size(origptr, &type, &size);
@@ -383,8 +383,15 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
       
       if (size!=length) {
 	tprintf("BAD SIZE IN BITMAP: type=%u object=%x size=%u length=%u\n", type, origptr, size, length);
+	unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(origptr-gcbaseva));
+	unsigned INTPTR hibits=alignsize>>4;
+	unsigned INTPTR lobits=(alignsize&15)<<1;
+	tprintf("hibits=%x lobits=%x\n", hibits, lobits);
+	tprintf("hi=%x lo=%x\n", gcmarktbl[hibits], gcmarktbl[hibits+1]);
+	
       }
-      
+      //end of code to remove
+
       void *endtoptr=toptr+length;
       if (endtoptr>tobound) {
 	gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);

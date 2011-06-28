@@ -27,8 +27,10 @@ extern struct lockvector bamboo_threadlocks;
 // NOTE: the objptr should not be NULL and should not be non shared ptr
 #define updateObj(objptr) gcmappingtbl[OBJMAPPINGINDEX(objptr)]
 //#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) obj=updateObj(updatetmpptr);if (obj<gcbaseva) tprintf("BAD PTR %x to %x in %u\n", updatetmpptr, obj, __LINE__);}
-#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) obj=updateObj(updatetmpptr);}
+#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=updateObj(updatetmpptr);}}
+//if (obj==NULL) tprintf("Mapping problem for object %x, mark=%u, line=%u\n", updatetmpptr, getMarkedLength(updatetmpptr),__LINE__);}}
 #define UPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=updateObj(updatetmpptr);}
+//if (updatetmpptr!=NULL&&obj==NULL) tprintf("Mapping parameter for object %x, mark=%u, line=%u\n", updatetmpptr, getMarkedLength(updatetmpptr),__LINE__);}
 
 INLINE void updategarbagelist(struct garbagelist *listptr) {
   for(;listptr!=NULL; listptr=listptr->next) {
@@ -222,7 +224,7 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
         memcpy(dstptr, origptr, length);
       }
 
-      //      tprintf("Moving object %x to %x with length %u\n", origptr, dstptr, length);
+      //tprintf("Moving object %x to %x with length %u\n", origptr, dstptr, length);
 
       /* Update the pointers in the object */
       updatePtrsInObj(dstptr);

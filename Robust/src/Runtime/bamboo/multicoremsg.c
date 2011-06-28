@@ -434,6 +434,7 @@ INLINE void processmsg_gcstart_I() {
 INLINE void processmsg_gcstartcompact_I() {
   gcblock2fill = msgdata[msgdataindex];
   MSG_INDEXINC_I();  
+  BAMBOO_ASSERT(!gc_status_info.gcbusystatus);
   gc_status_info.gcphase = COMPACTPHASE;
 }
 
@@ -503,6 +504,7 @@ INLINE void processmsg_gcfinishmark_I() {
   MSG_INDEXINC_I();
   // received a mark phase finish msg
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
+  BAMBOO_ASSERT(gc_status_info.gcphase = MARKPHASE);
 
   // all cores should do mark
   if(data1 < NUMCORESACTIVE) {

@@ -98,7 +98,6 @@ void * smemalloc_I(int coren, int isize, int * allocsize) {
 #elif defined(SMEMG)
   void *mem = globalmalloc_I(coren, isize, allocsize);
 #endif
-  //  tprintf("Handing core %u memory block %x of size %u\n", coren, mem, *allocsize);
   if(mem == NULL) {
     // no enough shared global memory
     // trigger gc
