@@ -578,7 +578,6 @@ INLINE void processmsg_gcfinish_I() {
 
 INLINE void processmsg_gcmarkconfirm_I() {
   BAMBOO_ASSERT(((BAMBOO_NUM_OF_CORE!=STARTUPCORE)&&(BAMBOO_NUM_OF_CORE<=NUMCORESACTIVE-1)));
-  gc_status_info.gcbusystatus = gc_moreItems_I();
   // send response msg, cahce the msg first
   if(BAMBOO_CHECK_SEND_MODE()) {
     cache_msg_5_I(STARTUPCORE,GCMARKREPORT,BAMBOO_NUM_OF_CORE,gc_status_info.gcbusystatus,gcself_numsendobjs,gcself_numreceiveobjs);

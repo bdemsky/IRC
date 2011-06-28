@@ -267,21 +267,28 @@ void mark(struct garbagelist * stackptr) {
       // scan the pointers in object
       scanPtrsInObj(ptr, type);
     }
-    gc_status_info.gcbusystatus = false;
-    // send mark finish msg to core coordinator
-    if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-      int entry_index = waitconfirm ? (gcnumsrobjs_index==0) : gcnumsrobjs_index;
-      gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-      gcnumsendobjs[entry_index][BAMBOO_NUM_OF_CORE]=gcself_numsendobjs;
-      gcnumreceiveobjs[entry_index][BAMBOO_NUM_OF_CORE]=gcself_numreceiveobjs;
-    } else {
-      if(!sendStall) {
-        send_msg_4(STARTUPCORE,GCFINISHMARK,BAMBOO_NUM_OF_CORE,gcself_numsendobjs,gcself_numreceiveobjs);
-        sendStall = true;
+
+    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+    //make sure the queue is still empty...now we have interrupts off, things can't change on us...
+
+    if (!gc_moreItems_I()) {
+      gc_status_info.gcbusystatus = false;
+      // send mark finish msg to core coordinator
+      if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+	int entry_index = waitconfirm ? (gcnumsrobjs_index==0) : gcnumsrobjs_index;
+	gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
+	gcnumsendobjs[entry_index][BAMBOO_NUM_OF_CORE]=gcself_numsendobjs;
+	gcnumreceiveobjs[entry_index][BAMBOO_NUM_OF_CORE]=gcself_numreceiveobjs;
+	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	checkMarkStatus();
+      } else {
+	if(!sendStall) {
+	  send_msg_4(STARTUPCORE,GCFINISHMARK,BAMBOO_NUM_OF_CORE,gcself_numsendobjs,gcself_numreceiveobjs);
+	  sendStall = true;
+	}
+	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       }
     }
-    if(BAMBOO_NUM_OF_CORE == STARTUPCORE)
-      checkMarkStatus();
   }
 } 
 
