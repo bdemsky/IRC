@@ -7,11 +7,11 @@
 #include "structdefs.h"
 #include "multicoregcprofile.h"
 
-#ifdef GC_DEBUG
+//#ifdef GC_DEBUG
 #define GC_PRINTF tprintf
-#else
-#define GC_PRINTF if(0) tprintf
-#endif 
+//#else
+//#define GC_PRINTF if(0) tprintf
+//#endif 
 
 #define TR() tprintf("%u\n",__LINE__)
 
@@ -107,7 +107,7 @@ void ** gcmappingtbl;
 unsigned int bamboo_rmsp_size;
 
 //mark table....keep track of mark bits
-unsigned int * gcmarktbl;
+volatile unsigned int * gcmarktbl;
 
 void * gcbaseva; // base va for shared memory without reserved sblocks
 

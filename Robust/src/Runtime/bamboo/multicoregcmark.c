@@ -4,6 +4,7 @@
 #include "GenericHashtable.h"
 #include "gcqueue.h"
 #include "multicoregcmark.h"
+#include "multicoregarbage.h"
 #include "markbit.h"
 
 #ifdef TASK
@@ -63,6 +64,7 @@ void markObj(void * objptr) {
     if(!checkMark(objptr)) {
       // this is the first time that this object is discovered,
       // set the flag as DISCOVERED
+
       setMark(objptr);
       gc_enqueue(objptr);
     }
@@ -247,7 +249,11 @@ void mark(struct garbagelist * stackptr) {
       unsigned int type = 0;
       bool islarge=isLarge(ptr, &type, &size);
       unsigned int iunits = ALIGNUNITS(size);
+
+      //debugging for the next five lines
+
       setLengthMarked(ptr,iunits);
+
       //tprintf("Marking object %x, type %u, length %u, units %u\n", ptr, type, size, iunits);
 
       if(islarge) {

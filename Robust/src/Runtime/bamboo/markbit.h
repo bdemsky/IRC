@@ -11,8 +11,8 @@ extern unsigned int revmarkmappingarray[];
 
 
 
-#define OBJMASK 0x40000000  //set towhatever smallest object mark is
-#define MARKMASK 0xc0000000  //set towhatever smallest object mark is
+#define OBJMASK 0x40000000UL  //set towhatever smallest object mark is
+#define MARKMASK 0xc0000000UL  //set towhatever smallest object mark is
 
 /* 
    The bitmap mark array uses 2 mark bits per alignment unit.
@@ -69,13 +69,15 @@ static inline void setLength(void *ptr, unsigned int length) {
     gcmarktbl[hibits]|=ormask;
   } else {
     gcmarktbl[hibits]|=ormask>>lobits;
-    gcmarktbl[hibits+1]|=ormask<<(32-lobits);
+    unsigned INTPTR lowormask=ormask<<(32-lobits);
+    if (lowormask)
+      gcmarktbl[hibits+1]|=lowormask;
   }
 }
 
 /* Set length for premarked object */
 
-static inline void setLengthMarked(void *ptr, unsigned int length) {
+static inline void setLengthMarked_I(void *ptr, unsigned int length) {
   unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbaseva));
   unsigned INTPTR hibits=alignsize>>4;
   unsigned INTPTR lobits=(alignsize&15)<<1;
@@ -84,16 +86,31 @@ static inline void setLengthMarked(void *ptr, unsigned int length) {
     gcmarktbl[hibits]=(gcmarktbl[hibits]^(OBJMASK))|ormask;
   } else {
     gcmarktbl[hibits]=(gcmarktbl[hibits]^(OBJMASK>>lobits))|(ormask>>lobits);
-    gcmarktbl[hibits+1]|=ormask<<(32-lobits);
+    unsigned INTPTR lowormask=ormask<<(32-lobits);
+    if (lowormask)
+      gcmarktbl[hibits+1]|=lowormask;
   }
 }
+
+static inline void setLengthMarked(void *ptr, unsigned int length) {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  setLengthMarked_I(ptr, length);
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+}
+
 /* Set length in units of ALIGNSIZE */
 
-static inline void setMark(void *ptr) {
+static inline void setMark_I(void *ptr) {
   unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbaseva));
   unsigned INTPTR hibits=alignsize>>4;
   unsigned INTPTR lobits=(alignsize&15)<<1;
-  gcmarktbl[hibits]|=OBJMASK>>lobits;
+  gcmarktbl[hibits]|=(OBJMASK>>lobits);
+}
+
+static inline void setMark(void *ptr) {
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  setMark_I(ptr);
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 }
 
 static inline void clearMark(void *ptr) {

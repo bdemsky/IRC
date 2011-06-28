@@ -618,7 +618,8 @@ INLINE void processmsg_gcmarkedobj_I() {
   if(!checkMark(objptr)) {
     // this is the first time that this object is discovered,
     // set the flag as DISCOVERED
-    setMark(objptr);
+
+    setMark_I(objptr);
     gc_enqueue_I(objptr);
   }
   gcself_numreceiveobjs++;

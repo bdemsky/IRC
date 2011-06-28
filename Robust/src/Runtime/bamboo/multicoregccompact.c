@@ -294,6 +294,7 @@ void handleOneMemoryRequest(int core, unsigned int lowestblock) {
     }
   }
   //this is bad...ran out of memory
+  printf("Out of memory.  Was trying for %u bytes\n", threshold);
   BAMBOO_EXIT();
 }
 
@@ -375,15 +376,15 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
     if (objlength!=NOTMARKED) {
       unsigned int length=ALIGNSIZETOBYTES(objlength);
 
-      /*      unsigned int size;
+      unsigned int size;
       unsigned int type;
       gettype_size(origptr, &type, &size);
       size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
-
+      
       if (size!=length) {
 	tprintf("BAD SIZE IN BITMAP: type=%u object=%x size=%u length=%u\n", type, origptr, size, length);
-	}*/
-
+      }
+      
       void *endtoptr=toptr+length;
       if (endtoptr>tobound) {
 	gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
