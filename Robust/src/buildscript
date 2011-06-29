@@ -106,6 +106,7 @@ echo -gctbldebug generate GC_TBL_DEBUG code
 echo
 echo SSJava options
 echo -ssjava enables SSJava
+echo -ssjavadebug reports interim results
 echo
 echo Other options
 echo -jni enable jni
@@ -608,6 +609,10 @@ elif [[ $1 = '-ssjava' ]]
 then
 SSJAVA=true
 JAVAOPTS="$JAVAOPTS -ssjava"
+
+elif [[ $1 = '-ssjavadebug' ]]
+then
+JAVAOPTS="$JAVAOPTS -ssjavadebug"
 
 elif [[ $1 = '-mempool-detect-misuse' ]]
 then
