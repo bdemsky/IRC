@@ -100,7 +100,7 @@ __attribute__((malloc)) struct ___TagDescriptor___ * allocate_tag(int index);
 
 
 void initializeexithandler();
-void failedboundschk(int num);
+void failedboundschk(int num, int index, struct ArrayObject * ao);
 void failednullptr(void * stackptr);
 void abort_task();
 void injectinstructionfailure();

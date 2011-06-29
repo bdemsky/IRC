@@ -934,9 +934,9 @@ __attribute__((malloc)) StringPtr NewString(const char *str,int length) {
 
 /* Generated code calls this if we fail a bounds check */
 
-void failedboundschk(int num) {
+ void failedboundschk(int num, int index, struct ArrayObject * ao ) {
 #ifndef TASK
-  printf("Array out of bounds\n");
+   printf("Array out of bounds at line %u with index %u of object %x with length %u\n", num, index, ao, ao->___length___);
 #ifdef THREADS
   threadexit();
 #else
