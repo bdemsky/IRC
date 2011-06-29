@@ -529,7 +529,6 @@ void *dstmAccept(void *acceptfd) {
           else {
             printf("Got new Leader! : %d\n",epoch_num);
             pthread_mutex_lock(&recovery_mutex);
-            currentEpoch = epoch_num;
             okCommit = TRANS_BEFORE;
             leader_index = new_leader_index;
             pthread_mutex_unlock(&recovery_mutex);
@@ -932,7 +931,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 
 //  printf("%s -> transID : %u\n",__func__,fixed->transid);
   if(inspectEpoch(fixed->epoch_num,"procesClient1") < 0) {
-    printf("%s-> Higher Epoch current epoch = %u epoch %u\n",__func__,currentEpoch,fixed->epoch_num);
+//    printf("%s-> Higher Epoch current epoch = %u epoch %u\n",__func__,currentEpoch,fixed->epoch_num);
     control = RESPOND_HIGHER_EPOCH;
     send_data((int)acceptfd,&control,sizeof(char));
   }
@@ -947,6 +946,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 	int timeout1 = recv_data((int)acceptfd, &control, sizeof(char));
   int timeout2 = recv_data((int)acceptfd, &epoch_num, sizeof(unsigned int));
 
+//  printf("%s -> Received for transID : %u\n",__func__,fixed->transid);
   if(timeout1 < 0 || timeout2 < 0) {  // timeout. failed to receiving data from coordinator
     control = DECISION_LOST;
   }
@@ -958,7 +958,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
   // check if it is allowed to commit
   tNode->decision = control;
   do {
-    tNode->status = TRANS_INPROGRESS; 
+    tNode->status = TRANS_BEFORE; 
     if(okCommit != TRANS_BEFORE) {
       if(inspectEpoch(tNode->epoch_num,"processCleint2") > 0) {
         tNode->status = TRANS_INPROGRESS;
@@ -976,11 +976,10 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     }
     else {
       tNode->status = TRANS_WAIT;
-//      printf("%s -> Waiting!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
-//      sleep(3);
+      printf("%s -> Waiting!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
+      sleep(3);
       randomdelay();
     }
-    
   }while(tNode->status != TRANS_AFTER);
 
 //  printf("%s -> trans ID : %u is cleared\n",__func__,tNode->transid);
@@ -1882,7 +1881,7 @@ int stopTransactions(int TRANS_FLAG,unsigned int epoch_num)
       while(walker)
       {
         // locking
-        while(walker->status != TRANS_WAIT && tlistSearch(transList,walker->transid) != NULL) {
+        while((walker->status != TRYING_TO_COMMIT && walker->status != TRANS_WAIT) && tlistSearch(transList,walker->transid) != NULL) {
 //          printf("%s -> BEFORE transid : %u - decision %d Status : %d \n",__func__,walker->transid,walker->decision,walker->status);
           if(inspectEpoch(epoch_num,"stopTrans_Before") < 0) {
 //            printf("%s -> Higher Epoch is seen, walker->epoch = %u currentEpoch = %u\n",__func__,epoch_num,currentEpoch);
@@ -1919,7 +1918,7 @@ int stopTransactions(int TRANS_FLAG,unsigned int epoch_num)
         return -1;
       }
 
-//      sleep(5);
+ //     sleep(5);
       randomdelay();
     }while(size != 0);
   }
