@@ -504,9 +504,10 @@ struct ___String___ * NewString(const char *str,
 
 /* Generated code calls this if we fail a bounds check */
 
-void failedboundschk(int num) {
+ void failedboundschk(int num, int index, struct ArrayObject * ao) {
 #ifndef TASK
-  printf("Array out of bounds, %d \n", num);
+  printf("Array out of bounds at line %u with index %u of object %x with lengt\
+h %u\n", num, index, ao, ao->___length___);
 #ifdef THREADS
   threadexit();
 #elif defined MGC
