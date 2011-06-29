@@ -124,7 +124,6 @@ static inline void clearMark(void *ptr) {
     unsigned int bits=(index>48)?32:bitmarkmappingarray[index];
     unsigned int bitstotoss=32-bits;
     gcmarktbl[hibits]^=((hipart>>(bitstotoss))<<(bitstotoss));
-
   } else {
     unsigned int orighi=gcmarktbl[hibits];
     unsigned int hipart=orighi<<lobits;
@@ -142,7 +141,9 @@ static inline void clearMark(void *ptr) {
       gcmarktbl[hibits]^=(hipart>>bitstotoss)<<bitstotossminuslobits;
     } else
       gcmarktbl[hibits]^=hipart>>lobits;
-    gcmarktbl[hibits+1]^=(lowpart>>bitstotoss)<<(bitstotoss+revlobits);
+    unsigned int xormask=(lowpart>>bitstotoss)<<(bitstotoss+revlobits);
+    if (xormask)
+      gcmarktbl[hibits+1]^=xormask;
   }
 }
 
