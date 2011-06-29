@@ -33,7 +33,7 @@ public class SingleReferenceCheck {
       ClassDescriptor cd = (ClassDescriptor) it.next();
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
-        if (ssjava.needAnnotation(md)) {
+        if (ssjava.needTobeAnnotated(md)) {
           checkMethodBody(cd, md);
         }
       }

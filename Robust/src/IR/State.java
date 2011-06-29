@@ -140,6 +140,7 @@ public class State {
 
   //SSJava
   public boolean SSJAVA=false;
+  public boolean SSJAVADEBUG=false;
 
 
   public boolean OPTIONAL=false;

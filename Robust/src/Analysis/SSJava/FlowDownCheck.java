@@ -114,7 +114,7 @@ public class FlowDownCheck {
         checkDeclarationInClass(cd);
         for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
           MethodDescriptor md = (MethodDescriptor) method_it.next();
-          if (ssjava.needAnnotation(md)) {
+          if (ssjava.needTobeAnnotated(md)) {
             checkDeclarationInMethodBody(cd, md);
           }
         }
@@ -133,7 +133,7 @@ public class FlowDownCheck {
       checkClass(cd);
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
-        if (ssjava.needAnnotation(md)) {
+        if (ssjava.needTobeAnnotated(md)) {
           checkMethodBody(cd, md);
         }
       }
@@ -176,7 +176,7 @@ public class FlowDownCheck {
     BlockNode bn = state.getMethodBody(md);
 
     // parsing returnloc annotation
-    if (ssjava.needAnnotation(md)) {
+    if (ssjava.needTobeAnnotated(md)) {
 
       Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
       if (methodAnnotations != null) {

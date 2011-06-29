@@ -1,5 +1,6 @@
 package Analysis.SSJava;
 
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
@@ -33,7 +34,7 @@ public class SSJavaAnalysis {
   MethodAnnotationCheck methodAnnotationChecker;
 
   // if a method has annotations, the mapping has true
-  Hashtable<MethodDescriptor, Boolean> md2needAnnotation;
+  Set<MethodDescriptor> annotationRequireSet;
 
   // class -> field lattice
   Hashtable<ClassDescriptor, SSJavaLattice<String>> cd2lattice;
@@ -53,16 +54,27 @@ public class SSJavaAnalysis {
     this.cd2lattice = new Hashtable<ClassDescriptor, SSJavaLattice<String>>();
     this.cd2methodDefault = new Hashtable<ClassDescriptor, MethodLattice<String>>();
     this.md2lattice = new Hashtable<MethodDescriptor, MethodLattice<String>>();
-    this.md2needAnnotation = new Hashtable<MethodDescriptor, Boolean>();
+    this.annotationRequireSet = new HashSet<MethodDescriptor>();
     this.skipLoopTerminate = new Hashtable<MethodDescriptor, Integer>();
   }
 
   public void doCheck() {
     doMethodAnnotationCheck();
+    if (state.SSJAVADEBUG) {
+      debugPrint();
+    }
     parseLocationAnnotation();
     doFlowDownCheck();
     doDefinitelyWrittenCheck();
     doSingleReferenceCheck();
+  }
+
+  public void debugPrint() {
+    System.out.println("SSJAVA: SSJava is checking the following methods:");
+    for (Iterator<MethodDescriptor> iterator = annotationRequireSet.iterator(); iterator.hasNext();) {
+      MethodDescriptor md = iterator.next();
+      System.out.println("SSJAVA: " + md);
+    }
   }
 
   private void doMethodAnnotationCheck() {
@@ -112,7 +124,7 @@ public class SSJavaAnalysis {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
         // parsing location hierarchy declaration for the method
 
-        if (needAnnotation(md)) {
+        if (needTobeAnnotated(md)) {
           Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
           if (methodAnnotations != null) {
             for (int i = 0; i < methodAnnotations.size(); i++) {
@@ -249,22 +261,21 @@ public class SSJavaAnalysis {
     }
   }
 
-  public boolean needAnnotation(MethodDescriptor md) {
-    return md2needAnnotation.containsKey(md);
+  public boolean needTobeAnnotated(MethodDescriptor md) {
+    return annotationRequireSet.contains(md);
   }
 
-  public void putNeedAnnotation(MethodDescriptor md) {
-    md2needAnnotation.put(md, new Boolean(true));
+  public void addAnnotationRequire(MethodDescriptor md) {
+    annotationRequireSet.add(md);
   }
 
-  public Hashtable<MethodDescriptor, Boolean> getMd2hasAnnotation() {
-    return md2needAnnotation;
+  public Set<MethodDescriptor> getAnnotationRequireSet() {
+    return annotationRequireSet;
   }
 
   public void doLoopTerminationCheck(LoopOptimize lo) {
     LoopTerminate lt = new LoopTerminate();
-    Set<MethodDescriptor> mdSet = md2needAnnotation.keySet();
-    for (Iterator iterator = mdSet.iterator(); iterator.hasNext();) {
+    for (Iterator iterator = annotationRequireSet.iterator(); iterator.hasNext();) {
       MethodDescriptor md = (MethodDescriptor) iterator.next();
       if (!skipLoopTerminate.containsKey(md)) {
         FlatMethod fm = state.getMethodFlat(md);

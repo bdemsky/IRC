@@ -360,7 +360,9 @@ public class Main {
         state.NOSTALLTR = true;
       } else if (option.equals("-ssjava")) {
         state.SSJAVA = true;
-      } else if (option.equals("-printlinenum")) {
+      } else if (option.equals("-ssjavadebug")) {
+        state.SSJAVADEBUG = true;
+      }else if (option.equals("-printlinenum")) {
         state.LINENUM=true;
       } else if (option.equals("-help")) {
         System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
