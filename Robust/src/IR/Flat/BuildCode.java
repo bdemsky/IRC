@@ -56,7 +56,6 @@ public class BuildCode {
   JavaBuilder javabuilder;
   String strObjType;
 
-  int boundschknum = 0;
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, CallGraph callgraph, JavaBuilder javabuilder) {
     this(st, temptovar, typeutil, null, callgraph, javabuilder);
@@ -697,7 +696,7 @@ public class BuildCode {
       outclassdefs.println("  volatile int notifycount;");
       outclassdefs.println("  volatile int objlock;");
       if(state.MULTICOREGC) {
-        outclassdefs.println("  int marked;");
+        //outclassdefs.println("  int marked;");
       }
     }
     if (state.TASK) {
@@ -711,7 +710,7 @@ public class BuildCode {
         outclassdefs.println("  int mutex;");
         outclassdefs.println("  volatile int lockcount;");
         if(state.MULTICOREGC) {
-          outclassdefs.println("  int marked;");
+          //outclassdefs.println("  int marked;");
         }
       }
       if(state.OPTIONAL) {
@@ -1653,7 +1652,7 @@ fldloop:
       classdefout.println("  volatile int notifycount;");
       classdefout.println("  volatile int objlock;");
       if(state.MULTICOREGC) {
-        classdefout.println("  int marked;");
+        //classdefout.println("  int marked;");
       }
     }
     if (state.TASK) {
@@ -1668,7 +1667,7 @@ fldloop:
         classdefout.println("  int mutex;");
         classdefout.println("  volatile int lockcount;");
         if(state.MULTICOREGC) {
-          classdefout.println("  int marked;");
+          //classdefout.println("  int marked;");
         }
       }
       if (state.OPTIONAL) {
@@ -2284,6 +2283,7 @@ fldloop:
       bcx.additionalCodePreNode(fm, fn, output);
     }
 
+
     switch(fn.kind()) {
     case FKind.FlatAtomicEnterNode:
       generateFlatAtomicEnterNode(fm, (FlatAtomicEnterNode) fn, output);
@@ -2868,9 +2868,11 @@ fldloop:
 
     if (this.state.ARRAYBOUNDARYCHECK && fen.needsBoundsCheck()) {
       output.println("if (unlikely(((unsigned int)"+generateTemp(fm, fen.getIndex())+") >= "+generateTemp(fm,fen.getSrc()) + "->___length___))");
-      output.println("failedboundschk(" + (boundschknum++) + ");");
+      output.println("failedboundschk(__LINE__, " +generateTemp(fm, fen.getIndex()) +", "+ generateTemp(fm, fen.getSrc()) + ");");
     }
     output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
+    if (fen.getDst().getType().isPtr())
+      ;
   }
 
   protected void generateFlatSetElementNode(FlatMethod fm, FlatSetElementNode fsen, PrintWriter output) {
@@ -2889,7 +2891,7 @@ fldloop:
 
     if (this.state.ARRAYBOUNDARYCHECK && fsen.needsBoundsCheck()) {
       output.println("if (unlikely(((unsigned int)"+generateTemp(fm, fsen.getIndex())+") >= "+generateTemp(fm,fsen.getDst()) + "->___length___))");
-      output.println("failedboundschk(" + (boundschknum++) + ");");
+      output.println("failedboundschk(__LINE__, " +generateTemp(fm, fsen.getIndex()) +", "+ generateTemp(fm, fsen.getDst()) + ");");
     }
     if (state.FASTCHECK) {
       String dst=generateTemp(fm, fsen.getDst());
@@ -2929,7 +2931,6 @@ fldloop:
       output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
       output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
     }
-
     for(BuildCodeExtension bcx: extensions) {
       bcx.additionalCodeNewObject(output, dst, fn);
     }
