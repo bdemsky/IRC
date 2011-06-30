@@ -61,11 +61,9 @@ void markObj(void * objptr) {
   unsigned int host = hostcore(objptr);
   if(BAMBOO_NUM_OF_CORE == host) {
     // on this core
-    if(!checkMark(objptr)) {
+    if(!checkAndCondSetMark(objptr)) {
       // this is the first time that this object is discovered,
       // set the flag as DISCOVERED
-
-      setMark(objptr);
       gc_enqueue(objptr);
     }
   } else {
@@ -101,7 +99,6 @@ void tomark(struct garbagelist * stackptr) {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     markgarbagelist((struct garbagelist *)global_defs_p);
   }
-  
 #ifdef TASK
   // enqueue objectsets
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
@@ -176,13 +173,11 @@ void tomark(struct garbagelist * stackptr) {
       }
     }
   }
-
   // enqueue the bamboo_threadlocks
   for(int i = 0; i < bamboo_threadlocks.index; i++) {
     // the locks can not be NULL
     MARKOBJNONNULL((void *)(bamboo_threadlocks.locks[i].object));
   }
-
   // enqueue the bamboo_current_thread
   MARKOBJ(bamboo_current_thread);
 #endif
@@ -251,8 +246,21 @@ void mark(struct garbagelist * stackptr) {
       unsigned int iunits = ALIGNUNITS(size);
 
       //debugging for the next five lines
-
+      unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbaseva));
+      unsigned INTPTR hibits=alignsize>>4;
+      unsigned INTPTR lobits=(alignsize&15)<<1;
+      unsigned INTPTR ohigh=gcmarktbl[hibits];
+      unsigned INTPTR olow=gcmarktbl[hibits+1];
       setLengthMarked(ptr,iunits);
+      unsigned int unit=getMarkedLength(ptr);
+      if (unit!=iunits) {
+	tprintf("Bad mark on %x %u!=%u\n", ptr, unit, iunits);
+	tprintf("hibits=%x lobits=%x\n", hibits, lobits);
+	tprintf("ohigh=%x olow=%x", ohigh, olow);
+	unsigned INTPTR nhigh=gcmarktbl[hibits];
+	unsigned INTPTR nlow=gcmarktbl[hibits+1];
+	tprintf("nhigh=%x nlow=%x", nhigh, nlow);
+      }
 
       if(islarge) {
         // ptr is a large object and not marked or enqueued
