@@ -10,6 +10,8 @@
 
 int msgsizearray[] = {
   0, //MSGSTART,
+  1, //REQNOTIFYSTART
+  1, //NOTIFYSTART
  -1, //TRANSOBJ,              // 0xD1
   4, //TRANSTALL,             // 0xD2
   5, //LOCKREQUEST,           // 0xD3
@@ -706,6 +708,19 @@ INLINE void processmsg_gcfinishpref_I() {
 #endif // GC_CACHE_ADAPT
 #endif // #ifdef MULTICORE_GC
 
+void processmg_req_notify_start() {
+  startflag=true;
+  if(BAMBOO_CHECK_SEND_MODE()) {
+    cache_msg_1_I(STARTUPCORE,NOTIFYSTART);
+  } else {
+    send_msg_1_I(STARTUPCORE,NOTIFYSTART);
+  }  
+}
+
+void processmg_notify_start() {
+  numconfirm--;
+}
+
 // receive object transferred from other cores
 // or the terminate message from other cores
 // Should be invoked in critical sections!!
@@ -762,6 +777,16 @@ processmsg:
     msgdatafull = false;
 
     switch(type) {
+    case REQNOTIFYSTART: {
+      processmsg_req_notify_start();
+      break;
+    }
+
+    case NOTIFYSTART: {
+      processmsg_notify_start();
+      break;
+    }
+
 #ifdef TASK
     case TRANSOBJ: {
       // receive a object transfer msg

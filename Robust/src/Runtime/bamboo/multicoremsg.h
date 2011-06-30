@@ -16,7 +16,7 @@ int outmsgindex;
 int outmsglast;
 int outmsgleft;
 volatile bool isMsgHanging;
-
+volatile bool startflag;
 #define MSG_INDEXINC_I() \
   msgdataindex = (msgdataindex + 1) & (BAMBOO_MSG_BUF_MASK) 
 
@@ -153,6 +153,8 @@ volatile bool isMsgHanging;
  */
 typedef enum {
   MSGSTART = 0x0,        // 0xD0
+  REQNOTIFYSTART,
+  NOTIFYSTART,
   TRANSOBJ,              // 0xD1
   TRANSTALL,             // 0xD2
   LOCKREQUEST,           // 0xD3

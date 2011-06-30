@@ -753,12 +753,26 @@ inline void run(int argc, char** argv) {
   bool sendStall = false;
   bool isfirst = true;
   bool tocontinue = false;
-
+  startflag = false;
   corenum = BAMBOO_GET_NUM_OF_CORE();
 
   // initialize runtime data structures
   initruntimedata();
   initCommunication();
+
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    numconfirm=NUMCORES-1;
+    for(int i=0;i<NUMCORES;i++) {
+      if (i!=STARTUPCORE) {
+	send_msg_1(STARTUPCORE,REQ_NOTIFY_START);
+      }
+    }
+    while(numconfirm!=0)
+      ;
+  } else {
+    while(!startflag)
+      ;
+  }
 
   CACHEADAPT_ENABLE_TIMER();
 
