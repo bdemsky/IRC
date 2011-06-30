@@ -7,37 +7,76 @@
 #include "multicorehelper.h"
 #include "multicoremem_helper.h"
 
-INLINE void * mallocmem(int tofindb,
-                        int totest,
-                        int size,
-                        int * allocsize) {
-  void * mem = NULL;
-  // find suitable block
-  return mem;
-}
-
 // Only allocate local mem chunks to each core.
 // If a core has used up its local shared memory, start gc.
 void * localmalloc_I(int coren,
-                     int isize,
+                     unsigned int isize,
                      int * allocsize) {
-  void * mem=globalmalloc_I(coren,isize,allocsize);
-  return mem;
+  for(block_t localblocknum=0;localblocknum<GCNUMLOCALBLOCK;localblocknum++) {
+    block_t searchblock=BLOCKINDEX2(coren, localblocknum);
+    struct blockrecord * block=&allocationinfo.blocktable[searchblock];
+    if (block->status==BS_FREE) {
+      unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
+      if (freespace>=memcheck) {
+	//we have a block
+	//mark block as used
+	block->status=BS_USED;
+	void *blockptr=OFFSET2BASEVA(searchblock)+gcbaseva;
+	unsigned INTPTR usedspace=((block->usedspace-1)&~BAMBOO_CACHE_LINE_MASK)+BAMBOO_CACHE_LINE_SIZE;
+	void *startaddr=blockptr+usedspace;
+	*allocsize=freespace;
+	return startaddr;
+      }
+    }
+  }
+  
+  return NULL;
 } 
 
-#ifdef SMEMF
 // Allocate the local shared memory to each core with the highest priority,
 // if a core has used up its local shared memory, try to allocate the 
 // shared memory that belong to its neighbours, if also failed, start gc.
 void * fixedmalloc_I(int coren,
-                     int isize,
+                     unsigned int memcheck,
                      int * allocsize) {
-  void * mem=globalmalloc_I(coren,isize,allocsize);
-  return mem;
-} 
-#endif 
+  //try locally first
+  void * mem=localmalloc_I(coren,memcheck,allocsize);
+  if (mem!=NULL)
+    return mem;
 
-#ifdef SMEMM
+  //failed try neighbors...in a round robin fashion
+  
+  int minblockindex=allocationinfo.lowestfreeblock/NUMCORES4GC;
+  unsigned INTPTR threshold=(desiredmem<MINMEMORYCHUNKSIZE)? desiredmem: MINMEMORYCHUNKSIZE;
+  unsigned INTPTR memcheck=requiredmem>threshold?requiredmem:threshold;
+  
+  for(block_t lblock=0;lblock<MAXNEIGHBORALLOC;lblock++) {  
+    for(int i=0;i<NUM_CORES2TEST;i++) {
+      int neighborcore=core2test[corenum][i];
+      if (neighborcore!=-1) {
+	block_t globalblockindex=BLOCKINDEX2(neighborcore, lblock);
+	struct blockrecord * block=&allocationinfo.blocktable[globalblockindex];
+	if (block->status==BS_FREE) {
+	  unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
+	  if (memcheck<=freespace) {
+	    //we have a block
+	    //mark block as used
+	    block->status=BS_USED;
+	    void *blockptr=OFFSET2BASEVA(globalblockindex)+gcbaseva;
+	    unsigned INTPTR usedspace=((block->usedspace-1)&~BAMBOO_CACHE_LINE_MASK)+BAMBOO_CACHE_LINE_SIZE;
+	    *allocsize=usedspace;
+	    return blockptr+usedspace;
+	  }
+	}
+      }
+    }
+  }
+
+  //no memory
+  return NULL;
+} 
+
+
 // Allocate the local shared memory to each core with the highest priority,
 // if a core has used up its local shared memory, try to allocate the 
 // shared memory that belong to its neighbours first, if failed, check 
@@ -47,10 +86,14 @@ void * fixedmalloc_I(int coren,
 void * mixedmalloc_I(int coren,
                      int isize,
                      int * allocsize) {
-  void * mem=globalmalloc_I(coren,isize,allocsize);
-  return mem;
+  void * mem=fixedmalloc_I(coren,isize,allocsize);
+  if (mem!=NULL)
+    return mem;
+
+  //try global allocator instead
+  return globalmalloc_I(coren, isize, allocsite);
 } 
-#endif 
+
 
 // Allocate all the memory chunks globally, do not consider the host cores
 // When all the shared memory are used up, start gc.

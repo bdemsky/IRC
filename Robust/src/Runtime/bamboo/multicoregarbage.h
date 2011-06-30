@@ -175,6 +175,9 @@ unsigned int size_cachepolicytbl;
 #define GCNUMBLOCK (NUMCORES4GC+(BAMBOO_SHARED_MEM_SIZE-BAMBOO_LARGE_SMEM_BOUND)/BAMBOO_SMEM_SIZE)
 #define GCNUMLOCALBLOCK (GCNUMBLOCK/NUMCORES4GC)
 
+/* Leave the neighboring cores with at least two blocks */
+#define MAXNEIGHBORALLOC (GCNUMLOCALBLOCK-2)
+
 /* This macro defines the smallest memoy chunk the master will hand out to another core during compacting */
 
 #define MINMEMORYCHUNKSIZE 32768
