@@ -87,7 +87,7 @@ INLINE unsigned int checkMsgLength_I(unsigned int realtype) {
 }
 
 #ifdef TASK
-INLINE void processmsg_transobj_I(int msglength) {
+void processmsg_transobj_I(int msglength) {
   struct transObjInfo * transObj=RUNMALLOC_I(sizeof(struct transObjInfo));
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE <= NUMCORESACTIVE - 1);
 
@@ -137,7 +137,7 @@ INLINE void processmsg_transobj_I(int msglength) {
 }
 #endif
 
-INLINE void processmsg_transtall_I() {
+void processmsg_transtall_I() {
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
   
   int num_core = msgdata[msgdataindex];
@@ -154,7 +154,7 @@ INLINE void processmsg_transtall_I() {
 }
 
 #ifndef MULTICORE_GC
-INLINE void processmsg_lockrequest_I() {
+void processmsg_lockrequest_I() {
   // check to see if there is a lock exist for the required obj
   // msgdata[1] -> lock type
   int locktype = msgdata[msgdataindex]; 
@@ -179,7 +179,7 @@ INLINE void processmsg_lockrequest_I() {
   }
 }
 
-INLINE void processmsg_lockgrount_I() {
+void processmsg_lockgrount_I() {
   MSG_INDEXINC_I();
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE <= NUMCORESACTIVE - 1);
   int data2 = msgdata[msgdataindex];
@@ -194,7 +194,7 @@ INLINE void processmsg_lockgrount_I() {
 #endif
 }
 
-INLINE void processmsg_lockdeny_I() {
+void processmsg_lockdeny_I() {
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -209,7 +209,7 @@ INLINE void processmsg_lockdeny_I() {
 #endif
 }
 
-INLINE void processmsg_lockrelease_I() {
+void processmsg_lockrelease_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
@@ -220,7 +220,7 @@ INLINE void processmsg_lockrelease_I() {
   processlockrelease(data1, data2, 0, false);
 }
 
-INLINE void processmsg_redirectlock_I() {
+void processmsg_redirectlock_I() {
   // check to see if there is a lock exist for the required obj
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();    // lock type
@@ -244,7 +244,7 @@ INLINE void processmsg_redirectlock_I() {
   }
 }
 
-INLINE void processmsg_redirectgrount_I() {
+void processmsg_redirectgrount_I() {
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -260,7 +260,7 @@ INLINE void processmsg_redirectgrount_I() {
 #endif
 }
 
-INLINE void processmsg_redirectdeny_I() {
+void processmsg_redirectdeny_I() {
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -275,7 +275,7 @@ INLINE void processmsg_redirectdeny_I() {
 #endif
 }
 
-INLINE void processmsg_redirectrelease_I() {
+void processmsg_redirectrelease_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
@@ -287,7 +287,7 @@ INLINE void processmsg_redirectrelease_I() {
 #endif // #ifndef MULTICORE_GC
 
 #ifdef PROFILE
-INLINE void processmsg_profileoutput_I() {
+void processmsg_profileoutput_I() {
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE != STARTUPCORE);
   stall = true;
   totalexetime = msgdata[msgdataindex];
@@ -304,13 +304,13 @@ INLINE void processmsg_profileoutput_I() {
   }
 }
 
-INLINE void processmsg_profilefinish_I() {
+void processmsg_profilefinish_I() {
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
   numconfirm--;
 }
 #endif // PROFILE
 
-INLINE void processmsg_statusconfirm_I() {
+void processmsg_statusconfirm_I() {
   BAMBOO_ASSERT(((BAMBOO_NUM_OF_CORE != STARTUPCORE) && (BAMBOO_NUM_OF_CORE <= NUMCORESACTIVE - 1)));
   // send response msg
   // cache the msg first
@@ -321,7 +321,7 @@ INLINE void processmsg_statusconfirm_I() {
   }
 }
 
-INLINE void processmsg_statusreport_I() {
+void processmsg_statusreport_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
@@ -340,7 +340,7 @@ INLINE void processmsg_statusreport_I() {
   numreceiveobjs[data2] = data4;
 }
 
-INLINE void processmsg_terminate_I() {
+void processmsg_terminate_I() {
   disruntimedata();
 #ifdef MULTICORE_GC
 #ifdef GC_CACHE_ADAPT
@@ -350,7 +350,7 @@ INLINE void processmsg_terminate_I() {
   BAMBOO_EXIT_APP(0);
 }
 
-INLINE void processmsg_memrequest_I() {
+void processmsg_memrequest_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
@@ -378,7 +378,7 @@ INLINE void processmsg_memrequest_I() {
 #endif
 }
 
-INLINE void processmsg_memresponse_I() {
+void processmsg_memresponse_I() {
   void * memptr = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   unsigned int numbytes = msgdata[msgdataindex];
@@ -410,7 +410,7 @@ INLINE void processmsg_memresponse_I() {
 }
 
 #ifdef MULTICORE_GC
-INLINE void processmsg_gcstartpre_I() {
+void processmsg_gcstartpre_I() {
   // the first time to be informed to start gc
   gcflag = true;
   // Zero out the remaining memory here because for the GC_CACHE_ADAPT 
@@ -422,27 +422,27 @@ INLINE void processmsg_gcstartpre_I() {
   smemflag = true;
 }
 
-INLINE void processmsg_gcstartinit_I() {
+void processmsg_gcstartinit_I() {
   gc_status_info.gcphase = INITPHASE;
 }
 
-INLINE void processmsg_gcstart_I() {
+void processmsg_gcstart_I() {
   // set the GC flag
   gc_status_info.gcphase = MARKPHASE;
 }
 
-INLINE void processmsg_gcstartcompact_I() {
+void processmsg_gcstartcompact_I() {
   gcblock2fill = msgdata[msgdataindex];
   MSG_INDEXINC_I();  
   BAMBOO_ASSERT(!gc_status_info.gcbusystatus);
   gc_status_info.gcphase = COMPACTPHASE;
 }
 
-INLINE void processmsg_gcstartupdate_I() {
+void processmsg_gcstartupdate_I() {
   gc_status_info.gcphase = UPDATEPHASE;
 }
 
-INLINE void processmsg_gcfinishpre_I() {
+void processmsg_gcfinishpre_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
@@ -459,7 +459,7 @@ INLINE void processmsg_gcfinishpre_I() {
   gcnumreceiveobjs[0][data1] = data3;
 }
 
-INLINE void processmsg_gcfinishinit_I() {
+void processmsg_gcfinishinit_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   // received a init phase finish msg
@@ -471,7 +471,7 @@ INLINE void processmsg_gcfinishinit_I() {
   }
 }
 
-INLINE void processmsg_reqblock_I() {
+void processmsg_reqblock_I() {
   int cnum=msgdata[msgdataindex];
   MSG_INDEXINC_I();
   void * topptr=msgdata[msgdataindex];
@@ -490,12 +490,12 @@ INLINE void processmsg_reqblock_I() {
   }
 }
 
-INLINE void processmsg_grantblock_I() {
+void processmsg_grantblock_I() {
   blockgranted=true;
 }
 
 
-INLINE void processmsg_gcfinishmark_I() {
+void processmsg_gcfinishmark_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
@@ -560,7 +560,7 @@ void processmsg_gcfinishcompact_I() {
   }
 }
 
-INLINE void processmsg_gcfinishupdate_I() {
+void processmsg_gcfinishupdate_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   // received a update phase finish msg
@@ -572,13 +572,13 @@ INLINE void processmsg_gcfinishupdate_I() {
   }
 }
 
-INLINE void processmsg_gcfinish_I() {
+void processmsg_gcfinish_I() {
   // received a GC finish msg
   gc_status_info.gcphase = FINISHPHASE;
   gc_status_info.gcprocessing = false;
 }
 
-INLINE void processmsg_gcmarkconfirm_I() {
+void processmsg_gcmarkconfirm_I() {
   BAMBOO_ASSERT(((BAMBOO_NUM_OF_CORE!=STARTUPCORE)&&(BAMBOO_NUM_OF_CORE<=NUMCORESACTIVE-1)));
   // send response msg, cahce the msg first
   if(BAMBOO_CHECK_SEND_MODE()) {
@@ -588,7 +588,7 @@ INLINE void processmsg_gcmarkconfirm_I() {
   }
 }
 
-INLINE void processmsg_gcmarkreport_I() {
+void processmsg_gcmarkreport_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
@@ -611,7 +611,7 @@ INLINE void processmsg_gcmarkreport_I() {
 
 }
 
-INLINE void processmsg_gcmarkedobj_I() {
+void processmsg_gcmarkedobj_I() {
   void * objptr = (void *) msgdata[msgdataindex];
   MSG_INDEXINC_I();
   
@@ -627,13 +627,13 @@ INLINE void processmsg_gcmarkedobj_I() {
   gc_status_info.gcbusystatus = true;
 }
 
-INLINE void processmsg_gcmovestart_I() {
+void processmsg_gcmovestart_I() {
   gctomove = true;
   gcmovestartaddr = msgdata[msgdataindex];
   MSG_INDEXINC_I();     
 }
 
-INLINE void processmsg_gclobjinfo_I(unsigned int msglength) {
+void processmsg_gclobjinfo_I(unsigned int msglength) {
   numconfirm--;
   int cnum = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -654,7 +654,7 @@ INLINE void processmsg_gclobjinfo_I(unsigned int msglength) {
 }
 
 #ifdef GC_PROFILE
-INLINE void processmsg_gcprofiles_I() {
+void processmsg_gcprofiles_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
@@ -675,11 +675,11 @@ INLINE void processmsg_gcprofiles_I() {
 #endif // GC_PROFILE
 
 #ifdef GC_CACHE_ADAPT
-INLINE void processmsg_gcstartcachepolicy_I() {
+void processmsg_gcstartcachepolicy_I() {
   gc_status_info.gcphase = CACHEPOLICYPHASE;
 }
 
-INLINE void processmsg_gcfinishcachepolicy_I() {
+void processmsg_gcfinishcachepolicy_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
@@ -690,11 +690,11 @@ INLINE void processmsg_gcfinishcachepolicy_I() {
   }
 }
 
-INLINE void processmsg_gcstartpref_I() {
+void processmsg_gcstartpref_I() {
   gc_status_info.gcphase = PREFINISHPHASE;
 }
 
-INLINE void processmsg_gcfinishpref_I() {
+void processmsg_gcfinishpref_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   // received a update phase finish msg
