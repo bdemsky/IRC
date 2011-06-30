@@ -15,31 +15,31 @@ void * mycalloc_share(struct garbagelist * stackptr, int size) {
   void * p = NULL;
   int isize = ((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
   int hasgc = 0;
+  int loopcount = 0;
 
-  while(true) {
-    if(gcflag) {
-      gc(stackptr);
-    }
+  while(loopcount<10000) {
     p = BAMBOO_SHARE_MEM_CALLOC(isize); // calloc(m, isize);
 
-    if(p == NULL) {
-      // no more global shared memory
-      if(hasgc < 5) {
-	// start gc
-	if(gcflag) {
-	  gc(stackptr);
-	}
+    if(p != NULL) 
+      return p;
+    
+    // no more global shared memory
+    if(hasgc < 5) {
+      // start gc
+      if(gcflag) {
+	gc(stackptr);
 	hasgc++;
-      } else {
-	// no more global shared memory
-	BAMBOO_EXIT();
       }
-    } else
-      break;
+    } else {
+      // no more global shared memory
+      printf("Did %u collections without getting memory\n", hasgc);
+      BAMBOO_EXIT();
+    }
   }
-  
-  return p;
+  tprint("Loopcount hit 10000\n");
+  BAMBOO_EXIT();
 }
+
 #else
 void * mycalloc_share(int size) {
   int isize = ((size-1)&(~(BAMBOO_CACHE_LINE_MASK)))+(BAMBOO_CACHE_LINE_SIZE);
