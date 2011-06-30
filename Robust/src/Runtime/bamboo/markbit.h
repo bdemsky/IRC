@@ -58,6 +58,22 @@ static inline unsigned int checkMark(void *ptr) {
   return (gcmarktbl[hibits]<<lobits)&MARKMASK;
 }
 
+/* Return non-zero value if the object is marked */
+
+static inline unsigned int checkAndCondSetMark(void *ptr) {
+  unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbaseva));
+  unsigned INTPTR hibits=alignsize>>4;
+  unsigned INTPTR lobits=(alignsize&15)<<1;
+  unsigned INTPTR mask=MARKMASK>>lobits;
+  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  unsigned INTPTR mark=(gcmarktbl[hibits])&mask;
+  if (!mark) {
+    gcmarktbl[hibits]|=(OBJMASK>>lobits);    
+  }
+  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  return mark;
+}
+
 /* Set length in units of ALIGNSIZE */
 
 static inline void setLength(void *ptr, unsigned int length) {
