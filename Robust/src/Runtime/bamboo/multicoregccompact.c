@@ -211,10 +211,10 @@ void * checkNeighbors_I(int corenum, unsigned INTPTR requiredmem, unsigned INTPT
   unsigned INTPTR threshold=(desiredmem<MINMEMORYCHUNKSIZE)? desiredmem: MINMEMORYCHUNKSIZE;
   unsigned INTPTR memcheck=requiredmem>threshold?requiredmem:threshold;
 
-  for(int i=0;i<NUM_CORES2TEST;i++) {
-    int neighborcore=core2test[corenum][i];
-    if (neighborcore!=-1) {
-      for(block_t lblock=minblockindex;lblock<numblockspercore;lblock++) {
+  for(block_t lblock=minblockindex;lblock<numblockspercore;lblock++) {
+    for(int i=0;i<NUM_CORES2TEST;i++) {
+      int neighborcore=core2test[corenum][i];
+      if (neighborcore!=-1) {
 	block_t globalblockindex=BLOCKINDEX2(neighborcore, lblock);
 	struct blockrecord * block=&allocationinfo.blocktable[globalblockindex];
 	if (block->status==BS_FREE) {
