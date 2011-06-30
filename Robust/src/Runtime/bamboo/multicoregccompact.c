@@ -95,7 +95,6 @@ void useReturnedMem(unsigned int corenum, block_t localblockindex) {
 	struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blocknum];
 	if (nextblockrecord->status==BS_FREE) {
 	  unsigned INTPTR freespace=nextblockrecord->freespace&~BAMBOO_CACHE_LINE_MASK;
-
 	  if (freespace>=memcheck) {
 	    nextblockrecord->status=BS_USED;
 	    void *blockptr=OFFSET2BASEVA(blocknum)+gcbaseva;
@@ -105,10 +104,13 @@ void useReturnedMem(unsigned int corenum, block_t localblockindex) {
 	    void *startaddr=blockptr+usedspace;
 	    gcrequiredmems[i]=0;
 	    maxusefulmems[i]=0;
-	    if(BAMBOO_CHECK_SEND_MODE()) {
-	      cache_msg_2_I(corenum,GCMOVESTART,startaddr);
+	    if (i==STARTUPCORE) {
+	      gctomove = true;
+	      gcmovestartaddr = startaddr;
+	    } else if(BAMBOO_CHECK_SEND_MODE()) {
+	      cache_msg_2_I(i,GCMOVESTART,startaddr);
 	    } else {
-	      send_msg_2_I(corenum,GCMOVESTART,startaddr);
+	      send_msg_2_I(i,GCMOVESTART,startaddr);
 	    }
 	  }
 	}
@@ -126,11 +128,13 @@ void handleReturnMem(unsigned int cnum, void *heaptop) {
 void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes) {
   //need to get another block from elsewhere
   //set flag to wait for memory
+
   if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
     gctomove=false;
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     void *startaddr=handlegcfinishcompact_I(BAMBOO_NUM_OF_CORE, minimumbytes, gccurr_heaptop);
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+
     if (startaddr) {
       gcmovestartaddr=startaddr;
     } else {
@@ -179,7 +183,6 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
       senttopmessage=true;
     }
     unsigned int minimumbytes=compactblocks(orig, to);
-
     if (orig->ptr==orig->bound) {
       //need more data to compact
       //increment the core
@@ -194,7 +197,6 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
       getSpace(to, minimumbytes);
     }
   }
-
   if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     handlegcfinishcompact_I(BAMBOO_NUM_OF_CORE, 0, 0);
@@ -403,6 +405,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
       //tprintf("Decided to compact obj %x to %x\n", origptr, toptr);
 
       gcmappingtbl[OBJMAPPINGINDEX(origptr)]=toptr;
+
       origptr+=length;
       toptr=endtoptr;
     } else

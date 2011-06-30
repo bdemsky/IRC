@@ -396,7 +396,6 @@ INLINE void processmsg_memresponse_I() {
 #ifdef MULTICORE_GC
     bamboo_smem_size = numbytes;
     bamboo_cur_msp = memptr;
-    bamboo_smem_zero_top = bamboo_cur_msp;
 #else
     bamboo_smem_size = numbytes;
     bamboo_cur_msp =memptr;
@@ -419,7 +418,6 @@ INLINE void processmsg_gcstartpre_I() {
   bamboo_smem_size = 0;
   bamboo_cur_msp = NULL;
   smemflag = true;
-  bamboo_smem_zero_top = NULL;
 }
 
 INLINE void processmsg_gcstartinit_I() {
@@ -762,6 +760,7 @@ processmsg:
     // have some whole msg
     MSG_INDEXINC_I();
     msgdatafull = false;
+
     switch(type) {
 #ifdef TASK
     case TRANSOBJ: {
