@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import Analysis.CallGraph.CallGraph;
 import Analysis.Loops.LoopOptimize;
 import Analysis.Loops.LoopTerminate;
 import IR.AnnotationDescriptor;
@@ -48,9 +49,12 @@ public class SSJavaAnalysis {
   // method set that does not have loop termination analysis
   Hashtable<MethodDescriptor, Integer> skipLoopTerminate;
 
-  public SSJavaAnalysis(State state, TypeUtil tu) {
+  CallGraph callgraph;
+
+  public SSJavaAnalysis(State state, TypeUtil tu, CallGraph callgraph) {
     this.state = state;
     this.tu = tu;
+    this.callgraph = callgraph;
     this.cd2lattice = new Hashtable<ClassDescriptor, SSJavaLattice<String>>();
     this.cd2methodDefault = new Hashtable<ClassDescriptor, MethodLattice<String>>();
     this.md2lattice = new Hashtable<MethodDescriptor, MethodLattice<String>>();
@@ -89,7 +93,7 @@ public class SSJavaAnalysis {
   }
 
   public void doDefinitelyWrittenCheck() {
-    DefinitelyWrittenCheck checker = new DefinitelyWrittenCheck(state);
+    DefinitelyWrittenCheck checker = new DefinitelyWrittenCheck(this, state);
     checker.definitelyWrittenCheck();
   }
 
@@ -283,6 +287,10 @@ public class SSJavaAnalysis {
       }
     }
 
+  }
+
+  public CallGraph getCallGraph() {
+    return callgraph;
   }
 
 }

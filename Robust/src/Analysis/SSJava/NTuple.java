@@ -1,7 +1,6 @@
 package Analysis.SSJava;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -9,8 +8,9 @@ public class NTuple<T> {
 
   private List<T> elements;
 
-  public NTuple(T... elements) {
-    this.elements = Arrays.asList(elements);
+  public NTuple(List<T> l) {
+    this.elements = new ArrayList<T>();
+    this.elements.addAll(l);
   }
 
   public NTuple() {
@@ -29,7 +29,7 @@ public class NTuple<T> {
     return elements.size();
   }
 
-  public void addElement(T newElement) {
+  public void add(T newElement) {
     this.elements.add(newElement);
   }
 

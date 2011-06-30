@@ -12,7 +12,7 @@ public class CompositeLocation implements TypeExtension {
 
   public CompositeLocation(Location loc) {
     locTuple = new NTuple<Location>();
-    locTuple.addElement(loc);
+    locTuple.add(loc);
   }
 
   public NTuple<Location> getTuple() {
@@ -24,7 +24,7 @@ public class CompositeLocation implements TypeExtension {
   }
 
   public void addLocation(Location loc) {
-    locTuple.addElement(loc);
+    locTuple.add(loc);
   }
 
   public Location get(int idx) {

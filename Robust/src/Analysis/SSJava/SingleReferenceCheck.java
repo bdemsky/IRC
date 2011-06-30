@@ -18,7 +18,7 @@ import IR.Tree.SubBlockNode;
 
 public class SingleReferenceCheck {
 
-  static State state;
+  State state;
   SSJavaAnalysis ssjava;
   String needToNullify = null;
 
