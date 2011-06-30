@@ -10,7 +10,7 @@
 // Only allocate local mem chunks to each core.
 // If a core has used up its local shared memory, start gc.
 void * localmalloc_I(int coren,
-                     unsigned int isize,
+                     unsigned int memcheck,
                      int * allocsize) {
   for(block_t localblocknum=0;localblocknum<GCNUMLOCALBLOCK;localblocknum++) {
     block_t searchblock=BLOCKINDEX2(coren, localblocknum);
@@ -45,10 +45,6 @@ void * fixedmalloc_I(int coren,
     return mem;
 
   //failed try neighbors...in a round robin fashion
-  
-  int minblockindex=allocationinfo.lowestfreeblock/NUMCORES4GC;
-  unsigned INTPTR threshold=(desiredmem<MINMEMORYCHUNKSIZE)? desiredmem: MINMEMORYCHUNKSIZE;
-  unsigned INTPTR memcheck=requiredmem>threshold?requiredmem:threshold;
   
   for(block_t lblock=0;lblock<MAXNEIGHBORALLOC;lblock++) {  
     for(int i=0;i<NUM_CORES2TEST;i++) {
