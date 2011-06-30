@@ -22,6 +22,8 @@ public class System {
   public static native long getticks();
 
   public static native void printString(String s);
+  
+  public static native void gc();
 
   public static void println(String s) {
     System.printString(s+"\n");
