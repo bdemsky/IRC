@@ -28,7 +28,9 @@ extern struct lockvector bamboo_threadlocks;
 #define updateObj(objptr) gcmappingtbl[OBJMAPPINGINDEX(objptr)]
 //#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) obj=updateObj(updatetmpptr);if (obj<gcbaseva) tprintf("BAD PTR %x to %x in %u\n", updatetmpptr, obj, __LINE__);}
 #define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=updateObj(updatetmpptr);}}
+
 //if (obj==NULL) tprintf("Mapping problem for object %x, mark=%u, line=%u\n", updatetmpptr, getMarkedLength(updatetmpptr),__LINE__);}}
+
 #define UPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=updateObj(updatetmpptr);}
 //if (updatetmpptr!=NULL&&obj==NULL) tprintf("Mapping parameter for object %x, mark=%u, line=%u\n", updatetmpptr, getMarkedLength(updatetmpptr),__LINE__);}
 

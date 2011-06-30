@@ -162,6 +162,7 @@ void initGC() {
 } 
 
 void checkMarkStatus_p2() {
+  //  tprintf("Check mark status 2\n");
   // check if the sum of send objs and receive obj are the same
   // yes->check if the info is the latest; no->go on executing
   unsigned int sumsendobj = 0;
@@ -181,6 +182,7 @@ void checkMarkStatus_p2() {
       }
     }  
     if(i == NUMCORESACTIVE) {    
+      //tprintf("Mark terminated\n");
       // all the core status info are the latest,stop mark phase
       gc_status_info.gcphase = COMPACTPHASE;
       // restore the gcstatus for all cores
@@ -204,6 +206,7 @@ void checkMarkStatus_p2() {
 }
 
 void checkMarkStatus() {
+  //  tprintf("Check mark status\n");
   if((!waitconfirm)||(waitconfirm && (numconfirm == 0))) {
     unsigned int entry_index = 0;
     if(waitconfirm) {
@@ -396,11 +399,13 @@ void master_finish() {
   CACHEADAPT_OUTPUT_CACHE_POLICY();
   gc_output_cache_policy_time += (BAMBOO_GET_EXE_TIME()-tmpt);
   gcflag = false;
+
   GC_SEND_MSG_1_TO_CLIENT(GCFINISH);
-  
-  gc_status_info.gcprocessing = false;
+  gc_status_info.gcprocessing = false;  
+
   if(gcflag) {
     // inform other cores to stop and wait for gc
+    GC_PRINTF("Back to Back gc case\n");
     gcprecheck = true;
     for(int i = 0; i < NUMCORESACTIVE; i++) {
       // reuse the gcnumsendobjs & gcnumreceiveobjs
@@ -412,7 +417,7 @@ void master_finish() {
 }
 
 void gc_master(struct garbagelist * stackptr) {
-  tprintf("start GC !!!!!!!!!!!!! \n");
+  //tprintf("start GC !!!!!!!!!!!!! \n");
   gc_status_info.gcprocessing = true;
   gc_status_info.gcphase = INITPHASE;
 
@@ -421,33 +426,32 @@ void gc_master(struct garbagelist * stackptr) {
   initGC();
   GC_SEND_MSG_1_TO_CLIENT(GCSTARTINIT);
   CACHEADAPT_GC(true);
-  GC_PRINTF("Check core status \n");
+  //tprintf("Check core status \n");
   GC_CHECK_ALL_CORE_STATUS();
   GCPROFILE_ITEM();
   unsigned long long tmpt = BAMBOO_GET_EXE_TIME();
   CACHEADAPT_OUTPUT_CACHE_SAMPLING();
   gc_output_cache_policy_time += (BAMBOO_GET_EXE_TIME()-tmpt);
-
+  //tprintf("start mark phase\n");
   // do mark phase
   master_mark(stackptr);
-
+  //tprintf("finish mark phase\n");
   // get large objects from all cores
   master_getlargeobjs();
-
+  //tprintf("start compact phase\n");
   // compact the heap
   master_compact();
-  
+  //tprintf("start update phase\n");
   // update the references
   master_updaterefs(stackptr);
-  GC_PRINTF("gc master finished update   \n");
+  //tprintf("gc master finished update   \n");
   // do cache adaptation
   CACHEADAPT_PHASE_MASTER();
-
+  //tprintf("finish cachdapt phase\n");
   // do finish up stuff
   master_finish();
 
-  GC_PRINTF("gc finished   \n");
-  tprintf("finish GC ! %d \n",gcflag);
+  //tprintf("finish GC ! %d \n",gcflag);
 } 
 
 void pregccheck() {
@@ -517,6 +521,7 @@ bool gc(struct garbagelist * stackptr) {
     pregcprocessing();
     gc_master(stackptr);
   } else if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
+    GC_PRINTF("Core reporting for gc.\n");
     pregcprocessing();
     gc_collect(stackptr);
   } else {
@@ -524,7 +529,6 @@ bool gc(struct garbagelist * stackptr) {
     gc_nocollect(stackptr);
   }
   postgcprocessing();
-
   return true;
 } 
 

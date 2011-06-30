@@ -246,12 +246,16 @@ void mark(struct garbagelist * stackptr) {
       unsigned int iunits = ALIGNUNITS(size);
 
       //debugging for the next five lines
+#ifdef GC_DEBUG
       unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(ptr-gcbaseva));
       unsigned INTPTR hibits=alignsize>>4;
       unsigned INTPTR lobits=(alignsize&15)<<1;
       unsigned INTPTR ohigh=gcmarktbl[hibits];
       unsigned INTPTR olow=gcmarktbl[hibits+1];
+#endif
       setLengthMarked(ptr,iunits);
+
+#ifdef GC_DEBUG
       unsigned int unit=getMarkedLength(ptr);
       if (unit!=iunits) {
 	tprintf("Bad mark on %x %u!=%u\n", ptr, unit, iunits);
@@ -261,7 +265,7 @@ void mark(struct garbagelist * stackptr) {
 	unsigned INTPTR nlow=gcmarktbl[hibits+1];
 	tprintf("nhigh=%x nlow=%x", nhigh, nlow);
       }
-
+#endif
       if(islarge) {
         // ptr is a large object and not marked or enqueued
 	printf("NEED TO SUPPORT LARGE OBJECTS!\n");

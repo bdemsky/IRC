@@ -98,8 +98,9 @@ void * smemalloc_I(int coren, int isize, int * allocsize) {
 #elif defined(SMEMG)
   void *mem = globalmalloc_I(coren, isize, allocsize);
 #endif
+
   if(mem == NULL) {
-    // no enough shared global memory
+    // not enough shared global memory
     // trigger gc
     if(!gcflag) {
       gcflag = true;

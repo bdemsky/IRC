@@ -378,6 +378,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
       unsigned int length=ALIGNSIZETOBYTES(objlength);
 
       //code between this and next comment should be removed
+#ifdef GC_DEBUG
       unsigned int size;
       unsigned int type;
       gettype_size(origptr, &type, &size);
@@ -390,8 +391,8 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 	unsigned INTPTR lobits=(alignsize&15)<<1;
 	tprintf("hibits=%x lobits=%x\n", hibits, lobits);
 	tprintf("hi=%x lo=%x\n", gcmarktbl[hibits], gcmarktbl[hibits+1]);
-	
       }
+#endif
       //end of code to remove
 
       void *endtoptr=toptr+length;
@@ -471,13 +472,11 @@ void master_compact() {
   // compact phase
   compact();
   /* wait for all cores to finish compacting */
-  tprintf("MASTER WAITING\n");
   
 
   while(!gc_checkCoreStatus())
     ;
 
-  tprintf("POST_WAIT\n");
   GCPROFILE_ITEM();
 
   //just in case we didn't get blocks back...
