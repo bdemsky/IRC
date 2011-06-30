@@ -417,7 +417,7 @@ void master_finish() {
 }
 
 void gc_master(struct garbagelist * stackptr) {
-  //tprintf("start GC !!!!!!!!!!!!! \n");
+  tprintf("start GC!\n");
   gc_status_info.gcprocessing = true;
   gc_status_info.gcphase = INITPHASE;
 

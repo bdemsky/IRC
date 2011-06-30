@@ -60,7 +60,7 @@ void * fixedmalloc_I(int coren,
 	    block->status=BS_USED;
 	    void *blockptr=OFFSET2BASEVA(globalblockindex)+gcbaseva;
 	    unsigned INTPTR usedspace=((block->usedspace-1)&~BAMBOO_CACHE_LINE_MASK)+BAMBOO_CACHE_LINE_SIZE;
-	    *allocsize=usedspace;
+	    *allocsize=freespace;
 	    return blockptr+usedspace;
 	  }
 	}
