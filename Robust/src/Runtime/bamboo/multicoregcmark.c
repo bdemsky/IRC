@@ -232,12 +232,12 @@ void mark(struct garbagelist * stackptr) {
   tomark(stackptr);
 
   unsigned int isize = 0;
-  bool sendStall = false;
+  gc_status_info.gcbusystatus = true;
+
   // mark phase
   while(MARKPHASE == gc_status_info.gcphase) {
     int counter = 0;
     while(gc_moreItems()) {
-      sendStall = false;
       gc_status_info.gcbusystatus = true;
       void * ptr = gc_dequeue();
       unsigned int size = 0;
@@ -278,7 +278,6 @@ void mark(struct garbagelist * stackptr) {
     //make sure the queue is still empty...now we have interrupts off, things can't change on us...
 
     if (!gc_moreItems_I()) {
-      gc_status_info.gcbusystatus = false;
       // send mark finish msg to core coordinator
       if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
 	int entry_index = waitconfirm ? (gcnumsrobjs_index==0) : gcnumsrobjs_index;
@@ -288,9 +287,9 @@ void mark(struct garbagelist * stackptr) {
 	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 	checkMarkStatus();
       } else {
-	if(!sendStall) {
+	if(gc_status_info.gcbusystatus) {
+	  gc_status_info.gcbusystatus = false;
 	  send_msg_4(STARTUPCORE,GCFINISHMARK,BAMBOO_NUM_OF_CORE,gcself_numsendobjs,gcself_numreceiveobjs);
-	  sendStall = true;
 	}
 	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       }
