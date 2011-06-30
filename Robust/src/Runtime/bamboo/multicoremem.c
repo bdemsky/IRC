@@ -87,7 +87,7 @@ void * mixedmalloc_I(int coren,
     return mem;
 
   //try global allocator instead
-  return globalmalloc_I(coren, isize, allocsite);
+  return globalmalloc_I(coren, isize, allocsize);
 } 
 
 
