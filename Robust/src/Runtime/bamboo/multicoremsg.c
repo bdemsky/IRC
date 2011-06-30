@@ -708,7 +708,7 @@ INLINE void processmsg_gcfinishpref_I() {
 #endif // GC_CACHE_ADAPT
 #endif // #ifdef MULTICORE_GC
 
-void processmg_req_notify_start() {
+void processmsg_req_notify_start() {
   startflag=true;
   if(BAMBOO_CHECK_SEND_MODE()) {
     cache_msg_1_I(STARTUPCORE,NOTIFYSTART);
@@ -717,7 +717,7 @@ void processmg_req_notify_start() {
   }  
 }
 
-void processmg_notify_start() {
+void processmsg_notify_start() {
   numconfirm--;
 }
 

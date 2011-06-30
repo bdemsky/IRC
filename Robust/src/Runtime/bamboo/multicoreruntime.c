@@ -755,7 +755,6 @@ inline void run(int argc, char** argv) {
   bool tocontinue = false;
   startflag = false;
   corenum = BAMBOO_GET_NUM_OF_CORE();
-
   // initialize runtime data structures
   initruntimedata();
   initCommunication();
@@ -764,11 +763,13 @@ inline void run(int argc, char** argv) {
     numconfirm=NUMCORES-1;
     for(int i=0;i<NUMCORES;i++) {
       if (i!=STARTUPCORE) {
-	send_msg_1(STARTUPCORE,REQ_NOTIFY_START);
+	send_msg_1(i,REQNOTIFYSTART);
       }
     }
     while(numconfirm!=0)
       ;
+    tprintf("start! \n");
+    bamboo_start_time = BAMBOO_GET_EXE_TIME();
   } else {
     while(!startflag)
       ;
