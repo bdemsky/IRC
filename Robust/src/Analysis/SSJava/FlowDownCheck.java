@@ -343,17 +343,18 @@ public class FlowDownCheck {
 
     ExpressionNode returnExp = rn.getReturnExpression();
 
-    CompositeLocation expLoc =
-        checkLocationFromExpressionNode(md, nametable, returnExp, new CompositeLocation());
+    CompositeLocation expLoc;
+    if (returnExp != null) {
+      expLoc = checkLocationFromExpressionNode(md, nametable, returnExp, new CompositeLocation());
+      // check if return value is equal or higher than RETRUNLOC of method
+      // declaration annotation
+      CompositeLocation returnLocAt = md2ReturnLoc.get(md);
 
-    // check if return value is equal or higher than RETRUNLOC of method
-    // declaration annotation
-    CompositeLocation returnLocAt = md2ReturnLoc.get(md);
-
-    if (CompositeLattice.isGreaterThan(returnLocAt, expLoc)) {
-      throw new Error(
-          "Return value location is not equal or higher than the declaraed return location at "
-              + md.getClassDesc().getSourceFileName() + "::" + rn.getNumLine());
+      if (CompositeLattice.isGreaterThan(returnLocAt, expLoc)) {
+        throw new Error(
+            "Return value location is not equal or higher than the declaraed return location at "
+                + md.getClassDesc().getSourceFileName() + "::" + rn.getNumLine());
+      }
     }
 
     return new CompositeLocation();

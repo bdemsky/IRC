@@ -66,4 +66,23 @@ public class NTuple<T> {
     return elements;
   }
 
+  public boolean startsWith(T prefix) {
+    return get(0).equals(prefix);
+  }
+
+  public boolean startsWith(NTuple<T> prefix) {
+
+    if (prefix.size() > size()) {
+      return false;
+    }
+
+    for (int i = 0; i < prefix.size(); i++) {
+      if (prefix.get(i).equals(get(i))) {
+        return false;
+      }
+    }
+    return true;
+
+  }
+
 }
