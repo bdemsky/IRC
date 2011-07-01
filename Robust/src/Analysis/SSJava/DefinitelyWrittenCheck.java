@@ -77,8 +77,10 @@ public class DefinitelyWrittenCheck {
   }
 
   public void definitelyWrittenCheck() {
-    methodReadOverWriteAnalysis();
-    writtenAnalyis();
+    if (!ssjava.getAnnotationRequireSet().isEmpty()) {
+      methodReadOverWriteAnalysis();
+      writtenAnalyis();
+    }
   }
 
   private void writtenAnalyis() {

@@ -20,6 +20,7 @@ public class LoopOptimize {
   private GlobalFieldType gft;
   private TypeUtil typeutil;
   private Map<FlatMethod, LoopInvariant> fm2loopinv;
+  private LoopTerminate lt;
   
   private Hashtable<FlatNode, FlatNode> ntoomap;
   private Hashtable<FlatNode, FlatNode> clonemap;
@@ -30,12 +31,14 @@ public class LoopOptimize {
     this.typeutil = typeutil;
     fm2loopinv = new HashMap<FlatMethod, LoopInvariant>();
   }
-
-  public void optimize(FlatMethod fm) {
+  
+  public void analyze(FlatMethod fm){
     loopinv = new LoopInvariant(typeutil, gft);
     loopinv.analyze(fm);
     fm2loopinv.put(fm, loopinv);
-    
+  }
+  
+  public void optimize(FlatMethod fm) {
     ntoomap=new Hashtable<FlatNode, FlatNode>();
     map=new Hashtable<FlatNode, FlatNode>();
     clonemap=new Hashtable<FlatNode, FlatNode>();

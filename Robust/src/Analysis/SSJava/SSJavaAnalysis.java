@@ -277,6 +277,11 @@ public class SSJavaAnalysis {
     return annotationRequireSet;
   }
 
+  public void doLoopTerminationCheck(LoopOptimize lo, FlatMethod fm) {
+    LoopTerminate lt = new LoopTerminate();
+    lt.terminateAnalysis(fm, lo.getLoopInvariant(fm));
+  }
+
   public void doLoopTerminationCheck(LoopOptimize lo) {
     LoopTerminate lt = new LoopTerminate();
     for (Iterator iterator = annotationRequireSet.iterator(); iterator.hasNext();) {

@@ -508,8 +508,15 @@ public class Main {
             continue;
           cp.optimize(fm);
           dc.optimize(fm);
-          if (!state.NOLOOP)
+          if (!state.NOLOOP){            
+            lo.analyze(fm);
+            if(state.SSJAVA){
+              ssjava.doLoopTerminationCheck(lo,fm);
+            }
             lo.optimize(fm);
+          }
+            
+          
           cp.optimize(fm);
           dc.optimize(fm);
           lcse.doAnalysis(fm);
@@ -522,9 +529,6 @@ public class Main {
       }
       State.logEvent("Done Optimizing");
       
-      if(state.SSJAVA) {
-        ssjava.doLoopTerminationCheck(lo);
-      }
     }
 
     if (state.FLATIRGRAPH) {
