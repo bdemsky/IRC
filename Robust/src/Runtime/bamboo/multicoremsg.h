@@ -173,24 +173,25 @@ typedef enum {
   MEMREQUEST,            // 0xE0
   MEMRESPONSE,           // 0xE1
 #ifdef MULTICORE_GC
-  GCSTARTPRE,            // 0xE2
-  GCSTARTINIT,           // 0xE3
-  GCSTART,               // 0xE4
-  GCSTARTCOMPACT,        // 0xE5
-  GCSTARTUPDATE,          // 0xE6
-  GCFINISHPRE,           // 0xE7
-  GCFINISHINIT,          // 0xE8
-  GCFINISHMARK,          // 0xE9
-  GCFINISHCOMPACT,       // 0xEa
+  GCINVOKE,              // 0xE2
+  GCSTARTPRE,            // 0xE3
+  GCSTARTINIT,           // 0xE4
+  GCSTART,               // 0xE5
+  GCSTARTCOMPACT,        // 0xE6
+  GCSTARTUPDATE,         // 0xE7
+  GCFINISHPRE,           // 0xE8
+  GCFINISHINIT,          // 0xE9
+  GCFINISHMARK,          // 0xEa
+  GCFINISHCOMPACT,       // 0xEb
   GCRETURNMEM,
-  GCFINISHUPDATE,         // 0xEb
-  GCFINISH,              // 0xEc
-  GCMARKCONFIRM,         // 0xEd
-  GCMARKREPORT,          // 0xEe
-  GCMARKEDOBJ,           // 0xEf
-  GCMOVESTART,           // 0xF0
-  GCLOBJREQUEST,         // 0xF1   
-  GCREQBLOCK,
+  GCFINISHUPDATE,        // 0xEc
+  GCFINISH,              // 0xEd
+  GCMARKCONFIRM,         // 0xEe
+  GCMARKREPORT,          // 0xEf
+  GCMARKEDOBJ,           // 0xF0
+  GCMOVESTART,           // 0xF1
+  GCLOBJREQUEST,         // 0xF2   
+  GCREQBLOCK,              
   GCGRANTBLOCK,  
   GCLOBJINFO,            // 0xF2
 #ifdef GC_PROFILE

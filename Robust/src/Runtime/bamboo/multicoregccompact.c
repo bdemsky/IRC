@@ -28,6 +28,10 @@ void initOrig_Dst(struct moveHelper * orig,struct moveHelper * to) {
   orig->localblocknum = 0;
   orig->ptr=orig->base = to->base;
   orig->bound = orig->base + BLOCKSIZE(orig->localblocknum);
+#ifdef GC_CACHE_ADAPT
+  to->pagebound=to->base+BAMBOO_PAGE_SIZE;
+  orig->pagebound=orig->base+BAMBOO_PAGE_SIZE;
+#endif
 }
 
 void getSpaceLocally(struct moveHelper *to) {
@@ -36,6 +40,9 @@ void getSpaceLocally(struct moveHelper *to) {
   BASEPTR(to->base,BAMBOO_NUM_OF_CORE, to->localblocknum);
   to->ptr=to->base;
   to->bound = to->base + BLOCKSIZE(to->localblocknum);
+#ifdef GC_CACHE_ADAPT
+  to->pagebound=to->base+BAMBOO_PAGE_SIZE;
+#endif
 }
 
 //This function is called on the master core only...and typically by
@@ -160,6 +167,9 @@ void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes) {
   BLOCKINDEX(globalblocknum, to->ptr);
   to->base = gcbaseva + OFFSET2BASEVA(globalblocknum);
   to->bound = gcbaseva + BOUNDPTR(globalblocknum);
+#ifdef GC_CACHE_ADAPT
+  to->pagebound=(void *)((int)((int)(to->ptr)&(~(BAMBOO_PAGE_SIZE-1)))+BAMBOO_PAGE_SIZE);
+#endif
 }
 
 void getSpace(struct moveHelper *to, unsigned int minimumbytes) {
@@ -184,8 +194,7 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
       //Only send the message once
       senttopmessage=true;
     }
-    unsigned int minimumbytes=compactblocks(orig, to);
-
+    unsigned int minimumbytes=COMPACTUNITS(orig, to);
     if (orig->ptr==orig->bound) {
       //need more data to compact
       //increment the core
@@ -193,6 +202,9 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
       BASEPTR(orig->base,BAMBOO_NUM_OF_CORE, orig->localblocknum);
       orig->ptr=orig->base;
       orig->bound = orig->base + BLOCKSIZE(orig->localblocknum);
+#ifdef GC_CACHE_ADAPT
+      orig->pagebound=orig->base+BAMBOO_PAGE_SIZE;
+#endif
       if (orig->base >= gcbaseva+BAMBOO_SHARED_MEM_SIZE)
 	break;
     }
@@ -349,6 +361,95 @@ void * gcfindSpareMem_I(unsigned INTPTR requiredmem, unsigned INTPTR desiredmem,
   return NULL;
 } 
 
+#ifdef GC_CACHE_ADAPT
+/* To compute access rate per pages, we need to compact to page boundary 
+ * instead of block boundary
+ */
+unsigned int compactpages(struct moveHelper * orig, struct moveHelper * to) {
+  void *toptrinit=to->ptr;
+  void *toptr=toptrinit;
+  void *tobound=to->bound;
+  void *topagebound=to->pagebound;
+  void *origptr=orig->ptr;
+  void *origpagebound=orig->pagebound;
+  unsigned INTPTR origendoffset=ALIGNTOTABLEINDEX((unsigned INTPTR)(origpagebound-gcbaseva));
+  unsigned int objlength;
+  while((origptr<origpagebound)&&(toptr<topagebound)){
+    //Try to skip over stuff fast first
+    unsigned INTPTR offset=(unsigned INTPTR) (origptr-gcbaseva);
+    unsigned INTPTR arrayoffset=ALIGNTOTABLEINDEX(offset);
+    if (!gcmarktbl[arrayoffset]) {
+      do {
+	arrayoffset++;
+	if (arrayoffset>=origendoffset) {
+	  //finished with a page...
+	  origptr=origpagebound;
+	  to->ptr=toptr;
+	  orig->ptr=origptr;
+    orig->pagebound+=BAMBOO_PAGE_SIZE;
+	  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
+    // close the last destination page
+    CACHEADAPT_COMPLETE_PAGE_CONVERT(origptr, toptr, toptr);
+	  return 0;
+	}
+      } while(!gcmarktbl[arrayoffset]);
+      origptr=CONVERTTABLEINDEXTOPTR(arrayoffset);
+    }
+
+    //Scan more carefully next
+    objlength=getMarkedLength(origptr);
+
+    if (objlength!=NOTMARKED) {
+      unsigned int length=ALIGNSIZETOBYTES(objlength);
+
+      //code between this and next comment should be removed
+#ifdef GC_DEBUG
+      unsigned int size;
+      unsigned int type;
+      gettype_size(origptr, &type, &size);
+      size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
+      
+      if (size!=length) {
+	tprintf("BAD SIZE IN BITMAP: type=%u object=%x size=%u length=%u\n", type, origptr, size, length);
+	unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(origptr-gcbaseva));
+	unsigned INTPTR hibits=alignsize>>4;
+	unsigned INTPTR lobits=(alignsize&15)<<1;
+	tprintf("hibits=%x lobits=%x\n", hibits, lobits);
+	tprintf("hi=%x lo=%x\n", gcmarktbl[hibits], gcmarktbl[hibits+1]);
+      }
+#endif
+      //end of code to remove
+
+      void *endtoptr=toptr+length;
+      if (endtoptr>tobound) {
+  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
+  to->ptr=tobound;
+  orig->ptr=origptr;
+  // close a destination page, update the revise profiling info
+  CACHEADAPT_COMPLETE_PAGE_CONVERT(origptr, tobound, toptr);
+  return length;
+      }
+      //good to move objects and update pointers
+      //tprintf("Decided to compact obj %x to %x\n", origptr, toptr);
+
+      gcmappingtbl[OBJMAPPINGINDEX(origptr)]=toptr;
+
+      origptr+=length;
+      toptr=endtoptr;
+    } else
+      origptr+=ALIGNMENTSIZE;
+  }
+  to->ptr=toptr;
+  orig->ptr=origptr;
+  orig->pagebound=(void *)((int)(((int)origptr)&(~(BAMBOO_PAGE_SIZE-1)))+BAMBOO_PAGE_SIZE);
+  to->pagebound=(void *)((int)(((int)toptr)&(~(BAMBOO_PAGE_SIZE-1)))+BAMBOO_PAGE_SIZE);
+  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
+  // close the last destination page
+  CACHEADAPT_COMPLETE_PAGE_CONVERT(origptr, toptr, toptr);
+  return 0;
+}
+
+#else
 /* This function is performance critical...  spend more time optimizing it */
 
 unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
@@ -404,7 +505,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 
       void *endtoptr=toptr+length;
       if (endtoptr>tobound) {
-	gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
+  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
 	to->ptr=tobound;
 	orig->ptr=origptr;
 	return length;
@@ -424,6 +525,8 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
   gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
   return 0;
 }
+
+#endif
 
 void compact() {
   BAMBOO_ASSERT(COMPACTPHASE == gc_status_info.gcphase);

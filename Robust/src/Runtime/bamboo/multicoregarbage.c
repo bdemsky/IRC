@@ -247,6 +247,7 @@ int loadbalance() {
   unsigned int tloads = 0;
   for(int i = 0; i < NUMCORES4GC; i++) {
     tloads += gcloads[i];
+    //tprintf("load: %d %d \n", gcloads[i], i);
   }
   heaptop = gcbaseva + tloads;
 

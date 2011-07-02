@@ -30,6 +30,7 @@ int msgsizearray[] = {
   3, //MEMREQUEST,            // 0xE0
   3, //MEMRESPONSE,           // 0xE1
 #ifdef MULTICORE_GC
+  1, //GCINVOKE
   1, //GCSTARTPRE,            // 0xE2
   1, //GCSTARTINIT,           // 0xE3
   1, //GCSTART,               // 0xE4
@@ -410,6 +411,28 @@ void processmsg_memresponse_I() {
 }
 
 #ifdef MULTICORE_GC
+void processmsg_gcinvoke_I() {
+  BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE==STARTUPCORE);
+  if(!gc_status_info.gcprocessing && !gcflag) {
+    gcflag = true;
+    gcprecheck = true;
+    for(int i = 0; i < NUMCORESACTIVE; i++) {
+      // reuse the gcnumsendobjs & gcnumreceiveobjs
+      gcnumsendobjs[0][i] = 0;
+      gcnumreceiveobjs[0][i] = 0;
+    }
+    for(int i = 0; i < NUMCORES4GC; i++) {
+      if(i != STARTUPCORE) {
+        if(BAMBOO_CHECK_SEND_MODE()) {
+          cache_msg_1_I(i,GCSTARTPRE);
+        } else {
+          send_msg_1_I(i,GCSTARTPRE);
+        }
+      }
+    }
+  }
+}
+
 void processmsg_gcstartpre_I() {
   // the first time to be informed to start gc
   gcflag = true;
@@ -887,6 +910,11 @@ processmsg:
 
 #ifdef MULTICORE_GC
     // GC msgs
+    case GCINVOKE: {
+      processmsg_gcinvoke_I();
+      break;
+    }
+
     case GCSTARTPRE: {
       processmsg_gcstartpre_I();
       break;
