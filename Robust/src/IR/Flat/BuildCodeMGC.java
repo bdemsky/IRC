@@ -192,7 +192,7 @@ public class BuildCodeMGC extends BuildCode {
       outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
     }
     outmethod.println("   }");
-
+    outmethod.println("   return 0;");
     outmethod.println("}");
   }
 }
