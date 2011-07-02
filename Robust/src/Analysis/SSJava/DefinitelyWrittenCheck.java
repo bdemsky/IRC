@@ -187,30 +187,15 @@ public class DefinitelyWrittenCheck {
         NTuple<Descriptor> rhsHeapPath = computePath(rhs);
         if (!rhs.getType().isImmutable()) {
           mapHeapPath.put(lhs, rhsHeapPath);
-        }
-
-        if (fon.getOp().getOp() == Operation.ASSIGN) {
-          // read(rhs)
-          Hashtable<FlatNode, Boolean> gen = curr.get(rhsHeapPath);
-
-          if (gen == null) {
-            gen = new Hashtable<FlatNode, Boolean>();
-            curr.put(rhsHeapPath, gen);
+        } else {
+          if (fon.getOp().getOp() == Operation.ASSIGN) {
+            // read(rhs)
+            readValue(fn, rhsHeapPath, curr);
           }
-          Boolean currentStatus = gen.get(fn);
-          if (currentStatus == null) {
-            gen.put(fn, Boolean.FALSE);
-          } else {
-            if (!rhs.getType().isClass()) {
-              checkFlag(currentStatus.booleanValue(), fn);
-            }
-          }
-
+          // write(lhs)
+          NTuple<Descriptor> lhsHeapPath = computePath(lhs);
+          removeHeapPath(curr, lhsHeapPath);
         }
-        // write(lhs)
-        NTuple<Descriptor> lhsHeapPath = computePath(lhs);
-        removeHeapPath(curr, lhsHeapPath);
-        // curr.put(lhsHeapPath, new Hashtable<FlatNode, Boolean>());
       }
         break;
 
@@ -229,26 +214,21 @@ public class DefinitelyWrittenCheck {
       case FKind.FlatElementNode: {
 
         FlatFieldNode ffn = (FlatFieldNode) fn;
-        lhs = ffn.getSrc();
+        lhs = ffn.getDst();
+        rhs = ffn.getSrc();
         fld = ffn.getField();
 
         // read field
-        NTuple<Descriptor> srcHeapPath = mapHeapPath.get(lhs);
+        NTuple<Descriptor> srcHeapPath = mapHeapPath.get(rhs);
         NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
         fldHeapPath.add(fld);
-        Hashtable<FlatNode, Boolean> gen = curr.get(fldHeapPath);
 
-        if (gen == null) {
-          gen = new Hashtable<FlatNode, Boolean>();
-          curr.put(fldHeapPath, gen);
+        if (fld.getType().isImmutable()) {
+          readValue(fn, fldHeapPath, curr);
         }
 
-        Boolean currentStatus = gen.get(fn);
-        if (currentStatus == null) {
-          gen.put(fn, Boolean.FALSE);
-        } else {
-          checkFlag(currentStatus.booleanValue(), fn);
-        }
+        // propagate rhs's heap path to the lhs
+        mapHeapPath.put(lhs, fldHeapPath);
 
       }
         break;
@@ -261,11 +241,10 @@ public class DefinitelyWrittenCheck {
         fld = fsfn.getField();
 
         // write(field)
-        NTuple<Descriptor> lhsHeapPath = mapHeapPath.get(lhs);
+        NTuple<Descriptor> lhsHeapPath = computePath(lhs);
         NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(lhsHeapPath.getList());
         fldHeapPath.add(fld);
         removeHeapPath(curr, fldHeapPath);
-        // curr.put(fldHeapPath, new Hashtable<FlatNode, Boolean>());
 
       }
         break;
@@ -273,7 +252,6 @@ public class DefinitelyWrittenCheck {
       case FKind.FlatCall: {
 
         FlatCall fc = (FlatCall) fn;
-
         bindHeapPathCallerArgWithCaleeParam(fc);
 
         // add <hp,statement,false> in which hp is an element of
@@ -301,13 +279,27 @@ public class DefinitelyWrittenCheck {
         for (Iterator iterator = calleeIntersectBoundOverWriteSet.iterator(); iterator.hasNext();) {
           NTuple<Descriptor> write = (NTuple<Descriptor>) iterator.next();
           removeHeapPath(curr, write);
-          // curr.put(write, new Hashtable<FlatNode, Boolean>());
         }
       }
         break;
 
       }
+    }
 
+  }
+
+  private void readValue(FlatNode fn, NTuple<Descriptor> hp,
+      Hashtable<NTuple<Descriptor>, Hashtable<FlatNode, Boolean>> curr) {
+    Hashtable<FlatNode, Boolean> gen = curr.get(hp);
+    if (gen == null) {
+      gen = new Hashtable<FlatNode, Boolean>();
+      curr.put(hp, gen);
+    }
+    Boolean currentStatus = gen.get(fn);
+    if (currentStatus == null) {
+      gen.put(fn, Boolean.FALSE);
+    } else {
+      checkFlag(currentStatus.booleanValue(), fn);
     }
 
   }
@@ -334,6 +326,10 @@ public class DefinitelyWrittenCheck {
     // transform all READ/OVERWRITE set from the any possible
     // callees to the
     // caller
+
+    calleeUnionBoundReadSet.clear();
+    calleeIntersectBoundOverWriteSet.clear();
+
     MethodDescriptor mdCallee = fc.getMethod();
     FlatMethod fmCallee = state.getMethodFlat(mdCallee);
     Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
@@ -360,6 +356,7 @@ public class DefinitelyWrittenCheck {
       FlatMethod calleeFlatMethod = state.getMethodFlat(callee);
 
       // binding caller's args and callee's params
+
       Set<NTuple<Descriptor>> calleeReadSet = mapFlatMethodToRead.get(calleeFlatMethod);
       if (calleeReadSet == null) {
         calleeReadSet = new HashSet<NTuple<Descriptor>>();
@@ -396,8 +393,9 @@ public class DefinitelyWrittenCheck {
   private void checkFlag(boolean booleanValue, FlatNode fn) {
     if (booleanValue) {
       throw new Error(
-          "There is a variable who comes back to the same read statement at the out-most iteration at "
-              + methodContainingSSJavaLoop.getClassDesc().getSourceFileName() + "::"
+          "There is a variable who comes back to the same read statement without being overwritten at the out-most iteration at "
+              + methodContainingSSJavaLoop.getClassDesc().getSourceFileName()
+              + "::"
               + fn.getNumLine());
     }
   }
@@ -502,11 +500,13 @@ public class DefinitelyWrittenCheck {
 
     // intraprocedural analysis
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+    Set<FlatNode> visited = new HashSet<FlatNode>();
     flatNodesToVisit.add(fm);
 
     while (!flatNodesToVisit.isEmpty()) {
       FlatNode fn = flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove(fn);
+      visited.add(fn);
 
       Set<NTuple<Descriptor>> curr = new HashSet<NTuple<Descriptor>>();
 
@@ -524,7 +524,9 @@ public class DefinitelyWrittenCheck {
 
       for (int i = 0; i < fn.numNext(); i++) {
         FlatNode nn = fn.getNext(i);
-        flatNodesToVisit.add(nn);
+        if (!visited.contains(nn)) {
+          flatNodesToVisit.add(nn);
+        }
       }
 
     }
@@ -585,9 +587,11 @@ public class DefinitelyWrittenCheck {
       mapHeapPath.put(lhs, readingHeapPath);
 
       // read (x.f)
-      // if WT doesnot have hp(x.f), add hp(x.f) to READ
-      if (!writtenSet.contains(readingHeapPath)) {
-        readSet.add(readingHeapPath);
+      if (fld.getType().isImmutable()) {
+        // if WT doesnot have hp(x.f), add hp(x.f) to READ
+        if (!writtenSet.contains(readingHeapPath)) {
+          readSet.add(readingHeapPath);
+        }
       }
 
       // need to kill hp(x.f) from WT
@@ -656,7 +660,6 @@ public class DefinitelyWrittenCheck {
   }
 
   private void merge(Set<NTuple<Descriptor>> curr, Set<NTuple<Descriptor>> in) {
-
     if (curr.isEmpty()) {
       // WrittenSet has a special initial value which covers all possible
       // elements

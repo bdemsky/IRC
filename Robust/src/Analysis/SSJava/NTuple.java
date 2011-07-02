@@ -77,12 +77,14 @@ public class NTuple<T> {
     }
 
     for (int i = 0; i < prefix.size(); i++) {
-      if (prefix.get(i).equals(get(i))) {
+      if (!prefix.get(i).equals(get(i))) {
         return false;
       }
     }
     return true;
 
   }
+  
+  
 
 }

@@ -713,10 +713,10 @@ public class FlowDownCheck {
               VarDescriptor calleevd2 = (VarDescriptor) min.getMethod().getParameter(currentIdx);
               CompositeLocation calleeLoc2 = d2loc.get(calleevd2);
 
-              boolean callerResult = CompositeLattice.isGreaterThan(callerArg1, callerArg2);
-              boolean calleeResult = CompositeLattice.isGreaterThan(calleeLoc1, calleeLoc2);
-
-              if (calleeResult && !callerResult) {
+              int callerResult = CompositeLattice.compare(callerArg1, callerArg2);
+              int calleeResult = CompositeLattice.compare(calleeLoc1, calleeLoc2);
+              if (calleeResult == ComparisonResult.GREATER
+                  && callerResult != ComparisonResult.GREATER) {
                 // If calleeLoc1 is higher than calleeLoc2
                 // then, caller should have same ordering relation in-bet
                 // callerLoc1 & callerLoc2
@@ -1194,9 +1194,7 @@ public class FlowDownCheck {
 
     public static boolean isGreaterThan(CompositeLocation loc1, CompositeLocation loc2) {
 
-      // System.out.println("isGreaterThan= " + loc1 + " " + loc2);
-
-      int baseCompareResult = compareBaseLocationSet(loc1, loc2);
+      int baseCompareResult = compareBaseLocationSet(loc1, loc2, true);
       if (baseCompareResult == ComparisonResult.EQUAL) {
         if (compareDelta(loc1, loc2) == ComparisonResult.GREATER) {
           return true;
@@ -1214,7 +1212,7 @@ public class FlowDownCheck {
     public static int compare(CompositeLocation loc1, CompositeLocation loc2) {
 
       // System.out.println("compare=" + loc1 + " " + loc2);
-      int baseCompareResult = compareBaseLocationSet(loc1, loc2);
+      int baseCompareResult = compareBaseLocationSet(loc1, loc2, false);
 
       if (baseCompareResult == ComparisonResult.EQUAL) {
         return compareDelta(loc1, loc2);
@@ -1245,7 +1243,8 @@ public class FlowDownCheck {
 
     }
 
-    private static int compareBaseLocationSet(CompositeLocation compLoc1, CompositeLocation compLoc2) {
+    private static int compareBaseLocationSet(CompositeLocation compLoc1,
+        CompositeLocation compLoc2, boolean awareSharedLoc) {
 
       // if compLoc1 is greater than compLoc2, return true
       // else return false;
@@ -1297,7 +1296,7 @@ public class FlowDownCheck {
           // check if the current location is the spinning location
           // note that the spinning location only can be appeared in the last
           // part of the composite location
-          if (numOfTie == compLoc1.getSize()
+          if (awareSharedLoc && numOfTie == compLoc1.getSize()
               && lattice1.getSpinLocSet().contains(loc1.getLocIdentifier())) {
             return ComparisonResult.GREATER;
           }
