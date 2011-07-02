@@ -33,7 +33,7 @@
 
 #ifdef GC_DEBUG
 #include "structdefs.h"
-#define BAMBOO_NUM_BLOCKS (NUMCORES4GC*(2+1)+3)
+#define BAMBOO_NUM_BLOCKS (NUMCORES4GC*(2+3))
 #define BAMBOO_PAGE_SIZE (64 * 64)
 #define BAMBOO_SMEM_SIZE ((unsigned int)(BAMBOO_PAGE_SIZE))
 #define BAMBOO_SHARED_MEM_SIZE ((unsigned int)((BAMBOO_SMEM_SIZE) *(BAMBOO_NUM_BLOCKS)))

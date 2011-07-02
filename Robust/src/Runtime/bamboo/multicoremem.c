@@ -14,6 +14,8 @@ void * localmalloc_I(int coren,
                      int * allocsize) {
   for(block_t localblocknum=0;localblocknum<GCNUMLOCALBLOCK;localblocknum++) {
     block_t searchblock=BLOCKINDEX2(coren, localblocknum);
+    if (searchblock>=GCNUMBLOCK)
+      return NULL;
     struct blockrecord * block=&allocationinfo.blocktable[searchblock];
     if (block->status==BS_FREE) {
       unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
@@ -45,16 +47,17 @@ void * fixedmalloc_I(int coren,
     return mem;
 
   //failed try neighbors...in a round robin fashion
-  
   for(block_t lblock=0;lblock<MAXNEIGHBORALLOC;lblock++) {  
     for(int i=0;i<NUM_CORES2TEST;i++) {
-      int neighborcore=core2test[corenum][i];
+      int neighborcore=core2test[coren][i];
       if (neighborcore!=-1) {
 	block_t globalblockindex=BLOCKINDEX2(neighborcore, lblock);
+	if (globalblockindex>=GCNUMBLOCK)
+	  return NULL;
 	struct blockrecord * block=&allocationinfo.blocktable[globalblockindex];
 	if (block->status==BS_FREE) {
 	  unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
-	  if (memcheck<=freespace) {
+	  if (freespace>=memcheck) {
 	    //we have a block
 	    //mark block as used
 	    block->status=BS_USED;
@@ -67,7 +70,6 @@ void * fixedmalloc_I(int coren,
       }
     }
   }
-
   //no memory
   return NULL;
 } 
@@ -96,7 +98,6 @@ void * mixedmalloc_I(int coren,
 void * globalmalloc_I(int coren, unsigned INTPTR memcheck, int * allocsize) {
   block_t firstfree=NOFREEBLOCK;
   block_t lowestblock=allocationinfo.lowestfreeblock;
-
   for(block_t searchblock=lowestblock;searchblock<GCNUMBLOCK;searchblock++) {
     struct blockrecord * block=&allocationinfo.blocktable[searchblock];
     if (block->status==BS_FREE) {

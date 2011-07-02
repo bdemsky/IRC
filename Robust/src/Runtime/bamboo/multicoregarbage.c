@@ -417,7 +417,7 @@ void master_finish() {
 }
 
 void gc_master(struct garbagelist * stackptr) {
-  tprintf("start GC!\n");
+  //tprintf("start GC!\n");
   gc_status_info.gcprocessing = true;
   gc_status_info.gcphase = INITPHASE;
 
@@ -449,6 +449,12 @@ void gc_master(struct garbagelist * stackptr) {
   CACHEADAPT_PHASE_MASTER();
   //tprintf("finish cachdapt phase\n");
   // do finish up stuff
+#ifdef GC_DEBUG
+  for(int i=0;i<GCNUMBLOCK;i++) {
+    struct blockrecord *record=&allocationinfo.blocktable[i];
+    tprintf("%u. used=%u free=%u corenum=%u status=%u, base=%x, ptr=%x\n", i, record->usedspace, record->freespace, record->corenum, record->status, gcbaseva+OFFSET2BASEVA(i), (gcbaseva+OFFSET2BASEVA(i)+record->usedspace));
+  }
+#endif
   master_finish();
 
   //tprintf("finish GC ! %d \n",gcflag);

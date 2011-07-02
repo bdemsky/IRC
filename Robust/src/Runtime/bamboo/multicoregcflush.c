@@ -27,12 +27,9 @@ extern struct lockvector bamboo_threadlocks;
 // NOTE: the objptr should not be NULL and should not be non shared ptr
 #define updateObj(objptr) gcmappingtbl[OBJMAPPINGINDEX(objptr)]
 //#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) obj=updateObj(updatetmpptr);if (obj<gcbaseva) tprintf("BAD PTR %x to %x in %u\n", updatetmpptr, obj, __LINE__);}
-#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=updateObj(updatetmpptr);}}
+#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=updateObj(updatetmpptr);if (!ISVALIDPTR(obj)) tprintf("Mapping problem for object %x -> %x, mark=%u, line=%u\n", updatetmpptr, obj, getMarkedLength(updatetmpptr),__LINE__);}}
 
-//if (obj==NULL) tprintf("Mapping problem for object %x, mark=%u, line=%u\n", updatetmpptr, getMarkedLength(updatetmpptr),__LINE__);}}
-
-#define UPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=updateObj(updatetmpptr);}
-//if (updatetmpptr!=NULL&&obj==NULL) tprintf("Mapping parameter for object %x, mark=%u, line=%u\n", updatetmpptr, getMarkedLength(updatetmpptr),__LINE__);}
+#define UPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=updateObj(updatetmpptr); if (!ISVALIDPTR(obj)) tprintf("Mapping parameter for object %x -> %x, mark=%u, line=%u\n", updatetmpptr, obj, getMarkedLength(updatetmpptr),__LINE__);}
 
 INLINE void updategarbagelist(struct garbagelist *listptr) {
   for(;listptr!=NULL; listptr=listptr->next) {
@@ -206,20 +203,20 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
 
     //Scan more carefully next
     objlength=getMarkedLength(origptr);
-    void *dstptr=gcmappingtbl[OBJMAPPINGINDEX(origptr)];
     
     if (objlength!=NOTMARKED) {
+      void *dstptr=gcmappingtbl[OBJMAPPINGINDEX(origptr)];
       unsigned int length=ALIGNSIZETOBYTES(objlength);
       void *endtoptr=dstptr+length;
 
-      if (endtoptr>tobound||endtoptr<tobase) {
+      if (endtoptr>tobound||dstptr<tobase) {
 	//get use the next block of memory
 	orig->ptr=origptr;
 	return dstptr;
       }
 
       /* Move the object */
-      if(origptr <= endtoptr) {
+      if(origptr >= endtoptr||dstptr >= origptr+length) {
         memmove(dstptr, origptr, length);
       } else if (origptr!=dstptr) {
 	//no need to copy if the source & dest are equal....
@@ -227,19 +224,20 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
       }
 
       //tprintf("Moving object %x to %x with length %u\n", origptr, dstptr, length);
-
+      
       /* Update the pointers in the object */
       updatePtrsInObj(dstptr);
 
-
       /* Clear the mark */
       clearMark(origptr);
-
+      
       //good to move objects and update pointers
       origptr+=length;
     } else
       origptr+=ALIGNMENTSIZE;
   }
+  orig->ptr=origptr;
+  return NULL;
 }
 
 void updateOrigPtr(void *currtop) {
@@ -289,11 +287,9 @@ void updatehelper(struct moveHelper * orig,struct moveHelper * to) {
       //increment the core
       orig->localblocknum++;
       BASEPTR(orig->base,BAMBOO_NUM_OF_CORE, orig->localblocknum);
-      update_origblockptr=orig->base;
       orig->ptr=orig->base;
       orig->bound = orig->base + BLOCKSIZE(orig->localblocknum);
       if (orig->base >= gcbaseva+BAMBOO_SHARED_MEM_SIZE) {
-	//free our entire memory for others to use
 	break;
       }
     }

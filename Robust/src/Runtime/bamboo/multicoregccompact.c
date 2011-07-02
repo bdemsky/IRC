@@ -5,6 +5,7 @@
 #include "multicoregarbage.h"
 #include "markbit.h"
 #include "multicoremem_helper.h"
+#include "gcqueue.h"
 
 int gc_countRunningCores() {
   int count=0;
@@ -58,6 +59,7 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
   }
 
   /* This is our own block...means we should mark other blocks above us as free*/
+  
   if (cnum==blockrecord->corenum) {
     unsigned INTPTR nextlocalblocknum=localblocknum+1;
     for(;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
@@ -183,6 +185,7 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
       senttopmessage=true;
     }
     unsigned int minimumbytes=compactblocks(orig, to);
+
     if (orig->ptr==orig->bound) {
       //need more data to compact
       //increment the core
@@ -272,6 +275,10 @@ void handleOneMemoryRequest(int core, unsigned int lowestblock) {
     if (block->status==BS_FREE) {
       if(firstfree==NOFREEBLOCK)
 	firstfree=searchblock;
+      //don't take a block from another core that hasn't returned its memory yet
+      if (block->corenum!=core&&returnedmem[block->corenum])
+	continue;
+      
       unsigned INTPTR freespace=block->freespace&~BAMBOO_CACHE_LINE_MASK;
       if (freespace>=memcheck) {
 	//TODO: should check memory block at same level on our own core...if that works, use it to preserve locality
@@ -427,7 +434,6 @@ void compact() {
   initOrig_Dst(&orig, &to);
 
   CACHEADAPT_SAMPLING_DATA_REVISE_INIT(&orig, &to);
-
   compacthelper(&orig, &to);
 } 
 

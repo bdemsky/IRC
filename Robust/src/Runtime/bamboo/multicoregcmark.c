@@ -268,7 +268,7 @@ void mark(struct garbagelist * stackptr) {
 #endif
       if(islarge) {
         // ptr is a large object and not marked or enqueued
-	printf("NEED TO SUPPORT LARGE OBJECTS!\n");
+	printf("NEED TO SUPPORT LARGE OBJECTS: ptr=%x type=%u size=%u!\n", ptr, type, size);
       } else {
         // ptr is an unmarked active object on this core
 	unsigned int isize=iunits<<ALIGNMENTSHIFT;

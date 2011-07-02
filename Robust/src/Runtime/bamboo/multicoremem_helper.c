@@ -12,6 +12,9 @@ void buildCore2Test() {
     int index=0;
     for(int x=xcoord-1;x<=(xcoord+1);x++) {
       for(int y=ycoord-1;y<=(ycoord+1);y++) {
+	if (x==xcoord&&y==ycoord)
+	  continue;
+
 	if ((x<0||x>7)||(y<0||y>7)) {
 	  //bad coordinate
 	  core2test[i][index]=-1;

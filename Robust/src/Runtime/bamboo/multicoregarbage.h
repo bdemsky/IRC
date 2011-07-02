@@ -182,6 +182,8 @@ unsigned int size_cachepolicytbl;
 
 #define MINMEMORYCHUNKSIZE 32768
 
+#define ISVALIDPTR(x) ((((unsigned INTPTR)x)>=((unsigned INTPTR)gcbaseva))&&(((unsigned INTPTR)x)<((unsigned INTPTR)(gcbaseva+BAMBOO_SHARED_MEM_SIZE))))
+
 /* This macro waits for the given gc phase */
 #define WAITFORGCPHASE(phase) while(gc_status_info.gcphase != phase) ;
 
