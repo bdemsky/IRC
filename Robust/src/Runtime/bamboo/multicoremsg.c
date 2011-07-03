@@ -64,7 +64,7 @@ int msgsizearray[] = {
   -1 //MSGEND
 };
 
-INLINE unsigned int checkMsgLength_I(unsigned int realtype) {
+unsigned int checkMsgLength_I(unsigned int realtype) {
 #if (defined(TASK)||defined(MULTICORE_GC))
   unsigned int type = realtype & 0xff;
 #else
@@ -363,14 +363,14 @@ void processmsg_memrequest_I() {
     // either not doing GC or the master core has decided to stop GC but 
     // // still sending msgs to other cores to inform them to stop the GC
 #endif
-    int allocsize = 0;
+    unsigned INTPTR allocsize = 0;
     void * mem = smemalloc_I(data2, data1, &allocsize);
     if(mem != NULL) {
       // send the start_va to request core, cache the msg first
       if(BAMBOO_CHECK_SEND_MODE()) {
-        cache_msg_3_I(data2,MEMRESPONSE,mem,allocsize);
+        cache_msg_3_I(data2,MEMRESPONSE,(unsigned INTPTR) mem,allocsize);
       } else {
-        send_msg_3_I(data2,MEMRESPONSE,mem,allocsize);
+        send_msg_3_I(data2,MEMRESPONSE,(unsigned INTPTR) mem,allocsize);
       }
     } //else if mem == NULL, the gcflag of the startup core has been set
     // and all the other cores have been informed to start gc
@@ -380,7 +380,7 @@ void processmsg_memrequest_I() {
 }
 
 void processmsg_memresponse_I() {
-  void * memptr = msgdata[msgdataindex];
+  void * memptr =(void *) msgdata[msgdataindex];
   MSG_INDEXINC_I();
   unsigned int numbytes = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -490,7 +490,7 @@ void processmsg_gcfinishinit_I() {
 void processmsg_reqblock_I() {
   int cnum=msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  void * topptr=msgdata[msgdataindex];
+  void * topptr= (void *)msgdata[msgdataindex];
   MSG_INDEXINC_I();
   if (topptr<=update_origblockptr) {
     //send message
@@ -512,19 +512,19 @@ void processmsg_grantblock_I() {
 
 
 void processmsg_gcfinishmark_I() {
-  int data1 = msgdata[msgdataindex];
+  int cnum = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];
+  int nsend = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  int data3 = msgdata[msgdataindex];
+  int nrecv = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   // received a mark phase finish msg
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE == STARTUPCORE);
-  BAMBOO_ASSERT(gc_status_info.gcphase = MARKPHASE);
+  BAMBOO_ASSERT(gc_status_info.gcphase == MARKPHASE);
 
   // all cores should do mark
-  if(data1 < NUMCORESACTIVE) {
-    gccorestatus[data1] = 0;
+  if(cnum < NUMCORESACTIVE) {
+    gccorestatus[cnum] = 0;
     int entry_index = 0;
     if(waitconfirm)  {
       // phase 2
@@ -533,8 +533,8 @@ void processmsg_gcfinishmark_I() {
       // phase 1
       entry_index = gcnumsrobjs_index;
     }
-    gcnumsendobjs[entry_index][data1] = data2;
-    gcnumreceiveobjs[entry_index][data1] = data3;
+    gcnumsendobjs[entry_index][cnum] = nsend;
+    gcnumreceiveobjs[entry_index][cnum] = nrecv;
   }
 }
  
@@ -569,9 +569,9 @@ void processmsg_gcfinishcompact_I() {
   void * startaddr=handlegcfinishcompact_I(cnum, bytesneeded, maxbytesneeded);
   if (startaddr) {
     if(BAMBOO_CHECK_SEND_MODE()) {
-      cache_msg_2_I(cnum,GCMOVESTART,startaddr);
+      cache_msg_2_I(cnum,GCMOVESTART,(unsigned INTPTR)startaddr);
     } else {
-      send_msg_2_I(cnum,GCMOVESTART,startaddr);
+      send_msg_2_I(cnum,GCMOVESTART,(unsigned INTPTR)startaddr);
     }
   }
 }
@@ -661,7 +661,7 @@ void processmsg_gclobjinfo_I(unsigned int msglength) {
 
   // large obj info here
   for(int k = 3; k < msglength; k+=2) {
-    int lobj = msgdata[msgdataindex];
+    void * lobj = (void *) msgdata[msgdataindex];
     MSG_INDEXINC_I();  
     int length = msgdata[msgdataindex];
     MSG_INDEXINC_I();   

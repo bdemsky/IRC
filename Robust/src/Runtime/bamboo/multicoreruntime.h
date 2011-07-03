@@ -65,12 +65,12 @@ int self_numreceiveobjs;
 // these are functions should be implemented in           //
 // multicore runtime for any multicore processors         //
 ////////////////////////////////////////////////////////////
-INLINE void initCommunication(void);
-INLINE void fakeExecution(void);
-INLINE void terminate(void);
-INLINE void initlock(struct ___Object___ * v);
+void initCommunication(void);
+void fakeExecution(void);
+void terminate(void);
+void initlock(struct ___Object___ * v);
 #ifdef BAMBOO_MEMPROF
-INLINE void terminatememprof(void);
+void terminatememprof(void);
 #endif // BAMBOO_MEMPROF
 
 ///////////////////////////////////////////////////////////
@@ -141,5 +141,13 @@ INLINE void terminatememprof(void);
 //                                      stores to incoherent memory        //
 /////////////////////////////////////////////////////////////////////////////
 
+void handleReturnMem_I(unsigned int cnum, void *heaptop);
+void handleReturnMem(unsigned int cnum, void *heaptop);
+void run(int argc, char** argv);
+void checkCoreStatus();
+void getprofiledata_I();
+void recordtotalexetime();
+void disruntimedata();
+void initruntimedata();
 #endif  // #ifdef MULTICORE
 #endif  // BAMBOO_MULTICORE_RUNTIME_H

@@ -1,3 +1,4 @@
+#include "mem.h"
 #include "gcqueue.h"
 
 struct pointerblock *gchead=NULL;

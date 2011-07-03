@@ -23,7 +23,7 @@ extern struct global_defs_t * global_defs_p;
 extern struct lockvector bamboo_threadlocks;
 #endif
 
-INLINE void gettype_size(void * ptr, int * ttype, unsigned int * tsize) {
+void gettype_size(void * ptr, int * ttype, unsigned int * tsize) {
   int type = ((int *)ptr)[0];
   if(type < NUMCLASSES) {
     // a normal object
@@ -39,7 +39,7 @@ INLINE void gettype_size(void * ptr, int * ttype, unsigned int * tsize) {
   } 
 }
 
-INLINE bool isLarge(void * ptr, int * ttype, unsigned int * tsize) {
+bool isLarge(void * ptr, int * ttype, unsigned int * tsize) {
   // check if a pointer refers to a large object
   gettype_size(ptr, ttype, tsize);
   unsigned INTPTR blocksize = (((unsigned INTPTR)(ptr-gcbaseva)) < BAMBOO_LARGE_SMEM_BOUND)? BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
@@ -183,7 +183,7 @@ void tomark(struct garbagelist * stackptr) {
 #endif
 }
 
-INLINE void scanPtrsInObj(void * ptr, int type) {
+void scanPtrsInObj(void * ptr, int type) {
   // scan all pointers in ptr
   unsigned int * pointer = pointerarray[type];
   if (pointer==0) {
@@ -233,7 +233,6 @@ void mark(struct garbagelist * stackptr) {
 
   unsigned int isize = 0;
   gc_status_info.gcbusystatus = true;
-
   // mark phase
   while(MARKPHASE == gc_status_info.gcphase) {
     int counter = 0;

@@ -1,5 +1,6 @@
 #include "MGCHash.h"
 #ifdef MULTICORE
+#include "structdefs.h"
 #include "runtime_arch.h"
 #else
 #include <stdio.h>
@@ -13,8 +14,6 @@
 /* mgchash ********************************************************/
 mgchashtable_t * mgchashCreate(unsigned int size, double loadfactor) {
   mgchashtable_t *ctable;
-  mgchashlistnode_t *nodes;
-  int i;
 
   if (size <= 0) {
 #ifdef MULTICORE
@@ -48,10 +47,9 @@ mgchashtable_t * mgchashCreate(unsigned int size, double loadfactor) {
 }
 
 void mgchashreset(mgchashtable_t * tbl) {
-  mgchashlistnode_t *ptr = tbl->table;
-  int i;
+  /* mgchashlistnode_t *ptr = tbl->table;
 
-  /*if (tbl->numelements<(tbl->size>>6)) {
+   if (tbl->numelements<(tbl->size>>6)) {
 	mgchashlistnode_t *top=&ptr[tbl->size];
 	mgchashlistnode_t * list = tbl->list;
 	while(list != NULL) {
@@ -64,7 +62,7 @@ void mgchashreset(mgchashtable_t * tbl) {
       list = next;
 	}
   } else {*/
-	BAMBOO_MEMSET_WH(tbl->table, '\0', sizeof(mgchashlistnode_t)*tbl->size);
+  BAMBOO_MEMSET_WH(tbl->table, 0, sizeof(mgchashlistnode_t)*tbl->size);
   //}
   // TODO now never release any allocated memory, may need to be changed
   while(tbl->structs->next!=NULL) {
@@ -116,8 +114,6 @@ void mgchashInsert(mgchashtable_t * tbl, void * key, void *val) {
 #ifdef MULTICORE_GC
 mgchashtable_t * mgchashCreate_I(unsigned int size, double loadfactor) {
   mgchashtable_t *ctable;
-  mgchashlistnode_t *nodes;
-  int i;
 
   if (size <= 0) {
 #ifdef MULTICORE
@@ -336,7 +332,6 @@ unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
 
 //Delete the entire hash table
 void mgchashDelete(mgchashtable_t * tbl) {
-  int i;
   mgcliststruct_t *ptr=tbl->structs;
   while(ptr!=NULL) {
     mgcliststruct_t *next=ptr->next;
@@ -357,7 +352,7 @@ struct MGCHash * allocateMGCHash(int size) {
   thisvar=(struct MGCHash *)RUNMALLOC(sizeof(struct MGCHash));
   thisvar->size = size;
   thisvar->mask = ((size>>1)-1)<<1;
-  thisvar->bucket=(int *) RUNCALLOC(sizeof(unsigned int)*size);
+  thisvar->bucket=(unsigned INTPTR *) RUNCALLOC(sizeof(unsigned INTPTR)*size);
   //Set data counts
   return thisvar;
 }
@@ -376,8 +371,8 @@ int MGCHashadd(struct MGCHash * thisvar, unsigned INTPTR data) {
   // Rehash code
 
   unsigned int hashkey = (data>>GC_SHIFT_BITS)&thisvar->mask;
-  int * ptr = &thisvar->bucket[hashkey];
-  int ptrval= *ptr;
+  unsigned INTPTR * ptr = &thisvar->bucket[hashkey];
+  unsigned INTPTR ptrval= *ptr;
   if (ptrval == 0) {
     *ptr=data;
     return 1;
@@ -402,7 +397,7 @@ struct MGCHash * allocateMGCHash_I(int size) {
   thisvar=(struct MGCHash *)RUNMALLOC_I(sizeof(struct MGCHash));
   thisvar->mask = ((size>>1)-1)<<1;
   thisvar->size = size;
-  thisvar->bucket=(int *) RUNCALLOC_I(sizeof(int)*size);
+  thisvar->bucket=(unsigned INTPTR *) RUNCALLOC_I(sizeof(unsigned INTPTR)*size);
   return thisvar;
 }
 
@@ -415,7 +410,7 @@ int MGCHashcontains(struct MGCHash *thisvar, unsigned INTPTR data) {
   // Rehash code
 
   unsigned int hashkey = (data>>GC_SHIFT_BITS)&thisvar->mask;
-  int * ptr = &thisvar->bucket[hashkey];
+  unsigned INTPTR * ptr = &thisvar->bucket[hashkey];
 
   if (*ptr==data) {
     return 1;

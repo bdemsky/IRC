@@ -231,9 +231,66 @@ int receiveMsg_I();
 void transferObject(struct transObjInfo * transObj);
 #endif
 
+
 #ifdef MULTICORE_GC
 void transferMarkResults();
+void processmsg_gcstartinit_I();
+void processmsg_gcstart_I();
+void processmsg_gcstartcompact_I();
+void processmsg_gcstartupdate_I();
+void processmsg_gcfinishpre_I();
+void processmsg_gcfinishinit_I();
+void processmsg_memrequest_I();
+void processmsg_memresponse_I();
+void processmsg_reqblock_I();
+void processmsg_grantblock_I();
+void processmsg_gcfinishmark_I();
+void processmsg_returnmem_I();
+void * handlegcfinishcompact_I(int cnum, unsigned int bytesneeded, unsigned int maxbytesneeded);
+void processmsg_gcfinishcompact_I();
+void processmsg_gcfinishupdate_I();
+void processmsg_gcfinish_I();
+void processmsg_gcmarkconfirm_I();
+void processmsg_gcmarkreport_I();
+void processmsg_gcmarkedobj_I();
+void processmsg_gcmovestart_I();
+void processmsg_gclobjinfo_I(unsigned int msglength);
+#else
+void processmsg_lockrequest_I();
+void processmsg_lockrequest_I();
+void processmsg_lockgrount_I();
+void processmsg_lockdeny_I();
+void processmsg_lockrelease_I();
+void processmsg_redirectlock_I();
+void processmsg_redirectgrount_I();
+void processmsg_redirectdeny_I();
+void processmsg_redirectrelease_I();
 #endif 
 
+unsigned int checkMsgLength_I(unsigned int realtype);
+void processmsg_transtall_I();
+void processmsg_statusconfirm_I();
+void processmsg_statusreport_I();
+void processmsg_terminate_I();
+void processmsg_req_notify_start();
+void processmsg_notify_start();
+int receiveObject_I();
+
+
+#ifdef GC_PROFILE
+void processmsg_gcprofiles_I();
+#endif
+
+#ifdef GC_CACHE_ADAPT
+void processmsg_gcstartcachepolicy_I();
+void processmsg_gcfinishcachepolicy_I();
+void processmsg_gcstartpref_I();
+void processmsg_gcfinishpref_I();
+#endif
+
+#ifdef PROFILE
+void processmsg_profileoutput_I();
+void processmsg_profilefinish_I();
+#endif
 #endif // MULTICORE
 #endif // BAMBOO_MULTICORE_MSG_H

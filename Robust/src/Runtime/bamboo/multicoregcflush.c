@@ -1,4 +1,5 @@
 #ifdef MULTICORE_GC
+#include "multicoregccompact.h"
 #include "multicoregcflush.h"
 #include "multicoreruntime.h"
 #include "ObjectHash.h"
@@ -27,11 +28,13 @@ extern struct lockvector bamboo_threadlocks;
 // NOTE: the objptr should not be NULL and should not be non shared ptr
 #define updateObj(objptr) gcmappingtbl[OBJMAPPINGINDEX(objptr)]
 //#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) obj=updateObj(updatetmpptr);if (obj<gcbaseva) tprintf("BAD PTR %x to %x in %u\n", updatetmpptr, obj, __LINE__);}
-#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=updateObj(updatetmpptr);if (!ISVALIDPTR(obj)) tprintf("Mapping problem for object %x -> %x, mark=%u, line=%u\n", updatetmpptr, obj, getMarkedLength(updatetmpptr),__LINE__);}}
+#define UPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=updateObj(updatetmpptr);}}
+//if (!ISVALIDPTR(obj)) tprintf("Mapping problem for object %x -> %x, mark=%u, line=%u\n", updatetmpptr, obj, getMarkedLength(updatetmpptr),__LINE__);}}
 
-#define UPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=updateObj(updatetmpptr); if (!ISVALIDPTR(obj)) tprintf("Mapping parameter for object %x -> %x, mark=%u, line=%u\n", updatetmpptr, obj, getMarkedLength(updatetmpptr),__LINE__);}
+#define UPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=updateObj(updatetmpptr);}
+// if (!ISVALIDPTR(obj)) tprintf("Mapping parameter for object %x -> %x, mark=%u, line=%u\n", updatetmpptr, obj, getMarkedLength(updatetmpptr),__LINE__);}
 
-INLINE void updategarbagelist(struct garbagelist *listptr) {
+void updategarbagelist(struct garbagelist *listptr) {
   for(;listptr!=NULL; listptr=listptr->next) {
     for(int i=0; i<listptr->size; i++) {
       UPDATEOBJ(listptr->array[i]);
@@ -39,7 +42,7 @@ INLINE void updategarbagelist(struct garbagelist *listptr) {
   }
 }
 
-INLINE void updateRuntimePtrs(struct garbagelist * stackptr) {
+void updateRuntimePtrs(struct garbagelist * stackptr) {
   // update current stack
   updategarbagelist(stackptr);
 
@@ -123,7 +126,7 @@ INLINE void updateRuntimePtrs(struct garbagelist * stackptr) {
       unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
       for(int i = thread_counter; i > 0; i--) {
         // the thread obj can not be NULL
-        UPDATEOBJNONNULL(bamboo_thread_queue[4+start]);
+        UPDATEOBJNONNULL(*((void **)&bamboo_thread_queue[4+start]));
         start = (start+1)&bamboo_max_thread_num_mask;
       }
     }
@@ -132,7 +135,7 @@ INLINE void updateRuntimePtrs(struct garbagelist * stackptr) {
 #endif
 }
 
-INLINE void updatePtrsInObj(void * ptr) {
+void updatePtrsInObj(void * ptr) {
   int type = ((int *)(ptr))[0];
   // scan all pointers in ptr
   unsigned int * pointer=pointerarray[type];
@@ -184,6 +187,7 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
   unsigned INTPTR origendoffset=ALIGNTOTABLEINDEX((unsigned INTPTR)(origbound-gcbaseva));
   unsigned int objlength;
 
+
   while(origptr<origbound) {
     //Try to skip over stuff fast first
     unsigned INTPTR offset=(unsigned INTPTR) (origptr-gcbaseva);
@@ -215,16 +219,37 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
 	return dstptr;
       }
 
+#ifdef GC_DEBUG
+      {
+	unsigned int size;
+	unsigned int type;
+	gettype_size(origptr, &type, &size);
+	size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
+	if (size!=length) {
+	  tprintf("BAD SIZE %u!=%u t=%u %x->%x\n",size,length,type, origptr, dstptr);
+	  tprintf("origbase=%x origbound=%x\n",orig->base, origbound);
+	  tprintf("tobase=%x tobound=%x\n",tobase, tobound);
+	}
+      }
+
+      if (dstptr>origptr) {
+	tprintf("move up %x -> %x\n", origptr, dstptr);
+      }
+      if (tmplast>origptr) {
+	tprintf("Overlap with last object\n");
+      }
+
+      tmplast=dstptr+length;
+#endif
+
       /* Move the object */
-      if(origptr >= endtoptr||dstptr >= origptr+length) {
+      if(origptr < endtoptr&&dstptr < origptr+length) {
         memmove(dstptr, origptr, length);
       } else if (origptr!=dstptr) {
 	//no need to copy if the source & dest are equal....
         memcpy(dstptr, origptr, length);
       }
 
-      //tprintf("Moving object %x to %x with length %u\n", origptr, dstptr, length);
-      
       /* Update the pointers in the object */
       updatePtrsInObj(dstptr);
 
@@ -265,15 +290,15 @@ void updatehelper(struct moveHelper * orig,struct moveHelper * to) {
       //need more memory to compact into
       block_t blockindex;
       BLOCKINDEX(blockindex, dstptr);
-      unsigned int corenum;
-      BLOCK2CORE(corenum, blockindex);
+      unsigned int blockcore;
+      BLOCK2CORE(blockcore, blockindex);
       to->base=OFFSET2BASEVA(blockindex)+gcbaseva;
       to->bound=BOUNDPTR(blockindex)+gcbaseva;
-      if (corenum!=BAMBOO_NUM_OF_CORE) {
+      if (blockcore!=BAMBOO_NUM_OF_CORE) {
 	//we have someone elses memory...need to ask to use it
 	//first set flag to false
 	blockgranted=false;
-	send_msg_3(corenum,GCREQBLOCK, BAMBOO_NUM_OF_CORE, to->bound);
+	send_msg_3(blockcore,GCREQBLOCK, BAMBOO_NUM_OF_CORE, to->bound);
 	//wait for permission
 	while(!blockgranted)
 	  ;
@@ -298,8 +323,8 @@ void updatehelper(struct moveHelper * orig,struct moveHelper * to) {
 
 void updateheap() {
   // initialize structs for compacting
-  struct moveHelper orig={0,NULL,NULL,0,NULL,0,0,0,0};
-  struct moveHelper to={0,NULL,NULL,0,NULL,0,0,0,0};
+  struct moveHelper orig;
+  struct moveHelper to;
   initOrig_Dst(&orig, &to);
   updatehelper(&orig, &to);
 }

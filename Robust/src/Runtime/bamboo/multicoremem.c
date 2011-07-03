@@ -1,17 +1,13 @@
-#ifdef MULTICORE
+#if defined(MULTICORE)&&defined(MULTICORE_GC)
 #include "runtime_arch.h"
 #include "multicoreruntime.h"
-
-#ifdef MULTICORE_GC
 #include "multicoregarbage.h"
 #include "multicorehelper.h"
 #include "multicoremem_helper.h"
 
 // Only allocate local mem chunks to each core.
 // If a core has used up its local shared memory, start gc.
-void * localmalloc_I(int coren,
-                     unsigned int memcheck,
-                     int * allocsize) {
+void * localmalloc_I(int coren, unsigned INTPTR memcheck, unsigned INTPTR * allocsize) {
   for(block_t localblocknum=0;localblocknum<GCNUMLOCALBLOCK;localblocknum++) {
     block_t searchblock=BLOCKINDEX2(coren, localblocknum);
     if (searchblock>=GCNUMBLOCK)
@@ -38,9 +34,7 @@ void * localmalloc_I(int coren,
 // Allocate the local shared memory to each core with the highest priority,
 // if a core has used up its local shared memory, try to allocate the 
 // shared memory that belong to its neighbours, if also failed, start gc.
-void * fixedmalloc_I(int coren,
-                     unsigned int memcheck,
-                     int * allocsize) {
+void * fixedmalloc_I(int coren, unsigned INTPTR memcheck, unsigned INTPTR * allocsize) {
   //try locally first
   void * mem=localmalloc_I(coren,memcheck,allocsize);
   if (mem!=NULL)
@@ -52,7 +46,7 @@ void * fixedmalloc_I(int coren,
       int neighborcore=core2test[coren][i];
       if (neighborcore!=-1) {
 	block_t globalblockindex=BLOCKINDEX2(neighborcore, lblock);
-	if (globalblockindex>=GCNUMBLOCK)
+	if (globalblockindex>=GCNUMBLOCK||globalblockindex<0)
 	  return NULL;
 	struct blockrecord * block=&allocationinfo.blocktable[globalblockindex];
 	if (block->status==BS_FREE) {
@@ -81,9 +75,7 @@ void * fixedmalloc_I(int coren,
 // current memory allocation rate, if it has already reached the threshold,
 // start gc, otherwise, allocate the shared memory globally.  If all the 
 // shared memory has been used up, start gc.
-void * mixedmalloc_I(int coren,
-                     int isize,
-                     int * allocsize) {
+void * mixedmalloc_I(int coren, unsigned INTPTR isize, unsigned INTPTR * allocsize) {
   void * mem=fixedmalloc_I(coren,isize,allocsize);
   if (mem!=NULL)
     return mem;
@@ -95,7 +87,7 @@ void * mixedmalloc_I(int coren,
 
 // Allocate all the memory chunks globally, do not consider the host cores
 // When all the shared memory are used up, start gc.
-void * globalmalloc_I(int coren, unsigned INTPTR memcheck, int * allocsize) {
+void * globalmalloc_I(int coren, unsigned INTPTR memcheck, unsigned INTPTR * allocsize) {
   block_t firstfree=NOFREEBLOCK;
   block_t lowestblock=allocationinfo.lowestfreeblock;
   for(block_t searchblock=lowestblock;searchblock<GCNUMBLOCK;searchblock++) {
@@ -120,7 +112,7 @@ void * globalmalloc_I(int coren, unsigned INTPTR memcheck, int * allocsize) {
   return NULL;
 } 
 
-void * smemalloc(int coren, int isize, int * allocsize) {
+void * smemalloc(int coren, unsigned INTPTR isize, unsigned INTPTR * allocsize) {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   void *retval=smemalloc_I(coren, isize, allocsize);
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
@@ -128,7 +120,7 @@ void * smemalloc(int coren, int isize, int * allocsize) {
 }
 
 // malloc from the shared memory
-void * smemalloc_I(int coren, int isize, int * allocsize) {
+void * smemalloc_I(int coren, unsigned INTPTR isize, unsigned INTPTR * allocsize) {
 #ifdef SMEML
   void *mem = localmalloc_I(coren, isize, allocsize);
 #elif defined(SMEMF)
@@ -155,15 +147,12 @@ void * smemalloc_I(int coren, int isize, int * allocsize) {
         GC_SEND_MSG_1_TO_CLIENT(GCSTARTPRE);
       }
     }
-    return NULL;
   }
   return mem;
 }
 #else
 // malloc from the shared memory
-void * smemalloc_I(int coren,
-                   int size,
-                   int * allocsize) {
+void * smemalloc_I(int coren, unsigned INTPTR size, unsigned INTPTR * allocsize) {
   void * mem = NULL;
   int toallocate = (size>(BAMBOO_SMEM_SIZE)) ? (size) : (BAMBOO_SMEM_SIZE);
   if(toallocate > bamboo_free_smem_size) {
@@ -182,6 +171,4 @@ void * smemalloc_I(int coren,
   }
   return mem;
 } 
-#endif // MULTICORE_GC
-
-#endif // MULTICORE
+#endif

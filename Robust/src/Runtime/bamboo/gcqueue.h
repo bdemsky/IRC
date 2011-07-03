@@ -1,6 +1,7 @@
 #ifndef GCQUEUE_H
 #define GCQUEUE_H
 #include "stdio.h"
+#include "multicore.h"
 
 #ifdef MGC
 #include "interrupt.h"
@@ -35,7 +36,7 @@ extern struct lobjpointerblock *gclobjtail;
 extern int gclobjtailindex;
 extern struct lobjpointerblock *gclobjspare;
 
-static void gc_queueinit() {
+INLINE static void gc_queueinit() {
   // initialize queue
   if (gchead==NULL) {
     gcheadindex=gctailindex=0;
@@ -60,7 +61,7 @@ static void gc_queueinit() {
 ////////////////////////////////////////////////////////////////////
 // functions that should be invoked with interrupts off
 ////////////////////////////////////////////////////////////////////
-static void gc_enqueue_I(void * ptr) {
+INLINE static void gc_enqueue_I(void * ptr) {
   if (gcheadindex==NUMPTRS) {
     struct pointerblock * tmp;
     if (gcspare!=NULL) {
@@ -78,7 +79,7 @@ static void gc_enqueue_I(void * ptr) {
 }
 
 // dequeue and destroy the queue
-static void * gc_dequeue_I() {
+INLINE static void * gc_dequeue_I() {
   if (gctailindex==NUMPTRS) {
     struct pointerblock *tmp=gctail;
     gctail=gctail->next;
@@ -93,13 +94,13 @@ static void * gc_dequeue_I() {
   return gctail->ptrs[gctailindex++];
 } 
 
-static int gc_moreItems_I() {
+INLINE static int gc_moreItems_I() {
   return !((gchead==gctail)&&(gctailindex==gcheadindex));
 } 
 
 // should be invoked with interruption closed 
 // enqueue a large obj: start addr & length
-static void gc_lobjenqueue_I(void * ptr,
+INLINE static void gc_lobjenqueue_I(void * ptr,
                              unsigned int length,
                              unsigned int host) {
   if (gclobjheadindex==NUMLOBJPTRS) {
@@ -123,7 +124,7 @@ static void gc_lobjenqueue_I(void * ptr,
 } 
 
 // dequeue and destroy the queue
-static void * gc_lobjdequeue_I(unsigned int * length,
+INLINE static void * gc_lobjdequeue_I(unsigned int * length,
                                      unsigned int * host) {
   if (gclobjtailindex==NUMLOBJPTRS) {
     struct lobjpointerblock *tmp=gclobjtail;
@@ -147,14 +148,14 @@ static void * gc_lobjdequeue_I(unsigned int * length,
   return gclobjtail->lobjs[gclobjtailindex++];
 } 
 
-static int gc_lobjmoreItems_I() {
+INLINE static int gc_lobjmoreItems_I() {
   return !((gclobjhead==gclobjtail)&&(gclobjtailindex==gclobjheadindex));
 } 
 
 ////////////////////////////////////////////////////////////////////
 // functions that can be invoked in normal places
 ////////////////////////////////////////////////////////////////////
-static void gc_enqueue(void * ptr) {
+INLINE static void gc_enqueue(void * ptr) {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   if (gcheadindex==NUMPTRS) {
     struct pointerblock * tmp;
@@ -173,7 +174,7 @@ static void gc_enqueue(void * ptr) {
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 }
 
-static void * gc_dequeue() {
+INLINE static void * gc_dequeue() {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   if (gctailindex==NUMPTRS) {
     struct pointerblock *tmp=gctail;
@@ -191,14 +192,14 @@ static void * gc_dequeue() {
   return r;
 } 
 
-static int gc_moreItems() {
+INLINE static int gc_moreItems() {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   int r = !((gchead==gctail)&&(gctailindex==gcheadindex));
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return r;
 }
 
-static void gc_lobjenqueue(void * ptr,
+INLINE static void gc_lobjenqueue(void * ptr,
                            unsigned int length,
                            unsigned int host) {
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();

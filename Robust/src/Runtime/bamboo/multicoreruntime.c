@@ -1,9 +1,10 @@
 #ifdef MULTICORE
-
 #include "runtime.h"
 #include "multicoreruntime.h"
 #include "methodheaders.h"
 #include "multicoregarbage.h"
+#include "multicore_arch.h"
+#include <stdio.h>
 
 extern int classsize[];
 extern int typearray[];
@@ -165,13 +166,6 @@ int CALL12(___String______convertdoubletochar____D__AR_C,
   }
   return num;
 }
-#else
-int CALL12(___String______convertdoubletochar____D__AR_C, 
-           double ___val___, 
-           double ___val___, 
-           struct ArrayObject ___chararray___) {
-  return 0;
-}
 #endif
 
 #ifdef D___System______deepArrayCopy____L___Object____L___Object___
@@ -328,6 +322,7 @@ long long CALL00(___System______currentTimeMillis____) {
 }
 #endif
 
+#ifdef D___System______setgcprofileflag____
 void CALL00(___System______setgcprofileflag____) {
 #ifdef GC_PROFILE
 #ifdef MGC_SPEC
@@ -336,13 +331,40 @@ void CALL00(___System______setgcprofileflag____) {
 #endif
 #endif
 }
+#endif
 
+#ifdef D___System______resetgcprofileflag____
 void CALL00(___System______resetgcprofileflag____) {
 #ifdef GC_PROFILE
 #ifdef MGC_SPEC
   extern volatile bool gc_profile_flag;
   gc_profile_flag = false;
 #endif
+#endif
+}
+#endif
+
+void CALL00(___System______gc____) {
+#ifdef MULTICORE_GC
+  if(BAMBOO_NUM_OF_CORE == STARTUPCORE) {
+    if(!gc_status_info.gcprocessing && !gcflag) {
+      gcflag = true;
+      gcprecheck = true;
+      for(int i = 0; i < NUMCORESACTIVE; i++) {
+        // reuse the gcnumsendobjs & gcnumreceiveobjs
+        gcnumsendobjs[0][i] = 0;
+        gcnumreceiveobjs[0][i] = 0;
+      }
+      for(int i = 0; i < NUMCORES4GC; i++) {
+        if(i != STARTUPCORE) {
+          send_msg_1_I(i,GCSTARTPRE);
+        }
+      }
+    }
+  } else {
+    // send msg to the startup core to start gc
+    send_msg_1(STARTUPCORE, GCINVOKE);
+  }
 #endif
 }
 
@@ -371,10 +393,8 @@ void CALL00(___System______gc____) {
 }
 
 #ifdef D___System______printString____L___String___
-void CALL01(___System______printString____L___String___,
-            struct ___String___ * ___s___) {
-#ifdef MGC
-#ifdef TILERA_BME
+void CALL01(___System______printString____L___String___, struct ___String___ * ___s___) {
+#if defined(MGC)&&defined(TILERA_BME)
   struct ArrayObject * chararray=VAR(___s___)->___value___;
   int i;
   int offset=VAR(___s___)->___offset___;
@@ -384,7 +404,6 @@ void CALL01(___System______printString____L___String___,
       ((short *)(((char *)&chararray->___length___)+sizeof(int)))[i+offset];
     printf("%c", sc);
   }
-#endif // TILERA_BME
 #endif // MGC
 }
 #endif
@@ -427,7 +446,7 @@ struct ArrayObject * allocate_newarray(void * ptr,
     return NULL;
   }
   v->___length___=length;
-  initlock(v);
+  initlock((struct ___Object___ *)v);
 #ifdef GC_PROFILE
   extern unsigned int gc_num_obj;
   gc_num_obj++;
@@ -459,7 +478,7 @@ struct ArrayObject * allocate_newarray(int type,
   v->lock = NULL;
 #endif
   v->___length___=length;
-  initlock(v);
+  initlock((struct ___Object___ *) v);
   return v;
 }
 #endif
@@ -603,7 +622,7 @@ void abort_task() {
 #endif
 }
 
-INLINE void initruntimedata() {
+void initruntimedata() {
   // initialize the arrays
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     // startup core to initialize corestatus[]
@@ -655,25 +674,26 @@ INLINE void initruntimedata() {
   INITTASKDATA();
 }
 
-INLINE void disruntimedata() {
+void disruntimedata() {
   DISMULTICOREGCDATA();
   DISTASKDATA();
   BAMBOO_LOCAL_MEM_CLOSE();
   BAMBOO_SHARE_MEM_CLOSE();
 }
 
-INLINE void recordtotalexetime() {
+void recordtotalexetime() {
 #ifdef USEIO
   totalexetime = BAMBOO_GET_EXE_TIME()-bamboo_start_time;
 #else // USEIO
-  BAMBOO_PRINT(BAMBOO_GET_EXE_TIME()-bamboo_start_time);
+  unsigned long long timediff=BAMBOO_GET_EXE_TIME()-bamboo_start_time;
+  BAMBOO_PRINT(timediff);
 #ifndef BAMBOO_MEMPROF
   BAMBOO_PRINT(0xbbbbbbbb);
 #endif
 #endif // USEIO
 }
 
-INLINE void getprofiledata_I() {
+void getprofiledata_I() {
   //profile mode, send msgs to other cores to request pouring out progiling data
 #ifdef PROFILE
   // use numconfirm to check if all cores have finished output task profiling 
@@ -705,7 +725,7 @@ INLINE void getprofiledata_I() {
 #endif
 }
 
-INLINE void checkCoreStatus() {
+void checkCoreStatus() {
   int i = 0;
   int sumsendobj = 0;
   if((!waitconfirm) ||
@@ -773,7 +793,7 @@ INLINE void checkCoreStatus() {
 }
 
 // main function for each core
-inline void run(int argc, char** argv) {
+void run(int argc, char** argv) {
   bool sendStall = false;
   bool isfirst = true;
   bool tocontinue = false;

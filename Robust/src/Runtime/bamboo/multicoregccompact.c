@@ -1,4 +1,5 @@
 #ifdef MULTICORE_GC
+#include "structdefs.h"
 #include "multicoregccompact.h"
 #include "runtime_arch.h"
 #include "multicoreruntime.h"
@@ -90,7 +91,7 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
   }
 }
 
-void useReturnedMem(unsigned int corenum, block_t localblockindex) {
+void useReturnedMem(unsigned int retcorenum, block_t localblockindex) {
   for(int i=0;i<NUMCORES4GC;i++) {
     unsigned INTPTR requiredmem=gcrequiredmems[i];
     if (requiredmem) {
@@ -100,7 +101,7 @@ void useReturnedMem(unsigned int corenum, block_t localblockindex) {
 
 
       for(block_t nextlocalblocknum=localblockindex;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
-	unsigned INTPTR blocknum=BLOCKINDEX2(corenum, nextlocalblocknum);
+	unsigned INTPTR blocknum=BLOCKINDEX2(retcorenum, nextlocalblocknum);
 	struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blocknum];
 	if (nextblockrecord->status==BS_FREE) {
 	  unsigned INTPTR freespace=nextblockrecord->freespace&~BAMBOO_CACHE_LINE_MASK;
@@ -174,7 +175,7 @@ void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes) {
 
 void getSpace(struct moveHelper *to, unsigned int minimumbytes) {
   //need more space to compact into
-  if (to->localblocknum < gcblock2fill) {
+  if ((to->localblocknum+1) < gcblock2fill) {
     getSpaceLocally(to);
   } else {
     getSpaceRemotely(to, minimumbytes);
@@ -221,14 +222,14 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
   }
 }
 
-void * checkNeighbors_I(int corenum, unsigned INTPTR requiredmem, unsigned INTPTR desiredmem) {
+void * checkNeighbors_I(int ncorenum, unsigned INTPTR requiredmem, unsigned INTPTR desiredmem) {
   int minblockindex=allocationinfo.lowestfreeblock/NUMCORES4GC;
   unsigned INTPTR threshold=(desiredmem<MINMEMORYCHUNKSIZE)? desiredmem: MINMEMORYCHUNKSIZE;
   unsigned INTPTR memcheck=requiredmem>threshold?requiredmem:threshold;
 
   for(block_t lblock=minblockindex;lblock<numblockspercore;lblock++) {
     for(int i=0;i<NUM_CORES2TEST;i++) {
-      int neighborcore=core2test[corenum][i];
+      int neighborcore=core2test[ncorenum][i];
       if (neighborcore!=-1) {
 	block_t globalblockindex=BLOCKINDEX2(neighborcore, lblock);
 	struct blockrecord * block=&allocationinfo.blocktable[globalblockindex];
@@ -511,7 +512,6 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 	return length;
       }
       //good to move objects and update pointers
-      //tprintf("Decided to compact obj %x to %x\n", origptr, toptr);
 
       gcmappingtbl[OBJMAPPINGINDEX(origptr)]=toptr;
 
@@ -532,8 +532,8 @@ void compact() {
   BAMBOO_ASSERT(COMPACTPHASE == gc_status_info.gcphase);
   
   // initialize structs for compacting
-  struct moveHelper orig={0,NULL,NULL,0,NULL,0,0,0,0};
-  struct moveHelper to={0,NULL,NULL,0,NULL,0,0,0,0};
+  struct moveHelper orig;
+  struct moveHelper to;
   initOrig_Dst(&orig, &to);
 
   CACHEADAPT_SAMPLING_DATA_REVISE_INIT(&orig, &to);
@@ -585,6 +585,41 @@ void master_compact() {
 
   while(!gc_checkCoreStatus())
     ;
+
+#ifdef GC_DEBUG
+  void *nextvalid=gcbaseva;
+  for(void *tmp=gcbaseva; tmp<gcbaseva+BAMBOO_SHARED_MEM_SIZE;tmp+=ALIGNMENTSIZE) {
+    unsigned int objlength=getMarkedLength(tmp);
+    void *forwarding=gcmappingtbl[OBJMAPPINGINDEX(tmp)];
+    if (tmp>=nextvalid&&((objlength!=0)!=(forwarding!=NULL))) {
+      tprintf("Maps disagree tmp=%x olength=%u forwarding=%x\n",tmp, objlength, forwarding);
+    }
+    if (tmp<nextvalid&&forwarding!=NULL) {
+      tprintf("Weird forwarding pointer\n");
+    }
+    if (tmp>=nextvalid&&(objlength!=0||forwarding!=NULL)) {
+      unsigned int length=ALIGNSIZETOBYTES(objlength);
+      unsigned int size;
+      unsigned int type;
+      nextvalid=tmp+length;
+      gettype_size(tmp, &type, &size);
+      size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
+      if (size!=length) {
+	tprintf("Bad size in bitmap: tmp=%x length=%u size=%u type=%u\n", tmp, length, size, type);
+      }
+      block_t blockindex;
+      BLOCKINDEX(blockindex, forwarding);
+      struct blockrecord * block=&allocationinfo.blocktable[blockindex];
+      void *blockptr=OFFSET2BASEVA(blockindex)+gcbaseva;
+
+      if (block->status==BS_FREE) {
+	if (forwarding>(blockptr+block->usedspace)) {
+	  tprintf("Pointer references free space forwarding=%x tmp=%x length=%u type=%u blockindex=%u, baseptr=%x, usedspace=%u, status=%u\n", forwarding, tmp, length, type,blockindex, blockptr, block->usedspace, block->status);
+	}
+      }
+    }
+  }
+#endif
 
   GCPROFILE_ITEM();
 

@@ -87,6 +87,22 @@ void dumpSMem() {
 }
 #endif
 
+bool gc_checkCoreStatus() {
+  for(int i = 0; i < NUMCORES4GC; i++) {
+    if(gccorestatus[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void gc_resetCoreStatus() {
+  for(int i = 0; i < NUMCORES4GC; i++) {
+    gccorestatus[i] = 1;
+  }
+}
+
+
 void initmulticoregcdata() {
   bamboo_smem_zero_top = NULL;
   gcflag = false;
@@ -349,8 +365,8 @@ void gc_nocollect(struct garbagelist * stackptr) {
 void master_mark(struct garbagelist *stackptr) {
 
   GC_PRINTF("Start mark phase \n");
-  GC_SEND_MSG_1_TO_CLIENT(GCSTART);
   gc_status_info.gcphase = MARKPHASE;
+  GC_SEND_MSG_1_TO_CLIENT(GCSTART);
   // mark phase
 
   mark(stackptr);
@@ -418,7 +434,7 @@ void master_finish() {
 }
 
 void gc_master(struct garbagelist * stackptr) {
-  //tprintf("start GC!\n");
+  tprintf("start GC!\n");
   gc_status_info.gcprocessing = true;
   gc_status_info.gcphase = INITPHASE;
 
@@ -456,6 +472,7 @@ void gc_master(struct garbagelist * stackptr) {
     tprintf("%u. used=%u free=%u corenum=%u status=%u, base=%x, ptr=%x\n", i, record->usedspace, record->freespace, record->corenum, record->status, gcbaseva+OFFSET2BASEVA(i), (gcbaseva+OFFSET2BASEVA(i)+record->usedspace));
   }
 #endif
+
   master_finish();
 
   //tprintf("finish GC ! %d \n",gcflag);

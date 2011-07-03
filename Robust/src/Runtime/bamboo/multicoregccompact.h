@@ -3,6 +3,7 @@
 
 #ifdef MULTICORE_GC
 #include "multicore.h"
+#include "gctypes.h"
 
 struct moveHelper {
   unsigned int localblocknum;   // local block num for heap
@@ -14,7 +15,20 @@ struct moveHelper {
 #endif
 };
 
+int gc_countRunningCores();
 void initOrig_Dst(struct moveHelper * orig,struct moveHelper * to);
+void getSpaceLocally(struct moveHelper *to);
+void handleReturnMem_I(unsigned int cnum, void *heaptop);
+void useReturnedMem(unsigned int corenum, block_t localblockindex);
+void handleReturnMem(unsigned int cnum, void *heaptop);
+void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes);
+void getSpace(struct moveHelper *to, unsigned int minimumbytes);
+void * checkNeighbors_I(int corenum, unsigned INTPTR requiredmem, unsigned INTPTR desiredmem);
+void * globalSearch_I(unsigned int topblock, unsigned INTPTR requiredmem, unsigned INTPTR desiredmem);
+void handleOneMemoryRequest(int core, unsigned int lowestblock);
+void handleMemoryRequests_I();
+void * gcfindSpareMem_I(unsigned INTPTR requiredmem, unsigned INTPTR desiredmem,unsigned int requiredcore);
+void master_compact();
 void compacthelper(struct moveHelper * orig,struct moveHelper * to);
 void compact();
 void compact_master(struct moveHelper * orig, struct moveHelper * to);

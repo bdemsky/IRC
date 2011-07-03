@@ -42,7 +42,7 @@
 #ifdef GC_LARGESHAREDHEAP
 #define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+24)))
 #elif defined MGC
-#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(72))) // 72M per core
+#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*72)) // 72M per core
 #else
 #define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+14)))
 #endif
@@ -121,6 +121,14 @@ volatile bool smemflag;
 //Pointer to new block of memory after request
 volatile void * bamboo_cur_msp;
 //Number of bytes in new block of memory
-volatile int bamboo_smem_size;
+volatile unsigned INTPTR bamboo_smem_size;
+
+void * localmalloc_I(int coren, unsigned INTPTR memcheck, unsigned INTPTR * allocsize);
+void * fixedmalloc_I(int coren, unsigned INTPTR memcheck, unsigned INTPTR * allocsize);
+void * mixedmalloc_I(int coren, unsigned INTPTR isize, unsigned INTPTR * allocsize);
+void * globalmalloc_I(int coren, unsigned INTPTR memcheck, unsigned INTPTR * allocsize);
+void * smemalloc(int coren, unsigned INTPTR isize, unsigned INTPTR * allocsize);
+void * smemalloc_I(int coren, unsigned INTPTR isize, unsigned INTPTR * allocsize);
+
 
 #endif // BAMBOO_MULTICORE_MEM_H

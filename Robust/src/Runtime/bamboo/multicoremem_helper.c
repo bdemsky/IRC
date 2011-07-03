@@ -19,11 +19,11 @@ void buildCore2Test() {
 	  //bad coordinate
 	  core2test[i][index]=-1;
 	} else {
-	  int corenum=BAMBOO_CORE(x,y);
-	  if (corenum<0||corenum>=NUMCORES4GC) {
+	  int blockcorenum=BAMBOO_CORE(x,y);
+	  if (blockcorenum<0||blockcorenum>=NUMCORES4GC) {
 	    core2test[i][index]=-1;
 	  } else {
-	    core2test[i][index]=corenum;
+	    core2test[i][index]=blockcorenum;
 	  }
 	}
 	index++;

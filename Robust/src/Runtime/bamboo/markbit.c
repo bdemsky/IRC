@@ -1,4 +1,4 @@
-#include "runtime.h"
+#include "multicoreruntime.h"
 #include "multicoremem.h"
 #include "multicoregarbage.h"
 #include "markbit.h"

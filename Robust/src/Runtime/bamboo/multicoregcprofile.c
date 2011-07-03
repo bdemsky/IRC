@@ -1,6 +1,7 @@
 #ifdef MULTICORE_GC
 #ifdef GC_PROFILE
 #include "multicoregcprofile.h"
+#include "structdefs.h"
 #include "runtime_arch.h"
 #include "mem.h"
 

@@ -6,6 +6,7 @@
 #include "multicorehelper.h"  // for mappings between core # and block #
 #include "structdefs.h"
 #include "multicoregcprofile.h"
+#include "gctypes.h"
 
 #ifdef GC_DEBUG
 #define GC_PRINTF tprintf
@@ -24,8 +25,6 @@
 #define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC)
 // let each gc core to have one big block, this is very important
 // for the computation of NUMBLOCKS(s, n), DO NOT change this!
-
-typedef int block_t;
 
 typedef enum {
   INITPHASE = 0x0,         // 0x0
@@ -115,20 +114,10 @@ volatile unsigned int * gcmarktbl;
 
 void * gcbaseva; // base va for shared memory without reserved sblocks
 
-static bool gc_checkCoreStatus() {
-  for(int i = 0; i < NUMCORES4GC; i++) {
-    if(gccorestatus[i]) {
-      return false;
-    }
-  }  
-  return true;
-}
+bool gc_checkCoreStatus();
 
-static void gc_resetCoreStatus() {
-  for(int i = 0; i < NUMCORES4GC; i++) {
-    gccorestatus[i] = 1;
-  }
-}
+void gc_resetCoreStatus();
+
 
 
 /* Structure to keep track of free space in block */
