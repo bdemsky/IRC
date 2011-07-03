@@ -344,6 +344,7 @@ void CALL00(___System______resetgcprofileflag____) {
 }
 #endif
 
+#ifdef D___System______gc____
 void CALL00(___System______gc____) {
 #ifdef MULTICORE_GC
   if(BAMBOO_NUM_OF_CORE == STARTUPCORE) {
@@ -367,30 +368,7 @@ void CALL00(___System______gc____) {
   }
 #endif
 }
-
-void CALL00(___System______gc____) {
-#ifdef MULTICORE_GC
-  if(BAMBOO_NUM_OF_CORE == STARTUPCORE) {
-    if(!gc_status_info.gcprocessing && !gcflag) {
-      gcflag = true;
-      gcprecheck = true;
-      for(int i = 0; i < NUMCORESACTIVE; i++) {
-        // reuse the gcnumsendobjs & gcnumreceiveobjs
-        gcnumsendobjs[0][i] = 0;
-        gcnumreceiveobjs[0][i] = 0;
-      }
-      for(int i = 0; i < NUMCORES4GC; i++) {
-        if(i != STARTUPCORE) {
-          send_msg_1_I(i,GCSTARTPRE);
-        }
-      }
-    }
-  } else {
-    // send msg to the startup core to start gc
-    send_msg_1(STARTUPCORE, GCINVOKE);
-  }
 #endif
-}
 
 #ifdef D___System______printString____L___String___
 void CALL01(___System______printString____L___String___, struct ___String___ * ___s___) {
