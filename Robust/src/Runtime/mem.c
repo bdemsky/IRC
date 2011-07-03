@@ -2,13 +2,15 @@
 
 #ifdef MULTICORE
 #include "runtime.h"
-#include "runtime_arch.h"
+#include <stdio.h>
 
 #ifdef MULTICORE_GC
+#include "multicoreruntime.h"
 #include "bambooalign.h"
 #include "multicoremem.h"
 #include "multicoregarbage.h"
-
+#include "runtime_arch.h"
+#include "methodheaders.h"
 
 extern volatile bool gcflag;
 void * mycalloc_share(struct garbagelist * stackptr, int size) {
@@ -36,8 +38,9 @@ void * mycalloc_share(struct garbagelist * stackptr, int size) {
       BAMBOO_EXIT();
     }
   }
-  tprint("Loopcount hit 10000\n");
+  tprintf("Loopcount hit 10000\n");
   BAMBOO_EXIT();
+  return NULL;
 }
 
 #else

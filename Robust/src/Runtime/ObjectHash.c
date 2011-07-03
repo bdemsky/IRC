@@ -1,9 +1,12 @@
 #include "ObjectHash.h"
 #ifdef MULTICORE
+#include "methodheaders.h"
 #include "runtime_arch.h"
+#include "multicoreruntime.h"
 #else
 #include <stdio.h>
 #endif
+
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif

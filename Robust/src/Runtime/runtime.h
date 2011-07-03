@@ -110,19 +110,7 @@ void createstartupobject(int argc, char ** argv);
 void createstartupobject();
 #endif
 
-#ifdef PRECISE_GC
-#define VAR(name) ___params___->name
-#define CALL00(name) name(struct name ## _params * ___params___)
-#define CALL01(name, alt) name(struct name ## _params * ___params___)
-#define CALL02(name, alt1, alt2) name(struct name ## _params * ___params___)
-#define CALL11(name,rest, alt) name(struct name ## _params * ___params___, rest)
-#define CALL12(name,rest, alt1, alt2) name(struct name ## _params * ___params___, rest)
-#define CALL22(name, rest, rest2, alt1, alt2) name(struct name ## _params * ___params___, rest, rest2)
-#define CALL23(name, rest, rest2, alt1, alt2, alt3) name(struct name ## _params * ___params___, rest, rest2)
-#define CALL24(name, rest, rest2, alt1, alt2, alt3, alt4) name(struct name ## _params * ___params___, rest, rest2)
-#define CALL34(name, rest, rest2, rest3, alt1, alt2, alt3, alt4) name(struct name ## _params * ___params___, rest, rest2, rest3)
-#define CALL35(name, rest, rest2, rest3, alt1, alt2, alt3, alt4, alt5) name(struct name ## _params * ___params___, rest, rest2, rest3)
-#elif defined MULTICORE_GC
+#if defined(PRECISE_GC)||defined(MULTICORE_GC)
 #define VAR(name) ___params___->name
 #define CALL00(name) name(struct name ## _params * ___params___)
 #define CALL01(name, alt) name(struct name ## _params * ___params___)
@@ -150,9 +138,8 @@ void createstartupobject();
 
 #ifdef MULTICORE
 #include "SimpleHash.h"
-inline void run(int argc, char** argv);
+void run(int argc, char** argv);
 int receiveObject_I();
-void * smemalloc_I(int coren, int size, int * allocsize);
 #endif
 
 #if (defined(THREADS)||defined(MGC))

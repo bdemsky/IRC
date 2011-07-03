@@ -1,5 +1,7 @@
 #include "SimpleHash.h"
 #ifdef MULTICORE
+#include "methodheaders.h"
+#include "multicore_arch.h"
 #include "runtime_arch.h"
 #else
 #include <stdio.h>
