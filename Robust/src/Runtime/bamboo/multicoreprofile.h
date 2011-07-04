@@ -1,12 +1,13 @@
 #ifndef MULTICOREPROFILE_H
 #define MULTICOREPROFILE_H
+#include "structdefs.h"
 
-enum profileevents {
-  GCTIME,
-  NUMEVENTS;
+enum eventtypes {
+  EV_GCTIME,
+  EV_NUMEVENTS
 };
 
-char ** eventnames={"gctime", "endmarker"};
+char eventnames[][30]={"gctime", "endmarker"};
 
 struct eventprofile {
   long long totaltimestarts;
@@ -16,7 +17,7 @@ struct eventprofile {
 };
 
 struct coreprofile {
-  struct eventprofile events[NUMEVENTS];
+  struct eventprofile events[EV_NUMEVENTS];
 };
 
 struct profiledata {
@@ -25,8 +26,8 @@ struct profiledata {
 
 extern struct profiledata * eventdata;
 
-void startEvent(enum eventprofile event);
-void stopEvent(enum eventprofile event);
+void startEvent(enum eventtypes event);
+void stopEvent(enum eventtypes event);
 void printResults();
 
 #endif

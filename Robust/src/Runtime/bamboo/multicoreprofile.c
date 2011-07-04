@@ -3,13 +3,13 @@
 
 struct profiledata * eventdata;
 
-void startEvent(enum eventprofile event) {
+void startEvent(enum eventtypes event) {
   struct eventprofile *profile=&eventdata->cores[BAMBOO_NUM_OF_CORE].events[event];
   profile->totaltimestarts+=BAMBOO_GET_EXE_TIME();
   profile->numstarts++;
 }
 
-void stopEvent(enum eventprofile event) {
+void stopEvent(enum eventtypes event) {
   struct eventprofile *profile=&eventdata->cores[BAMBOO_NUM_OF_CORE].events[event];
   profile->totaltimestops+=BAMBOO_GET_EXE_TIME();
   profile->numstops++;
@@ -18,7 +18,7 @@ void stopEvent(enum eventprofile event) {
 void printResults() {
   for(int core=0;core<NUMCORES;core++) {
     printf("Core: %u", core);
-    for(int event=0;event<NUMEVENTS;event++) {
+    for(int event=0;event<EV_NUMEVENTS;event++) {
       printf("  Event:%s\n", eventnames[event]);
       struct eventprofile *profile=&eventdata->cores[core].events[event];
       if (profile->numstarts!=profile->numstops) {
