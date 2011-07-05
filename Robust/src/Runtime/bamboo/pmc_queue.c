@@ -1,6 +1,6 @@
 #include "pmc_queue.h"
 
-void pmc_init(struct pmc_queue *queue) {
+void pmc_queueinit(struct pmc_queue *queue) {
   queue->head=queue->tail=RUNMALLOC(struct pmc_queue_segment);
   queue->headindex=queue->tailindex=0;
 }

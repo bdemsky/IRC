@@ -1,8 +1,18 @@
 #include "pmc_forward.h"
 
+void pmc_count() {
+  for(int i=0;i<NUMPMCUNITS;i++) {
+    if (!tmc_spin_mutex_trylock(&pmc_heapptr->units[i].lock)) {
+      //got lock
+      void *unitbase=gcbaseva+i*UNITSIZE;
+      void *unittop=unitbase+UNITSIZE;
+      pmc_countbytes(&pmc_heapptr->unit[i], unitbase, unittop);
+    }
+  }
+}
 
 //Comment: should build dummy byte arrays to allow skipping data...
-void pmc_countbytes(struct pmc_region * region, void *bottomptr, void *topptr) {
+void pmc_countbytes(struct pmc_unit * unit, void *bottomptr, void *topptr) {
   void *tmpptr=bottomptr;
   unsigned int totalbytes=0;
   while(tmpptr<topptr) {
@@ -18,7 +28,31 @@ void pmc_countbytes(struct pmc_region * region, void *bottomptr, void *topptr) {
       totalbytes+=size;
     tmpptr+=size;
   }
-  region->numbytes=totalbytes;
+  unit->numbytes=totalbytes;
+}
+
+void pmc_processunits() {
+  unsigned int livebytes=0;
+  for(int i=0;i<NUMPMCUNITS;i++) {
+    livebytes+=pmc_heapptr->units[i].numbytes;
+  }
+  //make sure to round up
+  unsigned int livebytespercore=((livebytes-1)/NUMCORES4GC)+1;
+  unsigned int regionnum=0;
+  int totalbytes=0;
+  int numregions=0;
+
+  for(int i=0;i<NUMPMCUNITS;i++) {
+    if (numregions>0&&(totalbytes+pmc_heapptr->units[i].numbytes)>livebytespercore) {
+      regionnum++;
+      totalbytes-=livebytespercore;
+      numregions=0;
+    }
+    numregions++;
+    pmc_heapptr->units[i].regionnum=regionnum;
+    tmc_spin_mutex_init(&pmc_heapptr->units[i].lock);
+    totalbytes+=pmc_heapptr->units[i].numbytes;
+  }
 }
 
 

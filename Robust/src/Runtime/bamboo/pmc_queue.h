@@ -14,10 +14,11 @@ struct pmc_queue {
   volatile int headindex;
   volatile int tailindex;
   tmc_spin_mutex_t lock;
+  tmc_spin_barrier_t barrier;
 };
 
 void * pmc_dequeue(struct pmc_queue *queue);
 void pmc_enqueue(struct pmc_queue* queue, void *ptr);
 bool pmc_isEmpty(struct pmc_queue *queue);
-void pmc_init(struct pmc_queue *queue);
+void pmc_queueinit(struct pmc_queue *queue);
 #endif
