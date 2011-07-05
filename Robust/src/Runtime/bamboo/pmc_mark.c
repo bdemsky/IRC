@@ -7,7 +7,7 @@
 void pmc_markObj(struct ___Object___ *ptr) {
   if (!ptr->mark) {
     ptr->mark=1;
-    pmc_enqueue(ptr);
+    pmc_enqueue(pmc_localqueue, ptr);
   }
 }
 
@@ -47,14 +47,38 @@ void pmc_markgarbagelist(struct garbagelist * listptr) {
 void pmc_mark(struct garbagelist *stackptr) {
   pmc_tomark(stackptr);
   while(true) {
+    //scan everything in our local queue
     pmc_marklocal();
-    
-    
+    if (pmc_trysteal())
+      break;
   }
 }
 
+bool pmc_trysteal() {
+  decrementthreads();
+  while(pmc_heapptr->numthreads) {
+    for(int i=0;i<NUMCORES4GC;i++) {
+      struct pmc_queue *queue=&pmc_heapptr->regions[i].markqueue;
+      if (!pmc_isEmpty(queue)) {
+	incrementthreads();
+	void *objptr=pmc_dequeue(queue);
+	if (objptr!=NULL) {
+	  unsigned int type=((struct ___Object___*)objptr)->type;
+	  pmc_scanPtrsInObj(objptr, type);
+	}
+	return false;
+      }
+    }
+  }
+  return true;
+}
+
 void pmc_marklocal() {
-  
+  void *objptr;
+  while(objptr=pmc_dequeue(pmc_localqueue)) {
+    unsigned int type=((struct ___Object___*)objptr)->type;
+    pmc_scanPtrsInObj(objptr, type);
+  }
 }
 
 void pmc_tomark(struct garbagelist * stackptr) {
