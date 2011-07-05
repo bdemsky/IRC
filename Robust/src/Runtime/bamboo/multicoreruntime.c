@@ -286,6 +286,7 @@ void CALL11(___System______exit____I,
     BAMBOO_PRINT(0xbbbbbbbb);
     CACHEADAPT_DISABLE_TIMER();
     GC_OUTPUT_PROFILE_DATA();
+    gc_outputProfileDataReadable();
   }
 #endif 
   BAMBOO_EXIT_APP(___status___);
@@ -751,6 +752,7 @@ void checkCoreStatus() {
           getprofiledata_I();
           CACHEADAPT_DISABLE_TIMER();
           GC_OUTPUT_PROFILE_DATA();
+	  gc_outputProfileDataReadable();
           disruntimedata();
           BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
           terminate();  // All done.

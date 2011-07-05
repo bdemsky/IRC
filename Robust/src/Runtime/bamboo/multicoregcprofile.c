@@ -1,5 +1,4 @@
-#ifdef MULTICORE_GC
-#ifdef GC_PROFILE
+#if defined(MULTICORE_GC)&&defined(GC_PROFILE)
 #include "multicoregcprofile.h"
 #include "structdefs.h"
 #include "runtime_arch.h"
@@ -69,5 +68,25 @@ void gc_outputProfileData() {
   BAMBOO_PRINT(0xeeee);
 #endif
 }
-#endif  // GC_PROFILE
+
+// output the profiling data
+void gc_outputProfileDataReadable() {
+  // output task related info
+  for(int i= 0; i < gc_infoIndex; i++) {
+    GCInfo * gcInfo = gc_infoArray[i];
+
+    unsigned long long starttime=gcInfo->time[0]; //0;
+
+    for(int j = 1; j < gcInfo->index - 7; j++) {
+      printf("Event %u time since start=%llu, time since last event=%llu\n",j, gcInfo->time[j]-starttime, gcInfo->time[j]-gcInfo->time[j-1]);
+    }
+    printf("Livespace %llu\n", gcInfo->time[gcInfo->index-7]);
+    printf("Freespace %llu\n", gcInfo->time[gcInfo->index-6]);
+    printf("# Lobj %llu\n", gcInfo->time[gcInfo->index-5]);
+    printf("Lobj space %llu\n", gcInfo->time[gcInfo->index-4]);
+    printf("# obj %llu\n", gcInfo->time[gcInfo->index-3]);
+    printf("# live obj %llu\n", gcInfo->time[gcInfo->index-2]);
+    printf("# forward obj %llu\n", gcInfo->time[gcInfo->index-1]);
+  }
+}
 #endif // MULTICORE_GC

@@ -38,6 +38,7 @@ volatile bool gc_profile_flag;
 
 void initmulticoregcprofiledata(void);
 void gc_outputProfileData();
+void gc_outputProfileDataReadable();
 
 INLINE static void gc_profileInit() {
   gc_num_livespace = 0;
