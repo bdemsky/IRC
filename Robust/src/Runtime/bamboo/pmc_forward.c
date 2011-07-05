@@ -55,6 +55,32 @@ void pmc_processunits() {
   }
 }
 
+void pmc_doforward() {
+  int startregion=-1;
+  int endregion=-1;
+  unsigned int totalbytes=0;
+  struct pmc_region * region=&pmc_heapptr->regions[BAMBOO_NUM_OF_CORE];
+  for(int i=0;i<NUMPMCUNITS;i++) {
+    if (startregion==-1&&BAMBOO_NUM_OF_CORE==pmc_heapptr->units[i].regionnum) {
+      startregion=i;
+    }
+    if (BAMBOO_NUM_OF_CORE<pmc_heapptr->units[i].regionnum) {
+      endregion=i;
+      break;
+    }
+    if (startregion!=-1) {
+      totalbytes+=pmc_heapptr->units[i].numbytes;
+    }
+  }
+  if (startregion==-1) 
+    return;
+  if (endregion==-1)
+    endregion=NUMPMCUNITS;
+  region->startptr=gcbaseva+startregion*UNITSIZE;
+  region->endptr=gcbaseva+endregion*UNITSIZE;
+  pmc_forward(region, totalbytes, region->startptr, region->endptr, BAMBOO_NUM_OF_CORE&1);
+}
+
 
 void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *bottomptr, void *topptr, bool fwddirection) {
   void *tmpptr=bottomptr;

@@ -28,6 +28,11 @@ void pmc_updatePtrs(void *ptr, int type) {
   }  
 }
 
+void pmc_doreferenceupdate() {
+  struct pmc_region * region=&pmc_heapptr->regions[BAMBOO_NUM_OF_CORE];
+  pmc_referenceupdate(region->startptr, region->endptr);
+}
+
 void pmc_referenceupdate(void *bottomptr, void *topptr) {
   void *tmpptr=bottomptr;
   while(tmpptr<topptr) {
@@ -44,6 +49,11 @@ void pmc_referenceupdate(void *bottomptr, void *topptr) {
     }
     tmpptr+=size;
   }
+}
+
+void pmc_docompact() {
+  struct pmc_region * region=&pmc_heapptr->regions[BAMBOO_NUM_OF_CORE];
+  pmc_compact(region, BAMBOO_NUM_OF_CORE&1, region->startptr, region->endptr);
 }
 
 

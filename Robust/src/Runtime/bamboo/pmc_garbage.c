@@ -29,12 +29,23 @@ void pmc_init() {
 
 void gc(struct garbagelist *gl) {
   pmc_init();
+  //mark live objects
   pmc_mark(gl);
+  //count live objects per unit
   pmc_count();
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+  //divide up work
   if (BAMBOO_NUM_OF_THREADS==STARTUPCORE) {
     pmc_processunits();
   }
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
-  
+  //set up forwarding pointers
+  pmc_doforward();
+  tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+  //update pointers
+  pmc_doreferenceupdate();
+  tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+  //compact data
+  pmc_docompact();
+  tmc_spin_barrier_wait(&pmc_heapptr->barrier);
 }

@@ -13,6 +13,8 @@ struct pmc_unit {
 
 struct pmc_region {
   void * lastptr;
+  void * startptr;
+  void * endptr;
   struct ___Object___ * lastobj;
   struct pmc_queue markqueue;
 };
