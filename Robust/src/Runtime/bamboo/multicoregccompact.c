@@ -28,7 +28,7 @@ void initOrig_Dst(struct moveHelper * orig,struct moveHelper * to) {
   // init the orig ptr
   orig->localblocknum = 0;
   orig->ptr=orig->base = to->base;
-  orig->bound = orig->base + BLOCKSIZE(orig->localblocknum);
+  orig->bound=orig->base+BLOCKSIZE(orig->localblocknum);
 #ifdef GC_CACHE_ADAPT
   to->pagebound=to->base+BAMBOO_PAGE_SIZE;
   orig->pagebound=orig->base+BAMBOO_PAGE_SIZE;
@@ -40,7 +40,7 @@ void getSpaceLocally(struct moveHelper *to) {
   to->localblocknum++;
   BASEPTR(to->base,BAMBOO_NUM_OF_CORE, to->localblocknum);
   to->ptr=to->base;
-  to->bound = to->base + BLOCKSIZE(to->localblocknum);
+  to->bound=to->base+BLOCKSIZE(to->localblocknum);
 #ifdef GC_CACHE_ADAPT
   to->pagebound=to->base+BAMBOO_PAGE_SIZE;
 #endif
@@ -167,7 +167,7 @@ void getSpaceRemotely(struct moveHelper *to, unsigned int minimumbytes) {
   unsigned int globalblocknum;
   BLOCKINDEX(globalblocknum, to->ptr);
   to->base = gcbaseva + OFFSET2BASEVA(globalblocknum);
-  to->bound = gcbaseva + BOUNDPTR(globalblocknum);
+  to->bound=gcbaseva+BOUNDPTR(globalblocknum);
 #ifdef GC_CACHE_ADAPT
   to->pagebound=(void *)((int)((int)(to->ptr)&(~(BAMBOO_PAGE_SIZE-1)))+BAMBOO_PAGE_SIZE);
 #endif
@@ -185,7 +185,7 @@ void getSpace(struct moveHelper *to, unsigned int minimumbytes) {
 void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
   bool senttopmessage=false;
   while(true) {
-    if ((gccurr_heaptop < ((unsigned INTPTR)(to->bound-to->ptr)))&&!senttopmessage) {
+    if ((gccurr_heaptop <= ((unsigned INTPTR)(to->bound-to->ptr)))&&!senttopmessage) {
       //This block is the last for this core...let the startup know
       if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
 	handleReturnMem(BAMBOO_NUM_OF_CORE, to->ptr+gccurr_heaptop);
@@ -202,7 +202,7 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
       orig->localblocknum++;
       BASEPTR(orig->base,BAMBOO_NUM_OF_CORE, orig->localblocknum);
       orig->ptr=orig->base;
-      orig->bound = orig->base + BLOCKSIZE(orig->localblocknum);
+      orig->bound=orig->base+BLOCKSIZE(orig->localblocknum);
 #ifdef GC_CACHE_ADAPT
       orig->pagebound=orig->base+BAMBOO_PAGE_SIZE;
 #endif
@@ -363,94 +363,31 @@ void * gcfindSpareMem_I(unsigned INTPTR requiredmem, unsigned INTPTR desiredmem,
 } 
 
 #ifdef GC_CACHE_ADAPT
-/* To compute access rate per pages, we need to compact to page boundary 
- * instead of block boundary
- */
-unsigned int compactpages(struct moveHelper * orig, struct moveHelper * to) {
-  void *toptrinit=to->ptr;
-  void *toptr=toptrinit;
-  void *tobound=to->bound;
-  void *topagebound=to->pagebound;
+unsigned int compactblockshelper(struct moveHelper * orig, struct moveHelper * to) {
+  unsigned int minimumbytes=0;
   void *origptr=orig->ptr;
-  void *origpagebound=orig->pagebound;
-  unsigned INTPTR origendoffset=ALIGNTOTABLEINDEX((unsigned INTPTR)(origpagebound-gcbaseva));
-  unsigned int objlength;
-  while((origptr<origpagebound)&&(toptr<topagebound)){
-    //Try to skip over stuff fast first
-    unsigned INTPTR offset=(unsigned INTPTR) (origptr-gcbaseva);
-    unsigned INTPTR arrayoffset=ALIGNTOTABLEINDEX(offset);
-    if (!gcmarktbl[arrayoffset]) {
-      do {
-	arrayoffset++;
-	if (arrayoffset>=origendoffset) {
-	  //finished with a page...
-	  origptr=origpagebound;
-	  to->ptr=toptr;
-	  orig->ptr=origptr;
-    orig->pagebound+=BAMBOO_PAGE_SIZE;
-	  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
-    // close the last destination page
-    CACHEADAPT_COMPLETE_PAGE_CONVERT(origptr, toptr, toptr);
-	  return 0;
-	}
-      } while(!gcmarktbl[arrayoffset]);
-      origptr=CONVERTTABLEINDEXTOPTR(arrayoffset);
-    }
-
-    //Scan more carefully next
-    objlength=getMarkedLength(origptr);
-
-    if (objlength!=NOTMARKED) {
-      unsigned int length=ALIGNSIZETOBYTES(objlength);
-
-      //code between this and next comment should be removed
-#ifdef GC_DEBUG
-      unsigned int size;
-      unsigned int type;
-      gettype_size(origptr, &type, &size);
-      size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
-      
-      if (size!=length) {
-	tprintf("BAD SIZE IN BITMAP: type=%u object=%x size=%u length=%u\n", type, origptr, size, length);
-	unsigned INTPTR alignsize=ALIGNOBJSIZE((unsigned INTPTR)(origptr-gcbaseva));
-	unsigned INTPTR hibits=alignsize>>4;
-	unsigned INTPTR lobits=(alignsize&15)<<1;
-	tprintf("hibits=%x lobits=%x\n", hibits, lobits);
-	tprintf("hi=%x lo=%x\n", gcmarktbl[hibits], gcmarktbl[hibits+1]);
-      }
-#endif
-      //end of code to remove
-
-      void *endtoptr=toptr+length;
-      if (endtoptr>tobound) {
-  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
-  to->ptr=tobound;
-  orig->ptr=origptr;
-  // close a destination page, update the revise profiling info
-  CACHEADAPT_COMPLETE_PAGE_CONVERT(origptr, tobound, toptr);
-  return length;
-      }
-      //good to move objects and update pointers
-      //tprintf("Decided to compact obj %x to %x\n", origptr, toptr);
-
-      gcmappingtbl[OBJMAPPINGINDEX(origptr)]=toptr;
-
-      origptr+=length;
-      toptr=endtoptr;
-    } else
-      origptr+=ALIGNMENTSIZE;
+  void *origbound=orig->bound;
+  while(origptr<origbound) {
+    //call compactblocks using the page boundaries at the current bounds
+    minimumbytes=compactblocks(orig, to);
+    if(minimumbytes == 0) {
+      //update cacheadpate information and the page bounds
+      origptr=orig->ptr;
+      void *toptr=to->ptr;
+      orig->pagebound=(void *)((int)(((int)origptr)&(~(BAMBOO_PAGE_SIZE-1)))+BAMBOO_PAGE_SIZE);
+      to->pagebound=(void *)((int)(((int)toptr)&(~(BAMBOO_PAGE_SIZE-1)))+BAMBOO_PAGE_SIZE);
+      // close the last destination page
+      CACHEADAPT_COMPLETE_PAGE_CONVERT(origptr, toptr, toptr);
+    } else {
+      // require more memory
+      return minimumbytes;
+    } 
   }
-  to->ptr=toptr;
-  orig->ptr=origptr;
-  orig->pagebound=(void *)((int)(((int)origptr)&(~(BAMBOO_PAGE_SIZE-1)))+BAMBOO_PAGE_SIZE);
-  to->pagebound=(void *)((int)(((int)toptr)&(~(BAMBOO_PAGE_SIZE-1)))+BAMBOO_PAGE_SIZE);
-  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
-  // close the last destination page
-  CACHEADAPT_COMPLETE_PAGE_CONVERT(origptr, toptr, toptr);
-  return 0;
+  // when you move to a different block return to the compacthelper
+  return minimumbytes;
 }
+#endif
 
-#else
 /* This function is performance critical...  spend more time optimizing it */
 
 unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
@@ -458,10 +395,19 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
   void *toptr=toptrinit;
   void *tobound=to->bound;
   void *origptr=orig->ptr;
+#ifdef GC_CACHE_ADAPT
+  void *origbound=orig->pagebound;
+  void *topagebound=to->pagebound;
+#else
   void *origbound=orig->bound;
+#endif
   unsigned INTPTR origendoffset=ALIGNTOTABLEINDEX((unsigned INTPTR)(origbound-gcbaseva));
   unsigned int objlength;
+#ifdef GC_CACHE_ADAPT
+  while((origptr<origbound)&&(toptr<topagebound)){
+#else
   while(origptr<origbound) {
+#endif
     //Try to skip over stuff fast first
     unsigned INTPTR offset=(unsigned INTPTR) (origptr-gcbaseva);
     unsigned INTPTR arrayoffset=ALIGNTOTABLEINDEX(offset);
@@ -469,7 +415,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
       do {
 	arrayoffset++;
 	if (arrayoffset>=origendoffset) {
-	  //finished with block...
+	  //finished with block(a page in CACHE_ADAPT version)...
 	  origptr=origbound;
 	  to->ptr=toptr;
 	  orig->ptr=origptr;
@@ -509,6 +455,10 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
   gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
 	to->ptr=tobound;
 	orig->ptr=origptr;
+#ifdef GC_CACHE_ADAPT
+  // close a destination page, update the revise profiling info
+  CACHEADAPT_COMPLETE_PAGE_CONVERT(origptr, tobound, toptr);
+#endif
 	return length;
       }
       //good to move objects and update pointers
@@ -525,8 +475,6 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
   gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
   return 0;
 }
-
-#endif
 
 void compact() {
   BAMBOO_ASSERT(COMPACTPHASE == gc_status_info.gcphase);

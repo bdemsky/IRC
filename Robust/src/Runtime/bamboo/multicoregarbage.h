@@ -150,11 +150,11 @@ void * gctopva; // top va for shared memory without reserved sblocks
 volatile bool gccachestage;
 // table recording the sampling data collected for cache adaption 
 int * gccachesamplingtbl;
-int * gccachesamplingtbl_local;
-unsigned int size_cachesamplingtbl_local;
+int * gccachesamplingtbl_local;// for zeroing memory only
+unsigned int size_cachesamplingtbl_local; // for zeroing memory only
 int * gccachesamplingtbl_r;
-int * gccachesamplingtbl_local_r;
-unsigned int size_cachesamplingtbl_local_r;
+int * gccachesamplingtbl_local_r; // for zeroing memory only
+unsigned int size_cachesamplingtbl_local_r; // for zeroing memory only
 int * gccachepolicytbl;
 unsigned int size_cachepolicytbl;
 #endif

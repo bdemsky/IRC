@@ -11,7 +11,7 @@ struct moveHelper {
   void * ptr;              // current pointer into block
   void * bound;            // upper bound of current block
 #ifdef GC_CACHE_ADAPT
-  void * pagebound;        // upper bound of current available page
+  void * pagebound;        // upper bound of current page
 #endif
 };
 
@@ -32,11 +32,11 @@ void master_compact();
 void compacthelper(struct moveHelper * orig,struct moveHelper * to);
 void compact();
 void compact_master(struct moveHelper * orig, struct moveHelper * to);
-#ifdef GC_CACHE_ADAPT
-unsigned int compactpages(struct moveHelper * orig,struct moveHelper * to);
-#define COMPACTUNITS(o,t) compactpages((o), (t))
-#else
 unsigned int compactblocks(struct moveHelper * orig,struct moveHelper * to);
+#ifdef GC_CACHE_ADAPT
+unsigned int compactblockshelper(struct moveHelper * orig,struct moveHelper * to);
+#define COMPACTUNITS(o,t) compactblockshelper((o), (t))
+#else
 #define COMPACTUNITS(o,t) compactblocks((o), (t))
 #endif
 #endif // MULTICORE_GC
