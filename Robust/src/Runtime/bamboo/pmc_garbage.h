@@ -9,12 +9,15 @@ struct pmc_unit {
   tmc_spin_mutex_t lock;
   unsigned int numbytes;
   unsigned int regionnum;
+  void * endptr;
 };
 
 struct pmc_region {
+  void * allocptr;
   void * lastptr;
   void * startptr;
   void * endptr;
+  tmc_spin_mutex_t lock;
   struct ___Object___ * lastobj;
   struct pmc_queue markqueue;
 };

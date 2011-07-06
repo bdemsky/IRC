@@ -53,14 +53,13 @@ void pmc_referenceupdate(void *bottomptr, void *topptr) {
 
 void pmc_docompact() {
   struct pmc_region * region=&pmc_heapptr->regions[BAMBOO_NUM_OF_CORE];
-  pmc_compact(region, BAMBOO_NUM_OF_CORE&1, region->startptr, region->endptr);
+  pmc_compact(region, !(BAMBOO_NUM_OF_CORE&1), region->startptr, region->endptr);
 }
 
 
 void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void *topptr) {
   if (forward) {
     void *tmpptr=bottomptr;
-    void *lastptr;
     while(tmpptr<topptr) {
       unsigned int type;
       unsigned int size;
@@ -75,10 +74,8 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
       if (forwardptr) {
 	memmove(forwardptr, tmpptr, size);
       }
-      lastptr=forwardptr+size;
       tmpptr+=size;
     }
-    region->lastptr=lastptr;
   } else {
     struct ___Object___ *backward=region->lastobj;
     struct ___Object___ *lastobj=NULL;

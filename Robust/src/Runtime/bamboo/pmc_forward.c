@@ -4,8 +4,8 @@ void pmc_count() {
   for(int i=0;i<NUMPMCUNITS;i++) {
     if (!tmc_spin_mutex_trylock(&pmc_heapptr->units[i].lock)) {
       //got lock
-      void *unitbase=gcbaseva+i*UNITSIZE;
-      void *unittop=unitbase+UNITSIZE;
+      void *unitbase=(i==0)?gcbaseva:pmc_heapptr->unit[i-1]->endptr;
+      void *unittop=pmc_heapptr->unit[i]->endptr;
       pmc_countbytes(&pmc_heapptr->unit[i], unitbase, unittop);
     }
   }
@@ -76,9 +76,18 @@ void pmc_doforward() {
     return;
   if (endregion==-1)
     endregion=NUMPMCUNITS;
-  region->startptr=gcbaseva+startregion*UNITSIZE;
-  region->endptr=gcbaseva+endregion*UNITSIZE;
-  pmc_forward(region, totalbytes, region->startptr, region->endptr, BAMBOO_NUM_OF_CORE&1);
+  region->startptr=(i==0)?gcbaseva:pmc_heapptr->units[i-1].endptr;
+  region->endptr=pmc_heapptr->units[i].endptr;
+
+  if (BAMBOO_NUM_OF_CORE&1) {
+    //backward direction
+    region->lastptr=region->endptr-totalbytes;
+  } else {
+    //forward direction
+    region->lastptr=region->startptr+totalbytes;
+  }
+
+  pmc_forward(region, totalbytes, region->startptr, region->endptr, !(BAMBOO_NUM_OF_CORE&1));
 }
 
 
