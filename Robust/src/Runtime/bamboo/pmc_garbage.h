@@ -33,6 +33,5 @@ void incrementthreads();
 void decrementthreads();
 void pmc_onceInit();
 void pmc_init();
-
-
+void gc(struct garbagelist *gl);
 #endif
