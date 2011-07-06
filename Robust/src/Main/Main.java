@@ -156,6 +156,8 @@ public class Main {
         state.MULTICORE=true;
       else if (option.equals("-multicoregc"))
         state.MULTICOREGC=true;
+      else if (option.equals("-pmc"))
+        state.PMC=true;
       else if (option.equals("-mgc")) {
         state.MGC = true;
       } else if (option.equals("-objectlockdebug")) {

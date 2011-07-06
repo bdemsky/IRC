@@ -176,6 +176,7 @@ public class State {
   // Bamboo options
   public boolean MULTICORE=false;
   public boolean MULTICOREGC=false;
+  public boolean PMC=false;
   public boolean BAMBOOCOMPILETIME = false;
   public boolean ARRAYBOUNDARYCHECK=true;
   public boolean RAW=false;
