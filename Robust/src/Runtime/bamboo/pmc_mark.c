@@ -1,4 +1,7 @@
 #include "pmc_mark.h"
+#include "pmc_garbage.h"
+#include "multicoremgc.h"
+#include <stdlib.h>
 
 #define PMC_MARKOBJ(objptr) {void * marktmpptr=objptr; if (marktmpptr!=NULL) {pmc_markObj(marktmpptr);}}
 

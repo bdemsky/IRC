@@ -1,3 +1,4 @@
+#include "pmc_garbage.h"
 #include "pmc_mem.h"
 
 void * pmc_alloc(unsigned int * numbytesallocated, unsigned int minimumbytes) {

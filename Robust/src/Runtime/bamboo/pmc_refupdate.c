@@ -1,5 +1,8 @@
+#include <stdlib.h>
+#include "structdefs.h"
 #include "pmc_forward.h"
 #include "pmc_refupdate.h"
+
 
 #define pmcupdateObj(objptr) ((void *)((struct ___Object___ *)objptr)->marked)
 

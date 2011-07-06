@@ -1,12 +1,16 @@
 #include "pmc_forward.h"
+#include "runtime_arch.h"
+#include "bambooalign.h"
+#include "pmc_garbage.h"
+#include "multicoregc.h"
 
 void pmc_count() {
   for(int i=0;i<NUMPMCUNITS;i++) {
     if (!tmc_spin_mutex_trylock(&pmc_heapptr->units[i].lock)) {
       //got lock
-      void *unitbase=(i==0)?gcbaseva:pmc_heapptr->unit[i-1]->endptr;
-      void *unittop=pmc_heapptr->unit[i]->endptr;
-      pmc_countbytes(&pmc_heapptr->unit[i], unitbase, unittop);
+      void *unitbase=(i==0)?gcbaseva:pmc_heapptr->units[i-1]->endptr;
+      void *unittop=pmc_heapptr->units[i]->endptr;
+      pmc_countbytes(&pmc_heapptr->units[i], unitbase, unittop);
     }
   }
 }
@@ -132,7 +136,7 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
       ((struct ___Object___ *)tmpptr)->marked=forwardptr;
       void *newforwardptr=forwardptr+size;
       while(newforwardptr>endunit) {
-	pmc_heapptr->region[currunit].endptr=newforwardptr;
+	pmc_heapptr->regions[currunit].endptr=newforwardptr;
 	currunit++;
 	endunit=pmc_unitend(currunit);
       }

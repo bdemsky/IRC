@@ -1,5 +1,6 @@
 #ifndef PMC_QUEUE_H
 #define PMC_QUEUE_H
+#include "multicore.h"
 #include <tmc/spin.h>
 
 #define NUM_PMC_QUEUE_OBJECTS 256
@@ -14,7 +15,6 @@ struct pmc_queue {
   volatile int headindex;
   volatile int tailindex;
   tmc_spin_mutex_t lock;
-  tmc_spin_barrier_t barrier;
 };
 
 void * pmc_dequeue(struct pmc_queue *queue);

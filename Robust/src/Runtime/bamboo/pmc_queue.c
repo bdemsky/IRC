@@ -1,7 +1,8 @@
+#include <stdlib.h>
 #include "pmc_queue.h"
 
 void pmc_queueinit(struct pmc_queue *queue) {
-  queue->head=queue->tail=RUNMALLOC(struct pmc_queue_segment);
+  queue->head=queue->tail=RUNMALLOC(sizeof(struct pmc_queue_segment));
   queue->headindex=queue->tailindex=0;
 }
 
@@ -21,12 +22,12 @@ void * pmc_dequeue(struct pmc_queue *queue) {
     }
     //now try to decrement
     if (queue->tailindex!=queue->headindex) {
-      value=queue->tail[queue->tailindex];
+      value=queue->tail->objects[queue->tailindex];
       queue->tailindex++;
     }
   } while(false);
   tmc_spin_mutex_unlock(&queue->lock);
-  return status;
+  return value;
 }
 
 void pmc_enqueue(struct pmc_queue* queue, void *ptr) {
@@ -37,7 +38,7 @@ void pmc_enqueue(struct pmc_queue* queue, void *ptr) {
     queue->headindex++;
     return;
   } else {
-    struct pmc_queue_segment * seg=RUNMALLOC(struct pmc_queue_segment);
+    struct pmc_queue_segment * seg=RUNMALLOC(sizeof(struct pmc_queue_segment));
     seg->objects[0]=ptr;
     //simplify everything by grabbing a lock on segment change
     tmc_spin_mutex_lock(&queue->lock);

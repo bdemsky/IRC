@@ -1,4 +1,6 @@
 #include "pmc_garbage.h"
+#include "multicoregc.h"
+#inclued "runtime_arch.h"
 
 struct pmc_queue * pmc_localqueue;
 

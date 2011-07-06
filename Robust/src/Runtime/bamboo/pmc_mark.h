@@ -1,5 +1,8 @@
 #ifndef PMC_MARK_H
 #define PMC_MARK_H
+#include "multicore.h"
+#include "multicoregc.h"
+#include "structdefs.h"
 
 void pmc_markObj(struct ___Object___ *ptr);
 void pmc_scanPtrsInObj(void * ptr, int type);

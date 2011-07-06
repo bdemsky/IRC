@@ -1,6 +1,8 @@
 #ifndef PMC_GARBAGE_H
 #define PMC_GARBAGE_H
 #include <tmc/spin.h>
+#include "pmc_queue.h"
+#include "structdefs.h"
 
 #define PMC_MINALLOC 131072
 #define NUMPMCUNITS (4*NUMCORES4GC)
@@ -26,10 +28,11 @@ struct pmc_region {
 };
 
 struct pmc_heap {
-  struct pmc_region units[NUMPMCUNITS];
+  struct pmc_unit units[NUMPMCUNITS];
   struct pmc_region regions[NUMCORES4GC];
   tmc_spin_mutex_t lock;
   volatile unsigned int numthreads;
+  tmc_spin_barrier_t barrier;
 };
 
 extern struct pmc_heap * pmc_heapptr;
