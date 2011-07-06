@@ -86,6 +86,7 @@ echo "-useio use standard io to output profiling data (should be used together w
 echo
 echo Multicore GC options
 echo -multicoregc generate multi-core binary with garbage collection
+echo -pmc parallel collector
 echo "-numcore4gc set the number of cores for gc (should be used together with -multicoregc), defaultly set as 0"
 echo "-gcmem_local set the gc shared memory allocation strategy as local (should be used together with -multicoregc)"
 echo "-gcmem_fixed set the gc shared memory allocation strategy as fixed (should be used together with -multicoregc)"
@@ -207,6 +208,7 @@ USEIOFLAG=false
 INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
 MULTICOREGCFLAG=false;
+PMCFLAG=false;
 GCMEMLOCALFLAG=false;
 GCMEMFIXEDFLAG=false;
 GCMEMMIXEDFLAG=false;
@@ -488,6 +490,10 @@ elif [[ $1 = '-multicoregc' ]]
 then
 MULTICOREGCFLAG=true
 JAVAOPTS="$JAVAOPTS -multicoregc"
+elif [[ $1 = '-pmc' ]]
+then
+PMCFLAG=true
+JAVAOPTS="$JAVAOPTS -pmc"
 elif [[ $1 = '-gcmem_local' ]]
 then
 GCMEMLOCALFLAG=true
@@ -1079,6 +1085,11 @@ then #MULTICOREGC version
 TILERACFLAGS="${TILERACFLAGS} -DMULTICORE_GC -D${GCCORES}"
 fi
 
+if $PMCFLAG
+then #MULTICOREGC version
+TILERACFLAGS="${TILERACFLAGS} -DPMC_GC -D${GCCORES}"
+fi
+
 if $GCPROFILEFLAG
 then # GC_PROFILE version
 TILERACFLAGS="${TILERACFLAGS} -DGC_PROFILE"
@@ -1236,6 +1247,8 @@ fi
 cp ../Tilera/lib/* ./
 cp ../$tmpbuilddirectory/*.c ./
 cp ../$tmpbuilddirectory/*.h ./
+
+echo $TILERA_CFLAGS
 
 make
 

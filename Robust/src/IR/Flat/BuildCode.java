@@ -698,6 +698,10 @@ public class BuildCode {
       if(state.MULTICOREGC) {
         //outclassdefs.println("  int marked;");
       }
+      if(state.PMC) {
+        outclassdefs.println("  int marked;");
+	outclassdefs.println("  void * backward;");
+      }
     }
     if (state.TASK) {
       outclassdefs.println("  int flag;");
@@ -712,6 +716,10 @@ public class BuildCode {
         if(state.MULTICOREGC) {
           //outclassdefs.println("  int marked;");
         }
+	if(state.PMC) {
+	  outclassdefs.println("  int marked;");
+	  outclassdefs.println("  void * backward;");
+	}
       }
       if(state.OPTIONAL) {
         outclassdefs.println("  int numfses;");
@@ -1654,6 +1662,10 @@ fldloop:
       if(state.MULTICOREGC) {
         //classdefout.println("  int marked;");
       }
+      if(state.PMC) {
+        classdefout.println("  int marked;");
+	classdefout.println("  void * backward;");
+      }
     }
     if (state.TASK) {
       classdefout.println("  int flag;");
@@ -1669,6 +1681,10 @@ fldloop:
         if(state.MULTICOREGC) {
           //classdefout.println("  int marked;");
         }
+	if(state.PMC) {
+	  classdefout.println("  int marked;");
+	  classdefout.println("  void * backward;");
+	}
       }
       if (state.OPTIONAL) {
         classdefout.println("  int numfses;");

@@ -24,7 +24,7 @@ void pmc_countbytes(struct pmc_unit * unit, void *bottomptr, void *topptr) {
       continue;
     }
     size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
-    if (((struct ___Object___ *)tmpptr)->mark)
+    if (((struct ___Object___ *)tmpptr)->marked)
       totalbytes+=size;
     tmpptr+=size;
   }
@@ -128,8 +128,8 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
     }
     size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
 
-    if (((struct ___Object___ *)tmpptr)->mark) {
-      ((struct ___Object___ *)tmpptr)->mark=forwardptr;
+    if (((struct ___Object___ *)tmpptr)->marked) {
+      ((struct ___Object___ *)tmpptr)->marked=forwardptr;
       void *newforwardptr=forwardptr+size;
       while(newforwardptr>endunit) {
 	pmc_heapptr->region[currunit].endptr=newforwardptr;

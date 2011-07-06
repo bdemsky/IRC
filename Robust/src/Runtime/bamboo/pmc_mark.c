@@ -5,8 +5,8 @@
 #define PMC_MARKOBJNONNULL(objptr) {pmc_markObj(objptr);}
 
 void pmc_markObj(struct ___Object___ *ptr) {
-  if (!ptr->mark) {
-    ptr->mark=1;
+  if (!ptr->marked) {
+    ptr->marked=1;
     pmc_enqueue(pmc_localqueue, ptr);
   }
 }

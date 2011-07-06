@@ -1,7 +1,7 @@
 #include "pmc_forward.h"
 #include "pmc_refupdate.h"
 
-#define pmcupdateObj(objptr) ((void *)((struct ___Object___ *)objptr)->mark)
+#define pmcupdateObj(objptr) ((void *)((struct ___Object___ *)objptr)->marked)
 
 #define PMCUPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=pmcupdateObj(updatetmpptr);}}
 
@@ -44,7 +44,7 @@ void pmc_referenceupdate(void *bottomptr, void *topptr) {
       continue;
     }
     //if marked we update the pointers
-    if (((struct ___Object___ *) tmpptr)->mark) {
+    if (((struct ___Object___ *) tmpptr)->marked) {
       pmc_updatePtrs(tmpptr, type);
     }
     tmpptr+=size;
@@ -69,8 +69,8 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
 	continue;
       }
       //if marked we update the pointers
-      void *forwardptr=(void *)((struct ___Object___ *) tmpptr)->mark;
-      ((struct ___Object___ *) tmpptr)->mark=NULL;
+      void *forwardptr=(void *)((struct ___Object___ *) tmpptr)->marked;
+      ((struct ___Object___ *) tmpptr)->marked=NULL;
       if (forwardptr) {
 	memmove(forwardptr, tmpptr, size);
       }
@@ -85,8 +85,8 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
       unsigned int type;
       unsigned int size;
       gettype_size(tmpptr, &type, &size);
-      void *forwardptr=(void *)((struct ___Object___ *) lastobj)->mark;
-      ((struct ___Object___ *) lastobj)->mark=NULL;
+      void *forwardptr=(void *)((struct ___Object___ *) lastobj)->marked;
+      ((struct ___Object___ *) lastobj)->marked=NULL;
       if (forwardptr) {
 	memmove(forwardptr, lastobj, size);
       }
