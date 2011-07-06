@@ -1185,7 +1185,10 @@ then # GC_CACHE_ADAPT version
 TILERACFLAGS="${TILERACFLAGS} -DGC_CACHE_SAMPLING"
 fi
 
-if $MGCFLAG
+if $PMCFLAG
+then
+cp $ROBUSTROOT/Tilera/Runtime/PMC/$MAKEFILE ./Makefile
+elif $MGCFLAG
 then
 cp $ROBUSTROOT/Tilera/Runtime/MGC/$MAKEFILE ./Makefile
 else
