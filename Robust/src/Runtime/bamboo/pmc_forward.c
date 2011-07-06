@@ -76,8 +76,10 @@ void pmc_doforward() {
     return;
   if (endregion==-1)
     endregion=NUMPMCUNITS;
-  region->startptr=(i==0)?gcbaseva:pmc_heapptr->units[i-1].endptr;
-  region->endptr=pmc_heapptr->units[i].endptr;
+  region->lowunit=startregion;
+  region->highunit=endregion;
+  region->startptr=(startregion==0)?gcbaseva:pmc_heapptr->units[startregion-1].endptr;
+  region->endptr=pmc_heapptr->units[endregion].endptr;
 
   if (BAMBOO_NUM_OF_CORE&1) {
     //backward direction
@@ -95,6 +97,26 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
   void *tmpptr=bottomptr;
   void *forwardptr=fwddirection?bottomptr:(topptr-totalbytes);
   struct ___Object___ *lastobj=NULL;
+  unsigned int currunit=region->lowunit;
+  void *endunit=pmc_unitend(currunit);
+
+  if (!fwddirection) {
+    //reset boundaries of beginning units
+    while(endunit<forwardptr) {
+      pmc_heapptr->units[currunit].endptr=endunit;
+      currunit++;
+      endunit=pmc_unitend(currunit);
+    }
+  } else {
+    //reset boundaries of end units
+    unsigned int lastunit=region->highunit-1;
+    void * lastunitend=pmc_unitend(lastunit);
+    while(lastunitend>forwardptr) {
+      pmc_heapptr->units[currunit].endptr=lastunitend;
+      lastunit--;
+      lastunitend=pmc_unitend(lastunit);
+    }
+  }
 
   while(tmpptr>topptr) {
     unsigned int type;
@@ -108,7 +130,14 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
 
     if (((struct ___Object___ *)tmpptr)->mark) {
       ((struct ___Object___ *)tmpptr)->mark=forwardptr;
-      forwardptr+=size;
+      void *newforwardptr=forwardptr+size;
+      while(newforwardptr>endunit) {
+	pmc_heapptr->region[currunit].endptr=newforwardptr;
+	currunit++;
+	endunit=pmc_unitend(currunit);
+      }
+
+      forwardptr=newforwardptr;
       if (lastobj&&!fwddirection) {
 	tmpptr->backward=lastobj;
 	lastobj=(struct ___Object___ *)tmpptr;

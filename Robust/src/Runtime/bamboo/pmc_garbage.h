@@ -2,6 +2,7 @@
 #define PMC_GARBAGE_H
 #include <tmc/spin.h>
 
+#define PMC_MINALLOC 131072
 #define NUMPMCUNITS (4*NUMCORES4GC)
 #define UNITSIZE (BAMBOO_SHARED_MEM_SIZE/NUMPMCUNITS)
 
@@ -17,6 +18,8 @@ struct pmc_region {
   void * lastptr;
   void * startptr;
   void * endptr;
+  unsigned int lowunit;
+  unsigned int highunit;
   tmc_spin_mutex_t lock;
   struct ___Object___ * lastobj;
   struct pmc_queue markqueue;
@@ -32,6 +35,7 @@ struct pmc_heap {
 extern struct pmc_heap * pmc_heapptr;
 extern struct pmc_queue * pmc_localqueue;
 
+void * pmc_unitend(unsigned int index);
 void incrementthreads();
 void decrementthreads();
 void pmc_onceInit();

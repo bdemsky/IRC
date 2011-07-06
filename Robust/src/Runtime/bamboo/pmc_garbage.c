@@ -14,10 +14,17 @@ void decrementthreads() {
   tmc_spin_mutex_unlock(&pmc_heapptr->lock);
 }
 
+void * pmc_unitend(unsigned int index) {
+  return gcbaseva+(index+1)*NUMPMCUNITS;
+}
+
 void pmc_onceInit() {
   pmc_localqueue=&pmc_heapptr->regions[BAMBOO_NUM_OF_THREADS].markqueue;
   pmc_queueinit(pmc_localqueue);
   tmc_spin_barrier_init(&pmc_heapptr->barrier, NUMCORES4GC);
+  for(int i=0;i<NUMPMCUNITS;i++) {
+    pmc_heapptr->units[i].endptr=pmc_unitend(i);
+  }
 }
 
 void pmc_init() {
