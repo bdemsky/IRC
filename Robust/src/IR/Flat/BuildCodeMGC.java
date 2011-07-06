@@ -131,7 +131,7 @@ public class BuildCodeMGC extends BuildCode {
     outstructs.println("#define NUMCORESACTIVE "+this.coreNum); // this.coreNum
     // can be reset by the scheduling analysis
     /* Record number of garbage collection cores */
-    outstructs.println("#ifdef MULTICORE_GC");
+    outstructs.println("#if defined(MULTICORE_GC)||defined(PMC_GC)");
     outstructs.println("#define NUMCORES4GC "+this.gcoreNum);
     outstructs.println("#endif");
     /* Record number of core containing startup task */
