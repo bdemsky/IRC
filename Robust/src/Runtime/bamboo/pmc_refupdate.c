@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include "structdefs.h"
+#include "bambooalign.h"
+#include "runtime_arch.h"
 #include "pmc_forward.h"
 #include "pmc_refupdate.h"
 
@@ -80,14 +82,14 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
       tmpptr+=size;
     }
   } else {
-    struct ___Object___ *backward=region->lastobj;
+    struct ___Object___ *backward=((struct ___Object___ *) region)->backward;
     struct ___Object___ *lastobj=NULL;
     while(backward) {
       lastobj=backward;
-      backward=backward->lastobj;
+      backward=backward->backward;
       unsigned int type;
       unsigned int size;
-      gettype_size(tmpptr, &type, &size);
+      gettype_size(lastobj, &type, &size);
       void *forwardptr=(void *)((struct ___Object___ *) lastobj)->marked;
       ((struct ___Object___ *) lastobj)->marked=NULL;
       if (forwardptr) {

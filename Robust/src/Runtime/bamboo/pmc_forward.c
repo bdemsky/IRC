@@ -8,8 +8,8 @@ void pmc_count() {
   for(int i=0;i<NUMPMCUNITS;i++) {
     if (!tmc_spin_mutex_trylock(&pmc_heapptr->units[i].lock)) {
       //got lock
-      void *unitbase=(i==0)?gcbaseva:pmc_heapptr->units[i-1]->endptr;
-      void *unittop=pmc_heapptr->units[i]->endptr;
+      void *unitbase=(i==0)?gcbaseva:pmc_heapptr->units[i-1].endptr;
+      void *unittop=pmc_heapptr->units[i].endptr;
       pmc_countbytes(&pmc_heapptr->units[i], unitbase, unittop);
     }
   }
@@ -143,7 +143,7 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
 
       forwardptr=newforwardptr;
       if (lastobj&&!fwddirection) {
-	tmpptr->backward=lastobj;
+	((struct ___Object___ *)tmpptr)->backward=lastobj;
 	lastobj=(struct ___Object___ *)tmpptr;
       }
     }

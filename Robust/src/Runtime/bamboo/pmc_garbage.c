@@ -1,6 +1,6 @@
-#include "pmc_garbage.h"
 #include "multicoregc.h"
-#inclued "runtime_arch.h"
+#include "pmc_garbage.h"
+#include "runtime_arch.h"
 
 struct pmc_queue * pmc_localqueue;
 
@@ -21,7 +21,7 @@ void * pmc_unitend(unsigned int index) {
 }
 
 void pmc_onceInit() {
-  pmc_localqueue=&pmc_heapptr->regions[BAMBOO_NUM_OF_THREADS].markqueue;
+  pmc_localqueue=&pmc_heapptr->regions[BAMBOO_NUM_OF_CORE].markqueue;
   pmc_queueinit(pmc_localqueue);
   tmc_spin_barrier_init(&pmc_heapptr->barrier, NUMCORES4GC);
   for(int i=0;i<NUMPMCUNITS;i++) {
@@ -30,7 +30,7 @@ void pmc_onceInit() {
 }
 
 void pmc_init() {
-  if (BAMBOO_NUM_OF_THREADS==STARTUPCORE) {
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
     pmc_heapptr->numthreads=NUMCORES4GC;
   }
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
@@ -44,7 +44,7 @@ void gc(struct garbagelist *gl) {
   pmc_count();
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
   //divide up work
-  if (BAMBOO_NUM_OF_THREADS==STARTUPCORE) {
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
     pmc_processunits();
   }
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
