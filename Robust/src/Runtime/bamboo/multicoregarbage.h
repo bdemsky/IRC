@@ -112,8 +112,6 @@ unsigned int bamboo_rmsp_size;
 //mark table....keep track of mark bits
 volatile unsigned int * gcmarktbl;
 
-void * gcbaseva; // base va for shared memory without reserved sblocks
-
 bool gc_checkCoreStatus();
 
 void gc_resetCoreStatus();
@@ -146,7 +144,6 @@ struct allocrecord {
 struct allocrecord allocationinfo;
 
 #ifdef GC_CACHE_ADAPT
-void * gctopva; // top va for shared memory without reserved sblocks
 volatile bool gccachestage;
 // table recording the sampling data collected for cache adaption 
 int * gccachesamplingtbl;

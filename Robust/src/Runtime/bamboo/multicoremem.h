@@ -89,8 +89,8 @@
 #define BAMBOO_SHARED_MEM_SIZE ((unsigned int)((BAMBOO_SMEM_SIZE) * (BAMBOO_NUM_BLOCKS))) //(1024 * 1024 * 240) //((unsigned long long int)(3.0 * 1024 * 1024 * 1024)) // 3G 
 #endif // GC_DEBUG
 
-#ifdef MULTICORE_GC
-#ifdef GC_SMALLPAGESIZE
+#if defined(MULTICORE_GC)||defined(PMC_GC)
+#if defined(GC_SMALLPAGESIZE)||defined(PMC_GC)
 // memory for globals
 #define BAMBOO_GLOBAL_DEFS_SIZE (1024 * 1024)
 #define BAMBOO_GLOBAL_DEFS_PRIM_SIZE (1024 * 512)

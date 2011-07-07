@@ -35,7 +35,7 @@ void myfree_i(void * ptr);
 
 #define RUNFREE(x) myfree(x)
 #define RUNFREE_I(x) myfree_i(x)
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
 #include "multicoregc.h"
 void * mycalloc_share(struct garbagelist * stackptr, int size);
 void * mycalloc_share_ngc(int size);

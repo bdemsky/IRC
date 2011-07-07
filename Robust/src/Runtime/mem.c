@@ -4,14 +4,19 @@
 #include "runtime.h"
 #include <stdio.h>
 
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
 #include "multicoreruntime.h"
 #include "bambooalign.h"
-#include "multicoremem.h"
-#include "multicoregarbage.h"
 #include "runtime_arch.h"
 #include "methodheaders.h"
+#endif
 
+#ifdef MULTICORE_GC
+#include "multicoremem.h"
+#include "multicoregarbage.h"
+#endif
+
+#if defined(MULTICORE_GC)||defined(PMC_GC)
 extern volatile bool gcflag;
 void * mycalloc_share(struct garbagelist * stackptr, int size) {
   void * p = NULL;

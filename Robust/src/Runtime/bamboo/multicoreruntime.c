@@ -389,7 +389,7 @@ void CALL01(___System______printString____L___String___, struct ___String___ * _
 
 /* Object allocation function */
 
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
 void * allocate_new(void * ptr, 
                     int type) {
   struct ___Object___ * v=
@@ -463,7 +463,7 @@ struct ArrayObject * allocate_newarray(int type,
 #endif
 
 /* Converts C character arrays into Java strings */
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
 __attribute__((malloc)) struct ___String___ * NewStringShort(void * ptr, 
                                                              const short *str,
                                                              int length) {
@@ -472,7 +472,7 @@ __attribute__((malloc)) struct ___String___ * NewStringShort(const short *str,
                                                              int length) {
 #endif
   int i;
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
   struct ArrayObject * chararray=
     allocate_newarray((struct garbagelist *)ptr, CHARARRAYTYPE, length);
   INTPTR ptrarray[]={1, (INTPTR) ptr, (INTPTR) chararray};
@@ -494,7 +494,7 @@ __attribute__((malloc)) struct ___String___ * NewStringShort(const short *str,
 }
 
 /* Converts C character arrays into Java strings */
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
 struct ___String___ * NewString(void * ptr, 
                                 const char *str,
                                 int length) {
@@ -503,7 +503,7 @@ struct ___String___ * NewString(const char *str,
                                 int length) {
 #endif
   int i;
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
   struct ArrayObject * chararray=
     allocate_newarray((struct garbagelist *)ptr, CHARARRAYTYPE, length);
   int ptrarray[]={1, (int) ptr, (int) chararray};
@@ -549,7 +549,7 @@ h %u\n", num, index, ao, ao->___length___);
 
 /* Generated code calls this if we fail null ptr chk */
 void failednullptr(void * ptr) {
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
 #ifndef RAW
   //print out current stack
   int i,j;

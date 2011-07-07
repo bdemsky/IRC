@@ -83,7 +83,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void *, int type,
 __attribute__((malloc)) StringPtr NewString(void *, const char *str,int length);
 __attribute__((malloc)) StringPtr NewStringShort(void *, const short *str,int length);
 __attribute__((malloc)) struct ___TagDescriptor___ * allocate_tag(void *ptr, int index);
-#elif defined MULTICORE_GC
+#elif defined(MULTICORE_GC)||defined(PMC_GC)
 __attribute__((malloc)) void * allocate_new(void *, int type);
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void *, int type, int length);
 __attribute__((malloc)) StringPtr NewString(void *, const char *str,int length);
@@ -110,7 +110,7 @@ void createstartupobject(int argc, char ** argv);
 void createstartupobject();
 #endif
 
-#if defined(PRECISE_GC)||defined(MULTICORE_GC)
+#if defined(PRECISE_GC)||defined(MULTICORE_GC)||defined(PMC_GC)
 #define VAR(name) ___params___->name
 #define CALL00(name) name(struct name ## _params * ___params___)
 #define CALL01(name, alt) name(struct name ## _params * ___params___)

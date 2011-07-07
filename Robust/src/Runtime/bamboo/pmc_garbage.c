@@ -2,6 +2,7 @@
 #include "pmc_garbage.h"
 #include "runtime_arch.h"
 
+struct pmc_heap * pmc_heapptr;
 struct pmc_queue * pmc_localqueue;
 
 void incrementthreads() {

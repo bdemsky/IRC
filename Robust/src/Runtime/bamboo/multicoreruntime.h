@@ -12,7 +12,7 @@
 //Define the following line if the base object type has pointers
 //#define OBJECTHASPOINTERS
 
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
 extern volatile bool gcflag;
 #define GCCHECK(p) \
   if(gcflag) gc(p)

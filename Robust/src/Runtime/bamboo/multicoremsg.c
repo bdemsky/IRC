@@ -4,9 +4,11 @@
 #include "multicoreruntime.h"
 #include "multicoregarbage.h"
 #include "multicoretaskprofile.h"
-#include "gcqueue.h"
 #include "runtime_arch.h"
+#ifdef MULTICORE_GC
+#include "gcqueue.h"
 #include "markbit.h"
+#endif
 
 int msgsizearray[] = {
   0, //MSGSTART,
@@ -72,12 +74,12 @@ unsigned int checkMsgLength_I(unsigned int realtype) {
 #endif
   BAMBOO_ASSERT(type<=MSGEND);
 #ifdef TASK
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)
   if(type==TRANSOBJ||type==GCLOBJINFO) {
 #else
   if(type==TRANSOBJ) {
 #endif
-#elif MULTICORE_GC
+#elif defined(MULTICORE_GC)
   if (type==GCLOBJINFO) {
 #endif
 #if (defined(TASK)||defined(MULTICORE_GC))
@@ -154,7 +156,7 @@ void processmsg_transtall_I() {
   }
 }
 
-#ifndef MULTICORE_GC
+#if !defined(MULTICORE_GC)&&!defined(PMC_GC)
 void processmsg_lockrequest_I() {
   // check to see if there is a lock exist for the required obj
   // msgdata[1] -> lock type
