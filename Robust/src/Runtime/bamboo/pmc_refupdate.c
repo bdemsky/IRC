@@ -8,7 +8,7 @@
 
 #define pmcupdateObj(objptr) ((void *)((struct ___Object___ *)objptr)->marked)
 
-#define PMCUPDATEOBJ(obj) {void *updatetmpptr=obj; tprintf("UP%x\n", updatetmpptr); if (updatetmpptr!=NULL) {obj=pmcupdateObj(updatetmpptr);}}
+#define PMCUPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=pmcupdateObj(updatetmpptr);}}
 
 #define PMCUPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=pmcupdateObj(updatetmpptr);}
 
@@ -46,7 +46,6 @@ void pmc_referenceupdate(void *bottomptr, void *topptr) {
     unsigned int size;
     gettype_size(tmpptr, &type, &size);
     size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
-    tprintf("%x typ=%u sz=%u\n", tmpptr, type, size);
     if (!type) {
       tmpptr+=ALIGNMENTSIZE;
       continue;
@@ -56,7 +55,6 @@ void pmc_referenceupdate(void *bottomptr, void *topptr) {
       pmc_updatePtrs(tmpptr, type);
     }
     tmpptr+=size;
-    tprintf("INC\n");
   }
 }
 

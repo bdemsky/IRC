@@ -80,24 +80,28 @@ void pmc_doforward() {
   if (startregion==-1) 
     return;
   if (endregion==-1)
-    endregion=NUMPMCUNITS-1;
+    endregion=NUMPMCUNITS;
   region->lowunit=startregion;
   region->highunit=endregion;
   region->startptr=(startregion==0)?gcbaseva:pmc_heapptr->units[startregion-1].endptr;
-  region->endptr=pmc_heapptr->units[endregion].endptr;
-
+  region->endptr=pmc_heapptr->units[endregion-1].endptr;
+  tprintf("startregion=%u gcbaseva=%x\n", startregion, gcbaseva);
+  tprintf("totalbytes=%u\n", totalbytes);
   if (BAMBOO_NUM_OF_CORE&1) {
-    //backward direction
+    //upward in memory
     region->lastptr=region->endptr-totalbytes;
+    tprintf("(up) Assigning lastptr for %u to %x ep=%x\n", BAMBOO_NUM_OF_CORE, region->lastptr, region->endptr);
   } else {
-    //forward direction
+    //downward in memory
     region->lastptr=region->startptr+totalbytes;
+    tprintf("(down) Assigning lastptr for %u to %x sp=%x\n", BAMBOO_NUM_OF_CORE, region->lastptr, region->startptr);
   }
 
   pmc_forward(region, totalbytes, region->startptr, region->endptr, !(BAMBOO_NUM_OF_CORE&1));
 }
 
 
+//fwddirection=1 means move things to lower addresses
 void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *bottomptr, void *topptr, bool fwddirection) {
   void *tmpptr=bottomptr;
   void *forwardptr=fwddirection?bottomptr:(topptr-totalbytes);
@@ -117,7 +121,7 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
     unsigned int lastunit=region->highunit-1;
     void * lastunitend=pmc_unitend(lastunit);
     while(lastunitend>forwardptr) {
-      pmc_heapptr->units[currunit].endptr=lastunitend;
+      pmc_heapptr->units[lastunit].endptr=lastunitend;
       lastunit--;
       lastunitend=pmc_unitend(lastunit);
     }
