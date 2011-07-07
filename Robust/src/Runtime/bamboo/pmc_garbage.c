@@ -40,24 +40,31 @@ void pmc_init() {
 }
 
 void gc(struct garbagelist *gl) {
+  tprintf("init\n");
   pmc_init();
   //mark live objects
+  tprintf("mark\n");
   pmc_mark(gl);
   //count live objects per unit
+  tprintf("count\n");
   pmc_count();
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
   //divide up work
+  tprintf("divide\n");
   if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
     pmc_processunits();
   }
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
   //set up forwarding pointers
+  tprintf("forward\n");
   pmc_doforward();
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
   //update pointers
+  tprintf("updaterefs\n");
   pmc_doreferenceupdate();
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
   //compact data
+  tprintf("compact\n");
   pmc_docompact();
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
 }
