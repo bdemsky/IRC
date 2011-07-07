@@ -159,6 +159,7 @@ public class DefinitelyWrittenCheck {
 
   private void writtenAnalysis_nodeAction(FlatNode fn,
       Hashtable<NTuple<Descriptor>, Hashtable<FlatNode, Boolean>> curr, FlatNode loopEntrance) {
+
     if (fn.equals(loopEntrance)) {
       // it reaches loop entrance: changes all flag to true
       Set<NTuple<Descriptor>> keySet = curr.keySet();
@@ -250,7 +251,6 @@ public class DefinitelyWrittenCheck {
         break;
 
       case FKind.FlatCall: {
-
         FlatCall fc = (FlatCall) fn;
         bindHeapPathCallerArgWithCaleeParam(fc);
 
@@ -269,7 +269,7 @@ public class DefinitelyWrittenCheck {
           if (currentStatus == null) {
             gen.put(fn, Boolean.FALSE);
           } else {
-            checkFlag(currentStatus.booleanValue(), fn);
+            checkFlag(currentStatus.booleanValue(), fn, read);
           }
         }
 
@@ -299,7 +299,7 @@ public class DefinitelyWrittenCheck {
     if (currentStatus == null) {
       gen.put(fn, Boolean.FALSE);
     } else {
-      checkFlag(currentStatus.booleanValue(), fn);
+      checkFlag(currentStatus.booleanValue(), fn, hp);
     }
 
   }
@@ -341,8 +341,13 @@ public class DefinitelyWrittenCheck {
         new Hashtable<Integer, NTuple<Descriptor>>();
 
     // arg idx is starting from 'this' arg
-    NTuple<Descriptor> thisHeapPath = new NTuple<Descriptor>();
-    thisHeapPath.add(fc.getThis());
+    NTuple<Descriptor> thisHeapPath = mapHeapPath.get(fc.getThis());
+    if (thisHeapPath == null) {
+      // method is called without creating new flat node representing 'this'
+      thisHeapPath = new NTuple<Descriptor>();
+      thisHeapPath.add(fc.getThis());
+    }
+
     mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
 
     for (int i = 0; i < fc.numArgs(); i++) {
@@ -390,12 +395,13 @@ public class DefinitelyWrittenCheck {
 
   }
 
-  private void checkFlag(boolean booleanValue, FlatNode fn) {
+  private void checkFlag(boolean booleanValue, FlatNode fn, NTuple<Descriptor> hp) {
     if (booleanValue) {
       throw new Error(
-          "There is a variable who comes back to the same read statement without being overwritten at the out-most iteration at "
-              + methodContainingSSJavaLoop.getClassDesc().getSourceFileName()
-              + "::"
+          "There is a variable, which is reachable through references "
+              + hp
+              + ", who comes back to the same read statement without being overwritten at the out-most iteration at "
+              + methodContainingSSJavaLoop.getClassDesc().getSourceFileName() + "::"
               + fn.getNumLine());
     }
   }
@@ -582,20 +588,25 @@ public class DefinitelyWrittenCheck {
 
       // set up heap path
       NTuple<Descriptor> srcHeapPath = mapHeapPath.get(rhs);
-      NTuple<Descriptor> readingHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
-      readingHeapPath.add(fld);
-      mapHeapPath.put(lhs, readingHeapPath);
+      if (srcHeapPath != null) {
+        // if lhs srcHeapPath is null, it means that it is not reachable from
+        // callee's parameters. so just ignore it
 
-      // read (x.f)
-      if (fld.getType().isImmutable()) {
-        // if WT doesnot have hp(x.f), add hp(x.f) to READ
-        if (!writtenSet.contains(readingHeapPath)) {
-          readSet.add(readingHeapPath);
+        NTuple<Descriptor> readingHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
+        readingHeapPath.add(fld);
+        mapHeapPath.put(lhs, readingHeapPath);
+
+        // read (x.f)
+        if (fld.getType().isImmutable()) {
+          // if WT doesnot have hp(x.f), add hp(x.f) to READ
+          if (!writtenSet.contains(readingHeapPath)) {
+            readSet.add(readingHeapPath);
+          }
         }
-      }
 
-      // need to kill hp(x.f) from WT
-      writtenSet.remove(readingHeapPath);
+        // need to kill hp(x.f) from WT
+        writtenSet.remove(readingHeapPath);
+      }
 
     }
       break;
@@ -611,13 +622,17 @@ public class DefinitelyWrittenCheck {
 
       // set up heap path
       NTuple<Descriptor> lhsHeapPath = mapHeapPath.get(lhs);
-      NTuple<Descriptor> newHeapPath = new NTuple<Descriptor>(lhsHeapPath.getList());
-      newHeapPath.add(fld);
-      mapHeapPath.put(fld, newHeapPath);
+      if (lhsHeapPath != null) {
+        // if lhs heap path is null, it means that it is not reachable from
+        // callee's parameters. so just ignore it
+        NTuple<Descriptor> newHeapPath = new NTuple<Descriptor>(lhsHeapPath.getList());
+        newHeapPath.add(fld);
+        mapHeapPath.put(fld, newHeapPath);
 
-      // write(x.f)
-      // need to add hp(y) to WT
-      writtenSet.add(newHeapPath);
+        // write(x.f)
+        // need to add hp(y) to WT
+        writtenSet.add(newHeapPath);
+      }
 
     }
       break;

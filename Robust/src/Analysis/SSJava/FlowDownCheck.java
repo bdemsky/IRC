@@ -376,7 +376,7 @@ public class FlowDownCheck {
 
       CompositeLocation condLoc =
           checkLocationFromExpressionNode(md, nametable, ln.getCondition(), new CompositeLocation());
-      addTypeLocation(ln.getCondition().getType(), (condLoc));
+      addLocationType(ln.getCondition().getType(), (condLoc));
 
       CompositeLocation bodyLoc = checkLocationFromBlockNode(md, nametable, ln.getBody());
 
@@ -398,26 +398,40 @@ public class FlowDownCheck {
       CompositeLocation condLoc =
           checkLocationFromExpressionNode(md, bn.getVarTable(), ln.getCondition(),
               new CompositeLocation());
-      addTypeLocation(ln.getCondition().getType(), condLoc);
+      addLocationType(ln.getCondition().getType(), condLoc);
 
       CompositeLocation updateLoc =
           checkLocationFromBlockNode(md, bn.getVarTable(), ln.getUpdate());
 
       Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
       glbInputSet.add(condLoc);
-      glbInputSet.add(updateLoc);
+//      glbInputSet.add(updateLoc);
 
       CompositeLocation glbLocOfForLoopCond = CompositeLattice.calculateGLB(glbInputSet);
 
       // check location of 'forloop' body
       CompositeLocation blockLoc = checkLocationFromBlockNode(md, bn.getVarTable(), ln.getBody());
 
+      // compute glb of body including loop body and update statement
+      glbInputSet.clear();
+      
       if (blockLoc == null) {
         // when there is no statement in the loop body
-        return glbLocOfForLoopCond;
+        
+        if(updateLoc==null){
+          // also there is no update statement in the loop body
+          return glbLocOfForLoopCond;
+        }
+        glbInputSet.add(updateLoc);
+        
+      }else{
+        glbInputSet.add(blockLoc);
+        glbInputSet.add(updateLoc);
       }
+      
+      CompositeLocation loopBodyLoc = CompositeLattice.calculateGLB(glbInputSet);
 
-      if (!CompositeLattice.isGreaterThan(glbLocOfForLoopCond, blockLoc)) {
+      if (!CompositeLattice.isGreaterThan(glbLocOfForLoopCond, loopBodyLoc)) {
         throw new Error(
             "The location of the for-condition statement is lower than the for-loop body at "
                 + cd.getSourceFileName() + ":" + ln.getCondition().getNumLine());
@@ -442,7 +456,7 @@ public class FlowDownCheck {
     CompositeLocation condLoc =
         checkLocationFromExpressionNode(md, nametable, isn.getCondition(), new CompositeLocation());
 
-    addTypeLocation(isn.getCondition().getType(), condLoc);
+    addLocationType(isn.getCondition().getType(), condLoc);
     glbInputSet.add(condLoc);
 
     CompositeLocation locTrueBlock = checkLocationFromBlockNode(md, nametable, isn.getTrueBlock());
@@ -611,13 +625,13 @@ public class FlowDownCheck {
 
     CompositeLocation condLoc =
         checkLocationFromExpressionNode(md, nametable, tn.getCond(), new CompositeLocation());
-    addTypeLocation(tn.getCond().getType(), condLoc);
+    addLocationType(tn.getCond().getType(), condLoc);
     CompositeLocation trueLoc =
         checkLocationFromExpressionNode(md, nametable, tn.getTrueExpr(), new CompositeLocation());
-    addTypeLocation(tn.getTrueExpr().getType(), trueLoc);
+    addLocationType(tn.getTrueExpr().getType(), trueLoc);
     CompositeLocation falseLoc =
         checkLocationFromExpressionNode(md, nametable, tn.getFalseExpr(), new CompositeLocation());
-    addTypeLocation(tn.getFalseExpr().getType(), falseLoc);
+    addLocationType(tn.getFalseExpr().getType(), falseLoc);
 
     // check if condLoc is higher than trueLoc & falseLoc
     if (!CompositeLattice.isGreaterThan(condLoc, trueLoc)) {
@@ -769,7 +783,7 @@ public class FlowDownCheck {
       CompositeLocation argLoc =
           checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation());
       glbInputSet.add(argLoc);
-      addTypeLocation(en.getType(), argLoc);
+      addLocationType(en.getType(), argLoc);
     }
 
     // check array initializers
@@ -934,7 +948,6 @@ public class FlowDownCheck {
 
     ExpressionNode left = fan.getExpression();
     loc = checkLocationFromExpressionNode(md, nametable, left, loc);
-    // addTypeLocation(left.getType(), loc);
 
     if (!left.getType().isPrimitive()) {
       FieldDescriptor fd = fan.getField();
@@ -1020,11 +1033,11 @@ public class FlowDownCheck {
         if (locDec.startsWith(SSJavaAnalysis.DELTA)) {
           DeltaLocation deltaLoc = parseDeltaDeclaration(md, n, locDec);
           d2loc.put(vd, deltaLoc);
-          addTypeLocation(vd.getType(), deltaLoc);
+          addLocationType(vd.getType(), deltaLoc);
         } else {
           CompositeLocation compLoc = parseLocationDeclaration(md, n, locDec);
           d2loc.put(vd, compLoc);
-          addTypeLocation(vd.getType(), compLoc);
+          addLocationType(vd.getType(), compLoc);
         }
 
       }
@@ -1170,21 +1183,20 @@ public class FlowDownCheck {
               + cd.getSourceFileName() + ".");
         }
         Location loc = new Location(cd, locationID);
-        // d2loc.put(fd, loc);
-        addTypeLocation(fd.getType(), loc);
+        addLocationType(fd.getType(), loc);
 
       }
     }
 
   }
 
-  private void addTypeLocation(TypeDescriptor type, CompositeLocation loc) {
+  private void addLocationType(TypeDescriptor type, CompositeLocation loc) {
     if (type != null) {
       type.setExtension(loc);
     }
   }
 
-  private void addTypeLocation(TypeDescriptor type, Location loc) {
+  private void addLocationType(TypeDescriptor type, Location loc) {
     if (type != null) {
       type.setExtension(loc);
     }
