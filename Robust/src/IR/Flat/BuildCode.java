@@ -339,7 +339,7 @@ public class BuildCode {
 
         if(t_md != null&&callgraph.isInit(t_cd)) {
           outmethod.println("   {");
-          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+          if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
             outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
             outmethod.println("0, NULL};");
             outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
@@ -359,7 +359,7 @@ public class BuildCode {
     // create a global classobj array
     outmethod.println(" {");
     outmethod.println("    int i = 0;");
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       outmethod.println("    struct garbagelist dummy={0,NULL};");
       outmethod.println("    global_defs_p->classobjs = allocate_newarray(&dummy, OBJECTARRAYTYPE, "
                         + (state.numClasses()+state.numArrays()+state.numInterfaces()) + ");");
@@ -368,7 +368,7 @@ public class BuildCode {
                         + (state.numClasses()+state.numArrays()+state.numInterfaces()) + ");");
     }
     outmethod.println("    for(i = 0; i < " + (state.numClasses()+state.numArrays()+state.numInterfaces()) + "; i++) {");
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       outmethod.println("        ((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[i] = allocate_new(NULL, " +typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
     } else {
       outmethod.println("        ((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[i] = allocate_new(" +typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
@@ -405,7 +405,7 @@ public class BuildCode {
     }
 
 
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
     } else {
       outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
@@ -416,7 +416,7 @@ public class BuildCode {
     ClassDescriptor stringclass=typeutil.getClass(TypeUtil.StringClass);
     String stringclassstring="struct "+stringclass.getSafeSymbol();
 
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       outmethod.println("    "+stringclassstring+" *newstring=NewString(NULL, argv[i], length);");
     } else {
       outmethod.println("    "+stringclassstring+" *newstring=NewString(argv[i], length);");
@@ -435,7 +435,7 @@ public class BuildCode {
     ClassDescriptor cd=typeutil.getMainClass();
 
     outmethod.println("   {");
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       outmethod.print("       struct "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
       outmethod.println("1, NULL,"+"stringarray};");
       outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
@@ -1194,7 +1194,7 @@ public class BuildCode {
     for(int i=0; i<fm.numParameters(); i++) {
       TempDescriptor temp=fm.getParameter(i);
       TypeDescriptor type=temp.getType();
-      if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
+      if (type.isPtr()&&((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC))
         objectparams.addPtr(temp);
       else
         objectparams.addPrim(temp);
@@ -1202,7 +1202,7 @@ public class BuildCode {
 
     for(int i=0; i<fm.numTags(); i++) {
       TempDescriptor temp=fm.getTag(i);
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC)
         objectparams.addPtr(temp);
       else
         objectparams.addPrim(temp);
@@ -1220,7 +1220,7 @@ public class BuildCode {
       for(int i=0; i<writes.length; i++) {
         TempDescriptor temp=writes[i];
         TypeDescriptor type=temp.getType();
-        if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
+        if (type.isPtr()&&((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC))
           objecttemps.addPtr(temp);
         else
           objecttemps.addPrim(temp);
@@ -1723,7 +1723,7 @@ fldloop:
 
   protected void generateMethodParam(ClassDescriptor cn, MethodDescriptor md, PrintWriter output) {
     /* Output parameter structure */
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       if(md.isInvokedByStatic() && !md.isStaticBlock() && !md.getModifiers().isNative()) {
         // generate the staticinit version
         String mdstring = md.getSafeMethodDescriptor() + "staticinit";
@@ -1771,7 +1771,7 @@ fldloop:
       String mdstring = md.getSafeMethodDescriptor() + "staticinit";
 
       /* Output temp structure */
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_locals {");
         output.println("  int size;");
         output.println("  void * next;");
@@ -1801,7 +1801,7 @@ fldloop:
       /* Next the method name */
       headersout.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"(");
       printcomma=false;
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * "+paramsprefix);
         printcomma=true;
       }
@@ -1826,7 +1826,7 @@ fldloop:
     }
 
     /* Output temp structure */
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
       output.println("  int size;");
       output.println("  void * next;");
@@ -1857,7 +1857,7 @@ fldloop:
     /* Next the method name */
     headersout.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
     printcomma=false;
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
       printcomma=true;
     }
@@ -1900,7 +1900,7 @@ fldloop:
       TempObject objecttemps=(TempObject) tempstable.get(task);
 
       /* Output parameter structure */
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         output.println("struct "+task.getSafeSymbol()+"_params {");
         output.println("  int size;");
         output.println("  void * next;");
@@ -1916,7 +1916,7 @@ fldloop:
       }
 
       /* Output temp structure */
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         output.println("struct "+task.getSafeSymbol()+"_locals {");
         output.println("  int size;");
         output.println("  void * next;");
@@ -1937,7 +1937,7 @@ fldloop:
       headersout.print("void " + task.getSafeSymbol()+"(");
 
       boolean printcomma=false;
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         headersout.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
       } else
         headersout.print("void * parameterarray[]");
@@ -2022,7 +2022,7 @@ fldloop:
       generateHeader(fm, md!=null?md:task,output);
       TempObject objecttemp=(TempObject) tempstable.get(md!=null?md:task);
 
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_locals "+localsprefix+"={");
         output.print(objecttemp.numPointers()+",");
         output.print(paramsprefix);
@@ -2052,10 +2052,10 @@ fldloop:
       /* Check to see if we need to do a GC if this is a
        * multi-threaded program...*/
 
-      if (((state.OOOJAVA||state.THREAD)&&GENERATEPRECISEGC) || state.MULTICOREGC) {
+      if (((state.OOOJAVA||state.THREAD)&&GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         //Don't bother if we aren't in recursive methods...The loops case will catch it
         if (callgraph.getAllMethods(md).contains(md)) {
-          if (this.state.MULTICOREGC) {
+          if (state.MULTICOREGC||state.PMC) {
             output.println("GCCHECK("+localsprefixaddr+");");
           } else {
             output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
@@ -2077,7 +2077,7 @@ fldloop:
       mgcstaticinit = true;
     }
 
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       if (md!=null)
         output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
       else
@@ -2111,10 +2111,10 @@ fldloop:
      * multi-threaded program...*/
 
     if (((state.OOOJAVA||state.THREAD)&&GENERATEPRECISEGC)
-        || this.state.MULTICOREGC) {
+        || state.MULTICOREGC||state.PMC) {
       //Don't bother if we aren't in recursive methods...The loops case will catch it
       if (callgraph.getAllMethods(md).contains(md)) {
-        if (this.state.MULTICOREGC) {
+        if (state.MULTICOREGC||state.PMC) {
           output.println("GCCHECK("+localsprefixaddr+");");
         } else {
           output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
@@ -2419,8 +2419,8 @@ fldloop:
 
   public void generateFlatBackEdge(FlatMethod fm, FlatBackEdge fn, PrintWriter output) {
     if (((state.OOOJAVA||state.THREAD)&&GENERATEPRECISEGC)
-        || (this.state.MULTICOREGC)) {
-      if(this.state.MULTICOREGC) {
+        || state.MULTICOREGC||state.PMC) {
+      if (state.MULTICOREGC||state.PMC) {
         output.println("GCCHECK("+localsprefixaddr+");");
       } else {
         output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
@@ -2547,7 +2547,7 @@ fldloop:
           output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
           if(cn.getNumStaticBlocks() != 0) {
             MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
-            if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+            if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
               output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
               output.println("0, NULL};");
               output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
@@ -2567,7 +2567,7 @@ fldloop:
         output.println("int monitorenterline = __LINE__;");
       }
       // call MonitorEnter/MonitorExit on a class obj
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
         output.println("1," + localsprefixaddr + ", ((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[" + fc.getThis().getType().getClassDesc().getId() + "]};");
         if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
@@ -2588,7 +2588,7 @@ fldloop:
     if(md.getSymbol().equals("MonitorEnter")) {
       output.println("int monitorenterline = __LINE__;");
     }
-    if (GENERATEPRECISEGC || state.MULTICOREGC) {
+    if (GENERATEPRECISEGC || state.MULTICOREGC||state.PMC) {
       output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params __parameterlist__={");
       output.print(objectparams.numPointers());
       output.print(", "+localsprefixaddr);
@@ -2639,7 +2639,7 @@ fldloop:
       output.print("(*)(");
 
       boolean printcomma=false;
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * ");
         printcomma=true;
       }
@@ -2665,12 +2665,12 @@ fldloop:
 
     output.print("(");
     boolean needcomma=false;
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       output.print("&__parameterlist__");
       needcomma=true;
     }
 
-    if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
+    if (!GENERATEPRECISEGC && !state.MULTICOREGC&&!state.PMC) {
       if (fc.getThis()!=null) {
         TypeDescriptor ptd=null;
         if(md.getThis() != null) {
@@ -2751,7 +2751,7 @@ fldloop:
             output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
             if(cn.getNumStaticBlocks() != 0) {
               MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
-              if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+              if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
                 output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
                 output.println("0, NULL};");
                 output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
@@ -2778,7 +2778,7 @@ fldloop:
         output.println("#ifdef CAPTURE_NULL_DEREFERENCES");
         output.println("if (" + generateTemp(fm,ffn.getSrc()) + " == NULL) {");
         output.println("printf(\" NULL ptr error: %s, %s, %d \\n\", __FILE__, __func__, __LINE__);");
-        if(state.MULTICOREGC) {
+        if(state.MULTICOREGC||state.PMC) {
           output.println("failednullptr(&___locals___);");
         } else {
           output.println("failednullptr(NULL);");
@@ -2798,7 +2798,7 @@ fldloop:
       String dst=generateTemp(fm, fsfn.getDst());
       output.println("if(!"+dst+"->"+localcopystr+") {");
       /* Link object into list */
-      if (GENERATEPRECISEGC || this.state.MULTICOREGC)
+      if (GENERATEPRECISEGC || state.MULTICOREGC||state.PMC)
         output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
       else
         output.println("COPY_OBJ("+dst+");");
@@ -2821,7 +2821,7 @@ fldloop:
             output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
             if(cn.getNumStaticBlocks() != 0) {
               MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
-              if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+              if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
                 output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
                 output.println("0, NULL};");
                 output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
@@ -2852,7 +2852,7 @@ fldloop:
         output.println("#ifdef CAPTURE_NULL_DEREFERENCES");
         output.println("if (" + generateTemp(fm,fsfn.getDst()) + " == NULL) {");
         output.println("printf(\" NULL ptr error: %s, %s, %d \\n\", __FILE__, __func__, __LINE__);");
-        if(state.MULTICOREGC) {
+        if(state.MULTICOREGC||state.PMC) {
           output.println("failednullptr(&___locals___);");
         } else {
           output.println("failednullptr(NULL);");
@@ -2913,7 +2913,7 @@ fldloop:
       String dst=generateTemp(fm, fsen.getDst());
       output.println("if(!"+dst+"->"+localcopystr+") {");
       /* Link object into list */
-      if (GENERATEPRECISEGC || this.state.MULTICOREGC)
+      if (GENERATEPRECISEGC || state.MULTICOREGC||state.PMC)
         output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
       else
         output.println("COPY_OBJ("+dst+");");
@@ -2930,13 +2930,13 @@ fldloop:
 
     if (fn.getType().isArray()) {
       int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize())+");");
       } else {
         output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize())+");");
       }
     } else {
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
       } else {
         output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
@@ -2953,7 +2953,7 @@ fldloop:
   }
 
   protected void generateFlatTagDeclaration(FlatMethod fm, FlatTagDeclaration fn, PrintWriter output) {
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       output.println(generateTemp(fm,fn.getDst())+"=allocate_tag("+localsprefixaddr+", "+state.getTagId(fn.getType())+");");
     } else {
       output.println(generateTemp(fm,fn.getDst())+"=allocate_tag("+state.getTagId(fn.getType())+");");
@@ -3020,7 +3020,7 @@ fldloop:
         output.print(((int)str.charAt(i)));
       }
       output.println("};");
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
         output.println(generateTemp(fm, fln.getDst())+"=NewStringShort("+localsprefixaddr+", str"+flncount+", "+((String)fln.getValue()).length()+");");
       } else {
         output.println(generateTemp(fm, fln.getDst())+"=NewStringShort(str"+flncount+" ,"+((String)fln.getValue()).length()+");");
@@ -3105,7 +3105,7 @@ fldloop:
       output.print(task.getSafeSymbol()+"(");
 
     boolean printcomma=false;
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       if (md!=null) {
         output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * "+paramsprefix);
       } else
@@ -3128,7 +3128,7 @@ fldloop:
           output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
       }
       output.println(") {");
-    } else if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
+    } else if (!GENERATEPRECISEGC && !state.MULTICOREGC && ! state.PMC) {
       /* Imprecise Task */
       output.println("void * parameterarray[]) {");
       /* Unpack variables */
@@ -3229,7 +3229,7 @@ fldloop:
         Iterator tagit=tagtmps.iterator();
         while(tagit.hasNext()) {
           TempDescriptor tagtmp=(TempDescriptor)tagit.next();
-          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
+          if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC)
             output.println("tagclear("+localsprefixaddr+", (struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
           else
             output.println("tagclear((struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
@@ -3241,7 +3241,7 @@ fldloop:
         Iterator tagit=tagtmps.iterator();
         while(tagit.hasNext()) {
           TempDescriptor tagtmp=(TempDescriptor)tagit.next();
-          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
+          if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC)
             output.println("tagset("+localsprefixaddr+", (struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
           else
             output.println("tagset((struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");

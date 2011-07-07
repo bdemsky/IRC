@@ -154,7 +154,7 @@ public class BuildCodeMGC extends BuildCode {
     outmethod.println("int mgc_main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
 
-    if (state.MULTICOREGC) {
+    if (state.MULTICOREGC||state.PMC) {
       outmethod.println("  global_defs_p->size="+globaldefscount+";");
       outmethod.println("  global_defs_p->next=NULL;");
       outmethod.println("  for(i=0;i<"+globaldefscount+";i++) {");
@@ -165,14 +165,14 @@ public class BuildCodeMGC extends BuildCode {
     outputStaticBlocks(outmethod);
     outputClassObjects(outmethod);
 
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC || state.PMC) {
       outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
     } else {
       outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
     }
     outmethod.println("  for(i=1;i<argc;i++) {");
     outmethod.println("    int length=strlen(argv[i]);");
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC || state.PMC) {
       outmethod.println("    struct ___String___ *newstring=NewString(NULL, argv[i], length);");
     } else {
       outmethod.println("    struct ___String___ *newstring=NewString(argv[i], length);");
@@ -184,7 +184,7 @@ public class BuildCodeMGC extends BuildCode {
     ClassDescriptor cd=typeutil.getMainClass();
 
     outmethod.println("   {");
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
       outmethod.print("       struct "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
       outmethod.println("1, NULL,"+"stringarray};");
       outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
