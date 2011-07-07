@@ -116,7 +116,7 @@ void gc_output_cache_sampling_r();
 #ifdef MGC_SPEC
 #define CACHEADAPT_OUTPUT_CACHE_POLICY() \
   { \
-    if(1) { \
+    if(gc_profile_flag) { \
       bamboo_output_cache_policy(); \
     } \
   }

@@ -357,11 +357,11 @@ void cacheAdapt_policy_dominate(int coren){
       totalfreq=totalfreq>>GC_CACHE_ADAPT_DOMINATE_THRESHOLD;
       if((unsigned int)hotfreq < (unsigned int)totalfreq) {
         // use hfh
-        //policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
-        unsigned int block = 0;
+        policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
+        /*unsigned int block = 0;
         BLOCKINDEX(block, (void *) page_sva);
         unsigned int coren = gc_block2core[block%(NUMCORES4GC*2)];
-        CACHEADAPT_POLICY_SET_HOST_CORE(policy, coren);
+        CACHEADAPT_POLICY_SET_HOST_CORE(policy, coren);*/
       } else {
         // locally cache the page in the hottest core
         CACHEADAPT_POLICY_SET_HOST_CORE(policy, hottestcore);

@@ -7,14 +7,14 @@
 // data structures for shared memory allocation
 #ifdef TILERA_BME
 #ifdef MGC
-#define BAMBOO_BASE_VA 0x600000  
+#define BAMBOO_BASE_VA 0x1000000  
 #else 
 #define BAMBOO_BASE_VA 0xd000000
 #endif
 #elif defined TILERA_ZLINUX
 #ifdef MULTICORE_GC
 #ifdef MGC
-#define BAMBOO_BASE_VA 0x600000 
+#define BAMBOO_BASE_VA 0x1000000 
 #else 
 #define BAMBOO_BASE_VA 0xd000000
 #endif
