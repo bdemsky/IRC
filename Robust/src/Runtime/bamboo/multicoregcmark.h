@@ -10,6 +10,7 @@ void tomark(struct garbagelist * stackptr);
 void scanPtrsInObj(void * ptr, int type);
 void markObj(void * objptr);
 void mark(struct garbagelist * stackptr);
+void gettype_size(void * ptr, int * ttype, unsigned int * tsize);
 
 #endif // MULTICORE_GC
 #endif // BAMBOO_MULTICORE_GC_MARK_H

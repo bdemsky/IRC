@@ -1,9 +1,11 @@
 #include "multicoregc.h"
+#include "multicoreruntime.h"
 #include "pmc_garbage.h"
 #include "runtime_arch.h"
 
 struct pmc_heap * pmc_heapptr;
 struct pmc_queue * pmc_localqueue;
+volatile bool gcflag;
 
 void incrementthreads() {
   tmc_spin_mutex_lock(&pmc_heapptr->lock);
@@ -58,4 +60,20 @@ void gc(struct garbagelist *gl) {
   //compact data
   pmc_docompact();
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+}
+
+void gettype_size(void * ptr, int * ttype, unsigned int * tsize) {
+  int type = ((int *)ptr)[0];
+  if(type < NUMCLASSES) {
+    // a normal object
+    *tsize = classsize[type];
+    *ttype = type;
+  } else {
+    // an array
+    struct ArrayObject *ao=(struct ArrayObject *)ptr;
+    unsigned int elementsize=classsize[type];
+    unsigned int length=ao->___length___;
+    *tsize = sizeof(struct ArrayObject)+length*elementsize;
+    *ttype = type;
+  } 
 }

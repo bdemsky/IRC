@@ -353,6 +353,7 @@ void processmsg_terminate_I() {
   BAMBOO_EXIT_APP(0);
 }
 
+#ifndef PMC_GC
 void processmsg_memrequest_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -411,6 +412,8 @@ void processmsg_memresponse_I() {
   }
 #endif
 }
+#endif //ifndef PMCGC
+
 
 #ifdef MULTICORE_GC
 void processmsg_gcinvoke_I() {
@@ -899,7 +902,7 @@ processmsg:
       processmsg_terminate_I();
       break;
     } 
-
+#ifndef PMC_GC
     case MEMREQUEST: {
       processmsg_memrequest_I();
       break;
@@ -909,7 +912,7 @@ processmsg:
       processmsg_memresponse_I();
       break;
     }
-
+#endif
 #ifdef MULTICORE_GC
     // GC msgs
     case GCINVOKE: {

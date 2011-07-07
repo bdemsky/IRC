@@ -1,4 +1,4 @@
-#if defined(MULTICORE_GC)&&defined(GC_PROFILE)
+#if (defined(MULTICORE_GC)||defined(PMC_GC))&&defined(GC_PROFILE)
 #include "multicoregcprofile.h"
 #include "structdefs.h"
 #include "runtime_arch.h"

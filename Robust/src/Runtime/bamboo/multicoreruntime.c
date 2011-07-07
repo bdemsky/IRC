@@ -3,6 +3,9 @@
 #include "multicoreruntime.h"
 #include "methodheaders.h"
 #include "multicoregarbage.h"
+#ifdef PMC_GC
+#include "multicoregcprofile.h"
+#endif
 #include "multicore_arch.h"
 #include <stdio.h>
 
@@ -280,7 +283,7 @@ void CALL11(___System______exit____I,
             int ___status___, 
             int ___status___) {
 // gc_profile mode, output gc prfiling data
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     BAMBOO_PRINT(BAMBOO_GET_EXE_TIME());
     BAMBOO_PRINT(0xbbbbbbbb);

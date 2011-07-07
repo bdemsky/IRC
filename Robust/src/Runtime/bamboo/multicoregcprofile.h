@@ -1,6 +1,6 @@
 #ifndef BAMBOO_MULTICORE_GC_PROFILE_H
 #define BAMBOO_MULTICORE_GC_PROFILE_H
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
 #include "multicore.h"
 #include "runtime_arch.h"
 #include "structdefs.h"

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "pmc_queue.h"
+#include "mem.h"
 
 void pmc_queueinit(struct pmc_queue *queue) {
   queue->head=queue->tail=RUNMALLOC(sizeof(struct pmc_queue_segment));
