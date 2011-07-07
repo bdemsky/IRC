@@ -8,7 +8,7 @@
 
 #define pmcupdateObj(objptr) ((void *)((struct ___Object___ *)objptr)->marked)
 
-#define PMCUPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=pmcupdateObj(updatetmpptr);}}
+#define PMCUPDATEOBJ(obj) {void *updatetmpptr=obj; tprintf("UP%x\n", updatetmpptr); if (updatetmpptr!=NULL) {obj=pmcupdateObj(updatetmpptr);}}
 
 #define PMCUPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=pmcupdateObj(updatetmpptr);}
 
@@ -40,10 +40,13 @@ void pmc_doreferenceupdate() {
 
 void pmc_referenceupdate(void *bottomptr, void *topptr) {
   void *tmpptr=bottomptr;
+  tprintf("%x -- %x\n", bottomptr, topptr);
   while(tmpptr<topptr) {
     unsigned int type;
     unsigned int size;
     gettype_size(tmpptr, &type, &size);
+    size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
+    tprintf("%x typ=%u sz=%u\n", tmpptr, type, size);
     if (!type) {
       tmpptr+=ALIGNMENTSIZE;
       continue;
@@ -53,6 +56,7 @@ void pmc_referenceupdate(void *bottomptr, void *topptr) {
       pmc_updatePtrs(tmpptr, type);
     }
     tmpptr+=size;
+    tprintf("INC\n");
   }
 }
 
@@ -69,6 +73,7 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
       unsigned int type;
       unsigned int size;
       gettype_size(tmpptr, &type, &size);
+      size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
       if (!type) {
 	tmpptr+=ALIGNMENTSIZE;
 	continue;
@@ -90,6 +95,7 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
       unsigned int type;
       unsigned int size;
       gettype_size(lastobj, &type, &size);
+      size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
       void *forwardptr=(void *)((struct ___Object___ *) lastobj)->marked;
       ((struct ___Object___ *) lastobj)->marked=NULL;
       if (forwardptr) {

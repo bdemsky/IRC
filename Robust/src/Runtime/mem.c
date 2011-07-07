@@ -24,7 +24,7 @@ void * mycalloc_share(struct garbagelist * stackptr, int size) {
   int hasgc = 0;
   int loopcount = 0;
 
-  while(loopcount<10000) {
+  while(true) {
     p = BAMBOO_SHARE_MEM_CALLOC(isize); // calloc(m, isize);
 
     if(p != NULL) 
@@ -42,8 +42,11 @@ void * mycalloc_share(struct garbagelist * stackptr, int size) {
       printf("Did %u collections without getting memory\n", hasgc);
       BAMBOO_EXIT();
     }
+    loopcount++;
+    if (loopcount>10000000)
+      tprintf("Loopcount in mycalloc_share hit %u\n",loopcount);
   }
-  tprintf("Loopcount hit 10000\n");
+
   BAMBOO_EXIT();
   return NULL;
 }

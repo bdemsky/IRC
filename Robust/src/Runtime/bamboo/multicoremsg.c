@@ -31,9 +31,11 @@ int msgsizearray[] = {
   1, //TERMINATE,             // 0xDf
   3, //MEMREQUEST,            // 0xE0
   3, //MEMRESPONSE,           // 0xE1
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
   1, //GCINVOKE
   1, //GCSTARTPRE,            // 0xE2
+#endif
+#ifdef MULTICORE_GC
   1, //GCSTARTINIT,           // 0xE3
   1, //GCSTART,               // 0xE4
   2, //GCSTARTCOMPACT,        // 0xE5
@@ -415,9 +417,10 @@ void processmsg_memresponse_I() {
 #endif //ifndef PMCGC
 
 
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
 void processmsg_gcinvoke_I() {
   BAMBOO_ASSERT(BAMBOO_NUM_OF_CORE==STARTUPCORE);
+#ifdef MULTICORE_GC
   if(!gc_status_info.gcprocessing && !gcflag) {
     gcflag = true;
     gcprecheck = true;
@@ -426,6 +429,11 @@ void processmsg_gcinvoke_I() {
       gcnumsendobjs[0][i] = 0;
       gcnumreceiveobjs[0][i] = 0;
     }
+#endif
+#ifdef PMC_GC
+  if(!gcflag) {
+    gcflag = true;
+#endif
     for(int i = 0; i < NUMCORES4GC; i++) {
       if(i != STARTUPCORE) {
         if(BAMBOO_CHECK_SEND_MODE()) {
@@ -442,7 +450,8 @@ void processmsg_gcstartpre_I() {
   // the first time to be informed to start gc
   gcflag = true;
 }
-
+#endif
+#ifdef MULTICORE_GC
 void processmsg_gcstartinit_I() {
   gc_status_info.gcphase = INITPHASE;
 }
@@ -913,7 +922,7 @@ processmsg:
       break;
     }
 #endif
-#ifdef MULTICORE_GC
+#if defined(MULTICORE_GC)||defined(PMC_GC)
     // GC msgs
     case GCINVOKE: {
       processmsg_gcinvoke_I();
@@ -924,7 +933,8 @@ processmsg:
       processmsg_gcstartpre_I();
       break;
     }
-	
+#endif
+#ifdef MULTICORE_GC
     case GCSTARTINIT: {
       processmsg_gcstartinit_I();
       break;

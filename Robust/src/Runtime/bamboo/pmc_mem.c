@@ -1,6 +1,10 @@
 #include <stdlib.h>
+#include "multicoregc.h"
+#include "multicoreruntime.h"
 #include "pmc_garbage.h"
 #include "pmc_mem.h"
+#include "runtime_arch.h"
+#include "multicoremsg.h"
 
 void * pmc_alloc(unsigned int * numbytesallocated, unsigned int minimumbytes) {
   unsigned int memcheck=minimumbytes>PMC_MINALLOC?minimumbytes:PMC_MINALLOC;
@@ -38,6 +42,19 @@ void * pmc_alloc(unsigned int * numbytesallocated, unsigned int minimumbytes) {
       } while(0);
       tmc_spin_mutex_unlock(&region->lock);
     }
+  }
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+    if (!gcflag) {
+      gcflag = true;
+      for(int i=0;i<NUMCORESACTIVE;i++) {
+	if (i!=STARTUPCORE)
+	  send_msg_1(i, GCSTARTPRE);
+      }
+    }
+    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  } else {
+    send_msg_1_I(STARTUPCORE,GCINVOKE);
   }
   return NULL;
 }

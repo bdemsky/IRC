@@ -20,32 +20,75 @@ void decrementthreads() {
 }
 
 void * pmc_unitend(unsigned int index) {
-  return gcbaseva+(index+1)*NUMPMCUNITS;
+  return gcbaseva+(index+1)*UNITSIZE;
 }
 
 void pmc_onceInit() {
   pmc_localqueue=&pmc_heapptr->regions[BAMBOO_NUM_OF_CORE].markqueue;
   pmc_queueinit(pmc_localqueue);
-  tmc_spin_barrier_init(&pmc_heapptr->barrier, NUMCORES4GC);
-  for(int i=0;i<NUMPMCUNITS;i++) {
-    pmc_heapptr->units[i].endptr=pmc_unitend(i);
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    tmc_spin_barrier_init(&pmc_heapptr->barrier, NUMCORES4GC);
+    for(int i=0;i<NUMPMCUNITS;i++) {
+      pmc_heapptr->units[i].endptr=pmc_unitend(i);
+      tprintf("%u endptr=%x\n", i, pmc_heapptr->units[i].endptr);
+    }
+    
+    for(int i=0;i<NUMCORES4GC;i+=2) {
+      if (i==0) {
+	pmc_heapptr->regions[i].lastptr=gcbaseva;
+      } else
+	pmc_heapptr->regions[i].lastptr=pmc_heapptr->units[i*4-1].endptr;
+      pmc_heapptr->regions[i].lowunit=4*i;
+      pmc_heapptr->regions[i].highunit=4*i+3;
+      pmc_heapptr->regions[i+1].lastptr=pmc_heapptr->units[(i+1)*4+3].endptr;
+      pmc_heapptr->regions[i+1].lowunit=4*(i+1);
+      pmc_heapptr->regions[i+1].highunit=4*(i+1)+3;
+    }
+    for(int i=0;i<NUMCORES4GC;i++) {
+      tprintf("%u lastptr=%x\n", i, pmc_heapptr->regions[i].lastptr);
+    }
   }
 }
 
 void pmc_init() {
   if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
     pmc_heapptr->numthreads=NUMCORES4GC;
+    for(int i=0;i<NUMCORES4GC;i+=2) {
+      void *startptr=pmc_heapptr->regions[i].lastptr;
+      void *finishptr=pmc_heapptr->regions[i+1].lastptr;
+      struct pmc_region *region=&pmc_heapptr->regions[i];
+      unsigned int startindex=region->lowunit;
+      unsigned int endindex=pmc_heapptr->regions[i+1].highunit;
+      tprintf("Padding %x-%x\n",startptr, finishptr);
+
+      for(unsigned int index=startindex;index<endindex;index++) {
+	void *ptr=pmc_unitend(index);
+	if ((ptr>startptr)&&(ptr<=finishptr)) {
+	  pmc_heapptr->units[index].endptr=ptr;
+	  padspace(startptr, (unsigned int)(ptr-startptr));
+	  startptr=ptr;
+	}
+	if (ptr>finishptr)
+	  break;
+      }
+    }
+  }
+  if (bamboo_smem_size) {
+    tprintf("Padding %u bytes at %x\n", bamboo_smem_size, bamboo_cur_msp);
+    padspace(bamboo_cur_msp, bamboo_smem_size);  
   }
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
 }
 
 void gc(struct garbagelist *gl) {
+  tprintf("%x\n", pmc_heapptr);
   tprintf("init\n");
   pmc_init();
   //mark live objects
   tprintf("mark\n");
   pmc_mark(gl);
   //count live objects per unit
+  tmc_spin_barrier_wait(&pmc_heapptr->barrier);
   tprintf("count\n");
   pmc_count();
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
@@ -66,7 +109,32 @@ void gc(struct garbagelist *gl) {
   //compact data
   tprintf("compact\n");
   pmc_docompact();
-  tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+  //reset memory allocation
+  bamboo_cur_msp=NULL;
+  bamboo_smem_size=0;
+
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+    //people will resend...no need to get gcflag so quickly
+    gcflag=false;
+  } else {
+    //start to listen for gcflags before we exit
+    gcflag=false;
+    tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+  }
+}
+
+void padspace(void *ptr, unsigned int length) {
+  //zero small blocks
+  if (length<sizeof(struct ArrayObject)) {
+    BAMBOO_MEMSET_WH(ptr,0,length);
+  } else {
+    //generate fake arrays for big blocks
+    struct ArrayObject *ao=(struct ArrayObject *)ptr;
+    ao->type=CHARARRAYTYPE;
+    unsigned arraylength=length-sizeof(struct ArrayObject);
+    ao->___length___=arraylength;
+  }
 }
 
 void gettype_size(void * ptr, int * ttype, unsigned int * tsize) {

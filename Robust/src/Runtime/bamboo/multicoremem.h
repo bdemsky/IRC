@@ -4,6 +4,7 @@
 #include "Queue.h"
 #include "SimpleHash.h"
 
+#define GC_DEBUG 1
 // data structures for shared memory allocation
 #ifdef TILERA_BME
 #ifdef MGC

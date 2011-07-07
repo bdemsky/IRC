@@ -785,6 +785,9 @@ void run(int argc, char** argv) {
   // initialize runtime data structures
   initruntimedata();
   initCommunication();
+#ifdef PMC_GC
+  pmc_onceInit();
+#endif
   if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
     numconfirm=NUMCORES-1;
     for(int i=0;i<NUMCORES;i++) {

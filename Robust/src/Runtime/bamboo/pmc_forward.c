@@ -17,6 +17,7 @@ void pmc_count() {
 
 //Comment: should build dummy byte arrays to allow skipping data...
 void pmc_countbytes(struct pmc_unit * unit, void *bottomptr, void *topptr) {
+  tprintf("%x--%x\n",bottomptr, topptr);
   void *tmpptr=bottomptr;
   unsigned int totalbytes=0;
   while(tmpptr<topptr) {
@@ -79,7 +80,7 @@ void pmc_doforward() {
   if (startregion==-1) 
     return;
   if (endregion==-1)
-    endregion=NUMPMCUNITS;
+    endregion=NUMPMCUNITS-1;
   region->lowunit=startregion;
   region->highunit=endregion;
   region->startptr=(startregion==0)?gcbaseva:pmc_heapptr->units[startregion-1].endptr;
@@ -122,7 +123,7 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
     }
   }
 
-  while(tmpptr>topptr) {
+  while(tmpptr<topptr) {
     unsigned int type;
     unsigned int size;
     gettype_size(tmpptr, &type, &size);

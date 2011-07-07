@@ -4,7 +4,8 @@
 #include "pmc_queue.h"
 #include "structdefs.h"
 
-#define PMC_MINALLOC 131072
+//#define PMC_MINALLOC 131072
+#define PMC_MINALLOC 2048
 #define NUMPMCUNITS (4*NUMCORES4GC)
 #define UNITSIZE (BAMBOO_SHARED_MEM_SIZE/NUMPMCUNITS)
 
@@ -38,6 +39,7 @@ struct pmc_heap {
 extern struct pmc_heap * pmc_heapptr;
 extern struct pmc_queue * pmc_localqueue;
 
+void padspace(void *ptr, unsigned int length);
 void * pmc_unitend(unsigned int index);
 void incrementthreads();
 void decrementthreads();
