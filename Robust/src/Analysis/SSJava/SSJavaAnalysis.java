@@ -16,7 +16,9 @@ import IR.Descriptor;
 import IR.MethodDescriptor;
 import IR.State;
 import IR.TypeUtil;
+import IR.Flat.BuildFlat;
 import IR.Flat.FlatMethod;
+import IR.Flat.TempDescriptor;
 
 public class SSJavaAnalysis {
 
@@ -50,6 +52,9 @@ public class SSJavaAnalysis {
   // method set that does not have loop termination analysis
   Hashtable<MethodDescriptor, Integer> skipLoopTerminate;
 
+  // map shared location to its descriptors
+  Hashtable<Location, Set<Descriptor>> mapSharedLocation2DescriptorSet;
+
   CallGraph callgraph;
 
   public SSJavaAnalysis(State state, TypeUtil tu, CallGraph callgraph) {
@@ -61,6 +66,7 @@ public class SSJavaAnalysis {
     this.md2lattice = new Hashtable<MethodDescriptor, MethodLattice<String>>();
     this.annotationRequireSet = new HashSet<MethodDescriptor>();
     this.skipLoopTerminate = new Hashtable<MethodDescriptor, Integer>();
+    this.mapSharedLocation2DescriptorSet = new Hashtable<Location, Set<Descriptor>>();
   }
 
   public void doCheck() {
@@ -310,9 +316,17 @@ public class SSJavaAnalysis {
   }
 
   public boolean isSharedLocation(Location loc) {
-
     SSJavaLattice<String> lattice = getLattice(loc.getDescriptor());
     return lattice.getSpinLocSet().contains(loc.getLocIdentifier());
-
   }
+
+  public void mapSharedLocation2Descriptor(Location loc, Descriptor d) {
+    Set<Descriptor> set = mapSharedLocation2DescriptorSet.get(loc);
+    if (set == null) {
+      set = new HashSet<Descriptor>();
+      mapSharedLocation2DescriptorSet.put(loc, set);
+    }
+    set.add(d);
+  }
+
 }

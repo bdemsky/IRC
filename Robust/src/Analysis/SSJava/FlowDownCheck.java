@@ -405,7 +405,7 @@ public class FlowDownCheck {
 
       Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
       glbInputSet.add(condLoc);
-//      glbInputSet.add(updateLoc);
+      // glbInputSet.add(updateLoc);
 
       CompositeLocation glbLocOfForLoopCond = CompositeLattice.calculateGLB(glbInputSet);
 
@@ -414,21 +414,21 @@ public class FlowDownCheck {
 
       // compute glb of body including loop body and update statement
       glbInputSet.clear();
-      
+
       if (blockLoc == null) {
         // when there is no statement in the loop body
-        
-        if(updateLoc==null){
+
+        if (updateLoc == null) {
           // also there is no update statement in the loop body
           return glbLocOfForLoopCond;
         }
         glbInputSet.add(updateLoc);
-        
-      }else{
+
+      } else {
         glbInputSet.add(blockLoc);
         glbInputSet.add(updateLoc);
       }
-      
+
       CompositeLocation loopBodyLoc = CompositeLattice.calculateGLB(glbInputSet);
 
       if (!CompositeLattice.isGreaterThan(glbLocOfForLoopCond, loopBodyLoc)) {
@@ -1036,6 +1036,12 @@ public class FlowDownCheck {
           addLocationType(vd.getType(), deltaLoc);
         } else {
           CompositeLocation compLoc = parseLocationDeclaration(md, n, locDec);
+
+          Location lastElement = compLoc.get(compLoc.getSize() - 1);
+          if (ssjava.isSharedLocation(lastElement)) {
+            ssjava.mapSharedLocation2Descriptor(lastElement, vd);
+          }
+
           d2loc.put(vd, compLoc);
           addLocationType(vd.getType(), compLoc);
         }
@@ -1183,6 +1189,11 @@ public class FlowDownCheck {
               + cd.getSourceFileName() + ".");
         }
         Location loc = new Location(cd, locationID);
+
+        if (ssjava.isSharedLocation(loc)) {
+          ssjava.mapSharedLocation2Descriptor(loc, fd);
+        }
+
         addLocationType(fd.getType(), loc);
 
       }
