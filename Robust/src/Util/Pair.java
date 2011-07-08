@@ -26,4 +26,9 @@ public class Pair<A,B> {
     return a.equals(t.a)&&(((b!=null)&&(t.b!=null)&&b.equals(t.b))||
                            ((b==null)&&(t.b==null)));
   }
+  
+  public String toString(){
+    return "<"+a+","+b+">";
+  }
+  
 }
