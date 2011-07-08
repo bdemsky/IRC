@@ -62,7 +62,6 @@ void pmc_init() {
 
       for(unsigned int index=startindex;index<endindex;index++) {
 	void *ptr=pmc_unitend(index);
-	tprintf("index=%u ptr=%x\n", index, ptr);
 	if ((ptr>startptr)&&(ptr<=finishptr)) {
 	  pmc_heapptr->units[index].endptr=ptr;
 	  padspace(startptr, (unsigned int)(ptr-startptr));
@@ -106,7 +105,7 @@ void gc(struct garbagelist *gl) {
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
   //update pointers
   tprintf("updaterefs\n");
-  pmc_doreferenceupdate();
+  pmc_doreferenceupdate(gl);
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
   //compact data
   tprintf("compact\n");

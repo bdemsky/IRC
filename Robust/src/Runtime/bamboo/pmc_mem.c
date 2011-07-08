@@ -13,8 +13,6 @@ void * pmc_alloc(unsigned int * numbytesallocated, unsigned int minimumbytes) {
     void *startptr=pmc_heapptr->regions[i].lastptr;
     void *finishptr=pmc_heapptr->regions[i+1].lastptr;
 
-    tprintf("%u %x - %x\n",i, startptr, finishptr);
-
     if ((finishptr-startptr)>memcheck) {
       struct pmc_region *region=&pmc_heapptr->regions[i];
       tmc_spin_mutex_lock(&region->lock);
@@ -40,8 +38,6 @@ void * pmc_alloc(unsigned int * numbytesallocated, unsigned int minimumbytes) {
 
 	*numbytesallocated=(unsigned int)(newstartptr-startptr);
 	tmc_spin_mutex_unlock(&region->lock);
-	tprintf("fptr=%x\n", finishptr);
-	tprintf("Allocing %x to %x\n", startptr, newstartptr);
 	return startptr;
       } while(0);
       tmc_spin_mutex_unlock(&region->lock);

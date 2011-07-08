@@ -17,7 +17,6 @@ void pmc_count() {
 
 //Comment: should build dummy byte arrays to allow skipping data...
 void pmc_countbytes(struct pmc_unit * unit, void *bottomptr, void *topptr) {
-  tprintf("%x--%x\n",bottomptr, topptr);
   void *tmpptr=bottomptr;
   unsigned int totalbytes=0;
   while(tmpptr<topptr) {
@@ -85,16 +84,12 @@ void pmc_doforward() {
   region->highunit=endregion;
   region->startptr=(startregion==0)?gcbaseva:pmc_heapptr->units[startregion-1].endptr;
   region->endptr=pmc_heapptr->units[endregion-1].endptr;
-  tprintf("startregion=%u gcbaseva=%x\n", startregion, gcbaseva);
-  tprintf("totalbytes=%u\n", totalbytes);
   if (BAMBOO_NUM_OF_CORE&1) {
     //upward in memory
     region->lastptr=region->endptr-totalbytes;
-    tprintf("(up) Assigning lastptr for %u to %x ep=%x\n", BAMBOO_NUM_OF_CORE, region->lastptr, region->endptr);
   } else {
     //downward in memory
     region->lastptr=region->startptr+totalbytes;
-    tprintf("(down) Assigning lastptr for %u to %x sp=%x\n", BAMBOO_NUM_OF_CORE, region->lastptr, region->startptr);
   }
 
   pmc_forward(region, totalbytes, region->startptr, region->endptr, !(BAMBOO_NUM_OF_CORE&1));
@@ -111,7 +106,7 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
 
   if (!fwddirection) {
     //reset boundaries of beginning units
-    while(endunit<forwardptr) {
+    while(endunit<=region->lastptr) {
       pmc_heapptr->units[currunit].endptr=endunit;
       currunit++;
       endunit=pmc_unitend(currunit);
@@ -120,7 +115,7 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
     //reset boundaries of end units
     unsigned int lastunit=region->highunit-1;
     void * lastunitend=pmc_unitend(lastunit);
-    while(lastunitend>forwardptr) {
+    while(lastunitend>=region->lastptr) {
       pmc_heapptr->units[lastunit].endptr=lastunitend;
       lastunit--;
       lastunitend=pmc_unitend(lastunit);
@@ -139,8 +134,9 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
 
     if (((struct ___Object___ *)tmpptr)->marked) {
       ((struct ___Object___ *)tmpptr)->marked=forwardptr;
+      tprintf("Forwarding %x->%x\n", tmpptr, forwardptr);
       void *newforwardptr=forwardptr+size;
-      while(newforwardptr>endunit) {
+      while(newforwardptr>=endunit) {
 	pmc_heapptr->regions[currunit].endptr=newforwardptr;
 	currunit++;
 	endunit=pmc_unitend(currunit);
@@ -154,5 +150,6 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
     }
     tmpptr+=size;
   }
+  tprintf("forwardptr=%x\n",forwardptr);
   region->lastobj=lastobj;
 }

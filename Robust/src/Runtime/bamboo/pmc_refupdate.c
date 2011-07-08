@@ -4,13 +4,16 @@
 #include "runtime_arch.h"
 #include "pmc_forward.h"
 #include "pmc_refupdate.h"
+#include "multicoremgc.h"
+#include "runtime.h"
+#include "thread.h"
 
 
 #define pmcupdateObj(objptr) ((void *)((struct ___Object___ *)objptr)->marked)
 
-#define PMCUPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=pmcupdateObj(updatetmpptr);}}
+#define PMCUPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=pmcupdateObj(updatetmpptr);if (obj==NULL) {tprintf("BAD REF UPDATE %x->%x in %u\n",updatetmpptr,obj,__LINE__);}}}
 
-#define PMCUPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=pmcupdateObj(updatetmpptr);}
+#define PMCUPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=pmcupdateObj(updatetmpptr);if (obj==NULL) {tprintf("BAD REF UPDATE in %x->%x %u\n",updatetmpptr,obj,__LINE__);}}
 
 void pmc_updatePtrs(void *ptr, int type) {
   unsigned int * pointer=pointerarray[type];
@@ -33,8 +36,111 @@ void pmc_updatePtrs(void *ptr, int type) {
   }  
 }
 
-void pmc_doreferenceupdate() {
+void pmc_updategarbagelist(struct garbagelist *listptr) {
+  for(;listptr!=NULL; listptr=listptr->next) {
+    for(int i=0; i<listptr->size; i++) {
+      PMCUPDATEOBJ(listptr->array[i]);
+    }
+  }
+}
+
+void pmc_updateRuntimePtrs(struct garbagelist * stackptr) {
+  // update current stack
+  pmc_updategarbagelist(stackptr);
+
+  // update static pointers global_defs_p
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+    pmc_updategarbagelist((struct garbagelist *)global_defs_p);
+  }
+
+#ifdef TASK
+  // update objectsets
+  if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
+    for(int i=0; i<NUMCLASSES; i++) {
+      struct parameterwrapper ** queues = objectqueues[BAMBOO_NUM_OF_CORE][i];
+      int length = numqueues[BAMBOO_NUM_OF_CORE][i];
+      for(int j = 0; j < length; ++j) {
+        struct parameterwrapper * parameter = queues[j];
+        struct ObjectHash * set=parameter->objectset;
+        for(struct ObjectNode * ptr=set->listhead;ptr!=NULL;ptr=ptr->lnext) {
+          PMCUPDATEOBJNONNULL(ptr->key);
+        }
+        ObjectHashrehash(set);
+      }
+    }
+  }
+
+  // update current task descriptor
+  if(currtpd != NULL) {
+    for(int i=0; i<currtpd->numParameters; i++) {
+      // the parameter can not be NULL
+      PMCUPDATEOBJNONNULL(currtpd->parameterArray[i]);
+    }
+  }
+
+  // update active tasks
+  if(activetasks != NULL) {
+    for(struct genpointerlist * ptr=activetasks->list;ptr!=NULL;ptr=ptr->inext){
+      struct taskparamdescriptor *tpd=ptr->src;
+      for(int i=0; i<tpd->numParameters; i++) {
+        // the parameter can not be NULL
+	PMCUPDATEOBJNONNULL(tpd->parameterArray[i]);
+      }
+    }
+    genrehash(activetasks);
+  }
+
+  // update cached transferred obj
+  for(struct QueueItem * tmpobjptr =  getHead(&objqueue);tmpobjptr != NULL;tmpobjptr = getNextQueueItem(tmpobjptr)) {
+    struct transObjInfo * objInfo=(struct transObjInfo *)(tmpobjptr->objectptr);
+    // the obj can not be NULL
+    PMCUPDATEOBJNONNULL(objInfo->objptr);
+  }
+
+  // update cached objs to be transferred
+  for(struct QueueItem * item = getHead(totransobjqueue);item != NULL;item = getNextQueueItem(item)) {
+    struct transObjInfo * totransobj = (struct transObjInfo *)(item->objectptr);
+    // the obj can not be NULL
+    PMCUPDATEOBJNONNULL(totransobj->objptr);
+  }  
+
+  // enqueue lock related info
+  for(int i = 0; i < runtime_locklen; ++i) {
+    PMCUPDATEOBJ(runtime_locks[i].redirectlock);
+    PMCUPDATEOBJ(runtime_locks[i].value);
+  }
+#endif
+
+#ifdef MGC
+  // update the bamboo_threadlocks
+  for(int i = 0; i < bamboo_threadlocks.index; i++) {
+    // the locked obj can not be NULL
+    PMCUPDATEOBJNONNULL(bamboo_threadlocks.locks[i].object);
+  }
+
+  // update the bamboo_current_thread
+  PMCUPDATEOBJ(bamboo_current_thread);
+
+  // update global thread queue
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+    unsigned int thread_counter = *((unsigned int*)(bamboo_thread_queue+1));
+    if(thread_counter > 0) {
+      unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
+      for(int i = thread_counter; i > 0; i--) {
+        // the thread obj can not be NULL
+        PMCUPDATEOBJNONNULL(*((void **)&bamboo_thread_queue[4+start]));
+        start = (start+1)&bamboo_max_thread_num_mask;
+      }
+    }
+    unlockthreadqueue();
+  }
+#endif
+}
+
+
+void pmc_doreferenceupdate(struct garbagelist *stackptr) {
   struct pmc_region * region=&pmc_heapptr->regions[BAMBOO_NUM_OF_CORE];
+  pmc_updateRuntimePtrs(stackptr);
   pmc_referenceupdate(region->startptr, region->endptr);
 }
 
