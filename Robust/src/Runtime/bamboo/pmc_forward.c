@@ -1,8 +1,9 @@
+#include "multicoregc.h"
 #include "pmc_forward.h"
 #include "runtime_arch.h"
 #include "bambooalign.h"
 #include "pmc_garbage.h"
-#include "multicoregc.h"
+
 
 void pmc_count() {
   for(int i=0;i<NUMPMCUNITS;i++) {
@@ -10,7 +11,7 @@ void pmc_count() {
       //got lock
       void *unitbase=(i==0)?gcbaseva:pmc_heapptr->units[i-1].endptr;
       void *unittop=pmc_heapptr->units[i].endptr;
-      //tprintf("Cnt: %x - %x\n", unitbase, unittop);
+      tprintf("Cnt: %x - %x\n", unitbase, unittop);
       pmc_countbytes(&pmc_heapptr->units[i], unitbase, unittop);
     }
   }
@@ -23,6 +24,7 @@ void pmc_countbytes(struct pmc_unit * unit, void *bottomptr, void *topptr) {
   while(tmpptr<topptr) {
     unsigned int type;
     unsigned int size;
+    //tprintf("C:%x\n",tmpptr);
     gettype_size(tmpptr, &type, &size);
     if (!type) {
       tmpptr+=ALIGNMENTSIZE;
@@ -158,6 +160,6 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
     }
     tmpptr+=size;
   }
-  //tprintf("forwardptr=%x\n",forwardptr);
+  tprintf("forwardptr=%x\n",forwardptr);
   region->lastobj=lastobj;
 }

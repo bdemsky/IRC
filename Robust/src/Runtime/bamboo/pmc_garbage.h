@@ -39,6 +39,7 @@ struct pmc_heap {
 extern struct pmc_heap * pmc_heapptr;
 extern struct pmc_queue * pmc_localqueue;
 
+void gettype_size(void * ptr, unsigned int * ttype, unsigned int * tsize);
 void padspace(void *ptr, unsigned int length);
 void * pmc_unitend(unsigned int index);
 void incrementthreads();

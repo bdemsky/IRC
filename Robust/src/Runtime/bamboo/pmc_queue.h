@@ -3,7 +3,7 @@
 #include "multicore.h"
 #include <tmc/spin.h>
 
-#define NUM_PMC_QUEUE_OBJECTS 500000
+#define NUM_PMC_QUEUE_OBJECTS 1500000
 
 struct pmc_queue {
   volatile void * objects[NUM_PMC_QUEUE_OBJECTS];

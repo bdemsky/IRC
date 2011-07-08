@@ -44,17 +44,15 @@ void * pmc_alloc(unsigned int * numbytesallocated, unsigned int minimumbytes) {
     }
   }
   if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
-    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     if (!gcflag) {
       gcflag = true;
-      for(int i=0;i<NUMCORESACTIVE;i++) {
+      for(int i=0;i<NUMCORES4GC;i++) {
 	if (i!=STARTUPCORE)
 	  send_msg_1(i, GCSTARTPRE);
       }
     }
-    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   } else {
-    send_msg_1_I(STARTUPCORE,GCINVOKE);
+    send_msg_1(STARTUPCORE,GCINVOKE);
   }
   return NULL;
 }

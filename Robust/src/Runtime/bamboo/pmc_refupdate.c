@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "structdefs.h"
 #include "bambooalign.h"
+#include "multicoregc.h"
 #include "runtime_arch.h"
 #include "pmc_forward.h"
 #include "pmc_refupdate.h"
@@ -11,16 +12,13 @@
 
 #define pmcupdateObj(objptr) ((void *)((struct ___Object___ *)objptr)->marked)
 
-#define PMCUPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=pmcupdateObj(updatetmpptr);}}
+#define PMCUPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=pmcupdateObj(updatetmpptr);if (obj==NULL) {tprintf("BAD REF UPDATE %x->%x in %u\n",updatetmpptr,obj,__LINE__);}}}
 
-//if (obj==NULL) {tprintf("BAD REF UPDATE %x->%x in %u\n",updatetmpptr,obj,__LINE__);}}}
-
-#define PMCUPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=pmcupdateObj(updatetmpptr);}
-//if (obj==NULL) {tprintf("BAD REF UPDATE in %x->%x %u\n",updatetmpptr,obj,__LINE__);}}
+#define PMCUPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=pmcupdateObj(updatetmpptr);if (obj==NULL) {tprintf("BAD REF UPDATE in %x->%x %u\n",updatetmpptr,obj,__LINE__);}}
 
 void pmc_updatePtrs(void *ptr, int type) {
   unsigned int * pointer=pointerarray[type];
-  //tprintf("Updating pointers in %x\n", ptr);
+  tprintf("Updating pointers in %x\n", ptr);
   if (pointer==0) {
     /* Array of primitives */
   } else if (((unsigned int)pointer)==1) {
@@ -38,7 +36,7 @@ void pmc_updatePtrs(void *ptr, int type) {
       PMCUPDATEOBJ(*((void **)(((char *)ptr)+offset)));
     }
   }
-  //tprintf("done\n");
+  tprintf("done\n");
 }
 
 void pmc_updategarbagelist(struct garbagelist *listptr) {
@@ -151,7 +149,7 @@ void pmc_doreferenceupdate(struct garbagelist *stackptr) {
 
 void pmc_referenceupdate(void *bottomptr, void *topptr) {
   void *tmpptr=bottomptr;
-  //tprintf("%x -- %x\n", bottomptr, topptr);
+  tprintf("%x -- %x\n", bottomptr, topptr);
   while(tmpptr<topptr) {
     unsigned int type;
     unsigned int size;
