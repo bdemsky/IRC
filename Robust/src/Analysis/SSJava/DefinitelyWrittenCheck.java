@@ -6,8 +6,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.Stack;
+import java.util.Vector;
 
 import Analysis.CallGraph.CallGraph;
+import Analysis.Loops.LoopFinder;
 import IR.Descriptor;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
@@ -58,6 +60,22 @@ public class DefinitelyWrittenCheck {
   // maps a flatnode to definitely written analysis mapping M
   private Hashtable<FlatNode, Hashtable<NTuple<Descriptor>, Hashtable<FlatNode, Boolean>>> definitelyWrittenResults;
 
+  // maps a method descriptor to its current summary during the analysis
+  // then analysis reaches fixed-point, this mapping will have the final summary
+  // for each method descriptor
+  private Hashtable<MethodDescriptor, Hashtable<Location, Vector<Object>>> mapMethodDescriptorToCompleteClearingSummary;
+
+  // maps a method descriptor to the merged incoming caller's current
+  // overwritten status
+  private Hashtable<MethodDescriptor, Hashtable<Location, Vector<Object>>> mapMethodDescriptorToInitialClearingSummary;
+
+  // maps a flat node to current partial results
+  private Hashtable<FlatNode, Hashtable<Location, Vector<Object>>> mapFlatNodeToClearingSummary;
+
+  private FlatNode ssjavaLoopEntrance;
+  private LoopFinder ssjavaLoop;
+  private Set<FlatNode> loopIncElements;
+
   private Set<NTuple<Descriptor>> calleeUnionBoundReadSet;
   private Set<NTuple<Descriptor>> calleeIntersectBoundOverWriteSet;
 
@@ -74,13 +92,197 @@ public class DefinitelyWrittenCheck {
         new Hashtable<FlatNode, Hashtable<NTuple<Descriptor>, Hashtable<FlatNode, Boolean>>>();
     this.calleeUnionBoundReadSet = new HashSet<NTuple<Descriptor>>();
     this.calleeIntersectBoundOverWriteSet = new HashSet<NTuple<Descriptor>>();
+    this.mapMethodDescriptorToCompleteClearingSummary =
+        new Hashtable<MethodDescriptor, Hashtable<Location, Vector<Object>>>();
+    this.mapMethodDescriptorToInitialClearingSummary =
+        new Hashtable<MethodDescriptor, Hashtable<Location, Vector<Object>>>();
+    this.mapFlatNodeToClearingSummary =
+        new Hashtable<FlatNode, Hashtable<Location, Vector<Object>>>();
   }
 
   public void definitelyWrittenCheck() {
     if (!ssjava.getAnnotationRequireSet().isEmpty()) {
       methodReadOverWriteAnalysis();
       writtenAnalyis();
+//      sharedLocationAnalysis();
     }
+  }
+
+  private void sharedLocationAnalysis() {
+    // verify that all concrete locations of shared location are cleared out at
+    // the same time once per the out-most loop
+
+    Set<MethodDescriptor> methodDescriptorsToAnalyze = new HashSet<MethodDescriptor>();
+    methodDescriptorsToAnalyze.addAll(ssjava.getAnnotationRequireSet());
+
+    LinkedList<MethodDescriptor> sortedDescriptors = topologicalSort(methodDescriptorsToAnalyze);
+
+    Stack<MethodDescriptor> methodDescriptorsToVisitStack = new Stack<MethodDescriptor>();
+    Set<MethodDescriptor> methodDescriptorToVistSet = new HashSet<MethodDescriptor>();
+    methodDescriptorToVistSet.addAll(sortedDescriptors);
+
+    while (!sortedDescriptors.isEmpty()) {
+      MethodDescriptor md = sortedDescriptors.removeLast();
+      methodDescriptorsToVisitStack.add(md);
+    }
+
+    // analyze scheduled methods until there are no more to visit
+    while (!methodDescriptorsToVisitStack.isEmpty()) {
+      MethodDescriptor md = methodDescriptorsToVisitStack.pop();
+      FlatMethod fm = state.getMethodFlat(md);
+
+      sharedLocation_analyzeMethod(fm, (fm.equals(methodContainingSSJavaLoop)));
+
+      if (true) {
+
+        // results for callee changed, so enqueue dependents caller for
+        // further analysis
+        Iterator<MethodDescriptor> depsItr = getDependents(md).iterator();
+        while (depsItr.hasNext()) {
+          MethodDescriptor methodNext = depsItr.next();
+          if (!methodDescriptorsToVisitStack.contains(methodNext)
+              && methodDescriptorToVistSet.contains(methodNext)) {
+            methodDescriptorsToVisitStack.add(methodNext);
+          }
+
+        }
+
+      }
+
+    }
+
+    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+    flatNodesToVisit.add(ssjavaLoopEntrance);
+
+  }
+
+  private void sharedLocation_analyzeMethod(FlatMethod fm, boolean onlyVisitSSJavaLoop) {
+
+    if (state.SSJAVADEBUG) {
+      System.out.println("Definitely written for shared locations Analyzing: " + fm);
+    }
+
+    // intraprocedural analysis
+    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+    Set<FlatNode> visited = new HashSet<FlatNode>();
+
+    if (onlyVisitSSJavaLoop) {
+      flatNodesToVisit.add(ssjavaLoopEntrance);
+    } else {
+      flatNodesToVisit.add(fm);
+    }
+
+    while (!flatNodesToVisit.isEmpty()) {
+      FlatNode fn = flatNodesToVisit.iterator().next();
+      flatNodesToVisit.remove(fn);
+
+      Hashtable<Location, Vector<Object>> curr = new Hashtable<Location, Vector<Object>>();
+
+      for (int i = 0; i < fn.numPrev(); i++) {
+        FlatNode prevFn = fn.getPrev(i);
+        Hashtable<Location, Vector<Object>> in = mapFlatNodeToClearingSummary.get(prevFn);
+        if (in != null) {
+          mergeSharedAnaylsis(curr, in);
+        }
+      }
+
+      sharedLocation_nodeActions(fn, curr);
+
+      Hashtable<Location, Vector<Object>> clearingPrev = mapFlatNodeToClearingSummary.get(fn);
+
+      if (!curr.equals(clearingPrev)) {
+        mapFlatNodeToClearingSummary.put(fn, curr);
+
+        for (int i = 0; i < fn.numNext(); i++) {
+          FlatNode nn = fn.getNext(i);
+
+          if (!onlyVisitSSJavaLoop || (onlyVisitSSJavaLoop && loopIncElements.contains(nn))) {
+            flatNodesToVisit.add(nn);
+          }
+
+        }
+      }
+
+    }
+
+  }
+
+  private void sharedLocation_nodeActions(FlatNode fn, Hashtable<Location, Vector<Object>> curr) {
+
+    TempDescriptor lhs;
+    TempDescriptor rhs;
+    FieldDescriptor fld;
+
+    System.out.println("fn="+fn);
+    switch (fn.kind()) {
+    case FKind.FlatFieldNode:
+    case FKind.FlatElementNode: {
+
+      FlatFieldNode ffn = (FlatFieldNode) fn;
+      lhs = ffn.getDst();
+      rhs = ffn.getSrc();
+      fld = ffn.getField();
+
+      // read field
+      NTuple<Descriptor> srcHeapPath = mapHeapPath.get(rhs);
+      NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
+      fldHeapPath.add(fld);
+
+      if (fld.getType().isImmutable()) {
+        readLocation(fn, fldHeapPath, curr);
+      }
+
+      // propagate rhs's heap path to the lhs
+      mapHeapPath.put(lhs, fldHeapPath);
+
+    }
+      break;
+
+    case FKind.FlatSetFieldNode:
+    case FKind.FlatSetElementNode: {
+
+      FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
+      lhs = fsfn.getDst();
+      fld = fsfn.getField();
+
+      // write(field)
+      NTuple<Descriptor> lhsHeapPath = computePath(lhs);
+      NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(lhsHeapPath.getList());
+      writeLocation(curr, fldHeapPath, fld);
+
+    }
+      break;
+
+    case FKind.FlatCall: {
+
+    }
+      break;
+    }
+
+  }
+
+  private void writeLocation(Hashtable<Location, Vector<Object>> curr,
+      NTuple<Descriptor> fldHeapPath, FieldDescriptor fld) {
+
+    Location fieldLoc = (Location) fld.getType().getExtension();
+    if (ssjava.isSharedLocation(fieldLoc)) {
+
+      Vector<Object> v = curr.get(fieldLoc);
+      if (v == null) {
+        v = new Vector<Object>();
+        curr.put(fieldLoc, v);
+        v.add(0, fldHeapPath);
+        v.add(1, new HashSet());
+        v.add(2, new Boolean(false));
+      }
+      ((Set) v.get(1)).add(fld);
+    }
+  }
+
+  private void readLocation(FlatNode fn, NTuple<Descriptor> fldHeapPath,
+      Hashtable<Location, Vector<Object>> curr) {
+    // TODO Auto-generated method stub
+
   }
 
   private void writtenAnalyis() {
@@ -93,7 +295,7 @@ public class DefinitelyWrittenCheck {
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add(fm);
 
-    FlatNode entrance = null;
+    LoopFinder loopFinder = new LoopFinder(fm);
 
     while (!flatNodesToVisit.isEmpty()) {
       FlatNode fn = flatNodesToVisit.iterator().next();
@@ -103,7 +305,7 @@ public class DefinitelyWrittenCheck {
       if (label != null) {
 
         if (label.equals(ssjava.SSJAVA)) {
-          entrance = fn;
+          ssjavaLoopEntrance = fn;
           break;
         }
       }
@@ -114,16 +316,29 @@ public class DefinitelyWrittenCheck {
       }
     }
 
-    assert entrance != null;
+    assert ssjavaLoopEntrance != null;
 
-    writtenAnalysis_analyzeLoop(entrance);
+    // assume that ssjava loop is top-level loop in method, not nested loop
+    Set nestedLoop = loopFinder.nestedLoops();
+    for (Iterator loopIter = nestedLoop.iterator(); loopIter.hasNext();) {
+      LoopFinder lf = (LoopFinder) loopIter.next();
+      if (lf.loopEntrances().iterator().next().equals(ssjavaLoopEntrance)) {
+        ssjavaLoop = lf;
+      }
+    }
+
+    assert ssjavaLoop != null;
+
+    writtenAnalysis_analyzeLoop();
 
   }
 
-  private void writtenAnalysis_analyzeLoop(FlatNode entrance) {
+  private void writtenAnalysis_analyzeLoop() {
 
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add(entrance);
+    flatNodesToVisit.add(ssjavaLoopEntrance);
+
+    loopIncElements = (Set<FlatNode>) ssjavaLoop.loopIncElements();
 
     while (!flatNodesToVisit.isEmpty()) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
@@ -143,7 +358,7 @@ public class DefinitelyWrittenCheck {
         }
       }
 
-      writtenAnalysis_nodeAction(fn, curr, entrance);
+      writtenAnalysis_nodeAction(fn, curr, ssjavaLoopEntrance);
 
       // if a new result, schedule forward nodes for analysis
       if (!curr.equals(prev)) {
@@ -151,7 +366,10 @@ public class DefinitelyWrittenCheck {
 
         for (int i = 0; i < fn.numNext(); i++) {
           FlatNode nn = fn.getNext(i);
-          flatNodesToVisit.add(nn);
+          if (loopIncElements.contains(nn)) {
+            flatNodesToVisit.add(nn);
+          }
+
         }
       }
     }
@@ -506,13 +724,11 @@ public class DefinitelyWrittenCheck {
 
     // intraprocedural analysis
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    Set<FlatNode> visited = new HashSet<FlatNode>();
     flatNodesToVisit.add(fm);
 
     while (!flatNodesToVisit.isEmpty()) {
       FlatNode fn = flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove(fn);
-      visited.add(fn);
 
       Set<NTuple<Descriptor>> curr = new HashSet<NTuple<Descriptor>>();
 
@@ -526,11 +742,11 @@ public class DefinitelyWrittenCheck {
 
       methodReadOverWrite_nodeActions(fn, curr, readSet, overWriteSet);
 
-      mapFlatNodeToWrittenSet.put(fn, curr);
-
-      for (int i = 0; i < fn.numNext(); i++) {
-        FlatNode nn = fn.getNext(i);
-        if (!visited.contains(nn)) {
+      Set<NTuple<Descriptor>> writtenSetPrev = mapFlatNodeToWrittenSet.get(fn);
+      if (!curr.equals(writtenSetPrev)) {
+        mapFlatNodeToWrittenSet.put(fn, curr);
+        for (int i = 0; i < fn.numNext(); i++) {
+          FlatNode nn = fn.getNext(i);
           flatNodesToVisit.add(nn);
         }
       }
@@ -671,6 +887,11 @@ public class DefinitelyWrittenCheck {
       break;
 
     }
+
+  }
+
+  private void mergeSharedAnaylsis(Hashtable<Location, Vector<Object>> curr,
+      Hashtable<Location, Vector<Object>> in) {
 
   }
 

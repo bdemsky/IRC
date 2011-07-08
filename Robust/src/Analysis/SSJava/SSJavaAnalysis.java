@@ -12,6 +12,7 @@ import Analysis.Loops.LoopOptimize;
 import Analysis.Loops.LoopTerminate;
 import IR.AnnotationDescriptor;
 import IR.ClassDescriptor;
+import IR.Descriptor;
 import IR.MethodDescriptor;
 import IR.State;
 import IR.TypeUtil;
@@ -298,4 +299,20 @@ public class SSJavaAnalysis {
     return callgraph;
   }
 
+  public SSJavaLattice<String> getLattice(Descriptor d) {
+
+    if (d instanceof MethodDescriptor) {
+      return getMethodLattice((MethodDescriptor) d);
+    } else {
+      return getClassLattice((ClassDescriptor) d);
+    }
+
+  }
+
+  public boolean isSharedLocation(Location loc) {
+
+    SSJavaLattice<String> lattice = getLattice(loc.getDescriptor());
+    return lattice.getSpinLocSet().contains(loc.getLocIdentifier());
+
+  }
 }
