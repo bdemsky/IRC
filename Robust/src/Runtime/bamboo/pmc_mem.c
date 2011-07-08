@@ -26,7 +26,7 @@ void * pmc_alloc(unsigned int * numbytesallocated, unsigned int minimumbytes) {
 	void * newstartptr=startptr+memcheck;
 	
 	//update unit end points
-	for(unsigned int index=startindex;index<endindex;index++) {
+	for(unsigned int index=startindex;index<(endindex-1);index++) {
 	  void *ptr=pmc_unitend(index);
 	  if ((ptr>startptr)&&(ptr<newstartptr)) {
 	    pmc_heapptr->units[index].endptr=newstartptr;

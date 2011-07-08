@@ -10,6 +10,7 @@ void pmc_count() {
       //got lock
       void *unitbase=(i==0)?gcbaseva:pmc_heapptr->units[i-1].endptr;
       void *unittop=pmc_heapptr->units[i].endptr;
+      //tprintf("Cnt: %x - %x\n", unitbase, unittop);
       pmc_countbytes(&pmc_heapptr->units[i], unitbase, unittop);
     }
   }
@@ -76,8 +77,12 @@ void pmc_doforward() {
       totalbytes+=pmc_heapptr->units[i].numbytes;
     }
   }
-  if (startregion==-1) 
+  if (startregion==-1) {
+    //out of regions....
+    region->lowunit=region->highunit=NUMPMCUNITS;
+    region->lastptr=region->startptr=region->endptr=pmc_heapptr->units[region->highunit-1].endptr;
     return;
+  }
   if (endregion==-1)
     endregion=NUMPMCUNITS;
   region->lowunit=startregion;
@@ -91,29 +96,30 @@ void pmc_doforward() {
     //downward in memory
     region->lastptr=region->startptr+totalbytes;
   }
-
   pmc_forward(region, totalbytes, region->startptr, region->endptr, !(BAMBOO_NUM_OF_CORE&1));
 }
 
 
 //fwddirection=1 means move things to lower addresses
-void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *bottomptr, void *topptr, bool fwddirection) {
+void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *bottomptr, void *topptr, bool lower) {
   void *tmpptr=bottomptr;
-  void *forwardptr=fwddirection?bottomptr:(topptr-totalbytes);
+  void *forwardptr=lower?bottomptr:(topptr-totalbytes);
   struct ___Object___ *lastobj=NULL;
   unsigned int currunit=region->lowunit;
   void *endunit=pmc_unitend(currunit);
 
-  if (!fwddirection) {
-    //reset boundaries of beginning units
-    while(endunit<=region->lastptr) {
+  if (!lower) {
+    //We're resetting the boundaries of units at the low address end of the region...
+    //Be sure not to reset the boundary of our last unit...it is shared with another region
+    while(endunit<=region->lastptr&&(currunit<(region->highunit-1))) {
       pmc_heapptr->units[currunit].endptr=endunit;
       currunit++;
       endunit=pmc_unitend(currunit);
     }
   } else {
-    //reset boundaries of end units
-    unsigned int lastunit=region->highunit-1;
+    //We're resetting the boundaries of units at the high address end of the region...
+    //Very top most unit defines boundary of region...we can't move that right now
+    unsigned int lastunit=region->highunit-2;
     void * lastunitend=pmc_unitend(lastunit);
     while(lastunitend>=region->lastptr) {
       pmc_heapptr->units[lastunit].endptr=lastunitend;
@@ -134,22 +140,24 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
 
     if (((struct ___Object___ *)tmpptr)->marked) {
       ((struct ___Object___ *)tmpptr)->marked=forwardptr;
-      tprintf("Forwarding %x->%x\n", tmpptr, forwardptr);
+      //tprintf("Forwarding %x->%x\n", tmpptr, forwardptr);
       void *newforwardptr=forwardptr+size;
-      while(newforwardptr>=endunit) {
-	pmc_heapptr->regions[currunit].endptr=newforwardptr;
+      //Need to make sure that unit boundaries do not fall in the middle of an object...
+      //Unless the unit boundary is at the end of the region...then just ignore it.
+      while(newforwardptr>=endunit&&currunit<(region->highunit-1)) {
+	pmc_heapptr->units[currunit].endptr=newforwardptr;
 	currunit++;
 	endunit=pmc_unitend(currunit);
       }
 
       forwardptr=newforwardptr;
-      if (lastobj&&!fwddirection) {
+      if (!lower) {
 	((struct ___Object___ *)tmpptr)->backward=lastobj;
 	lastobj=(struct ___Object___ *)tmpptr;
       }
     }
     tmpptr+=size;
   }
-  tprintf("forwardptr=%x\n",forwardptr);
+  //tprintf("forwardptr=%x\n",forwardptr);
   region->lastobj=lastobj;
 }

@@ -27,6 +27,7 @@ void pmc_scanPtrsInObj(void * ptr, int type) {
     int length=ao->___length___;
     for(int i=0; i<length; i++) {
       void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
+      //tprintf("%x marks %x\n", ptr, objptr);
       PMC_MARKOBJ(objptr);
     }
   } else {
@@ -35,6 +36,7 @@ void pmc_scanPtrsInObj(void * ptr, int type) {
     for(int i=1; i<=size; i++) {
       unsigned int offset=pointer[i];
       void * objptr=*((void **)(((char *)ptr)+offset));
+      //tprintf("%x marks %x\n", ptr, objptr);
       PMC_MARKOBJ(objptr);
     }
   }
@@ -44,6 +46,7 @@ void pmc_markgarbagelist(struct garbagelist * listptr) {
   for(;listptr!=NULL;listptr=listptr->next) {
     int size=listptr->size;
     for(int i=0; i<size; i++) {
+      //tprintf("gl marks %x\n", listptr->array[i]);
       PMC_MARKOBJ(listptr->array[i]);
     }
   }
@@ -163,6 +166,7 @@ void pmc_tomark(struct garbagelist * stackptr) {
       unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
       for(int i = thread_counter; i > 0; i--) {
         // the thread obj can not be NULL
+	//tprintf("mgc marks %x\n", (void *)bamboo_thread_queue[4+start]);
         PMC_MARKOBJNONNULL((void *)bamboo_thread_queue[4+start]);
         start = (start+1)&bamboo_max_thread_num_mask;
       }
@@ -171,9 +175,11 @@ void pmc_tomark(struct garbagelist * stackptr) {
   // enqueue the bamboo_threadlocks
   for(int i = 0; i < bamboo_threadlocks.index; i++) {
     // the locks can not be NULL
+    //tprintf("mgc2 marks %x\n", (void *)bamboo_threadlocks.locks[i].object);
     PMC_MARKOBJNONNULL((void *)(bamboo_threadlocks.locks[i].object));
   }
   // enqueue the bamboo_current_thread
+  //tprintf("mgc3 marks %x\n", bamboo_current_thread);
   PMC_MARKOBJ(bamboo_current_thread);
 #endif
 }

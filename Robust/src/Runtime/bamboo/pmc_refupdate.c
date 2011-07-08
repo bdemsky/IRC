@@ -11,12 +11,16 @@
 
 #define pmcupdateObj(objptr) ((void *)((struct ___Object___ *)objptr)->marked)
 
-#define PMCUPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=pmcupdateObj(updatetmpptr);if (obj==NULL) {tprintf("BAD REF UPDATE %x->%x in %u\n",updatetmpptr,obj,__LINE__);}}}
+#define PMCUPDATEOBJ(obj) {void *updatetmpptr=obj; if (updatetmpptr!=NULL) {obj=pmcupdateObj(updatetmpptr);}}
 
-#define PMCUPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=pmcupdateObj(updatetmpptr);if (obj==NULL) {tprintf("BAD REF UPDATE in %x->%x %u\n",updatetmpptr,obj,__LINE__);}}
+//if (obj==NULL) {tprintf("BAD REF UPDATE %x->%x in %u\n",updatetmpptr,obj,__LINE__);}}}
+
+#define PMCUPDATEOBJNONNULL(obj) {void *updatetmpptr=obj; obj=pmcupdateObj(updatetmpptr);}
+//if (obj==NULL) {tprintf("BAD REF UPDATE in %x->%x %u\n",updatetmpptr,obj,__LINE__);}}
 
 void pmc_updatePtrs(void *ptr, int type) {
   unsigned int * pointer=pointerarray[type];
+  //tprintf("Updating pointers in %x\n", ptr);
   if (pointer==0) {
     /* Array of primitives */
   } else if (((unsigned int)pointer)==1) {
@@ -33,7 +37,8 @@ void pmc_updatePtrs(void *ptr, int type) {
       unsigned int offset=pointer[i];
       PMCUPDATEOBJ(*((void **)(((char *)ptr)+offset)));
     }
-  }  
+  }
+  //tprintf("done\n");
 }
 
 void pmc_updategarbagelist(struct garbagelist *listptr) {
@@ -146,7 +151,7 @@ void pmc_doreferenceupdate(struct garbagelist *stackptr) {
 
 void pmc_referenceupdate(void *bottomptr, void *topptr) {
   void *tmpptr=bottomptr;
-  tprintf("%x -- %x\n", bottomptr, topptr);
+  //tprintf("%x -- %x\n", bottomptr, topptr);
   while(tmpptr<topptr) {
     unsigned int type;
     unsigned int size;
@@ -186,12 +191,13 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
       void *forwardptr=(void *)((struct ___Object___ *) tmpptr)->marked;
       ((struct ___Object___ *) tmpptr)->marked=NULL;
       if (forwardptr) {
+	//tprintf("Compacting %x\n",tmpptr);
 	memmove(forwardptr, tmpptr, size);
       }
       tmpptr+=size;
     }
   } else {
-    struct ___Object___ *backward=((struct ___Object___ *) region)->backward;
+    struct ___Object___ *backward=region->lastobj;
     struct ___Object___ *lastobj=NULL;
     while(backward) {
       lastobj=backward;
@@ -202,9 +208,8 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
       size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
       void *forwardptr=(void *)((struct ___Object___ *) lastobj)->marked;
       ((struct ___Object___ *) lastobj)->marked=NULL;
-      if (forwardptr) {
-	memmove(forwardptr, lastobj, size);
-      }
+      //tprintf("Compacting %x\n",lastobj);
+      memmove(forwardptr, lastobj, size);
     }
   }
 }
