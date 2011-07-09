@@ -1,56 +1,104 @@
 package Analysis.SSJava;
 
 import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Set;
 
 import IR.Descriptor;
+import Util.Pair;
 
 public class SharedLocState {
 
-  Location loc;
-  Set<Descriptor> varSet;
-  boolean flag;
+  // maps location to its current writing var set and flag
+  Hashtable<Location, Pair<Set<Descriptor>, Boolean>> mapLocation2Status;
 
-  public SharedLocState(Location loc) {
-    this.loc = loc;
-    this.varSet = new HashSet<Descriptor>();
-    this.flag = false;
+  public SharedLocState() {
+    mapLocation2Status = new Hashtable<Location, Pair<Set<Descriptor>, Boolean>>();
   }
 
-  public void addVar(Descriptor d) {
-    varSet.add(d);
+  private Pair<Set<Descriptor>, Boolean> getStatus(Location loc) {
+    Pair<Set<Descriptor>, Boolean> pair = mapLocation2Status.get(loc);
+    if (pair == null) {
+      pair = new Pair<Set<Descriptor>, Boolean>(new HashSet<Descriptor>(), new Boolean(false));
+      mapLocation2Status.put(loc, pair);
+    }
+    return pair;
   }
 
-  public void removeVar(Descriptor d) {
-    varSet.remove(d);
+  public void addVar(Location loc, Descriptor d) {
+    getStatus(loc).getFirst().add(d);
   }
 
-  public Location getLoc() {
-    return loc;
+  public void removeVar(Location loc, Descriptor d) {
+    getStatus(loc).getFirst().remove(d);
   }
 
   public String toString() {
-    return "<" + loc + "," + varSet + "," + flag + ">";
+    return mapLocation2Status.toString();
   }
 
-  public void setLoc(Location loc) {
-    this.loc = loc;
+  public Set<Location> getLocationSet() {
+    return mapLocation2Status.keySet();
   }
 
-  public Set<Descriptor> getVarSet() {
-    return varSet;
+  public void merge(SharedLocState inState) {
+    Set<Location> keySet = inState.getLocationSet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      Location inLoc = (Location) iterator.next();
+
+      Pair<Set<Descriptor>, Boolean> inPair = inState.getStatus(inLoc);
+      Pair<Set<Descriptor>, Boolean> currPair = mapLocation2Status.get(inLoc);
+
+      if (currPair == null) {
+        currPair =
+            new Pair<Set<Descriptor>, Boolean>(new HashSet<Descriptor>(), new Boolean(false));
+        mapLocation2Status.put(inLoc, currPair);
+      }
+      mergeSet(currPair.getFirst(), inPair.getFirst());
+    }
   }
 
-  public void setVarSet(Set<Descriptor> varSet) {
-    this.varSet = varSet;
+  public void mergeSet(Set<Descriptor> curr, Set<Descriptor> in) {
+    if (curr.isEmpty()) {
+      // Varset has a special initial value which covers all possible
+      // elements
+      // For the first time of intersection, we can take all previous set
+      curr.addAll(in);
+    } else {
+      curr.retainAll(in);
+    }
   }
 
-  public boolean isFlag() {
-    return flag;
+  public int hashCode() {
+    return mapLocation2Status.hashCode();
   }
 
-  public void setFlag(boolean flag) {
-    this.flag = flag;
+  public Hashtable<Location, Pair<Set<Descriptor>, Boolean>> getMap() {
+    return mapLocation2Status;
   }
 
+  public boolean equals(Object o) {
+    if (!(o instanceof SharedLocState)) {
+      return false;
+    }
+    SharedLocState in = (SharedLocState) o;
+    return in.getMap().equals(mapLocation2Status);
+  }
+
+  public Set<Descriptor> getVarSet(Location loc) {
+    return mapLocation2Status.get(loc).getFirst();
+  }
+
+  public void updateFlag(Location loc, boolean b) {
+    Pair<Set<Descriptor>, Boolean> pair = mapLocation2Status.get(loc);
+    if (pair.getSecond() != b) {
+      mapLocation2Status.put(loc,
+          new Pair<Set<Descriptor>, Boolean>(pair.getFirst(), Boolean.valueOf(b)));
+    }
+  }
+
+  public boolean getFlag(Location loc) {
+    return mapLocation2Status.get(loc).getSecond().booleanValue();
+  }
 }
