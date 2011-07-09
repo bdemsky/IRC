@@ -37,7 +37,7 @@ void firstPageConvert(bool origclosefirst, unsigned INTPTR main_factor, unsigned
     //                              delta_fator from the next original page
     int * oldtable_next=&gccachesamplingtbl[oldpage+NUMCORESACTIVE];
     for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-      (*newtable)=((*newtable)+(*oldtable)*main_factor+(*oldtable_next)*delta_factor);
+      (*newtable)=(*newtable)+((*oldtable)*main_factor+(*oldtable_next)*delta_factor)>>BAMBOO_PAGE_SIZE_BITS;
       newtable++;
       oldtable++;
       oldtable_next++;
@@ -50,7 +50,7 @@ void firstPageConvert(bool origclosefirst, unsigned INTPTR main_factor, unsigned
     // the start destination page closes first, now compute the revised 
     // profiling info for it.
     for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-      (*newtable)=((*newtable)+(*oldtable)*main_factor);
+      (*newtable)=(*newtable)+((*oldtable)*main_factor)>>BAMBOO_PAGE_SIZE_BITS;
       newtable++;
       oldtable++;
     }
@@ -77,7 +77,7 @@ void restClosedPageConvert(void * current_ptr, unsigned INTPTR main_factor, unsi
     int *oldtable_next=&gccachesamplingtbl[oldpage+NUMCORESACTIVE];
 
     for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-      (*newtable)=((*newtable)+(*oldtable)*main_factor+(*oldtable_next)*delta_factor);
+      (*newtable)=(*newtable)+((*oldtable)*main_factor+(*oldtable_next)*delta_factor)>>BAMBOO_PAGE_SIZE_BITS;
       newtable++;
       oldtable++;
       oldtable_next++;
@@ -104,7 +104,7 @@ void lastPageConvert(void * current_ptr) {
   int *oldtable=&gccachesamplingtbl[oldpage];
 
   for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-    (*newtable)=((*newtable)+(*oldtable)*to_factor);
+    (*newtable)=(*newtable)+((*oldtable)*to_factor)>>BAMBOO_PAGE_SIZE_BITS;
     newtable++;
     oldtable++;
   }
@@ -174,7 +174,7 @@ void samplingDataConvert(void * current_ptr) {
       int * oldtable=&gccachesamplingtbl[oldpage];
   
       for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-        (*newtable)=((*newtable)+(*oldtable)*tmp_factor);
+        (*newtable)=(*newtable)+((*oldtable)*tmp_factor)>>BAMBOO_PAGE_SIZE_BITS;
         newtable++;
         oldtable++;
       }
@@ -516,7 +516,7 @@ void gc_output_cache_sampling_r() {
     int accesscore = 0; // TODO
     int * local_tbl = &gccachesamplingtbl_r[page_index*NUMCORESACTIVE];
     for(int i = 0; i < NUMCORESACTIVE; i++) {
-      int freq = *local_tbl; ///BAMBOO_PAGE_SIZE;
+      int freq = *local_tbl; 
       printf("%d,  ", freq);
       if(freq != 0) {
         accesscore++;// TODO
@@ -524,9 +524,9 @@ void gc_output_cache_sampling_r() {
       local_tbl++;
     }
     if(accesscore!=0) {
-      int * local_tbl = &gccachesamplingtbl_r[page_index];
+      int * local_tbl = &gccachesamplingtbl_r[page_index*NUMCORESACTIVE];
       for(int i = 0; i < NUMCORESACTIVE; i++) {
-        int freq = *local_tbl; ///BAMBOO_PAGE_SIZE;
+        int freq = *local_tbl;
         sumdata[accesscore-1][i]+=freq;
         local_tbl++;
       }
@@ -534,6 +534,7 @@ void gc_output_cache_sampling_r() {
   
     printf("\n");
   }
+  printf("+++++\n");
   // TODO printout the summary data
   for(int i = 0; i < NUMCORESACTIVE; i++) {
     printf("%d  ", i);
