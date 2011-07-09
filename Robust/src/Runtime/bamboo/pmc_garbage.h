@@ -4,8 +4,8 @@
 #include "pmc_queue.h"
 #include "structdefs.h"
 
-//#define PMC_MINALLOC 131072
-#define PMC_MINALLOC 2048
+#define PMC_MINALLOC 131072
+//#define PMC_MINALLOC 2048
 #define NUMPMCUNITS (4*NUMCORES4GC)
 #define UNITSIZE (BAMBOO_SHARED_MEM_SIZE/NUMPMCUNITS)
 

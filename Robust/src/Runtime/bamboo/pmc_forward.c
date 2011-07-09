@@ -11,7 +11,7 @@ void pmc_count() {
       //got lock
       void *unitbase=(i==0)?gcbaseva:pmc_heapptr->units[i-1].endptr;
       void *unittop=pmc_heapptr->units[i].endptr;
-      tprintf("Cnt: %x - %x\n", unitbase, unittop);
+      //tprintf("Cnt: %x - %x\n", unitbase, unittop);
       pmc_countbytes(&pmc_heapptr->units[i], unitbase, unittop);
     }
   }
@@ -49,8 +49,16 @@ void pmc_processunits() {
   int totalbytes=0;
   int numregions=0;
 
+  pmc_heapptr->regions[0].startptr=gcbaseva;
+  pmc_heapptr->regions[0].lowunit=0;
+
   for(int i=0;i<NUMPMCUNITS;i++) {
     if (numregions>0&&(totalbytes+pmc_heapptr->units[i].numbytes)>livebytespercore) {
+      pmc_heapptr->regions[regionnum].highunit=i;
+      pmc_heapptr->regions[regionnum].endptr=pmc_heapptr->units[i-1].endptr;
+
+      pmc_heapptr->regions[regionnum+1].startptr=pmc_heapptr->units[i-1].endptr;
+      pmc_heapptr->regions[regionnum+1].lowunit=i;
       regionnum++;
       totalbytes-=livebytespercore;
       numregions=0;
@@ -60,6 +68,15 @@ void pmc_processunits() {
     tmc_spin_mutex_init(&pmc_heapptr->units[i].lock);
     totalbytes+=pmc_heapptr->units[i].numbytes;
   }
+  pmc_heapptr->regions[regionnum].highunit=NUMPMCUNITS;
+  pmc_heapptr->regions[regionnum].endptr=pmc_heapptr->units[NUMPMCUNITS-1].endptr;
+  regionnum++;
+  for(;regionnum<NUMCORES4GC;regionnum++) {
+    pmc_heapptr->regions[regionnum].highunit=NUMPMCUNITS;
+    pmc_heapptr->regions[regionnum].endptr=pmc_heapptr->units[NUMPMCUNITS-1].endptr;
+    pmc_heapptr->regions[regionnum+1].startptr=pmc_heapptr->units[NUMPMCUNITS-1].endptr;
+    pmc_heapptr->regions[regionnum+1].lowunit=NUMPMCUNITS;
+  }
 }
 
 void pmc_doforward() {
@@ -67,30 +84,10 @@ void pmc_doforward() {
   int endregion=-1;
   unsigned int totalbytes=0;
   struct pmc_region * region=&pmc_heapptr->regions[BAMBOO_NUM_OF_CORE];
-  for(int i=0;i<NUMPMCUNITS;i++) {
-    if (startregion==-1&&BAMBOO_NUM_OF_CORE==pmc_heapptr->units[i].regionnum) {
-      startregion=i;
-    }
-    if (BAMBOO_NUM_OF_CORE<pmc_heapptr->units[i].regionnum) {
-      endregion=i;
-      break;
-    }
-    if (startregion!=-1) {
-      totalbytes+=pmc_heapptr->units[i].numbytes;
-    }
+  for(int index=region->lowunit; index<region->highunit;index++) {
+    totalbytes+=pmc_heapptr->units[index].numbytes;
   }
-  if (startregion==-1) {
-    //out of regions....
-    region->lowunit=region->highunit=NUMPMCUNITS;
-    region->lastptr=region->startptr=region->endptr=pmc_heapptr->units[region->highunit-1].endptr;
-    return;
-  }
-  if (endregion==-1)
-    endregion=NUMPMCUNITS;
-  region->lowunit=startregion;
-  region->highunit=endregion;
-  region->startptr=(startregion==0)?gcbaseva:pmc_heapptr->units[startregion-1].endptr;
-  region->endptr=pmc_heapptr->units[endregion-1].endptr;
+
   if (BAMBOO_NUM_OF_CORE&1) {
     //upward in memory
     region->lastptr=region->endptr-totalbytes;
@@ -109,22 +106,28 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
   struct ___Object___ *lastobj=NULL;
   unsigned int currunit=region->lowunit;
   void *endunit=pmc_unitend(currunit);
+  bool internal=!(BAMBOO_NUM_OF_CORE&1);
+  int highbound=internal?region->highunit:region->highunit-1;
+
 
   if (!lower) {
     //We're resetting the boundaries of units at the low address end of the region...
     //Be sure not to reset the boundary of our last unit...it is shared with another region
-    while(endunit<=region->lastptr&&(currunit<(region->highunit-1))) {
+
+    while(endunit<=region->lastptr&&(currunit<highbound)) {
       pmc_heapptr->units[currunit].endptr=endunit;
+      //tprintf("Ch2: %u -> %x\n", currunit, endunit);
       currunit++;
       endunit=pmc_unitend(currunit);
     }
   } else {
     //We're resetting the boundaries of units at the high address end of the region...
     //Very top most unit defines boundary of region...we can't move that right now
-    unsigned int lastunit=region->highunit-2;
+    unsigned int lastunit=internal?region->highunit-1:region->highunit-2;
     void * lastunitend=pmc_unitend(lastunit);
     while(lastunitend>=region->lastptr) {
       pmc_heapptr->units[lastunit].endptr=lastunitend;
+      //tprintf("Ch3: %u -> %x\n", lastunit, lastunitend);
       lastunit--;
       lastunitend=pmc_unitend(lastunit);
     }
@@ -146,8 +149,9 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
       void *newforwardptr=forwardptr+size;
       //Need to make sure that unit boundaries do not fall in the middle of an object...
       //Unless the unit boundary is at the end of the region...then just ignore it.
-      while(newforwardptr>=endunit&&currunit<(region->highunit-1)) {
+      while(newforwardptr>=endunit&&currunit<highbound) {
 	pmc_heapptr->units[currunit].endptr=newforwardptr;
+	//tprintf("Ch4: %u -> %x\n", currunit, newforwardptr);
 	currunit++;
 	endunit=pmc_unitend(currunit);
       }
@@ -160,6 +164,6 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
     }
     tmpptr+=size;
   }
-  tprintf("forwardptr=%x\n",forwardptr);
+  //tprintf("forwardptr=%x\n",forwardptr);
   region->lastobj=lastobj;
 }

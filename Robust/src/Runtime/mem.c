@@ -15,6 +15,10 @@
 #include "multicoremem.h"
 #include "multicoregarbage.h"
 #endif
+#ifdef PMC_GC
+#include "multicoregc.h"
+#include "pmc_garbage.h"
+#endif
 
 #if defined(MULTICORE_GC)||defined(PMC_GC)
 extern volatile bool gcflag;

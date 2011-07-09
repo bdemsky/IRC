@@ -5,6 +5,8 @@
 #include "multicoregarbage.h"
 #ifdef PMC_GC
 #include "multicoregcprofile.h"
+#include "multicoregc.h"
+#include "pmc_garbage.h"
 #endif
 #include "multicore_arch.h"
 #include <stdio.h>

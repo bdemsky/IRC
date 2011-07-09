@@ -8,6 +8,11 @@
 #include "multicoretask.h"
 #include "multicoremgc.h"
 #include "multicorecache.h"
+#ifdef PMC_GC
+#include "multicoregc.h"
+#include "pmc_garbage.h"
+#endif
+
 
 //Define the following line if the base object type has pointers
 //#define OBJECTHASPOINTERS
