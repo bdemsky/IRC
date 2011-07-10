@@ -85,6 +85,7 @@ echo -profile_interrupt build with profile information of interrupts
 echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo
 echo Multicore GC options
+echo -perfcount performance counters
 echo -multicoregc generate multi-core binary with garbage collection
 echo -pmc parallel collector
 echo "-numcore4gc set the number of cores for gc (should be used together with -multicoregc), defaultly set as 0"
@@ -208,6 +209,7 @@ USEIOFLAG=false
 INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
 MULTICOREGCFLAG=false;
+PERFCOUNT=false;
 PMCFLAG=false;
 GCMEMLOCALFLAG=false;
 GCMEMFIXEDFLAG=false;
@@ -494,6 +496,9 @@ elif [[ $1 = '-pmc' ]]
 then
 PMCFLAG=true
 JAVAOPTS="$JAVAOPTS -pmc"
+elif [[ $1 = '-perfcount' ]]
+then
+PERFCOUNT=true
 elif [[ $1 = '-gcmem_local' ]]
 then
 GCMEMLOCALFLAG=true
@@ -1088,6 +1093,11 @@ fi
 if $PMCFLAG
 then #MULTICOREGC version
 TILERACFLAGS="${TILERACFLAGS} -DPMC_GC -D${GCCORES}"
+fi
+
+if $PERFCOUNT
+then #MULTICOREGC version
+TILERACFLAGS="${TILERACFLAGS} -DPERFCOUNT"
 fi
 
 if $GCPROFILEFLAG
