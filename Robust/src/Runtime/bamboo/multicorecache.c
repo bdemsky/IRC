@@ -421,7 +421,7 @@ void cacheAdapt_phase_client() {
   //send init finish msg to core coordinator
   send_msg_2(STARTUPCORE, GCFINISHPREF, BAMBOO_NUM_OF_CORE);
   GC_PRINTF("Finish prefinish phase\n");
-  CACHEADAPT_SAMPING_RESET();
+  CACHEADAPT_SAMPLING_RESET();
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
     // zero out the gccachesamplingtbl
     BAMBOO_MEMSET_WH(gccachesamplingtbl_local,0,size_cachesamplingtbl_local);  
@@ -456,8 +456,8 @@ void cacheAdapt_phase_master() {
   cacheAdapt_mutator();
   cacheAdapt_gc(false);
   GC_CHECK_ALL_CORE_STATUS();
-
-  CACHEADAPT_SAMPING_RESET();
+  
+  CACHEADAPT_SAMPLING_RESET();
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
     // zero out the gccachesamplingtbl
     BAMBOO_MEMSET_WH(gccachesamplingtbl_local,0,size_cachesamplingtbl_local);

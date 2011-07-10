@@ -511,8 +511,6 @@ void pregcprocessing() {
 #if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)
   // disable the timer interrupt
   bamboo_mask_timer_intr();
-#endif
-#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)
   // get the sampling data 
   bamboo_output_dtlb_sampling();
 #endif
@@ -523,6 +521,8 @@ void postgcprocessing() {
   // enable the timer interrupt
   bamboo_tile_timer_set_next_event(GC_TILE_TIMER_EVENT_SETTING); 
   bamboo_unmask_timer_intr();
+  //turn on sampling again
+  bamboo_dtlb_sampling_init();
 #endif
 }
 

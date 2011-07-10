@@ -88,9 +88,9 @@ void gc_output_cache_sampling_r();
 
 #ifdef GC_CACHE_SAMPLING
 // reset the sampling arrays
-#define CACHEADAPT_SAMPING_RESET()  bamboo_dtlb_sampling_reset()
+#define CACHEADAPT_SAMPLING_RESET()  bamboo_dtlb_sampling_reset()
 #else // GC_CACHE_SAMPING
-#define CACHEADAPT_SAMPING_RESET() 
+#define CACHEADAPT_SAMPLING_RESET() 
 #endif
 
 #define CACHEADAPT_SAMPLING_DATA_REVISE_INIT(o,t) \
