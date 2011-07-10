@@ -244,7 +244,63 @@ void * updateblocks(struct moveHelper * orig, struct moveHelper * to) {
 
       /* Move the object */
       if(origptr < endtoptr&&dstptr < origptr+length) {
-        memmove(dstptr, origptr, length);
+	unsigned int *sptr=origptr;
+	unsigned int *dptr=dstptr;
+	unsigned int len=length;
+	//we will never have an object of size 0....
+
+	do {
+	  //#1
+	  unsigned int tmpptr0=*sptr;
+	  sptr++;
+	  *dptr=tmpptr0;
+	  dptr++;
+
+	  //#2
+	  tmpptr0=*sptr;
+	  sptr++;
+	  *dptr=tmpptr0;
+	  dptr++;
+
+	  //#3
+	  tmpptr0=*sptr;
+	  sptr++;
+	  *dptr=tmpptr0;
+	  dptr++;
+
+	  //#4
+	  tmpptr0=*sptr;
+	  sptr++;
+	  *dptr=tmpptr0;
+	  dptr++;
+
+	  //#5
+	  tmpptr0=*sptr;
+	  sptr++;
+	  *dptr=tmpptr0;
+	  dptr++;
+
+	  //#6
+	  tmpptr0=*sptr;
+	  sptr++;
+	  *dptr=tmpptr0;
+	  dptr++;
+
+	  //#7
+	  tmpptr0=*sptr;
+	  sptr++;
+	  *dptr=tmpptr0;
+	  dptr++;
+
+	  //#8
+	  tmpptr0=*sptr;
+	  sptr++;
+	  *dptr=tmpptr0;
+	  dptr++;
+
+	  len=len-32;
+	} while(len);
+        //memmove(dstptr, origptr, length);
       } else if (origptr!=dstptr) {
 	//no need to copy if the source & dest are equal....
         memcpy(dstptr, origptr, length);

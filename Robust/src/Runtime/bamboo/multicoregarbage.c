@@ -9,6 +9,9 @@
 #include "gcqueue.h"
 #include "multicoremem_helper.h"
 #include "bambooalign.h"
+#ifdef PERFCOUNT
+#include "bme_perf_counter.h"
+#endif
 
 volatile bool gcflag;
 gc_status_t gc_status_info;
@@ -529,6 +532,9 @@ bool gc(struct garbagelist * stackptr) {
     gc_status_info.gcprocessing = false;
     return false;
   }
+#ifdef PERFCOUNT
+  profile_start(GC_REGION);
+#endif
 
   // core coordinator routine
   if(0 == BAMBOO_NUM_OF_CORE) {
@@ -553,6 +559,9 @@ bool gc(struct garbagelist * stackptr) {
     gc_nocollect(stackptr);
   }
   postgcprocessing();
+#ifdef PERFCOUNT
+  profile_start(APP_REGION);
+#endif
   return true;
 } 
 
