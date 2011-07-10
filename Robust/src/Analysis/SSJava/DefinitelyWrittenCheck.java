@@ -17,11 +17,13 @@ import IR.State;
 import IR.TypeDescriptor;
 import IR.Flat.FKind;
 import IR.Flat.FlatCall;
+import IR.Flat.FlatExit;
 import IR.Flat.FlatFieldNode;
 import IR.Flat.FlatLiteralNode;
 import IR.Flat.FlatMethod;
 import IR.Flat.FlatNode;
 import IR.Flat.FlatOpNode;
+import IR.Flat.FlatReturnNode;
 import IR.Flat.FlatSetFieldNode;
 import IR.Flat.TempDescriptor;
 import Util.Pair;
@@ -74,10 +76,12 @@ public class DefinitelyWrittenCheck {
 
   // maps shared location to the set of descriptors which belong to the shared
   // location
-  private Hashtable<Pair<NTuple<Descriptor>, Location>, Set<Descriptor>> mapSharedLocation2DescriptorSet;
+  private Hashtable<Location, Set<Descriptor>> mapSharedLocation2DescriptorSet;
 
-  // data structure for merging current state
-  private Hashtable<Pair<NTuple<Descriptor>, Location>, Boolean> mapHeapPathLocation2Flag;
+  // keep current descriptors to visit in fixed-point interprocedural analysis,
+  private Stack<MethodDescriptor> methodDescriptorsToVisitStack;
+
+  private LinkedList<MethodDescriptor> sortedDescriptors;
 
   private FlatNode ssjavaLoopEntrance;
   private LoopFinder ssjavaLoop;
@@ -108,9 +112,8 @@ public class DefinitelyWrittenCheck {
         new Hashtable<MethodDescriptor, Hashtable<NTuple<Descriptor>, SharedLocState>>();
     this.mapFlatNodeToClearingSummary =
         new Hashtable<FlatNode, Hashtable<NTuple<Descriptor>, SharedLocState>>();
-    this.mapSharedLocation2DescriptorSet =
-        new Hashtable<Pair<NTuple<Descriptor>, Location>, Set<Descriptor>>();
-    this.mapHeapPathLocation2Flag = new Hashtable<Pair<NTuple<Descriptor>, Location>, Boolean>();
+    this.mapSharedLocation2DescriptorSet = new Hashtable<Location, Set<Descriptor>>();
+    this.methodDescriptorsToVisitStack = new Stack<MethodDescriptor>();
     this.LOCAL = new TempDescriptor("LOCAL");
   }
 
@@ -127,7 +130,6 @@ public class DefinitelyWrittenCheck {
 
     Hashtable<NTuple<Descriptor>, SharedLocState> result =
         mapFlatNodeToClearingSummary.get(ssjavaLoopEntrance);
-    System.out.println("checkSharedLocationResult=" + result);
     Set<NTuple<Descriptor>> hpKeySet = result.keySet();
     for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
       NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
@@ -149,29 +151,44 @@ public class DefinitelyWrittenCheck {
     // the same time once per the out-most loop
 
     computeReadSharedDescriptorSet();
+    System.out.println("Reading Shared Location=" + mapSharedLocation2DescriptorSet);
 
     Set<MethodDescriptor> methodDescriptorsToAnalyze = new HashSet<MethodDescriptor>();
     methodDescriptorsToAnalyze.addAll(ssjava.getAnnotationRequireSet());
 
-    LinkedList<MethodDescriptor> sortedDescriptors = topologicalSort(methodDescriptorsToAnalyze);
+    LinkedList<MethodDescriptor> descriptorListToAnalyze =
+        (LinkedList<MethodDescriptor>) sortedDescriptors.clone();
 
-    Stack<MethodDescriptor> methodDescriptorsToVisitStack = new Stack<MethodDescriptor>();
+
+    methodDescriptorsToVisitStack.clear();
     Set<MethodDescriptor> methodDescriptorToVistSet = new HashSet<MethodDescriptor>();
-    methodDescriptorToVistSet.addAll(sortedDescriptors);
+    methodDescriptorToVistSet.addAll(descriptorListToAnalyze);
 
-    while (!sortedDescriptors.isEmpty()) {
-      MethodDescriptor md = sortedDescriptors.removeLast();
+    while (!descriptorListToAnalyze.isEmpty()) {
+      MethodDescriptor md = descriptorListToAnalyze.removeFirst();
       methodDescriptorsToVisitStack.add(md);
     }
 
     // analyze scheduled methods until there are no more to visit
     while (!methodDescriptorsToVisitStack.isEmpty()) {
       MethodDescriptor md = methodDescriptorsToVisitStack.pop();
-      FlatMethod fm = state.getMethodFlat(md);
+      methodDescriptorToVistSet.remove(md);
 
-      sharedLocation_analyzeMethod(fm, (md.equals(methodContainingSSJavaLoop)));
+      Hashtable<NTuple<Descriptor>, SharedLocState> completeSummary =
+          sharedLocation_analyzeMethod(md, (md.equals(methodContainingSSJavaLoop)));
 
-      if (true) {
+      Hashtable<NTuple<Descriptor>, SharedLocState> prevCompleteSummary =
+          mapMethodDescriptorToCompleteClearingSummary.get(md);
+
+
+      if (!completeSummary.equals(prevCompleteSummary)) {
+
+        mapMethodDescriptorToCompleteClearingSummary.put(md, completeSummary);
+        
+        Set<MethodDescriptor> dependentsSet=getDependents(md);
+        if(dependentsSet.size()==0){
+          dependentsSet.add(methodContainingSSJavaLoop);
+        }
 
         // results for callee changed, so enqueue dependents caller for
         // further analysis
@@ -179,7 +196,7 @@ public class DefinitelyWrittenCheck {
         while (depsItr.hasNext()) {
           MethodDescriptor methodNext = depsItr.next();
           if (!methodDescriptorsToVisitStack.contains(methodNext)
-              && methodDescriptorToVistSet.contains(methodNext)) {
+              && !methodDescriptorToVistSet.contains(methodNext)) {
             methodDescriptorsToVisitStack.add(methodNext);
           }
 
@@ -194,12 +211,15 @@ public class DefinitelyWrittenCheck {
 
   }
 
-  private void sharedLocation_analyzeMethod(FlatMethod fm, boolean onlyVisitSSJavaLoop) {
+  private Hashtable<NTuple<Descriptor>, SharedLocState> sharedLocation_analyzeMethod(
+      MethodDescriptor md, boolean onlyVisitSSJavaLoop) {
 
     if (state.SSJAVADEBUG) {
-      System.out.println("Definitely written for shared locations Analyzing: " + fm + " "
+      System.out.println("\nDefinitely written for shared locations Analyzing: " + md + " "
           + onlyVisitSSJavaLoop);
     }
+
+    FlatMethod fm = state.getMethodFlat(md);
 
     // intraprocedural analysis
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
@@ -210,6 +230,8 @@ public class DefinitelyWrittenCheck {
       flatNodesToVisit.add(fm);
     }
 
+    Set<FlatNode> returnNodeSet = new HashSet<FlatNode>();
+
     while (!flatNodesToVisit.isEmpty()) {
       FlatNode fn = flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove(fn);
@@ -217,36 +239,22 @@ public class DefinitelyWrittenCheck {
       Hashtable<NTuple<Descriptor>, SharedLocState> curr =
           new Hashtable<NTuple<Descriptor>, SharedLocState>();
 
-      mapHeapPathLocation2Flag.clear();
-      for (int i = 0; i < fn.numPrev(); i++) {
-        FlatNode prevFn = fn.getPrev(i);
-        Hashtable<NTuple<Descriptor>, SharedLocState> in = mapFlatNodeToClearingSummary.get(prevFn);
-        if (in != null) {
-          mergeSharedAnaylsis(curr, in);
-        }
-      }
-      // merge flag status
-      Set<NTuple<Descriptor>> hpKeySet = curr.keySet();
-      for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
-        NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
-        SharedLocState currState = curr.get(hpKey);
-        Set<Location> locKeySet = currState.getMap().keySet();
-        for (Iterator iterator2 = locKeySet.iterator(); iterator2.hasNext();) {
-          Location locKey = (Location) iterator2.next();
-          Pair<Set<Descriptor>, Boolean> pair = currState.getMap().get(locKey);
-          boolean currentFlag = pair.getSecond().booleanValue();
-          Boolean inFlag = mapHeapPathLocation2Flag.get(new Pair(hpKey, locKey));
-          boolean newFlag = currentFlag | inFlag.booleanValue();
-          if (currentFlag != newFlag) {
-            currState.getMap().put(locKey, new Pair(pair.getFirst(), new Boolean(newFlag)));
+      Set<Hashtable<NTuple<Descriptor>, SharedLocState>> prevSet =
+          new HashSet<Hashtable<NTuple<Descriptor>, SharedLocState>>();
+        for (int i = 0; i < fn.numPrev(); i++) {
+          FlatNode prevFn = fn.getPrev(i);
+          Hashtable<NTuple<Descriptor>, SharedLocState> in = mapFlatNodeToClearingSummary.get(prevFn);
+          if (in != null) {
+            prevSet.add(in);
           }
         }
-      }
+        mergeSharedLocationAnaylsis(curr, prevSet);
 
-      sharedLocation_nodeActions(fn, curr, onlyVisitSSJavaLoop);
+      sharedLocation_nodeActions(fn, curr, returnNodeSet, onlyVisitSSJavaLoop);
 
       Hashtable<NTuple<Descriptor>, SharedLocState> clearingPrev =
           mapFlatNodeToClearingSummary.get(fn);
+
 
       if (!curr.equals(clearingPrev)) {
         mapFlatNodeToClearingSummary.put(fn, curr);
@@ -263,10 +271,29 @@ public class DefinitelyWrittenCheck {
 
     }
 
+    // merging all exit node summary into the complete summary
+    Hashtable<NTuple<Descriptor>, SharedLocState> completeSummary =
+        new Hashtable<NTuple<Descriptor>, SharedLocState>();
+    if ((!returnNodeSet.isEmpty()) && (!onlyVisitSSJavaLoop)) {
+
+      Set<Hashtable<NTuple<Descriptor>, SharedLocState>> summarySet =
+          new HashSet<Hashtable<NTuple<Descriptor>, SharedLocState>>();
+
+      for (Iterator iterator = returnNodeSet.iterator(); iterator.hasNext();) {
+        FlatNode frn = (FlatNode) iterator.next();
+        Hashtable<NTuple<Descriptor>, SharedLocState> frnSummary =
+            mapFlatNodeToClearingSummary.get(frn);
+        summarySet.add(frnSummary);
+      }
+
+      mergeSharedLocationAnaylsis(completeSummary, summarySet);
+    }
+    return completeSummary;
   }
 
   private void sharedLocation_nodeActions(FlatNode fn,
-      Hashtable<NTuple<Descriptor>, SharedLocState> curr, boolean isSSJavaLoop) {
+      Hashtable<NTuple<Descriptor>, SharedLocState> curr, Set<FlatNode> returnNodeSet,
+      boolean isSSJavaLoop) {
 
     TempDescriptor lhs;
     TempDescriptor rhs;
@@ -324,7 +351,6 @@ public class DefinitelyWrittenCheck {
       // write(field)
       NTuple<Descriptor> lhsHeapPath = computePath(lhs);
       NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(lhsHeapPath.getList());
-
       if (fld.getType().isImmutable()) {
         writeLocation(curr, fldHeapPath, fld);
       }
@@ -334,10 +360,132 @@ public class DefinitelyWrittenCheck {
 
     case FKind.FlatCall: {
 
+      FlatCall fc = (FlatCall) fn;
+
+      // find out the set of callees
+      MethodDescriptor mdCallee = fc.getMethod();
+      FlatMethod fmCallee = state.getMethodFlat(mdCallee);
+      Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
+      TypeDescriptor typeDesc = fc.getThis().getType();
+      setPossibleCallees.addAll(callGraph.getMethods(mdCallee, typeDesc));
+
+      Set<Hashtable<NTuple<Descriptor>, SharedLocState>> calleeCompleteSummarySet =
+          new HashSet<Hashtable<NTuple<Descriptor>, SharedLocState>>();
+
+      for (Iterator iterator = setPossibleCallees.iterator(); iterator.hasNext();) {
+        MethodDescriptor mdPossibleCallee = (MethodDescriptor) iterator.next();
+        FlatMethod calleeFlatMethod = state.getMethodFlat(mdPossibleCallee);
+
+        // updates possible callee's initial summary using caller's current
+        // writing status
+        Hashtable<NTuple<Descriptor>, SharedLocState> prevCalleeInitSummary =
+            mapMethodDescriptorToInitialClearingSummary.get(mdPossibleCallee);
+
+        Hashtable<NTuple<Descriptor>, SharedLocState> calleeInitSummary =
+            contributeCallerEffectsToCalleeInitSummary(fc, calleeFlatMethod, curr);
+        
+
+        // if changes, update the init summary
+        // and reschedule the callee for analysis
+        if (!calleeInitSummary.equals(prevCalleeInitSummary)) {
+          methodDescriptorsToVisitStack.add(mdPossibleCallee);
+          mapMethodDescriptorToInitialClearingSummary.put(mdPossibleCallee, calleeInitSummary);
+        }
+
+        Hashtable<NTuple<Descriptor>, SharedLocState> calleeCompleteSummary =
+            mapMethodDescriptorToCompleteClearingSummary.get(mdPossibleCallee);
+
+        if (calleeCompleteSummary != null) {
+          calleeCompleteSummarySet.add(mapMethodDescriptorToCompleteClearingSummary
+              .get(mdPossibleCallee));
+        }
+
+      }
+
+      // contribute callee's writing effects to the caller
+      mergeSharedLocationAnaylsis(curr, calleeCompleteSummarySet);
+
     }
       break;
+
+    case FKind.FlatReturnNode: {
+      returnNodeSet.add(fn);
+    }
+      break;
+
     }
 
+  }
+
+  private Hashtable<NTuple<Descriptor>, SharedLocState> contributeCallerEffectsToCalleeInitSummary(
+      FlatCall fc, FlatMethod calleeFlatMethod, Hashtable<NTuple<Descriptor>, SharedLocState> curr) {
+
+    Hashtable<NTuple<Descriptor>, SharedLocState> boundSet =
+        new Hashtable<NTuple<Descriptor>, SharedLocState>();
+
+    // create mapping from arg idx to its heap paths
+    Hashtable<Integer, NTuple<Descriptor>> mapArgIdx2CallerArgHeapPath =
+        new Hashtable<Integer, NTuple<Descriptor>>();
+
+    // arg idx is starting from 'this' arg
+    NTuple<Descriptor> thisHeapPath = mapHeapPath.get(fc.getThis());
+    if (thisHeapPath == null) {
+      // method is called without creating new flat node representing 'this'
+      thisHeapPath = new NTuple<Descriptor>();
+      thisHeapPath.add(fc.getThis());
+    }
+
+    mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
+
+    for (int i = 0; i < fc.numArgs(); i++) {
+      TempDescriptor arg = fc.getArg(i);
+      NTuple<Descriptor> argHeapPath = computePath(arg);
+      mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(i + 1), argHeapPath);
+    }
+
+    Hashtable<Integer, TempDescriptor> mapParamIdx2ParamTempDesc =
+        new Hashtable<Integer, TempDescriptor>();
+    for (int i = 0; i < calleeFlatMethod.numParameters(); i++) {
+      TempDescriptor param = calleeFlatMethod.getParameter(i);
+      mapParamIdx2ParamTempDesc.put(Integer.valueOf(i), param);
+    }
+
+    // binding caller's writing effects to callee's params
+    for (int i = 0; i < calleeFlatMethod.numParameters(); i++) {
+      NTuple<Descriptor> argHeapPath = mapArgIdx2CallerArgHeapPath.get(Integer.valueOf(i));
+      TempDescriptor calleeParamHeapPath = mapParamIdx2ParamTempDesc.get(Integer.valueOf(i));
+
+      // iterate over caller's writing effect set
+      Set<NTuple<Descriptor>> hpKeySet = curr.keySet();
+      for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
+        NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
+        // current element is reachable caller's arg
+        // so need to bind it to the caller's side and add it to the callee's
+        // init summary
+        if (hpKey.startsWith(argHeapPath)) {
+          NTuple<Descriptor> boundHeapPath = replace(hpKey, argHeapPath, calleeParamHeapPath);
+          boundSet.put(boundHeapPath, curr.get(hpKey).clone());
+        }
+
+      }
+
+    }
+
+    return boundSet;
+  }
+
+  private NTuple<Descriptor> replace(NTuple<Descriptor> effectHeapPath,
+      NTuple<Descriptor> argHeapPath, TempDescriptor calleeParamHeapPath) {
+    // replace the head of caller's heap path with callee's param heap path
+
+    NTuple<Descriptor> boundHeapPath = new NTuple<Descriptor>();
+    boundHeapPath.add(calleeParamHeapPath);
+
+    for (int i = argHeapPath.size(); i < effectHeapPath.size(); i++) {
+      boundHeapPath.add(effectHeapPath.get(i));
+    }
+
+    return boundHeapPath;
   }
 
   private void computeReadSharedDescriptorSet() {
@@ -450,17 +598,24 @@ public class DefinitelyWrittenCheck {
     }
   }
 
+  private boolean hasReadingEffectOnSharedLocation(NTuple<Descriptor> hp, Location loc, Descriptor d) {
+    if (!mapSharedLocation2DescriptorSet.containsKey(loc)) {
+      return false;
+    } else {
+      return mapSharedLocation2DescriptorSet.get(loc).contains(d);
+    }
+  }
+
   private void addReadDescriptor(NTuple<Descriptor> hp, Descriptor d) {
 
     Location loc = getLocation(d);
 
     if (loc != null && ssjava.isSharedLocation(loc)) {
 
-      Pair key = new Pair(hp, loc);
-      Set<Descriptor> set = mapSharedLocation2DescriptorSet.get(key);
+      Set<Descriptor> set = mapSharedLocation2DescriptorSet.get(loc);
       if (set == null) {
         set = new HashSet<Descriptor>();
-        mapSharedLocation2DescriptorSet.put(key, set);
+        mapSharedLocation2DescriptorSet.put(loc, set);
       }
       set.add(d);
     }
@@ -486,15 +641,14 @@ public class DefinitelyWrittenCheck {
   private void writeLocation(Hashtable<NTuple<Descriptor>, SharedLocState> curr,
       NTuple<Descriptor> hp, Descriptor d) {
     Location loc = getLocation(d);
-    if (loc != null && ssjava.isSharedLocation(loc)) {
+    if (loc != null && hasReadingEffectOnSharedLocation(hp, loc, d)) {
       SharedLocState state = getState(curr, hp);
       state.addVar(loc, d);
 
       // if the set v contains all of variables belonging to the shared
       // location, set flag to true
 
-      Set<Descriptor> sharedVarSet =
-          mapSharedLocation2DescriptorSet.get(new Pair<NTuple<Descriptor>, Location>(hp, loc));
+      Set<Descriptor> sharedVarSet = mapSharedLocation2DescriptorSet.get(loc);
 
       if (state.getVarSet(loc).containsAll(sharedVarSet)) {
         state.updateFlag(loc, true);
@@ -506,7 +660,7 @@ public class DefinitelyWrittenCheck {
       NTuple<Descriptor> hp, Descriptor d) {
     // remove reading var x from written set
     Location loc = getLocation(d);
-    if (loc != null && ssjava.isSharedLocation(loc)) {
+    if (loc != null && hasReadingEffectOnSharedLocation(hp, loc, d)) {
       SharedLocState state = getState(curr, hp);
       state.removeVar(loc, d);
     }
@@ -898,21 +1052,24 @@ public class DefinitelyWrittenCheck {
     Set<MethodDescriptor> methodDescriptorsToAnalyze = new HashSet<MethodDescriptor>();
     methodDescriptorsToAnalyze.addAll(ssjava.getAnnotationRequireSet());
 
-    LinkedList<MethodDescriptor> sortedDescriptors = topologicalSort(methodDescriptorsToAnalyze);
+    sortedDescriptors = topologicalSort(methodDescriptorsToAnalyze);
+
+    LinkedList<MethodDescriptor> descriptorListToAnalyze =
+        (LinkedList<MethodDescriptor>) sortedDescriptors.clone();
 
     // no need to analyze method having ssjava loop
-    methodContainingSSJavaLoop = sortedDescriptors.removeFirst();
+    methodContainingSSJavaLoop = descriptorListToAnalyze.removeFirst();
 
     // current descriptors to visit in fixed-point interprocedural analysis,
     // prioritized by
     // dependency in the call graph
-    Stack<MethodDescriptor> methodDescriptorsToVisitStack = new Stack<MethodDescriptor>();
+    methodDescriptorsToVisitStack.clear();
 
     Set<MethodDescriptor> methodDescriptorToVistSet = new HashSet<MethodDescriptor>();
-    methodDescriptorToVistSet.addAll(sortedDescriptors);
+    methodDescriptorToVistSet.addAll(descriptorListToAnalyze);
 
-    while (!sortedDescriptors.isEmpty()) {
-      MethodDescriptor md = sortedDescriptors.removeFirst();
+    while (!descriptorListToAnalyze.isEmpty()) {
+      MethodDescriptor md = descriptorListToAnalyze.removeFirst();
       methodDescriptorsToVisitStack.add(md);
     }
 
@@ -1127,37 +1284,72 @@ public class DefinitelyWrittenCheck {
 
   }
 
-  private void mergeSharedAnaylsis(Hashtable<NTuple<Descriptor>, SharedLocState> curr,
-      Hashtable<NTuple<Descriptor>, SharedLocState> in) {
+  private void mergeSharedLocationAnaylsis(Hashtable<NTuple<Descriptor>, SharedLocState> curr,
+      Set<Hashtable<NTuple<Descriptor>, SharedLocState>> inSet) {
 
-    Set<NTuple<Descriptor>> keySet = in.keySet();
-    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-      NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
-      SharedLocState inState = in.get(hpKey);
+    if (inSet.size() == 0) {
+      return;
+    }
 
-      SharedLocState currState = curr.get(hpKey);
-      if (currState == null) {
-        currState = new SharedLocState();
-        curr.put(hpKey, currState);
-      }
-      currState.merge(inState);
+    Hashtable<Pair<NTuple<Descriptor>, Location>, Boolean> mapHeapPathLoc2Flag =
+        new Hashtable<Pair<NTuple<Descriptor>, Location>, Boolean>();
 
-      Set<Location> locSet = inState.getMap().keySet();
-      for (Iterator iterator2 = locSet.iterator(); iterator2.hasNext();) {
-        Location loc = (Location) iterator2.next();
-        Pair<Set<Descriptor>, Boolean> pair = inState.getMap().get(loc);
-        boolean inFlag = pair.getSecond().booleanValue();
+    for (Iterator inIterator = inSet.iterator(); inIterator.hasNext();) {
 
-        Pair<NTuple<Descriptor>, Location> flagKey =
-            new Pair<NTuple<Descriptor>, Location>(hpKey, loc);
-        Boolean current = mapHeapPathLocation2Flag.get(flagKey);
-        if (current == null) {
-          current = new Boolean(true);
+      Hashtable<NTuple<Descriptor>, SharedLocState> inTable =
+          (Hashtable<NTuple<Descriptor>, SharedLocState>) inIterator.next();
+
+      Set<NTuple<Descriptor>> keySet = inTable.keySet();
+
+      for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+        NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
+        SharedLocState inState = inTable.get(hpKey);
+
+        SharedLocState currState = curr.get(hpKey);
+        if (currState == null) {
+          currState = new SharedLocState();
+          curr.put(hpKey, currState);
         }
-        boolean newInFlag = current.booleanValue() & inFlag;
-        mapHeapPathLocation2Flag.put(flagKey, Boolean.valueOf(newInFlag));
+        currState.merge(inState);
+
+        Set<Location> locSet = inState.getMap().keySet();
+        for (Iterator iterator2 = locSet.iterator(); iterator2.hasNext();) {
+          Location loc = (Location) iterator2.next();
+          Pair<Set<Descriptor>, Boolean> pair = inState.getMap().get(loc);
+          boolean inFlag = pair.getSecond().booleanValue();
+
+          Pair<NTuple<Descriptor>, Location> flagKey =
+              new Pair<NTuple<Descriptor>, Location>(hpKey, loc);
+          Boolean current = mapHeapPathLoc2Flag.get(flagKey);
+          if (current == null) {
+            current = new Boolean(true);
+          }
+          boolean newInFlag = current.booleanValue() & inFlag;
+          mapHeapPathLoc2Flag.put(flagKey, Boolean.valueOf(newInFlag));
+        }
+
       }
 
+    }
+
+    // merge flag status
+    Set<NTuple<Descriptor>> hpKeySet = curr.keySet();
+    for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
+      NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
+      SharedLocState currState = curr.get(hpKey);
+      Set<Location> locKeySet = currState.getMap().keySet();
+      for (Iterator iterator2 = locKeySet.iterator(); iterator2.hasNext();) {
+        Location locKey = (Location) iterator2.next();
+        Pair<Set<Descriptor>, Boolean> pair = currState.getMap().get(locKey);
+        boolean currentFlag = pair.getSecond().booleanValue();
+        Boolean inFlag = mapHeapPathLoc2Flag.get(new Pair(hpKey, locKey));
+        if(inFlag!=null){
+          boolean newFlag = currentFlag | inFlag.booleanValue();
+          if (currentFlag != newFlag) {
+            currState.getMap().put(locKey, new Pair(pair.getFirst(), new Boolean(newFlag)));
+          }
+        }
+      }
     }
 
   }
@@ -1251,16 +1443,13 @@ public class DefinitelyWrittenCheck {
 
     discovered.add(md);
 
-    // otherwise call graph guides DFS
     Iterator itr = callGraph.getCallerSet(md).iterator();
     while (itr.hasNext()) {
       MethodDescriptor dCaller = (MethodDescriptor) itr.next();
-
       // only consider callers in the original set to analyze
       if (!toSort.contains(dCaller)) {
         continue;
       }
-
       if (!discovered.contains(dCaller)) {
         addDependent(md, // callee
             dCaller // caller

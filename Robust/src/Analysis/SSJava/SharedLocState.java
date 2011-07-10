@@ -101,4 +101,11 @@ public class SharedLocState {
   public boolean getFlag(Location loc) {
     return mapLocation2Status.get(loc).getSecond().booleanValue();
   }
+
+  public SharedLocState clone() {
+    SharedLocState newState = new SharedLocState();
+    newState.mapLocation2Status =
+        (Hashtable<Location, Pair<Set<Descriptor>, Boolean>>) mapLocation2Status.clone();
+    return newState;
+  }
 }
