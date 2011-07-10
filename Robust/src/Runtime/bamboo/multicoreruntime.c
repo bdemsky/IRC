@@ -10,6 +10,9 @@
 #endif
 #include "multicore_arch.h"
 #include <stdio.h>
+#ifdef PERFCOUNT
+#include "bme_perf_counter.h"
+#endif
 
 extern int classsize[];
 extern int typearray[];
@@ -291,6 +294,9 @@ void CALL11(___System______exit____I,
     BAMBOO_PRINT(0xbbbbbbbb);
     CACHEADAPT_DISABLE_TIMER();
     GC_OUTPUT_PROFILE_DATA();
+#ifdef PERFCOUNT
+    print_statistics();
+#endif
     gc_outputProfileDataReadable();
   }
 #endif 
@@ -638,9 +644,6 @@ void initruntimedata() {
   outmsgleft = 0;
   isMsgHanging = false;
   
-
-
-
   smemflag = true;
   bamboo_cur_msp = NULL;
   bamboo_smem_size = 0;
@@ -757,6 +760,9 @@ void checkCoreStatus() {
           getprofiledata_I();
           CACHEADAPT_DISABLE_TIMER();
           GC_OUTPUT_PROFILE_DATA();
+#ifdef PERFCOUNT
+	  print_statistics();
+#endif
 	  gc_outputProfileDataReadable();
           disruntimedata();
           BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
@@ -790,6 +796,9 @@ void run(int argc, char** argv) {
 #ifdef PMC_GC
   pmc_onceInit();
 #endif
+#ifdef PERFCOUNT
+  profile_init(_LOCAL_DRD_CNT,_LOCAL_WR_CNT, _REMOTE_DRD_CNT, _REMOTE_WR_CNT);
+#endif
   if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
     numconfirm=NUMCORES-1;
     for(int i=0;i<NUMCORES;i++) {
@@ -805,6 +814,9 @@ void run(int argc, char** argv) {
     while(!startflag)
       ;
   }
+#ifdef PERFCOUNT
+  bme_performance_counter_start();
+#endif
 
   CACHEADAPT_ENABLE_TIMER();
 
@@ -832,6 +844,9 @@ void run(int argc, char** argv) {
     }
 #endif
     
+#ifdef PERFCOUNT
+      profile_start(APP_REGION);
+#endif
     if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
 #ifdef TASK
       // run the initStaticAndGlobal method to initialize the static blocks and

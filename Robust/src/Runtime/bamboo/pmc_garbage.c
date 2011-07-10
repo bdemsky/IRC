@@ -5,6 +5,9 @@
 #include "pmc_mark.h"
 #include "pmc_forward.h"
 #include "pmc_refupdate.h"
+#ifdef PERFCOUNT
+#include "bme_perf_counter.h"
+#endif
 
 struct pmc_heap * pmc_heapptr;
 struct pmc_queue * pmc_localqueue;
@@ -84,6 +87,9 @@ void pmc_init() {
 }
 
 void gc(struct garbagelist *gl) {
+#ifdef PERFCOUNT
+  profile_start(GC_REGION);
+#endif
   if (BAMBOO_NUM_OF_CORE==STARTUPCORE)
     tprintf("start GC\n");
   pmc_init();
@@ -129,6 +135,9 @@ void gc(struct garbagelist *gl) {
   gcflag=false;
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
 
+#ifdef PERFCOUNT
+  profile_start(APP_REGION);
+#endif
   //tprintf("exit GC\n");
 }
 

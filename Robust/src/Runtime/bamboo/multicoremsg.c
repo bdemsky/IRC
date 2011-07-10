@@ -297,8 +297,7 @@ void processmsg_profileoutput_I() {
   stall = true;
   totalexetime = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-#ifdef RT_TEST
-#else
+#if !defined(RT_TEST)
   outputProfileData();
 #endif
   // cache the msg first
