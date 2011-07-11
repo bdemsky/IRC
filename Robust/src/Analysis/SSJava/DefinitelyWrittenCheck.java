@@ -162,16 +162,13 @@ public class DefinitelyWrittenCheck {
     computeReadSharedDescriptorSet();
     System.out.println("Reading Shared Location=" + mapSharedLocation2DescriptorSet);
 
-    Set<MethodDescriptor> methodDescriptorToVistSet = new HashSet<MethodDescriptor>();
-
     methodDescriptorsToVisitStack.clear();
+
     methodDescriptorsToVisitStack.add(sortedDescriptors.peekFirst());
-    methodDescriptorToVistSet.add(sortedDescriptors.peekFirst());
 
     // analyze scheduled methods until there are no more to visit
     while (!methodDescriptorsToVisitStack.isEmpty()) {
       MethodDescriptor md = methodDescriptorsToVisitStack.pop();
-      methodDescriptorToVistSet.remove(md);
 
       Hashtable<NTuple<Descriptor>, SharedLocState> completeSummary =
           sharedLocation_analyzeMethod(md, (md.equals(methodContainingSSJavaLoop)));
@@ -183,18 +180,12 @@ public class DefinitelyWrittenCheck {
 
         mapMethodDescriptorToCompleteClearingSummary.put(md, completeSummary);
 
-        Set<MethodDescriptor> dependentsSet = getDependents(md);
-        if (dependentsSet.size() == 0) {
-          dependentsSet.add(methodContainingSSJavaLoop);
-        }
-
         // results for callee changed, so enqueue dependents caller for
         // further analysis
         Iterator<MethodDescriptor> depsItr = getDependents(md).iterator();
         while (depsItr.hasNext()) {
           MethodDescriptor methodNext = depsItr.next();
-          if (!methodDescriptorsToVisitStack.contains(methodNext)
-              && !methodDescriptorToVistSet.contains(methodNext)) {
+          if (!methodDescriptorsToVisitStack.contains(methodNext)) {
             methodDescriptorsToVisitStack.add(methodNext);
           }
         }
@@ -204,16 +195,15 @@ public class DefinitelyWrittenCheck {
         Iterator<MethodDescriptor> calleeIter = calleesToEnqueue.iterator();
         while (calleeIter.hasNext()) {
           MethodDescriptor mdNext = calleeIter.next();
-          methodDescriptorsToVisitStack.add(mdNext);
+          if (!methodDescriptorsToVisitStack.contains(mdNext)) {
+            methodDescriptorsToVisitStack.add(mdNext);
+          }
         }
         calleesToEnqueue.clear();
 
       }
 
     }
-
-    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add(ssjavaLoopEntrance);
 
   }
 
@@ -260,7 +250,7 @@ public class DefinitelyWrittenCheck {
       }
       mergeSharedLocationAnaylsis(curr, prevSet);
 
-      sharedLocation_nodeActions(fn, curr, returnNodeSet, onlyVisitSSJavaLoop);
+      sharedLocation_nodeActions(md, fn, curr, returnNodeSet, onlyVisitSSJavaLoop);
       Hashtable<NTuple<Descriptor>, SharedLocState> clearingPrev =
           mapFlatNodeToClearingSummary.get(fn);
 
@@ -310,7 +300,7 @@ public class DefinitelyWrittenCheck {
     return completeSummary;
   }
 
-  private void sharedLocation_nodeActions(FlatNode fn,
+  private void sharedLocation_nodeActions(MethodDescriptor caller, FlatNode fn,
       Hashtable<NTuple<Descriptor>, SharedLocState> curr, Set<FlatNode> returnNodeSet,
       boolean isSSJavaLoop) {
 
@@ -408,6 +398,9 @@ public class DefinitelyWrittenCheck {
         MethodDescriptor mdPossibleCallee = (MethodDescriptor) iterator.next();
         FlatMethod calleeFlatMethod = state.getMethodFlat(mdPossibleCallee);
 
+        addDependent(mdPossibleCallee, // callee
+            caller); // caller
+
         calleesToEnqueue.add(mdPossibleCallee);
 
         // updates possible callee's initial summary using caller's current
@@ -421,7 +414,10 @@ public class DefinitelyWrittenCheck {
         // if changes, update the init summary
         // and reschedule the callee for analysis
         if (!calleeInitSummary.equals(prevCalleeInitSummary)) {
-          methodDescriptorsToVisitStack.add(mdPossibleCallee);
+
+          if (!methodDescriptorsToVisitStack.contains(mdPossibleCallee)) {
+            methodDescriptorsToVisitStack.add(mdPossibleCallee);
+          }
           mapMethodDescriptorToInitialClearingSummary.put(mdPossibleCallee, calleeInitSummary);
         }
 
