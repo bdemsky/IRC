@@ -8,12 +8,12 @@ import java.util.Set;
 import IR.Descriptor;
 import Util.Pair;
 
-public class SharedLocState {
+public class SharedStatus {
 
   // maps location to its current writing var set and flag
   Hashtable<Location, Pair<Set<Descriptor>, Boolean>> mapLocation2Status;
 
-  public SharedLocState() {
+  public SharedStatus() {
     mapLocation2Status = new Hashtable<Location, Pair<Set<Descriptor>, Boolean>>();
   }
 
@@ -42,7 +42,7 @@ public class SharedLocState {
     return mapLocation2Status.keySet();
   }
 
-  public void merge(SharedLocState inState) {
+  public void merge(SharedStatus inState) {
     Set<Location> keySet = inState.getLocationSet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Location inLoc = (Location) iterator.next();
@@ -79,10 +79,10 @@ public class SharedLocState {
   }
 
   public boolean equals(Object o) {
-    if (!(o instanceof SharedLocState)) {
+    if (!(o instanceof SharedStatus)) {
       return false;
     }
-    SharedLocState in = (SharedLocState) o;
+    SharedStatus in = (SharedStatus) o;
     return in.getMap().equals(mapLocation2Status);
   }
 
@@ -102,8 +102,8 @@ public class SharedLocState {
     return mapLocation2Status.get(loc).getSecond().booleanValue();
   }
 
-  public SharedLocState clone() {
-    SharedLocState newState = new SharedLocState();
+  public SharedStatus clone() {
+    SharedStatus newState = new SharedStatus();
     newState.mapLocation2Status =
         (Hashtable<Location, Pair<Set<Descriptor>, Boolean>>) mapLocation2Status.clone();
     return newState;

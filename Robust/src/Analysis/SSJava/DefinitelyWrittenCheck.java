@@ -63,14 +63,14 @@ public class DefinitelyWrittenCheck {
   // maps a method descriptor to its current summary during the analysis
   // then analysis reaches fixed-point, this mapping will have the final summary
   // for each method descriptor
-  private Hashtable<MethodDescriptor, Hashtable<NTuple<Descriptor>, SharedLocState>> mapMethodDescriptorToCompleteClearingSummary;
+  private Hashtable<MethodDescriptor, ClearingSummary> mapMethodDescriptorToCompleteClearingSummary;
 
   // maps a method descriptor to the merged incoming caller's current
   // overwritten status
-  private Hashtable<MethodDescriptor, Hashtable<NTuple<Descriptor>, SharedLocState>> mapMethodDescriptorToInitialClearingSummary;
+  private Hashtable<MethodDescriptor, ClearingSummary> mapMethodDescriptorToInitialClearingSummary;
 
   // maps a flat node to current partial results
-  private Hashtable<FlatNode, Hashtable<NTuple<Descriptor>, SharedLocState>> mapFlatNodeToClearingSummary;
+  private Hashtable<FlatNode, ClearingSummary> mapFlatNodeToClearingSummary;
 
   // maps shared location to the set of descriptors which belong to the shared
   // location
@@ -82,7 +82,7 @@ public class DefinitelyWrittenCheck {
   // when analyzing flatcall, need to re-schedule set of callee
   private Set<MethodDescriptor> calleesToEnqueue;
 
-  private Set<Hashtable<NTuple<Descriptor>, SharedLocState>> possibleCalleeCompleteSummarySetToCaller;
+  private Set<ClearingSummary> possibleCalleeCompleteSummarySetToCaller;
 
   private LinkedList<MethodDescriptor> sortedDescriptors;
 
@@ -110,14 +110,13 @@ public class DefinitelyWrittenCheck {
     this.calleeIntersectBoundOverWriteSet = new HashSet<NTuple<Descriptor>>();
 
     this.mapMethodDescriptorToCompleteClearingSummary =
-        new Hashtable<MethodDescriptor, Hashtable<NTuple<Descriptor>, SharedLocState>>();
+        new Hashtable<MethodDescriptor, ClearingSummary>();
     this.mapMethodDescriptorToInitialClearingSummary =
-        new Hashtable<MethodDescriptor, Hashtable<NTuple<Descriptor>, SharedLocState>>();
+        new Hashtable<MethodDescriptor, ClearingSummary>();
     this.mapSharedLocation2DescriptorSet = new Hashtable<Location, Set<Descriptor>>();
     this.methodDescriptorsToVisitStack = new Stack<MethodDescriptor>();
     this.calleesToEnqueue = new HashSet<MethodDescriptor>();
-    this.possibleCalleeCompleteSummarySetToCaller =
-        new HashSet<Hashtable<NTuple<Descriptor>, SharedLocState>>();
+    this.possibleCalleeCompleteSummarySetToCaller = new HashSet<ClearingSummary>();
     this.LOCAL = new TempDescriptor("LOCAL");
   }
 
@@ -134,7 +133,7 @@ public class DefinitelyWrittenCheck {
 
     // mapping of method containing ssjava loop has the final result of
     // shared location analysis
-    Hashtable<NTuple<Descriptor>, SharedLocState> result =
+    ClearingSummary result =
         mapMethodDescriptorToCompleteClearingSummary.get(sortedDescriptors.peekFirst());
 
     System.out.println("checkSharedLocationResult=" + result);
@@ -142,7 +141,7 @@ public class DefinitelyWrittenCheck {
     Set<NTuple<Descriptor>> hpKeySet = result.keySet();
     for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
       NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
-      SharedLocState state = result.get(hpKey);
+      SharedStatus state = result.get(hpKey);
       Set<Location> locKeySet = state.getLocationSet();
       for (Iterator iterator2 = locKeySet.iterator(); iterator2.hasNext();) {
         Location locKey = (Location) iterator2.next();
@@ -170,11 +169,10 @@ public class DefinitelyWrittenCheck {
     while (!methodDescriptorsToVisitStack.isEmpty()) {
       MethodDescriptor md = methodDescriptorsToVisitStack.pop();
 
-      Hashtable<NTuple<Descriptor>, SharedLocState> completeSummary =
+      ClearingSummary completeSummary =
           sharedLocation_analyzeMethod(md, (md.equals(methodContainingSSJavaLoop)));
 
-      Hashtable<NTuple<Descriptor>, SharedLocState> prevCompleteSummary =
-          mapMethodDescriptorToCompleteClearingSummary.get(md);
+      ClearingSummary prevCompleteSummary = mapMethodDescriptorToCompleteClearingSummary.get(md);
 
       if (!completeSummary.equals(prevCompleteSummary)) {
 
@@ -207,8 +205,8 @@ public class DefinitelyWrittenCheck {
 
   }
 
-  private Hashtable<NTuple<Descriptor>, SharedLocState> sharedLocation_analyzeMethod(
-      MethodDescriptor md, boolean onlyVisitSSJavaLoop) {
+  private ClearingSummary sharedLocation_analyzeMethod(MethodDescriptor md,
+      boolean onlyVisitSSJavaLoop) {
 
     if (state.SSJAVADEBUG) {
       System.out.println("Definitely written for shared locations Analyzing: " + md + " "
@@ -221,8 +219,7 @@ public class DefinitelyWrittenCheck {
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
 
     // start a new mapping of partial results for each flat node
-    mapFlatNodeToClearingSummary =
-        new Hashtable<FlatNode, Hashtable<NTuple<Descriptor>, SharedLocState>>();
+    mapFlatNodeToClearingSummary = new Hashtable<FlatNode, ClearingSummary>();
 
     if (onlyVisitSSJavaLoop) {
       flatNodesToVisit.add(ssjavaLoopEntrance);
@@ -236,14 +233,12 @@ public class DefinitelyWrittenCheck {
       FlatNode fn = flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove(fn);
 
-      Hashtable<NTuple<Descriptor>, SharedLocState> curr =
-          new Hashtable<NTuple<Descriptor>, SharedLocState>();
+      ClearingSummary curr = new ClearingSummary();
 
-      Set<Hashtable<NTuple<Descriptor>, SharedLocState>> prevSet =
-          new HashSet<Hashtable<NTuple<Descriptor>, SharedLocState>>();
+      Set<ClearingSummary> prevSet = new HashSet<ClearingSummary>();
       for (int i = 0; i < fn.numPrev(); i++) {
         FlatNode prevFn = fn.getPrev(i);
-        Hashtable<NTuple<Descriptor>, SharedLocState> in = mapFlatNodeToClearingSummary.get(prevFn);
+        ClearingSummary in = mapFlatNodeToClearingSummary.get(prevFn);
         if (in != null) {
           prevSet.add(in);
         }
@@ -251,8 +246,7 @@ public class DefinitelyWrittenCheck {
       mergeSharedLocationAnaylsis(curr, prevSet);
 
       sharedLocation_nodeActions(md, fn, curr, returnNodeSet, onlyVisitSSJavaLoop);
-      Hashtable<NTuple<Descriptor>, SharedLocState> clearingPrev =
-          mapFlatNodeToClearingSummary.get(fn);
+      ClearingSummary clearingPrev = mapFlatNodeToClearingSummary.get(fn);
 
       if (!curr.equals(clearingPrev)) {
         mapFlatNodeToClearingSummary.put(fn, curr);
@@ -269,17 +263,15 @@ public class DefinitelyWrittenCheck {
 
     }
 
-    Hashtable<NTuple<Descriptor>, SharedLocState> completeSummary =
-        new Hashtable<NTuple<Descriptor>, SharedLocState>();
+    ClearingSummary completeSummary = new ClearingSummary();
+    Set<ClearingSummary> summarySet = new HashSet<ClearingSummary>();
 
-    Set<Hashtable<NTuple<Descriptor>, SharedLocState>> summarySet =
-        new HashSet<Hashtable<NTuple<Descriptor>, SharedLocState>>();
     if (onlyVisitSSJavaLoop) {
       // when analyzing ssjava loop,
       // complete summary is merging of all previous nodes of ssjava loop
       // entrance
       for (int i = 0; i < ssjavaLoopEntrance.numPrev(); i++) {
-        Hashtable<NTuple<Descriptor>, SharedLocState> frnSummary =
+        ClearingSummary frnSummary =
             mapFlatNodeToClearingSummary.get(ssjavaLoopEntrance.getPrev(i));
         if (frnSummary != null) {
           summarySet.add(frnSummary);
@@ -290,8 +282,7 @@ public class DefinitelyWrittenCheck {
       if (!returnNodeSet.isEmpty()) {
         for (Iterator iterator = returnNodeSet.iterator(); iterator.hasNext();) {
           FlatNode frn = (FlatNode) iterator.next();
-          Hashtable<NTuple<Descriptor>, SharedLocState> frnSummary =
-              mapFlatNodeToClearingSummary.get(frn);
+          ClearingSummary frnSummary = mapFlatNodeToClearingSummary.get(frn);
           summarySet.add(frnSummary);
         }
       }
@@ -301,8 +292,7 @@ public class DefinitelyWrittenCheck {
   }
 
   private void sharedLocation_nodeActions(MethodDescriptor caller, FlatNode fn,
-      Hashtable<NTuple<Descriptor>, SharedLocState> curr, Set<FlatNode> returnNodeSet,
-      boolean isSSJavaLoop) {
+      ClearingSummary curr, Set<FlatNode> returnNodeSet, boolean isSSJavaLoop) {
 
     TempDescriptor lhs;
     TempDescriptor rhs;
@@ -312,11 +302,10 @@ public class DefinitelyWrittenCheck {
     case FKind.FlatMethod: {
       FlatMethod fm = (FlatMethod) fn;
 
-      Hashtable<NTuple<Descriptor>, SharedLocState> summaryFromCaller =
+      ClearingSummary summaryFromCaller =
           mapMethodDescriptorToInitialClearingSummary.get(fm.getMethod());
 
-      Set<Hashtable<NTuple<Descriptor>, SharedLocState>> inSet =
-          new HashSet<Hashtable<NTuple<Descriptor>, SharedLocState>>();
+      Set<ClearingSummary> inSet = new HashSet<ClearingSummary>();
       inSet.add(summaryFromCaller);
       mergeSharedLocationAnaylsis(curr, inSet);
 
@@ -405,10 +394,10 @@ public class DefinitelyWrittenCheck {
 
         // updates possible callee's initial summary using caller's current
         // writing status
-        Hashtable<NTuple<Descriptor>, SharedLocState> prevCalleeInitSummary =
+        ClearingSummary prevCalleeInitSummary =
             mapMethodDescriptorToInitialClearingSummary.get(mdPossibleCallee);
 
-        Hashtable<NTuple<Descriptor>, SharedLocState> calleeInitSummary =
+        ClearingSummary calleeInitSummary =
             bindHeapPathOfCalleeCallerEffects(fc, calleeFlatMethod, curr);
 
         // if changes, update the init summary
@@ -438,11 +427,10 @@ public class DefinitelyWrittenCheck {
 
   }
 
-  private Hashtable<NTuple<Descriptor>, SharedLocState> bindHeapPathOfCalleeCallerEffects(
-      FlatCall fc, FlatMethod calleeFlatMethod, Hashtable<NTuple<Descriptor>, SharedLocState> curr) {
+  private ClearingSummary bindHeapPathOfCalleeCallerEffects(FlatCall fc,
+      FlatMethod calleeFlatMethod, ClearingSummary curr) {
 
-    Hashtable<NTuple<Descriptor>, SharedLocState> boundSet =
-        new Hashtable<NTuple<Descriptor>, SharedLocState>();
+    ClearingSummary boundSet = new ClearingSummary();
 
     // create mapping from arg idx to its heap paths
     Hashtable<Integer, NTuple<Descriptor>> mapArgIdx2CallerArgHeapPath =
@@ -493,12 +481,11 @@ public class DefinitelyWrittenCheck {
     }
 
     // contribute callee's complete summary into the caller's current summary
-    Hashtable<NTuple<Descriptor>, SharedLocState> calleeCompleteSummary =
+    ClearingSummary calleeCompleteSummary =
         mapMethodDescriptorToCompleteClearingSummary.get(calleeFlatMethod.getMethod());
 
     if (calleeCompleteSummary != null) {
-      Hashtable<NTuple<Descriptor>, SharedLocState> boundCalleeEfffects =
-          new Hashtable<NTuple<Descriptor>, SharedLocState>();
+      ClearingSummary boundCalleeEfffects = new ClearingSummary();
       for (int i = 0; i < calleeFlatMethod.numParameters(); i++) {
         NTuple<Descriptor> argHeapPath = mapArgIdx2CallerArgHeapPath.get(Integer.valueOf(i));
         TempDescriptor calleeParamHeapPath = mapParamIdx2ParamTempDesc.get(Integer.valueOf(i));
@@ -709,11 +696,10 @@ public class DefinitelyWrittenCheck {
 
   }
 
-  private void writeLocation(Hashtable<NTuple<Descriptor>, SharedLocState> curr,
-      NTuple<Descriptor> hp, Descriptor d) {
+  private void writeLocation(ClearingSummary curr, NTuple<Descriptor> hp, Descriptor d) {
     Location loc = getLocation(d);
     if (loc != null && hasReadingEffectOnSharedLocation(hp, loc, d)) {
-      SharedLocState state = getState(curr, hp);
+      SharedStatus state = getState(curr, hp);
       state.addVar(loc, d);
 
       // if the set v contains all of variables belonging to the shared
@@ -727,21 +713,19 @@ public class DefinitelyWrittenCheck {
     }
   }
 
-  private void readLocation(Hashtable<NTuple<Descriptor>, SharedLocState> curr,
-      NTuple<Descriptor> hp, Descriptor d) {
+  private void readLocation(ClearingSummary curr, NTuple<Descriptor> hp, Descriptor d) {
     // remove reading var x from written set
     Location loc = getLocation(d);
     if (loc != null && hasReadingEffectOnSharedLocation(hp, loc, d)) {
-      SharedLocState state = getState(curr, hp);
+      SharedStatus state = getState(curr, hp);
       state.removeVar(loc, d);
     }
   }
 
-  private SharedLocState getState(Hashtable<NTuple<Descriptor>, SharedLocState> curr,
-      NTuple<Descriptor> hp) {
-    SharedLocState state = curr.get(hp);
+  private SharedStatus getState(ClearingSummary curr, NTuple<Descriptor> hp) {
+    SharedStatus state = curr.get(hp);
     if (state == null) {
-      state = new SharedLocState();
+      state = new SharedStatus();
       curr.put(hp, state);
     }
     return state;
@@ -1355,8 +1339,7 @@ public class DefinitelyWrittenCheck {
 
   }
 
-  private void mergeSharedLocationAnaylsis(Hashtable<NTuple<Descriptor>, SharedLocState> curr,
-      Set<Hashtable<NTuple<Descriptor>, SharedLocState>> inSet) {
+  private void mergeSharedLocationAnaylsis(ClearingSummary curr, Set<ClearingSummary> inSet) {
 
     if (inSet.size() == 0) {
       return;
@@ -1367,18 +1350,17 @@ public class DefinitelyWrittenCheck {
 
     for (Iterator inIterator = inSet.iterator(); inIterator.hasNext();) {
 
-      Hashtable<NTuple<Descriptor>, SharedLocState> inTable =
-          (Hashtable<NTuple<Descriptor>, SharedLocState>) inIterator.next();
+      ClearingSummary inTable = (ClearingSummary) inIterator.next();
 
       Set<NTuple<Descriptor>> keySet = inTable.keySet();
 
       for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
         NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
-        SharedLocState inState = inTable.get(hpKey);
+        SharedStatus inState = inTable.get(hpKey);
 
-        SharedLocState currState = curr.get(hpKey);
+        SharedStatus currState = curr.get(hpKey);
         if (currState == null) {
-          currState = new SharedLocState();
+          currState = new SharedStatus();
           curr.put(hpKey, currState);
         }
         currState.merge(inState);
@@ -1407,7 +1389,7 @@ public class DefinitelyWrittenCheck {
     Set<NTuple<Descriptor>> hpKeySet = curr.keySet();
     for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
       NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
-      SharedLocState currState = curr.get(hpKey);
+      SharedStatus currState = curr.get(hpKey);
       Set<Location> locKeySet = currState.getMap().keySet();
       for (Iterator iterator2 = locKeySet.iterator(); iterator2.hasNext();) {
         Location locKey = (Location) iterator2.next();
