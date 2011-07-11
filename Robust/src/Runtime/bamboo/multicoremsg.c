@@ -9,6 +9,9 @@
 #include "gcqueue.h"
 #include "markbit.h"
 #endif
+#ifdef PERFCOUNT
+#include "bme_perf_counter.h"
+#endif
 
 int msgsizearray[] = {
   0, //MSGSTART,
@@ -31,6 +34,10 @@ int msgsizearray[] = {
   1, //TERMINATE,             // 0xDf
   3, //MEMREQUEST,            // 0xE0
   3, //MEMRESPONSE,           // 0xE1
+#ifdef PERFCOUNT
+  1,
+  1,
+#endif
 #if defined(MULTICORE_GC)||defined(PMC_GC)
   1, //GCINVOKE
   1, //GCSTARTPRE,            // 0xE2
@@ -918,6 +925,21 @@ processmsg:
 
     case MEMRESPONSE: {
       processmsg_memresponse_I();
+      break;
+    }
+#endif
+#ifdef PERFCOUNT
+    case MSGPERFCOUNT: {
+      profile_stop();
+      if(BAMBOO_CHECK_SEND_MODE()) {
+	cache_msg_1_I(STARTUPCORE, MSGPERFRESPONSE);
+      } else {
+	send_msg_1_I(STARTUPCORE, MSGPERFRESPONSE);
+      }
+      break;
+    }
+    case MSGPERFRESPONSE: {
+      coreperfcount--;
       break;
     }
 #endif

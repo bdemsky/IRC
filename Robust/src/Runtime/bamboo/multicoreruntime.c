@@ -797,7 +797,12 @@ void run(int argc, char** argv) {
   pmc_onceInit();
 #endif
 #ifdef PERFCOUNT
-  profile_init(_LOCAL_DRD_CNT,_LOCAL_WR_CNT, _REMOTE_DRD_CNT, _REMOTE_WR_CNT);
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE)
+    profile_init(_LOCAL_DRD_CNT,_LOCAL_WR_CNT, _REMOTE_DRD_CNT, _REMOTE_WR_CNT);
+  else {
+    int offcore=4*(BAMBOO_NUM_OF_CORE-1);
+    profile_init(validevents[(offcore)%87], validevents[(offcore+1)%87], validevents[(offcore+2)%87], validevents[(offcore+3)%87]);
+  }
 #endif
   if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
     numconfirm=NUMCORES-1;

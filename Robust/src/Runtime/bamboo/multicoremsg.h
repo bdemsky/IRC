@@ -172,6 +172,10 @@ typedef enum {
   TERMINATE,             // 0xDf
   MEMREQUEST,            // 0xE0
   MEMRESPONSE,           // 0xE1
+#ifdef PERFCOUNT
+  MSGPERFCOUNT,
+  MSGPERFRESPONSE,
+#endif
 #if defined(MULTICORE_GC)||defined(PMC_GC)
   GCINVOKE,              // 0xE2
   GCSTARTPRE,            // 0xE3
