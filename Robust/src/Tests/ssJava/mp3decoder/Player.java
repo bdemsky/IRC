@@ -110,7 +110,7 @@ public class Player
 	{
 		boolean ret = true;
 		
-		
+	    SSJAVA:
 		while (frames-- > 0 && ret)
 		{
 			ret = decodeFrame();			

@@ -33,9 +33,11 @@
 /**
  * Class for extracting information from a frame header.
  */
+@LATTICE("HI<HNS,HNS<H,C<H,NS<FS,FS<H,FS<HV,H<SYNC,HV<SYNC,HV<T,SYNC*,HV*,FS*,HI*")
+@METHODDEFAULT("OUT<V,V<THIS,THIS<SH,SH<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 public final class Header
 {
-	public  static final int[][]	frequencies =
+        @LOC("T") public  static final int[][]	frequencies =
 						{{22050, 24000, 16000, 1},
 						{44100, 48000, 32000, 1},
 						{11025, 12000, 8000, 1}};	// SZD: MPEG25
@@ -43,45 +45,50 @@ public final class Header
 	/**
 	 * Constant for MPEG-2 LSF version
 	 */
-	public static final int		MPEG2_LSF = 0;
-	public static final int		MPEG25_LSF = 2;	// SZD
+        @LOC("T") public static final int		MPEG2_LSF = 0;
+        @LOC("T") public static final int		MPEG25_LSF = 2;	// SZD
 
 	/**
 	 * Constant for MPEG-1 version
 	 */
-	public static final int		MPEG1 = 1;
+        @LOC("T") public static final int		MPEG1 = 1;
 
-	public static final int		STEREO = 0;
-	public static final int		JOINT_STEREO = 1;
-	public static final int		DUAL_CHANNEL = 2;
-	public static final int		SINGLE_CHANNEL = 3;
-	public static final int		FOURTYFOUR_POINT_ONE = 0;
-	public static final int		FOURTYEIGHT=1;
-	public static final int		THIRTYTWO=2;
+        @LOC("T") public static final int		STEREO = 0;
+        @LOC("T") public static final int		JOINT_STEREO = 1;
+        @LOC("T") public static final int		DUAL_CHANNEL = 2;
+        @LOC("T") public static final int		SINGLE_CHANNEL = 3;
+        @LOC("T") public static final int		FOURTYFOUR_POINT_ONE = 0;
+        @LOC("T") public static final int		FOURTYEIGHT=1;
+        @LOC("T") public static final int		THIRTYTWO=2;
 
-	private int				h_layer, h_protection_bit, h_bitrate_index,
-	  						h_padding_bit, h_mode_extension;
-	private int				h_version;
-	private int				h_mode;
-	private int				h_sample_frequency;
-	private int				h_number_of_subbands, h_intensity_stereo_bound;
-	private boolean			h_copyright, h_original;
+    @LOC("H") private int				h_layer;
+    @LOC("H") private int  h_protection_bit;
+    @LOC("H") private int h_bitrate_index;
+    @LOC("H") private int h_padding_bit;
+    @LOC("H") private int h_mode_extension;
+    @LOC("HV") private int				h_version;
+    @LOC("H") private int				h_mode;
+    @LOC("H") private int				h_sample_frequency;
+    @LOC("HNS") private int				h_number_of_subbands;
+    @LOC("HI") private int h_intensity_stereo_bound;
+    @LOC("H") private boolean			h_copyright;
+    @LOC("H") private int h_original;
 	// VBR support added by E.B
-	private double[] 		h_vbr_time_per_frame = {-1, 384, 1152, 1152};
-	private boolean			h_vbr;
-	private int				h_vbr_frames;
-	private int				h_vbr_scale;
-	private int				h_vbr_bytes;
-	private byte[]			h_vbr_toc;
+    @LOC("T") private double[] 		h_vbr_time_per_frame = {-1, 384, 1152, 1152};
+    @LOC("T") private boolean			h_vbr;
+    @LOC("T") private int				h_vbr_frames;
+    @LOC("T") private int				h_vbr_scale;
+    @LOC("T") private int				h_vbr_bytes;
+    @LOC("T") private byte[]			h_vbr_toc;
 	
-	private byte			syncmode = Bitstream.INITIAL_SYNC;
-	private Crc16			crc;
+    @LOC("SYNC") private byte			syncmode = Bitstream.INITIAL_SYNC;
+    @LOC("C") private Crc16			crc;
 
-	public short			checksum;
-	public int				framesize;
-	public int				nSlots;
+    @LOC("C") public short			checksum;
+    @LOC("FS") public int				framesize;
+    @LOC("NS") public int				nSlots;
 
-	private int				_headerstring = -1; // E.B
+    @LOC("T") private int				_headerstring = -1; // E.B
 
 	Header()
 	{
@@ -437,7 +444,7 @@ public final class Header
 	public int mode_extension() { return h_mode_extension; }
 
 	// E.B -> private to public
-	public static final int bitrates[][][] = {
+    @LOC("T") public static final int bitrates[][][] = {
 		{{0 /*free format*/, 32000, 48000, 56000, 64000, 80000, 96000,
 	  112000, 128000, 144000, 160000, 176000, 192000 ,224000, 256000, 0},
 	 	{0 /*free format*/, 8000, 16000, 24000, 32000, 40000, 48000,
@@ -597,7 +604,7 @@ public final class Header
 	}
 
 	// E.B -> private to public
-	public static final String bitrate_str[][][] = {
+    @LOC("T") public static final String bitrate_str[][][] = {
 		{{"free format", "32 kbit/s", "48 kbit/s", "56 kbit/s", "64 kbit/s",
 	  "80 kbit/s", "96 kbit/s", "112 kbit/s", "128 kbit/s", "144 kbit/s",
 	  "160 kbit/s", "176 kbit/s", "192 kbit/s", "224 kbit/s", "256 kbit/s",

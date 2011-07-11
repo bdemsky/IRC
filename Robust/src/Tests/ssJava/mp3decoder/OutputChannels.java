@@ -29,36 +29,38 @@
  * @author	Mat McGowan 12/12/99 
  * @since	0.0.7
  */
+@LATTICE("B<T")
+@METHODDEFAULT("OUT<IN")
 public class OutputChannels
 {		
 	/**
 	 * Flag to indicate output should include both channels. 
 	 */
-	public static final int	BOTH_CHANNELS = 0;
+        @LOC("T") public static final int	BOTH_CHANNELS = 0;
 		
 	/**
 	 * Flag to indicate output should include the left channel only. 
 	 */
-	public static final int	LEFT_CHANNEL = 1;
+        @LOC("T") public static final int	LEFT_CHANNEL = 1;
 
 	/**
 	 * Flag to indicate output should include the right channel only. 
 	 */
-	public static final int	RIGHT_CHANNEL = 2;
+        @LOC("T") public static final int	RIGHT_CHANNEL = 2;
 		
 	/**
 	 * Flag to indicate output is mono. 
 	 */
-	public static final int	DOWNMIX_CHANNELS = 3;
+        @LOC("T") public static final int	DOWNMIX_CHANNELS = 3;
 
 	
-	public static final OutputChannels LEFT = new OutputChannels(LEFT_CHANNEL);
-	public static final OutputChannels RIGHT = new OutputChannels(RIGHT_CHANNEL);
-	public static final OutputChannels BOTH = new OutputChannels(BOTH_CHANNELS);
-	public static final OutputChannels DOWNMIX = new OutputChannels(DOWNMIX_CHANNELS);
+        @LOC("B") public static final OutputChannels LEFT = new OutputChannels(LEFT_CHANNEL);
+        @LOC("B") public static final OutputChannels RIGHT = new OutputChannels(RIGHT_CHANNEL);
+        @LOC("B") public static final OutputChannels BOTH = new OutputChannels(BOTH_CHANNELS);
+        @LOC("B") public static final OutputChannels DOWNMIX = new OutputChannels(DOWNMIX_CHANNELS);
 				
 	
-	private /*final*/ int	outputChannels;
+        @LOC("T") private /*final*/ int	outputChannels;
 			
 	/**
 	 * Creates an <code>OutputChannels</code> instance
@@ -85,8 +87,8 @@ public class OutputChannels
 			throw new IllegalArgumentException("Invalid channel code: "+code);
 		}
 	}
-		
-	private OutputChannels(int channels)
+	
+        private OutputChannels(@LOC("IN") int channels)
 	{
 		outputChannels = channels;
 			

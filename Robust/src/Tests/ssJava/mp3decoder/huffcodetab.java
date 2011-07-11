@@ -41,60 +41,62 @@
 /**
  * Class to implements Huffman decoder.
  */
+@LATTICE("FIELD<FINAL")
+@METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=IN,GLOBALLOC=IN");
 final class huffcodetab
 {
-  private static final int	 MXOFF=250;
-  private static final int	 HTN=34;
+  @LOC("FINAL") private static final int	 MXOFF=250;
+  @LOC("FINAL") private static final int	 HTN=34;
   
-  private char				 tablename0 = ' ';      /* string, containing table_description   */
-  private char				 tablename1 = ' ';      /* string, containing table_description   */
-  private char				 tablename2 = ' ';      /* string, containing table_description   */
+  @LOC("FIELD") private char				 tablename0 = ' ';      /* string, containing table_description   */
+  @LOC("FIELD") private char				 tablename1 = ' ';      /* string, containing table_description   */
+  @LOC("FIELD") private char				 tablename2 = ' ';      /* string, containing table_description   */
   
-  private int				 xlen; 			        /* max. x-index+                          */
-  private int				 ylen;	                /* max. y-index+				          */
-  private int				 linbits; 		        /* number of linbits   	                  */
-  private int 				 linmax;		        /* max number to be stored in linbits	  */
-  private int				 ref;			        /* a positive value indicates a reference */
-  private int[]				 table=null;	        /* pointer to array[xlen][ylen]		      */
-  private int[]   			 hlen=null;             /* pointer to array[xlen][ylen]		      */
-  private int[][]			 val=null;		        /* decoder tree		    	              */
-  private int 				 treelen;	            /* length of decoder tree  	              */
+  @LOC("FIELD") private int				 xlen; 			        /* max. x-index+                          */
+  @LOC("FIELD") private int				 ylen;	                /* max. y-index+				          */
+  @LOC("FIELD") private int				 linbits; 		        /* number of linbits   	                  */
+  @LOC("FIELD") private int 				 linmax;		        /* max number to be stored in linbits	  */
+  @LOC("FIELD") private int				 ref;			        /* a positive value indicates a reference */
+  @LOC("FIELD") private int[]				 table=null;	        /* pointer to array[xlen][ylen]		      */
+  @LOC("FIELD") private int[]   			 hlen=null;             /* pointer to array[xlen][ylen]		      */
+  @LOC("FIELD") private int[][]			 val=null;		        /* decoder tree		    	              */
+  @LOC("FIELD") private int 				 treelen;	            /* length of decoder tree  	              */
 
-  private static int ValTab0[][] = {
+  @LOC("FINAL") private static int ValTab0[][] = {
 	{0,0}	// dummy
 	};
 
-  private static int ValTab1[][] = {
+  @LOC("FINAL") private static int ValTab1[][] = {
 	{2,1},{0,0},{2,1},{0,16},{2,1},{0,1},{0,17},
 	};
 	
-  private static int ValTab2[][] = {
+  @LOC("FINAL") private static int ValTab2[][] = {
 	{2,1},{0,0},{4,1},{2,1},{0,16},{0,1},{2,1},{0,17},{4,1},{2,1},
 	{0,32},{0,33},{2,1},{0,18},{2,1},{0,2},{0,34},
 	};
 	
-  private static int ValTab3[][] = {
+  @LOC("FINAL") private static int ValTab3[][] = {
 	{4,1},{2,1},{0,0},{0,1},{2,1},{0,17},{2,1},{0,16},{4,1},{2,1},
 	{0,32},{0,33},{2,1},{0,18},{2,1},{0,2},{0,34},
 	};
 
-  private static int ValTab4[][] = {{0,0}};	// dummy
+  @LOC("FINAL") private static int ValTab4[][] = {{0,0}};	// dummy
 
-  private static int ValTab5[][] = {
+  @LOC("FINAL") private static int ValTab5[][] = {
 	{2,1},{0,0},{4,1},{2,1},{0,16},{0,1},{2,1},{0,17},{8,1},{4,1},
 	{2,1},{0,32},{0,2},{2,1},{0,33},{0,18},{8,1},{4,1},{2,1},{0,34},
 	{0,48},{2,1},{0,3},{0,19},{2,1},{0,49},{2,1},{0,50},{2,1},{0,35},
 	{0,51},
 	};
 
-  private static int ValTab6[][] = {
+  @LOC("FINAL") private static int ValTab6[][] = {
 	{6,1},{4,1},{2,1},{0,0},{0,16},{0,17},{6,1},{2,1},{0,1},{2,1},
 	{0,32},{0,33},{6,1},{2,1},{0,18},{2,1},{0,2},{0,34},{4,1},{2,1},
 	{0,49},{0,19},{4,1},{2,1},{0,48},{0,50},{2,1},{0,35},{2,1},{0,3},
 	{0,51},
 	};
 	
-  private static int ValTab7[][] = {
+  @LOC("FINAL") private static int ValTab7[][] = {
 	{2,1},{0,0},{4,1},{2,1},{0,16},{0,1},{8,1},{2,1},{0,17},{4,1},
 	{2,1},{0,32},{0,2},{0,33},{18,1},{6,1},{2,1},{0,18},{2,1},{0,34},
 	{0,48},{4,1},{2,1},{0,49},{0,19},{4,1},{2,1},{0,3},{0,50},{2,1},
@@ -105,7 +107,7 @@ final class huffcodetab
 	{0,85},
 	};
 	
-  private static int ValTab8[][] = {
+  @LOC("FINAL") private static int ValTab8[][] = {
 	{6,1},{2,1},{0,0},{2,1},{0,16},{0,1},{2,1},{0,17},{4,1},{2,1},
 	{0,33},{0,18},{14,1},{4,1},{2,1},{0,32},{0,2},{2,1},{0,34},{4,1},
 	{2,1},{0,48},{0,3},{2,1},{0,49},{0,19},{14,1},{8,1},{4,1},{2,1},
@@ -116,7 +118,7 @@ final class huffcodetab
 	{0,85},
 	};
 	
-  private static int ValTab9[][] = {
+  @LOC("FINAL") private static int ValTab9[][] = {
 	{8,1},{4,1},{2,1},{0,0},{0,16},{2,1},{0,1},{0,17},{10,1},{4,1},
 	{2,1},{0,32},{0,33},{2,1},{0,18},{2,1},{0,2},{0,34},{12,1},{6,1},
 	{4,1},{2,1},{0,48},{0,3},{0,49},{2,1},{0,19},{2,1},{0,50},{0,35},
@@ -127,7 +129,7 @@ final class huffcodetab
 	{0,85},
 	};
 	
-  private static int ValTab10[][] = {
+  @LOC("FINAL") private static int ValTab10[][] = {
 	{2,1},{0,0},{4,1},{2,1},{0,16},{0,1},{10,1},{2,1},{0,17},{4,1},
 	{2,1},{0,32},{0,2},{2,1},{0,33},{0,18},{28,1},{8,1},{4,1},{2,1},
 	{0,34},{0,48},{2,1},{0,49},{0,19},{8,1},{4,1},{2,1},{0,3},{0,50},
@@ -143,7 +145,7 @@ final class huffcodetab
 	{4,1},{2,1},{0,87},{0,118},{2,1},{0,103},{0,119},
 	};
 
-  private static int ValTab11[][] = {
+  @LOC("FINAL") private static int ValTab11[][] = {
 	{6,1},{2,1},{0,0},{2,1},{0,16},{0,1},{8,1},{2,1},{0,17},{4,1},
 	{2,1},{0,32},{0,2},{0,18},{24,1},{8,1},{2,1},{0,33},{2,1},{0,34},
 	{2,1},{0,48},{0,3},{4,1},{2,1},{0,49},{0,19},{4,1},{2,1},{0,50},
@@ -159,7 +161,7 @@ final class huffcodetab
 	{4,1},{2,1},{0,117},{0,118},{2,1},{0,103},{0,119},
 	};
 
-  private static int ValTab12[][] = {
+  @LOC("FINAL") private static int ValTab12[][] = {
 	{12,1},{4,1},{2,1},{0,16},{0,1},{2,1},{0,17},{2,1},{0,0},{2,1},
 	{0,32},{0,2},{16,1},{4,1},{2,1},{0,33},{0,18},{4,1},{2,1},{0,34},
 	{0,49},{2,1},{0,19},{2,1},{0,48},{2,1},{0,3},{0,64},{26,1},{8,1},
@@ -175,7 +177,7 @@ final class huffcodetab
 	{0,117},{0,87},{2,1},{0,118},{2,1},{0,103},{0,119},
 	};
 
-  private static int ValTab13[][] = {
+  @LOC("FINAL") private static int ValTab13[][] = {
 	{2,1},{0,0},{6,1},{2,1},{0,16},{2,1},{0,1},{0,17},{28,1},{8,1},
 	{4,1},{2,1},{0,32},{0,2},{2,1},{0,33},{0,18},{8,1},{4,1},{2,1},
 	{0,34},{0,48},{2,1},{0,3},{0,49},{6,1},{2,1},{0,19},{2,1},{0,50},
@@ -230,11 +232,11 @@ final class huffcodetab
 	{0,254},
 	};
 
-  private static int ValTab14[][] = {
+  @LOC("FINAL") private static int ValTab14[][] = {
 	{0,0}  // dummy
 	};
 
-  private static int ValTab15[][] = {
+  @LOC("FINAL") private static int ValTab15[][] = {
 	{16,1},{6,1},{2,1},{0,0},{2,1},{0,16},{0,1},{2,1},{0,17},{4,1},
 	{2,1},{0,32},{0,2},{2,1},{0,33},{0,18},{50,1},{16,1},{6,1},{2,1},
 	{0,34},{2,1},{0,48},{0,49},{6,1},{2,1},{0,19},{2,1},{0,3},{0,64},
@@ -289,7 +291,7 @@ final class huffcodetab
 	{0,255},
 	};
 
-  private static int  ValTab16[][] = {
+  @LOC("FINAL") private static int  ValTab16[][] = {
 	{2,1},{0,0},{6,1},{2,1},{0,16},{2,1},{0,1},{0,17},{42,1},{8,1},
 	{4,1},{2,1},{0,32},{0,2},{2,1},{0,33},{0,18},{10,1},{6,1},{2,1},
 	{0,34},{2,1},{0,48},{0,3},{2,1},{0,49},{0,19},{10,1},{4,1},{2,1},
@@ -344,7 +346,7 @@ final class huffcodetab
 	{0,239},
 	};
 	
-  private static int ValTab24[][] = {
+  @LOC("FINAL") private static int ValTab24[][] = {
 	{60,1},{8,1},{4,1},{2,1},{0,0},{0,16},{2,1},{0,1},{0,17},{14,1},
 	{6,1},{4,1},{2,1},{0,32},{0,2},{0,33},{2,1},{0,18},{2,1},{0,34},
 	{2,1},{0,48},{0,3},{14,1},{4,1},{2,1},{0,49},{0,19},{4,1},{2,1},
@@ -399,14 +401,14 @@ final class huffcodetab
 	{0,254},{0,239},
 	};
 	
-  private static int ValTab32[][] = {
+  @LOC("FINAL") private static int ValTab32[][] = {
 	{2,1},{0,0},{8,1},{4,1},{2,1},{0,8},{0,4},{2,1},{0,1},{0,2},
 	{8,1},{4,1},{2,1},{0,12},{0,10},{2,1},{0,3},{0,6},{6,1},{2,1},
 	{0,9},{2,1},{0,5},{0,7},{4,1},{2,1},{0,14},{0,13},{2,1},{0,15},
 	{0,11},
 	};
 
-  private static int ValTab33[][] = {
+  @LOC("FINAL") private static int ValTab33[][] = {
 	{16,1},{8,1},{4,1},{2,1},{0,0},{0,1},{2,1},{0,2},{0,3},{4,1},
 	{2,1},{0,4},{0,5},{2,1},{0,6},{0,7},{8,1},{4,1},{2,1},{0,8},
 	{0,9},{2,1},{0,10},{0,11},{4,1},{2,1},{0,12},{0,13},{2,1},{0,14},
@@ -414,15 +416,16 @@ final class huffcodetab
 	};
 
 
-  public static huffcodetab[]  ht = null;     /* Simulate extern struct                 */
+  @LOC("FINAL") public static huffcodetab[]  ht = null;     /* Simulate extern struct                 */
 
-  private static int[] bitbuf = new int[32];
+  @LOC("FINAL") private static int[] bitbuf = new int[32];
   
   /**
    * Big Constructor : Computes all Huffman Tables.
    */
-  private huffcodetab(String S,int XLEN, int YLEN, int LINBITS, int LINMAX, int REF,
-                     int[] TABLE, int[] HLEN, int[][] VAL, int TREELEN)                     
+  private huffcodetab(@LOC("V") String S,@LOC("V") int XLEN, @LOC("V") int YLEN, @LOC("V") int LINBITS,
+		      @LOC("V") int LINMAX, @LOC("V") int REF,@LOC("V") int[] TABLE, @LOC("V") int[] HLEN, 
+                      @LOC("V") int[][] VAL, @LOC("V") int TREELEN)                     
   {
     tablename0 = S.charAt(0);
 	tablename1 = S.charAt(1);
@@ -433,8 +436,11 @@ final class huffcodetab
     linmax = LINMAX;
     ref = REF;
     table = TABLE;
+    TABLE = null;
     hlen = HLEN;
+    HLEN = null;
     val = VAL;
+    VAL = null;
     treelen = TREELEN;
   }
 
@@ -445,25 +451,28 @@ final class huffcodetab
    * note! for counta,countb -the 4 bit value is returned in y,
    * discard x.
    */
-  public static int huffman_decoder(huffcodetab h, int[] x, int[] y, int[] v, int[] w, BitReserve br)
+  @LATTICE("X<Y,V<Y,W<Y,Y<VAR,VAR<IN,OUT<IN,VAR*,Y*,X*,V*,W*,THISLOC=IN,GLOBALLOC=IN")
+  @RETURNLOC("OUT")
+  public static int huffman_decoder(@LOC("IN") huffcodetab h, @LOC("X") int[] x, @LOC("Y") int[] y, @LOC("V") int[] v, @LOC("W") int[] w, @LOC("IN") BitReserve br)
   {
 	// array of all huffcodtable headers
 	// 0..31 Huffman code table 0..31
 	// 32,33 count1-tables
 
-	int dmask = 1 << ((4 * 8) - 1);
-	int hs    = 4 * 8;
-  	int level;
-  	int point = 0;
-  	int error = 1;
+        @LOC("IN") int dmask = 1 << ((4 * 8) - 1);
+	@LOC("IN") int hs    = 4 * 8;
+  	@LOC("VAR") int level;
+  	@LOC("VAR") int point = 0;
+  	@LOC("OUT") int error = 1;
   	level = dmask;
 
   	if (h.val == null) return 2;
 
      /* table 0 needs no bits */
      if ( h.treelen == 0)
-	 { 
-	   x[0] = y[0] = 0;
+	 {   
+	   y[0] = 0;
+	   x[0] = 0;
 	   return 0;
      }
 
@@ -476,7 +485,7 @@ final class huffcodetab
    	 do 
 	 {
 	    if (h.val[point][0]==0)
-		{   /*end of tree*/
+	    {   /*end of tree*/
 		   x[0] = h.val[point][1] >>> 4;
 		   y[0] = h.val[point][1] & 0xf;
 		   error = 0;
@@ -533,7 +542,7 @@ final class huffcodetab
 		  if (br.hget1bit() != 0) x[0] = -x[0];
 	  	if (y[0]!=0)
 		  if (br.hget1bit() != 0) y[0] = -y[0];
-       }
+           }
 	   else
 	   {
 		  // Process sign and escape encodings for dual tables.
@@ -560,7 +569,7 @@ final class huffcodetab
 	if (ht!=null)
 		return;
 	
-	ht = new huffcodetab[HTN];
+    ht = new huffcodetab[HTN];
     ht[0] = new huffcodetab("0  ",0,0,0,0,-1,null,null,ValTab0,0);
     ht[1] = new huffcodetab("1  ",2,2,0,0,-1,null,null,ValTab1,7);
     ht[2] = new huffcodetab("2  ",3,3,0,0,-1,null,null,ValTab2,17);
@@ -589,7 +598,7 @@ final class huffcodetab
     ht[25] = new huffcodetab("25 ",16,16,5,31,24,null,null,ValTab24,512);
     ht[26] = new huffcodetab("26 ",16,16,6,63,24,null,null,ValTab24,512);
     ht[27] = new huffcodetab("27 ",16,16,7,127,24,null,null,ValTab24,512);
-	ht[28] = new huffcodetab("28 ",16,16,8,255,24,null,null,ValTab24,512);  
+    ht[28] = new huffcodetab("28 ",16,16,8,255,24,null,null,ValTab24,512);  
     ht[29] = new huffcodetab("29 ",16,16,9,511,24,null,null,ValTab24,512);
     ht[30] = new huffcodetab("30 ",16,16,11,2047,24,null,null,ValTab24,512);
     ht[31] = new huffcodetab("31 ",16,16,13,8191,24,null,null,ValTab24,512);

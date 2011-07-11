@@ -34,7 +34,7 @@ public class Decoder implements DecoderErrors
 	/**
 	 * The Bistream from which the MPEG audio frames are read.
 	 */
-	//private Bitstream				stream;
+	private Bitstream				stream;
 	
 	/**
 	 * The Obuffer instance that will receive the decoded
@@ -134,7 +134,7 @@ public class Decoder implements DecoderErrors
 	{
 		if (!initialized)
 		{
-			initialize(header);
+		    initialize(header,stream);
 		}
 		
 		int layer = header.layer();
@@ -262,7 +262,7 @@ public class Decoder implements DecoderErrors
 		return decoder;
 	}
 	
-	private void initialize(Header header)
+        public void initialize(Header header, Bitstream stream)
 		throws DecoderException
 	{
 		
@@ -287,7 +287,17 @@ public class Decoder implements DecoderErrors
 
 		outputChannels = channels;
 		outputFrequency = header.frequency();
-		
+
+		l3decoder = new LayerIIIDecoder(stream, header, filter1, filter2, 
+					        output, OutputChannels.BOTH_CHANNELS);
+		l2decoder = new LayerIIDecoder();
+		l2decoder.create(stream, header, filter1, filter2, 
+				 output, OutputChannels.BOTH_CHANNELS);
+
+		l1decoder = new LayerIDecoder();
+		l1decoder.create(stream,header, filter1, filter2, 
+				 output, OutputChannels.BOTH_CHANNELS);	
+
 		initialized = true;
 	}
 	

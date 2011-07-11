@@ -29,23 +29,25 @@
  *----------------------------------------------------------------------
  */
 
-import java.io.IOException;
+//import java.io.IOException; //Compiler does not support imports
 
 /**
  * A class for the synthesis filter bank.
  * This class does a fast downsampling from 32, 44.1 or 48 kHz to 8 kHz, if ULAW is defined.
  * Frequencies above 4 kHz are removed by ignoring higher subbands.
  */
+@LATTICE("TMP<PCM,PCM<AV,AV<V2,V2<V1,V1<L1,L1<L2,L2<L3,L3<L4,L4<LSH,LSH<S,S<SA,SA<EQ,EQ<SH,SH*,LSH*,V1*")
+@METHODDEFAULT("OUT<V,V<SH,SH<IN,IN<GLOBAL,SH*,THISLOC=IN,GLOBALLOC=GLOBAL")
 final class SynthesisFilter
 {
-  private float[] 			 v1;
-  private float[]		 	 v2;
-  private float[]			 actual_v;			// v1 or v2
-  private int 			 	 actual_write_pos;	// 0-15
-  private float[]			 samples;			// 32 new subband samples
-  private int				 channel;
-  private float 			 scalefactor;
-  private float[]			 eq;
+  @LOC("V1") private float[] 			 v1;
+  @LOC("V2") private float[]		 	 v2;
+  @LOC("AV") private float[]			 actual_v;			// v1 or v2
+  @LOC("SH") private int 			 actual_write_pos;	// 0-15
+  @LOC("SA") private float[]			 samples;			// 32 new subband samples
+  @LOC("V2") private int				 channel;
+  @LOC("V2") private float 			 scalefactor;
+  @LOC("EQ") private float[]			 eq;
 	
 	/**
 	 * Quality value for controlling CPU usage/quality tradeoff. 
@@ -152,7 +154,7 @@ final class SynthesisFilter
   /**
    * Inject Sample.
    */
-  public void input_sample(float sample, int subbandnumber)
+    public void input_sample(@LOC("V") float sample, @LOC("V") int subbandnumber)
   {	 	 		  
 	  samples[subbandnumber] = eq[subbandnumber]*sample;
   }
@@ -188,10 +190,38 @@ final class SynthesisFilter
 	 }
 	  */
 	  
-	float new_v0, new_v1, new_v2, new_v3, new_v4, new_v5, new_v6, new_v7, new_v8, new_v9;
-	float new_v10, new_v11, new_v12, new_v13, new_v14, new_v15, new_v16, new_v17, new_v18, new_v19;
-	float new_v20, new_v21, new_v22, new_v23, new_v24, new_v25, new_v26, new_v27, new_v28, new_v29;
-	float new_v30, new_v31;
+      @LOC("IN,SynthesisFilter.L4") float new_v0;
+      @LOC("IN,SynthesisFilter.L2") float new_v1;
+      @LOC("IN,SynthesisFilter.L4") float new_v2;
+      @LOC("IN,SynthesisFilter.L2") float new_v3;
+      @LOC("IN,SynthesisFilter.L3") float new_v4;
+      @LOC("IN,SynthesisFilter.L4") float new_v5;
+      @LOC("IN,SynthesisFilter.L2") float new_v6;
+      @LOC("IN,SynthesisFilter.L3") float new_v7;
+      @LOC("IN,SynthesisFilter.L4") float new_v8;
+      @LOC("IN,SynthesisFilter.L4") float new_v9;
+      @LOC("IN,SynthesisFilter.L3") float new_v10;
+      @LOC("IN,SynthesisFilter.L2") float new_v11;
+      @LOC("IN,SynthesisFilter.L4") float new_v12;
+      @LOC("IN,SynthesisFilter.L3") float new_v13;
+      @LOC("IN,SynthesisFilter.L4") float new_v14;
+      @LOC("IN,SynthesisFilter.L4") float new_v15;
+      @LOC("IN,SynthesisFilter.L1") float new_v16;
+      @LOC("IN,SynthesisFilter.L3") float new_v17;
+      @LOC("IN,SynthesisFilter.L1") float new_v18;
+      @LOC("IN,SynthesisFilter.L2") float new_v19;
+      @LOC("IN,SynthesisFilter.L2") float new_v20;
+      @LOC("IN,SynthesisFilter.L2") float new_v21;
+      @LOC("IN,SynthesisFilter.L2") float new_v22;
+      @LOC("IN,SynthesisFilter.L3") float new_v23;
+      @LOC("IN,SynthesisFilter.L2") float new_v24;
+      @LOC("IN,SynthesisFilter.L2") float new_v25;
+      @LOC("IN,SynthesisFilter.L2") float new_v26;
+      @LOC("IN,SynthesisFilter.L4") float new_v27;
+      @LOC("IN,SynthesisFilter.L2") float new_v28;
+      @LOC("IN,SynthesisFilter.L4") float new_v29;
+      @LOC("IN,SynthesisFilter.L2") float new_v30;
+      @LOC("IN,SynthesisFilter.L4") float new_v31;
 	  
 	new_v0 = new_v1 = new_v2 = new_v3 = new_v4 = new_v5 = new_v6 = new_v7 = new_v8 = new_v9 = 
 	new_v10 = new_v11 = new_v12 = new_v13 = new_v14 = new_v15 = new_v16 = new_v17 = new_v18 = new_v19 = 
@@ -203,74 +233,74 @@ final class SynthesisFilter
 //	float[] p = new float[16];
 //	float[] pp = new float[16];
 
-    float[] s = samples;
+	//float[] s = samples; // subbed in samples directly below to reduce uneccesary areas
 	
-	float s0 = s[0];
-	float s1 = s[1];
-	float s2 = s[2];
-	float s3 = s[3];
-	float s4 = s[4];
-	float s5 = s[5];
-	float s6 = s[6];
-	float s7 = s[7];
-	float s8 = s[8];
-	float s9 = s[9];
-	float s10 = s[10];	
-	float s11 = s[11];
-	float s12 = s[12];
-	float s13 = s[13];
-	float s14 = s[14];
-	float s15 = s[15];
-	float s16 = s[16];
-	float s17 = s[17];
-	float s18 = s[18];
-	float s19 = s[19];
-	float s20 = s[20];	
-	float s21 = s[21];
-	float s22 = s[22];
-	float s23 = s[23];
-	float s24 = s[24];
-	float s25 = s[25];
-	float s26 = s[26];
-	float s27 = s[27];
-	float s28 = s[28];
-	float s29 = s[29];
-	float s30 = s[30];	
-	float s31 = s[31];
+	@LOC("IN,SynthesisFilter.S") float s0 = samples[0];
+	@LOC("IN,SynthesisFilter.S") float s1 = samples[1];
+	@LOC("IN,SynthesisFilter.S") float s2 = samples[2];
+	@LOC("IN,SynthesisFilter.S") float s3 = samples[3];
+	@LOC("IN,SynthesisFilter.S") float s4 = samples[4];
+	@LOC("IN,SynthesisFilter.S") float s5 = samples[5];
+	@LOC("IN,SynthesisFilter.S") float s6 = samples[6];
+	@LOC("IN,SynthesisFilter.S") float s7 = samples[7];
+	@LOC("IN,SynthesisFilter.S") float s8 = samples[8];
+	@LOC("IN,SynthesisFilter.S") float s9 = samples[9];
+	@LOC("IN,SynthesisFilter.S") float s10 = samples[10];	
+	@LOC("IN,SynthesisFilter.S") float s11 = samples[11];
+	@LOC("IN,SynthesisFilter.S") float s12 = samples[12];
+	@LOC("IN,SynthesisFilter.S") float s13 = samples[13];
+	@LOC("IN,SynthesisFilter.S") float s14 = samples[14];
+	@LOC("IN,SynthesisFilter.S") float s15 = samples[15];
+	@LOC("IN,SynthesisFilter.S") float s16 = samples[16];
+	@LOC("IN,SynthesisFilter.S") float s17 = samples[17];
+	@LOC("IN,SynthesisFilter.S") float s18 = samples[18];
+	@LOC("IN,SynthesisFilter.S") float s19 = samples[19];
+	@LOC("IN,SynthesisFilter.S") float s20 = samples[20];	
+	@LOC("IN,SynthesisFilter.S") float s21 = samples[21];
+	@LOC("IN,SynthesisFilter.S") float s22 = samples[22];
+	@LOC("IN,SynthesisFilter.S") float s23 = samples[23];
+	@LOC("IN,SynthesisFilter.S") float s24 = samples[24];
+	@LOC("IN,SynthesisFilter.S") float s25 = samples[25];
+	@LOC("IN,SynthesisFilter.S") float s26 = samples[26];
+	@LOC("IN,SynthesisFilter.S") float s27 = samples[27];
+	@LOC("IN,SynthesisFilter.S") float s28 = samples[28];
+	@LOC("IN,SynthesisFilter.S") float s29 = samples[29];
+	@LOC("IN,SynthesisFilter.S") float s30 = samples[30];	
+	@LOC("IN,SynthesisFilter.S") float s31 = samples[31];
 		
-	float p0 = s0 + s31;
-	float p1 = s1 + s30;
-	float p2 = s2 + s29;
-	float p3 = s3 + s28;
-	float p4 = s4 + s27;
-	float p5 = s5 + s26;
-	float p6 = s6 + s25;
-	float p7 = s7 + s24;
-	float p8 = s8 + s23;
-	float p9 = s9 + s22;
-	float p10 = s10 + s21;
-	float p11 = s11 + s20;
-	float p12 = s12 + s19;
-	float p13 = s13 + s18;
-	float p14 = s14 + s17;
-	float p15 = s15 + s16;
+	@LOC("IN,SynthesisFilter.LSH") float p0 = s0 + s31;
+	@LOC("IN,SynthesisFilter.LSH") float p1 = s1 + s30;
+	@LOC("IN,SynthesisFilter.LSH") float p2 = s2 + s29;
+	@LOC("IN,SynthesisFilter.LSH") float p3 = s3 + s28;
+	@LOC("IN,SynthesisFilter.LSH") float p4 = s4 + s27;
+	@LOC("IN,SynthesisFilter.LSH") float p5 = s5 + s26;
+	@LOC("IN,SynthesisFilter.LSH") float p6 = s6 + s25;
+	@LOC("IN,SynthesisFilter.LSH") float p7 = s7 + s24;
+	@LOC("IN,SynthesisFilter.LSH") float p8 = s8 + s23;
+	@LOC("IN,SynthesisFilter.LSH") float p9 = s9 + s22;
+	@LOC("IN,SynthesisFilter.LSH") float p10 = s10 + s21;
+	@LOC("IN,SynthesisFilter.LSH") float p11 = s11 + s20;
+	@LOC("IN,SynthesisFilter.LSH") float p12 = s12 + s19;
+	@LOC("IN,SynthesisFilter.LSH") float p13 = s13 + s18;
+	@LOC("IN,SynthesisFilter.LSH") float p14 = s14 + s17;
+	@LOC("IN,SynthesisFilter.LSH") float p15 = s15 + s16;
 	
-	float pp0 = p0 + p15;
-	float pp1 = p1 + p14;
-	float pp2 = p2 + p13;
-	float pp3 = p3 + p12;
-	float pp4 = p4 + p11;
-	float pp5 = p5 + p10;
-	float pp6 = p6 + p9;
-	float pp7 = p7 + p8;
-	float pp8 = (p0 - p15) * cos1_32;
-	float pp9 = (p1 - p14) * cos3_32;
-	float pp10 = (p2 - p13) * cos5_32;
-	float pp11 = (p3 - p12) * cos7_32;
-	float pp12 = (p4 - p11) * cos9_32;
-	float pp13 = (p5 - p10) * cos11_32;
-	float pp14 = (p6 - p9) * cos13_32;
-	float pp15 = (p7 - p8) * cos15_32;
+	@LOC("IN,SynthesisFilter.LSH") float pp0 = p0 + p15;
+	@LOC("IN,SynthesisFilter.LSH") float pp1 = p1 + p14;
+	@LOC("IN,SynthesisFilter.LSH") float pp2 = p2 + p13;
+	@LOC("IN,SynthesisFilter.LSH") float pp3 = p3 + p12;
+	@LOC("IN,SynthesisFilter.LSH") float pp4 = p4 + p11;
+	@LOC("IN,SynthesisFilter.LSH") float pp5 = p5 + p10;
+	@LOC("IN,SynthesisFilter.LSH") float pp6 = p6 + p9;
+	@LOC("IN,SynthesisFilter.LSH") float pp7 = p7 + p8;
+	@LOC("IN,SynthesisFilter.LSH") float pp8 = (p0 - p15) * cos1_32;
+	@LOC("IN,SynthesisFilter.LSH") float pp9 = (p1 - p14) * cos3_32;
+	@LOC("IN,SynthesisFilter.LSH") float pp10 = (p2 - p13) * cos5_32;
+	@LOC("IN,SynthesisFilter.LSH") float pp11 = (p3 - p12) * cos7_32;
+	@LOC("IN,SynthesisFilter.LSH") float pp12 = (p4 - p11) * cos9_32;
+	@LOC("IN,SynthesisFilter.LSH") float pp13 = (p5 - p10) * cos11_32;
+	@LOC("IN,SynthesisFilter.LSH") float pp14 = (p6 - p9) * cos13_32;
+	@LOC("IN,SynthesisFilter.LSH") float pp15 = (p7 - p8) * cos15_32;
 
 	p0 = pp0 + pp7;
 	p1 = pp1 + pp6;
@@ -326,7 +356,7 @@ final class SynthesisFilter
 	p15 = (pp14 - pp15) * cos1_4;
 
 	// this is pretty insane coding
-	float tmp1;
+	@LOC("IN,SynthesisFilter.L3") float tmp1;
 	new_v19/*36-17*/ = -(new_v4 = (new_v12 = p7) + p5) - p6;
 	new_v27/*44-17*/ = -p6 - p7 - p4;
 	new_v6 = (new_v10 = (new_v14 = p15) + p11) + p13;
@@ -430,7 +460,7 @@ final class SynthesisFilter
 
 	// manually doing something that a compiler should handle sucks
 	// coding like this is hard to read
-	float tmp2;
+	@LOC("IN,SynthesisFilter.L4") float tmp2;
 	new_v5 = (new_v11 = (new_v13 = (new_v15 = p15) + p7) + p11)
 							+ p5 + p13;
 	new_v7 = (new_v9 = p15 + p11 + p3) + p13;
@@ -447,85 +477,122 @@ final class SynthesisFilter
 
 	// insert V[0-15] (== new_v[0-15]) into actual v:	
 	// float[] x2 = actual_v + actual_write_pos;
-	float dest[] = actual_v;
+	//float dest[] = actual_v; //actual_v subbed in so as not to create a new area
 	
-	int pos = actual_write_pos;
+	//int pos = actual_write_pos; //substituted to simplify location relations
 	
-	dest[0 + pos] = new_v0;
-	dest[16 + pos] = new_v1;
-	dest[32 + pos] = new_v2;
-	dest[48 + pos] = new_v3;
-	dest[64 + pos] = new_v4;
-	dest[80 + pos] = new_v5;
-	dest[96 + pos] = new_v6;
-	dest[112 + pos] = new_v7;
-	dest[128 + pos] = new_v8;
-	dest[144 + pos] = new_v9;
-	dest[160 + pos] = new_v10;
-	dest[176 + pos] = new_v11;
-	dest[192 + pos] = new_v12;
-	dest[208 + pos] = new_v13;
-	dest[224 + pos] = new_v14;
-	dest[240 + pos] = new_v15;
+	actual_v[0 + actual_write_pos] = new_v0;
+	actual_v[16 + actual_write_pos] = new_v1;
+	actual_v[32 + actual_write_pos] = new_v2;
+	actual_v[48 + actual_write_pos] = new_v3;
+	actual_v[64 + actual_write_pos] = new_v4;
+	actual_v[80 + actual_write_pos] = new_v5;
+	actual_v[96 + actual_write_pos] = new_v6;
+	actual_v[112 + actual_write_pos] = new_v7;
+	actual_v[128 + actual_write_pos] = new_v8;
+	actual_v[144 + actual_write_pos] = new_v9;
+	actual_v[160 + actual_write_pos] = new_v10;
+	actual_v[176 + actual_write_pos] = new_v11;
+	actual_v[192 + actual_write_pos] = new_v12;
+	actual_v[208 + actual_write_pos] = new_v13;
+	actual_v[224 + actual_write_pos] = new_v14;
+	actual_v[240 + actual_write_pos] = new_v15;
 
 	// V[16] is always 0.0:
-	dest[256 + pos] = 0.0f;
+	actual_v[256 + actual_write_pos] = 0.0f;
 
 	// insert V[17-31] (== -new_v[15-1]) into actual v:
-	dest[272 + pos] = -new_v15;
-	dest[288 + pos] = -new_v14;
-	dest[304 + pos] = -new_v13;
-	dest[320 + pos] = -new_v12;
-	dest[336 + pos] = -new_v11;
-	dest[352 + pos] = -new_v10;
-	dest[368 + pos] = -new_v9;
-	dest[384 + pos] = -new_v8;
-	dest[400 + pos] = -new_v7;
-	dest[416 + pos] = -new_v6;
-	dest[432 + pos] = -new_v5;
-	dest[448 + pos] = -new_v4;
-	dest[464 + pos] = -new_v3;
-	dest[480 + pos] = -new_v2;
-	dest[496 + pos] = -new_v1;
+	actual_v[272 + actual_write_pos] = -new_v15;
+	actual_v[288 + actual_write_pos] = -new_v14;
+	actual_v[304 + actual_write_pos] = -new_v13;
+	actual_v[320 + actual_write_pos] = -new_v12;
+	actual_v[336 + actual_write_pos] = -new_v11;
+	actual_v[352 + actual_write_pos] = -new_v10;
+	actual_v[368 + actual_write_pos] = -new_v9;
+	actual_v[384 + actual_write_pos] = -new_v8;
+	actual_v[400 + actual_write_pos] = -new_v7;
+	actual_v[416 + actual_write_pos] = -new_v6;
+	actual_v[432 + actual_write_pos] = -new_v5;
+	actual_v[448 + actual_write_pos] = -new_v4;
+	actual_v[464 + actual_write_pos] = -new_v3;
+	actual_v[480 + actual_write_pos] = -new_v2;
+	actual_v[496 + actual_write_pos] = -new_v1;
 
 	// insert V[32] (== -new_v[0]) into other v:
-	dest = (actual_v==v1) ? v2 : v1;
-	
-	dest[0 + pos] = -new_v0;
+	//dest = (actual_v==v1) ? v2 : v1;  //assignment replaced with if statement so that new areas are not created
+	if(actual_v == v1){
+	    v2[0 + actual_write_pos] = -new_v0;
 	// insert V[33-48] (== new_v[16-31]) into other v:
-	dest[16 + pos] = new_v16;
-	dest[32 + pos] = new_v17;
-	dest[48 + pos] = new_v18;
-	dest[64 + pos] = new_v19;
-	dest[80 + pos] = new_v20;
-	dest[96 + pos] = new_v21;
-	dest[112 + pos] = new_v22;
-	dest[128 + pos] = new_v23;
-	dest[144 + pos] = new_v24;
-	dest[160 + pos] = new_v25;
-	dest[176 + pos] = new_v26;
-	dest[192 + pos] = new_v27;
-	dest[208 + pos] = new_v28;
-	dest[224 + pos] = new_v29;
-	dest[240 + pos] = new_v30;
-	dest[256 + pos] = new_v31;
+	    v2[16 + actual_write_pos] = new_v16;
+	    v2[32 + actual_write_pos] = new_v17;
+	    v2[48 + actual_write_pos] = new_v18;
+	    v2[64 + actual_write_pos] = new_v19;
+	    v2[80 + actual_write_pos] = new_v20;
+	    v2[96 + actual_write_pos] = new_v21;
+	    v2[112 + actual_write_pos] = new_v22;
+	    v2[128 + actual_write_pos] = new_v23;
+	    v2[144 + actual_write_pos] = new_v24;
+	    v2[160 + actual_write_pos] = new_v25;
+	    v2[176 + actual_write_pos] = new_v26;
+	    v2[192 + actual_write_pos] = new_v27;
+	    v2[208 + actual_write_pos] = new_v28;
+	    v2[224 + actual_write_pos] = new_v29;
+	    v2[240 + actual_write_pos] = new_v30;
+	    v2[256 + actual_write_pos] = new_v31;
 	
 	// insert V[49-63] (== new_v[30-16]) into other v:
-	dest[272 + pos] = new_v30;
-	dest[288 + pos] = new_v29;
-	dest[304 + pos] = new_v28;
-	dest[320 + pos] = new_v27;
-	dest[336 + pos] = new_v26;
-	dest[352 + pos] = new_v25;
-	dest[368 + pos] = new_v24;
-	dest[384 + pos] = new_v23;
-	dest[400 + pos] = new_v22;
-	dest[416 + pos] = new_v21;
-	dest[432 + pos] = new_v20;
-	dest[448 + pos] = new_v19;
-	dest[464 + pos] = new_v18;
-	dest[480 + pos] = new_v17;
-	dest[496 + pos] = new_v16; 			
+	    v2[272 + actual_write_pos] = new_v30;
+	    v2[288 + actual_write_pos] = new_v29;
+	    v2[304 + actual_write_pos] = new_v28;
+	    v2[320 + actual_write_pos] = new_v27;
+	    v2[336 + actual_write_pos] = new_v26;
+	    v2[352 + actual_write_pos] = new_v25;
+	    v2[368 + actual_write_pos] = new_v24;
+	    v2[384 + actual_write_pos] = new_v23;
+	    v2[400 + actual_write_pos] = new_v22;
+	    v2[416 + actual_write_pos] = new_v21;
+	    v2[432 + actual_write_pos] = new_v20;
+	    v2[448 + actual_write_pos] = new_v19;
+	    v2[464 + actual_write_pos] = new_v18;
+	    v2[480 + actual_write_pos] = new_v17;
+	    v2[496 + actual_write_pos] = new_v16;
+	} 
+	else{
+	    v1[0 + actual_write_pos] = -new_v0;
+	    v1[16 + actual_write_pos] = new_v16;
+	    v1[32 + actual_write_pos] = new_v17;
+	    v1[48 + actual_write_pos] = new_v18;
+	    v1[64 + actual_write_pos] = new_v19;
+	    v1[80 + actual_write_pos] = new_v20;
+	    v1[96 + actual_write_pos] = new_v21;
+	    v1[112 + actual_write_pos] = new_v22;
+	    v1[128 + actual_write_pos] = new_v23;
+	    v1[144 + actual_write_pos] = new_v24;
+	    v1[160 + actual_write_pos] = new_v25;
+	    v1[176 + actual_write_pos] = new_v26;
+	    v1[192 + actual_write_pos] = new_v27;
+	    v1[208 + actual_write_pos] = new_v28;
+	    v1[224 + actual_write_pos] = new_v29;
+	    v1[240 + actual_write_pos] = new_v30;
+	    v1[256 + actual_write_pos] = new_v31;
+	
+	// insert V[49-63] (== new_v[30-16]) into other v:
+	    v1[272 + actual_write_pos] = new_v30;
+	    v1[288 + actual_write_pos] = new_v29;
+	    v1[304 + actual_write_pos] = new_v28;
+	    v1[320 + actual_write_pos] = new_v27;
+	    v1[336 + actual_write_pos] = new_v26;
+	    v1[352 + actual_write_pos] = new_v25;
+	    v1[368 + actual_write_pos] = new_v24;
+	    v1[384 + actual_write_pos] = new_v23;
+	    v1[400 + actual_write_pos] = new_v22;
+	    v1[416 + actual_write_pos] = new_v21;
+	    v1[432 + actual_write_pos] = new_v20;
+	    v1[448 + actual_write_pos] = new_v19;
+	    v1[464 + actual_write_pos] = new_v18;
+	    v1[480 + actual_write_pos] = new_v17;
+	    v1[496 + actual_write_pos] = new_v16;
+	}
 /*
 	}
 	else
@@ -853,396 +920,398 @@ final class SynthesisFilter
    * Compute PCM Samples.
    */
   
-  private float[] _tmpOut = new float[32];
+  @LOC("TMP") private float[] _tmpOut = new float[32];
   
-  
-  private void compute_pcm_samples0(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples0(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;	
+      //final float[] vp = actual_v;  //subbed in variable name instead to reduce areas	
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut; //subbed in variable name instread to reduce areas
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
-			{
-		float pcm_sample;
-		final float[] dp = d16[i];
-		pcm_sample = (float)(((vp[0 + dvp] * dp[0]) +
-			(vp[15 + dvp] * dp[1]) +
-			(vp[14 + dvp] * dp[2]) +
-			(vp[13 + dvp] * dp[3]) +
-			(vp[12 + dvp] * dp[4]) +
-			(vp[11 + dvp] * dp[5]) +
-			(vp[10 + dvp] * dp[6]) +
-			(vp[9 + dvp] * dp[7]) +
-			(vp[8 + dvp] * dp[8]) +
-			(vp[7 + dvp] * dp[9]) +
-			(vp[6 + dvp] * dp[10]) +
-			(vp[5 + dvp] * dp[11]) +
-			(vp[4 + dvp] * dp[12]) +
-			(vp[3 + dvp] * dp[13]) +
-			(vp[2 + dvp] * dp[14]) +
-			(vp[1 + dvp] * dp[15])
+	        for(@LOC("I") int i=0; i<32; i++)
+		{
+		@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
+		//final float[] dp = d16[i]; //subbed in variable name instead to reduce areas
+		pcm_sample = (float)(((actual_v[0 + dvp] * d16[0]) +
+			(actual_v[15 + dvp] * d16[1]) +
+			(actual_v[14 + dvp] * d16[2]) +
+			(actual_v[13 + dvp] * d16[3]) +
+			(actual_v[12 + dvp] * d16[4]) +
+			(actual_v[11 + dvp] * d16[5]) +
+			(actual_v[10 + dvp] * d16[6]) +
+			(actual_v[9 + dvp] * d16[7]) +
+			(actual_v[8 + dvp] * d16[8]) +
+			(actual_v[7 + dvp] * d16[9]) +
+			(actual_v[6 + dvp] * d16[10]) +
+			(actual_v[5 + dvp] * d16[11]) +
+			(actual_v[4 + dvp] * d16[12]) +
+			(actual_v[3 + dvp] * d16[13]) +
+			(actual_v[2 + dvp] * d16[14]) +
+			(actual_v[1 + dvp] * d16[15])
 			) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
+            _tmpOut[i] = pcm_sample;
 			
 			dvp += 16;
 	} // for
   }
-  
-  private void compute_pcm_samples1(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples1(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;	
+      //final float[] vp = actual_v;	
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-				final float[] dp = d16[i];
-				float pcm_sample;
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((vp[1 + dvp] * dp[0]) +
-					(vp[0 + dvp] * dp[1]) +
-					(vp[15 + dvp] * dp[2]) +
-					(vp[14 + dvp] * dp[3]) +
-					(vp[13 + dvp] * dp[4]) +
-					(vp[12 + dvp] * dp[5]) +
-					(vp[11 + dvp] * dp[6]) +
-					(vp[10 + dvp] * dp[7]) +
-					(vp[9 + dvp] * dp[8]) +
-					(vp[8 + dvp] * dp[9]) +
-					(vp[7 + dvp] * dp[10]) +
-					(vp[6 + dvp] * dp[11]) +
-					(vp[5 + dvp] * dp[12]) +
-					(vp[4 + dvp] * dp[13]) +
-					(vp[3 + dvp] * dp[14]) +
-					(vp[2 + dvp] * dp[15])
+				pcm_sample = (float)(((actual_v[1 + dvp] * d16[0]) +
+						      (actual_v[0 + dvp] * d16[1]) +
+					(actual_v[15 + dvp] * d16[2]) +
+					(actual_v[14 + dvp] * d16[3]) +
+					(actual_v[13 + dvp] * d16[4]) +
+					(actual_v[12 + dvp] * d16[5]) +
+					(actual_v[11 + dvp] * d16[6]) +
+					(actual_v[10 + dvp] * d16[7]) +
+					(actual_v[9 + dvp] * d16[8]) +
+					(actual_v[8 + dvp] * d16[9]) +
+					(actual_v[7 + dvp] * d16[10]) +
+					(actual_v[6 + dvp] * d16[11]) +
+					(actual_v[5 + dvp] * d16[12]) +
+					(actual_v[4 + dvp] * d16[13]) +
+					(actual_v[3 + dvp] * d16[14]) +
+					(actual_v[2 + dvp] * d16[15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
-			
+            _tmpOut[i] = pcm_sample;
+			actual_v
 			dvp += 16;
          } // for
   }
-    private void compute_pcm_samples2(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples2(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;
+      //final float[] vp = actual_v;
 	
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-				final float[] dp = d16[i];
-				float pcm_sample;
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((vp[2 + dvp] * dp[0]) +
-					(vp[1 + dvp] * dp[1]) +
-					(vp[0 + dvp] * dp[2]) +
-					(vp[15 + dvp] * dp[3]) +
-					(vp[14 + dvp] * dp[4]) +
-					(vp[13 + dvp] * dp[5]) +
-					(vp[12 + dvp] * dp[6]) +
-					(vp[11 + dvp] * dp[7]) +
-					(vp[10 + dvp] * dp[8]) +
-					(vp[9 + dvp] * dp[9]) +
-					(vp[8 + dvp] * dp[10]) +
-					(vp[7 + dvp] * dp[11]) +
-					(vp[6 + dvp] * dp[12]) +
-					(vp[5 + dvp] * dp[13]) +
-					(vp[4 + dvp] * dp[14]) +
-					(vp[3 + dvp] * dp[15])
+				pcm_sample = (float)(((actual_v[2 + dvp] * d16[0]) +
+					(actual_v[1 + dvp] * d16[1]) +
+					(actual_v[0 + dvp] * d16[2]) +
+					(actual_v[15 + dvp] * d16[3]) +
+					(actual_v[14 + dvp] * d16[4]) +
+					(actual_v[13 + dvp] * d16[5]) +
+					(actual_v[12 + dvp] * d16[6]) +
+					(actual_v[11 + dvp] * d16[7]) +
+					(actual_v[10 + dvp] * d16[8]) +
+					(actual_v[9 + dvp] * d16[9]) +
+					(actual_v[8 + dvp] * d16[10]) +
+					(actual_v[7 + dvp] * d16[11]) +
+					(actual_v[6 + dvp] * d16[12]) +
+					(actual_v[5 + dvp] * d16[13]) +
+					(actual_v[4 + dvp] * d16[14]) +
+					(actual_v[3 + dvp] * d16[15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
+            _tmpOut[i] = pcm_sample;
 			
 			dvp += 16;
 			} // for
-	}
-	
-	  private void compute_pcm_samples3(Obuffer buffer)
+  }
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")	
+  private void compute_pcm_samples3(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;
+      //final float[] vp = actual_v;
 	
 	int idx = 0;
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-				final float[] dp = d16[i];
-				float pcm_sample;
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((vp[3 + dvp] * dp[0]) +
-					(vp[2 + dvp] * dp[1]) +
-					(vp[1 + dvp] * dp[2]) +
-					(vp[0 + dvp] * dp[3]) +
-					(vp[15 + dvp] * dp[4]) +
-					(vp[14 + dvp] * dp[5]) +
-					(vp[13 + dvp] * dp[6]) +
-					(vp[12 + dvp] * dp[7]) +
-					(vp[11 + dvp] * dp[8]) +
-					(vp[10 + dvp] * dp[9]) +
-					(vp[9 + dvp] * dp[10]) +
-					(vp[8 + dvp] * dp[11]) +
-					(vp[7 + dvp] * dp[12]) +
-					(vp[6 + dvp] * dp[13]) +
-					(vp[5 + dvp] * dp[14]) +
-					(vp[4 + dvp] * dp[15])
+				pcm_sample = (float)(((actual_v[3 + dvp] * d16[0]) +
+					(actual_v[2 + dvp] * d16[1]) +
+					(actual_v[1 + dvp] * d16[2]) +
+					(actual_v[0 + dvp] * d16[3]) +
+					(actual_v[15 + dvp] * d16[4]) +
+					(actual_v[14 + dvp] * d16[5]) +
+					(actual_v[13 + dvp] * d16[6]) +
+					(actual_v[12 + dvp] * d16[7]) +
+					(actual_v[11 + dvp] * d16[8]) +
+					(actual_v[10 + dvp] * d16[9]) +
+					(actual_v[9 + dvp] * d16[10]) +
+					(actual_v[8 + dvp] * d16[11]) +
+					(actual_v[7 + dvp] * d16[12]) +
+					(actual_v[6 + dvp] * d16[13]) +
+					(actual_v[5 + dvp] * d16[14]) +
+					(actual_v[4 + dvp] * d16[15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
-			
-			dvp += 16;
-			} // for
-	  }
-			
-  private void compute_pcm_samples4(Obuffer buffer)
-  {
-	final float[] vp = actual_v;
-	
-	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
-	
-			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
-			{
-				final float[] dp = d16[i];
-				float pcm_sample;
-
-				pcm_sample = (float)(((vp[4 + dvp] * dp[0]) +
-					(vp[3 + dvp] * dp[1]) +
-					(vp[2 + dvp] * dp[2]) +
-					(vp[1 + dvp] * dp[3]) +
-					(vp[0 + dvp] * dp[4]) +
-					(vp[15 + dvp] * dp[5]) +
-					(vp[14 + dvp] * dp[6]) +
-					(vp[13 + dvp] * dp[7]) +
-					(vp[12 + dvp] * dp[8]) +
-					(vp[11 + dvp] * dp[9]) +
-					(vp[10 + dvp] * dp[10]) +
-					(vp[9 + dvp] * dp[11]) +
-					(vp[8 + dvp] * dp[12]) +
-					(vp[7 + dvp] * dp[13]) +
-					(vp[6 + dvp] * dp[14]) +
-					(vp[5 + dvp] * dp[15])
-					) * scalefactor);
-
-            tmpOut[i] = pcm_sample;
+            _tmpOut[i] = pcm_sample;
 			
 			dvp += 16;
 			} // for
   }
-  
-  private void compute_pcm_samples5(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")			
+  private void compute_pcm_samples4(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;
+      //final float[] vp = actual_v;
 	
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-				final float[] dp = d16[i];
-				float pcm_sample;
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((vp[5 + dvp] * dp[0]) +
-					(vp[4 + dvp] * dp[1]) +
-					(vp[3 + dvp] * dp[2]) +
-					(vp[2 + dvp] * dp[3]) +
-					(vp[1 + dvp] * dp[4]) +
-					(vp[0 + dvp] * dp[5]) +
-					(vp[15 + dvp] * dp[6]) +
-					(vp[14 + dvp] * dp[7]) +
-					(vp[13 + dvp] * dp[8]) +
-					(vp[12 + dvp] * dp[9]) +
-					(vp[11 + dvp] * dp[10]) +
-					(vp[10 + dvp] * dp[11]) +
-					(vp[9 + dvp] * dp[12]) +
-					(vp[8 + dvp] * dp[13]) +
-					(vp[7 + dvp] * dp[14]) +
-					(vp[6 + dvp] * dp[15])
+				pcm_sample = (float)(((actual_v[4 + dvp] * d16[0]) +
+					(actual_v[3 + dvp] * d16[1]) +
+					(actual_v[2 + dvp] * d16[2]) +
+					(actual_v[1 + dvp] * d16[3]) +
+					(actual_v[0 + dvp] * d16[4]) +
+					(actual_v[15 + dvp] * d16[5]) +
+					(actual_v[14 + dvp] * d16[6]) +
+					(actual_v[13 + dvp] * d16[7]) +
+					(actual_v[12 + dvp] * d16[8]) +
+					(actual_v[11 + dvp] * d16[9]) +
+					(actual_v[10 + dvp] * d16[10]) +@LOC("I")
+					(actual_v[9 + dvp] * d16[11]) +
+					(actual_v[8 + dvp] * d16[12]) +
+					(actual_v[7 + dvp] * d16[13]) +
+					(actual_v[6 + dvp] * d16[14]) +
+					(actual_v[5 + dvp] * d16[15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
+            _tmpOut[i] = pcm_sample;
 			
 			dvp += 16;
 			} // for
   }
-  
-  private void compute_pcm_samples6(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples5(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;	
+      //final float[] vp = actual_v;
+	
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-				final float[] dp = d16[i];
-				float pcm_sample;
+			    //	final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((vp[6 + dvp] * dp[0]) +
-					(vp[5 + dvp] * dp[1]) +
-					(vp[4 + dvp] * dp[2]) +
-					(vp[3 + dvp] * dp[3]) +
-					(vp[2 + dvp] * dp[4]) +
-					(vp[1 + dvp] * dp[5]) +
-					(vp[0 + dvp] * dp[6]) +
-					(vp[15 + dvp] * dp[7]) +
-					(vp[14 + dvp] * dp[8]) +
-					(vp[13 + dvp] * dp[9]) +
-					(vp[12 + dvp] * dp[10]) +
-					(vp[11 + dvp] * dp[11]) +
-					(vp[10 + dvp] * dp[12]) +
-					(vp[9 + dvp] * dp[13]) +
-					(vp[8 + dvp] * dp[14]) +
-					(vp[7 + dvp] * dp[15])
+				pcm_sample = (float)(((actual_v[5 + dvp] * d16[0]) +
+					(actual_v[4 + dvp] * d16[1]) +
+					(actual_v[3 + dvp] * d16[2]) +
+					(actual_v[2 + dvp] * d16[3]) +
+					(actual_v[1 + dvp] * d16[4]) +
+					(actual_v[0 + dvp] * d16[5]) +
+					(actual_v[15 + dvp] * d16[6]) +
+					(actual_v[14 + dvp] * d16[7]) +
+					(actual_v[13 + dvp] * d16[8]) +
+					(actual_v[12 + dvp] * d16[9]) +
+					(actual_v[11 + dvp] * d16[10]) +
+					(actual_v[10 + dvp] * d16[11]) +
+					(actual_v[9 + dvp] * d16[12]) +
+					(actual_v[8 + dvp] * d16[13]) +
+					(actual_v[7 + dvp] * d16[14]) +
+					(actual_v[6 + dvp] * d16[15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
+            _tmpOut[i] = pcm_sample;
 			
 			dvp += 16;
 			} // for
   }
-  
-    private void compute_pcm_samples7(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples6(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;
-	
+      //final float[] vp = actual_v;	
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-				final float[] dp = d16[i];
-				float pcm_sample;
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((vp[7 + dvp] * dp[0]) +
-					(vp[6 + dvp] * dp[1]) +
-					(vp[5 + dvp] * dp[2]) +
-					(vp[4 + dvp] * dp[3]) +
-					(vp[3 + dvp] * dp[4]) +
-					(vp[2 + dvp] * dp[5]) +
-					(vp[1 + dvp] * dp[6]) +
-					(vp[0 + dvp] * dp[7]) +
-					(vp[15 + dvp] * dp[8]) +
-					(vp[14 + dvp] * dp[9]) +
-					(vp[13 + dvp] * dp[10]) +
-					(vp[12 + dvp] * dp[11]) +
-					(vp[11 + dvp] * dp[12]) +
-					(vp[10 + dvp] * dp[13]) +
-					(vp[9 + dvp] * dp[14]) +
-					(vp[8 + dvp] * dp[15])
+				pcm_sample = (float)(((actual_v[6 + dvp] * d16[0]) +
+					(actual_v[5 + dvp] * d61[1]) +
+					(actual_v[4 + dvp] * d16[2]) +
+					(actual_v[3 + dvp] * d16[3]) +
+					(actual_v[2 + dvp] * d16[4]) +
+					(actual_v[1 + dvp] * d16[5]) +
+					(actual_v[0 + dvp] * d16[6]) +
+					(actual_v[15 + dvp] * d16[7]) +
+					(actual_v[14 + dvp] * d16[8]) +
+					(actual_v[13 + dvp] * d16[9]) +
+					(actual_v[12 + dvp] * d16[10]) +
+					(actual_v[11 + dvp] * d16[11]) +
+					(actual_v[10 + dvp] * d16[12]) +
+					(actual_v[9 + dvp] * d16[13]) +
+					(actual_v[8 + dvp] * d16[14]) +
+					(actual_v[7 + dvp] * d16[15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
-			
-			dvp += 16;
-			} // for
-	}
-  private void compute_pcm_samples8(Obuffer buffer)
-  {
-	final float[] vp = actual_v;
-	
-	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
-	
-			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
-			{
-				final float[] dp = d16[i];
-				float pcm_sample;
-
-				pcm_sample = (float)(((vp[8 + dvp] * dp[0]) +
-					(vp[7 + dvp] * dp[1]) +
-					(vp[6 + dvp] * dp[2]) +
-					(vp[5 + dvp] * dp[3]) +
-					(vp[4 + dvp] * dp[4]) +
-					(vp[3 + dvp] * dp[5]) +
-					(vp[2 + dvp] * dp[6]) +
-					(vp[1 + dvp] * dp[7]) +
-					(vp[0 + dvp] * dp[8]) +
-					(vp[15 + dvp] * dp[9]) +
-					(vp[14 + dvp] * dp[10]) +
-					(vp[13 + dvp] * dp[11]) +
-					(vp[12 + dvp] * dp[12]) +
-					(vp[11 + dvp] * dp[13]) +
-					(vp[10 + dvp] * dp[14]) +
-					(vp[9 + dvp] * dp[15])
-					) * scalefactor);
-
-            tmpOut[i] = pcm_sample;
+            _tmpOut[i] = pcm_sample;
 			
 			dvp += 16;
 			} // for
   }
-  
-  private void compute_pcm_samples9(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples7(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;
+      //final float[] vp = actual_v;
 	
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-				final float[] dp = d16[i];
-				float pcm_sample;
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((vp[9 + dvp] * dp[0]) +
-					(vp[8 + dvp] * dp[1]) +
-					(vp[7 + dvp] * dp[2]) +
-					(vp[6 + dvp] * dp[3]) +
-					(vp[5 + dvp] * dp[4]) +
-					(vp[4 + dvp] * dp[5]) +
-					(vp[3 + dvp] * dp[6]) +
-					(vp[2 + dvp] * dp[7]) +
-					(vp[1 + dvp] * dp[8]) +
-					(vp[0 + dvp] * dp[9]) +
-					(vp[15 + dvp] * dp[10]) +
-					(vp[14 + dvp] * dp[11]) +
-					(vp[13 + dvp] * dp[12]) +
-					(vp[12 + dvp] * dp[13]) +
-					(vp[11 + dvp] * dp[14]) +
-					(vp[10 + dvp] * dp[15])
+				pcm_sample = (float)(((actual_v[7 + dvp] * d16[0]) +
+					(actual_v[6 + dvp] * d16[1]) +
+					(actual_v[5 + dvp] * d16[2]) +
+					(actual_v[4 + dvp] * d16[3]) +
+					(actual_v[3 + dvp] * d16[4]) +
+					(actual_v[2 + dvp] * d16[5]) +
+					(actual_v[1 + dvp] * d16[6]) +
+					(actual_v[0 + dvp] * d16[7]) +
+					(actual_v[15 + dvp] * d16[8]) +
+					(actual_v[14 + dvp] * d16[9]) +
+					(actual_v[13 + dvp] * d16[10]) +
+					(actual_v[12 + dvp] * d16[11]) +
+					(actual_v[11 + dvp] * d16[12]) +
+					(actual_v[10 + dvp] * d16[13]) +
+					(actual_v[9 + dvp] * d16[14]) +
+					(actual_v[8 + dvp] * d16[15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
+            _tmpOut[i] = pcm_sample;
 			
 			dvp += 16;
 			} // for
   }
-  
-  private void compute_pcm_samples10(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples8(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;	
+      //final float[] vp = actual_v;
+	
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-				final float[] dp = d16[i];
-				float pcm_sample;
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
+
+				pcm_sample = (float)(((actual_v[8 + dvp] * d16[0]) +
+					(actual_v[7 + dvp] * d16[1]) +
+					(actual_v[6 + dvp] * d16[2]) +
+					(actual_v[5 + dvp] * d16[3]) +
+					(actual_v[4 + dvp] * d16[4]) +
+					(actual_v[3 + dvp] * d16[5]) +
+					(actual_v[2 + dvp] * d16[6]) +
+					(actual_v[1 + dvp] * d16[7]) +
+					(actual_v[0 + dvp] * d16[8]) +
+					(actual_v[15 + dvp] * d16[9]) +
+					(actual_v[14 + dvp] * d16[10]) +
+					(actual_v[13 + dvp] * d16[11]) +
+					(actual_v[12 + dvp] * d16[12]) +
+					(actual_v[11 + dvp] * d16[13]) +
+					(actual_v[10 + dvp] * d16[14]) +
+					(actual_v[9 + dvp] * d16[15])
+					) * scalefactor);
+
+            _tmpOut[i] = pcm_sample;
+			
+			dvp += 16;
+			} // for
+  }
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples9(@LOC("THIS") Obuffer buffer)
+  {
+      //final float[] vp = actual_v;
+	
+	//int inc = v_inc;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
+	
+			// fat chance of having this loop unroll
+			for(@LOC("I") int i=0; i<32; i++)
+			{
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
+
+				pcm_sample = (float)(((actual_v[9 + dvp] * d16[0]) +
+					(actual_v[8 + dvp] * d16[1]) +
+					(actual_v[7 + dvp] * d16[2]) +
+					(actual_v[6 + dvp] * d16[3]) +
+					(actual_v[5 + dvp] * d16[4]) +
+					(actual_v[4 + dvp] * d16[5]) +
+					(actual_v[3 + dvp] * d16[6]) +
+					(actual_v[2 + dvp] * d16[7]) +
+					(actual_v[1 + dvp] * d16[8]) +
+					(actual_v[0 + dvp] * d16[9]) +
+					(actual_v[15 + dvp] * d16[10]) +
+					(actual_v[14 + dvp] * d16[11]) +
+					(actual_v[13 + dvp] * d16[12]) +
+					(actual_v[12 + dvp] * d16[13]) +
+					(actual_v[11 + dvp] * d16[14]) +
+					(actual_v[10 + dvp] * d16[15])
+					) * scalefactor);
+
+            _tmpOut[i] = pcm_sample;
+			
+			dvp += 16;
+			} // for
+  }
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples10(@LOC("THIS") Obuffer buffer)
+  {
+      //final float[] vp = actual_v;	
+	//int inc = v_inc;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
+	
+			// fat chance of having this loop unroll
+			for(@LOC("I") int i=0; i<32; i++)
+			{
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
 				pcm_sample = (float)(((vp[10 + dvp] * dp[0]) +
 					(vp[9 + dvp] * dp[1]) +
@@ -1267,36 +1336,37 @@ final class SynthesisFilter
 			dvp += 16;
 			} // for
   }
-  private void compute_pcm_samples11(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples11(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;
+      //final float[] vp = actual_v;
 	
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-				final float[] dp = d16[i];
-				float pcm_sample;
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((vp[11 + dvp] * dp[0]) +
-					(vp[10 + dvp] * dp[1]) +
-					(vp[9 + dvp] * dp[2]) +
-					(vp[8 + dvp] * dp[3]) +
-					(vp[7 + dvp] * dp[4]) +
-					(vp[6 + dvp] * dp[5]) +
-					(vp[5 + dvp] * dp[6]) +
-					(vp[4 + dvp] * dp[7]) +
-					(vp[3 + dvp] * dp[8]) +
-					(vp[2 + dvp] * dp[9]) +
-					(vp[1 + dvp] * dp[10]) +
-					(vp[0 + dvp] * dp[11]) +
-					(vp[15 + dvp] * dp[12]) +
-					(vp[14 + dvp] * dp[13]) +
-					(vp[13 + dvp] * dp[14]) +
-					(vp[12 + dvp] * dp[15])
+				pcm_sample = (float)(((actual_v[11 + dvp] * d16[0]) +
+					(actual_v[10 + dvp] * d16[1]) +
+					(actual_v[9 + dvp] * d16[2]) +
+					(actual_v[8 + dvp] * d16[3]) +
+					(actual_v[7 + dvp] * d16[4]) +
+					(actual_v[6 + dvp] * d16[5]) +
+					(actual_v[5 + dvp] * d16[6]) +
+					(actual_v[4 + dvp] * d16[7]) +
+					(actual_v[3 + dvp] * d16[8]) +
+					(actual_v[2 + dvp] * d16[9]) +
+					(actual_v[1 + dvp] * d16[10]) +
+					(actual_v[0 + dvp] * d16[11]) +
+					(actual_v[15 + dvp] * d16[12]) +
+					(actual_v[14 + dvp] * d16[13]) +
+					(actual_v[13 + dvp] * d16[14]) +
+					(actual_v[12 + dvp] * d16[15])
 					) * scalefactor);
 
             tmpOut[i] = pcm_sample;
@@ -1304,153 +1374,157 @@ final class SynthesisFilter
 			dvp += 16;
 			} // for
   }
-    private void compute_pcm_samples12(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples12(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;	
+      //final float[] vp = actual_v;	
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-			    final float[] dp = d16[i];
-				float pcm_sample;
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((vp[12 + dvp] * dp[0]) +
-					(vp[11 + dvp] * dp[1]) +
-					(vp[10 + dvp] * dp[2]) +
-					(vp[9 + dvp] * dp[3]) +
-					(vp[8 + dvp] * dp[4]) +
-					(vp[7 + dvp] * dp[5]) +
-					(vp[6 + dvp] * dp[6]) +
-					(vp[5 + dvp] * dp[7]) +
-					(vp[4 + dvp] * dp[8]) +
-					(vp[3 + dvp] * dp[9]) +
-					(vp[2 + dvp] * dp[10]) +
-					(vp[1 + dvp] * dp[11]) +
-					(vp[0 + dvp] * dp[12]) +
-					(vp[15 + dvp] * dp[13]) +
-					(vp[14 + dvp] * dp[14]) +
-					(vp[13 + dvp] * dp[15])
+				pcm_sample = (float)(((actual_v[12 + dvp] * d16[0]) +
+					(actual_v[11 + dvp] * d16[1]) +
+					(actual_v[10 + dvp] * d16[2]) +
+					(actual_v[9 + dvp] * d16[3]) +
+					(actual_v[8 + dvp] * d16[4]) +
+					(actual_v[7 + dvp] * d16[5]) +
+					(actual_v[6 + dvp] * d16[6]) +
+					(actual_v[5 + dvp] * d16[7]) +
+					(actual_v[4 + dvp] * d16[8]) +
+					(actual_v[3 + dvp] * d16[9]) +
+					(actual_v[2 + dvp] * d16[10]) +
+					(actual_v[1 + dvp] * d16[11]) +
+					(actual_v[0 + dvp] * d16[12]) +
+					(actual_v[15 + dvp] * d16[13]) +
+					(actual_v[14 + dvp] * d16[14]) +
+					(actual_v[13 + dvp] * d16[15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
-			
-			dvp += 16;
-			} // for
-	}
-  private void compute_pcm_samples13(Obuffer buffer)
-  {
-	final float[] vp = actual_v;
-	
-	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
-	
-			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
-			{
-				final float[] dp = d16[i];
-				float pcm_sample;
-
-				pcm_sample = (float)(((vp[13 + dvp] * dp[0]) +
-					(vp[12 + dvp] * dp[1]) +
-					(vp[11 + dvp] * dp[2]) +
-					(vp[10 + dvp] * dp[3]) +
-					(vp[9 + dvp] * dp[4]) +
-					(vp[8 + dvp] * dp[5]) +
-					(vp[7 + dvp] * dp[6]) +
-					(vp[6 + dvp] * dp[7]) +
-					(vp[5 + dvp] * dp[8]) +
-					(vp[4 + dvp] * dp[9]) +
-					(vp[3 + dvp] * dp[10]) +
-					(vp[2 + dvp] * dp[11]) +
-					(vp[1 + dvp] * dp[12]) +
-					(vp[0 + dvp] * dp[13]) +
-					(vp[15 + dvp] * dp[14]) +
-					(vp[14 + dvp] * dp[15])
-					) * scalefactor);
-
-            tmpOut[i] = pcm_sample;
+            _tmpOut[i] = pcm_sample;
 			
 			dvp += 16;
 			} // for
   }
-  private void compute_pcm_samples14(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples13(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;
+      //final float[] vp = actual_v;
 	
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-				final float[] dp = d16[i];
-				float pcm_sample;
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((vp[14 + dvp] * dp[0]) +
-					(vp[13 + dvp] * dp[1]) +
-					(vp[12 + dvp] * dp[2]) +
-					(vp[11 + dvp] * dp[3]) +
-					(vp[10 + dvp] * dp[4]) +
-					(vp[9 + dvp] * dp[5]) +
-					(vp[8 + dvp] * dp[6]) +
-					(vp[7 + dvp] * dp[7]) +
-					(vp[6 + dvp] * dp[8]) +
-					(vp[5 + dvp] * dp[9]) +
-					(vp[4 + dvp] * dp[10]) +
-					(vp[3 + dvp] * dp[11]) +
-					(vp[2 + dvp] * dp[12]) +
-					(vp[1 + dvp] * dp[13]) +
-					(vp[0 + dvp] * dp[14]) +
-					(vp[15 + dvp] * dp[15])
+				pcm_sample = (float)(((actual_v[13 + dvp] * d16[0]) +
+					(actual_v[12 + dvp] * d16[1]) +
+					(actual_v[11 + dvp] * d16[2]) +
+					(actual_v[10 + dvp] * d16[3]) +
+					(actual_v[9 + dvp] * d16[4]) +
+					(actual_v[8 + dvp] * d16[5]) +
+					(actual_v[7 + dvp] * d16[6]) +
+					(actual_v[6 + dvp] * d16[7]) +
+					(actual_v[5 + dvp] * d16[8]) +
+					(actual_v[4 + dvp] * d16[9]) +
+					(actual_v[3 + dvp] * d16[10]) +
+					(actual_v[2 + dvp] * d16[11]) +
+					(actual_v[1 + dvp] * d16[12]) +
+					(actual_v[0 + dvp] * d16[13]) +
+					(actual_v[15 + dvp] * d16[14]) +
+					(actual_v[14 + dvp] * d16[15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
+            _tmpOut[i] = pcm_sample;
 			
 			dvp += 16;
 			} // for
   }
-  private void compute_pcm_samples15(Obuffer buffer)
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples14(@LOC("THIS") Obuffer buffer)
   {
-	final float[] vp = actual_v;
+      //final float[] vp = actual_v;
+	
+	//int inc = v_inc;
+	//final float[] tmpOut = _tmpOut;
+	 @LOC("DVP") int dvp =0;
+	
+			// fat chance of having this loop unroll
+			for(@LOC("I") int i=0; i<32; i++)
+			{
+			    //final float[] dp = d16[i];
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
+
+				pcm_sample = (float)(((actual_v[14 + dvp] * d16[0]) +
+					(actual_v[13 + dvp] * d16[1]) +
+					(actual_v[12 + dvp] * d16[2]) +
+					(actual_v[11 + dvp] * d16[3]) +
+					(actual_v[10 + dvp] * d16[4]) +
+					(actual_v[9 + dvp] * d16[5]) +
+					(actual_v[8 + dvp] * d16[6]) +
+					(actual_v[7 + dvp] * d16[7]) +
+					(actual_v[6 + dvp] * d16[8]) +
+					(actual_v[5 + dvp] * d16[9]) +
+					(actual_v[4 + dvp] * d16[10]) +
+					(actual_v[3 + dvp] * d16[11]) +
+					(actual_v[2 + dvp] * d16[12]) +
+					(actual_v[1 + dvp] * d16[13]) +
+					(actual_v[0 + dvp] * d16[14]) +
+					(actual_v[15 + dvp] * d16[15])
+					) * scalefactor);
+
+            _tmpOut[i] = pcm_sample;
+			
+			dvp += 16;
+			} // for
+  }
+  @LATTICE("THIS<DVP,DVP<I,DVP*,I*,THISLOC=THIS")
+  private void compute_pcm_samples15(@LOC("THIS") Obuffer buffer)
+  {
+      //final float[] vp = actual_v;
 		
 	//int inc = v_inc;
-	final float[] tmpOut = _tmpOut;
-	 int dvp =0;
+	//final float[] tmpOut = _tmpOut;
+      @LOC("DVP") int dvp =0;
 	
 			// fat chance of having this loop unroll
-			for( int i=0; i<32; i++)
+			for(@LOC("I") int i=0; i<32; i++)
 			{
-				float pcm_sample;
-				final float dp[] = d16[i];
-				pcm_sample = (float)(((vp[15 + dvp] * dp[0]) +
-					(vp[14 + dvp] * dp[1]) +
-					(vp[13 + dvp] * dp[2]) +
-					(vp[12 + dvp] * dp[3]) +
-					(vp[11 + dvp] * dp[4]) +
-					(vp[10 + dvp] * dp[5]) +
-					(vp[9 + dvp] * dp[6]) +
-					(vp[8 + dvp] * dp[7]) +
-					(vp[7 + dvp] * dp[8]) +
-					(vp[6 + dvp] * dp[9]) +
-					(vp[5 + dvp] * dp[10]) +
-					(vp[4 + dvp] * dp[11]) +
-					(vp[3 + dvp] * dp[12]) +
-					(vp[2 + dvp] * dp[13]) +
-					(vp[1 + dvp] * dp[14]) +
-					(vp[0 + dvp] * dp[15])
+				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
+				//final float dp[] = d16[i];
+				pcm_sample = (float)(((vp[15 + dvp] * d16[0]) +
+					(actual_v[14 + dvp] * d16[1]) +
+					(actual_v[13 + dvp] * d16[2]) +
+					(actual_v[12 + dvp] * d16[3]) +
+					(actual_v[11 + dvp] * d16[4]) +
+					(actual_v[10 + dvp] * d16[5]) +
+					(actual_v[9 + dvp] * d16[6]) +
+					(actual_v[8 + dvp] * d16[7]) +
+					(actual_v[7 + dvp] * d16[8]) +
+					(actual_v[6 + dvp] * d16[9]) +
+					(actual_v[5 + dvp] * d16[10]) +
+					(actual_v[4 + dvp] * d16[11]) +
+					(actual_v[3 + dvp] * d16[12]) +
+					(actual_v[2 + dvp] * d16[13]) +
+					(actual_v[1 + dvp] * d16[14]) +
+					(actual_v[0 + dvp] * d16[15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;			
+            _tmpOut[i] = pcm_sample;			
 			dvp += 16;
 			} // for
 		}
 	 	 	 	 
-private void compute_pcm_samples(Obuffer buffer)
+private void compute_pcm_samples(@LOC("GLOBAL") Obuffer buffer)
 {
 	
 	switch (actual_write_pos)
@@ -1543,8 +1617,9 @@ private void compute_pcm_samples(Obuffer buffer)
   /**
    * Calculate 32 PCM samples and put the into the Obuffer-object.
    */
-	
-  public void calculate_pcm_samples(Obuffer buffer)
+  
+  @LATTICE("V<THIS,THIS<SH,SH*,THISLOC=THIS")	
+  public void calculate_pcm_samples(@LOC("V") Obuffer buffer)
   {
 	compute_new_v();	
 	compute_pcm_samples(buffer);
@@ -1558,56 +1633,56 @@ private void compute_pcm_samples(Obuffer buffer)
 	
 	// MDM: this may not be necessary. The Layer III decoder always
 	// outputs 32 subband samples, but I haven't checked layer I & II.
-	for (int p=0;p<32;p++) 
+	for (@LOC("SH") int p=0;p<32;p++) 
 		samples[p] = 0.0f;
   }
   
   
-  private static final double MY_PI = 3.14159265358979323846;
-  private static final float cos1_64  =(float) (1.0 / (2.0 * Math.cos(MY_PI        / 64.0)));
-  private static final float cos3_64  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 3.0  / 64.0)));
-  private static final float cos5_64  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 5.0  / 64.0)));
-  private static final float cos7_64  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 7.0  / 64.0)));
-  private static final float cos9_64  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 9.0  / 64.0)));
-  private static final float cos11_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 11.0 / 64.0)));
-  private static final float cos13_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 13.0 / 64.0)));
-  private static final float cos15_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 15.0 / 64.0)));
-  private static final float cos17_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 17.0 / 64.0)));
-  private static final float cos19_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 19.0 / 64.0)));
-  private static final float cos21_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 21.0 / 64.0)));
-  private static final float cos23_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 23.0 / 64.0)));
-  private static final float cos25_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 25.0 / 64.0)));
-  private static final float cos27_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 27.0 / 64.0)));
-  private static final float cos29_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 29.0 / 64.0)));
-  private static final float cos31_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 31.0 / 64.0)));
-  private static final float cos1_32  =(float) (1.0 / (2.0 * Math.cos(MY_PI        / 32.0)));
-  private static final float cos3_32  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 3.0  / 32.0)));
-  private static final float cos5_32  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 5.0  / 32.0)));
-  private static final float cos7_32  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 7.0  / 32.0)));
-  private static final float cos9_32  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 9.0  / 32.0)));
-  private static final float cos11_32 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 11.0 / 32.0)));
-  private static final float cos13_32 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 13.0 / 32.0)));
-  private static final float cos15_32 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 15.0 / 32.0)));
-  private static final float cos1_16  =(float) (1.0 / (2.0 * Math.cos(MY_PI        / 16.0)));
-  private static final float cos3_16  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 3.0  / 16.0)));
-  private static final float cos5_16  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 5.0  / 16.0)));
-  private static final float cos7_16  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 7.0  / 16.0)));
-  private static final float cos1_8   =(float) (1.0 / (2.0 * Math.cos(MY_PI        / 8.0)));
-  private static final float cos3_8   =(float) (1.0 / (2.0 * Math.cos(MY_PI * 3.0  / 8.0)));
-  private static final float cos1_4   =(float) (1.0 / (2.0 * Math.cos(MY_PI / 4.0)));
+  @LOC("EQ") private static final double MY_PI = 3.14159265358979323846;
+  @LOC("SA") private static final float cos1_64  =(float) (1.0 / (2.0 * Math.cos(MY_PI        / 64.0)));
+  @LOC("SA") private static final float cos3_64  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 3.0  / 64.0)));
+  @LOC("SA") private static final float cos5_64  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 5.0  / 64.0)));
+  @LOC("SA") private static final float cos7_64  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 7.0  / 64.0)));
+  @LOC("SA") private static final float cos9_64  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 9.0  / 64.0)));
+  @LOC("SA") private static final float cos11_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 11.0 / 64.0)));
+  @LOC("SA") private static final float cos13_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 13.0 / 64.0)));
+  @LOC("SA") private static final float cos15_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 15.0 / 64.0)));
+  @LOC("SA") private static final float cos17_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 17.0 / 64.0)));
+  @LOC("SA") private static final float cos19_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 19.0 / 64.0)));
+  @LOC("SA") private static final float cos21_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 21.0 / 64.0)));
+  @LOC("SA") private static final float cos23_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 23.0 / 64.0)));
+  @LOC("SA") private static final float cos25_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 25.0 / 64.0)));
+  @LOC("SA") private static final float cos27_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 27.0 / 64.0)));
+  @LOC("SA") private static final float cos29_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 29.0 / 64.0)));
+  @LOC("SA") private static final float cos31_64 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 31.0 / 64.0)));
+  @LOC("SA") private static final float cos1_32  =(float) (1.0 / (2.0 * Math.cos(MY_PI        / 32.0)));
+  @LOC("SA") private static final float cos3_32  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 3.0  / 32.0)));
+  @LOC("SA") private static final float cos5_32  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 5.0  / 32.0)));
+  @LOC("SA") private static final float cos7_32  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 7.0  / 32.0)));
+  @LOC("SA") private static final float cos9_32  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 9.0  / 32.0)));
+  @LOC("SA") private static final float cos11_32 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 11.0 / 32.0)));
+  @LOC("SA") private static final float cos13_32 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 13.0 / 32.0)));
+  @LOC("SA") private static final float cos15_32 =(float) (1.0 / (2.0 * Math.cos(MY_PI * 15.0 / 32.0)));
+  @LOC("SA") private static final float cos1_16  =(float) (1.0 / (2.0 * Math.cos(MY_PI        / 16.0)));
+  @LOC("SA") private static final float cos3_16  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 3.0  / 16.0)));
+  @LOC("SA") private static final float cos5_16  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 5.0  / 16.0)));
+  @LOC("SA") private static final float cos7_16  =(float) (1.0 / (2.0 * Math.cos(MY_PI * 7.0  / 16.0)));
+  @LOC("SA") private static final float cos1_8   =(float) (1.0 / (2.0 * Math.cos(MY_PI        / 8.0)));
+  @LOC("SA") private static final float cos3_8   =(float) (1.0 / (2.0 * Math.cos(MY_PI * 3.0  / 8.0)));
+  @LOC("SA") private static final float cos1_4   =(float) (1.0 / (2.0 * Math.cos(MY_PI / 4.0)));
   
   // Note: These values are not in the same order
   // as in Annex 3-B.3 of the ISO/IEC DIS 11172-3 
   // private float d[] = {0.000000000, -4.000442505};
   
-  private static float d[] = null;
+  @LOC("V2") private static float d[] = null;
   
   /** 
    * d[] split into subarrays of length 16. This provides for
    * more faster access by allowing a block of 16 to be addressed
    * with constant offset. 
    **/
-  private static float d16[][] = null;	
+  @LOC("V2") private static float d16[][] = null;	
   
   /**
    * Loads the data for the d[] from the resource SFd.ser. 

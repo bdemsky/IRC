@@ -27,14 +27,15 @@
  * The <code>SampleBuffer</code> class implements an output buffer
  * that provides storage for a fixed size block of samples. 
  */
-@LATTICE("BUF<BUFP,BUFP<CONT,BUFP*")
+@LATTICE("BUF<BUFP,BUFP<IDX,IDX<CONT,BUFP*,IDX*")
 @METHODDEFAULT("D<IN,D<C,C*,THISLOC=D")
 public class SampleBuffer extends Obuffer
 {
   @LOC("BUF") private short[]           buffer;
-  @LOC("BUFP") private int[]       bufferp;
+  @LOC("BUFP") private int[]            bufferp;
   @LOC("CONT") private int              channels;
   @LOC("CONT") private int              frequency;
+  @LOC("IDX") private int               idx;
 
   /**
    * Constructor
@@ -94,7 +95,7 @@ public class SampleBuffer extends Obuffer
   public void appendSamples(@LOC("IN") int channel, @LOC("IN") float[] f)
   {
     @LOC("D, SampleBuffer.BUFP") int pos = bufferp[channel]; 
-    // LOC(bufferp[channel])=[D,SampleBuffer.BUF]
+    // LOC(bufferp[channel])=[D,SampleBuffer.BUFP]
     // LOC(pos)=[D,SampleBuffer.BUFP]
 
     @LOC("D,SampleBuffer.BUFP") short s;    
@@ -153,10 +154,11 @@ public class SampleBuffer extends Obuffer
   /**
    *
    */
+
   public void clear_buffer()
   {
-    for (int i = 0; i < channels; ++i) 
-      bufferp[i] = (short)i;
+    for (idx = 0; idx < channels; ++idx) 
+      bufferp[idx] = (short)idx;
   }
 
   /**

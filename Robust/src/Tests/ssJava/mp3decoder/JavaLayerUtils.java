@@ -117,8 +117,9 @@ public class JavaLayerUtils
 		
 		Object obj = deserialize(in);
 		
+		//SSJava will never throw exceptions as it is so this code is meaningless
+		/*
 		Class cls = obj.getClass();
-		
 		
 		if (!cls.isArray())
 			throw new InvalidObjectException("object is not an array");
@@ -133,7 +134,7 @@ public class JavaLayerUtils
 			if (arrayLength!=length)
 				throw new InvalidObjectException("array length mismatch");
 		}
-		
+		*/
 		return obj;
 	}
 

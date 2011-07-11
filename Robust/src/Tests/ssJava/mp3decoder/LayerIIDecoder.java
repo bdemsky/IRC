@@ -31,7 +31,9 @@
 /**
  * Implements decoding of MPEG Audio Layer II frames. 
  */
-class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
+@LATTICE("L<SH,SH<H,SH*")
+@METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=V,GLOBALLOC=IN")
+class LayerIIDecoder extends LayerIDecoder //implements FrameDecoder  //compiler cannot do interfaces
 {
 
 	public LayerIIDecoder()
@@ -41,7 +43,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	
 	protected void createSubbands()
 	{		
-  		int i;
+	        @LOC("V,LayerIIDecoder.SH") int i;
 		if (mode == Header.SINGLE_CHANNEL)
   		  for (i = 0; i < num_subbands; ++i)
   		    subbands[i] = new SubbandLayer2(i);
@@ -62,7 +64,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	
 	protected void readScaleFactorSelection()
 	{
-  		for (int i = 0; i < num_subbands; ++i)
+	      for (@LOC("V,layerIIDecoder.SH") int i = 0; i < num_subbands; ++i)
   		  ((SubbandLayer2)subbands[i]).read_scalefactor_selection(stream, crc);		
 	}
 	
@@ -71,11 +73,13 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	 /**
 	  * Class for layer II subbands in single channel mode.
 	  */
+        @LATTICE("L<H,L<ARR,ARR<F,SN<F,GN<F,F<H,SN*,GN*")
+	@METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 	static class SubbandLayer2 extends Subband
 	{
 	  // this table contains 3 requantized samples for each legal codeword
 	  // when grouped in 5 bits, i.e. 3 quantizationsteps per sample
-	public static final float grouping_5bits[] = new float[]
+	@LOC("H") public static final float grouping_5bits[] = new float[]
 	{
 	  -2.0f/3.0f, -2.0f/3.0f, -2.0f/3.0f,
 			 0.0f, -2.0f/3.0f, -2.0f/3.0f,
@@ -108,7 +112,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 
 	// this table contains 3 requantized samples for each legal codeword
 	// when grouped in 7 bits, i.e. 5 quantizationsteps per sample
-	public static final float grouping_7bits[] = new float[]
+	@LOC("H") public static final float grouping_7bits[] = new float[]
 	{
 	  -0.8f, -0.8f, -0.8f,   -0.4f, -0.8f, -0.8f,    0.0f, -0.8f, -0.8f,    0.4f, -0.8f, -0.8f,    0.8f, -0.8f, -0.8f,
 	  -0.8f, -0.4f, -0.8f,   -0.4f, -0.4f, -0.8f,    0.0f, -0.4f, -0.8f,    0.4f, -0.4f, -0.8f,    0.8f, -0.4f, -0.8f,
@@ -139,7 +143,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 
 	// this table contains 3 requantized samples for each legal codeword
 	// when grouped in 10 bits, i.e. 9 quantizationsteps per sample
-	public static final float grouping_10bits[] =
+	@LOC("H") public static final float grouping_10bits[] =
 	{
 	  -8.0f/9.0f, -8.0f/9.0f, -8.0f/9.0f,   -6.0f/9.0f, -8.0f/9.0f, -8.0f/9.0f,   -4.0f/9.0f, -8.0f/9.0f, -8.0f/9.0f,
 	  -2.0f/9.0f, -8.0f/9.0f, -8.0f/9.0f,        0.0f, -8.0f/9.0f, -8.0f/9.0f,    2.0f/9.0f, -8.0f/9.0f, -8.0f/9.0f,
@@ -389,28 +393,28 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	// data taken from ISO/IEC DIS 11172, Annexes 3-B.2[abcd] and 3-B.4:
 
 	// subbands 0-2 in tables 3-B.2a and 2b: (index is allocation)
-	public static final int table_ab1_codelength[] =
+	@LOC("F") public static final int table_ab1_codelength[] =
 	  // bits per codeword
 	{ 0, 5, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 
-	public static final float table_ab1_groupingtables[][] =
+	@LOC("F") public static final float table_ab1_groupingtables[][] =
 	  // pointer to sample grouping table, or NULL-pointer if ungrouped
 	{ null, grouping_5bits, null, null, null, null, null, null, null, null, null, null, null, null, null, null };
 
-	public static final float table_ab1_factor[] =
+	@LOC("F") public static final float table_ab1_factor[] =
 	  // factor for requantization: (real)sample * factor - 1.0 gives requantized sample
 	{ 0.0f, 1.0f/2.0f, 1.0f/4.0f, 1.0f/8.0f, 1.0f/16.0f, 1.0f/32.0f, 1.0f/64.0f,
 	  1.0f/128.0f, 1.0f/256.0f, 1.0f/512.0f, 1.0f/1024.0f, 1.0f/2048.0f,
 	  1.0f/4096.0f, 1.0f/8192.0f, 1.0f/16384.0f, 1.0f/32768.0f };
 
-	public static final float table_ab1_c[] =
+	@LOC("F") public static final float table_ab1_c[] =
 	  // factor c for requantization from table 3-B.4
 	{ 0.0f,           1.33333333333f, 1.14285714286f, 1.06666666666f, 1.03225806452f,
 	  1.01587301587f, 1.00787401575f, 1.00392156863f, 1.00195694716f, 1.00097751711f,
 	  1.00048851979f, 1.00024420024f, 1.00012208522f, 1.00006103888f, 1.00003051851f,
 	  1.00001525902f };
 
-	public static final float table_ab1_d[] =
+	@LOC("F") public static final float table_ab1_d[] =
 	  // addend d for requantization from table 3-B.4
 	{ 0.0f,           0.50000000000f, 0.25000000000f, 0.12500000000f, 0.06250000000f,
 	  0.03125000000f, 0.01562500000f, 0.00781250000f, 0.00390625000f, 0.00195312500f,
@@ -418,59 +422,59 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  0.00003051758f };
 
 	// subbands 3-... tables 3-B.2a and 2b:
-	public static final float[] table_ab234_groupingtables[] =
+	@LOC("F") public static final float[] table_ab234_groupingtables[] =
 	{ null, grouping_5bits, grouping_7bits, null, grouping_10bits, null, null, null, null, null, null, null, null, null, null, null };
 
 	// subbands 3-10 in tables 3-B.2a and 2b:
-	public static final int table_ab2_codelength[] =
+	@LOC("F") public static final int table_ab2_codelength[] =
 	{ 0, 5, 7, 3, 10, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16 };
-	public static final float table_ab2_factor[] =
+	@LOC("F") public static final float table_ab2_factor[] =
 	{ 0.0f, 1.0f/2.0f, 1.0f/4.0f, 1.0f/4.0f, 1.0f/8.0f, 1.0f/8.0f, 1.0f/16.0f,
 	  1.0f/32.0f, 1.0f/64.0f, 1.0f/128.0f, 1.0f/256.0f, 1.0f/512.0f,
 	  1.0f/1024.0f, 1.0f/2048.0f, 1.0f/4096.0f, 1.0f/32768.0f };
-	public static final float table_ab2_c[] =
+	@LOC("F") public static final float table_ab2_c[] =
 	{ 0.0f,           1.33333333333f, 1.60000000000f, 1.14285714286f, 1.77777777777f,
 	  1.06666666666f, 1.03225806452f, 1.01587301587f, 1.00787401575f, 1.00392156863f,
 	  1.00195694716f, 1.00097751711f, 1.00048851979f, 1.00024420024f, 1.00012208522f,
 	  1.00001525902f };
-	public static final float table_ab2_d[] =
+	@LOC("F") public static final float table_ab2_d[] =
 	{ 0.0f,           0.50000000000f, 0.50000000000f, 0.25000000000f, 0.50000000000f,
 	  0.12500000000f, 0.06250000000f, 0.03125000000f, 0.01562500000f, 0.00781250000f,
 	  0.00390625000f, 0.00195312500f, 0.00097656250f, 0.00048828125f, 0.00024414063f,
 	  0.00003051758f };
 
 	// subbands 11-22 in tables 3-B.2a and 2b:
-	public static final int table_ab3_codelength[] = { 0, 5, 7, 3, 10, 4, 5, 16 };
-	public static final float table_ab3_factor[] =
+	@LOC("F") public static final int table_ab3_codelength[] = { 0, 5, 7, 3, 10, 4, 5, 16 };
+	@LOC("F") public static final float table_ab3_factor[] =
 	{ 0.0f, 1.0f/2.0f, 1.0f/4.0f, 1.0f/4.0f, 1.0f/8.0f, 1.0f/8.0f, 1.0f/16.0f, 1.0f/32768.0f };
-	public static final float table_ab3_c[] =
+	@LOC("F") public static final float table_ab3_c[] =
 	{ 0.0f,           1.33333333333f, 1.60000000000f, 1.14285714286f, 1.77777777777f,
 	  1.06666666666f, 1.03225806452f, 1.00001525902f };
-	public static final float table_ab3_d[] =
+	@LOC("F") public static final float table_ab3_d[] =
 	{ 0.0f,           0.50000000000f, 0.50000000000f, 0.25000000000f, 0.50000000000f,
 	  0.12500000000f, 0.06250000000f, 0.00003051758f };
 
 	// subbands 23-... in tables 3-B.2a and 2b:
-	public static final int table_ab4_codelength[] = { 0, 5, 7, 16 };
-	public static final float table_ab4_factor[] = { 0.0f, 1.0f/2.0f, 1.0f/4.0f, 1.0f/32768.0f };
-	public static final float table_ab4_c[] = { 0.0f, 1.33333333333f, 1.60000000000f, 1.00001525902f };
-	public static final float table_ab4_d[] = { 0.0f, 0.50000000000f, 0.50000000000f, 0.00003051758f };
+	@LOC("F") public static final int table_ab4_codelength[] = { 0, 5, 7, 16 };
+        @LOC("F") public static final float table_ab4_factor[] = { 0.0f, 1.0f/2.0f, 1.0f/4.0f, 1.0f/32768.0f };
+	@LOC("F") public static final float table_ab4_c[] = { 0.0f, 1.33333333333f, 1.60000000000f, 1.00001525902f };
+	@LOC("F") public static final float table_ab4_d[] = { 0.0f, 0.50000000000f, 0.50000000000f, 0.00003051758f };
 
 	// subbands in tables 3-B.2c and 2d:
-	public static final int table_cd_codelength[] =
+	@LOC("F") public static final int table_cd_codelength[] =
 	{ 0, 5, 7, 10, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-	public static final float table_cd_groupingtables[][] =
+	@LOC("F") public static final float table_cd_groupingtables[][] =
 	{ null, grouping_5bits, grouping_7bits, grouping_10bits, null, null, null, null, null, null, null, null, null, null, null, null };
-	public static final float table_cd_factor[] =
+	@LOC("F") public static final float table_cd_factor[] =
 	{ 0.0f, 1.0f/2.0f, 1.0f/4.0f, 1.0f/8.0f, 1.0f/8.0f, 1.0f/16.0f, 1.0f/32.0f, 1.0f/64.0f,
 	  1.0f/128.0f, 1.0f/256.0f, 1.0f/512.0f, 1.0f/1024.0f, 1.0f/2048.0f, 1.0f/4096.0f,
 	  1.0f/8192.0f, 1.0f/16384.0f };
-	public static final float table_cd_c[] =
+	@LOC("F") public static final float table_cd_c[] =
 	{ 0.0f,           1.33333333333f, 1.60000000000f, 1.77777777777f, 1.06666666666f,
 	  1.03225806452f, 1.01587301587f, 1.00787401575f, 1.00392156863f, 1.00195694716f,
 	  1.00097751711f, 1.00048851979f, 1.00024420024f, 1.00012208522f, 1.00006103888f,
 	  1.00003051851f };
-	public static final float table_cd_d[] =
+	@LOC("F") public static final float table_cd_d[] =
 	{ 0.0f,           0.50000000000f, 0.50000000000f, 0.50000000000f, 0.12500000000f,
 	  0.06250000000f, 0.03125000000f, 0.01562500000f, 0.00781250000f, 0.00390625000f,
 	  0.00195312500f, 0.00097656250f, 0.00048828125f, 0.00024414063f, 0.00012207031f,
@@ -478,23 +482,25 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 
 
 
-	  protected int 		    subbandnumber;
-	  protected int				allocation;
-	  protected int				scfsi;
-	  protected float			scalefactor1, scalefactor2, scalefactor3;
-	  protected int[] 			codelength = {0}; 
-	  protected float groupingtable[][] = new float[2][]; 
+	  @LOC("F") protected int 		        subbandnumber;
+	  @LOC("F") protected int				allocation;
+	  @LOC("ARR") protected int				scfsi;
+	  @LOC("L") protected float			scalefactor1;
+	  @LOC("L") protected float                     scalefactor2;
+	  @LOC("L") protected float                     scalefactor3;
+	  @LOC("ARR") protected int[] 			codelength = {0}; 
+	  @LOC("ARR") protected float                       groupingtable[][] = new float[2][]; 
 	  //protected float[][] 		groupingtable = {{0},{0}} ;
-	  protected float[]			factor = {0.0f};
-	  protected int				groupnumber;
-	  protected int 			samplenumber;
-	  protected float[]			samples = new float[3];
-	  protected float[]			c = {0};
-	  protected float[]		    d = {0};
+	  @LOC("ARR") protected float[]			factor = {0.0f};
+	  @LOC("GN") protected int				groupnumber;
+	  @LOC("SN") protected int 			samplenumber;
+	  @LOC("L") protected float[]			samples = new float[3];
+	  @LOC("ARR") protected float[]			c = {0};
+	  @LOC("ARR") protected float[]		        d = {0};
 	  /**
 	   * Constructor
 	   */
-	  public SubbandLayer2(int subbandnumber)
+	  public SubbandLayer2(@LOC("IN") int subbandnumber)
 	  {	
 		this.subbandnumber = subbandnumber;
 	    groupnumber = samplenumber = 0;  
@@ -504,11 +510,12 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  protected int get_allocationlength (Header header)
+	  @RETURNLOC("OUT") 
+	  protected int get_allocationlength (@LOC("IN") Header header)
 	  {
 	 	if (header.version() == Header.MPEG1)
 		{
-		  int channel_bitrate = header.bitrate_index();
+		  @LOC("SH") int channel_bitrate = header.bitrate_index();
 
 		  // calculate bitrate per channel:
 		  if (header.mode() != Header.SINGLE_CHANNEL)
@@ -548,13 +555,13 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	   protected void prepare_sample_reading(Header header, int allocation,
-											 //float[][] groupingtable,
-											   int channel,
-	                                         float[] factor, int[] codelength,
-	                                         float[] c, float[] d)
+	    protected void prepare_sample_reading(@LOC("IN") Header header, @LOC("IN") int allocation,
+						  //float[][] groupingtable,
+						  @LOC("IN") int channel,
+						  @LOC("V") float[] factor, @LOC("V") int[] codelength,
+						  @LOC("V") float[] c, @LOC("V") float[] d)
 	   {
-	 	 	int channel_bitrate = header.bitrate_index();
+	                @LOC("SH")int channel_bitrate = header.bitrate_index();
 	  		// calculate bitrate per channel:
 		  	if (header.mode() != Header.SINGLE_CHANNEL)
 		 		if (channel_bitrate == 4)
@@ -614,9 +621,10 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_allocation(Bitstream stream, Header header, Crc16 crc)
+          @LATTICE("OUT<V,V<SH,SH<IN,SH*,THISLOC=OUT,GLOBALLOC=IN")
+	  public void read_allocation(@LOC("IN") Bitstream stream, @LOC("IN") Header header, @LOC("IN") Crc16 crc)
 	  {
-		 int length = get_allocationlength(header);
+	         @LOC("V") int length = get_allocationlength(header);
 		 allocation = stream.get_bits(length);
 		 if (crc != null) 
 			 crc.add_bits(allocation, length);  
@@ -625,7 +633,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_scalefactor_selection (Bitstream stream, Crc16 crc)
+	  public void read_scalefactor_selection (@LOC("IN") Bitstream stream, @LOC("IN") Crc16 crc)
 	  {
 	 	if (allocation != 0)
 	 	{
@@ -637,13 +645,13 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_scalefactor (Bitstream stream, Header header)
+	  public void read_scalefactor (@LOC("IN") Bitstream stream, @LOC("IN") Header header)
 	  {
 	 	if (allocation != 0)
 	 	{
 	 	   switch (scfsi)
-	       {
-	      	case 0:
+	           {
+	      	   case 0:
 	  	  	 scalefactor1 = scalefactors[stream.get_bits(6)];
 		  	 scalefactor2 = scalefactors[stream.get_bits(6)];
 		  	 scalefactor3 = scalefactors[stream.get_bits(6)];
@@ -652,13 +660,13 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 		  	 scalefactor1 = scalefactor2 = scalefactors[stream.get_bits(6)];
 		  	 scalefactor3 = scalefactors[stream.get_bits(6)];
 		  	 break;
-	        case 2:
+	           case 2:
 		  	 scalefactor1 = scalefactor2 = scalefactor3 = scalefactors[stream.get_bits(6)];
 			 break;
-		    case 3:
+		   case 3:
 		  	 scalefactor1 = scalefactors[stream.get_bits(6)];
-		     scalefactor2 = scalefactor3 = scalefactors[stream.get_bits(6)];
-		     break;
+		         scalefactor2 = scalefactor3 = scalefactors[stream.get_bits(6)];
+		         break;
 	    	}
 	    	prepare_sample_reading(header, allocation, 0,
 				    factor, codelength, c, d);
@@ -668,16 +676,18 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public boolean read_sampledata (Bitstream stream)
+          @LATTICE("OUT<V,V<SH,SH<TEMP,TEMP<TMP,TMP<THIS,THIS<IN,SH*,TEMP*,TMP*,THISLOC=THIS,GLOBALLOC=IN")
+	  @RETURNLOC("V")
+	  public boolean read_sampledata (@LOC("IN") Bitstream stream)
 	  {
 	  	if (allocation != 0)
 		 if (groupingtable[0] != null)
 		 {
-			int samplecode = stream.get_bits(codelength[0]);
+		        @LOC("SH") int samplecode = stream.get_bits(codelength[0]);
 			// create requantized samples:
 			samplecode += samplecode << 1;
-			float[] target = samples;
-			float[] source = groupingtable[0];
+			//float[] target = samples;  //subbed in variable to reduce areas
+			//float[] source = groupingtable[0];  //subbed in variable to reduce areas
 		  /*
 		  int tmp = 0;
 			int temp = 0;
@@ -688,16 +698,16 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 			target[tmp] = source[samplecode + temp];
 			*/
 			//Bugfix:
-			int tmp = 0;
-			int temp = samplecode;
+			@LOC("TMP") int tmp = 0;
+			@LOC("TEMP") int temp = samplecode;
 			
 			if(temp > source.length - 3) temp = source.length - 3;
 			
-			target[tmp] = source[temp];
+			samples[tmp] = groupingtable[0][temp];
 			temp++;tmp++;
-			target[tmp] = source[temp];
+			samples[tmp] = groupingtable[0][temp];
 			temp++;tmp++;
-			target[tmp] = source[temp];
+			samples[tmp] = groupingtable[0][temp];
 			
 			// memcpy (samples, groupingtable + samplecode, 3 * sizeof (real));
 		 }
@@ -718,11 +728,11 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public boolean put_next_sample(int channels, SynthesisFilter filter1, SynthesisFilter filter2)
+	  public boolean put_next_sample(@LOC("IN") int channels, @LOC("IN") SynthesisFilter filter1, @LOC("IN") SynthesisFilter filter2)
 	  {
 	    if ((allocation != 0) && (channels != OutputChannels.RIGHT_CHANNEL))
 	    {
-	  	 float sample = samples[samplenumber];
+		 @LOC("SH") float sample = samples[samplenumber];
 	  
 	  	 if (groupingtable[0] == null)
 	  		sample = (sample + d[0]) * c[0];
@@ -745,15 +755,19 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	 /**
 	  * Class for layer II subbands in joint stereo mode.
 	  */
+        @LATTICE("L<H,L<ARR,ARR<F,SN<F,GN<F,F<H,SN*,GN*")
+	@METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 	static class SubbandLayer2IntensityStereo extends SubbandLayer2
 	{
-	  protected int		 channel2_scfsi;
-	  protected float 	 channel2_scalefactor1, channel2_scalefactor2, channel2_scalefactor3;
+	  @LOC("ARR") protected int		 channel2_scfsi;
+	  @LOC("L") protected float 	 channel2_scalefactor1; 
+	  @LOC("L") protected float        channel2_scalefactor2;
+	  @LOC("L") protected float        channel2_scalefactor3;
 
 	  /**
 	   * Constructor
 	   */
-	  public SubbandLayer2IntensityStereo (int subbandnumber)
+	  public SubbandLayer2IntensityStereo (@LOC("IN") int subbandnumber)
 	  {
 	 	super(subbandnumber);
 	  }
@@ -761,7 +775,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_allocation(Bitstream stream, Header header, Crc16 crc)
+	  public void read_allocation(@LOC("IN") Bitstream stream, @LOC("IN") Header header, @LOC("IN") Crc16 crc)
 	  {
 	    super.read_allocation (stream, header, crc);
 	  }
@@ -769,7 +783,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_scalefactor_selection(Bitstream stream, Crc16 crc)
+	  public void read_scalefactor_selection(@LOC("IN") Bitstream stream, @LOC("IN") Crc16 crc)
 	  {
 	    if (allocation != 0)
 	    {
@@ -786,7 +800,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_scalefactor(Bitstream stream, Header header)
+	    public void read_scalefactor(@LOC("IN") Bitstream stream, @LOC("IN") Header header)
 	  {
 	    if (allocation != 0)
 	    {
@@ -821,7 +835,8 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public boolean read_sampledata(Bitstream stream)
+	  @RETURNLOC("V")
+	  public boolean read_sampledata(@LOC("IN") Bitstream stream)
 	  {
 		 return super.read_sampledata (stream);
 	  }
@@ -829,17 +844,19 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public boolean put_next_sample(int channels, SynthesisFilter filter1, SynthesisFilter filter2)
+          @LATTICE("S2<S1,S1<THIS,THIS<GLOBAL,S1*,THISLOC=THIS,GLOBALLOC=GLOBAL")
+	  @RETURNLOC("S2")
+	  public boolean put_next_sample(@LOC("IN") int channels, @LOC("IN") SynthesisFilter filter1, @LOC("IN") SynthesisFilter filter2)
 	  {
 		  if (allocation != 0)
 		  {
-			 float sample = samples[samplenumber];
+		        @LOC("S1") float sample = samples[samplenumber];
 		
 			 if (groupingtable[0] == null)
 				sample = (sample + d[0]) * c[0];
 		       if (channels == OutputChannels.BOTH_CHANNELS)
 			   {
-				  float sample2 = sample;
+			      @LOC("S2") float sample2 = sample;
 			      if (groupnumber <= 4)
 			      {
 					sample *= scalefactor1;
@@ -890,23 +907,27 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	 /**
 	  * Class for layer II subbands in stereo mode.
 	  */
+        @LATTICE("L<H,L<ARR,ARR<F,SN<F,GN<F,F<H,SN*,GN*")
+	@METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 	static class SubbandLayer2Stereo extends SubbandLayer2
 	{
-	  protected int			channel2_allocation;
-	  protected int 		channel2_scfsi;
-	  protected float	 	channel2_scalefactor1, channel2_scalefactor2, channel2_scalefactor3;
+	  @LOC("F")protected int			channel2_allocation;
+	  @LOC("ARR") protected int 		channel2_scfsi;
+	  @LOC("L") protected float	 	channel2_scalefactor1;
+	  @LOC("L") protected float channel2_scalefactor2;
+	  @LOC("L") protected float channel2_scalefactor3;
 	  //protected boolean	 	channel2_grouping;  ???? Never used!
-	  protected int[] 		channel2_codelength = {0};
+	  @LOC("ARR") protected int[] 		channel2_codelength = {0};
 	  //protected float[][] 	channel2_groupingtable = {{0},{0}};
-	  protected float[]	 	channel2_factor = {0};
-	  protected float[] 	channel2_samples;
-	  protected float[]	 	channel2_c = {0};
-	  protected float[]		channel2_d = {0};
+	  @LOC("ARR") protected float[]	 	channel2_factor = {0};
+	  @LOC("L") protected float[] 	channel2_samples;
+	  @LOC("ARR") protected float[]	 	channel2_c = {0};
+	  @LOC("ARR") protected float[]		channel2_d = {0};
 	  
 	  /**
 	   * Constructor
 	   */
-	  public SubbandLayer2Stereo(int subbandnumber)
+	  public SubbandLayer2Stereo(@LOC("IN") int subbandnumber)
 	  {
 	 	super(subbandnumber);
 		channel2_samples = new float[3];
@@ -915,9 +936,10 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_allocation (Bitstream stream, Header header, Crc16 crc)
+          @LATTICE("OUT<SH,SH<THIS,THIS<V,V<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
+	  public void read_allocation(@LOC("IN") Bitstream stream, @LOC("IN") Header header, @LOC("IN") Crc16 crc)
 	  {
-	    int length = get_allocationlength(header);
+	    @LOC("V") int length = get_allocationlength(header);
 	    allocation = stream.get_bits(length);
 	    channel2_allocation = stream.get_bits(length);
 	    if (crc != null)
@@ -930,7 +952,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_scalefactor_selection(Bitstream stream, Crc16 crc)
+	  public void read_scalefactor_selection(@LOC("IN") Bitstream stream, @LOC("IN") Crc16 crc)
 	  {
 		  if (allocation != 0)
 		  {
@@ -949,7 +971,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_scalefactor(Bitstream stream, Header header)
+	    public void read_scalefactor(@LOC("IN") Bitstream stream, @LOC("IN") Header header)
 	  {
 	    super.read_scalefactor(stream, header);
 	    if (channel2_allocation != 0)
@@ -988,14 +1010,16 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public boolean read_sampledata (Bitstream stream)
+          @LATTICE("OUT<V,V<SH,SH<TEMP,TEMP<TMP,TMP<THIS,THIS<IN,SH*,TEMP*,TMP*,THISLOC=THIS,GLOBALLOC=IN")
+	  @RETURNLOC("V")
+	  public boolean read_sampledata (@LOC("IN") Bitstream stream)
 	  {
-	    boolean returnvalue = super.read_sampledata(stream);
+	    @LOC("V")boolean returnvalue = super.read_sampledata(stream);
 	  
 	    if (channel2_allocation != 0)
 	  	 if (groupingtable[1] != null)
 		 {
-	  		int samplecode = stream.get_bits(channel2_codelength[0]);
+		        @LOC("SH") int samplecode = stream.get_bits(channel2_codelength[0]);
 	  		// create requantized samples:
 	  		samplecode += samplecode << 1;
 	  	/*
@@ -1010,10 +1034,10 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  		target[tmp] = source[samplecode + temp];
 	  		// memcpy (channel2_samples, channel2_groupingtable + samplecode, 3 * sizeof (real));
 	  	*/
-	  	float[] target = channel2_samples;
-	    float[] source = groupingtable[1];
-			int tmp = 0;
-			int temp = samplecode;
+			@LOC("V") float[] target = channel2_samples;
+			@LOC("V") float[] source = groupingtable[1];
+			@LOC("TMP") int tmp = 0;
+			@LOC("TEMP") int temp = samplecode;
 	  	target[tmp] = source[temp];
 			temp++;tmp++;
 	  	target[tmp] = source[temp];
@@ -1036,12 +1060,13 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public boolean put_next_sample(int channels, SynthesisFilter filter1, SynthesisFilter filter2)
+	  @RETURNLOC("V")
+	  public boolean put_next_sample(@LOC("IN") int channels, @LOC("IN") SynthesisFilter filter1, @LOC("IN") SynthesisFilter filter2)
 	  {
-	    boolean returnvalue = super.put_next_sample(channels, filter1, filter2);
+	    @LOC("V") boolean returnvalue = super.put_next_sample(channels, filter1, filter2);
 	    if ((channel2_allocation != 0) && (channels != OutputChannels.LEFT_CHANNEL))
 	    {
-	  	 float sample = channel2_samples[samplenumber - 1];
+		@LOC("SH") float sample = channel2_samples[samplenumber - 1];
 	  
 	  	 if (groupingtable[1] == null)
 	  		sample = (sample + channel2_d[0]) * channel2_c[0];

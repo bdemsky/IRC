@@ -38,6 +38,8 @@
 
 // REVIEW: there is no range checking, so buffer underflow or overflow
 // can silently occur.
+@LATTICE("SH<V,V<T,TOT<OFF,OFF<T,SH*,TOT*,OFF*")
+@METHODDEFAULT("OUT<V,V<C,C<IN,C*,THISLOC=V,GLOBALLOC=V")
 final class BitReserve
 {
    /**
@@ -45,30 +47,34 @@ final class BitReserve
     * Must be a power of 2. And x8, as each bit is stored as a single
     * entry.
     */
-	private static final int		BUFSIZE = 4096*8;
+    @LOC("T") private static final int BUFSIZE = 4096*8;
 	
 	/**
 	 * Mask that can be used to quickly implement the
 	 * modulus operation on BUFSIZE.
 	 */
-	private static final int		BUFSIZE_MASK = BUFSIZE-1;
+    @LOC("V") private static final int BUFSIZE_MASK = BUFSIZE-1;
 	
-	private int 					offset, totbit, buf_byte_idx;
-	private final int[] 			buf = new int[BUFSIZE];
-	private int 					buf_bit_idx;
+    @LOC("OFF") private int offset;
+    @LOC("TOT") private int totbit;
+    @LOC("SH") private int buf_byte_idx;
+    @LOC("V") private final int[] buf;
+    @LOC("T") private int buf_bit_idx;
 	
    BitReserve()
-   {
-	  
-	  offset = 0;
+   {	  
+      offset = 0;
       totbit = 0;
-      buf_byte_idx = 0;	  
+      buf_byte_idx = 0;
+      buf = new int[BUFSIZE];
    }
       
    
    /**
     * Return totbit Field.
 	*/
+
+   @RETURNLOC("OUT")
    public int hsstell() 
    { 
 	   return(totbit); 
@@ -78,13 +84,15 @@ final class BitReserve
     * Read a number bits from the bit stream.
     * @param N the number of
 	*/
-   public int hgetbits(int N)
+   @LATTICE("OUT<SH,SH<THIS,THIS<C,C<GLOBAL,C*,SH*,THISLOC=THIS,GLOBALLOC=GLOBAL")
+   @RETURNLOC("OUT") 
+   public int hgetbits(@LOC("C") int N)
    {
    	 totbit += N;
 	 
-	 int val = 0;
+	 @LOC("SH") int val = 0;
 	 
-	 int pos = buf_byte_idx;
+	 @LOC("THIS,BitReserve.SH") int pos = buf_byte_idx;
 	 if (pos+N < BUFSIZE)
 	 {
 		while (N-- > 0)
@@ -133,11 +141,12 @@ final class BitReserve
     * Returns next bit from reserve.
     * @returns 0 if next bit is reset, or 1 if next bit is set.
     */
+   @RETURNLOC("OUT")
    public int hget1bit()
    {   	  
-	  totbit++;	  
-	  int val = buf[buf_byte_idx];
-	  buf_byte_idx = (buf_byte_idx+1) & BUFSIZE_MASK;
+      totbit++;	  
+      @LOC("OUT") int val = buf[buf_byte_idx];
+      buf_byte_idx = (buf_byte_idx+1) & BUFSIZE_MASK;
       return val;
    }
    
@@ -177,9 +186,10 @@ final class BitReserve
    /**
     * Write 8 bits into the bit stream.
 	*/
-   public void hputbuf(int val)
+   @LATTICE("OUT<THIS,THIS<IN,THISLOC=THIS,GLOBALLOC=IN")
+   public void hputbuf(@LOC("IN") int val)
    {   	  
-	   int ofs = offset;
+           @LOC("THIS,BitReserve.OFF") int ofs = offset;
 	   buf[ofs++] = val & 0x80;
 	   buf[ofs++] = val & 0x40;
 	   buf[ofs++] = val & 0x20;
@@ -210,9 +220,10 @@ final class BitReserve
    /**
     * Rewind N bytes in Stream.
 	*/
-   public void rewindNbytes(int N)
+   @LATTICE("THIS<BIT,BIT<N,THISLOC=THIS,GLOBALLOC=N")
+   public void rewindNbytes(@LOC("N") int N)
    {
-      int bits = (N << 3);
+          @LOC("BIT") int bits = (N << 3);
 	  totbit -= bits;
 	  buf_byte_idx -= bits;	  
 	  if (buf_byte_idx<0)
