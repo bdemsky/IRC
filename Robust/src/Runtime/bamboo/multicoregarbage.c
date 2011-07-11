@@ -299,6 +299,8 @@ void gc_collect(struct garbagelist * stackptr) {
   WAITFORGCPHASE(MARKPHASE);
 
   GC_PRINTF("Start mark phase\n");
+  GCPROFILE_ITEM();
+
   mark(stackptr);
   GC_PRINTF("Finish mark phase, start compact phase\n");
   compact();
@@ -335,12 +337,15 @@ void gc_nocollect(struct garbagelist * stackptr) {
   GC_PRINTF("Do initGC\n");
   initGC();
   CACHEADAPT_GC(true);
+
   //send init finish msg to core coordinator
   send_msg_2(STARTUPCORE,GCFINISHINIT,BAMBOO_NUM_OF_CORE);
+
 
   WAITFORGCPHASE(MARKPHASE);
 
   GC_PRINTF("Start mark phase\n"); 
+  GCPROFILE_ITEM();
   mark(stackptr);
   GC_PRINTF("Finish mark phase, wait for update\n");
 
@@ -452,6 +457,7 @@ void gc_master(struct garbagelist * stackptr) {
   unsigned long long tmpt = BAMBOO_GET_EXE_TIME();
   CACHEADAPT_OUTPUT_CACHE_SAMPLING();
   gc_output_cache_policy_time += (BAMBOO_GET_EXE_TIME()-tmpt);
+  GCPROFILE_ITEM();
   //tprintf("start mark phase\n");
   // do mark phase
   master_mark(stackptr);

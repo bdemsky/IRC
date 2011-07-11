@@ -808,7 +808,7 @@ void run(int argc, char** argv) {
     }
     while(numconfirm!=0)
       ;
-    tprintf("start! \n");
+    tprintf("START_EXECUTION\n");
     bamboo_start_time = BAMBOO_GET_EXE_TIME();
   } else {
     while(!startflag)

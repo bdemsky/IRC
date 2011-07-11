@@ -9,9 +9,9 @@
 #define GCINFOLENGTH 100
 
 #ifdef GC_CACHE_ADAPT
-#define GC_PROFILE_NUM_FIELD 15
+#define GC_PROFILE_NUM_FIELD 20
 #else
-#define GC_PROFILE_NUM_FIELD 14
+#define GC_PROFILE_NUM_FIELD 19
 #endif // GC_CACHE_ADAPT
 
 typedef struct gc_info {
