@@ -3,7 +3,7 @@ BUILDSCRIPT=../../../buildscript
 PROGRAM=Player
 SOURCE_FILES=Player.java
 
-BSFLAGS= -32bit -ssjava -printlinenum -mainclass $(PROGRAM)  -heapsize-mb 1000 -garbagestats -joptimize -noloop -optimize -debug 
+BSFLAGS= -32bit -ssjava -ssjavadebug -printlinenum -mainclass $(PROGRAM)  -heapsize-mb 1000 -garbagestats -joptimize -noloop -optimize -debug 
 
 default: $(PROGRAM)s.bin
 
