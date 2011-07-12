@@ -33,6 +33,16 @@
 
 #define BAMBOO_SHARED_RUNTIME_PAGE_SIZE (1<<24)  //16M
 
+#define BAMBOO_PAGE_SIZE ((unsigned int)(64 * 1024)) // 64K
+#define BAMBOO_PAGE_SIZE_BITS (16)
+#ifdef GC_LARGEPAGESIZE
+#define BAMBOO_PAGE_SIZE ((unsigned int)(4 * 64 * 1024))
+#define BAMBOO_PAGE_SIZE_BITS (18)
+#elif defined GC_LARGEPAGESIZE2
+#define BAMBOO_PAGE_SIZE ((unsigned int)(4 * 64 * 1024)) // 64K
+#define BAMBOO_PAGE_SIZE_BITS (18)
+#endif
+
 #ifdef GC_DEBUG
 #include "structdefs.h"
 #define BAMBOO_NUM_BLOCKS (NUMCORES4GC*(2+3))
@@ -49,20 +59,13 @@
 #else
 #define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+14)))
 #endif
-#define BAMBOO_PAGE_SIZE ((unsigned int)(64 * 1024)) // 64K
-#define BAMBOO_PAGE_SIZE_BITS (16)
 #ifdef GC_LARGEPAGESIZE
-#define BAMBOO_PAGE_SIZE ((unsigned int)(4 * 64 * 1024))
-#define BAMBOO_PAGE_SIZE_BITS (18)
 #define BAMBOO_SMEM_SIZE ((unsigned int)(4 * (BAMBOO_PAGE_SIZE)))
 #elif defined GC_SMALLPAGESIZE
 #define BAMBOO_SMEM_SIZE ((unsigned int)(BAMBOO_PAGE_SIZE))
 #elif defined GC_SMALLPAGESIZE2
-//#define BAMBOO_PAGE_SIZE ((unsigned int)(16 * 1024))  // (4096)
 #define BAMBOO_SMEM_SIZE ((unsigned int)(BAMBOO_PAGE_SIZE))
 #elif defined GC_LARGEPAGESIZE2
-#define BAMBOO_PAGE_SIZE ((unsigned int)(4 * 64 * 1024)) // 64K
-#define BAMBOO_PAGE_SIZE_BITS (18)
 #define BAMBOO_SMEM_SIZE ((unsigned int)(BAMBOO_PAGE_SIZE))
 #elif defined MGC
 #define BAMBOO_SMEM_SIZE ((unsigned int)(16*(BAMBOO_PAGE_SIZE)))  // 1M
@@ -80,9 +83,7 @@
 #define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+2))) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
 #endif
 #ifdef GC_LARGEPAGESIZE
-#define BAMBOO_PAGE_SIZE ((unsigned int)(4 * 1024 * 1024))  // (4096)
-#define BAMBOO_PAGE_SIZE_BITS (22)
-#define BAMBOO_SMEM_SIZE ((unsigned int)(BAMBOO_PAGE_SIZE))
+#define BAMBOO_SMEM_SIZE ((unsigned int)(BAMBOO_PAGE_SIZE*16))
 #elif defined GC_SMALLPAGESIZE
 #define BAMBOO_PAGE_SIZE ((unsigned int)(256 * 1024))  // (4096)
 #define BAMBOO_PAGE_SIZE_BITS (18)
@@ -92,9 +93,7 @@
 #define BAMBOO_PAGE_SIZE_BITS (18)
 #define BAMBOO_SMEM_SIZE ((unsigned int)(BAMBOO_PAGE_SIZE))
 #else
-#define BAMBOO_PAGE_SIZE ((unsigned int)(1024 * 1024))  // (4096)
-#define BAMBOO_PAGE_SIZE_BITS (20)
-#define BAMBOO_SMEM_SIZE ((unsigned int)(BAMBOO_PAGE_SIZE))
+#define BAMBOO_SMEM_SIZE ((unsigned int)(BAMBOO_PAGE_SIZE*16))
 #endif // GC_LARGEPAGESIZE
 #define BAMBOO_SHARED_MEM_SIZE ((unsigned int)((BAMBOO_SMEM_SIZE) * (BAMBOO_NUM_BLOCKS))) //(1024 * 1024 * 240) //((unsigned long long int)(3.0 * 1024 * 1024 * 1024)) // 3G 
 #endif // GC_DEBUG

@@ -11,11 +11,11 @@ gc_cache_revise_info_t gc_cache_revise_information;
 void samplingDataReviseInit(struct moveHelper * orig,struct moveHelper * to) {
   // initialize the destination page info
   gc_cache_revise_information.to_page_start_va=to->ptr;
-  unsigned int toindex=(unsigned INTPTR)(to->base-gcbaseva)/BAMBOO_PAGE_SIZE;
+  unsigned int toindex=(unsigned INTPTR)(to->base-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS;
   gc_cache_revise_information.to_page_end_va=gcbaseva+BAMBOO_PAGE_SIZE*(toindex+1);
   gc_cache_revise_information.to_page_index=toindex;
   // initilaize the original page info
-  unsigned int origindex=((unsigned INTPTR)(orig->base-gcbaseva))/BAMBOO_PAGE_SIZE;
+  unsigned int origindex=((unsigned INTPTR)(orig->base-gcbaseva))>>BAMBOO_PAGE_SIZE_BITS;
   gc_cache_revise_information.orig_page_start_va=orig->ptr;
   gc_cache_revise_information.orig_page_end_va=gcbaseva+BAMBOO_PAGE_SIZE*(origindex+1);
   gc_cache_revise_information.orig_page_index=origindex;
@@ -197,13 +197,13 @@ void completePageConvert(void * origptr, void * toptr, void * current_ptr) {
     // compute the impact of the original page(s) for the desitination page(s)
     samplingDataConvert(current_ptr);
     // prepare for an new orig page
-    unsigned INTPTR tmp_index=((unsigned INTPTR)(origptr-gcbaseva))/BAMBOO_PAGE_SIZE;
+    unsigned INTPTR tmp_index=((unsigned INTPTR)(origptr-gcbaseva))>>BAMBOO_PAGE_SIZE_BITS;
     gc_cache_revise_information.orig_page_start_va=origptr;
     gc_cache_revise_information.orig_page_end_va=gcbaseva+BAMBOO_PAGE_SIZE*(tmp_index+1);
     gc_cache_revise_information.orig_page_index=tmp_index;
     gc_cache_revise_information.to_page_start_va=toptr;
     if(closeToPage) {
-      unsigned INTPTR to_index=((unsigned INTPTR)(toptr-gcbaseva))/BAMBOO_PAGE_SIZE;
+      unsigned INTPTR to_index=((unsigned INTPTR)(toptr-gcbaseva))>>BAMBOO_PAGE_SIZE_BITS;
       gc_cache_revise_information.to_page_end_va=gcbaseva+BAMBOO_PAGE_SIZE*(to_index+1);
       gc_cache_revise_information.to_page_index=to_index;
     }
@@ -221,8 +221,11 @@ void cacheAdapt_gc(bool isgccachestage) {
   // clean the dtlb entries
   BAMBOO_CLEAN_DTLB();
 
-  // change the cache strategy
-  gccachestage = isgccachestage;
+  if(isgccachestage) {
+    bamboo_install_dtlb_handler_for_gc();
+  } else {
+    bamboo_install_dtlb_handler_for_mutator();
+  }
 } 
 
 // the master core decides how to adapt cache strategy for the mutator 
@@ -272,7 +275,7 @@ void cacheAdapt_gc(bool isgccachestage) {
 
 // make all pages hfh
 void cacheAdapt_policy_h4h(int coren){
-  unsigned int page_num=(BAMBOO_SHARED_MEM_SIZE)/(BAMBOO_PAGE_SIZE);
+  unsigned int page_num=(BAMBOO_SHARED_MEM_SIZE)>>(BAMBOO_PAGE_SIZE_BITS);
   unsigned int page_gap=page_num/NUMCORESACTIVE;
   unsigned int page_index=page_gap*coren;
   unsigned int page_index_end=(coren==NUMCORESACTIVE-1)?page_num:(page_index+page_gap);
@@ -288,7 +291,7 @@ void cacheAdapt_policy_h4h(int coren){
 
 // make all pages local as non-cache-adaptable gc local mode
 void cacheAdapt_policy_local(int coren){
-  unsigned int page_num=(BAMBOO_SHARED_MEM_SIZE)/(BAMBOO_PAGE_SIZE);
+  unsigned int page_num=(BAMBOO_SHARED_MEM_SIZE)>>(BAMBOO_PAGE_SIZE_BITS);
   unsigned int page_gap=page_num/NUMCORESACTIVE;
   unsigned int page_index=page_gap*coren;
   unsigned int page_index_end=(coren==NUMCORESACTIVE-1)?page_num:(page_index+page_gap);
@@ -306,7 +309,7 @@ void cacheAdapt_policy_local(int coren){
 } 
 
 void cacheAdapt_policy_hottest(int coren){
-  unsigned int page_num=(BAMBOO_SHARED_MEM_SIZE)/(BAMBOO_PAGE_SIZE);
+  unsigned int page_num=(BAMBOO_SHARED_MEM_SIZE)>>(BAMBOO_PAGE_SIZE_BITS);
   unsigned int page_gap=page_num/NUMCORESACTIVE;
   unsigned int page_index=page_gap*coren;
   unsigned int page_index_end=(coren==NUMCORESACTIVE-1)?page_num:(page_index+page_gap);
@@ -337,7 +340,7 @@ void cacheAdapt_policy_hottest(int coren){
 // it more than (GC_CACHE_ADAPT_DOMINATE_THRESHOLD)% of the total.  Otherwise,
 // h4h the page.
 void cacheAdapt_policy_dominate(int coren){
-  unsigned int page_num=(BAMBOO_SHARED_MEM_SIZE)/(BAMBOO_PAGE_SIZE);
+  unsigned int page_num=(BAMBOO_SHARED_MEM_SIZE)>>(BAMBOO_PAGE_SIZE_BITS);
   unsigned int page_gap=page_num/NUMCORESACTIVE;
   unsigned int page_index=page_gap*coren;
   unsigned int page_index_end=(coren==NUMCORESACTIVE-1)?page_num:(page_index+page_gap);
@@ -468,11 +471,11 @@ void cacheAdapt_phase_master() {
 
 // output original cache sampling data for each page
 void gc_output_cache_sampling() {
-  //extern volatile bool gc_profile_flag;
-  //if(!gc_profile_flag) return;
+  extern volatile bool gc_profile_flag;
+  if(!gc_profile_flag) return;
   unsigned int page_index = 0;
   VA page_sva = 0;
-  unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
+  unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) >> (BAMBOO_PAGE_SIZE_BITS);
   for(page_index = 0; page_index < page_num; page_index++) {
     page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
     unsigned int block = 0;
@@ -494,8 +497,8 @@ void gc_output_cache_sampling() {
 
 // output revised cache sampling data for each page after compaction
 void gc_output_cache_sampling_r() {
-  //extern volatile bool gc_profile_flag;
-  //if(!gc_profile_flag) return;
+  extern volatile bool gc_profile_flag;
+  if(!gc_profile_flag) return;
   // TODO summary data
   unsigned int sumdata[NUMCORESACTIVE][NUMCORESACTIVE];
   for(int i = 0; i < NUMCORESACTIVE; i++) {
@@ -506,7 +509,7 @@ void gc_output_cache_sampling_r() {
   tprintf("cache sampling_r \n");
   unsigned int page_index = 0;
   VA page_sva = 0;
-  unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
+  unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) >> (BAMBOO_PAGE_SIZE_BITS);
   for(page_index = 0; page_index < page_num; page_index++) {
     page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
     unsigned int block = 0;
