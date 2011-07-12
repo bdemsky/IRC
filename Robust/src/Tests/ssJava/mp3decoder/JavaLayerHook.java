@@ -18,7 +18,7 @@
  */
 
 
-import java.io.InputStream;
+//import java.io.InputStream;
 
 /**
  * The <code>JavaLayerHooks</code> class allows developers to change

@@ -19,14 +19,14 @@
  */
 
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InvalidClassException;
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.lang.reflect.Array;
+//import java.io.IOException;
+//import java.io.InputStream;
+//import java.io.InvalidClassException;
+//import java.io.InvalidObjectException;
+//import java.io.ObjectInputStream;
+//import java.io.ObjectOutputStream;
+//import java.io.OutputStream;
+//import java.lang.reflect.Array;
 
 /**
  * The JavaLayerUtils class is not strictly part of the JavaLayer API.
@@ -43,17 +43,19 @@ public class JavaLayerUtils
 	 * @param in	The input stream to deserialize an object from.
 	 * @param cls	The expected class of the deserialized object. 
 	 */
-	static public Object deserialize(InputStream in, Class cls)
+//	static public Object deserialize(InputStream in, Class cls)
+	static public Object deserialize(InputStream in)
 		throws IOException
 	{
-		if (cls==null)
-			throw new NullPointerException("cls");
+//		if (cls==null)
+//			throw new NullPointerException("cls");
 		
-		Object obj = deserialize(in, cls);
-		if (!cls.isInstance(obj))
-		{
-			throw new InvalidObjectException("type of deserialized instance not of required class.");
-		}
+//		Object obj = deserialize(in, cls);
+	     Object obj = deserialize(in);
+//		if (!cls.isInstance(obj))
+//		{
+//			throw new InvalidObjectException("type of deserialized instance not of required class.");
+//		}
 		
 		return obj;
 	}
@@ -79,6 +81,8 @@ public class JavaLayerUtils
 		if (in==null)
 			throw new NullPointerException("in");
 		
+		//TODO : need to enable after having objectinputstream
+		/*
 		ObjectInputStream objIn = new ObjectInputStream(in);
 		
 		Object obj;
@@ -93,6 +97,8 @@ public class JavaLayerUtils
 		}
 		
 		return obj;
+		*/
+		return null;
 	}
 
 	/**
@@ -106,46 +112,58 @@ public class JavaLayerUtils
 	 * @param length	The expected length of the array, or -1 if
 	 *					any length is expected.
 	 */
-	static public Object deserializeArray(InputStream in, Class elemType, int length)
-		throws IOException
-	{
-		if (elemType==null)
-			throw new NullPointerException("elemType");
-		
-		if (length<-1)
-			throw new IllegalArgumentException("length");
-		
-		Object obj = deserialize(in);
-		
-		//SSJava will never throw exceptions as it is so this code is meaningless
-		/*
-		Class cls = obj.getClass();
-		
-		if (!cls.isArray())
-			throw new InvalidObjectException("object is not an array");
-		
-		Class arrayElemType = cls.getComponentType();
-		if (arrayElemType!=elemType)
-			throw new InvalidObjectException("unexpected array component type");
-				
-		if (length != -1)
-		{
-			int arrayLength = Array.getLength(obj);
-			if (arrayLength!=length)
-				throw new InvalidObjectException("array length mismatch");
-		}
-		*/
-		return obj;
-	}
+	    static public Object deserializeArray(InputStream in, int length)
+         throws IOException
+    {
+         if (length<-1)
+              throw new IllegalArgumentException("length");
+         
+         Object obj = deserialize(in);
+         
+         return obj;
+    }
+//	static public Object deserializeArray(InputStream in, Class elemType, int length)
+//		throws IOException
+//	{
+//		if (elemType==null)
+//			throw new NullPointerException("elemType");
+//		
+//		if (length<-1)
+//			throw new IllegalArgumentException("length");
+//		
+//		Object obj = deserialize(in);
+//		
+//		//SSJava will never throw exceptions as it is so this code is meaningless
+//		/*
+//		Class cls = obj.getClass();
+//		
+//		if (!cls.isArray())
+//			throw new InvalidObjectException("object is not an array");
+//		
+//		Class arrayElemType = cls.getComponentType();
+//		if (arrayElemType!=elemType)
+//			throw new InvalidObjectException("unexpected array component type");
+//				
+//		if (length != -1)
+//		{
+//			int arrayLength = Array.getLength(obj);
+//			if (arrayLength!=length)
+//				throw new InvalidObjectException("array length mismatch");
+//		}
+//		*/
+//		return obj;
+//	}
 
-	static public Object deserializeArrayResource(String name, Class elemType, int length)
+//	static public Object deserializeArrayResource(String name, Class elemType, int length)
+	    static public Object deserializeArrayResource(String name, int length)
 		throws IOException
 	{		
 		InputStream str = getResourceAsStream(name);
 		if (str==null)
 			throw new IOException("unable to load resource '"+name+"'");
 		
-		Object obj = deserializeArray(str, elemType, length);
+//		Object obj = deserializeArray(str, elemType, length);
+		Object obj = deserializeArray(str, length);
 		
 		return obj;
 	}	
@@ -153,14 +171,15 @@ public class JavaLayerUtils
 	static public void serialize(OutputStream out, Object obj)
 		throws IOException
 	{
-		if (out==null)
-			throw new NullPointerException("out");
-		
-		if (obj==null)
-			throw new NullPointerException("obj");
-		
-		ObjectOutputStream objOut = new ObjectOutputStream(out);
-		objOut.writeObject(obj);
+       //TODO : need to enable after having objectinputstream
+//		if (out==null)
+//			throw new NullPointerException("out");
+//		
+//		if (obj==null)
+//			throw new NullPointerException("obj");
+//		
+//		ObjectOutputStream objOut = new ObjectOutputStream(out);
+//		objOut.writeObject(obj);
 				
 	}
 
@@ -196,11 +215,12 @@ public class JavaLayerUtils
 		{
 			is = hook.getResourceAsStream(name);	
 		}
-		else
-		{
-			Class cls = JavaLayerUtils.class;
-			is = cls.getResourceAsStream(name);
-		}
+		//TODO java reflection
+//		else
+//		{
+//			Class cls = JavaLayerUtils.class;
+//			is = cls.getResourceAsStream(name);
+//		}
 		
 		return is;		
 	}

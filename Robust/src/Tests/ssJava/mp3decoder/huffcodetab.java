@@ -42,7 +42,7 @@
  * Class to implements Huffman decoder.
  */
 @LATTICE("FIELD<FINAL")
-@METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=IN,GLOBALLOC=IN");
+@METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=IN,GLOBALLOC=IN")
 final class huffcodetab
 {
   @LOC("FINAL") private static final int	 MXOFF=250;

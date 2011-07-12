@@ -701,7 +701,8 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 			@LOC("TMP") int tmp = 0;
 			@LOC("TEMP") int temp = samplecode;
 			
-			if(temp > source.length - 3) temp = source.length - 3;
+//			if(temp > source.length - 3) temp = source.length - 3;
+			if(temp > groupingtable[0].length - 3) temp = groupingtable[0].length - 3;
 			
 			samples[tmp] = groupingtable[0][temp];
 			temp++;tmp++;

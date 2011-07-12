@@ -245,7 +245,7 @@ public class ByteArrayInputStream extends InputStream
     // ints will always fit in an int.  Since we have to return a long
     // anyway, numBytes might as well just be a long.
     long numBytes = Math.min((long) (count - pos), num < 0 ? 0L : num);
-    pos += numBytes;
+    pos +=(int)numBytes;
     return numBytes;
   }
 }

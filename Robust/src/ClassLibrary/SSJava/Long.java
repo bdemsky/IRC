@@ -36,7 +36,7 @@ obligated to do so.  If you do not wish to do so, delete this
 exception statement from your version. */
 
 
-package java.lang;
+//package java.lang;
 
 /**
  * Instances of class <code>Long</code> represent primitive

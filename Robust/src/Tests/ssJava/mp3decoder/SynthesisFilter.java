@@ -935,22 +935,22 @@ final class SynthesisFilter
 		{
 		@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 		//final float[] dp = d16[i]; //subbed in variable name instead to reduce areas
-		pcm_sample = (float)(((actual_v[0 + dvp] * d16[0]) +
-			(actual_v[15 + dvp] * d16[1]) +
-			(actual_v[14 + dvp] * d16[2]) +
-			(actual_v[13 + dvp] * d16[3]) +
-			(actual_v[12 + dvp] * d16[4]) +
-			(actual_v[11 + dvp] * d16[5]) +
-			(actual_v[10 + dvp] * d16[6]) +
-			(actual_v[9 + dvp] * d16[7]) +
-			(actual_v[8 + dvp] * d16[8]) +
-			(actual_v[7 + dvp] * d16[9]) +
-			(actual_v[6 + dvp] * d16[10]) +
-			(actual_v[5 + dvp] * d16[11]) +
-			(actual_v[4 + dvp] * d16[12]) +
-			(actual_v[3 + dvp] * d16[13]) +
-			(actual_v[2 + dvp] * d16[14]) +
-			(actual_v[1 + dvp] * d16[15])
+		pcm_sample = (float)(((actual_v[0 + dvp] * d16[i][0]) +
+			(actual_v[15 + dvp] * d16[i][1]) +
+			(actual_v[14 + dvp] * d16[i][2]) +
+			(actual_v[13 + dvp] * d16[i][3]) +
+			(actual_v[12 + dvp] * d16[i][4]) +
+			(actual_v[11 + dvp] * d16[i][5]) +
+			(actual_v[10 + dvp] * d16[i][6]) +
+			(actual_v[9 + dvp] * d16[i][7]) +
+			(actual_v[8 + dvp] * d16[i][8]) +
+			(actual_v[7 + dvp] * d16[i][9]) +
+			(actual_v[6 + dvp] * d16[i][10]) +
+			(actual_v[5 + dvp] * d16[i][11]) +
+			(actual_v[4 + dvp] * d16[i][12]) +
+			(actual_v[3 + dvp] * d16[i][13]) +
+			(actual_v[2 + dvp] * d16[i][14]) +
+			(actual_v[1 + dvp] * d16[i][15])
 			) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -972,22 +972,22 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[1 + dvp] * d16[0]) +
-						      (actual_v[0 + dvp] * d16[1]) +
-					(actual_v[15 + dvp] * d16[2]) +
-					(actual_v[14 + dvp] * d16[3]) +
-					(actual_v[13 + dvp] * d16[4]) +
-					(actual_v[12 + dvp] * d16[5]) +
-					(actual_v[11 + dvp] * d16[6]) +
-					(actual_v[10 + dvp] * d16[7]) +
-					(actual_v[9 + dvp] * d16[8]) +
-					(actual_v[8 + dvp] * d16[9]) +
-					(actual_v[7 + dvp] * d16[10]) +
-					(actual_v[6 + dvp] * d16[11]) +
-					(actual_v[5 + dvp] * d16[12]) +
-					(actual_v[4 + dvp] * d16[13]) +
-					(actual_v[3 + dvp] * d16[14]) +
-					(actual_v[2 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[1 + dvp] * d16[i][0]) +
+						      (actual_v[0 + dvp] * d16[i][1]) +
+					(actual_v[15 + dvp] * d16[i][2]) +
+					(actual_v[14 + dvp] * d16[i][3]) +
+					(actual_v[13 + dvp] * d16[i][4]) +
+					(actual_v[12 + dvp] * d16[i][5]) +
+					(actual_v[11 + dvp] * d16[i][6]) +
+					(actual_v[10 + dvp] * d16[i][7]) +
+					(actual_v[9 + dvp] * d16[i][8]) +
+					(actual_v[8 + dvp] * d16[i][9]) +
+					(actual_v[7 + dvp] * d16[i][10]) +
+					(actual_v[6 + dvp] * d16[i][11]) +
+					(actual_v[5 + dvp] * d16[i][12]) +
+					(actual_v[4 + dvp] * d16[i][13]) +
+					(actual_v[3 + dvp] * d16[i][14]) +
+					(actual_v[2 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1010,22 +1010,22 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[2 + dvp] * d16[0]) +
-					(actual_v[1 + dvp] * d16[1]) +
-					(actual_v[0 + dvp] * d16[2]) +
-					(actual_v[15 + dvp] * d16[3]) +
-					(actual_v[14 + dvp] * d16[4]) +
-					(actual_v[13 + dvp] * d16[5]) +
-					(actual_v[12 + dvp] * d16[6]) +
-					(actual_v[11 + dvp] * d16[7]) +
-					(actual_v[10 + dvp] * d16[8]) +
-					(actual_v[9 + dvp] * d16[9]) +
-					(actual_v[8 + dvp] * d16[10]) +
-					(actual_v[7 + dvp] * d16[11]) +
-					(actual_v[6 + dvp] * d16[12]) +
-					(actual_v[5 + dvp] * d16[13]) +
-					(actual_v[4 + dvp] * d16[14]) +
-					(actual_v[3 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[2 + dvp] * d16[i][0]) +
+					(actual_v[1 + dvp] * d16[i][1]) +
+					(actual_v[0 + dvp] * d16[i][2]) +
+					(actual_v[15 + dvp] * d16[i][3]) +
+					(actual_v[14 + dvp] * d16[i][4]) +
+					(actual_v[13 + dvp] * d16[i][5]) +
+					(actual_v[12 + dvp] * d16[i][6]) +
+					(actual_v[11 + dvp] * d16[i][7]) +
+					(actual_v[10 + dvp] * d16[i][8]) +
+					(actual_v[9 + dvp] * d16[i][9]) +
+					(actual_v[8 + dvp] * d16[i][10]) +
+					(actual_v[7 + dvp] * d16[i][11]) +
+					(actual_v[6 + dvp] * d16[i][12]) +
+					(actual_v[5 + dvp] * d16[i][13]) +
+					(actual_v[4 + dvp] * d16[i][14]) +
+					(actual_v[3 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1049,22 +1049,22 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float) ( ( (actual_v[3 + dvp] * d16[0]) +
-					(actual_v[2 + dvp] * d16[1]) +
-					(actual_v[1 + dvp] * d16[2]) +
-					(actual_v[0 + dvp] * d16[3]) +
-					(actual_v[15 + dvp] * d16[4]) +
-					(actual_v[14 + dvp] * d16[5]) +
-					(actual_v[13 + dvp] * d16[6]) +
-					(actual_v[12 + dvp] * d16[7]) +
-					(actual_v[11 + dvp] * d16[8]) +
-					(actual_v[10 + dvp] * d16[9]) +
-					(actual_v[9 + dvp] * d16[10]) +
-					(actual_v[8 + dvp] * d16[11]) +
-					(actual_v[7 + dvp] * d16[12]) +
-					(actual_v[6 + dvp] * d16[13]) +
-					(actual_v[5 + dvp] * d16[14]) +
-					(actual_v[4 + dvp] * d16[15])
+				pcm_sample = (float) ( ( (actual_v[3 + dvp] * d16[i][0]) +
+					(actual_v[2 + dvp] * d16[i][1]) +
+					(actual_v[1 + dvp] * d16[i][2]) +
+					(actual_v[0 + dvp] * d16[i][3]) +
+					(actual_v[15 + dvp] * d16[i][4]) +
+					(actual_v[14 + dvp] * d16[i][5]) +
+					(actual_v[13 + dvp] * d16[i][6]) +
+					(actual_v[12 + dvp] * d16[i][7]) +
+					(actual_v[11 + dvp] * d16[i][8]) +
+					(actual_v[10 + dvp] * d16[i][9]) +
+					(actual_v[9 + dvp] * d16[i][10]) +
+					(actual_v[8 + dvp] * d16[i][11]) +
+					(actual_v[7 + dvp] * d16[i][12]) +
+					(actual_v[6 + dvp] * d16[i][13]) +
+					(actual_v[5 + dvp] * d16[i][14]) +
+					(actual_v[4 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1087,22 +1087,22 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[4 + dvp] * d16[0]) +
-					(actual_v[3 + dvp] * d16[1]) +
-					(actual_v[2 + dvp] * d16[2]) +
-					(actual_v[1 + dvp] * d16[3]) +
-					(actual_v[0 + dvp] * d16[4]) +
-					(actual_v[15 + dvp] * d16[5]) +
-					(actual_v[14 + dvp] * d16[6]) +
-					(actual_v[13 + dvp] * d16[7]) +
-					(actual_v[12 + dvp] * d16[8]) +
-					(actual_v[11 + dvp] * d16[9]) +
-					(actual_v[10 + dvp] * d16[10]) +
-					(actual_v[9 + dvp] * d16[11]) +
-					(actual_v[8 + dvp] * d16[12]) +
-					(actual_v[7 + dvp] * d16[13]) +
-					(actual_v[6 + dvp] * d16[14]) +
-					(actual_v[5 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[4 + dvp] * d16[i][0]) +
+					(actual_v[3 + dvp] * d16[i][1]) +
+					(actual_v[2 + dvp] * d16[i][2]) +
+					(actual_v[1 + dvp] * d16[i][3]) +
+					(actual_v[0 + dvp] * d16[i][4]) +
+					(actual_v[15 + dvp] * d16[i][5]) +
+					(actual_v[14 + dvp] * d16[i][6]) +
+					(actual_v[13 + dvp] * d16[i][7]) +
+					(actual_v[12 + dvp] * d16[i][8]) +
+					(actual_v[11 + dvp] * d16[i][9]) +
+					(actual_v[10 + dvp] * d16[i][10]) +
+					(actual_v[9 + dvp] * d16[i][11]) +
+					(actual_v[8 + dvp] * d16[i][12]) +
+					(actual_v[7 + dvp] * d16[i][13]) +
+					(actual_v[6 + dvp] * d16[i][14]) +
+					(actual_v[5 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1125,22 +1125,22 @@ final class SynthesisFilter
 			    //	final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[5 + dvp] * d16[0]) +
-					(actual_v[4 + dvp] * d16[1]) +
-					(actual_v[3 + dvp] * d16[2]) +
-					(actual_v[2 + dvp] * d16[3]) +
-					(actual_v[1 + dvp] * d16[4]) +
-					(actual_v[0 + dvp] * d16[5]) +
-					(actual_v[15 + dvp] * d16[6]) +
-					(actual_v[14 + dvp] * d16[7]) +
-					(actual_v[13 + dvp] * d16[8]) +
-					(actual_v[12 + dvp] * d16[9]) +
-					(actual_v[11 + dvp] * d16[10]) +
-					(actual_v[10 + dvp] * d16[11]) +
-					(actual_v[9 + dvp] * d16[12]) +
-					(actual_v[8 + dvp] * d16[13]) +
-					(actual_v[7 + dvp] * d16[14]) +
-					(actual_v[6 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[5 + dvp] * d16[i][0]) +
+					(actual_v[4 + dvp] * d16[i][1]) +
+					(actual_v[3 + dvp] * d16[i][2]) +
+					(actual_v[2 + dvp] * d16[i][3]) +
+					(actual_v[1 + dvp] * d16[i][4]) +
+					(actual_v[0 + dvp] * d16[i][5]) +
+					(actual_v[15 + dvp] * d16[i][6]) +
+					(actual_v[14 + dvp] * d16[i][7]) +
+					(actual_v[13 + dvp] * d16[i][8]) +
+					(actual_v[12 + dvp] * d16[i][9]) +
+					(actual_v[11 + dvp] * d16[i][10]) +
+					(actual_v[10 + dvp] * d16[i][11]) +
+					(actual_v[9 + dvp] * d16[i][12]) +
+					(actual_v[8 + dvp] * d16[i][13]) +
+					(actual_v[7 + dvp] * d16[i][14]) +
+					(actual_v[6 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1162,22 +1162,22 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[6 + dvp] * d16[0]) +
-					(actual_v[5 + dvp] * d61[1]) +
-					(actual_v[4 + dvp] * d16[2]) +
-					(actual_v[3 + dvp] * d16[3]) +
-					(actual_v[2 + dvp] * d16[4]) +
-					(actual_v[1 + dvp] * d16[5]) +
-					(actual_v[0 + dvp] * d16[6]) +
-					(actual_v[15 + dvp] * d16[7]) +
-					(actual_v[14 + dvp] * d16[8]) +
-					(actual_v[13 + dvp] * d16[9]) +
-					(actual_v[12 + dvp] * d16[10]) +
-					(actual_v[11 + dvp] * d16[11]) +
-					(actual_v[10 + dvp] * d16[12]) +
-					(actual_v[9 + dvp] * d16[13]) +
-					(actual_v[8 + dvp] * d16[14]) +
-					(actual_v[7 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[6 + dvp] * d16[i][0]) +
+					(actual_v[5 + dvp] * d16[i][1]) +
+					(actual_v[4 + dvp] * d16[i][2]) +
+					(actual_v[3 + dvp] * d16[i][3]) +
+					(actual_v[2 + dvp] * d16[i][4]) +
+					(actual_v[1 + dvp] * d16[i][5]) +
+					(actual_v[0 + dvp] * d16[i][6]) +
+					(actual_v[15 + dvp] * d16[i][7]) +
+					(actual_v[14 + dvp] * d16[i][8]) +
+					(actual_v[13 + dvp] * d16[i][9]) +
+					(actual_v[12 + dvp] * d16[i][10]) +
+					(actual_v[11 + dvp] * d16[i][11]) +
+					(actual_v[10 + dvp] * d16[i][12]) +
+					(actual_v[9 + dvp] * d16[i][13]) +
+					(actual_v[8 + dvp] * d16[i][14]) +
+					(actual_v[7 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1200,22 +1200,22 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[7 + dvp] * d16[0]) +
-					(actual_v[6 + dvp] * d16[1]) +
-					(actual_v[5 + dvp] * d16[2]) +
-					(actual_v[4 + dvp] * d16[3]) +
-					(actual_v[3 + dvp] * d16[4]) +
-					(actual_v[2 + dvp] * d16[5]) +
-					(actual_v[1 + dvp] * d16[6]) +
-					(actual_v[0 + dvp] * d16[7]) +
-					(actual_v[15 + dvp] * d16[8]) +
-					(actual_v[14 + dvp] * d16[9]) +
-					(actual_v[13 + dvp] * d16[10]) +
-					(actual_v[12 + dvp] * d16[11]) +
-					(actual_v[11 + dvp] * d16[12]) +
-					(actual_v[10 + dvp] * d16[13]) +
-					(actual_v[9 + dvp] * d16[14]) +
-					(actual_v[8 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[7 + dvp] * d16[i][0]) +
+					(actual_v[6 + dvp] * d16[i][1]) +
+					(actual_v[5 + dvp] * d16[i][2]) +
+					(actual_v[4 + dvp] * d16[i][3]) +
+					(actual_v[3 + dvp] * d16[i][4]) +
+					(actual_v[2 + dvp] * d16[i][5]) +
+					(actual_v[1 + dvp] * d16[i][6]) +
+					(actual_v[0 + dvp] * d16[i][7]) +
+					(actual_v[15 + dvp] * d16[i][8]) +
+					(actual_v[14 + dvp] * d16[i][9]) +
+					(actual_v[13 + dvp] * d16[i][10]) +
+					(actual_v[12 + dvp] * d16[i][11]) +
+					(actual_v[11 + dvp] * d16[i][12]) +
+					(actual_v[10 + dvp] * d16[i][13]) +
+					(actual_v[9 + dvp] * d16[i][14]) +
+					(actual_v[8 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1238,22 +1238,22 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[8 + dvp] * d16[0]) +
-					(actual_v[7 + dvp] * d16[1]) +
-					(actual_v[6 + dvp] * d16[2]) +
-					(actual_v[5 + dvp] * d16[3]) +
-					(actual_v[4 + dvp] * d16[4]) +
-					(actual_v[3 + dvp] * d16[5]) +
-					(actual_v[2 + dvp] * d16[6]) +
-					(actual_v[1 + dvp] * d16[7]) +
-					(actual_v[0 + dvp] * d16[8]) +
-					(actual_v[15 + dvp] * d16[9]) +
-					(actual_v[14 + dvp] * d16[10]) +
-					(actual_v[13 + dvp] * d16[11]) +
-					(actual_v[12 + dvp] * d16[12]) +
-					(actual_v[11 + dvp] * d16[13]) +
-					(actual_v[10 + dvp] * d16[14]) +
-					(actual_v[9 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[8 + dvp] * d16[i][0]) +
+					(actual_v[7 + dvp] * d16[i][1]) +
+					(actual_v[6 + dvp] * d16[i][2]) +
+					(actual_v[5 + dvp] * d16[i][3]) +
+					(actual_v[4 + dvp] * d16[i][4]) +
+					(actual_v[3 + dvp] * d16[i][5]) +
+					(actual_v[2 + dvp] * d16[i][6]) +
+					(actual_v[1 + dvp] * d16[i][7]) +
+					(actual_v[0 + dvp] * d16[i][8]) +
+					(actual_v[15 + dvp] * d16[i][9]) +
+					(actual_v[14 + dvp] * d16[i][10]) +
+					(actual_v[13 + dvp] * d16[i][11]) +
+					(actual_v[12 + dvp] * d16[i][12]) +
+					(actual_v[11 + dvp] * d16[i][13]) +
+					(actual_v[10 + dvp] * d16[i][14]) +
+					(actual_v[9 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1276,22 +1276,22 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[9 + dvp] * d16[0]) +
-					(actual_v[8 + dvp] * d16[1]) +
-					(actual_v[7 + dvp] * d16[2]) +
-					(actual_v[6 + dvp] * d16[3]) +
-					(actual_v[5 + dvp] * d16[4]) +
-					(actual_v[4 + dvp] * d16[5]) +
-					(actual_v[3 + dvp] * d16[6]) +
-					(actual_v[2 + dvp] * d16[7]) +
-					(actual_v[1 + dvp] * d16[8]) +
-					(actual_v[0 + dvp] * d16[9]) +
-					(actual_v[15 + dvp] * d16[10]) +
-					(actual_v[14 + dvp] * d16[11]) +
-					(actual_v[13 + dvp] * d16[12]) +
-					(actual_v[12 + dvp] * d16[13]) +
-					(actual_v[11 + dvp] * d16[14]) +
-					(actual_v[10 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[9 + dvp] * d16[i][0]) +
+					(actual_v[8 + dvp] * d16[i][1]) +
+					(actual_v[7 + dvp] * d16[i][2]) +
+					(actual_v[6 + dvp] * d16[i][3]) +
+					(actual_v[5 + dvp] * d16[i][4]) +
+					(actual_v[4 + dvp] * d16[i][5]) +
+					(actual_v[3 + dvp] * d16[i][6]) +
+					(actual_v[2 + dvp] * d16[i][7]) +
+					(actual_v[1 + dvp] * d16[i][8]) +
+					(actual_v[0 + dvp] * d16[i][9]) +
+					(actual_v[15 + dvp] * d16[i][10]) +
+					(actual_v[14 + dvp] * d16[i][11]) +
+					(actual_v[13 + dvp] * d16[i][12]) +
+					(actual_v[12 + dvp] * d16[i][13]) +
+					(actual_v[11 + dvp] * d16[i][14]) +
+					(actual_v[10 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1313,25 +1313,25 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((vp[10 + dvp] * dp[0]) +
-					(vp[9 + dvp] * dp[1]) +
-					(vp[8 + dvp] * dp[2]) +
-					(vp[7 + dvp] * dp[3]) +
-					(vp[6 + dvp] * dp[4]) +
-					(vp[5 + dvp] * dp[5]) +
-					(vp[4 + dvp] * dp[6]) +
-					(vp[3 + dvp] * dp[7]) +
-					(vp[2 + dvp] * dp[8]) +
-					(vp[1 + dvp] * dp[9]) +
-					(vp[0 + dvp] * dp[10]) +
-					(vp[15 + dvp] * dp[11]) +
-					(vp[14 + dvp] * dp[12]) +
-					(vp[13 + dvp] * dp[13]) +
-					(vp[12 + dvp] * dp[14]) +
-					(vp[11 + dvp] * dp[15])
+				pcm_sample = (float)(((actual_v[10 + dvp] * d16[i][0]) +
+					(actual_v[9 + dvp] * d16[i][1]) +
+					(actual_v[8 + dvp] * d16[i][2]) +
+					(actual_v[7 + dvp] * d16[i][3]) +
+					(actual_v[6 + dvp] * d16[i][4]) +
+					(actual_v[5 + dvp] * d16[i][5]) +
+					(actual_v[4 + dvp] * d16[i][6]) +
+					(actual_v[3 + dvp] * d16[i][7]) +
+					(actual_v[2 + dvp] * d16[i][8]) +
+					(actual_v[1 + dvp] * d16[i][9]) +
+					(actual_v[0 + dvp] * d16[i][10]) +
+					(actual_v[15 + dvp] * d16[i][11]) +
+					(actual_v[14 + dvp] * d16[i][12]) +
+					(actual_v[13 + dvp] * d16[i][13]) +
+					(actual_v[12 + dvp] * d16[i][14]) +
+					(actual_v[11 + dvp] * d16[i][15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
+            _tmpOut[i] = pcm_sample;
 			
 			dvp += 16;
 			} // for
@@ -1351,25 +1351,25 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[11 + dvp] * d16[0]) +
-					(actual_v[10 + dvp] * d16[1]) +
-					(actual_v[9 + dvp] * d16[2]) +
-					(actual_v[8 + dvp] * d16[3]) +
-					(actual_v[7 + dvp] * d16[4]) +
-					(actual_v[6 + dvp] * d16[5]) +
-					(actual_v[5 + dvp] * d16[6]) +
-					(actual_v[4 + dvp] * d16[7]) +
-					(actual_v[3 + dvp] * d16[8]) +
-					(actual_v[2 + dvp] * d16[9]) +
-					(actual_v[1 + dvp] * d16[10]) +
-					(actual_v[0 + dvp] * d16[11]) +
-					(actual_v[15 + dvp] * d16[12]) +
-					(actual_v[14 + dvp] * d16[13]) +
-					(actual_v[13 + dvp] * d16[14]) +
-					(actual_v[12 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[11 + dvp] * d16[i][0]) +
+					(actual_v[10 + dvp] * d16[i][1]) +
+					(actual_v[9 + dvp] * d16[i][2]) +
+					(actual_v[8 + dvp] * d16[i][3]) +
+					(actual_v[7 + dvp] * d16[i][4]) +
+					(actual_v[6 + dvp] * d16[i][5]) +
+					(actual_v[5 + dvp] * d16[i][6]) +
+					(actual_v[4 + dvp] * d16[i][7]) +
+					(actual_v[3 + dvp] * d16[i][8]) +
+					(actual_v[2 + dvp] * d16[i][9]) +
+					(actual_v[1 + dvp] * d16[i][10]) +
+					(actual_v[0 + dvp] * d16[i][11]) +
+					(actual_v[15 + dvp] * d16[i][12]) +
+					(actual_v[14 + dvp] * d16[i][13]) +
+					(actual_v[13 + dvp] * d16[i][14]) +
+					(actual_v[12 + dvp] * d16[i][15])
 					) * scalefactor);
 
-            tmpOut[i] = pcm_sample;
+            _tmpOut[i] = pcm_sample;
 			
 			dvp += 16;
 			} // for
@@ -1388,22 +1388,22 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[12 + dvp] * d16[0]) +
-					(actual_v[11 + dvp] * d16[1]) +
-					(actual_v[10 + dvp] * d16[2]) +
-					(actual_v[9 + dvp] * d16[3]) +
-					(actual_v[8 + dvp] * d16[4]) +
-					(actual_v[7 + dvp] * d16[5]) +
-					(actual_v[6 + dvp] * d16[6]) +
-					(actual_v[5 + dvp] * d16[7]) +
-					(actual_v[4 + dvp] * d16[8]) +
-					(actual_v[3 + dvp] * d16[9]) +
-					(actual_v[2 + dvp] * d16[10]) +
-					(actual_v[1 + dvp] * d16[11]) +
-					(actual_v[0 + dvp] * d16[12]) +
-					(actual_v[15 + dvp] * d16[13]) +
-					(actual_v[14 + dvp] * d16[14]) +
-					(actual_v[13 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[12 + dvp] * d16[i][0]) +
+					(actual_v[11 + dvp] * d16[i][1]) +
+					(actual_v[10 + dvp] * d16[i][2]) +
+					(actual_v[9 + dvp] * d16[i][3]) +
+					(actual_v[8 + dvp] * d16[i][4]) +
+					(actual_v[7 + dvp] * d16[i][5]) +
+					(actual_v[6 + dvp] * d16[i][6]) +
+					(actual_v[5 + dvp] * d16[i][7]) +
+					(actual_v[4 + dvp] * d16[i][8]) +
+					(actual_v[3 + dvp] * d16[i][9]) +
+					(actual_v[2 + dvp] * d16[i][10]) +
+					(actual_v[1 + dvp] * d16[i][11]) +
+					(actual_v[0 + dvp] * d16[i][12]) +
+					(actual_v[15 + dvp] * d16[i][13]) +
+					(actual_v[14 + dvp] * d16[i][14]) +
+					(actual_v[13 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1426,22 +1426,22 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[13 + dvp] * d16[0]) +
-					(actual_v[12 + dvp] * d16[1]) +
-					(actual_v[11 + dvp] * d16[2]) +
-					(actual_v[10 + dvp] * d16[3]) +
-					(actual_v[9 + dvp] * d16[4]) +
-					(actual_v[8 + dvp] * d16[5]) +
-					(actual_v[7 + dvp] * d16[6]) +
-					(actual_v[6 + dvp] * d16[7]) +
-					(actual_v[5 + dvp] * d16[8]) +
-					(actual_v[4 + dvp] * d16[9]) +
-					(actual_v[3 + dvp] * d16[10]) +
-					(actual_v[2 + dvp] * d16[11]) +
-					(actual_v[1 + dvp] * d16[12]) +
-					(actual_v[0 + dvp] * d16[13]) +
-					(actual_v[15 + dvp] * d16[14]) +
-					(actual_v[14 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[13 + dvp] * d16[i][0]) +
+					(actual_v[12 + dvp] * d16[i][1]) +
+					(actual_v[11 + dvp] * d16[i][2]) +
+					(actual_v[10 + dvp] * d16[i][3]) +
+					(actual_v[9 + dvp] * d16[i][4]) +
+					(actual_v[8 + dvp] * d16[i][5]) +
+					(actual_v[7 + dvp] * d16[i][6]) +
+					(actual_v[6 + dvp] * d16[i][7]) +
+					(actual_v[5 + dvp] * d16[i][8]) +
+					(actual_v[4 + dvp] * d16[i][9]) +
+					(actual_v[3 + dvp] * d16[i][10]) +
+					(actual_v[2 + dvp] * d16[i][11]) +
+					(actual_v[1 + dvp] * d16[i][12]) +
+					(actual_v[0 + dvp] * d16[i][13]) +
+					(actual_v[15 + dvp] * d16[i][14]) +
+					(actual_v[14 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1464,22 +1464,22 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[14 + dvp] * d16[0]) +
-					(actual_v[13 + dvp] * d16[1]) +
-					(actual_v[12 + dvp] * d16[2]) +
-					(actual_v[11 + dvp] * d16[3]) +
-					(actual_v[10 + dvp] * d16[4]) +
-					(actual_v[9 + dvp] * d16[5]) +
-					(actual_v[8 + dvp] * d16[6]) +
-					(actual_v[7 + dvp] * d16[7]) +
-					(actual_v[6 + dvp] * d16[8]) +
-					(actual_v[5 + dvp] * d16[9]) +
-					(actual_v[4 + dvp] * d16[10]) +
-					(actual_v[3 + dvp] * d16[11]) +
-					(actual_v[2 + dvp] * d16[12]) +
-					(actual_v[1 + dvp] * d16[13]) +
-					(actual_v[0 + dvp] * d16[14]) +
-					(actual_v[15 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[14 + dvp] * d16[i][0]) +
+					(actual_v[13 + dvp] * d16[i][1]) +
+					(actual_v[12 + dvp] * d16[i][2]) +
+					(actual_v[11 + dvp] * d16[i][3]) +
+					(actual_v[10 + dvp] * d16[i][4]) +
+					(actual_v[9 + dvp] * d16[i][5]) +
+					(actual_v[8 + dvp] * d16[i][6]) +
+					(actual_v[7 + dvp] * d16[i][7]) +
+					(actual_v[6 + dvp] * d16[i][8]) +
+					(actual_v[5 + dvp] * d16[i][9]) +
+					(actual_v[4 + dvp] * d16[i][10]) +
+					(actual_v[3 + dvp] * d16[i][11]) +
+					(actual_v[2 + dvp] * d16[i][12]) +
+					(actual_v[1 + dvp] * d16[i][13]) +
+					(actual_v[0 + dvp] * d16[i][14]) +
+					(actual_v[15 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
@@ -1501,22 +1501,22 @@ final class SynthesisFilter
 			{
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 				//final float dp[] = d16[i];
-				pcm_sample = (float)(((vp[15 + dvp] * d16[0]) +
-					(actual_v[14 + dvp] * d16[1]) +
-					(actual_v[13 + dvp] * d16[2]) +
-					(actual_v[12 + dvp] * d16[3]) +
-					(actual_v[11 + dvp] * d16[4]) +
-					(actual_v[10 + dvp] * d16[5]) +
-					(actual_v[9 + dvp] * d16[6]) +
-					(actual_v[8 + dvp] * d16[7]) +
-					(actual_v[7 + dvp] * d16[8]) +
-					(actual_v[6 + dvp] * d16[9]) +
-					(actual_v[5 + dvp] * d16[10]) +
-					(actual_v[4 + dvp] * d16[11]) +
-					(actual_v[3 + dvp] * d16[12]) +
-					(actual_v[2 + dvp] * d16[13]) +
-					(actual_v[1 + dvp] * d16[14]) +
-					(actual_v[0 + dvp] * d16[15])
+				pcm_sample = (float)(((actual_v[15 + dvp] * d16[i][0]) +
+					(actual_v[14 + dvp] * d16[i][1]) +
+					(actual_v[13 + dvp] * d16[i][2]) +
+					(actual_v[12 + dvp] * d16[i][3]) +
+					(actual_v[11 + dvp] * d16[i][4]) +
+					(actual_v[10 + dvp] * d16[i][5]) +
+					(actual_v[9 + dvp] * d16[i][6]) +
+					(actual_v[8 + dvp] * d16[i][7]) +
+					(actual_v[7 + dvp] * d16[i][8]) +
+					(actual_v[6 + dvp] * d16[i][9]) +
+					(actual_v[5 + dvp] * d16[i][10]) +
+					(actual_v[4 + dvp] * d16[i][11]) +
+					(actual_v[3 + dvp] * d16[i][12]) +
+					(actual_v[2 + dvp] * d16[i][13]) +
+					(actual_v[1 + dvp] * d16[i][14]) +
+					(actual_v[0 + dvp] * d16[i][15])
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;			
@@ -1692,11 +1692,13 @@ private void compute_pcm_samples(@LOC("GLOBAL") Obuffer buffer)
 	{
 		try
 		{
-			Class elemType = Float.TYPE;
-			Object o = JavaLayerUtils.deserializeArrayResource("sfd.ser", elemType, 512);
+//			Class elemType = Float.TYPE;
+//			Object o = JavaLayerUtils.deserializeArrayResource("sfd.ser", elemType, 512);
+		     Object o = JavaLayerUtils.deserializeArrayResource("sfd.ser",  512);
 			return (float[])o;
 		}
-		catch (IOException ex)
+//		catch (IOException ex)
+		catch (Exception ex)
 		{
 			throw new ExceptionInInitializerError(ex);
 		}		

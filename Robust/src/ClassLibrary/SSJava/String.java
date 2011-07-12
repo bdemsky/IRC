@@ -1,5 +1,7 @@
 import Object;
 import String;
+import StringBuffer;
+import System;
 
 @LATTICE("V<C, V<O")
 @METHODDEFAULT("O<V,V<C,C<IN,THISLOC=O,C*")
@@ -22,6 +24,17 @@ public class String {
     this.offset=0;
   }
   
+  public String(char str[], int offset, int length) {
+    if (length>(str.length-offset))
+      length=str.length-offset;
+    char charstr[]=new char[length];
+    for(int i=0; i<length; i++)
+      charstr[i]=str[i+offset];
+    this.value=charstr;
+    this.count=length;
+    this.offset=0;
+  }
+  
 
   public String(byte str[], String encoding) {
     int length = this.count;
@@ -40,6 +53,14 @@ public class String {
     this.count=str.count;
     this.offset=str.offset;
   }
+  
+  public String(StringBuffer strbuf) {
+    value=new char[strbuf.length()];
+    count=strbuf.length();
+    offset=0;
+    for(int i=0; i<count; i++)
+      value[i]=strbuf.value[i];
+  }
 
   public String(@LOC("IN") char c) {
     @LOC("V") char[] str = new char[1];
@@ -55,6 +76,12 @@ public class String {
     charstr=null;
     this.count=str.length;
     this.offset=0;
+  }
+  
+  public String(String str) {
+    this.value=str.value;
+    this.count=str.count;
+    this.offset=str.offset;
   }
 
   @LATTICE("O<V,V<C,C<IN,THISLOC=IN,C*")
@@ -95,6 +122,42 @@ public class String {
       if (s.value[i+s.offset]!=value[i+offset])
         return false;
     }
+    return true;
+  }
+  
+  public void getChars(char dst[], int dstBegin) {
+    getChars(0, count, dst, dstBegin);
+  }
+
+  public void getChars(int srcBegin, int srcEnd, char dst[], int dstBegin) {
+    if((srcBegin < 0) || (srcEnd > count) || (srcBegin > srcEnd)) {
+      // FIXME
+      System.printString("Index error: "+srcBegin+" "+srcEnd+" "+count+"\n"+this);
+      System.exit(-1);
+    }
+    int len = srcEnd - srcBegin;
+    int j = dstBegin;
+    for(int i=srcBegin; i<srcEnd; i++)
+      dst[j++]=value[i+offset];
+    return;
+  }
+  
+  public int indexOf(String str, int fromIndex) {
+    if (fromIndex<0)
+      fromIndex=0;
+    for(int i=fromIndex; i<=(count-str.count); i++)
+      if (regionMatches(i, str, 0, str.count))
+        return i;
+    return -1;
+  }
+  
+  public boolean regionMatches(int toffset, String other, int ooffset, int len) {
+    if (toffset<0 || ooffset <0 || (toffset+len)>count || (ooffset+len)>other.count)
+      return false;
+    for(int i=0; i<len; i++)
+      if (other.value[i+other.offset+ooffset]!=
+          this.value[i+this.offset+toffset])
+        return false;
     return true;
   }
   
@@ -159,6 +222,9 @@ public class String {
     s.value=chararray;
     return s;
   }
+  
+  public static native int convertdoubletochar(double val, char [] chararray);
+
 
   public static String valueOf(long x) {
     int length=0;

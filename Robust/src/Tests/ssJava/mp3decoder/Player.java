@@ -248,6 +248,10 @@ public class Player
 */		
 		return true;
 	}
+	
+	public static void main(String args[]){
+	  //dummy	  
+	}
 
 	
 }

@@ -62,7 +62,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LOC("VAR") private float[][] prevblck;
   @LOC("K") private float[][] k;
   @LOC("NZ") private int[] nonzero;
-  @LOC("F")private Bitstream stream;
+  @LOC("F") private Bitstream stream;
   @LOC("H") private Header header;
   @LOC("F") private SynthesisFilter filter1;
   @LOC("F") private SynthesisFilter filter2;
@@ -90,7 +90,8 @@ final class LayerIIIDecoder implements FrameDecoder {
   // decodeFrame() method, where possible, so that one
   @LATTICE("THIS<VAR,THIS<I,THIS<J,J<CH,I*,J*,CH*,THISLOC=THIS,GLOBALLOC=THIS") 
   public LayerIIIDecoder(@LOC("VAR") Bitstream stream0, @LOC("VAR") Header header0, @LOC("VAR") SynthesisFilter filtera,
-			SynthesisFilter @LOC("VAR") filterb, @LOC("VAR") Obuffer buffer0, @LOC("VAR") int which_ch0) {
+      @LOC("VAR") SynthesisFilter filterb, @LOC("VAR") Obuffer buffer0, @LOC("VAR") int which_ch0) {
+    
     huffcodetab.inithuff();
     is_1d = new int[SBLIMIT * SSLIMIT + 4];
     ro = new float[2][SBLIMIT][SSLIMIT];
@@ -1498,70 +1499,70 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LOC("TS") float[] tsOutCopy = new float[18];
   @LOC("RAW") float[] rawout = new float[36];
   
-@LATTICE("THIS<SB,THIS<SH,SH<IN,IN<GLOBAL,SB*,SH*,THISLOC=THIS,GLOBALLOC=GLOBAL")
-    private void hybrid(@LOC("IN") int ch, @LOC("IN") int gr) {
-    @LOC("THIS,LayerIIIDecoder.BT") int bt;
-    @LOC("SB") int sb18;
-    @LOC("THIS,LayerIIIDecoder.GR") gr_info_s gr_info = (si.ch[ch].gr[gr]);
-    @LOC("THIS,LayerIIIDecoder.TS") float[] tsOut;
+  @LATTICE("THIS<SB,THIS<SH,SH<IN,IN<GLOBAL,SB*,SH*,THISLOC=THIS,GLOBALLOC=GLOBAL")
+  private void hybrid(@LOC("IN") int ch, @LOC("IN") int gr) {
+  @LOC("THIS,LayerIIIDecoder.BT") int bt;
+  @LOC("SB") int sb18;
+  @LOC("THIS,LayerIIIDecoder.GR") gr_info_s gr_info = (si.ch[ch].gr[gr]);
+  @LOC("THIS,LayerIIIDecoder.TS") float[] tsOut;
 
-    //float[][] prvblk;
+  //float[][] prvblk;
 
-    for (sb18 = 0; sb18 < 576; sb18 += 18) {
-      bt =
-          ((gr_info.window_switching_flag != 0) && (gr_info.mixed_block_flag != 0) && (sb18 < 36))
-              ? 0 : gr_info.block_type;
+  for (sb18 = 0; sb18 < 576; sb18 += 18) {
+    bt =
+        ((gr_info.window_switching_flag != 0) && (gr_info.mixed_block_flag != 0) && (sb18 < 36))
+            ? 0 : gr_info.block_type;
 
-      tsOut = out_1d;
-      // Modif E.B 02/22/99
-      for (@LOC("SH") int cc = 0; cc < 18; cc++)
-        tsOutCopy[cc] = tsOut[cc + sb18];
+    tsOut = out_1d;
+    // Modif E.B 02/22/99
+    for (@LOC("SH") int cc = 0; cc < 18; cc++)
+      tsOutCopy[cc] = tsOut[cc + sb18];
 
-      inv_mdct(tsOutCopy, rawout, bt);
+    inv_mdct(tsOutCopy, rawout, bt);
 
-      for (@LOC("SH") int cc = 0; cc < 18; cc++)
-        tsOut[cc + sb18] = tsOutCopy[cc];
-      // Fin Modif
+    for (@LOC("SH") int cc = 0; cc < 18; cc++)
+      tsOut[cc + sb18] = tsOutCopy[cc];
+    // Fin Modif
 
-      // overlap addition
-      //prvblk = prevblck; //eliminated unnecessary areas
+    // overlap addition
+    //prvblk = prevblck; //eliminated unnecessary areas
 
-      tsOut[0 + sb18] = rawout[0] + prevblk[ch][sb18 + 0];
-      prevblk[ch][sb18 + 0] = rawout[18];
-      tsOut[1 + sb18] = rawout[1] + prevblk[ch][sb18 + 1];
-      prevblk[ch][sb18 + 1] = rawout[19];
-      tsOut[2 + sb18] = rawout[2] + prevblk[ch][sb18 + 2];
-      prevblk[ch][sb18 + 2] = rawout[20];
-      tsOut[3 + sb18] = rawout[3] + prevblk[ch][sb18 + 3];
-      prevblk[ch][sb18 + 3] = rawout[21];
-      tsOut[4 + sb18] = rawout[4] + prevblk[ch][sb18 + 4];
-      prevblk[ch][sb18 + 4] = rawout[22];
-      tsOut[5 + sb18] = rawout[5] + prevblk[ch][sb18 + 5];
-      prevblk[ch][sb18 + 5] = rawout[23];
-      tsOut[6 + sb18] = rawout[6] + prevblk[ch][sb18 + 6];
-      prevblk[ch][sb18 + 6] = rawout[24];
-      tsOut[7 + sb18] = rawout[7] + prevblk[ch][sb18 + 7];
-      prevblk[ch][sb18 + 7] = rawout[25];
-      tsOut[8 + sb18] = rawout[8] + prevblk[ch][sb18 + 8];
-      prevblk[ch][sb18 + 8] = rawout[26];
-      tsOut[9 + sb18] = rawout[9] + prevblk[ch][sb18 + 9];
-      prevblk[ch][sb18 + 9] = rawout[27];
-      tsOut[10 + sb18] = rawout[10] + prevblk[ch][sb18 + 10];
-      prevblk[ch][sb18 + 10] = rawout[28];
-      tsOut[11 + sb18] = rawout[11] + prevblk[ch][sb18 + 11];
-      prevblk[ch][sb18 + 11] = rawout[29];
-      tsOut[12 + sb18] = rawout[12] + prevblk[ch][sb18 + 12];
-      prevblk[ch][sb18 + 12] = rawout[30];
-      tsOut[13 + sb18] = rawout[13] + prevblk[ch][sb18 + 13];
-      prevblk[ch][sb18 + 13] = rawout[31];
-      tsOut[14 + sb18] = rawout[14] + prevblk[ch][sb18 + 14];
-      prevblk[ch][sb18 + 14] = rawout[32];
-      tsOut[15 + sb18] = rawout[15] + prevblk[ch][sb18 + 15];
-      prevblk[ch][sb18 + 15] = rawout[33];
-      tsOut[16 + sb18] = rawout[16] + prevblk[ch][sb18 + 16];
-      prevblk[ch][sb18 + 16] = rawout[34];
-      tsOut[17 + sb18] = rawout[17] + prevblk[ch][sb18 + 17];
-      prevblk[ch][sb18 + 17] = rawout[35];
+    tsOut[0 + sb18] = rawout[0] + prevblck[ch][sb18 + 0];
+    prevblck[ch][sb18 + 0] = rawout[18];
+    tsOut[1 + sb18] = rawout[1] + prevblck[ch][sb18 + 1];
+    prevblck[ch][sb18 + 1] = rawout[19];
+    tsOut[2 + sb18] = rawout[2] + prevblck[ch][sb18 + 2];
+    prevblck[ch][sb18 + 2] = rawout[20];
+    tsOut[3 + sb18] = rawout[3] + prevblck[ch][sb18 + 3];
+    prevblck[ch][sb18 + 3] = rawout[21];
+    tsOut[4 + sb18] = rawout[4] + prevblck[ch][sb18 + 4];
+    prevblck[ch][sb18 + 4] = rawout[22];
+    tsOut[5 + sb18] = rawout[5] + prevblck[ch][sb18 + 5];
+    prevblck[ch][sb18 + 5] = rawout[23];
+    tsOut[6 + sb18] = rawout[6] + prevblck[ch][sb18 + 6];
+    prevblck[ch][sb18 + 6] = rawout[24];
+    tsOut[7 + sb18] = rawout[7] + prevblck[ch][sb18 + 7];
+    prevblck[ch][sb18 + 7] = rawout[25];
+    tsOut[8 + sb18] = rawout[8] + prevblck[ch][sb18 + 8];
+    prevblck[ch][sb18 + 8] = rawout[26];
+    tsOut[9 + sb18] = rawout[9] + prevblck[ch][sb18 + 9];
+    prevblck[ch][sb18 + 9] = rawout[27];
+    tsOut[10 + sb18] = rawout[10] + prevblck[ch][sb18 + 10];
+    prevblck[ch][sb18 + 10] = rawout[28];
+    tsOut[11 + sb18] = rawout[11] + prevblck[ch][sb18 + 11];
+    prevblck[ch][sb18 + 11] = rawout[29];
+    tsOut[12 + sb18] = rawout[12] + prevblck[ch][sb18 + 12];
+    prevblck[ch][sb18 + 12] = rawout[30];
+    tsOut[13 + sb18] = rawout[13] + prevblck[ch][sb18 + 13];
+    prevblck[ch][sb18 + 13] = rawout[31];
+    tsOut[14 + sb18] = rawout[14] + prevblck[ch][sb18 + 14];
+    prevblck[ch][sb18 + 14] = rawout[32];
+    tsOut[15 + sb18] = rawout[15] + prevblck[ch][sb18 + 15];
+    prevblck[ch][sb18 + 15] = rawout[33];
+    tsOut[16 + sb18] = rawout[16] + prevblck[ch][sb18 + 16];
+    prevblck[ch][sb18 + 16] = rawout[34];
+    tsOut[17 + sb18] = rawout[17] + prevblck[ch][sb18 + 17];
+    prevblck[ch][sb18 + 17] = rawout[35];
     }
   }
 
