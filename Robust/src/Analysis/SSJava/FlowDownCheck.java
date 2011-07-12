@@ -148,23 +148,29 @@ public class FlowDownCheck {
     SSJavaLattice<String> superLattice = ssjava.getClassLattice(superCd);
     SSJavaLattice<String> subLattice = ssjava.getClassLattice(cd);
 
-    if (superLattice != null && subLattice == null) {
-      throw new Error("If a parent class '" + superCd + "' has a ordering lattice, its subclass '"
-          + cd + "' should have one.");
-    }
+    if (superLattice != null) {
 
-    Set<Pair<String, String>> superPairSet = superLattice.getOrderingPairSet();
-    Set<Pair<String, String>> subPairSet = subLattice.getOrderingPairSet();
-
-    for (Iterator iterator = superPairSet.iterator(); iterator.hasNext();) {
-      Pair<String, String> pair = (Pair<String, String>) iterator.next();
-
-      if (!subPairSet.contains(pair)) {
-        throw new Error("Subclass '" + cd + "' does not have the relative ordering '"
-            + pair.getSecond() + " < " + pair.getFirst() + "' that is defined by its superclass '"
-            + superCd + "'.");
+      if (subLattice == null) {
+        throw new Error("If a parent class '" + superCd
+            + "' has a ordering lattice, its subclass '" + cd + "' should have one.");
       }
+
+      Set<Pair<String, String>> superPairSet = superLattice.getOrderingPairSet();
+      Set<Pair<String, String>> subPairSet = subLattice.getOrderingPairSet();
+
+      for (Iterator iterator = superPairSet.iterator(); iterator.hasNext();) {
+        Pair<String, String> pair = (Pair<String, String>) iterator.next();
+
+        if (!subPairSet.contains(pair)) {
+          throw new Error("Subclass '" + cd + "' does not have the relative ordering '"
+              + pair.getSecond() + " < " + pair.getFirst()
+              + "' that is defined by its superclass '" + superCd + "'.");
+        }
+      }
+
     }
+    // if super class doesn't define lattice, then we don't need to check its
+    // subclass
 
   }
 
