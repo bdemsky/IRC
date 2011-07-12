@@ -33,7 +33,7 @@
  */
 @LATTICE("L<SH,SH<H,SH*")
 @METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=V,GLOBALLOC=IN")
-class LayerIIDecoder extends LayerIDecoder //implements FrameDecoder  //compiler cannot do interfaces
+class LayerIIDecoder extends LayerIDecoder implements FrameDecoder  
 {
 
 	public LayerIIDecoder()
@@ -495,8 +495,8 @@ class LayerIIDecoder extends LayerIDecoder //implements FrameDecoder  //compiler
 	  @LOC("GN") protected int				groupnumber;
 	  @LOC("SN") protected int 			samplenumber;
 	  @LOC("L") protected float[]			samples = new float[3];
-	  @LOC("ARR") protected float[]			c = {0};
-	  @LOC("ARR") protected float[]		        d = {0};
+	  @LOC("ARR") protected float[]			c = {0.0f};
+	  @LOC("ARR") protected float[]		        d = {0.0f};
 	  /**
 	   * Constructor
 	   */
@@ -919,10 +919,10 @@ class LayerIIDecoder extends LayerIDecoder //implements FrameDecoder  //compiler
 	  //protected boolean	 	channel2_grouping;  ???? Never used!
 	  @LOC("ARR") protected int[] 		channel2_codelength = {0};
 	  //protected float[][] 	channel2_groupingtable = {{0},{0}};
-	  @LOC("ARR") protected float[]	 	channel2_factor = {0};
+	  @LOC("ARR") protected float[]	 	channel2_factor = {0.0f};
 	  @LOC("L") protected float[] 	channel2_samples;
-	  @LOC("ARR") protected float[]	 	channel2_c = {0};
-	  @LOC("ARR") protected float[]		channel2_d = {0};
+	  @LOC("ARR") protected float[]	 	channel2_c = {0.0f};
+	  @LOC("ARR") protected float[]		channel2_d = {0.0f};
 	  
 	  /**
 	   * Constructor

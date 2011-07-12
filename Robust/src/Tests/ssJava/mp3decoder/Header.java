@@ -72,9 +72,9 @@ public final class Header
     @LOC("HNS") private int				h_number_of_subbands;
     @LOC("HI") private int h_intensity_stereo_bound;
     @LOC("H") private boolean			h_copyright;
-    @LOC("H") private int h_original;
+    @LOC("H") private boolean h_original;
 	// VBR support added by E.B
-    @LOC("T") private double[] 		h_vbr_time_per_frame = {-1, 384, 1152, 1152};
+    @LOC("T") private double[] 		h_vbr_time_per_frame = {-1.0, 384.0, 1152.0, 1152.0};
     @LOC("T") private boolean			h_vbr;
     @LOC("T") private int				h_vbr_frames;
     @LOC("T") private int				h_vbr_scale;

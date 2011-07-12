@@ -13,6 +13,28 @@ public class String {
   private String() {
   }
   
+  public String(byte str[]) {
+    char charstr[]=new char[str.length];
+    for(int i=0; i<str.length; i++)
+      charstr[i]=(char)str[i];
+    this.value=charstr;
+    this.count=str.length;
+    this.offset=0;
+  }
+  
+
+  public String(byte str[], String encoding) {
+    int length = this.count;
+    if (length>(str.length))
+      length=str.length;
+    char charstr[]=new char[length];
+    for(int i=0; i<length; i++)
+      charstr[i]=(char)str[i];
+    this.value=charstr;
+    this.count=length;
+    this.offset=0;
+  }
+  
   public String(@LOC("IN") String str) {
     this.value=str.value;
     this.count=str.count;
@@ -84,6 +106,92 @@ public class String {
       return o.toString();
   }
   
+  public static String valueOf(boolean b) {
+    if (b)
+      return new String("true");
+    else
+      return new String("false");
+  }
+  
+  public static String valueOf(char c) {
+    char ar[]=new char[1];
+    ar[0]=c;
+    return new String(ar);
+  }
+
+  public static String valueOf(int x) {
+    int length=0;
+    int tmp;
+    if (x<0)
+      tmp=-x;
+    else
+      tmp=x;
+    do {
+      tmp=tmp/10;
+      length=length+1;
+    } while(tmp!=0);
+
+    char chararray[];
+    if (x<0)
+      chararray=new char[length+1];
+    else
+      chararray=new char[length];
+    int voffset;
+    if (x<0) {
+      chararray[0]='-';
+      voffset=1;
+      x=-x;
+    } else
+      voffset=0;
+
+    do {
+      chararray[--length+voffset]=(char)(x%10+'0');
+      x=x/10;
+    } while (length!=0);
+    return new String(chararray);
+  }
+
+  public static String valueOf(double val) {
+    char[] chararray=new char[20];
+    String s=new String();
+    s.offset=0;
+    s.count=convertdoubletochar(val, chararray);
+    s.value=chararray;
+    return s;
+  }
+
+  public static String valueOf(long x) {
+    int length=0;
+    long tmp;
+    if (x<0)
+      tmp=-x;
+    else
+      tmp=x;
+    do {
+      tmp=tmp/10;
+      length=length+1;
+    } while(tmp!=0);
+
+    char chararray[];
+    if (x<0)
+      chararray=new char[length+1];
+    else
+      chararray=new char[length];
+    int voffset;
+    if (x<0) {
+      chararray[0]='-';
+      voffset=1;
+      x=-x;
+    } else
+      voffset=0;
+
+    do {
+      chararray[--length+voffset]=(char)(x%10+'0');
+      x=x/10;
+    } while (length!=0);
+    return new String(chararray);
+  }
+  
   @LATTICE("O<V,V<C,C<IN,THISLOC=IN,C*")
   @RETURNLOC("O")
   public byte[] getBytes() {
@@ -92,6 +200,8 @@ public class String {
       str[i]=(byte)value[i+offset];
     return str;
   }
+  
+  
   
   @RETURNLOC("IN")
   public int length() {

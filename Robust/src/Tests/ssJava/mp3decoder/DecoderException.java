@@ -52,7 +52,8 @@ public class DecoderException extends JavaLayerException
 		// REVIEW: use resource file to map error codes
 		// to locale-sensitive strings. 
 		
-		return "Decoder errorcode "+Integer.toHexString(errorcode);
+//		return "Decoder errorcode "+Integer.toHexString(errorcode);
+	  return "Decoder errorcode  "+errorcode;
 	}
 	
 	

@@ -38,12 +38,7 @@
  * 
  * @since 0.0
  */
-@LATTICE("FS<BR,BR<SF,LR<IR,IR<IP,IP<SF,LR<K,K<F,LR<VAR,LR<RO,RO<F,VAR<F,VAR<RAW,CSH<F,SAM<O,O<F,
-SF<SI,SI<CH,SFREQ<H,MAX<H,H<CH,FLCH<CH,FLCH<WCH,SF<SFT,SFT<NS,NS<C,TS<RAW,O<TS,LY<F,
-C*,FS*,SI*,IP*,IR*,LR*,K*,O*,TS*,
-TS<BT,BT<GR,GR<SI,
-LR<S,S<ME,ME<CH,K<SH,K<LSF,LSF<H,LSF<CH,IP<SH,SH<J,J<S,S<ME,SH<SFREQ,SH<RO,IP<TMP2,LSF<H,TMP2<F,J*,SH*,
-O<RO2,RO2<RO3,RO3<RO4,RO4<RO5,O<RO1,RO1<RO5,RO5<RO6,RO6<RO7,RO7<RO8,RO8<RO9,RO9<SFREQ,RO9<F,RO1*,RO4*,RO5*,RO6*,RO9*")
+@LATTICE("FS<BR,BR<SF,LR<IR,IR<IP,IP<SF,LR<K,K<F,LR<VAR,LR<RO,RO<F,VAR<F,VAR<RAW,CSH<F,SAM<O,O<F,SF<SI,SI<CH,SFREQ<H,MAX<H,H<CH,FLCH<CH,FLCH<WCH,SF<SFT,SFT<NS,NS<C,TS<RAW,O<TS,LY<F,C*,FS*,SI*,IP*,IR*,LR*,K*,O*,TS*,TS<BT,BT<GR,GR<SI,LR<S,S<ME,ME<CH,K<SH,K<LSF,LSF<H,LSF<CH,IP<SH,SH<J,J<S,S<ME,SH<SFREQ,SH<RO,IP<TMP2,LSF<H,TMP2<F,J*,SH*,O<RO2,RO2<RO3,RO3<RO4,RO4<RO5,O<RO1,RO1<RO5,RO5<RO6,RO6<RO7,RO7<RO8,RO8<RO9,RO9<SFREQ,RO9<F,RO1*,RO4*,RO5*,RO6*,RO9*")
 //4th: added for hybrid.
 //5th added for stereo
 //6th added for reorder method
@@ -1175,7 +1170,7 @@ final class LayerIIIDecoder implements FrameDecoder {
       @LOC("THIS,LayerIIIDecoder.ME") int mode_ext = header.mode_extension();
       @LOC("THIS,LayerIIIDecoder.SH") int sfb;
       @LOC("THIS,LayerIIIDecoder.SH") int i;
-      @LOC("THIS,LayerIIIDecoder.SH") int line;
+      @LOC("THIS,LayerIIIDecoder.SH") int lines;
       @LOC("THIS,LayerIIIDecoder.SH") int temp;
       @LOC("THIS,LayerIIIDecoder.TMP2") int temp2;
 

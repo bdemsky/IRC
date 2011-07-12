@@ -991,7 +991,7 @@ final class SynthesisFilter
 					) * scalefactor);
 
             _tmpOut[i] = pcm_sample;
-			actual_v
+//			actual_v
 			dvp += 16;
          } // for
   }
@@ -1049,7 +1049,7 @@ final class SynthesisFilter
 			    //final float[] dp = d16[i];
 				@LOC("THIS,SynthesisFilter.PCM") float pcm_sample;
 
-				pcm_sample = (float)(((actual_v[3 + dvp] * d16[0]) +
+				pcm_sample = (float) ( ( (actual_v[3 + dvp] * d16[0]) +
 					(actual_v[2 + dvp] * d16[1]) +
 					(actual_v[1 + dvp] * d16[2]) +
 					(actual_v[0 + dvp] * d16[3]) +
@@ -1097,7 +1097,7 @@ final class SynthesisFilter
 					(actual_v[13 + dvp] * d16[7]) +
 					(actual_v[12 + dvp] * d16[8]) +
 					(actual_v[11 + dvp] * d16[9]) +
-					(actual_v[10 + dvp] * d16[10]) +@LOC("I")
+					(actual_v[10 + dvp] * d16[10]) +
 					(actual_v[9 + dvp] * d16[11]) +
 					(actual_v[8 + dvp] * d16[12]) +
 					(actual_v[7 + dvp] * d16[13]) +

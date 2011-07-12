@@ -67,8 +67,8 @@ public abstract class Obuffer
   @RETURNLOC("IN")
   private final short clip(@LOC("IN") float sample)
   {
-    return ((sample > 32767.0f) ? 32767 :
-      ((sample < -32768.0f) ? -32768 :
+    return ((sample > 32767.0f) ?   (short) 32767 :
+      ((sample < -32768.0f) ?  (short)  -32768 :
         (short) sample));
   }
 

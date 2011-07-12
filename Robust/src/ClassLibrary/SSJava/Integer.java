@@ -3,6 +3,12 @@
 public class Integer {
   
   @LOC("V")  private int value;
+  
+  /**
+   * The maximum value an <code>int</code> can represent is 2147483647 (or
+   * 2<sup>31</sup> - 1).
+   */
+  public static final int MAX_VALUE = 0x7fffffff;
 
   public Integer(int value) {
     this.value = value;

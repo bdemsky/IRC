@@ -319,14 +319,19 @@ public class Decoder implements DecoderErrors
 		
 		public Object clone()
 		{
-			try
-			{
-				return super.clone();
-			}
-			catch (CloneNotSupportedException ex)
-			{				
-				throw new InternalError(this+": "+ex);
-			}
+		  //TODO: need to have better clone method
+		    Params clone=new Params();
+		    clone.outputChannels=outputChannels;
+		    clone.equalizer=equalizer;
+		    return clone;
+//			try
+//			{
+//				return super.clone();
+//			}
+//			catch (CloneNotSupportedException ex)
+//			{				
+//				throw new InternalError(this+": "+ex);
+//			}
 		}
 				
 		public void setOutputChannels(OutputChannels out)
