@@ -153,6 +153,7 @@ public class SSJavaAnalysis {
                 if (value != null) {
                   maxIteration = Integer.parseInt(value);
                 }
+                System.out.println("###md=" + md);
                 skipLoopTerminate.put(md, new Integer(maxIteration));
               }
             }
@@ -286,7 +287,9 @@ public class SSJavaAnalysis {
 
   public void doLoopTerminationCheck(LoopOptimize lo, FlatMethod fm) {
     LoopTerminate lt = new LoopTerminate();
-    lt.terminateAnalysis(fm, lo.getLoopInvariant(fm));
+    if (needTobeAnnotated(fm.getMethod())) {
+      lt.terminateAnalysis(fm, lo.getLoopInvariant(fm));
+    }
   }
 
   public void doLoopTerminationCheck(LoopOptimize lo) {

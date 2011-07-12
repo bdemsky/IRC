@@ -365,6 +365,18 @@ public class DefinitelyWrittenCheck {
       NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(lhsHeapPath.getList());
       if (fld.getType().isImmutable()) {
         writeLocation(curr, fldHeapPath, fld);
+      } else {
+        // updates reference field case:
+        // 2. if there exists a tuple t in sharing summary that starts with
+        // hp(x) then, set flag of tuple t to 'true'
+        fldHeapPath.add(fld);
+        Set<NTuple<Descriptor>> hpKeySet = curr.keySet();
+        for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
+          NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
+          if (hpKey.startsWith(fldHeapPath)) {
+            curr.get(hpKey).updateFlag(true);
+          }
+        }
       }
 
     }
@@ -699,14 +711,14 @@ public class DefinitelyWrittenCheck {
   private void writeLocation(ClearingSummary curr, NTuple<Descriptor> hp, Descriptor d) {
     Location loc = getLocation(d);
     if (loc != null && hasReadingEffectOnSharedLocation(hp, loc, d)) {
+
+      // 1. add field x to the clearing set
       SharedStatus state = getState(curr, hp);
       state.addVar(loc, d);
 
-      // if the set v contains all of variables belonging to the shared
+      // 3. if the set v contains all of variables belonging to the shared
       // location, set flag to true
-
       Set<Descriptor> sharedVarSet = mapSharedLocation2DescriptorSet.get(loc);
-
       if (state.getVarSet(loc).containsAll(sharedVarSet)) {
         state.updateFlag(loc, true);
       }

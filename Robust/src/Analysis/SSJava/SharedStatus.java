@@ -98,6 +98,17 @@ public class SharedStatus {
     }
   }
 
+  public void updateFlag(boolean b) {
+    Set<Location> locKeySet = mapLocation2Status.keySet();
+    for (Iterator iterator = locKeySet.iterator(); iterator.hasNext();) {
+      Location loc = (Location) iterator.next();
+      Pair<Set<Descriptor>, Boolean> pair = mapLocation2Status.get(loc);
+      mapLocation2Status.put(loc,
+          new Pair<Set<Descriptor>, Boolean>(pair.getFirst(), Boolean.valueOf(b)));
+    }
+
+  }
+
   public boolean getFlag(Location loc) {
     return mapLocation2Status.get(loc).getSecond().booleanValue();
   }
