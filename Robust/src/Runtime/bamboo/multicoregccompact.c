@@ -367,24 +367,38 @@ unsigned int compactblockshelper(struct moveHelper * orig, struct moveHelper * t
   unsigned int minimumbytes=0;
   void *origptr=orig->ptr;
   void *origbound=orig->bound;
-  while(origptr<origbound) {
+  void * tmporig=orig->ptr;
+  void * tmpto=to->ptr;
+
+  while(true) {
     //call compactblocks using the page boundaries at the current bounds
     minimumbytes=compactblocks(orig, to);
     if(minimumbytes == 0) {
-      //update cacheadpate information and the page bounds
-      origptr=orig->ptr;
-      void *toptr=to->ptr;
-      orig->pagebound=(void *)((int)(((int)origptr)&(~(BAMBOO_PAGE_SIZE-1)))+BAMBOO_PAGE_SIZE);
-      to->pagebound=(void *)((int)(((int)toptr)&(~(BAMBOO_PAGE_SIZE-1)))+BAMBOO_PAGE_SIZE);
-      // close the last destination page
-      CACHEADAPT_COMPLETE_PAGE_CONVERT(origptr, toptr, toptr);
+      //bump the orig page bound...
+      //use old orig pointer to make sure we get correct block
+      CACHEADAPT_FINISH_SRC_PAGE(tmporig, tmpto, to->ptr);
+      if (orig->ptr<origbound) {
+	tmporig=orig->ptr;
+	tmpto=to->ptr;
+	orig->pagebound=orig->pagebound+BAMBOO_PAGE_SIZE;
+      } else {
+	return 0;
+      }
     } else {
       // require more memory
-      return minimumbytes;
-    } 
+      void *endtoptr=to->ptr+minimumbytes;
+      if (endtoptr>to->bound) {
+	CACHEADAPT_FINISH_DST_PAGE(orig->ptr, tmpto, to->ptr, 0);
+	return minimumbytes;
+      } else {
+	CACHEADAPT_FINISH_DST_PAGE(orig->ptr, tmpto, to->ptr, minimumbytes);
+	to->pagebound=((endtoptr-1)&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE;
+	//update pointers to avoid double counting the stuff we already added in
+	tmporig=orig->ptr+minimumbytes;
+	tmpto=to->ptr+minimumbytes;
+      }
+    }
   }
-  // when you move to a different block return to the compacthelper
-  return minimumbytes;
 }
 #endif
 
@@ -393,21 +407,18 @@ unsigned int compactblockshelper(struct moveHelper * orig, struct moveHelper * t
 unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
   void *toptrinit=to->ptr;
   void *toptr=toptrinit;
-  void *tobound=to->bound;
   void *origptr=orig->ptr;
 #ifdef GC_CACHE_ADAPT
   void *origbound=orig->pagebound;
-  void *topagebound=to->pagebound;
+  void *tobound=to->pagebound;
 #else
   void *origbound=orig->bound;
+  void *tobound=to->bound;
 #endif
   unsigned INTPTR origendoffset=ALIGNTOTABLEINDEX((unsigned INTPTR)(origbound-gcbaseva));
   unsigned int objlength;
-#ifdef GC_CACHE_ADAPT
-  while((origptr<origbound)&&(toptr<topagebound)){
-#else
+
   while(origptr<origbound) {
-#endif
     //Try to skip over stuff fast first
     unsigned INTPTR offset=(unsigned INTPTR) (origptr-gcbaseva);
     unsigned INTPTR arrayoffset=ALIGNTOTABLEINDEX(offset);
@@ -416,16 +427,15 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 	arrayoffset++;
 	if (arrayoffset>=origendoffset) {
 	  //finished with block(a page in CACHE_ADAPT version)...
-	  origptr=origbound;
 	  to->ptr=toptr;
-	  orig->ptr=origptr;
+	  orig->ptr=origbound;
 	  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
 	  return 0;
 	}
       } while(!gcmarktbl[arrayoffset]);
       origptr=CONVERTTABLEINDEXTOPTR(arrayoffset);
     }
-
+    
     //Scan more carefully next
     objlength=getMarkedLength(origptr);
 
@@ -452,19 +462,15 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 
       void *endtoptr=toptr+length;
       if (endtoptr>tobound) {
-  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
-	to->ptr=tobound;
+	gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
+	to->ptr=toptr;
 	orig->ptr=origptr;
-#ifdef GC_CACHE_ADAPT
-  // close a destination page, update the revise profiling info
-  CACHEADAPT_COMPLETE_PAGE_CONVERT(origptr, tobound, toptr);
-#endif
 	return length;
       }
       //good to move objects and update pointers
-
+      
       gcmappingtbl[OBJMAPPINGINDEX(origptr)]=toptr;
-
+      
       origptr+=length;
       toptr=endtoptr;
     } else

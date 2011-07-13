@@ -31,7 +31,7 @@
 #endif
 #endif
 
-#define BAMBOO_SHARED_RUNTIME_PAGE_SIZE (1<<24)  //16M
+#define BAMBOO_SHARED_RUNTIME_PAGE_SIZE ((unsigned int)(1<<24))  //16M
 
 #define BAMBOO_PAGE_SIZE ((unsigned int)(64 * 1024)) // 64K
 #define BAMBOO_PAGE_SIZE_BITS (16)

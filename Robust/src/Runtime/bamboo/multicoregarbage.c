@@ -117,9 +117,6 @@ void initmulticoregcdata() {
 #ifdef MGC_SPEC
   gc_profile_flag = false;
 #endif
-#ifdef GC_CACHE_ADAPT
-  gccachestage = false;
-#endif 
 
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     allocationinfo.blocktable=RUNMALLOC(sizeof(struct blockrecord)*GCNUMBLOCK);
@@ -484,7 +481,7 @@ void gc_master(struct garbagelist * stackptr) {
 
   master_finish();
 
-  //tprintf("finish GC ! %d \n",gcflag);
+  tprintf("finish GC ! %d \n",gcflag);
 } 
 
 void pregccheck() {
