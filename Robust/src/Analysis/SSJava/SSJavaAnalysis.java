@@ -37,7 +37,7 @@ public class SSJavaAnalysis {
   FlowDownCheck flowDownChecker;
   MethodAnnotationCheck methodAnnotationChecker;
 
-  // if a method has annotations, the mapping has true
+  // set containing method requires to be annoated
   Set<MethodDescriptor> annotationRequireSet;
 
   // class -> field lattice
@@ -49,11 +49,14 @@ public class SSJavaAnalysis {
   // method -> local variable lattice
   Hashtable<MethodDescriptor, MethodLattice<String>> md2lattice;
 
-  // method set that does not have loop termination analysis
+  // method set that does not want to have loop termination analysis
   Hashtable<MethodDescriptor, Integer> skipLoopTerminate;
 
   // map shared location to its descriptors
   Hashtable<Location, Set<Descriptor>> mapSharedLocation2DescriptorSet;
+
+  // set containing a class that has at least one annoated method
+  Set<ClassDescriptor> annotationRequireClassSet;
 
   CallGraph callgraph;
 
@@ -65,6 +68,7 @@ public class SSJavaAnalysis {
     this.cd2methodDefault = new Hashtable<ClassDescriptor, MethodLattice<String>>();
     this.md2lattice = new Hashtable<MethodDescriptor, MethodLattice<String>>();
     this.annotationRequireSet = new HashSet<MethodDescriptor>();
+    this.annotationRequireClassSet = new HashSet<ClassDescriptor>();
     this.skipLoopTerminate = new Hashtable<MethodDescriptor, Integer>();
     this.mapSharedLocation2DescriptorSet = new Hashtable<Location, Set<Descriptor>>();
   }
@@ -277,7 +281,15 @@ public class SSJavaAnalysis {
     return annotationRequireSet.contains(md);
   }
 
+  public boolean needToBeAnnoated(ClassDescriptor cd) {
+    return annotationRequireClassSet.contains(cd);
+  }
+
   public void addAnnotationRequire(MethodDescriptor md) {
+
+    // if a method requires to be annotated, class containg that method also
+    // requires to be annotated
+    annotationRequireClassSet.add(md.getClassDesc());
     annotationRequireSet.add(md);
   }
 

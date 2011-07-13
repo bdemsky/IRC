@@ -103,8 +103,8 @@ public class FlowDownCheck {
       ClassDescriptor cd = (ClassDescriptor) obj;
       toanalyze.remove(cd);
 
-      if (!cd.isInterface()) {
-
+      if (ssjava.needToBeAnnoated(cd) && (!cd.isInterface())) {
+        
         ClassDescriptor superDesc = cd.getSuperDesc();
         if (superDesc != null && (!superDesc.isInterface())
             && (!superDesc.getSymbol().equals("Object"))) {
