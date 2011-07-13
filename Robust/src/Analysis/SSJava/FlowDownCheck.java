@@ -1018,42 +1018,45 @@ public class FlowDownCheck {
 
     ClassDescriptor cd = md.getClassDesc();
     Vector<AnnotationDescriptor> annotationVec = vd.getType().getAnnotationMarkers();
+    
+    if(!md.getModifiers().isAbstract()){
+      // currently enforce every variable to have corresponding location
+      if (annotationVec.size() == 0) {
+        throw new Error("Location is not assigned to variable " + vd.getSymbol() + " in the method "
+            + md.getSymbol() + " of the class " + cd.getSymbol());
+      }
 
-    // currently enforce every variable to have corresponding location
-    if (annotationVec.size() == 0) {
-      throw new Error("Location is not assigned to variable " + vd.getSymbol() + " in the method "
-          + md.getSymbol() + " of the class " + cd.getSymbol());
-    }
+      if (annotationVec.size() > 1) { // variable can have at most one location
+        throw new Error(vd.getSymbol() + " has more than one location.");
+      }
 
-    if (annotationVec.size() > 1) { // variable can have at most one location
-      throw new Error(vd.getSymbol() + " has more than one location.");
-    }
+      AnnotationDescriptor ad = annotationVec.elementAt(0);
 
-    AnnotationDescriptor ad = annotationVec.elementAt(0);
+      if (ad.getType() == AnnotationDescriptor.SINGLE_ANNOTATION) {
 
-    if (ad.getType() == AnnotationDescriptor.SINGLE_ANNOTATION) {
+        if (ad.getMarker().equals(SSJavaAnalysis.LOC)) {
+          String locDec = ad.getValue(); // check if location is defined
 
-      if (ad.getMarker().equals(SSJavaAnalysis.LOC)) {
-        String locDec = ad.getValue(); // check if location is defined
+          if (locDec.startsWith(SSJavaAnalysis.DELTA)) {
+            DeltaLocation deltaLoc = parseDeltaDeclaration(md, n, locDec);
+            d2loc.put(vd, deltaLoc);
+            addLocationType(vd.getType(), deltaLoc);
+          } else {
+            CompositeLocation compLoc = parseLocationDeclaration(md, n, locDec);
 
-        if (locDec.startsWith(SSJavaAnalysis.DELTA)) {
-          DeltaLocation deltaLoc = parseDeltaDeclaration(md, n, locDec);
-          d2loc.put(vd, deltaLoc);
-          addLocationType(vd.getType(), deltaLoc);
-        } else {
-          CompositeLocation compLoc = parseLocationDeclaration(md, n, locDec);
+            Location lastElement = compLoc.get(compLoc.getSize() - 1);
+            if (ssjava.isSharedLocation(lastElement)) {
+              ssjava.mapSharedLocation2Descriptor(lastElement, vd);
+            }
 
-          Location lastElement = compLoc.get(compLoc.getSize() - 1);
-          if (ssjava.isSharedLocation(lastElement)) {
-            ssjava.mapSharedLocation2Descriptor(lastElement, vd);
+            d2loc.put(vd, compLoc);
+            addLocationType(vd.getType(), compLoc);
           }
 
-          d2loc.put(vd, compLoc);
-          addLocationType(vd.getType(), compLoc);
         }
-
       }
     }
+
 
   }
 
