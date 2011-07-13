@@ -1,7 +1,7 @@
 //import java.io.FileDescriptor;
-
+@LATTICE("FD")
 public class FileOutputStream extends OutputStream {
-  private int fd;
+  @LOC("FD") private int fd;
 
   public FileOutputStream(String pathname) {
     fd=nativeOpen(pathname.getBytes());

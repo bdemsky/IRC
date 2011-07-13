@@ -188,7 +188,7 @@
 	 * Used for single channel mode
 	 * and in derived class for intensity stereo mode
 	 */
-        @LATTICE("S<L,L<H,H<SH,SH*,S*")
+     @LATTICE("_bottom_<L,S<L,L<H,H<SH,SH*,S*")
 	@METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=V,GLOBALLOC=IN")
 	static class SubbandLayer1 extends Subband
 	{

@@ -1018,12 +1018,12 @@ public class FlowDownCheck {
 
     ClassDescriptor cd = md.getClassDesc();
     Vector<AnnotationDescriptor> annotationVec = vd.getType().getAnnotationMarkers();
-    
-    if(!md.getModifiers().isAbstract()){
+
+    if (!md.getModifiers().isAbstract()) {
       // currently enforce every variable to have corresponding location
       if (annotationVec.size() == 0) {
-        throw new Error("Location is not assigned to variable " + vd.getSymbol() + " in the method "
-            + md.getSymbol() + " of the class " + cd.getSymbol());
+        throw new Error("Location is not assigned to variable " + vd.getSymbol()
+            + " in the method " + md.getSymbol() + " of the class " + cd.getSymbol());
       }
 
       if (annotationVec.size() > 1) { // variable can have at most one location
@@ -1056,7 +1056,6 @@ public class FlowDownCheck {
         }
       }
     }
-
 
   }
 
@@ -1160,7 +1159,10 @@ public class FlowDownCheck {
     // Check to see that fields are okay
     for (Iterator field_it = cd.getFields(); field_it.hasNext();) {
       FieldDescriptor fd = (FieldDescriptor) field_it.next();
-      checkFieldDeclaration(cd, fd);
+
+      if (!(fd.isFinal() && fd.isStatic())) {
+        checkFieldDeclaration(cd, fd);
+      }
     }
   }
 

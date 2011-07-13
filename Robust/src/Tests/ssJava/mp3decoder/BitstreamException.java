@@ -34,11 +34,11 @@
  * @since 0.0.6
  * @author MDM	12/12/99
  */
-
+@LATTICE("E")
 public class BitstreamException extends JavaLayerException
 	implements BitstreamErrors
 {	
-	private int errorcode = UNKNOWN_ERROR;
+	@LOC("E") private int errorcode = UNKNOWN_ERROR;
 	
 	public BitstreamException(String msg, Throwable t)
 	{

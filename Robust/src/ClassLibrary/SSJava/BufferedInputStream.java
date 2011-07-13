@@ -61,7 +61,7 @@ exception statement from your version. */
  * @author Warren Levy (warrenl@cygnus.com)
  * @author Jeroen Frijters (jeroen@frijters.net)
  */
-@LATTICE("BUF<C")
+@LATTICE("BUF<C,IN<T")
 @METHODDEFAULT("D<IN,D<C,THISLOC=D")
 public class BufferedInputStream extends FilterInputStream
 {

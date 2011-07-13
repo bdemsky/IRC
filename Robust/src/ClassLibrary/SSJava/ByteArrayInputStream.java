@@ -44,6 +44,7 @@ exception statement from your version. */
   * @author Warren Levy (warrenl@cygnus.com)
   * @author Aaron M. Renn (arenn@urbanophile.com)
   */ 
+@LATTICE("")
 public class ByteArrayInputStream extends InputStream
 {
   /**
