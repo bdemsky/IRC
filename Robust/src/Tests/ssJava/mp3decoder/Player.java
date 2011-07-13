@@ -72,27 +72,28 @@ public class Player
 	 */
 	public Player(InputStream stream) throws JavaLayerException
 	{
-		//this(stream, null);	
+		this(stream, null);	
 	}
 
-	/* temporarily disabled by eom
+
 	public Player(InputStream stream, AudioDevice device) throws JavaLayerException
 	{
 		bitstream = new Bitstream(stream);		
 		decoder = new Decoder();
 				
-		if (device!=null)
-		{		
-			audio = device;
-		}
-		else
-		{			
-			FactoryRegistry r = FactoryRegistry.systemRegistry();
-			audio = r.createAudioDevice();
-		}
-		audio.open(decoder);
+//		if (device!=null)
+//		{		
+//			audio = device;
+//		}
+//		else
+//		{			
+//			FactoryRegistry r = FactoryRegistry.systemRegistry();
+//			audio = r.createAudioDevice();
+//		}
+		
+		device.open(decoder);
 	}
-	*/
+	
 	
 	public void play() throws JavaLayerException
 	{
@@ -248,10 +249,5 @@ public class Player
 */		
 		return true;
 	}
-	
-	public static void main(String args[]){
-	  //dummy	  
-	}
-
 	
 }
