@@ -481,7 +481,7 @@ void gc_master(struct garbagelist * stackptr) {
 
   master_finish();
 
-  tprintf("finish GC ! %d \n",gcflag);
+  //tprintf("finish GC ! %d \n",gcflag);
 } 
 
 void pregccheck() {

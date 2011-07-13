@@ -40,6 +40,7 @@ typedef union
 #define BAMBOO_CACHE_MODE_NONE 3   // no caching
 #define BAMBOO_CACHE_MODE_COORDS 4 // cached on a specific core
 
+void cacheadapt_finish_compact(void *toptr);
 void cacheadapt_finish_src_page(void *srcptr, void *tostart, void *tofinish);
 void cacheadapt_finish_dst_page(void *origptr, void *tostart, void *toptr, unsigned int bytesneeded);
 void cacheAdapt_gc(bool isgccachestage);
@@ -73,6 +74,7 @@ void gc_output_cache_sampling_r();
 
 #define CACHEADAPT_FINISH_SRC_PAGE(a,b,c) cacheadapt_finish_src_page(a,b,c);
 #define CACHEADAPT_FINISH_DST_PAGE(a,b,c,d) cacheadapt_finish_dst_page(a,b,c,d);
+#define CACHEADAPT_FINISH_COMPACT(a) cacheadapt_finish_compact(a);
 
 #define CACHEADAPT_GC(b) cacheAdapt_gc(b)
 #define CACHEADAPT_MASTER() cacheAdapt_master()
@@ -108,6 +110,7 @@ void gc_output_cache_sampling_r();
 #define CACHEADAPT_SAMPING_RESET()
 #define CACHEADAPT_FINISH_SRC_PAGE(a,b,c)
 #define CACHEADAPT_FINISH_DST_PAGE(a,b,c,d)
+#define CACHEADAPT_FINISH_COMPACT(a)
 #define CACHEADAPT_GC(b)
 #define CACHEADAPT_MASTER()
 #define CACHEADAPT_PHASE_CLIENT() 

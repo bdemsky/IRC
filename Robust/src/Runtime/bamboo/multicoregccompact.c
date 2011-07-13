@@ -206,8 +206,10 @@ void compacthelper(struct moveHelper * orig,struct moveHelper * to) {
 #ifdef GC_CACHE_ADAPT
       orig->pagebound=orig->base+BAMBOO_PAGE_SIZE;
 #endif
-      if (orig->base >= gcbaseva+BAMBOO_SHARED_MEM_SIZE)
+      if (orig->base >= gcbaseva+BAMBOO_SHARED_MEM_SIZE) {
+	CACHEADAPT_FINISH_COMPACT(to->ptr);
 	break;
+      }
     }
     if (minimumbytes!=0) {
       getSpace(to, minimumbytes);
@@ -392,7 +394,7 @@ unsigned int compactblockshelper(struct moveHelper * orig, struct moveHelper * t
 	return minimumbytes;
       } else {
 	CACHEADAPT_FINISH_DST_PAGE(orig->ptr, tmpto, to->ptr, minimumbytes);
-	to->pagebound=((endtoptr-1)&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE;
+	to->pagebound=((((unsigned INTPTR)endtoptr)-1)&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE;
 	//update pointers to avoid double counting the stuff we already added in
 	tmporig=orig->ptr+minimumbytes;
 	tmpto=to->ptr+minimumbytes;
@@ -490,7 +492,6 @@ void compact() {
   struct moveHelper to;
   initOrig_Dst(&orig, &to);
 
-  CACHEADAPT_SAMPLING_DATA_REVISE_INIT(&orig, &to);
   compacthelper(&orig, &to);
 } 
 

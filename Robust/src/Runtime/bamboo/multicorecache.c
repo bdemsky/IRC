@@ -3,9 +3,19 @@
 #include "multicoremsg.h"
 #include "multicoregcprofile.h"
 
+void cacheadapt_finish_compact(void *toptr) {
+  unsigned int dstpage=(toptr-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS;
+  unsigned int * newtable=&gccachesamplingtbl_r[dstpage*NUMCORESACTIVE];
+
+  for(int core = 0; core < NUMCORESACTIVE; core++) {
+    (*newtable)=(*newtable)>>6;
+    newtable++;
+  }  
+}
+
 void cacheadapt_finish_src_page(void *srcptr, void *tostart, void *tofinish) {
   unsigned int srcpage=(srcptr-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS;
-  unsigned int dstpage=(tostart-gcbase)>>BAMBOO_PAGE_SIZE_BITS;
+  unsigned int dstpage=(tostart-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS;
   unsigned int numbytes=tofinish-tostart;
   
   unsigned int * oldtable=&gccachesamplingtbl[srcpage*NUMCORESACTIVE];
@@ -20,19 +30,22 @@ void cacheadapt_finish_src_page(void *srcptr, void *tostart, void *tofinish) {
   }  
 }
 
+/* Bytes needed equal to zero is a special case...  It means that we should finish the dst page */
+
 void cacheadapt_finish_dst_page(void *origptr, void *tostart, void *toptr, unsigned int bytesneeded) {
   unsigned int numbytes=toptr-tostart;
 
-  void *tobound=(tostart&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE;
-  void *origbound=(origstart&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE;
+  void *tobound=(void *)((((unsigned INTPTR)toptr-1)&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE);
+  void *origbound=(void *)((((unsigned INTPTR)origptr)&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE);
   
-  unsigned int topage=(tostart-gcbase)>>BAMBOO_PAGE_SIZE_BITS; 
+  unsigned int topage=(toptr-1-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS; 
   unsigned int origpage=(origptr-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS;
 
   unsigned int * totable=&gccachesamplingtbl_r[topage*NUMCORESACTIVE];
   unsigned int * origtable=&gccachesamplingtbl[origpage*NUMCORESACTIVE];
 
-  unsigned int remaintobytes=tobound-toptr;
+  //handler
+  unsigned int remaintobytes=(bytesneeded==0)?0:(tobound-toptr);
   unsigned int remainorigbytes=origbound-origptr;
 
   do {
@@ -56,7 +69,7 @@ void cacheadapt_finish_dst_page(void *origptr, void *tostart, void *toptr, unsig
       topage++;//to page is definitely done
       tobound+=BAMBOO_PAGE_SIZE;
       origpage=(origptr-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS;//handle exact match case
-      origbound=(origptr&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE;
+      origbound=(void *) ((((unsigned INTPTR)origptr)&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE);
     } else {
       //Finishing off orig page
 
@@ -370,9 +383,9 @@ void gc_output_cache_sampling() {
       printf("%x,  %d,  %d,  ",(int)page_sva,page_index,coren);
       unsigned int * local_tbl = &gccachesamplingtbl[page_index*NUMCORESACTIVE];
       for(int i = 0; i < NUMCORESACTIVE; i++) {
-        int freq = *local_tbl;
+        unsigned int freq = *local_tbl;
         local_tbl++;
-        printf("%d,  ", freq);
+        printf("%u,  ", freq);
       }
       printf("\n");
     }
@@ -405,7 +418,7 @@ void gc_output_cache_sampling_r() {
     int accesscore = 0; // TODO
     unsigned int * local_tbl = &gccachesamplingtbl_r[page_index*NUMCORESACTIVE];
     for(int i = 0; i < NUMCORESACTIVE; i++) {
-      int freq = *local_tbl; 
+      unsigned int freq = *local_tbl; 
       //printf("%d,  ", freq);
       if(freq != 0) {
         accesscore++;// TODO
@@ -416,8 +429,8 @@ void gc_output_cache_sampling_r() {
       printf("%x,  %d,  %d,  ",(int)page_sva,page_index,coren);
       unsigned int * local_tbl = &gccachesamplingtbl_r[page_index*NUMCORESACTIVE];
       for(int i = 0; i < NUMCORESACTIVE; i++) {
-        int freq = *local_tbl;
-        printf("%d,  ", freq);
+        unsigned int freq = *local_tbl;
+        printf("%u,  ", freq);
         sumdata[accesscore-1][i]+=freq;
         local_tbl++;
       }
@@ -430,7 +443,7 @@ void gc_output_cache_sampling_r() {
   for(int i = 0; i < NUMCORESACTIVE; i++) {
     printf("%d  ", i);
     for(int j = 0; j < NUMCORESACTIVE; j++) {
-      printf(" %d  ", sumdata[j][i]);
+      printf(" %u  ", sumdata[j][i]);
     }
     printf("\n");
   }
