@@ -207,9 +207,9 @@ public class PushbackInputStream extends FilterInputStream
    *
    * @exception IOException If an error occurs.
    */
-  @LATTICE("THIS<BUF,THISLOCAL=THIS")
+  @LATTICE("OUT<THIS,THISLOC=THIS")
   @RETURNLOC("THIS")
-  public synchronized int read(@LOC("THIS,PushbackInputStream.POS") byte[] b,
+  public synchronized int read(@LOC("OUT") byte[] b,
                                @LOC("THIS,PushbackInputStream.POS") int off,
                                @LOC("THIS,PushbackInputStream.POS") int len) throws IOException
   {
