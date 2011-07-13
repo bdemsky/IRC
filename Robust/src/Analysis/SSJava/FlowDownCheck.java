@@ -41,6 +41,8 @@ import IR.Tree.NameNode;
 import IR.Tree.OpNode;
 import IR.Tree.ReturnNode;
 import IR.Tree.SubBlockNode;
+import IR.Tree.SwitchBlockNode;
+import IR.Tree.SwitchStatementNode;
 import IR.Tree.TertiaryNode;
 import IR.Tree.TreeNode;
 import Util.Pair;
@@ -104,7 +106,7 @@ public class FlowDownCheck {
       toanalyze.remove(cd);
 
       if (ssjava.needToBeAnnoated(cd) && (!cd.isInterface())) {
-        
+
         ClassDescriptor superDesc = cd.getSuperDesc();
         if (superDesc != null && (!superDesc.isInterface())
             && (!superDesc.getSymbol().equals("Object"))) {
@@ -211,6 +213,10 @@ public class FlowDownCheck {
     if (hasReturnValue) {
       MethodLattice<String> methodLattice = ssjava.getMethodLattice(md);
       String thisLocId = methodLattice.getThisLoc();
+      if (thisLocId == null) {
+        throw new Error("Method '" + md + "' does not have the definition of 'this' location at "
+            + md.getClassDesc().getSourceFileName());
+      }
       CompositeLocation thisLoc = new CompositeLocation(new Location(md, thisLocId));
       paramList.add(thisLoc);
     }
@@ -340,8 +346,44 @@ public class FlowDownCheck {
       compLoc = new CompositeLocation();
       break;
 
+    case Kind.SwitchStatementNode:
+      compLoc = checkLocationFromSwitchStatementNode(md, nametable, (SwitchStatementNode) bsn);
+
     }
     return compLoc;
+  }
+
+  private CompositeLocation checkLocationFromSwitchStatementNode(MethodDescriptor md,
+      SymbolTable nametable, SwitchStatementNode ssn) {
+
+    ClassDescriptor cd = md.getClassDesc();
+    CompositeLocation condLoc =
+        checkLocationFromExpressionNode(md, nametable, ssn.getCondition(), new CompositeLocation());
+    BlockNode sbn = ssn.getSwitchBody();
+
+    Set<CompositeLocation> blockLocSet = new HashSet<CompositeLocation>();
+    for (int i = 0; i < sbn.size(); i++) {
+      CompositeLocation blockLoc =
+          checkLocationFromSwitchBlockNode(md, nametable, (SwitchBlockNode) sbn.get(i));
+      if (!CompositeLattice.isGreaterThan(condLoc, blockLoc)) {
+        throw new Error(
+            "The location of the switch-condition statement is lower than the conditional body at "
+                + cd.getSourceFileName() + ":" + ssn.getCondition().getNumLine());
+      }
+
+      blockLocSet.add(blockLoc);
+    }
+    return CompositeLattice.calculateGLB(blockLocSet);
+  }
+
+  private CompositeLocation checkLocationFromSwitchBlockNode(MethodDescriptor md,
+      SymbolTable nametable, SwitchBlockNode sbn) {
+
+    CompositeLocation blockLoc =
+        checkLocationFromBlockNode(md, nametable, sbn.getSwitchBlockStatement());
+
+    return blockLoc;
+
   }
 
   private CompositeLocation checkLocationFromReturnNode(MethodDescriptor md, SymbolTable nametable,
@@ -503,7 +545,6 @@ public class FlowDownCheck {
 
   private CompositeLocation checkLocationFromDeclarationNode(MethodDescriptor md,
       SymbolTable nametable, DeclarationNode dn) {
-
     VarDescriptor vd = dn.getVarDescriptor();
 
     CompositeLocation destLoc = d2loc.get(vd);
@@ -700,7 +741,6 @@ public class FlowDownCheck {
           checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation());
       argList.add(callerArg);
     }
-
     return md2ReturnLocGen.get(min.getMethod()).computeReturnLocation(argList);
 
   }
@@ -1535,7 +1575,6 @@ class ReturnLocGenerator {
 
   public ReturnLocGenerator(CompositeLocation returnLoc, List<CompositeLocation> params) {
     // creating mappings
-
     paramIdx2paramType = new Hashtable<Integer, Integer>();
     for (int i = 0; i < params.size(); i++) {
       CompositeLocation param = params.get(i);
