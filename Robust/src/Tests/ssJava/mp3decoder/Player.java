@@ -67,6 +67,8 @@ public class Player
 
 	private int			lastPosition = 0;
 	
+	private Header header;
+	
 	/**
 	 * Creates a new <code>Player</code> instance. 
 	 */
@@ -80,6 +82,11 @@ public class Player
 	{
 		bitstream = new Bitstream(stream);		
 		decoder = new Decoder();
+		
+		// decoder initialization
+		// taking out from ssjava loop 
+		header = bitstream.readFrame();  
+		decoder.initialize(header, bitstream);
 				
 //		if (device!=null)
 //		{		
@@ -111,7 +118,7 @@ public class Player
 	{
 		boolean ret = true;
 		
-	    SSJAVA:
+	     SSJAVA:
 		while (frames-- > 0 && ret)
 		{
 			ret = decodeFrame();			
@@ -207,13 +214,13 @@ public class Player
 			//if (out==null)
 			//	return false;
 
-			Header h = bitstream.readFrame();	
-			
-			if (h==null)
-				return false;
+//			Header h = bitstream.readFrame();	
+//			
+//			if (h==null)
+//				return false;
 				
 			// sample buffer set when decoder constructed
-			SampleBuffer output = (SampleBuffer)decoder.decodeFrame(h, bitstream);
+			SampleBuffer output = (SampleBuffer)decoder.decodeFrame(header, bitstream);
 																																					
 			//synchronized (this)
 			//{

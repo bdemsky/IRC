@@ -130,24 +130,25 @@ public class Decoder implements DecoderErrors
 	 * @return A SampleBuffer containing the decoded samples.
 	 */
 	public Obuffer decodeFrame(Header header, Bitstream stream)
-		throws DecoderException
+	throws DecoderException
 	{
-		if (!initialized)
-		{
-		    initialize(header,stream);
-		}
-		
-		int layer = header.layer();
-		
-		output.clear_buffer();
-		
-		FrameDecoder decoder = retrieveDecoder(header, stream, layer);
-		
-		decoder.decodeFrame();
-				
-		output.write_buffer(1);
-		
-		return output;	
+	  // throw decoder initialization out of ssjava loop since it is invoked once
+	  //		if (!initialized)
+	  //		{
+	  //		    initialize(header,stream);
+	  //		}
+
+	  int layer = header.layer();
+
+	  output.clear_buffer();
+
+	  FrameDecoder decoder = retrieveDecoder(header, stream, layer);
+
+	  decoder.decodeFrame();
+
+	  output.write_buffer(1);
+
+	  return output;	
 	}
 	
 	/**
