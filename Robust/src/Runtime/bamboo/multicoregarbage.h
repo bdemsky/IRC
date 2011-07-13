@@ -144,7 +144,6 @@ struct allocrecord {
 struct allocrecord allocationinfo;
 
 #ifdef GC_CACHE_ADAPT
-volatile bool gccachestage;
 // table recording the sampling data collected for cache adaption 
 unsigned int * gccachesamplingtbl;
 unsigned int * gccachesamplingtbl_local;// for zeroing memory only

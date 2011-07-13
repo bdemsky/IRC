@@ -9,7 +9,7 @@
 #ifdef GC_CACHE_ADAPT
 // sampling unit to compute access frequency, this should be consistent all the
 // time.
-#define GC_CACHE_SAMPLING_UNIT 0x1000000 
+#define GC_CACHE_SAMPLING_UNIT 0x800000000 
 // freqeuency to trigger timer interrupt
 #define GC_TILE_TIMER_EVENT_SETTING 10000000  
 

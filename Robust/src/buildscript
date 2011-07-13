@@ -74,6 +74,7 @@ echo "-rawpath print out execute path information for raw version (should be use
 echo "-useprofile use profiling data for scheduling (should be used together with -raw)"
 echo -printscheduling print out scheduling graphs
 echo -printschedulesim print out scheduling simulator result graphs
+echo "-tilera_output_dir specify the output directory for the generated TILERA code"
 echo "-tilera_bme generate tilera version binary for Bare Mental Environment (should be used together with -multicore"
 echo "-tilera_zlinux generate tilera version binary for Zero-Overhead Linux with multi-process mode (should be used together with -multicore"
 echo "-tileraconfig config tilera simulator/pci as nxm (should be used together with -tilera)"
@@ -248,6 +249,7 @@ ASSEMBLY=false
 GCCORES=''
 TILERAN1COREFLAG=false
 TILERA56COREFLAG=false
+TILERAOUTPUTDIR=''
 
 if [[ -z $1 ]]
 then
@@ -459,6 +461,10 @@ elif [[ $1 = '-raw' ]]
 then
 RAWFLAG=true
 JAVAOPTS="$JAVAOPTS -raw"
+elif [[ $1 = '-tilera_output_dir' ]]
+then
+TILERAOUTPUTDIR="$2"
+shift
 elif [[ $1 = '-tilera_bme' ]]
 then
 TILERAFLAG=true
@@ -992,7 +998,7 @@ make
 
 elif $TILERAFLAG
 then # TILERAFLAG
-TILERADIR="$CURDIR/tilera"
+TILERADIR="$CURDIR/${TILERAOUTPUTDIR}"
 if $TILERABMEFLAG
 then # TILERABMEFLAG
 TILERA_INDIR="BME"
@@ -1261,7 +1267,7 @@ cp ../Tilera/lib/* ./
 cp ../$tmpbuilddirectory/*.c ./
 cp ../$tmpbuilddirectory/*.h ./
 
-echo $TILERA_CFLAGS
+echo $TILERACFLAGS > ./tileracflags.txt
 
 make
 
