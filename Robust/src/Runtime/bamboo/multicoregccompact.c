@@ -414,7 +414,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
   void *origbound=orig->pagebound;
   void *tobound=to->pagebound;
   //set to the first line so we don't need conditions
-  void *lastflush=(&gcmappingtbl[OBJMAPPINGINDEX(origptr)])&~(BAMBOO_CACHE_LINE_MASK);
+  void *lastflush=(void *)(((unsigned INTPTR)&gcmappingtbl[OBJMAPPINGINDEX(origptr)])&~(BAMBOO_CACHE_LINE_MASK));
 #else
   void *origbound=orig->bound;
   void *tobound=to->bound;
@@ -483,7 +483,7 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
       *mapptr=toptr;
 
 #ifdef GC_CACHE_ADAPT
-      void *maskmapptr=mapptr&~(BAMBOO_CACHE_LINE_MASK);
+      void *maskmapptr=(void *)(((unsigned INTPTR)mapptr)&~(BAMBOO_CACHE_LINE_MASK));
 
       if (lastflush!=maskmapptr) {
 	BAMBOO_CACHE_FLUSH_LINE(lastflush);
