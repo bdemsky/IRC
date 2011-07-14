@@ -174,6 +174,140 @@ void pmc_docompact() {
   pmc_compact(region, !(BAMBOO_NUM_OF_CORE&1), region->startptr, region->endptr);
 }
 
+void moveforward(void *dstptr, void *origptr, unsigned int length) {
+  void *endtoptr=dstptr+length;
+
+  if(origptr < endtoptr&&dstptr < origptr+length) {
+    unsigned int *sptr=origptr;
+    unsigned int *dptr=dstptr;
+    unsigned int len=length;
+    //we will never have an object of size 0....
+    
+    do {
+      //#1
+      unsigned int tmpptr0=*sptr;
+      sptr++;
+      *dptr=tmpptr0;
+      dptr++;
+      
+      //#2
+      tmpptr0=*sptr;
+      sptr++;
+      *dptr=tmpptr0;
+      dptr++;
+      
+      //#3
+      tmpptr0=*sptr;
+      sptr++;
+      *dptr=tmpptr0;
+      dptr++;
+      
+      //#4
+      tmpptr0=*sptr;
+      sptr++;
+      *dptr=tmpptr0;
+      dptr++;
+      
+      //#5
+      tmpptr0=*sptr;
+      sptr++;
+      *dptr=tmpptr0;
+      dptr++;
+      
+      //#6
+      tmpptr0=*sptr;
+      sptr++;
+      *dptr=tmpptr0;
+      dptr++;
+      
+      //#7
+      tmpptr0=*sptr;
+      sptr++;
+      *dptr=tmpptr0;
+      dptr++;
+      
+      //#8
+      tmpptr0=*sptr;
+      sptr++;
+      *dptr=tmpptr0;
+      dptr++;
+      
+      len=len-32;
+    } while(len);
+    //memmove(dstptr, origptr, length);
+  } else if (origptr!=dstptr) {
+    //no need to copy if the source & dest are equal....
+    memcpy(dstptr, origptr, length);
+  }
+}
+
+void movebackward(void *dstptr, void *origptr, unsigned int length) {
+  void *endtoptr=dstptr+length;
+
+  if(origptr < endtoptr&&dstptr < origptr+length) {
+    unsigned int *sptr=origptr+length;
+    unsigned int *dptr=endtoptr;
+    unsigned int len=length;
+    //we will never have an object of size 0....
+    
+    do {
+      //#1
+      unsigned int tmpptr0=*sptr;
+      sptr--;
+      *dptr=tmpptr0;
+      dptr--;
+      
+      //#2
+      tmpptr0=*sptr;
+      sptr--;
+      *dptr=tmpptr0;
+      dptr--;
+      
+      //#3
+      tmpptr0=*sptr;
+      sptr--;
+      *dptr=tmpptr0;
+      dptr--;
+      
+      //#4
+      tmpptr0=*sptr;
+      sptr--;
+      *dptr=tmpptr0;
+      dptr--;
+      
+      //#5
+      tmpptr0=*sptr;
+      sptr--;
+      *dptr=tmpptr0;
+      dptr--;
+      
+      //#6
+      tmpptr0=*sptr;
+      sptr--;
+      *dptr=tmpptr0;
+      dptr--;
+      
+      //#7
+      tmpptr0=*sptr;
+      sptr--;
+      *dptr=tmpptr0;
+      dptr--;
+      
+      //#8
+      tmpptr0=*sptr;
+      sptr--;
+      *dptr=tmpptr0;
+      dptr--;
+      
+      len=len-32;
+    } while(len);
+    //memmove(dstptr, origptr, length);
+  } else if (origptr!=dstptr) {
+    //no need to copy if the source & dest are equal....
+    memcpy(dstptr, origptr, length);
+  }
+}
+
 
 void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void *topptr) {
   if (forward) {
@@ -192,7 +326,8 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
       ((struct ___Object___ *) tmpptr)->marked=NULL;
       if (forwardptr) {
 	//tprintf("Compacting %x\n",tmpptr);
-	memmove(forwardptr, tmpptr, size);
+	//	memmove(forwardptr, tmpptr, size);
+	memforward(forwardptr, tmpptr, size);
       }
       tmpptr+=size;
     }
@@ -209,7 +344,8 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
       void *forwardptr=(void *)((struct ___Object___ *) lastobj)->marked;
       ((struct ___Object___ *) lastobj)->marked=NULL;
       //tprintf("Compacting %x\n",lastobj);
-      memmove(forwardptr, lastobj, size);
+      //memmove(forwardptr, lastobj, size);
+      membackward(forwardptr, lastobj, size);
     }
   }
 }
