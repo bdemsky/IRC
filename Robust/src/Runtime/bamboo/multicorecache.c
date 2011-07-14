@@ -1,10 +1,11 @@
 #ifdef GC_CACHE_ADAPT
 #include "multicorecache.h"
 #include "multicoremsg.h"
+#include "multicoregc.h"
 #include "multicoregcprofile.h"
 
 void cacheadapt_finish_compact(void *toptr) {
-  unsigned int dstpage=(toptr-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS;
+  unsigned int dstpage=((unsigned INTPTR)(toptr-gcbaseva))>>BAMBOO_PAGE_SIZE_BITS;
   unsigned int * newtable=&gccachesamplingtbl_r[dstpage*NUMCORESACTIVE];
 
   for(int core = 0; core < NUMCORESACTIVE; core++) {
@@ -14,8 +15,8 @@ void cacheadapt_finish_compact(void *toptr) {
 }
 
 void cacheadapt_finish_src_page(void *srcptr, void *tostart, void *tofinish) {
-  unsigned int srcpage=(srcptr-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS;
-  unsigned int dstpage=(tostart-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS;
+  unsigned int srcpage=((unsigned INTPTR)(srcptr-gcbaseva))>>BAMBOO_PAGE_SIZE_BITS;
+  unsigned int dstpage=((unsigned INTPTR)(tostart-gcbaseva))>>BAMBOO_PAGE_SIZE_BITS;
   unsigned int numbytes=tofinish-tostart;
   
   unsigned int * oldtable=&gccachesamplingtbl[srcpage*NUMCORESACTIVE];
@@ -38,8 +39,8 @@ void cacheadapt_finish_dst_page(void *origptr, void *tostart, void *toptr, unsig
   void *tobound=(void *)((((unsigned INTPTR)toptr-1)&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE);
   void *origbound=(void *)((((unsigned INTPTR)origptr)&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE);
   
-  unsigned int topage=(toptr-1-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS; 
-  unsigned int origpage=(origptr-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS;
+  unsigned int topage=((unsigned INTPTR)(toptr-1-gcbaseva))>>BAMBOO_PAGE_SIZE_BITS; 
+  unsigned int origpage=((unsigned INTPTR)(origptr-gcbaseva))>>BAMBOO_PAGE_SIZE_BITS;
 
   unsigned int * totable=&gccachesamplingtbl_r[topage*NUMCORESACTIVE];
   unsigned int * origtable=&gccachesamplingtbl[origpage*NUMCORESACTIVE];
@@ -68,7 +69,7 @@ void cacheadapt_finish_dst_page(void *origptr, void *tostart, void *toptr, unsig
       bytesneeded-=remaintobytes;
       topage++;//to page is definitely done
       tobound+=BAMBOO_PAGE_SIZE;
-      origpage=(origptr-gcbaseva)>>BAMBOO_PAGE_SIZE_BITS;//handle exact match case
+      origpage=((unsigned INTPTR)(origptr-gcbaseva))>>BAMBOO_PAGE_SIZE_BITS;//handle exact match case
       origbound=(void *) ((((unsigned INTPTR)origptr)&~(BAMBOO_PAGE_SIZE-1))+BAMBOO_PAGE_SIZE);
     } else {
       //Finishing off orig page
