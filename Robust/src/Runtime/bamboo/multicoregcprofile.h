@@ -9,9 +9,9 @@
 #define GCINFOLENGTH 100
 
 #ifdef GC_CACHE_ADAPT
-#define GC_PROFILE_NUM_FIELD 20
+#define GC_PROFILE_NUM_FIELD 15
 #else
-#define GC_PROFILE_NUM_FIELD 19
+#define GC_PROFILE_NUM_FIELD 14
 #endif // GC_CACHE_ADAPT
 
 typedef struct gc_info {
@@ -112,11 +112,15 @@ INLINE static void gc_profileEnd(void) {
 #define GCPROFILE_RECORD_SPACE() \
   { \
     if(gc_profile_flag) { \
-      gc_num_livespace = 0; \
-      for(int tmpi = 0; tmpi < GCNUMBLOCK; tmpi++) { \
-        gc_num_livespace += bamboo_smemtbl[tmpi]; \
+      gc_num_freespace = 0; \
+      block_t lowestblock=allocationinfo.lowestfreeblock; \
+      for(block_t searchblock=lowestblock;searchblock<GCNUMBLOCK;searchblock++) { \
+        struct blockrecord * block=&allocationinfo.blocktable[searchblock]; \
+        if (block->status==BS_FREE) { \
+          gc_num_freespace+=block->freespace&~BAMBOO_CACHE_LINE_MASK; \
+        } \
       } \
-      gc_num_freespace = (BAMBOO_SHARED_MEM_SIZE) - gc_num_livespace; \
+      gc_num_livespace = (BAMBOO_SHARED_MEM_SIZE) - gc_num_freespace; \
     } \
   }
 // record forward obj info

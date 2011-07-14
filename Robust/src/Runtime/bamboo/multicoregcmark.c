@@ -271,6 +271,7 @@ void mark(struct garbagelist * stackptr) {
       } else {
         // ptr is an unmarked active object on this core
 	unsigned int isize=iunits<<ALIGNMENTSHIFT;
+  GCPROFILE_RECORD_LIVE_OBJ();
         gccurr_heaptop += isize;
       }
       // scan the pointers in object

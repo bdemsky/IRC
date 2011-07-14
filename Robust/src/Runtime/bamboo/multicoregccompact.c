@@ -606,6 +606,8 @@ void master_compact() {
   if (allocationinfo.lowestfreeblock==NOFREEBLOCK)
     allocationinfo.lowestfreeblock=numblockspercore*NUMCORES4GC;
 
+  // compute live object space
+  GCPROFILE_RECORD_SPACE();
   GC_PRINTF("compact phase finished \n");
 }
 

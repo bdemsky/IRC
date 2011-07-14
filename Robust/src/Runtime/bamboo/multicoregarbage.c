@@ -296,8 +296,6 @@ void gc_collect(struct garbagelist * stackptr) {
   WAITFORGCPHASE(MARKPHASE);
 
   GC_PRINTF("Start mark phase\n");
-  GCPROFILE_ITEM();
-
   mark(stackptr);
   GC_PRINTF("Finish mark phase, start compact phase\n");
   compact();
@@ -342,7 +340,6 @@ void gc_nocollect(struct garbagelist * stackptr) {
   WAITFORGCPHASE(MARKPHASE);
 
   GC_PRINTF("Start mark phase\n"); 
-  GCPROFILE_ITEM();
   mark(stackptr);
   GC_PRINTF("Finish mark phase, wait for update\n");
 
@@ -397,7 +394,6 @@ void master_getlargeobjs() {
 void master_updaterefs(struct garbagelist * stackptr) {
   gc_status_info.gcphase = UPDATEPHASE;
   GC_SEND_MSG_1_TO_CLIENT(GCSTARTUPDATE);
-  GCPROFILE_ITEM();
   GC_PRINTF("Start update phase \n");
   // update phase
   update(stackptr);
@@ -454,10 +450,10 @@ void gc_master(struct garbagelist * stackptr) {
   unsigned long long tmpt = BAMBOO_GET_EXE_TIME();
   CACHEADAPT_OUTPUT_CACHE_SAMPLING();
   gc_output_cache_policy_time += (BAMBOO_GET_EXE_TIME()-tmpt);
-  GCPROFILE_ITEM();
   //tprintf("start mark phase\n");
   // do mark phase
   master_mark(stackptr);
+  GCPROFILE_ITEM();
   //tprintf("finish mark phase\n");
   // get large objects from all cores
   master_getlargeobjs();
@@ -548,8 +544,8 @@ bool gc(struct garbagelist * stackptr) {
     while(!gc_checkCoreStatus())
       ;
 
-    GCPROFILE_START();
     pregccheck();
+    GCPROFILE_START();
     GC_PRINTF("start gc! \n");
     pregcprocessing();
     gc_master(stackptr);
