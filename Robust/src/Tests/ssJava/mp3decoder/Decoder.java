@@ -27,6 +27,7 @@
  * @version 0.0.7 12/12/99
  * @since	0.0.5
  */
+@LATTICE("ST,OUT,FIL,DE,O,EQ,PA,INIT")
 public class Decoder implements DecoderErrors
 {
 	static private final Params DEFAULT_PARAMS = new Params();
@@ -34,39 +35,39 @@ public class Decoder implements DecoderErrors
 	/**
 	 * The Bistream from which the MPEG audio frames are read.
 	 */
-	private Bitstream				stream;
+	@LOC("ST") private Bitstream				stream;
 	
 	/**
 	 * The Obuffer instance that will receive the decoded
 	 * PCM samples.
 	 */
-	private Obuffer			output;
+	@LOC("OUT") private Obuffer			output;
 		
 	/**
 	 * Synthesis filter for the left channel.
 	 */
-	private SynthesisFilter			filter1;
+	@LOC("FIL") private SynthesisFilter			filter1;
 	
 	/**
 	 * Sythesis filter for the right channel.
 	 */
-	private SynthesisFilter			filter2;	
+	@LOC("FIL") private SynthesisFilter			filter2;	
 			
 	/**
 	 * The decoder used to decode layer III frames.
 	 */
-	private LayerIIIDecoder			l3decoder;
-	private LayerIIDecoder			l2decoder;
-	private LayerIDecoder			l1decoder;
+	@LOC("DE") private LayerIIIDecoder			l3decoder;
+	@LOC("DE") private LayerIIDecoder			l2decoder;
+	@LOC("DE") private LayerIDecoder			l1decoder;
 	
-	private int						outputFrequency;
-	private int						outputChannels;
+	@LOC("O") private int						outputFrequency;
+	@LOC("O") private int						outputChannels;
 	
-	private Equalizer				equalizer = new Equalizer();
+	@LOC("EQ") private Equalizer				equalizer = new Equalizer();
 	
-	private Params					params;
+	@LOC("PA") private Params					params;
 	
-	private boolean					initialized;
+	@LOC("INIT") private boolean					initialized;
 		
 	
 	/**
@@ -129,7 +130,9 @@ public class Decoder implements DecoderErrors
 	 * 
 	 * @return A SampleBuffer containing the decoded samples.
 	 */
-	public Obuffer decodeFrame(Header header, Bitstream stream)
+	@LATTICE("O<DE,DE<TH,TH<IN,THISLOC=TH")
+	@RETURNLOC("O")
+	public Obuffer decodeFrame(@LOC("IN") Header header, @LOC("IN") Bitstream stream)
 	throws DecoderException
 	{
 	  // throw decoder initialization out of ssjava loop since it is invoked once
@@ -138,11 +141,11 @@ public class Decoder implements DecoderErrors
 	  //		    initialize(header,stream);
 	  //		}
 
-	  int layer = header.layer();
+	  @LOC("DELTA(TH)") int layer = header.layer();
 
 	  output.clear_buffer();
 
-	  FrameDecoder decoder = retrieveDecoder(header, stream, layer);
+	  @LOC("DE") FrameDecoder decoder = retrieveDecoder(header, stream, layer);
 
 	  decoder.decodeFrame();
 
@@ -214,10 +217,12 @@ public class Decoder implements DecoderErrors
 		return new DecoderException(errorcode, throwable);
 	}
 	
-	protected FrameDecoder retrieveDecoder(Header header, Bitstream stream, int layer)
+	@LATTICE("DE<IN,THISLOC=IN")
+	@RETURNLOC("DE")
+	protected FrameDecoder retrieveDecoder(@LOC("IN") Header header, @LOC("IN") Bitstream stream, @LOC("IN") int layer)
 		throws DecoderException
 	{
-		FrameDecoder decoder = null;
+		@LOC("DE") FrameDecoder decoder = null;
 		
 		// REVIEW: allow channel output selection type
 		// (LEFT, RIGHT, BOTH, DOWNMIX)

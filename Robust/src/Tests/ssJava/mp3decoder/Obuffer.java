@@ -36,12 +36,12 @@
 /**
  * Base Class for audio output.
  */
-@LATTICE("B<T")
-@METHODDEFAULT("D<IN,D<C,C*")
+@LATTICE("")
+@METHODDEFAULT("D<IN,D<C,C*,THISLOC=D")
 public abstract class Obuffer
 {
-  @LOC("T") public static final int     OBUFFERSIZE = 2 * 1152;  // max. 2 * 1152 samples per frame
-  @LOC("T") public static final int   MAXCHANNELS = 2;        // max. number of channels
+ public static final int     OBUFFERSIZE = 2 * 1152;  // max. 2 * 1152 samples per frame
+ public static final int   MAXCHANNELS = 2;        // max. number of channels
 
   /**
    * Takes a 16 Bit PCM sample.

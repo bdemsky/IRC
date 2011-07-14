@@ -3,7 +3,7 @@
 /**
  * Abstract base class for subband classes of layer I and II
  */
-   @LATTICE("L<H")
+   @LATTICE("S<L,L<H")
 static abstract class Subband
 {
  /*

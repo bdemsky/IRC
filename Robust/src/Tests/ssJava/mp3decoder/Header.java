@@ -358,6 +358,7 @@ public final class Header
 	/**
 	 * Returns Layer ID.
 	 */
+	@RETURNLOC("THIS")
 	public int layer() { return h_layer; }
 
 	/**

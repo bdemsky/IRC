@@ -32,23 +32,24 @@
 
 // REVIEW: the audio device should not be opened until the
 // first MPEG audio frame has been decoded. 
+@LATTICE("B<DE,DE<ST,HE<ST,ST<FR")
 public class Player
 {	  	
 	/**
 	 * The current frame number. 
 	 */
-	private int frame = 0;
+	@LOC("FR") private int frame = 0;
 	
 	/**
 	 * The MPEG audio bitstream. 
 	 */
 	// javac blank final bug. 
-	/*final*/ private Bitstream		bitstream;
+	/*final*/ @LOC("ST") private Bitstream		bitstream;
 	
 	/**
 	 * The MPEG audio decoder. 
 	 */
-	/*final*/ private Decoder		decoder; 
+	/*final*/ @LOC("DE") private Decoder		decoder; 
 	
 	/**
 	 * The AudioDevice the audio samples are written to. 
@@ -58,16 +59,16 @@ public class Player
 	/**
 	 * Has the player been closed?
 	 */
-	private boolean		closed = false;
+	@LOC("B") private boolean		closed = false;
 	
 	/**
 	 * Has the player played back all frames from the stream?
 	 */
-	private boolean		complete = false;
+	@LOC("B") private boolean		complete = false;
 
-	private int			lastPosition = 0;
+	@LOC("B") private int			lastPosition = 0;
 	
-	private Header header;
+	@LOC("HE") private Header header;
 	
 	/**
 	 * Creates a new <code>Player</code> instance. 
@@ -114,14 +115,16 @@ public class Player
 	 * @return	true if the last frame was played, or false if there are
 	 *			more frames. 
 	 */
-	public boolean play(int frames) throws JavaLayerException
+	@LATTICE("IN<T,IN*,THISLOC=T")
+	@RETURNLOC("IN")
+	public boolean play(@LOC("IN") int frames) throws JavaLayerException
 	{
-		boolean ret = true;
-		
+	    @LOC("IN") boolean ret = true;
+	    
 	     SSJAVA:
 		while (frames-- > 0 && ret)
 		{
-			ret = decodeFrame();			
+			 ret = decodeFrame();
 		}
 		/*
 		if (!ret)
@@ -206,6 +209,8 @@ public class Player
 	 * 
 	 * @return true if there are no more frames to decode, false otherwise.
 	 */
+	@LATTICE("O,THISLOC=O")
+	@RETURNLOC("O")
 	protected boolean decodeFrame() throws JavaLayerException
 	{		
 		try
@@ -220,7 +225,7 @@ public class Player
 //				return false;
 				
 			// sample buffer set when decoder constructed
-			SampleBuffer output = (SampleBuffer)decoder.decodeFrame(header, bitstream);
+			@LOC("O") SampleBuffer output = (SampleBuffer)decoder.decodeFrame(header, bitstream);
 																																					
 			//synchronized (this)
 			//{

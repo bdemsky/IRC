@@ -209,7 +209,7 @@ final class BitReserve
    /**
     * Rewind N bits in Stream.
 	*/
-   public void rewindNbits(int N)
+   public void rewindNbits(@LOC("IN") int N)
    {
  	  totbit -= N;	  	  
 	  buf_byte_idx -= N;

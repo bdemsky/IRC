@@ -140,7 +140,7 @@ public class SampleBuffer extends Obuffer
   /**
    * Write the samples to the file (Random Acces).
    */
-  public void write_buffer(int val)
+  public void write_buffer(@LOC("IN") int val)
   {
 
     //for (int i = 0; i < channels; ++i) 

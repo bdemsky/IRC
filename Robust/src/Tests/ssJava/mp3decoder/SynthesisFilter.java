@@ -159,7 +159,7 @@ final class SynthesisFilter
 	  samples[subbandnumber] = eq[subbandnumber]*sample;
   }
 
-  public void input_samples(float[] s)
+  public void input_samples(@LOC("V") float[] s)
   {
 	  for (int i=31; i>=0; i--)
 	  {		

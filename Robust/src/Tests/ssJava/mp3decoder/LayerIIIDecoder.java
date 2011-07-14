@@ -71,7 +71,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LOC("BR") private BitReserve br;
   @LOC("SI") private III_side_info_t si;
 
-  @LOC("SBT") private temporaire2[] III_scalefac_t;
+//  @LOC("SBT") private temporaire2[] III_scalefac_t;
   @LOC("SF") private temporaire2[] scalefac;
   // private III_scalefac_t scalefac;
 
@@ -101,11 +101,17 @@ final class LayerIIIDecoder implements FrameDecoder {
     k = new float[2][SBLIMIT * SSLIMIT];
     nonzero = new int[2];
 
+    //removes unnecessary aliases
     // III_scalefact_t
-    III_scalefac_t = new temporaire2[2];
-    III_scalefac_t[0] = new temporaire2();
-    III_scalefac_t[1] = new temporaire2();
-    scalefac = III_scalefac_t;
+//    III_scalefac_t = new temporaire2[2];
+//    III_scalefac_t[0] = new temporaire2();
+//    III_scalefac_t[1] = new temporaire2();
+//    scalefac = III_scalefac_t;
+    
+    scalefac=new temporaire2[2];
+    scalefac[0] = new temporaire2();
+    scalefac[1] = new temporaire2();
+    
     // L3TABLE INIT
 
     sfBandIndex = new SBI[9]; // SZD: MPEG2.5 +3 indices
