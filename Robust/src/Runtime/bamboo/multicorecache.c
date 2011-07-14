@@ -217,6 +217,12 @@ void cacheAdapt_policy_hottest(int coren){
     if(hotfreq != 0) {
       // locally cache the page in the hottest core
       CACHEADAPT_POLICY_SET_HOST_CORE(policy, hottestcore);
+    } else {
+      // reset it to be homed by its host core
+      unsigned int block = 0;
+      BLOCKINDEX(block, (void *) page_sva);
+      unsigned int coren = gc_block2core[block%(NUMCORES4GC*2)];
+      CACHEADAPT_POLICY_SET_HOST_CORE(policy, coren);
     }
     CACHEADAPT_CHANGE_POLICY_4_PAGE(tmp_p,page_index,policy);
     page_sva += BAMBOO_PAGE_SIZE;
@@ -257,6 +263,12 @@ void cacheAdapt_policy_dominate(int coren){
         // locally cache the page in the hottest core
         CACHEADAPT_POLICY_SET_HOST_CORE(policy, hottestcore);
       }     
+    } else {
+      // reset it to be homed by its host core
+      unsigned int block = 0;
+      BLOCKINDEX(block, (void *) page_sva);
+      unsigned int coren = gc_block2core[block%(NUMCORES4GC*2)];
+      CACHEADAPT_POLICY_SET_HOST_CORE(policy, coren);
     }
     CACHEADAPT_CHANGE_POLICY_4_PAGE(tmp_p,page_index,policy);
     page_sva += BAMBOO_PAGE_SIZE;
