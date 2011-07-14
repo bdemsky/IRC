@@ -81,6 +81,7 @@ public class MethodAnnotationCheck {
     while (!tovisit.isEmpty()) {
       MethodDescriptor callerMD = tovisit.iterator().next();
       tovisit.remove(callerMD);
+
       Set<MethodDescriptor> calleeSet = caller2calleeSet.get(callerMD);
       if (calleeSet != null) {
         for (Iterator iterator = calleeSet.iterator(); iterator.hasNext();) {
@@ -88,8 +89,32 @@ public class MethodAnnotationCheck {
           Pair p = new Pair(callerMD, calleeMD);
           if (!visited.contains(p)) {
             visited.add(p);
+
+            if (calleeMD.getClassDesc().isInterface()) {
+              calleeMD.getClassDesc();
+
+            }
+
             tovisit.add(calleeMD);
-            ssjava.addAnnotationRequire(calleeMD);
+
+            if (calleeMD.isAbstract()) {
+              Set<MethodDescriptor> possibleCalleeSet =
+                  (Set<MethodDescriptor>) ssjava.getCallGraph().getMethods(calleeMD);
+
+              for (Iterator iterator2 = possibleCalleeSet.iterator(); iterator2.hasNext();) {
+                MethodDescriptor possibleCallee = (MethodDescriptor) iterator2.next();
+
+                if (!possibleCallee.isAbstract()) {
+                  ssjava.addAnnotationRequire(possibleCallee);
+                  tovisit.add(possibleCallee);
+                }
+
+              }
+
+            } else {
+              ssjava.addAnnotationRequire(calleeMD);
+            }
+
           }
         }
       }

@@ -231,7 +231,8 @@ public class FlowDownCheck {
     }
 
     if (hasReturnValue) {
-      md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), paramList));
+      md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), paramList,
+          generateErrorMessage(cd, null)));
     }
 
     checkDeclarationInBlockNode(md, md.getParameterTable(), bn);
@@ -284,6 +285,15 @@ public class FlowDownCheck {
     checkLocationFromBlockNode(md, md.getParameterTable(), bn);
   }
 
+  private String generateErrorMessage(ClassDescriptor cd, TreeNode tn) {
+    if (tn != null) {
+      return cd.getSourceFileName() + "::" + tn.getNumLine();
+    } else {
+      return cd.getSourceFileName();
+    }
+
+  }
+
   private CompositeLocation checkLocationFromBlockNode(MethodDescriptor md, SymbolTable nametable,
       BlockNode bn) {
 
@@ -298,7 +308,8 @@ public class FlowDownCheck {
         if (lowestLoc == null) {
           lowestLoc = bLoc;
         } else {
-          if (CompositeLattice.isGreaterThan(lowestLoc, bLoc)) {
+          if (CompositeLattice.isGreaterThan(lowestLoc, bLoc,
+              generateErrorMessage(md.getClassDesc(), bn))) {
             lowestLoc = bLoc;
           }
         }
@@ -365,7 +376,8 @@ public class FlowDownCheck {
     for (int i = 0; i < sbn.size(); i++) {
       CompositeLocation blockLoc =
           checkLocationFromSwitchBlockNode(md, nametable, (SwitchBlockNode) sbn.get(i));
-      if (!CompositeLattice.isGreaterThan(condLoc, blockLoc)) {
+      if (!CompositeLattice.isGreaterThan(condLoc, blockLoc,
+          generateErrorMessage(cd, ssn.getCondition()))) {
         throw new Error(
             "The location of the switch-condition statement is lower than the conditional body at "
                 + cd.getSourceFileName() + ":" + ssn.getCondition().getNumLine());
@@ -398,7 +410,8 @@ public class FlowDownCheck {
       // declaration annotation
       CompositeLocation returnLocAt = md2ReturnLoc.get(md);
 
-      if (CompositeLattice.isGreaterThan(returnLocAt, expLoc)) {
+      if (CompositeLattice.isGreaterThan(returnLocAt, expLoc,
+          generateErrorMessage(md.getClassDesc(), rn))) {
         throw new Error(
             "Return value location is not equal or higher than the declaraed return location at "
                 + md.getClassDesc().getSourceFileName() + "::" + rn.getNumLine());
@@ -428,7 +441,7 @@ public class FlowDownCheck {
 
       CompositeLocation bodyLoc = checkLocationFromBlockNode(md, nametable, ln.getBody());
 
-      if (!CompositeLattice.isGreaterThan(condLoc, bodyLoc)) {
+      if (!CompositeLattice.isGreaterThan(condLoc, bodyLoc, generateErrorMessage(cd, ln))) {
         // loop condition should be higher than loop body
         throw new Error(
             "The location of the while-condition statement is lower than the loop body at "
@@ -479,7 +492,8 @@ public class FlowDownCheck {
 
       CompositeLocation loopBodyLoc = CompositeLattice.calculateGLB(glbInputSet);
 
-      if (!CompositeLattice.isGreaterThan(glbLocOfForLoopCond, loopBodyLoc)) {
+      if (!CompositeLattice.isGreaterThan(glbLocOfForLoopCond, loopBodyLoc,
+          generateErrorMessage(cd, ln))) {
         throw new Error(
             "The location of the for-condition statement is lower than the for-loop body at "
                 + cd.getSourceFileName() + ":" + ln.getCondition().getNumLine());
@@ -512,7 +526,9 @@ public class FlowDownCheck {
       glbInputSet.add(locTrueBlock);
       // here, the location of conditional block should be higher than the
       // location of true/false blocks
-      if (locTrueBlock != null && !CompositeLattice.isGreaterThan(condLoc, locTrueBlock)) {
+      if (locTrueBlock != null
+          && !CompositeLattice.isGreaterThan(condLoc, locTrueBlock,
+              generateErrorMessage(localCD, isn.getCondition()))) {
         // error
         throw new Error(
             "The location of the if-condition statement is lower than the conditional block at "
@@ -527,7 +543,8 @@ public class FlowDownCheck {
       if (locFalseBlock != null) {
         glbInputSet.add(locFalseBlock);
 
-        if (!CompositeLattice.isGreaterThan(condLoc, locFalseBlock)) {
+        if (!CompositeLattice.isGreaterThan(condLoc, locFalseBlock,
+            generateErrorMessage(localCD, isn.getCondition()))) {
           // error
           throw new Error(
               "The location of the if-condition statement is lower than the conditional block at "
@@ -545,6 +562,9 @@ public class FlowDownCheck {
 
   private CompositeLocation checkLocationFromDeclarationNode(MethodDescriptor md,
       SymbolTable nametable, DeclarationNode dn) {
+
+    System.out.println("DeclarationNode=" + dn.printNode(0));
+
     VarDescriptor vd = dn.getVarDescriptor();
 
     CompositeLocation destLoc = d2loc.get(vd);
@@ -557,7 +577,8 @@ public class FlowDownCheck {
 
       if (expressionLoc != null) {
         // checking location order
-        if (!CompositeLattice.isGreaterThan(expressionLoc, destLoc)) {
+        if (!CompositeLattice.isGreaterThan(expressionLoc, destLoc,
+            generateErrorMessage(md.getClassDesc(), dn))) {
           throw new Error("The value flow from " + expressionLoc + " to " + destLoc
               + " does not respect location hierarchy on the assignment " + dn.printNode(0)
               + " at " + md.getClassDesc().getSourceFileName() + "::" + dn.getNumLine());
@@ -681,13 +702,13 @@ public class FlowDownCheck {
     addLocationType(tn.getFalseExpr().getType(), falseLoc);
 
     // check if condLoc is higher than trueLoc & falseLoc
-    if (!CompositeLattice.isGreaterThan(condLoc, trueLoc)) {
+    if (!CompositeLattice.isGreaterThan(condLoc, trueLoc, generateErrorMessage(cd, tn))) {
       throw new Error(
           "The location of the condition expression is lower than the true expression at "
               + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
     }
 
-    if (!CompositeLattice.isGreaterThan(condLoc, falseLoc)) {
+    if (!CompositeLattice.isGreaterThan(condLoc, falseLoc, generateErrorMessage(cd, tn.getCond()))) {
       throw new Error(
           "The location of the condition expression is lower than the true expression at "
               + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
@@ -741,6 +762,12 @@ public class FlowDownCheck {
           checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation());
       argList.add(callerArg);
     }
+
+    System.out.println("##");
+    System.out.println("min.getMethod()=" + min.getMethod());
+    System.out.println("md2ReturnLocGen.get(min.getMethod())="
+        + md2ReturnLocGen.get(min.getMethod()));
+
     return md2ReturnLocGen.get(min.getMethod()).computeReturnLocation(argList);
 
   }
@@ -773,8 +800,12 @@ public class FlowDownCheck {
               VarDescriptor calleevd2 = (VarDescriptor) min.getMethod().getParameter(currentIdx);
               CompositeLocation calleeLoc2 = d2loc.get(calleevd2);
 
-              int callerResult = CompositeLattice.compare(callerArg1, callerArg2);
-              int calleeResult = CompositeLattice.compare(calleeLoc1, calleeLoc2);
+              int callerResult =
+                  CompositeLattice.compare(callerArg1, callerArg2,
+                      generateErrorMessage(md.getClassDesc(), min));
+              int calleeResult =
+                  CompositeLattice.compare(calleeLoc1, calleeLoc2,
+                      generateErrorMessage(md.getClassDesc(), min));
               if (calleeResult == ComparisonResult.GREATER
                   && callerResult != ComparisonResult.GREATER) {
                 // If calleeLoc1 is higher than calleeLoc2
@@ -1027,13 +1058,14 @@ public class FlowDownCheck {
         return destLocation;
       }
       srcLocation = new CompositeLocation();
+      System.out.println("checkLocationFromExpressionNode="+an.getSrc().printNode(0));
       srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
       // System.out.println(" an= " + an.printNode(0) + " an.getSrc()=" +
       // an.getSrc().getClass()
       // + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
       // System.out.println("srcLocation=" + srcLocation);
       // System.out.println("dstLocation=" + destLocation);
-      if (!CompositeLattice.isGreaterThan(srcLocation, destLocation)) {
+      if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
         throw new Error("The value flow from " + srcLocation + " to " + destLocation
             + " does not respect location hierarchy on the assignment " + an.printNode(0) + " at "
             + cd.getSourceFileName() + "::" + an.getNumLine());
@@ -1042,7 +1074,7 @@ public class FlowDownCheck {
       destLocation =
           srcLocation = checkLocationFromExpressionNode(md, nametable, an.getDest(), srcLocation);
 
-      if (!CompositeLattice.isGreaterThan(srcLocation, destLocation)) {
+      if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
         throw new Error("Location " + destLocation
             + " is not allowed to have the value flow that moves within the same location at "
             + cd.getSourceFileName() + "::" + an.getNumLine());
@@ -1266,9 +1298,9 @@ public class FlowDownCheck {
 
   static class CompositeLattice {
 
-    public static boolean isGreaterThan(CompositeLocation loc1, CompositeLocation loc2) {
+    public static boolean isGreaterThan(CompositeLocation loc1, CompositeLocation loc2, String msg) {
 
-      int baseCompareResult = compareBaseLocationSet(loc1, loc2, true);
+      int baseCompareResult = compareBaseLocationSet(loc1, loc2, true, msg);
       if (baseCompareResult == ComparisonResult.EQUAL) {
         if (compareDelta(loc1, loc2) == ComparisonResult.GREATER) {
           return true;
@@ -1283,10 +1315,10 @@ public class FlowDownCheck {
 
     }
 
-    public static int compare(CompositeLocation loc1, CompositeLocation loc2) {
+    public static int compare(CompositeLocation loc1, CompositeLocation loc2, String msg) {
 
       // System.out.println("compare=" + loc1 + " " + loc2);
-      int baseCompareResult = compareBaseLocationSet(loc1, loc2, false);
+      int baseCompareResult = compareBaseLocationSet(loc1, loc2, false, msg);
 
       if (baseCompareResult == ComparisonResult.EQUAL) {
         return compareDelta(loc1, loc2);
@@ -1318,7 +1350,7 @@ public class FlowDownCheck {
     }
 
     private static int compareBaseLocationSet(CompositeLocation compLoc1,
-        CompositeLocation compLoc2, boolean awareSharedLoc) {
+        CompositeLocation compLoc2, boolean awareSharedLoc, String msg) {
 
       // if compLoc1 is greater than compLoc2, return true
       // else return false;
@@ -1349,20 +1381,20 @@ public class FlowDownCheck {
         if (lattice1.getSpinLocSet().contains(loc1.getLocIdentifier())) {
           if (i != (compLoc1.getSize() - 1)) {
             throw new Error("The spin location " + loc1.getLocIdentifier()
-                + " cannot be appeared in the middle of composite location.");
+                + " cannot be appeared in the middle of composite location at" + msg);
           }
         }
 
         if (lattice2.getSpinLocSet().contains(loc2.getLocIdentifier())) {
           if (i != (compLoc2.getSize() - 1)) {
             throw new Error("The spin location " + loc2.getLocIdentifier()
-                + " cannot be appeared in the middle of composite location.");
+                + " cannot be appeared in the middle of composite location at " + msg);
           }
         }
 
         if (!lattice1.equals(lattice2)) {
           throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
-              + " because they are not comparable.");
+              + " because they are not comparable at " + msg);
         }
 
         if (loc1.getLocIdentifier().equals(loc2.getLocIdentifier())) {
@@ -1573,12 +1605,12 @@ class ReturnLocGenerator {
 
   Hashtable<Integer, Integer> paramIdx2paramType;
 
-  public ReturnLocGenerator(CompositeLocation returnLoc, List<CompositeLocation> params) {
+  public ReturnLocGenerator(CompositeLocation returnLoc, List<CompositeLocation> params, String msg) {
     // creating mappings
     paramIdx2paramType = new Hashtable<Integer, Integer>();
     for (int i = 0; i < params.size(); i++) {
       CompositeLocation param = params.get(i);
-      int compareResult = CompositeLattice.compare(param, returnLoc);
+      int compareResult = CompositeLattice.compare(param, returnLoc, msg);
 
       int type;
       if (compareResult == ComparisonResult.GREATER) {
