@@ -1,63 +1,63 @@
-/** Banboo Version  **/
+package JGFMonteCarlo;
 
 /**************************************************************************
-*                                                                         *
-*         Java Grande Forum Benchmark Suite - Thread Version 1.0          *
-*                                                                         *
-*                            produced by                                  *
-*                                                                         *
-*                  Java Grande Benchmarking Project                       *
-*                                                                         *
-*                                at                                       *
-*                                                                         *
-*                Edinburgh Parallel Computing Centre                      *
-*                                                                         *
-*                email: epcc-javagrande@epcc.ed.ac.uk                     *
-*                                                                         *
-*      Original version of this code by Hon Yau (hwyau@epcc.ed.ac.uk)     *
-*                                                                         *
-*      This version copyright (c) The University of Edinburgh, 2001.      *
-*                         All rights reserved.                            *
-*                                                                         *
-**************************************************************************/
+ *                                                                         *
+ *         Java Grande Forum Benchmark Suite - Thread Version 1.0          *
+ *                                                                         *
+ *                            produced by                                  *
+ *                                                                         *
+ *                  Java Grande Benchmarking Project                       *
+ *                                                                         *
+ *                                at                                       *
+ *                                                                         *
+ *                Edinburgh Parallel Computing Centre                      *
+ *                                                                         *
+ *                email: epcc-javagrande@epcc.ed.ac.uk                     *
+ *                                                                         *
+ *      Original version of this code by Hon Yau (hwyau@epcc.ed.ac.uk)     *
+ *                                                                         *
+ *      This version copyright (c) The University of Edinburgh, 2001.      *
+ *                         All rights reserved.                            *
+ *                                                                         *
+ **************************************************************************/
 
 /**
-  * Base class for all the security objects, namely in terms of
-  * providing a consistent means of identifying each such object.
-  * Also provides some methods for writing out debug messages.
-  *
-  * @author H W Yau
-  * @version $Revision: 1.1 $ $Date: 2011/07/13 23:49:52 $
-  */
+ * Base class for all the security objects, namely in terms of
+ * providing a consistent means of identifying each such object.
+ * Also provides some methods for writing out debug messages.
+ *
+ * @author H W Yau
+ * @version $Revision: 1.2 $ $Date: 2011/07/14 21:28:29 $
+ */
 public class PathId {
 
   //------------------------------------------------------------------------
   // Instance variables.
   //------------------------------------------------------------------------
   /**
-    * Simple string name.
-    */
+   * Simple string name.
+   */
   public String name;
 
   /**
-    * The start date for the path, in YYYYMMDD format.
-    */
+   * The start date for the path, in YYYYMMDD format.
+   */
   public int startDate;
   /**
-    * The end date for the path, in YYYYMMDD format.
-    */
+   * The end date for the path, in YYYYMMDD format.
+   */
   public int endDate;
   /**
-    * The change in time between two successive data values.
-    */
+   * The change in time between two successive data values.
+   */
   public float dTime;
 
   //------------------------------------------------------------------------
   // Constructors.
   //------------------------------------------------------------------------
   /**
-    * Default constructor.
-    */
+   * Default constructor.
+   */
   public PathId() {
     this.startDate=0;
     this.endDate=0;
@@ -65,10 +65,10 @@ public class PathId {
   }
 
   /**
-    * Another constructor.
-    *
-    * @param name The name for the security to record.
-    */
+   * Another constructor.
+   *
+   * @param name The name for the security to record.
+   */
   public PathId(String name) {
     this.name = name;
     this.startDate=0;
@@ -84,82 +84,82 @@ public class PathId {
   // Generated by 'makeJavaAccessor.pl' script.  HWY.  20th January 1999.
   //------------------------------------------------------------------------
   /**
-    * Accessor method for private instance variable <code>name</code>.
-    *
-    * @return Value of instance variable <code>name</code>.
-    * @exception DemoException thrown if instance variable <code>name</code> is undefined.
-    */
+   * Accessor method for private instance variable <code>name</code>.
+   *
+   * @return Value of instance variable <code>name</code>.
+   * @exception DemoException thrown if instance variable <code>name</code> is undefined.
+   */
   /*public String get_name() {
     return(this.name);
   }*/
   /**
-    * Set method for private instance variable <code>name</code>.
-    *
-    * @param name the value to set for the instance variable <code>name</code>.
-    */
+   * Set method for private instance variable <code>name</code>.
+   *
+   * @param name the value to set for the instance variable <code>name</code>.
+   */
   public void set_name(String name) {
     this.name = name;
   }
   /**
-    * Accessor method for private instance variable <code>startDate</code>.
-    *
-    * @return Value of instance variable <code>startDate</code>.
-    * @exception DemoException thrown if instance variable <code>startDate</code> is undefined.
-    */
+   * Accessor method for private instance variable <code>startDate</code>.
+   *
+   * @return Value of instance variable <code>startDate</code>.
+   * @exception DemoException thrown if instance variable <code>startDate</code> is undefined.
+   */
   /*public int get_startDate() {
     return(this.startDate);
   }*/
   /**
-    * Set method for private instance variable <code>startDate</code>.
-    *
-    * @param startDate the value to set for the instance variable <code>startDate</code>.
-    */
+   * Set method for private instance variable <code>startDate</code>.
+   *
+   * @param startDate the value to set for the instance variable <code>startDate</code>.
+   */
   public void set_startDate(int startDate) {
     this.startDate = startDate;
   }
   /**
-    * Accessor method for private instance variable <code>endDate</code>.
-    *
-    * @return Value of instance variable <code>endDate</code>.
-    * @exception DemoException thrown if instance variable <code>endDate</code> is undefined.
-    */
+   * Accessor method for private instance variable <code>endDate</code>.
+   *
+   * @return Value of instance variable <code>endDate</code>.
+   * @exception DemoException thrown if instance variable <code>endDate</code> is undefined.
+   */
   /*public int get_endDate() {
     return(this.endDate);
   }*/
   /**
-    * Set method for private instance variable <code>endDate</code>.
-    *
-    * @param endDate the value to set for the instance variable <code>endDate</code>.
-    */
+   * Set method for private instance variable <code>endDate</code>.
+   *
+   * @param endDate the value to set for the instance variable <code>endDate</code>.
+   */
   public void set_endDate(int endDate) {
     this.endDate = endDate;
   }
   /**
-    * Accessor method for private instance variable <code>dTime</code>.
-    *
-    * @return Value of instance variable <code>dTime</code>.
-    * @exception DemoException thrown if instance variable <code>dTime</code> is undefined.
-    */
+   * Accessor method for private instance variable <code>dTime</code>.
+   *
+   * @return Value of instance variable <code>dTime</code>.
+   * @exception DemoException thrown if instance variable <code>dTime</code> is undefined.
+   */
   /*public float get_dTime() {
     return(this.dTime);
   }*/
   /**
-    * Set method for private instance variable <code>dTime</code>.
-    *
-    * @param dTime the value to set for the instance variable <code>dTime</code>.
-    */
+   * Set method for private instance variable <code>dTime</code>.
+   *
+   * @param dTime the value to set for the instance variable <code>dTime</code>.
+   */
   public void set_dTime(float dTime) {
     this.dTime = dTime;
   }
   //------------------------------------------------------------------------
   /**
-    * Clone the instance variables in this class, from another instance
-    * of this class.
-    *
-    * @param obj the PathId object from which to copy.
-    * @exception DemoException thrown if the values to be copied contain
-    *                          any undefined objects.
-    */
+   * Clone the instance variables in this class, from another instance
+   * of this class.
+   *
+   * @param obj the PathId object from which to copy.
+   * @exception DemoException thrown if the values to be copied contain
+   *                          any undefined objects.
+   */
   public void copyInstanceVariables(PathId obj) {
     this.name      = obj.name;
     this.startDate = obj.startDate;
@@ -167,13 +167,13 @@ public class PathId {
     this.dTime     = obj.dTime;
   }
   /**
-    * Dumps the contents of the fields, to standard-out, for debugging.
-    */
+   * Dumps the contents of the fields, to standard-out, for debugging.
+   */
   public void dbgDumpFields() {
-//    dbgPrintln("name="     +this.name);
-//    dbgPrintln("startDate="+this.startDate);
-//    dbgPrintln("endDate="  +this.endDate);
-//    dbgPrintln("dTime="    +this.dTime);
+    //    dbgPrintln("name="     +this.name);
+    //    dbgPrintln("startDate="+this.startDate);
+    //    dbgPrintln("endDate="  +this.endDate);
+    //    dbgPrintln("dTime="    +this.dTime);
   }
 }
 

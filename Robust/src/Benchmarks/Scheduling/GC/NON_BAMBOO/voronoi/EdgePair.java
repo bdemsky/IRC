@@ -1,4 +1,4 @@
-
+package voronoi;
 
 /**
  * A class that represents an edge pair

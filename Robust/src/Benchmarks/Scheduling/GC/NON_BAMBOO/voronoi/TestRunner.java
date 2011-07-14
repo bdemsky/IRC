@@ -1,6 +1,7 @@
-
+package voronoi;
 
 /**
+ * 
  * A Java implementation of the <tt>voronoi</tt> Olden benchmark. Voronoi
  * generates a random set of points and computes a Voronoi diagram for
  * the points.
@@ -18,12 +19,12 @@
  **/
 public class TestRunner extends Thread
 {
-  
+
   /**
    * The number of points in the diagram
    **/
   private int points;
-  
+
   public TestRunner(int npoints) {
     this.points = npoints;
   }
@@ -41,13 +42,13 @@ public class TestRunner extends Thread
     Vertex point = v.createPoints(points-1, new MyDouble(extra.X()), points-1);
     Edge edge = point.buildDelaunayTriangulation(extra);
   }
-  
+
   public static void main(String[] args) {
     int threadnum = 62;
     int npoints = 32000;
     for(int i = 0; i < threadnum; ++i) {
       TestRunner tr = new TestRunner(npoints);
-      tr.run();
+      tr.start();
     }
   }
 }

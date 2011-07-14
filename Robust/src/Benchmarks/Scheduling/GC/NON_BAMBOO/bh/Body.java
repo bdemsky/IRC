@@ -1,3 +1,4 @@
+package bh;
 
 /**
  * A class used to representing particles in the N-body simulation.

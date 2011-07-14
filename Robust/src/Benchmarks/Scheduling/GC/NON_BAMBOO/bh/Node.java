@@ -1,3 +1,4 @@
+package bh;
 
 /**
  * A class that represents the common fields of a cell or body
@@ -40,7 +41,7 @@ class Node
     int i = 0;
     for (int k = 0; k < 3/*MathVector.NDIM*/; k++) {
       if (((int)ic.value(k) & l) != 0)
-    i += 8/*Cell.NSUB*/ >> (k + 1);
+        i += 8/*Cell.NSUB*/ >> (k + 1);
     }
     return i;
   }
@@ -71,42 +72,5 @@ class Node
     dr.multScalar(mor3);
     hg.acc0.addition(dr);
     return hg;
-  }
-}
-
-/**
- * A class which is used to compute and save information during the 
- * gravity computation phse.
- **/
-public class HG
-{
-  /**
-   * Body to skip in force evaluation
-   **/
-  public Body       pskip;
-  /**
-   * Point at which to evaluate field
-   **/
-  public MathVector pos0;  
-  /**
-   * Computed potential at pos0
-   **/
-  public double     phi0;  
-  /** 
-   * computed acceleration at pos0
-   **/
-  public MathVector acc0;  
-
-  /**
-   * Create a HG  object.
-   * @param b the body object
-   * @param p a vector that represents the body
-   **/
-  public HG(Body b, MathVector p)
-  {
-    pskip = b;
-    pos0  = (MathVector)p.clone();
-    phi0  = 0.0;
-    acc0  = new MathVector();
   }
 }

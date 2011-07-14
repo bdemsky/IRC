@@ -1,3 +1,4 @@
+package voronoi;
 
 /**
  * A class that represents the quad edge data structure which implements

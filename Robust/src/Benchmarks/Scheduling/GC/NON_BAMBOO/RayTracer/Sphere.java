@@ -1,3 +1,5 @@
+package RayTracer;
+
 /**************************************************************************
  *                                                                         *
  *             Java Grande Forum Benchmark Suite - Version 2.0             *
@@ -28,7 +30,7 @@ public class Sphere extends Primitive
 {
   Vec      c;
   float   r, r2;
-//Vec      v,b; // temporary vecs used to minimize the memory load
+  //Vec      v,b; // temporary vecs used to minimize the memory load
 
 
   public Sphere(Vec center, float radius) {
@@ -36,8 +38,8 @@ public class Sphere extends Primitive
     c = center;
     r = radius;
     r2 = r*r;
-//  v=new Vec();
-//  b=new Vec();
+    //  v=new Vec();
+    //  b=new Vec();
   }
 
   public float dot(float x1, float y1, float z1, float x2, float y2, float z2){
@@ -69,7 +71,7 @@ public class Sphere extends Primitive
     ip = new Isect();
     ip.t = t;
     ip.enter = dot(x,y,z,x,y,z) > r2 + 1e-6 ? 1 : 0;
-//  ip.enter = Vec.dot(v, v) > r2 + 1e-6 ? 1 : 0;
+    //  ip.enter = Vec.dot(v, v) > r2 + 1e-6 ? 1 : 0;
     ip.prim = this;
     ip.surf = surf;
     return ip;

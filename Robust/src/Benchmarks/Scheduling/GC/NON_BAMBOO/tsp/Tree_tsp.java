@@ -1,3 +1,4 @@
+package tsp;
 
 //import java.util.Random;
 
@@ -54,7 +55,7 @@ final class Tree_tsp
     M_E3  = 20.08553692318766774179f;
     M_E6  = 403.42879349273512264299f;
     M_E12 = 162754.79141900392083592475f;*/
-    
+
     sz = size;
     this.x = x;
     this.y = y;
@@ -298,7 +299,7 @@ final class Tree_tsp
       choice = 4;
 
     if (choice == 1) {
-    //case 1:
+      //case 1:
       // 1:p1,this this,p2 n2,n1 -- reverse 2!
       n2.reverse();
       p1.next = this;
@@ -309,7 +310,7 @@ final class Tree_tsp
       n1.prev = n2;
       //break;
     } else if(choice == 2) {
-    //case 2:
+      //case 2:
       // 2:p1,this this,n2 p2,n1 -- OK
       p1.next = this;
       this.prev = p1;
@@ -319,7 +320,7 @@ final class Tree_tsp
       n1.prev = p2;
       //break;
     } else if(choice == 3) {
-    //case 3:
+      //case 3:
       // 3:p2,this this,n1 p1,n2 -- OK
       p2.next = this;
       this.prev = p2;
@@ -329,7 +330,7 @@ final class Tree_tsp
       n2.prev = p1;
       //break;
     } else if(choice == 4) {
-    //case 4:
+      //case 4:
       // 4:n1,this this,n2 p2,p1 -- reverse 1!
       n1.reverse();
       n1.next = this;
@@ -388,7 +389,7 @@ final class Tree_tsp
     float M_E3  = 20.08553692318766774179f;
     float M_E6  = 403.42879349273512264299f;
     float M_E12 = 162754.79141900392083592475f;
-    
+
     // get random value in [0.0, 1.0)
     float t = (new Random()).nextFloat();
 

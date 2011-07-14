@@ -1,4 +1,4 @@
-
+package bh;
 /*import java.util.Enumeration;
 import java.lang.Math;*/
 
@@ -17,7 +17,7 @@ import java.lang.Math;*/
  **/
 public class TestRunner extends Thread
 {
-  
+
   /**
    * The user specified number of bodies to create.
    **/
@@ -39,7 +39,7 @@ public class TestRunner extends Thread
 
   public  double DTIME; // = 0.0125;
   public  double TSTOP; // = 2.0;
-  
+
   public TestRunner(int nbody) {
     this.nbody = nbody;
     this.nsteps = 10;
@@ -91,10 +91,10 @@ public class TestRunner extends Thread
    * @param seed the seed to the generator
    * @return a random number
    **/
-  public  double myRand(double seed)
+  public double myRand(double seed)
   {
     double t = 16807.0*seed + 1;
-    
+
     seed = t - 2147483647.0 * Math.floor(t / 2147483647.0f);
     return seed;
   }
@@ -108,7 +108,7 @@ public class TestRunner extends Thread
    * @param r seed
    * @return a doubleing point randon number
    **/
-  public  double xRand(double xl, double xh, double r)
+  public double xRand(double xl, double xh, double r)
   {
     double res = xl + (xh-xl)*r/2147483647.0;
     return res;
@@ -119,7 +119,7 @@ public class TestRunner extends Thread
     int nbody = 700;
     for(int i = 0; i < threadnum; ++i) {
       TestRunner tr = new TestRunner(nbody);
-      tr.run();
+      tr.start();
     }
   }
 }

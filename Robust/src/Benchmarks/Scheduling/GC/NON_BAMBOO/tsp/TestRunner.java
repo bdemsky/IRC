@@ -1,3 +1,4 @@
+package tsp;
 
 //import java.io.*;
 
@@ -13,7 +14,7 @@
  **/
 public class TestRunner extends Thread
 {
-  
+
   /**
    * Number of cities in the problem.
    **/
@@ -26,7 +27,7 @@ public class TestRunner extends Thread
    * Set to true to print informative messages
    **/
   //private static boolean printMsgs = false;
-  
+
   public TestRunner(int cities) {
     this.cities = cities;
   }
@@ -41,7 +42,7 @@ public class TestRunner extends Thread
 
     if (printMsgs)
       System.out.println("Building tree of size " + cities);
-    
+
     long start0 = System.currentTimeMillis();*/
     Tree_tsp  t = Tree_tsp.buildTree(this.cities, false, 0.0f, 1.0f, 0.0f, 1.0f);
     /*long end0 = System.currentTimeMillis();
@@ -107,7 +108,7 @@ public class TestRunner extends Thread
     int ncities = 4080*2;
     for(int i = 0; i < threadnum; ++i) {
       TestRunner tr = new TestRunner(ncities);
-      tr.run();
+      tr.start();
     }
   }
 }

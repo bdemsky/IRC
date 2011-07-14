@@ -1,4 +1,4 @@
-
+package voronoi;
 
 /**
  * A class that represents a wrapper around a double value so 

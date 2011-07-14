@@ -1,3 +1,4 @@
+package bh;
 
 //import java.util.Enumeration;
 
@@ -8,7 +9,7 @@
 class Tree
 {
   public double DTIME; 
-  
+
   MathVector rmin;
   public double     rsize;
   /**
@@ -38,7 +39,7 @@ class Tree
     rmin.value(0, -2.0);
     rmin.value(1, -2.0);
     rmin.value(2, -2.0);
-    
+
     this.DTIME = DTIME;
   }
 
@@ -87,7 +88,7 @@ class Tree
     double res = xl + (xh-xl)*r/2147483647.0;
     return res;
   }
-  
+
   /**
    * Create the testdata used in the benchmark.
    * @param nbody the number of bodies to create
@@ -188,7 +189,7 @@ class Tree
     this.root = null;
 
     makeTree(nstep);
-    
+
     Body next = null;
     Body b = this.bodyTabRev;
     do {
@@ -270,7 +271,7 @@ class Tree
     MathVector dacc = new MathVector();
     MathVector dvel = new MathVector();
     double dthf = 0.5 * this.DTIME;
-    
+
     Body b = p;
     do {
       MathVector acc1 = (MathVector)b.newAcc.clone();
@@ -291,7 +292,7 @@ class Tree
       b.pos = (MathVector)dpos.clone();
       vel1.addition(dvel);
       b.vel = (MathVector)vel1.clone();
-      
+
       b = b.getProcNext();
     } while(b != null);
   }

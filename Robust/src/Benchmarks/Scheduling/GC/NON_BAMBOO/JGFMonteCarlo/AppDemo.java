@@ -1,3 +1,4 @@
+package JGFMonteCarlo;
 
 /**************************************************************************
  *                                                                         *
@@ -33,7 +34,7 @@
  * </ol>
  *
  * @author H W Yau
- * @version $Revision: 1.1 $ $Date: 2011/07/13 23:49:52 $
+ * @version $Revision: 1.2 $ $Date: 2011/07/14 21:28:29 $
  */
 public class AppDemo {
 

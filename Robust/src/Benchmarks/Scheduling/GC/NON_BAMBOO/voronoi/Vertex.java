@@ -1,4 +1,4 @@
-
+package voronoi;
 
 /**
  * A class that represents a voronoi diagram.  The diagram is represnted
@@ -33,7 +33,7 @@ class Vertex extends Vec2
   {
     left = l;
   }
-  
+
   public void setRight(Vertex r)
   {
     right = r;
@@ -43,7 +43,7 @@ class Vertex extends Vec2
   {
     return left;
   }
-  
+
   public Vertex getRight()
   {
     return right;
@@ -68,7 +68,7 @@ class Vertex extends Vec2
     cur.right = right;
     curmax.value = (float)cur.X();
     Vertex left = cur.createPoints(n/2, curmax, i-1);
-    
+
     cur.left = left;
     return cur;
   }
@@ -100,7 +100,7 @@ class Vertex extends Vec2
 
       Edge e = new Edge();
       retval = e.doMerge(delleft.getLeft(), delleft.getRight(), 
-			    delright.getLeft(), delright.getRight());
+          delright.getLeft(), delright.getRight());
 
       Edge ldo = retval.getLeft();
       while (ldo.orig() != minx) { 
@@ -146,7 +146,7 @@ class Vertex extends Vec2
   /*void print()
   {
     Vertex tleft, tright;
-    
+
     System.out.println("X=" + X() + " Y=" + Y());
     if (left == null)
       System.out.println("NULL");
@@ -165,17 +165,17 @@ class Vertex extends Vec2
   {
     Vertex temp;
     Vertex tree = this;
-    
+
     while ((temp=tree.getLeft()) != null)
       tree = temp;
     return tree;
   } 
-  
+
   /****************************************************************/
   /*	Geometric primitives
-  ****************************************************************/
+   ****************************************************************/
   boolean incircle(Vertex b, Vertex c, Vertex d)
-    /* incircle, as in the Guibas-Stolfi paper. */
+  /* incircle, as in the Guibas-Stolfi paper. */
   {
     float adx, ady, bdx, bdy, cdx, cdy, dx, dy, anorm, bnorm, cnorm, dnorm;
     float dret ;
@@ -195,14 +195,14 @@ class Vertex extends Vec2
     dret += (float)((cnorm - dnorm) * (adx * bdy - ady * bdx));
     return( (0.0f < dret) ? true : false );
   }
-  
+
   boolean ccw(Vertex b, Vertex c)
   /* TRUE iff this, B, C form a counterclockwise oriented triangle */
   {
     float dret ;
     float xa,ya,xb,yb,xc,yc;
     Vertex loc_a,loc_b,loc_c;
-	
+
     int donexa,doneya,donexb,doneyb,donexc,doneyc;
 
     loc_a = this;
@@ -253,10 +253,10 @@ class Vertex extends Vec2
   {
     this.seed = this.random(this.seed);
     float retval = ((float)this.seed) /
-      (float) 2147483647;
+        (float) 2147483647;
     return retval;
   }
-  
+
 }
 
- 
+

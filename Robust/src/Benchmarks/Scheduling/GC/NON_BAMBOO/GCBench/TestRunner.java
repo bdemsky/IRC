@@ -1,3 +1,5 @@
+package GCBench;
+
 //This is adapted from a benchmark written by John Ellis and Pete Kovac
 //of Post Communications.
 //It was modified by Hans Boehm of Silicon Graphics.
@@ -43,7 +45,7 @@
 //- Results are sensitive to locking cost, but we dont
 //check for proper locking
 
-public class TestRunner  extends Thread {
+public class TestRunner extends Thread {
 
   public static final int kStretchTreeDepth = 16; // about 4Mb
   public static final int kLongLivedTreeDepth = 14;  // about 1Mb
@@ -144,19 +146,12 @@ public class TestRunner  extends Thread {
       System.out.println((int)(array[1000]*1000000));
     }
   }
-  
-  class Node {
-    Node left, right;
-    int i, j;
-    Node(Node l, Node r) { left = l; right = r; }
-    Node() { }
-  }
-  
+
   public static void main(String[] args) {
     int threadnum = 62;
     for(int i = 0; i < threadnum; ++i) {
       TestRunner tr = new TestRunner();
-      tr.run();
+      tr.start();
     }
   }
 } // class JavaGC

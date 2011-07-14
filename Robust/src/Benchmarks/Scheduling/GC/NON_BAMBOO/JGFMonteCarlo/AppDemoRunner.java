@@ -1,4 +1,6 @@
-class AppDemoRunner {
+package JGFMonteCarlo;
+
+public class AppDemoRunner extends Thread {
 
   public String header;
   public String name;
@@ -61,6 +63,7 @@ class AppDemoRunner {
       results.addElement(ps.getResult());
     }
   }
+
   public static void main(String[] args) {
     int datasize = 10000;  //should be times of 2
     int nruns = 62 * 62;  //16 * 16;
@@ -71,7 +74,7 @@ class AppDemoRunner {
 
     for(int i = 0; i < group; i++) {
       AppDemoRunner adr = new AppDemoRunner(i, nruns, group, ad);
-      adr.run();
+      adr.start();
     }
   }
 }

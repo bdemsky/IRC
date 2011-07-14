@@ -1,3 +1,5 @@
+package RayTracer;
+
 public class Composer {
 
   int numCore;
@@ -8,7 +10,7 @@ public class Composer {
   public long result1;
 
   public Composer(int numCore,
-                  int size) {
+      int size) {
     this.numCore = numCore;
     this.num_composed = 0;
     heightPerCore = size/this.numCore;
@@ -18,7 +20,7 @@ public class Composer {
     this.result = 0;
     this.result1 = 0;
   }
-  
+
   public boolean compose(TestRunner tr) {
     this.num_composed++;
     int startidx=0; //heightPerCore * tr.id;

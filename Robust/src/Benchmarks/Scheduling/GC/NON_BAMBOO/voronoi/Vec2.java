@@ -1,4 +1,4 @@
-
+package voronoi;
 
 /**
  * Vector Routines from CMU vision library.  
@@ -11,7 +11,7 @@ class Vec2
   float norm;
 
   public Vec2() {}
-  
+
   public Vec2(float xx, float yy) 
   {
     x = xx;
@@ -33,7 +33,7 @@ class Vec2
   {
     return norm;
   }
-  
+
   public void setNorm(float d)
   {
     norm = d;
@@ -99,10 +99,10 @@ class Vec2
 
   Vec2 sub(Vec2 v)
   {
-     return(new Vec2((float)(x - v.x), (float)(y - v.y)));
+    return(new Vec2((float)(x - v.x), (float)(y - v.y)));
   }
 
-/* V2_magn: magnitude of vector */
+  /* V2_magn: magnitude of vector */
 
   float magn()
   {
@@ -118,4 +118,4 @@ class Vec2
 }
 
 
- 
+

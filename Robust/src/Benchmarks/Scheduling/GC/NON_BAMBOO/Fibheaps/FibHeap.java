@@ -1,38 +1,40 @@
+package Fibheaps;
+
 public class FibHeap {
 
   public int degree;
   public TaggedTree ttree;
   public Vector forest;
-  
+
   public FibHeap() {
     this.degree = 0;
     this.ttree = null;
     this.forest = null;
   }
-  
+
   public FibHeap(int degree,
-                 TaggedTree ttree,
-                 Vector forest) {
+      TaggedTree ttree,
+      Vector forest) {
     this.degree = degree;
     this.ttree = ttree;
     this.forest = forest;
   }
-  
+
   public boolean isEmpty() {
     return this.degree == 0;
   }
-  
+
   public int minFH() {
     return this.ttree.tree.root;
   }
-  
+
   public FibHeap insertFH(int x) {
     TaggedTree tt = new TaggedTree(0, new Tree(x, null));
     FibHeap fh = new FibHeap(1, tt, null);
-    
+
     return this.meldFH(fh);
   }
-  
+
   public FibHeap meldFH(FibHeap fh) {
     if(this.isEmpty()) {
       return fh;
@@ -59,9 +61,9 @@ public class FibHeap {
       return new FibHeap(fh.degree+this.degree, root, forest);
     }
   }
-  
+
   private void insert(Vector a,
-                      TaggedTree tt) {
+      TaggedTree tt) {
     int index = tt.degree;
     if(a.elementAt(index) == null) {
       a.setElementAt(tt.tree, index);
@@ -74,13 +76,13 @@ public class FibHeap {
       insert(a, itt);
     }
   }
-  
+
   private FibHeap getMin_t(Vector a,
-                           int mini,
-                           Tree mint,
-                           Vector b,
-                           int i,
-                           int d) {
+      int mini,
+      Tree mint,
+      Vector b,
+      int i,
+      int d) {
     if(i >= d) {
       return new FibHeap(this.degree-1, new TaggedTree(mini, mint), b);
     } else {
@@ -98,7 +100,7 @@ public class FibHeap {
       }
     }
   }
-  
+
   private int locallog(int n) {
     if(n == 1) {
       return 0;
@@ -106,7 +108,7 @@ public class FibHeap {
       return 1 + locallog(n/2);  
     }
   }
-  
+
   public FibHeap deleteMinFH() {
     if(this.isEmpty()) {
       // error here
@@ -144,11 +146,11 @@ public class FibHeap {
       return getMin_t(a, d, test, new Vector(), 0, d);
     }
   }
-  
+
   private Vector combine(int index,
-                         Vector ts,
-                         Vector next,
-                         Vector rest) {
+      Vector ts,
+      Vector next,
+      Vector rest) {
     if(ts.size() == 0) {
       return startup(index+1, next, rest);
     } else if (ts.size() == 1) {
@@ -166,10 +168,10 @@ public class FibHeap {
       return combine(index, nts, next, rest);
     }
   }
-  
+
   private Vector startup(int index,
-                         Vector ts,
-                         Vector rest) {
+      Vector ts,
+      Vector rest) {
     if(ts.size() == 0) {
       if(rest.size() == 0) {
         return new Vector();
@@ -194,9 +196,9 @@ public class FibHeap {
       }
     }
   }
-  
+
   private FibHeap chooseMin(FibHeap fh,
-                            TaggedTree tt) {
+      TaggedTree tt) {
     FibHeap rfh = null;
     if(fh.ttree.tree.root <= tt.tree.root) {
       fh.forest.insertElementAt(tt, 0);
@@ -207,7 +209,7 @@ public class FibHeap {
     }
     return rfh;
   }
-  
+
   public FibHeap deleteMinFH_t() {
     if(this.isEmpty()) {
       // error here
@@ -243,7 +245,7 @@ public class FibHeap {
       na.addElement(a.elementAt(i));
     }
     Vector vvec = startup(0, ts, na);
-    
+
     // getMin()
     TaggedTree rtt = (TaggedTree)vvec.elementAt(0);
     FibHeap rfh = new FibHeap(this.degree-1, rtt, new Vector());

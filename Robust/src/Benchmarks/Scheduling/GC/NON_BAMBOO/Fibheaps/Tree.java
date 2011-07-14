@@ -1,15 +1,17 @@
+package Fibheaps;
+
 // the bionomial class
 public class Tree {
   public int root;
   public Vector v_trees;
-  
+
   public Tree() {
     this.root = 0;
     this.v_trees = null;
   }
-  
+
   public Tree(int root,
-              Vector trees) {
+      Vector trees) {
     this.root = root;
     this.v_trees = trees;
   }
@@ -39,18 +41,18 @@ public class Tree {
 public class TaggedTree {
   public int degree;
   public Tree tree;
-  
+
   public TaggedTree() {
     this.degree = 0;
     this.tree = null;
   }
-  
+
   public TaggedTree(int degree,
-                    Tree tree) {
+      Tree tree) {
     this.degree = degree;
     this.tree = tree;
   }
-  
+
   public Vector getChildren() {
     Vector rst = new Vector();
     Vector v = tree.v_trees;

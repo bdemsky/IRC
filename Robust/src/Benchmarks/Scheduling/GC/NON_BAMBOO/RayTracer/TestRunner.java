@@ -1,3 +1,5 @@
+package RayTracer;
+
 /**************************************************************************
  * * Java Grande Forum Benchmark Suite - Version 2.0 * * produced by * * Java
  * Grande Benchmarking Project * * at * * Edinburgh Parallel Computing Centre *
@@ -83,10 +85,7 @@ public class TestRunner extends RayTracer {
     Scene scene = rt.createScene();
     for(int i = 0; i < threadnum; ++i) {
       TestRunner tr = new TestRunner(i, threadnum, size, scene);
-      tr.run();
-      if(comp.compose(tr)) {
-        long r = comp.result;
-      }
+      tr.start();
     }
   }
 }

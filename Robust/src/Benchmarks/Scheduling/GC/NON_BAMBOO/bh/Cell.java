@@ -1,3 +1,4 @@
+package bh;
 
 /**
  * A class used to represent internal nodes in the tree

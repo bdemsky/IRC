@@ -1,3 +1,5 @@
+package RayTracer;
+
 /**************************************************************************
  *                                                                         *
  *             Java Grande Forum Benchmark Suite - Version 2.0             *
@@ -130,9 +132,9 @@ public class Vec
 
   public static Vec cross(Vec a, Vec b) {
     return
-    new Vec(a.y*b.z - a.z*b.y,
-        a.z*b.x - a.x*b.z,
-        a.x*b.y - a.y*b.x);
+        new Vec(a.y*b.z - a.z*b.y,
+            a.z*b.x - a.x*b.z,
+            a.x*b.y - a.y*b.x);
   }
 
   public static float dot(Vec a, Vec b) {
@@ -141,9 +143,9 @@ public class Vec
 
   public static Vec comb(float a, Vec A, float b, Vec B) {
     return
-    new Vec(a * A.x + b * B.x,
-        a * A.y + b * B.y,
-        a * A.z + b * B.z);
+        new Vec(a * A.x + b * B.x,
+            a * A.y + b * B.y,
+            a * A.z + b * B.z);
   }
 
   public final void comb2(float a,Vec A,float b,Vec B) {

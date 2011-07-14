@@ -1,3 +1,4 @@
+package bh;
 
 /**
  * A class representing a three dimensional vector that implements

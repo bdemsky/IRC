@@ -1,5 +1,7 @@
+package Fibheaps;
+
 // the fibheap class
-public class TestRunner {
+public class TestRunner extends Thread {
 
   public TestRunner() {}
 
@@ -60,7 +62,7 @@ public class TestRunner {
     int threadnum = 62;
     for(int i = 0; i < threadnum; ++i) {
       TestRunner tr = new TestRunner();
-      tr.run();
+      tr.start();
     }
   }
 }

@@ -1,4 +1,6 @@
-public class TestRunner {
+package lcss;
+
+public class TestRunner extends Thread {
 
   int[] testargs;
 
@@ -240,7 +242,7 @@ public class TestRunner {
     args[5] = 240;
     for(int i = 0; i < threadnum; ++i) {
       TestRunner tr = new TestRunner(args);
-      tr.run();
+      tr.start();
     }
   }
 }
