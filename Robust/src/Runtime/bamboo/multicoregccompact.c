@@ -413,6 +413,8 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 #ifdef GC_CACHE_ADAPT
   void *origbound=orig->pagebound;
   void *tobound=to->pagebound;
+  //set to the first line so we don't need conditions
+  void *lastflush=(&gcmappingtbl[OBJMAPPINGINDEX(origptr)])&~(BAMBOO_CACHE_LINE_MASK);
 #else
   void *origbound=orig->bound;
   void *tobound=to->bound;
@@ -432,6 +434,9 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 	  to->ptr=toptr;
 	  orig->ptr=origbound;
 	  gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
+#ifdef GC_CACHE_ADAPT
+	  BAMBOO_CACHE_FLUSH_LINE(lastflush);
+#endif
 	  return 0;
 	}
       } while(!gcmarktbl[arrayoffset]);
@@ -467,12 +472,25 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
 	gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
 	to->ptr=toptr;
 	orig->ptr=origptr;
+#ifdef GC_CACHE_ADAPT
+	BAMBOO_CACHE_FLUSH_LINE(lastflush);
+#endif
 	return length;
       }
       //good to move objects and update pointers
       
-      gcmappingtbl[OBJMAPPINGINDEX(origptr)]=toptr;
-      
+      void ** mapptr=&gcmappingtbl[OBJMAPPINGINDEX(origptr)];
+      *mapptr=toptr;
+
+#ifdef GC_CACHE_ADAPT
+      void *maskmapptr=mapptr&~(BAMBOO_CACHE_LINE_MASK);
+
+      if (lastflush!=maskmapptr) {
+	BAMBOO_CACHE_FLUSH_LINE(lastflush);
+	lastflush=maskmapptr;
+      }
+#endif
+
       origptr+=length;
       toptr=endtoptr;
     } else
@@ -481,6 +499,9 @@ unsigned int compactblocks(struct moveHelper * orig, struct moveHelper * to) {
   to->ptr=toptr;
   orig->ptr=origptr;
   gccurr_heaptop-=(unsigned INTPTR)(toptr-toptrinit);
+#ifdef GC_CACHE_ADAPT
+  BAMBOO_CACHE_FLUSH_LINE(lastflush);
+#endif
   return 0;
 }
 
@@ -493,6 +514,9 @@ void compact() {
   initOrig_Dst(&orig, &to);
 
   compacthelper(&orig, &to);
+#ifdef GC_CACHE_ADAPT
+  BAMBOO_CACHE_MF();
+#endif
 } 
 
 void master_compact() {
