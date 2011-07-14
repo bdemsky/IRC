@@ -307,7 +307,10 @@ void handleOneMemoryRequest(int core, unsigned int lowestblock) {
 	//taken care of one block
 	gcmovepending--;
 	void *startaddr=blockptr+usedspace;
-	if(BAMBOO_CHECK_SEND_MODE()) {
+	if (core==STARTUPCORE) {
+	  gctomove=true;
+	  gcmovestartaddr=startaddr;
+	} else if(BAMBOO_CHECK_SEND_MODE()) {
 	  cache_msg_2_I(core,GCMOVESTART,startaddr);
 	} else {
 	  send_msg_2_I(core,GCMOVESTART,startaddr);
@@ -560,7 +563,7 @@ void master_compact() {
   // compact phase
   compact();
   /* wait for all cores to finish compacting */
-  
+  GC_PRINTF("master finished\n");
 
   while(!gc_checkCoreStatus())
     ;
