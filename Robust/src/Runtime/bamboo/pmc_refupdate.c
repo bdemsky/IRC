@@ -327,7 +327,7 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
       if (forwardptr) {
 	//tprintf("Compacting %x\n",tmpptr);
 	//	memmove(forwardptr, tmpptr, size);
-	memforward(forwardptr, tmpptr, size);
+	moveforward(forwardptr, tmpptr, size);
       }
       tmpptr+=size;
     }
@@ -345,7 +345,7 @@ void pmc_compact(struct pmc_region * region, int forward, void *bottomptr, void 
       ((struct ___Object___ *) lastobj)->marked=NULL;
       //tprintf("Compacting %x\n",lastobj);
       //memmove(forwardptr, lastobj, size);
-      membackward(forwardptr, lastobj, size);
+      movebackward(forwardptr, lastobj, size);
     }
   }
 }
