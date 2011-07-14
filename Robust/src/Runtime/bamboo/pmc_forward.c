@@ -21,6 +21,8 @@ void pmc_count() {
 void pmc_countbytes(struct pmc_unit * unit, void *bottomptr, void *topptr) {
   void *tmpptr=bottomptr;
   unsigned int totalbytes=0;
+  void * lastunmarked=NULL;
+  bool padokay=false;
   while(tmpptr<topptr) {
     unsigned int type;
     unsigned int size;
@@ -31,8 +33,18 @@ void pmc_countbytes(struct pmc_unit * unit, void *bottomptr, void *topptr) {
       continue;
     }
     size=((size-1)&(~(ALIGNMENTSIZE-1)))+ALIGNMENTSIZE;
-    if (((struct ___Object___ *)tmpptr)->marked)
+    if (((struct ___Object___ *)tmpptr)->marked) {
+      if (lastunmarked!=NULL) {
+	if (padokay)
+	  padspace(lastunmarked, (unsigned INTPTR) (tmpptr-lastunmarked));
+	padokay=false;
+	lastunmarked=NULL;
+      }
       totalbytes+=size;
+    } else if (lastunmarked!=NULL)
+      lastunmarked=tmpptr;
+    else
+      padokay=true;
     tmpptr+=size;
   }
   unit->numbytes=totalbytes;

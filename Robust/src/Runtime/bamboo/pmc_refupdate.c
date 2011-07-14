@@ -245,8 +245,8 @@ void movebackward(void *dstptr, void *origptr, unsigned int length) {
   void *endtoptr=dstptr+length;
 
   if(origptr < endtoptr&&dstptr < origptr+length) {
-    unsigned int *sptr=origptr+length;
-    unsigned int *dptr=endtoptr;
+    unsigned int *sptr=origptr+length-4;
+    unsigned int *dptr=endtoptr-4;
     unsigned int len=length;
     //we will never have an object of size 0....
     
