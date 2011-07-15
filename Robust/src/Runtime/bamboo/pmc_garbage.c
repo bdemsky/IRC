@@ -46,9 +46,11 @@ void pmc_onceInit() {
 	pmc_heapptr->regions[i].lastptr=pmc_heapptr->units[i*4-1].endptr;
       pmc_heapptr->regions[i].lowunit=4*i;
       pmc_heapptr->regions[i].highunit=4*(i+1);
-      pmc_heapptr->regions[i+1].lastptr=pmc_heapptr->units[(i+1)*4+3].endptr;
-      pmc_heapptr->regions[i+1].lowunit=4*(i+1);
-      pmc_heapptr->regions[i+1].highunit=4*(i+2);
+      if ((i+1)<NUMCORES4GC) {
+	pmc_heapptr->regions[i+1].lastptr=pmc_heapptr->units[(i+1)*4+3].endptr;
+	pmc_heapptr->regions[i+1].lowunit=4*(i+1);
+	pmc_heapptr->regions[i+1].highunit=4*(i+2);
+      }
     }
     //for(int i=0;i<NUMCORES4GC;i++) {
       //tprintf("%u lastptr=%x\n", i, pmc_heapptr->regions[i].lastptr);
@@ -61,7 +63,7 @@ void pmc_init() {
     pmc_heapptr->numthreads=NUMCORES4GC;
     for(int i=0;i<NUMCORES4GC;i+=2) {
       void *startptr=pmc_heapptr->regions[i].lastptr;
-      void *finishptr=pmc_heapptr->regions[i+1].lastptr;
+      void *finishptr=(i+1)<NUMCORES4GC?pmc_heapptr->regions[i+1].lastptr:pmc_heapptr->regions[i].endptr;
       struct pmc_region *region=&pmc_heapptr->regions[i];
       unsigned int startindex=region->lowunit;
       unsigned int endindex=pmc_heapptr->regions[i+1].highunit;
