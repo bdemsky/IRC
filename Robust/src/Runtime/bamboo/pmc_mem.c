@@ -22,7 +22,7 @@ void * pmc_alloc(unsigned int * numbytesallocated, unsigned int minimumbytes) {
 	if ((finishptr-startptr)<memcheck)
 	  break;
 	unsigned int startindex=region->lowunit;
-	unsigned int endindex=pmc_heapptr->regions[i+1].highunit;
+	unsigned int endindex=(i+1)<NUMCORES4GC?pmc_heapptr->regions[i+1].highunit:pmc_heapptr->regions[i].highunit;
 	void * newstartptr=startptr+memcheck;
 	
 	//update unit end points
