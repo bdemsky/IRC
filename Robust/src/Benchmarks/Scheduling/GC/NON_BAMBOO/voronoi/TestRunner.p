@@ -44,8 +44,9 @@ public class TestRunner extends Thread
   }
 
   public static void main(String[] args) {
-    int threadnum = 62;
+    int threadnum = THREADNUM;
     int npoints = 32000;
+    System.setgcprofileflag();
     for(int i = 0; i < threadnum; ++i) {
       TestRunner tr = new TestRunner(npoints);
       tr.start();

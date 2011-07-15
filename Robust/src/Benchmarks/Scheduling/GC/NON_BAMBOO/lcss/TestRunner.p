@@ -232,7 +232,7 @@ public class TestRunner extends Thread {
     }
   }
   public static void main(String argv[]){
-    int threadnum = 62;
+    int threadnum = THREADNUM;
     int[] args = new int[6];
     args[0] = 1;
     args[1] = 2;
@@ -240,6 +240,7 @@ public class TestRunner extends Thread {
     args[3] = 80;
     args[4] = 81;
     args[5] = 240;
+    System.setgcprofileflag();
     for(int i = 0; i < threadnum; ++i) {
       TestRunner tr = new TestRunner(args);
       tr.start();

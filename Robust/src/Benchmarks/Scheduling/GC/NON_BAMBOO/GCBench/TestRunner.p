@@ -148,7 +148,8 @@ public class TestRunner extends Thread {
   }
 
   public static void main(String[] args) {
-    int threadnum = 62;
+    int threadnum = THREADNUM;
+    System.setgcprofileflag();
     for(int i = 0; i < threadnum; ++i) {
       TestRunner tr = new TestRunner();
       tr.start();

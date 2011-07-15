@@ -104,8 +104,9 @@ public class TestRunner extends Thread
     System.exit(0);
   }*/
   public static void main(String[] args) {
-    int threadnum = 62;
+    int threadnum = THREADNUM;
     int ncities = 4080*2;
+    System.setgcprofileflag();
     for(int i = 0; i < threadnum; ++i) {
       TestRunner tr = new TestRunner(ncities);
       tr.start();
