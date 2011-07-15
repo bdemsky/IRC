@@ -298,7 +298,7 @@
 	/**
 	 * Class for layer I subbands in joint stereo mode.
 	 */
-        @LATTICE("L<H,H<SH,SH*")
+     @LATTICE("S<L,L<H,H<SH,SH*")
 	@METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=V,GLOBALLOC=IN")
 	static class SubbandLayer1IntensityStereo extends SubbandLayer1
 	{
@@ -376,7 +376,7 @@
 	
 	/**
 	 * Class for layer I subbands in stereo mode.
-	 */
+	 */     
      @LATTICE("S<L,L<H,H<SH,SH*,S*")
 	@METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=V,GLOBALLOC=IN")
 	static class SubbandLayer1Stereo extends SubbandLayer1
@@ -439,12 +439,12 @@
 	  @RETURNLOC("OUT")
 	  public boolean read_sampledata (@LOC("IN")Bitstream stream)
 	  {
-	     boolean returnvalue = super.read_sampledata(stream);
+	     @LOC("OUT") boolean returnvalue = super.read_sampledata(stream);
 	     if (channel2_allocation != 0)
 	     {
 		    channel2_sample = (float) (stream.get_bits(channel2_samplelength));
 	      }
-	    return(returnvalue);
+	    return returnvalue;
 	  }
 	  
 	  /**

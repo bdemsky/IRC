@@ -276,7 +276,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     @LOC("THIS,LayerIIIDecoder.D3") int sb;
     @LOC("THIS,LayerIIIDecoder.D2") int sb18;
     @LOC("MAIN") int main_data_end;
-    @LOC("BYTES") int bytes_to_discard;
+    @LOC("BYTE") int bytes_to_discard;
     @LOC("VAR") int i;
 
     get_side_info();
@@ -800,7 +800,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LOC("LY") int[] w = { 0 };
 
   @LATTICE("H<I,I<R,R<B1,B1<B,B<THIS,THIS<IN,I*,THISLOC=THIS,GLOBALLOC=IN")
-  private void huffman_decode(int ch, int gr) {
+  private void huffman_decode(@LOC("IN") int ch, @LOC("IN") int gr) {
     x[0] = 0;
     y[0] = 0;
     v[0] = 0;
@@ -810,7 +810,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     @LOC("THIS,LayerIIIDecoder.HD2") int num_bits;
     @LOC("R") int region1Start;
     @LOC("R") int region2Start;
-    @LOC("HD3") int index;
+    @LOC("THIS,LayerIIIDecoder.HD3") int index;
 
     @LOC("B") int buf;
     @LOC("B1") int buf1;
@@ -1179,8 +1179,8 @@ final class LayerIIIDecoder implements FrameDecoder {
 
   @LATTICE("IO<THIS,THIS<IN,THISLOC=THIS,GLOBALLOC=IN") 
   private void stereo(@LOC("IN") int gr) {
-    @LOC("SH") int sb;
-    @LOC("SH") int ss;
+    @LOC("THIS,LayerIIIDecoder.SH") int sb;
+    @LOC("THIS,LayerIIIDecoder.SH") int ss;
 
     if (channels == 1) { // mono , bypass xr[0][][] to lr[0][][]
 
@@ -1464,7 +1464,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   /**
 	 *
 	 */
-  @LATTICE("THIS<SRC<SS,SS<SB18,SB18<SB18LIM,SB18LIM<GR,GR<IN,SB18*,SS*,THISLOC=THIS")
+  @LATTICE("THIS<SRC,SRC<SS,SS<SB18,SB18<SB18LIM,SB18LIM<GR,GR<IN,SB18*,SS*,THISLOC=THIS")
   private void antialias(@LOC("IN") int ch, @LOC("IN") int gr) {
     @LOC("SB18") int sb18;
     @LOC("SS") int ss;
@@ -1489,7 +1489,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 	@LOC("SRC") int src_idx1 = sb18 + 17 - ss;
         @LOC("SRC") int src_idx2 = sb18 + 18 + ss;
         @LOC("THIS,LayerIIIDecoder.O") float bu = out_1d[src_idx1];
-        @LOC("THIS,LayerIIIDecoder.0") float bd = out_1d[src_idx2];
+        @LOC("THIS,LayerIIIDecoder.O") float bd = out_1d[src_idx2];
         out_1d[src_idx1] = (bu * cs[ss]) - (bd * ca[ss]);
         out_1d[src_idx2] = (bd * cs[ss]) + (bu * ca[ss]);
       }

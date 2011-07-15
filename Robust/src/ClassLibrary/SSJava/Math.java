@@ -1,5 +1,5 @@
 @LATTICE("B<T")
-@METHODDEFAULT("OUT<IN")
+@METHODDEFAULT("OUT<IN,THISLOC=IN")
 public class Math {
   @LOC("T") static final double PI=3.14159265358979323846;
 
@@ -101,7 +101,9 @@ public class Math {
   public static native double exp(double a);
   public static native double sqrt(double a);
   public static native double log(double a);
-  public static native double pow(double a, double b);
+  
+  @RETURNLOC("OUT")
+  public static native double pow(@LOC("IN") double a, @LOC("IN")  double b);
 
   public static native double ceil(double a);
   public static native double floor(double a);

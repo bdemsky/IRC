@@ -159,9 +159,10 @@ final class SynthesisFilter
 	  samples[subbandnumber] = eq[subbandnumber]*sample;
   }
 
-  public void input_samples(@LOC("V") float[] s)
+  @LATTICE("TH<IN,IN<C,C*,THISLOC=TH")
+  public void input_samples(@LOC("IN") float[] s)
   {
-	  for (int i=31; i>=0; i--)
+	  for (@LOC("C") int i=31; i>=0; i--)
 	  {		
 		 samples[i] = s[i]*eq[i];
 	  }

@@ -1058,7 +1058,7 @@ public class FlowDownCheck {
         return destLocation;
       }
       srcLocation = new CompositeLocation();
-      System.out.println("checkLocationFromExpressionNode="+an.getSrc().printNode(0));
+      System.out.println("checkLocationFromExpressionNode=" + an.getSrc().printNode(0));
       srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
       // System.out.println(" an= " + an.printNode(0) + " an.getSrc()=" +
       // an.getSrc().getClass()
@@ -1148,19 +1148,28 @@ public class FlowDownCheck {
     return deltaLoc;
   }
 
-  private Location parseFieldLocDeclaraton(String decl) {
+  private Location parseFieldLocDeclaraton(String decl, String msg) {
 
     int idx = decl.indexOf(".");
     String className = decl.substring(0, idx);
     String fieldName = decl.substring(idx + 1);
+    
+    className.replaceAll(" ", "");
+    fieldName.replaceAll(" ", "");
 
     Descriptor d = state.getClassSymbolTable().get(className);
+
+    if (d == null) {
+      System.out.println("className="+className+" to d="+d);
+      throw new Error("The class in the location declaration '" + decl + "' does not exist at "
+          + msg);
+    }
 
     assert (d instanceof ClassDescriptor);
     SSJavaLattice<String> lattice = ssjava.getClassLattice((ClassDescriptor) d);
     if (!lattice.containsKey(fieldName)) {
       throw new Error("The location " + fieldName + " is not defined in the field lattice of '"
-          + className + "'.");
+          + className + "' at "+msg);
     }
 
     return new Location(d, fieldName);
@@ -1196,7 +1205,8 @@ public class FlowDownCheck {
     for (int i = 1; i < locIdList.size(); i++) {
       String locName = locIdList.get(i);
 
-      Location fieldLoc = parseFieldLocDeclaraton(locName);
+      Location fieldLoc =
+          parseFieldLocDeclaraton(locName, generateErrorMessage(md.getClassDesc(), n));
       // ClassDescriptor cd = fieldLocName2cd.get(locName);
       // SSJavaLattice<String> fieldLattice =
       // CompositeLattice.getLatticeByDescriptor(cd);

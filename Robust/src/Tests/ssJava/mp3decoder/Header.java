@@ -353,6 +353,7 @@ public final class Header
 	/**
 	 * Returns version.
 	 */
+     @RETURNLOC("THIS")
 	public int version() { return h_version; }
 
 	/**
@@ -364,6 +365,7 @@ public final class Header
 	/**
 	 * Returns bitrate index.
 	 */
+	@RETURNLOC("THIS")
 	public int bitrate_index() { return h_bitrate_index; }
 
 	/**
@@ -379,6 +381,7 @@ public final class Header
 	/**
 	 * Returns Mode.
 	 */
+	@RETURNLOC("THIS")
 	public int mode() { return h_mode; }
 
 	/**
@@ -422,6 +425,7 @@ public final class Header
 	 * Returns Checksum flag.
 	 * Compares computed checksum with stream checksum.
 	 */
+	@RETURNLOC("THIS")
 	public boolean checksum_ok () { return (checksum == crc.checksum()); }
 
 	// Seeking and layer III stuff
@@ -437,11 +441,13 @@ public final class Header
 	/**
 	 * Returns Slots.
 	 */
+	@RETURNLOC("THIS")
 	public int slots() { return nSlots; }
 
 	/**
 	 * Returns Mode Extension.
 	 */
+	@RETURNLOC("THIS")
 	public int mode_extension() { return h_mode_extension; }
 
 	// E.B -> private to public
@@ -756,6 +762,7 @@ public final class Header
 	 * Returns the number of subbands in the current frame.
 	 * @return number of subbands
 	 */
+	@RETURNLOC("THIS")
 	public int number_of_subbands() {return h_number_of_subbands;}
 
 	/**
@@ -765,5 +772,6 @@ public final class Header
 	 * subbands above that limit are in intensity stereo mode.
 	 * @return intensity
 	 */
+	@RETURNLOC("THIS")
 	public int intensity_stereo_bound() {return h_intensity_stereo_bound;}
 }

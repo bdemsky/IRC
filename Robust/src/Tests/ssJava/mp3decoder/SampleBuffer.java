@@ -94,7 +94,7 @@ public class SampleBuffer extends Obuffer
   @LATTICE("D<IN,D<C,THISLOC=D")
   public void appendSamples(@LOC("IN") int channel, @LOC("IN") float[] f)
   {
-    @LOC("D, SampleBuffer.BUFP") int pos = bufferp[channel]; 
+    @LOC("D,SampleBuffer.BUFP") int pos = bufferp[channel]; 
     // LOC(bufferp[channel])=[D,SampleBuffer.BUFP]
     // LOC(pos)=[D,SampleBuffer.BUFP]
 

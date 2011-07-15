@@ -64,7 +64,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	
 	protected void readScaleFactorSelection()
 	{
-	      for (@LOC("V,layerIIDecoder.SH") int i = 0; i < num_subbands; ++i)
+	      for (@LOC("V,LayerIIDecoder.SH") int i = 0; i < num_subbands; ++i)
   		  ((SubbandLayer2)subbands[i]).read_scalefactor_selection(stream, crc);		
 	}
 	
@@ -73,7 +73,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	 /**
 	  * Class for layer II subbands in single channel mode.
 	  */
-        @LATTICE("L<H,L<ARR,ARR<F,SN<F,GN<F,F<H,SN*,GN*")
+     @LATTICE("S<L,L<H,L<ARR,ARR<F,SN<F,GN<F,F<H,H<SH,SN*,GN*")
 	@METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 	static class SubbandLayer2 extends Subband
 	{
@@ -729,6 +729,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
+       @RETURNLOC("THIS")
 	  public boolean put_next_sample(@LOC("IN") int channels, @LOC("IN") SynthesisFilter filter1, @LOC("IN") SynthesisFilter filter2)
 	  {
 	    if ((allocation != 0) && (channels != OutputChannels.RIGHT_CHANNEL))
@@ -756,7 +757,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	 /**
 	  * Class for layer II subbands in joint stereo mode.
 	  */
-        @LATTICE("L<H,L<ARR,ARR<F,SN<F,GN<F,F<H,SN*,GN*")
+     @LATTICE("S<L,L<H,L<ARR,ARR<F,SN<F,GN<F,F<H,H<SH,SN*,GN*")
 	@METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 	static class SubbandLayer2IntensityStereo extends SubbandLayer2
 	{
@@ -845,7 +846,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-          @LATTICE("S2<S1,S1<THIS,THIS<GLOBAL,S1*,THISLOC=THIS,GLOBALLOC=GLOBAL")
+          @LATTICE("S2<S1,S1<THIS,THIS<GLOBAL,GLOBAL<IN,S1*,THISLOC=THIS,GLOBALLOC=GLOBAL")
 	  @RETURNLOC("S2")
 	  public boolean put_next_sample(@LOC("IN") int channels, @LOC("IN") SynthesisFilter filter1, @LOC("IN") SynthesisFilter filter2)
 	  {
@@ -908,7 +909,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	 /**
 	  * Class for layer II subbands in stereo mode.
 	  */
-        @LATTICE("L<H,L<ARR,ARR<F,SN<F,GN<F,F<H,SN*,GN*")
+     @LATTICE("S<L,L<H,L<ARR,ARR<F,SN<F,GN<F,F<H,H<SH,SN*,GN*")
 	@METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 	static class SubbandLayer2Stereo extends SubbandLayer2
 	{
