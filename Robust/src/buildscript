@@ -101,6 +101,10 @@ echo "-gccontroller_remote set the gc shared memory to use a remote controller f
 echo "-gcsmallpagesize(2) set the gc shared memory to use small page size (should be used together with -multicoregc)"
 echo "-gclargepagesize set the gc shared memory to use large page size (should be used together with -multicoregc)"
 echo "-gclargesharedheap(2) set the gc shared memory as large (should be used together with -multicoregc)"
+echo "-tilera_page_size set the page size in multicore code"
+echo "-tilera_page_size_bits set the page size bits in multicore code"
+echo "-tilera_num_blocks set the total number of blocks in multicore code"
+echo "-tilera_num_pages_per_block set the number of pages per block in multicore code"
 echo "-gccacheadapt setup as cacheadaptable mode (should be used together with -multicoregc)"
 echo -gcprofile build with gcprofile options
 echo -mgc generate Multicore GC binary without task stuff
@@ -250,6 +254,10 @@ GCCORES=''
 TILERAN1COREFLAG=false
 TILERA56COREFLAG=false
 TILERAOUTPUTDIR="tilera"
+TILERA_PAGE_SIZE="0x10000"
+TILERA_PAGE_SIZE_BITS="16"
+TILERA_NUM_BLOCKS="20"
+TILERA_NUM_PAGES_PER_BLOCK="16" 
 
 if [[ -z $1 ]]
 then
@@ -464,6 +472,22 @@ JAVAOPTS="$JAVAOPTS -raw"
 elif [[ $1 = '-tilera_output_dir' ]]
 then
 TILERAOUTPUTDIR="$2"
+shift
+elif [[ $1 = '-tilera_page_size' ]]
+then
+TILERA_PAGE_SIZE="$2"
+shift
+elif [[ $1 = '-tilera_page_size_bits' ]]
+then
+TILERA_PAGE_SIZE_BITS="$2"
+shift
+elif [[ $1 = '-tilera_num_blocks' ]]
+then
+TILERA_NUM_BLOCKS="$2"
+shift
+elif [[ $1 = '-tilera_num_pages_per_block' ]]
+then
+TILERA_NUM_PAGES_PER_BLOCK="$2"
 shift
 elif [[ $1 = '-tilera_bme' ]]
 then
@@ -794,6 +818,8 @@ then
 JAVAOPTS="$JAVAOPTS -struct structfile"
 fi
 
+# for tilera code, generate multicorememsize.h
+./generate_memsize.sh ${TILERA_PAGE_SIZE} ${TILERA_PAGE_SIZE_BITS} ${TILERA_NUM_BLOCKS} ${TILERA_NUM_PAGES_PER_BLOCK}
 
 
 #########################
