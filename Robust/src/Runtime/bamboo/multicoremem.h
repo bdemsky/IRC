@@ -68,5 +68,7 @@ void * globalmalloc_I(int coren, unsigned INTPTR memcheck, unsigned INTPTR * all
 void * smemalloc(int coren, unsigned INTPTR isize, unsigned INTPTR * allocsize);
 void * smemalloc_I(int coren, unsigned INTPTR isize, unsigned INTPTR * allocsize);
 
+#warning Block size is BAMBOO_SMEM_SIZE
+#warning Numblocks is BAMBOO_NUM_BLOCKS
 
 #endif // BAMBOO_MULTICORE_MEM_H
