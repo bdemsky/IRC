@@ -409,7 +409,7 @@ public class FlowDownCheck {
       // check if return value is equal or higher than RETRUNLOC of method
       // declaration annotation
       CompositeLocation returnLocAt = md2ReturnLoc.get(md);
-
+      
       if (CompositeLattice.isGreaterThan(returnLocAt, expLoc,
           generateErrorMessage(md.getClassDesc(), rn))) {
         throw new Error(
@@ -701,14 +701,17 @@ public class FlowDownCheck {
         checkLocationFromExpressionNode(md, nametable, tn.getFalseExpr(), new CompositeLocation());
     addLocationType(tn.getFalseExpr().getType(), falseLoc);
 
+    // locations from true/false branches can be TOP when there are only literal values
+    // in this case, we don't need to check flow down rule!
+    
     // check if condLoc is higher than trueLoc & falseLoc
-    if (!CompositeLattice.isGreaterThan(condLoc, trueLoc, generateErrorMessage(cd, tn))) {
+    if (!trueLoc.get(0).isTop() && !CompositeLattice.isGreaterThan(condLoc, trueLoc, generateErrorMessage(cd, tn))) {
       throw new Error(
           "The location of the condition expression is lower than the true expression at "
               + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
     }
 
-    if (!CompositeLattice.isGreaterThan(condLoc, falseLoc, generateErrorMessage(cd, tn.getCond()))) {
+    if (!falseLoc.get(0).isTop() && !CompositeLattice.isGreaterThan(condLoc, falseLoc, generateErrorMessage(cd, tn.getCond()))) {
       throw new Error(
           "The location of the condition expression is lower than the true expression at "
               + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
@@ -1310,6 +1313,7 @@ public class FlowDownCheck {
 
     public static boolean isGreaterThan(CompositeLocation loc1, CompositeLocation loc2, String msg) {
 
+      System.out.println("isGreaterThan="+loc1+" "+loc2+" msg="+msg);
       int baseCompareResult = compareBaseLocationSet(loc1, loc2, true, msg);
       if (baseCompareResult == ComparisonResult.EQUAL) {
         if (compareDelta(loc1, loc2) == ComparisonResult.GREATER) {
@@ -1377,7 +1381,7 @@ public class FlowDownCheck {
 
         if (!loc1.getDescriptor().equals(loc2.getDescriptor())) {
           throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
-              + " because they are not comparable.");
+              + " because they are not comparable at "+msg);
         }
 
         Descriptor d1 = loc1.getDescriptor();
@@ -1429,7 +1433,7 @@ public class FlowDownCheck {
 
         if (numOfTie != compLoc2.getSize()) {
           throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
-              + " because they are not comparable.");
+              + " because they are not comparable at "+msg);
         }
 
         return ComparisonResult.EQUAL;
@@ -1441,6 +1445,7 @@ public class FlowDownCheck {
 
     public static CompositeLocation calculateGLB(Set<CompositeLocation> inputSet) {
 
+      System.out.println("calculateGLB="+inputSet);
       // System.out.println("Calculating GLB=" + inputSet);
       CompositeLocation glbCompLoc = new CompositeLocation();
 

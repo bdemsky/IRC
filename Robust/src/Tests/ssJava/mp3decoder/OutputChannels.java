@@ -33,25 +33,25 @@
 @METHODDEFAULT("OUT<IN")
 public class OutputChannels
 {		
-	/**
-	 * Flag to indicate output should include both channels. 
-	 */
-        @LOC("T") public static final int	BOTH_CHANNELS = 0;
-		
-	/**
-	 * Flag to indicate output should include the left channel only. 
-	 */
-        @LOC("T") public static final int	LEFT_CHANNEL = 1;
+  /**
+   * Flag to indicate output should include both channels. 
+   */
+  public static final int	BOTH_CHANNELS = 0;
 
-	/**
-	 * Flag to indicate output should include the right channel only. 
-	 */
-        @LOC("T") public static final int	RIGHT_CHANNEL = 2;
-		
-	/**
-	 * Flag to indicate output is mono. 
-	 */
-        @LOC("T") public static final int	DOWNMIX_CHANNELS = 3;
+  /**
+   * Flag to indicate output should include the left channel only. 
+   */
+  public static final int	LEFT_CHANNEL = 1;
+
+  /**
+   * Flag to indicate output should include the right channel only. 
+   */
+  public static final int	RIGHT_CHANNEL = 2;
+
+  /**
+   * Flag to indicate output is mono. 
+   */
+  public static final int	DOWNMIX_CHANNELS = 3;
 
 	
         @LOC("B") public static final OutputChannels LEFT = new OutputChannels(LEFT_CHANNEL);
