@@ -66,7 +66,7 @@ void pmc_init() {
       void *finishptr=(i+1)<NUMCORES4GC?pmc_heapptr->regions[i+1].lastptr:pmc_heapptr->regions[i].endptr;
       struct pmc_region *region=&pmc_heapptr->regions[i];
       unsigned int startindex=region->lowunit;
-      unsigned int endindex=pmc_heapptr->regions[i+1].highunit;
+      unsigned int endindex=(i+1)<NUMCORES4GC?pmc_heapptr->regions[i+1].highunit:pmc_heapptr->regions[i].highunit;
       //tprintf("Free space in partition %u from %x to %x\n", i, startptr, finishptr);
       for(unsigned int index=startindex;index<endindex;index++) {
 	void *ptr=pmc_heapptr->units[index].endptr;

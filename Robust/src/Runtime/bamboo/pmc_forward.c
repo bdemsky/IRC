@@ -86,8 +86,10 @@ void pmc_processunits() {
   for(;regionnum<NUMCORES4GC;regionnum++) {
     pmc_heapptr->regions[regionnum].highunit=NUMPMCUNITS;
     pmc_heapptr->regions[regionnum].endptr=pmc_heapptr->units[NUMPMCUNITS-1].endptr;
-    pmc_heapptr->regions[regionnum+1].startptr=pmc_heapptr->units[NUMPMCUNITS-1].endptr;
-    pmc_heapptr->regions[regionnum+1].lowunit=NUMPMCUNITS;
+    if ((regionnum+1)<NUMCORES4GC) {
+      pmc_heapptr->regions[regionnum+1].startptr=pmc_heapptr->units[NUMPMCUNITS-1].endptr;
+      pmc_heapptr->regions[regionnum+1].lowunit=NUMPMCUNITS;
+    }
   }
 }
 
