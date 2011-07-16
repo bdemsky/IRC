@@ -385,7 +385,7 @@ void master_getlargeobjs() {
   //spin until we have all responses
   while(numconfirm!=0) ;
 
-  GCPROFILE_ITEM();
+  GCPROFILE_ITEM_MASTER();
   GC_PRINTF("prepare to cache large objs \n");
 
 }
@@ -412,7 +412,7 @@ void master_finish() {
   bamboo_smem_size = 0;
   bamboo_smem_zero_top = NULL;
   
-  GCPROFILE_END();
+  GCPROFILE_END_MASTER();
   unsigned long long tmpt = BAMBOO_GET_EXE_TIME();
   CACHEADAPT_OUTPUT_CACHE_POLICY();
   gc_output_cache_policy_time += (BAMBOO_GET_EXE_TIME()-tmpt);
@@ -446,14 +446,14 @@ void gc_master(struct garbagelist * stackptr) {
   CACHEADAPT_GC(true);
   //tprintf("Check core status \n");
   GC_CHECK_ALL_CORE_STATUS();
-  GCPROFILE_ITEM();
+  GCPROFILE_ITEM_MASTER();
   unsigned long long tmpt = BAMBOO_GET_EXE_TIME();
   CACHEADAPT_OUTPUT_CACHE_SAMPLING();
   gc_output_cache_policy_time += (BAMBOO_GET_EXE_TIME()-tmpt);
   //tprintf("start mark phase\n");
   // do mark phase
   master_mark(stackptr);
-  GCPROFILE_ITEM();
+  GCPROFILE_ITEM_MASTER();
   //tprintf("finish mark phase\n");
   // get large objects from all cores
   master_getlargeobjs();
@@ -545,7 +545,7 @@ bool gc(struct garbagelist * stackptr) {
       ;
 
     pregccheck();
-    GCPROFILE_START();
+    GCPROFILE_START_MASTER();
     GC_PRINTF("start gc! \n");
     pregcprocessing();
     gc_master(stackptr);

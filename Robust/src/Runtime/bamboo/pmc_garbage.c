@@ -1,5 +1,6 @@
 #include "multicoregc.h"
 #include "multicoreruntime.h"
+#include "multicoregcprofile.h"
 #include "pmc_garbage.h"
 #include "runtime_arch.h"
 #include "pmc_mark.h"
@@ -92,31 +93,49 @@ void gc(struct garbagelist *gl) {
 #ifdef PERFCOUNT
   profile_start(GC_REGION);
 #endif
-  if (BAMBOO_NUM_OF_CORE==STARTUPCORE)
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
     tprintf("start GC\n");
+    GCPROFILE_START_MASTER();
+  }
   pmc_init();
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    GCPROFILE_ITEM_MASTER();
+  }
   //mark live objects
   //tprintf("mark\n");
   pmc_mark(gl);
   //count live objects per unit
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    GCPROFILE_ITEM_MASTER();
+  }
   //tprintf("count\n");
   pmc_count();
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    GCPROFILE_ITEM_MASTER();
+  }
   //divide up work
   //tprintf("divide\n");
   if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
     pmc_processunits();
+    GCPROFILE_ITEM_MASTER();
   }
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
   //set up forwarding pointers
   //tprintf("forward\n");
   pmc_doforward();
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    GCPROFILE_ITEM_MASTER();
+  }
   //update pointers
   //tprintf("updaterefs\n");
   pmc_doreferenceupdate(gl);
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    GCPROFILE_ITEM_MASTER();
+  }
   //compact data
   //tprintf("compact\n");
   pmc_docompact();
@@ -136,6 +155,10 @@ void gc(struct garbagelist *gl) {
 
   gcflag=false;
   tmc_spin_barrier_wait(&pmc_heapptr->barrier);
+  if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
+    GCPROFILE_RECORD_SPACE_MASTER();
+    GCPROFILE_END_MASTER();
+  }
 
 #ifdef PERFCOUNT
   profile_start(APP_REGION);

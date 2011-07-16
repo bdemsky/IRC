@@ -559,7 +559,7 @@ void master_compact() {
       gcblock2fill = numblockspercore;
     }
   }
-  GCPROFILE_ITEM();
+  GCPROFILE_ITEM_MASTER();
   // compact phase
   compact();
   /* wait for all cores to finish compacting */
@@ -603,14 +603,14 @@ void master_compact() {
   }
 #endif
 
-  GCPROFILE_ITEM();
+  GCPROFILE_ITEM_MASTER();
 
   //just in case we didn't get blocks back...
   if (allocationinfo.lowestfreeblock==NOFREEBLOCK)
     allocationinfo.lowestfreeblock=numblockspercore*NUMCORES4GC;
 
   // compute live object space
-  GCPROFILE_RECORD_SPACE();
+  GCPROFILE_RECORD_SPACE_MASTER();
   GC_PRINTF("compact phase finished \n");
 }
 

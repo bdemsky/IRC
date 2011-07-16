@@ -12,7 +12,7 @@ void initmulticoregcprofiledata() {
     gc_num_livespace = 0;
     gc_num_freespace = 0;
   }
-  gc_num_obj = 0;
+  gc_size_allocatedobj = 0;
   gc_num_liveobj = 0;
   gc_num_forwardobj = 0;
   gc_num_profiles = NUMCORESACTIVE - 1;
@@ -84,7 +84,7 @@ void gc_outputProfileDataReadable() {
     printf("Freespace %llu\n", gcInfo->time[gcInfo->index-6]);
     printf("# Lobj %llu\n", gcInfo->time[gcInfo->index-5]);
     printf("Lobj space %llu\n", gcInfo->time[gcInfo->index-4]);
-    printf("# obj %llu\n", gcInfo->time[gcInfo->index-3]);
+    printf("# obj allocated %llu\n", gcInfo->time[gcInfo->index-3]);
     printf("# live obj %llu\n", gcInfo->time[gcInfo->index-2]);
     printf("# forward obj %llu\n", gcInfo->time[gcInfo->index-1]);
   }

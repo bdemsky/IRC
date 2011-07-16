@@ -63,7 +63,7 @@ int msgsizearray[] = {
   1, //GCGRANTBLOCK,  
   -1, //GCLOBJINFO,            // 0xF2
 #ifdef GC_PROFILE
-  4, //GCPROFILES,            // 0xF3
+  3, //GCPROFILES,            // 0xF3
 #endif // GC_PROFILE
 #ifdef GC_CACHE_ADAPT
   1, //GCSTARTCACHEPOLICY     // 0xF4
@@ -695,14 +695,11 @@ void processmsg_gcprofiles_I() {
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  int data3 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
 #ifdef MGC_SPEC
   if(gc_profile_flag) {
 #endif
-    gc_num_obj += data1;
-    gc_num_liveobj += data2;
-    gc_num_forwardobj += data3;
+    gc_num_liveobj += data1;
+    gc_num_forwardobj += data2;
 #ifdef MGC_SPEC
   }
 #endif

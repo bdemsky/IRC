@@ -116,6 +116,7 @@ void * smemalloc(int coren, unsigned INTPTR isize, unsigned INTPTR * allocsize) 
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   void *retval=smemalloc_I(coren, isize, allocsize);
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  GCPROFILE_RECORD_ALLOCATED_OBJ(*allocsize);
   return retval;
 }
 
