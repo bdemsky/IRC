@@ -68,7 +68,7 @@ public class AppDemoRunner extends Thread {
     int datasize = 10000;  //should be times of 2
     //int nruns = 62 * 62;  //16 * 16;
     int group = THREADNUM; // 16;
-    int nruns = group * group;
+    int nruns = group * 62;
 
     System.setgcprofileflag();
     AppDemo ad = new AppDemo(datasize, nruns, group);

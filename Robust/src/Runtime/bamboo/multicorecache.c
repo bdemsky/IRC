@@ -336,7 +336,7 @@ extern unsigned long long gc_output_cache_policy_time;
 
 // Cache adpat phase process for the master
 void cacheAdapt_phase_master() {
-  GCPROFILE_ITEM();
+  GCPROFILE_ITEM_MASTER();
   unsigned long long tmpt = BAMBOO_GET_EXE_TIME();
   CACHEADAPT_OUTPUT_CACHE_SAMPLING_R();
   gc_output_cache_policy_time += (BAMBOO_GET_EXE_TIME()-tmpt);
