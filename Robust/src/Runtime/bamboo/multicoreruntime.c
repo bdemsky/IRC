@@ -298,6 +298,7 @@ void CALL11(___System______exit____I,
     print_statistics();
 #endif
     gc_outputProfileDataReadable();
+    tprintf("FINISH_EXECUTION\n");
   }
 #endif 
   BAMBOO_EXIT_APP(___status___);
@@ -765,6 +766,7 @@ void checkCoreStatus() {
 #endif
 	  gc_outputProfileDataReadable();
           disruntimedata();
+	  tprintf("FINISH_EXECUTION\n");
           BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
           terminate();  // All done.
         }
