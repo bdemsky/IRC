@@ -187,43 +187,43 @@ final class SynthesisFilter
 	 }
      */
 
-    @LOC("IN,SynthesisFilter.L4") float new_v0;
-    @LOC("IN,SynthesisFilter.L2") float new_v1;
-    @LOC("IN,SynthesisFilter.L4") float new_v2;
-    @LOC("IN,SynthesisFilter.L2") float new_v3;
-    @LOC("IN,SynthesisFilter.L3") float new_v4;
-    @LOC("IN,SynthesisFilter.L4") float new_v5;
-    @LOC("IN,SynthesisFilter.L2") float new_v6;
-    @LOC("IN,SynthesisFilter.L3") float new_v7;
-    @LOC("IN,SynthesisFilter.L4") float new_v8;
-    @LOC("IN,SynthesisFilter.L4") float new_v9;
-    @LOC("IN,SynthesisFilter.L3") float new_v10;
-    @LOC("IN,SynthesisFilter.L2") float new_v11;
-    @LOC("IN,SynthesisFilter.L4") float new_v12;
-    @LOC("IN,SynthesisFilter.L3") float new_v13;
-    @LOC("IN,SynthesisFilter.L4") float new_v14;
-    @LOC("IN,SynthesisFilter.L4") float new_v15;
-    @LOC("IN,SynthesisFilter.L1") float new_v16;
-    @LOC("IN,SynthesisFilter.L3") float new_v17;
-    @LOC("IN,SynthesisFilter.L1") float new_v18;
-    @LOC("IN,SynthesisFilter.L2") float new_v19;
-    @LOC("IN,SynthesisFilter.L2") float new_v20;
-    @LOC("IN,SynthesisFilter.L2") float new_v21;
-    @LOC("IN,SynthesisFilter.L2") float new_v22;
-    @LOC("IN,SynthesisFilter.L3") float new_v23;
-    @LOC("IN,SynthesisFilter.L2") float new_v24;
-    @LOC("IN,SynthesisFilter.L2") float new_v25;
-    @LOC("IN,SynthesisFilter.L2") float new_v26;
-    @LOC("IN,SynthesisFilter.L4") float new_v27;
-    @LOC("IN,SynthesisFilter.L2") float new_v28;
-    @LOC("IN,SynthesisFilter.L4") float new_v29;
-    @LOC("IN,SynthesisFilter.L2") float new_v30;
-    @LOC("IN,SynthesisFilter.L4") float new_v31;
+    @LOC("IN,SynthesisFilter.L4") float new_v0 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v1 = 0.0f;
+    @LOC("IN,SynthesisFilter.L4") float new_v2 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v3 = 0.0f;
+    @LOC("IN,SynthesisFilter.L3") float new_v4 = 0.0f;
+    @LOC("IN,SynthesisFilter.L4") float new_v5 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v6 = 0.0f;
+    @LOC("IN,SynthesisFilter.L3") float new_v7 = 0.0f;
+    @LOC("IN,SynthesisFilter.L4") float new_v8 = 0.0f;
+    @LOC("IN,SynthesisFilter.L4") float new_v9 = 0.0f;
+    @LOC("IN,SynthesisFilter.L3") float new_v10 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v11 = 0.0f;
+    @LOC("IN,SynthesisFilter.L4") float new_v12 = 0.0f;
+    @LOC("IN,SynthesisFilter.L3") float new_v13 = 0.0f;
+    @LOC("IN,SynthesisFilter.L4") float new_v14 = 0.0f;
+    @LOC("IN,SynthesisFilter.L4") float new_v15 = 0.0f;
+    @LOC("IN,SynthesisFilter.L1") float new_v16 = 0.0f;
+    @LOC("IN,SynthesisFilter.L3") float new_v17 = 0.0f;
+    @LOC("IN,SynthesisFilter.L1") float new_v18 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v19 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v20 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v21 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v22 = 0.0f;
+    @LOC("IN,SynthesisFilter.L3") float new_v23 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v24 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v25 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v26 = 0.0f;
+    @LOC("IN,SynthesisFilter.L4") float new_v27 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v28 = 0.0f;
+    @LOC("IN,SynthesisFilter.L4") float new_v29 = 0.0f;
+    @LOC("IN,SynthesisFilter.L2") float new_v30 = 0.0f;
+    @LOC("IN,SynthesisFilter.L4") float new_v31 = 0.0f;
 
-    new_v0 = new_v1 = new_v2 = new_v3 = new_v4 = new_v5 = new_v6 = new_v7 = new_v8 = new_v9 = 
-      new_v10 = new_v11 = new_v12 = new_v13 = new_v14 = new_v15 = new_v16 = new_v17 = new_v18 = new_v19 = 
-        new_v20 = new_v21 = new_v22 = new_v23 = new_v24 = new_v25 = new_v26 = new_v27 = new_v28 = new_v29 = 
-          new_v30 = new_v31 = 0.0f;
+//    new_v0 = new_v1 = new_v2 = new_v3 = new_v4 = new_v5 = new_v6 = new_v7 = new_v8 = new_v9 = 
+//      new_v10 = new_v11 = new_v12 = new_v13 = new_v14 = new_v15 = new_v16 = new_v17 = new_v18 = new_v19 = 
+//        new_v20 = new_v21 = new_v22 = new_v23 = new_v24 = new_v25 = new_v26 = new_v27 = new_v28 = new_v29 = 
+//          new_v30 = new_v31 = 0.0f;
 
 
     //	float[] new_v = new float[32]; // new V[0-15] and V[33-48] of Figure 3-A.2 in ISO DIS 11172-3

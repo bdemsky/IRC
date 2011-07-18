@@ -53,7 +53,7 @@ public abstract class Obuffer
    */
   public void appendSamples(@LOC("IN") int channel, @LOC("IN") float[] f)
   {
-    @LOC("D") short s;
+    @LOC("DELTA(DELTA(D))") short s;
     for (@LOC("C") int i=0; i<32;)
     {
       s = clip(f[i++]); // flow from "IN" to "D"
@@ -64,12 +64,23 @@ public abstract class Obuffer
   /**
    * Clip Sample to 16 Bits
    */
-  @RETURNLOC("IN")
+  @RETURNLOC("D")
   private final short clip(@LOC("IN") float sample)
   {
-    return ((sample > 32767.0f) ?   (short) 32767 :
-      ((sample < -32768.0f) ?  (short)  -32768 :
-        (short) sample));
+    
+    @LOC("D") short s=(short)sample;
+    
+    if(sample > 32767.0f){
+      s=(short)32767;
+    }else if(sample < -32768.0f){
+      s=(short)-32768;
+    }
+    
+    return s;
+
+//    return ((sample > 32767.0f) ?   (short) 32767 :
+//      ((sample < -32768.0f) ?  (short)  -32768 :
+//        (short) sample));
   }
 
   /**

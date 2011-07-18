@@ -64,6 +64,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	
 	protected void readScaleFactorSelection()
 	{
+	  // eom note: num_subbands is defined in LayerIDecoder so it has (THIS, LayerIDecoder) Loc
 	      for (@LOC("V,LayerIIDecoder.SH") int i = 0; i < num_subbands; ++i)
   		  ((SubbandLayer2)subbands[i]).read_scalefactor_selection(stream, crc);		
 	}

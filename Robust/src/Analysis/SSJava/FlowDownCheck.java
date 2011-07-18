@@ -409,9 +409,9 @@ public class FlowDownCheck {
       // check if return value is equal or higher than RETRUNLOC of method
       // declaration annotation
       CompositeLocation returnLocAt = md2ReturnLoc.get(md);
-      
-      if (CompositeLattice.isGreaterThan(returnLocAt, expLoc,
-          generateErrorMessage(md.getClassDesc(), rn))) {
+
+      if (CompositeLattice.compare(returnLocAt, expLoc,
+          generateErrorMessage(md.getClassDesc(), rn))!=ComparisonResult.LESS) {
         throw new Error(
             "Return value location is not equal or higher than the declaraed return location at "
                 + md.getClassDesc().getSourceFileName() + "::" + rn.getNumLine());
@@ -563,7 +563,8 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromDeclarationNode(MethodDescriptor md,
       SymbolTable nametable, DeclarationNode dn) {
 
-    System.out.println("DeclarationNode=" + dn.printNode(0));
+    System.out.println("DeclarationNode=" + dn.printNode(0) + " "
+        + generateErrorMessage(md.getClassDesc(), dn));
 
     VarDescriptor vd = dn.getVarDescriptor();
 
@@ -701,17 +702,21 @@ public class FlowDownCheck {
         checkLocationFromExpressionNode(md, nametable, tn.getFalseExpr(), new CompositeLocation());
     addLocationType(tn.getFalseExpr().getType(), falseLoc);
 
-    // locations from true/false branches can be TOP when there are only literal values
+    // locations from true/false branches can be TOP when there are only literal
+    // values
     // in this case, we don't need to check flow down rule!
-    
+
     // check if condLoc is higher than trueLoc & falseLoc
-    if (!trueLoc.get(0).isTop() && !CompositeLattice.isGreaterThan(condLoc, trueLoc, generateErrorMessage(cd, tn))) {
+    if (!trueLoc.get(0).isTop()
+        && !CompositeLattice.isGreaterThan(condLoc, trueLoc, generateErrorMessage(cd, tn))) {
       throw new Error(
           "The location of the condition expression is lower than the true expression at "
               + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
     }
 
-    if (!falseLoc.get(0).isTop() && !CompositeLattice.isGreaterThan(condLoc, falseLoc, generateErrorMessage(cd, tn.getCond()))) {
+    if (!falseLoc.get(0).isTop()
+        && !CompositeLattice.isGreaterThan(condLoc, falseLoc,
+            generateErrorMessage(cd, tn.getCond()))) {
       throw new Error(
           "The location of the condition expression is lower than the true expression at "
               + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
@@ -896,12 +901,13 @@ public class FlowDownCheck {
       // addTypeLocation(on.getRight().getType(), rightLoc);
     }
 
-    // System.out.println("checking op node=" + on.printNode(0));
-    // System.out.println("left loc=" + leftLoc + " from " +
-    // on.getLeft().getClass());
-    // System.out.println("right loc=" + rightLoc + " from " +
-    // on.getRight().getClass());
-
+    System.out.println("checking op node=" + on.printNode(0)
+        + generateErrorMessage(md.getClassDesc(), on));
+    System.out.println("left loc=" + leftLoc + " from " + on.getLeft().getClass());
+    if (on.getRight() != null) {
+      System.out.println("right loc=" + rightLoc + " from " + on.getRight().kind());
+    }
+    
     Operation op = on.getOp();
 
     switch (op.getOp()) {
@@ -960,14 +966,13 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromNameNode(MethodDescriptor md, SymbolTable nametable,
       NameNode nn, CompositeLocation loc) {
 
+
     NameDescriptor nd = nn.getName();
     if (nd.getBase() != null) {
-
       loc = checkLocationFromExpressionNode(md, nametable, nn.getExpression(), loc);
       // addTypeLocation(nn.getExpression().getType(), loc);
     } else {
       String varname = nd.toString();
-
       if (varname.equals("this")) {
         // 'this' itself!
         MethodLattice<String> methodLattice = ssjava.getMethodLattice(md);
@@ -991,7 +996,6 @@ public class FlowDownCheck {
       } else if (d instanceof FieldDescriptor) {
         // the type of field descriptor has a location!
         FieldDescriptor fd = (FieldDescriptor) d;
-
         if (fd.isStatic()) {
           if (fd.isFinal()) {
             // if it is 'static final', the location has TOP since no one can
@@ -1061,7 +1065,6 @@ public class FlowDownCheck {
         return destLocation;
       }
       srcLocation = new CompositeLocation();
-      System.out.println("checkLocationFromExpressionNode=" + an.getSrc().printNode(0));
       srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
       // System.out.println(" an= " + an.printNode(0) + " an.getSrc()=" +
       // an.getSrc().getClass()
@@ -1156,14 +1159,13 @@ public class FlowDownCheck {
     int idx = decl.indexOf(".");
     String className = decl.substring(0, idx);
     String fieldName = decl.substring(idx + 1);
-    
+
     className.replaceAll(" ", "");
     fieldName.replaceAll(" ", "");
 
     Descriptor d = state.getClassSymbolTable().get(className);
 
     if (d == null) {
-      System.out.println("className="+className+" to d="+d);
       throw new Error("The class in the location declaration '" + decl + "' does not exist at "
           + msg);
     }
@@ -1172,7 +1174,7 @@ public class FlowDownCheck {
     SSJavaLattice<String> lattice = ssjava.getClassLattice((ClassDescriptor) d);
     if (!lattice.containsKey(fieldName)) {
       throw new Error("The location " + fieldName + " is not defined in the field lattice of '"
-          + className + "' at "+msg);
+          + className + "' at " + msg);
     }
 
     return new Location(d, fieldName);
@@ -1247,6 +1249,10 @@ public class FlowDownCheck {
 
       if (!(fd.isFinal() && fd.isStatic())) {
         checkFieldDeclaration(cd, fd);
+      } else {
+        // for static final, assign top location by default
+        Location loc = Location.createTopLocation(cd);
+        addLocationType(fd.getType(), loc);
       }
     }
   }
@@ -1313,7 +1319,7 @@ public class FlowDownCheck {
 
     public static boolean isGreaterThan(CompositeLocation loc1, CompositeLocation loc2, String msg) {
 
-      System.out.println("isGreaterThan="+loc1+" "+loc2+" msg="+msg);
+      System.out.println("isGreaterThan=" + loc1 + " " + loc2 + " msg=" + msg);
       int baseCompareResult = compareBaseLocationSet(loc1, loc2, true, msg);
       if (baseCompareResult == ComparisonResult.EQUAL) {
         if (compareDelta(loc1, loc2) == ComparisonResult.GREATER) {
@@ -1381,7 +1387,7 @@ public class FlowDownCheck {
 
         if (!loc1.getDescriptor().equals(loc2.getDescriptor())) {
           throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
-              + " because they are not comparable at "+msg);
+              + " because they are not comparable at " + msg);
         }
 
         Descriptor d1 = loc1.getDescriptor();
@@ -1433,7 +1439,7 @@ public class FlowDownCheck {
 
         if (numOfTie != compLoc2.getSize()) {
           throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
-              + " because they are not comparable at "+msg);
+              + " because they are not comparable at " + msg);
         }
 
         return ComparisonResult.EQUAL;
@@ -1445,7 +1451,6 @@ public class FlowDownCheck {
 
     public static CompositeLocation calculateGLB(Set<CompositeLocation> inputSet) {
 
-      System.out.println("calculateGLB="+inputSet);
       // System.out.println("Calculating GLB=" + inputSet);
       CompositeLocation glbCompLoc = new CompositeLocation();
 
@@ -1494,19 +1499,6 @@ public class FlowDownCheck {
       glbCompLoc.addLocation(new Location(priorityDescriptor, glbOfPriorityLoc));
       Set<CompositeLocation> compSet = locId2CompLocSet.get(glbOfPriorityLoc);
 
-      // here find out composite location that has a maximum length tuple
-      // if we have three input set: [A], [A,B], [A,B,C]
-      // maximum length tuple will be [A,B,C]
-      int max = 0;
-      CompositeLocation maxFromCompSet = null;
-      for (Iterator iterator = compSet.iterator(); iterator.hasNext();) {
-        CompositeLocation c = (CompositeLocation) iterator.next();
-        if (c.getSize() > max) {
-          max = c.getSize();
-          maxFromCompSet = c;
-        }
-      }
-
       if (compSet == null) {
         // when GLB(x1,x2)!=x1 and !=x2 : GLB case 4
         // mean that the result is already lower than <x1,y1> and <x2,y2>
@@ -1514,11 +1506,24 @@ public class FlowDownCheck {
 
         // in this case, do not take care about delta
         // CompositeLocation inputComp = inputSet.iterator().next();
-        CompositeLocation inputComp = maxCompLoc;
-        for (int i = 1; i < inputComp.getSize(); i++) {
-          glbCompLoc.addLocation(Location.createTopLocation(inputComp.get(i).getDescriptor()));
+        for (int i = 1; i < maxTupleSize; i++) {
+          glbCompLoc.addLocation(Location.createTopLocation(maxCompLoc.get(i).getDescriptor()));
         }
       } else {
+
+        // here find out composite location that has a maximum length tuple
+        // if we have three input set: [A], [A,B], [A,B,C]
+        // maximum length tuple will be [A,B,C]
+        int max = 0;
+        CompositeLocation maxFromCompSet = null;
+        for (Iterator iterator = compSet.iterator(); iterator.hasNext();) {
+          CompositeLocation c = (CompositeLocation) iterator.next();
+          if (c.getSize() > max) {
+            max = c.getSize();
+            maxFromCompSet = c;
+          }
+        }
+
         if (compSet.size() == 1) {
 
           // if GLB(x1,x2)==x1 or x2 : GLB case 2,3
