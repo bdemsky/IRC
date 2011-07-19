@@ -11,7 +11,7 @@
 // time.
 #define GC_CACHE_SAMPLING_UNIT 0x800000000 
 // freqeuency to trigger timer interrupt
-#define GC_TILE_TIMER_EVENT_SETTING 10000000  
+#define GC_TILE_TIMER_EVENT_SETTING 40000000  
 
 // data structure to record policy information for a page
 // should be consistent with multicoreruntime.h

@@ -438,11 +438,11 @@ void gc_master(struct garbagelist * stackptr) {
   tprintf("start GC!\n");
   gc_status_info.gcprocessing = true;
   gc_status_info.gcphase = INITPHASE;
+  GC_SEND_MSG_1_TO_CLIENT(GCSTARTINIT);
 
   waitconfirm = false;
   numconfirm = 0;
   initGC();
-  GC_SEND_MSG_1_TO_CLIENT(GCSTARTINIT);
   CACHEADAPT_GC(true);
   //tprintf("Check core status \n");
   GC_CHECK_ALL_CORE_STATUS();
@@ -539,6 +539,7 @@ bool gc(struct garbagelist * stackptr) {
   if(0 == BAMBOO_NUM_OF_CORE) {
     GC_PRINTF("Check if we can do gc or not\n");
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
+    pregcprocessing();
 
     //wait for other cores to catch up
     while(!gc_checkCoreStatus())
@@ -547,7 +548,6 @@ bool gc(struct garbagelist * stackptr) {
     pregccheck();
     GCPROFILE_START_MASTER();
     GC_PRINTF("start gc! \n");
-    pregcprocessing();
     gc_master(stackptr);
   } else if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
     GC_PRINTF("Core reporting for gc.\n");

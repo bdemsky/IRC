@@ -229,7 +229,7 @@ void cacheAdapt_policy_hottest(int coren){
   }
 } 
 
-#define GC_CACHE_ADAPT_DOMINATE_THRESHOLD  1
+#define GC_CACHE_ADAPT_DOMINATE_THRESHOLD  2
 // cache the page on the core that accesses it the most if that core accesses 
 // it more than (GC_CACHE_ADAPT_DOMINATE_THRESHOLD)% of the total.  Otherwise,
 // h4h the page.
@@ -252,7 +252,7 @@ void cacheAdapt_policy_dominate(int coren){
     // Format: page start va + cache policy
     if(hotfreq != 0) {
       totalfreq=totalfreq>>GC_CACHE_ADAPT_DOMINATE_THRESHOLD;
-      if((unsigned int)hotfreq < (unsigned int)totalfreq) {
+      if(hotfreq < totalfreq) {
         // use hfh
         policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
         /*unsigned int block = 0;
