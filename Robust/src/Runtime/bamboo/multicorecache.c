@@ -280,18 +280,19 @@ unsigned int cacheAdapt_decision(int coren) {
   // check the statistic data
   // for each page, decide the new cache strategy
 #ifdef GC_CACHE_ADAPT_POLICY1
-  cacheAdapt_policy_h4h(coren);
-#elif defined GC_CACHE_ADAPT_POLICY2
-  cacheAdapt_policy_local(coren);
-#elif defined GC_CACHE_ADAPT_POLICY3
-  cacheAdapt_policy_hottest(coren);
-#elif defined GC_CACHE_ADAPT_POLICY4
+  //  cacheAdapt_policy_h4h(coren);
+#elif defined(GC_CACHE_ADAPT_POLICY2)
+  //cacheAdapt_policy_local(coren);
+#elif defined(GC_CACHE_ADAPT_POLICY3)
+  //cacheAdapt_policy_hottest(coren);
+#elif defined(GC_CACHE_ADAPT_POLICY4)
   cacheAdapt_policy_dominate(coren);
 #endif
 }
 
 // adapt the cache strategy for the mutator
 void cacheAdapt_mutator() {
+#if defined(GC_CACHE_ADAPT_POLICY4)
   BAMBOO_CACHE_MF();
   // check the changes and adapt them
   unsigned int * tmp_p = gccachepolicytbl;
@@ -305,6 +306,7 @@ void cacheAdapt_mutator() {
     }
     tmp_p += 1;
   }
+#endif
 }
 
 // Cache adapt phase process for clients
@@ -324,12 +326,15 @@ void cacheAdapt_phase_client() {
   //send init finish msg to core coordinator
   send_msg_2(STARTUPCORE, GCFINISHPREF, BAMBOO_NUM_OF_CORE);
   GC_PRINTF("Finish prefinish phase\n");
+
+#if defined(GC_CACHE_ADAPT_POLICY4)
   CACHEADAPT_SAMPLING_RESET();
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
     // zero out the gccachesamplingtbl
     BAMBOO_MEMSET_WH(gccachesamplingtbl_local,0,size_cachesamplingtbl_local);  
     BAMBOO_MEMSET_WH(gccachesamplingtbl_local_r,0,size_cachesamplingtbl_local_r);
   }
+#endif
 }
 
 extern unsigned long long gc_output_cache_policy_time;
@@ -360,6 +365,7 @@ void cacheAdapt_phase_master() {
   cacheAdapt_gc(false);
   GC_CHECK_ALL_CORE_STATUS();
   
+#if defined(GC_CACHE_ADAPT_POLICY4)
   CACHEADAPT_SAMPLING_RESET();
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
     // zero out the gccachesamplingtbl
@@ -367,6 +373,7 @@ void cacheAdapt_phase_master() {
     BAMBOO_MEMSET_WH(gccachesamplingtbl_local_r,0,size_cachesamplingtbl_local_r);
     BAMBOO_MEMSET_WH(gccachepolicytbl,0,size_cachepolicytbl);
   }
+#endif
 }
 
 // output original cache sampling data for each page

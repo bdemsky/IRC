@@ -69,9 +69,15 @@ void gc_output_cache_sampling_r();
 #define CACHEADAPT_SAMPLING_RESET() 
 #endif
 
+#if defined(GC_CACHE_ADAPT_POLICY4)
 #define CACHEADAPT_FINISH_SRC_PAGE(a,b,c) cacheadapt_finish_src_page(a,b,c);
 #define CACHEADAPT_FINISH_DST_PAGE(a,b,c,d) cacheadapt_finish_dst_page(a,b,c,d);
 #define CACHEADAPT_FINISH_COMPACT(a) cacheadapt_finish_compact(a);
+#else
+#define CACHEADAPT_FINISH_SRC_PAGE(a,b,c)
+#define CACHEADAPT_FINISH_DST_PAGE(a,b,c,d)
+#define CACHEADAPT_FINISH_COMPACT(a)
+#endif
 
 #define CACHEADAPT_GC(b) cacheAdapt_gc(b)
 #define CACHEADAPT_MASTER() cacheAdapt_master()
