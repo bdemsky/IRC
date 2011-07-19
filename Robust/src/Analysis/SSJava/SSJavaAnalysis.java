@@ -285,6 +285,10 @@ public class SSJavaAnalysis {
     return annotationRequireClassSet.contains(cd);
   }
 
+  public void addAnnotationRequire(ClassDescriptor cd) {
+    annotationRequireClassSet.add(cd);
+  }
+
   public void addAnnotationRequire(MethodDescriptor md) {
 
     // if a method requires to be annotated, class containg that method also

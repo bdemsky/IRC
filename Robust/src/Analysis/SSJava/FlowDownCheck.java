@@ -410,8 +410,8 @@ public class FlowDownCheck {
       // declaration annotation
       CompositeLocation returnLocAt = md2ReturnLoc.get(md);
 
-      if (CompositeLattice.compare(returnLocAt, expLoc,
-          generateErrorMessage(md.getClassDesc(), rn))!=ComparisonResult.LESS) {
+      if (CompositeLattice
+          .compare(returnLocAt, expLoc, generateErrorMessage(md.getClassDesc(), rn)) != ComparisonResult.LESS) {
         throw new Error(
             "Return value location is not equal or higher than the declaraed return location at "
                 + md.getClassDesc().getSourceFileName() + "::" + rn.getNumLine());
@@ -907,7 +907,7 @@ public class FlowDownCheck {
     if (on.getRight() != null) {
       System.out.println("right loc=" + rightLoc + " from " + on.getRight().kind());
     }
-    
+
     Operation op = on.getOp();
 
     switch (op.getOp()) {
@@ -966,11 +966,9 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromNameNode(MethodDescriptor md, SymbolTable nametable,
       NameNode nn, CompositeLocation loc) {
 
-
     NameDescriptor nd = nn.getName();
     if (nd.getBase() != null) {
       loc = checkLocationFromExpressionNode(md, nametable, nn.getExpression(), loc);
-      // addTypeLocation(nn.getExpression().getType(), loc);
     } else {
       String varname = nd.toString();
       if (varname.equals("this")) {
@@ -1031,15 +1029,39 @@ public class FlowDownCheck {
       SymbolTable nametable, FieldAccessNode fan, CompositeLocation loc) {
 
     ExpressionNode left = fan.getExpression();
-    loc = checkLocationFromExpressionNode(md, nametable, left, loc);
+    TypeDescriptor ltd = left.getType();
 
+    FieldDescriptor fd = fan.getField();
+
+    if (ltd.isClassNameRef()) {
+      // using a class name directly
+      if (fd.isStatic() && fd.isFinal()) {
+        loc.addLocation(Location.createTopLocation(md));
+        return loc;
+      }
+    }
+
+    loc = checkLocationFromExpressionNode(md, nametable, left, loc);
     if (!left.getType().isPrimitive()) {
-      FieldDescriptor fd = fan.getField();
-      Location fieldLoc = (Location) fd.getType().getExtension();
+      Location fieldLoc = getFieldLocation(fd);
       loc.addLocation(fieldLoc);
     }
 
     return loc;
+  }
+
+  private Location getFieldLocation(FieldDescriptor fd) {
+
+    Location fieldLoc = (Location) fd.getType().getExtension();
+
+    // handle the case that method annotation checking skips checking field
+    // declaration
+    if (fieldLoc == null) {
+      fieldLoc = checkFieldDeclaration(fd.getClassDescriptor(), fd);
+    }
+
+    return fieldLoc;
+
   }
 
   private CompositeLocation checkLocationFromAssignmentNode(MethodDescriptor md,
@@ -1066,11 +1088,12 @@ public class FlowDownCheck {
       }
       srcLocation = new CompositeLocation();
       srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
-      // System.out.println(" an= " + an.printNode(0) + " an.getSrc()=" +
-      // an.getSrc().getClass()
-      // + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
-      // System.out.println("srcLocation=" + srcLocation);
-      // System.out.println("dstLocation=" + destLocation);
+      
+//      System.out.println(" an= " + an.printNode(0) + " an.getSrc()=" + an.getSrc().getClass()
+//          + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
+//      System.out.println("srcLocation=" + srcLocation);
+//      System.out.println("dstLocation=" + destLocation);
+      
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
         throw new Error("The value flow from " + srcLocation + " to " + destLocation
             + " does not respect location hierarchy on the assignment " + an.printNode(0) + " at "
@@ -1261,7 +1284,7 @@ public class FlowDownCheck {
     // TODO
   }
 
-  private void checkFieldDeclaration(ClassDescriptor cd, FieldDescriptor fd) {
+  private Location checkFieldDeclaration(ClassDescriptor cd, FieldDescriptor fd) {
 
     Vector<AnnotationDescriptor> annotationVec = fd.getType().getAnnotationMarkers();
 
@@ -1278,9 +1301,9 @@ public class FlowDownCheck {
     }
 
     AnnotationDescriptor ad = annotationVec.elementAt(0);
+    Location loc = null;
 
     if (ad.getType() == AnnotationDescriptor.SINGLE_ANNOTATION) {
-
       if (ad.getMarker().equals(SSJavaAnalysis.LOC)) {
         String locationID = ad.getValue();
         // check if location is defined
@@ -1290,7 +1313,7 @@ public class FlowDownCheck {
               + " is not defined in the field lattice of class " + cd.getSymbol() + " at"
               + cd.getSourceFileName() + ".");
         }
-        Location loc = new Location(cd, locationID);
+        loc = new Location(cd, locationID);
 
         if (ssjava.isSharedLocation(loc)) {
           ssjava.mapSharedLocation2Descriptor(loc, fd);
@@ -1301,6 +1324,7 @@ public class FlowDownCheck {
       }
     }
 
+    return loc;
   }
 
   private void addLocationType(TypeDescriptor type, CompositeLocation loc) {
