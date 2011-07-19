@@ -507,7 +507,7 @@ void pregccheck() {
 }
 
 void pregcprocessing() {
-#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)
+#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)&&defined(GC_CACHE_ADAPT_POLICY4)
   // disable the timer interrupt
   bamboo_mask_timer_intr();
   // get the sampling data 
@@ -516,7 +516,7 @@ void pregcprocessing() {
 }
 
 void postgcprocessing() {
-#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)
+#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)&&defined(GC_CACHE_ADAPT_POLICY4)
   // enable the timer interrupt
   bamboo_tile_timer_set_next_event(GC_TILE_TIMER_EVENT_SETTING); 
   bamboo_unmask_timer_intr();

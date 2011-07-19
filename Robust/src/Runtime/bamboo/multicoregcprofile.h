@@ -85,6 +85,7 @@ INLINE static void gc_profileEnd_master(void) {
     gcInfo->time[gcInfo->index++] = gc_num_liveobj;
     gcInfo->time[gcInfo->index++] = gc_num_forwardobj;
     gc_infoIndex++;
+    if(gcInfo->index != GC_PROFILE_NUM_FIELD) BAMBOO_EXIT();
     gc_size_allocatedobj = 0; // reset the counter of allocated obj
     if(gc_infoIndex == GCINFOLENGTH) {
       gc_infoOverflow = true;

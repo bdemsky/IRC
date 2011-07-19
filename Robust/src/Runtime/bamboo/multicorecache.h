@@ -51,7 +51,7 @@ void cacheAdapt_phase_master();
 void gc_output_cache_sampling();
 void gc_output_cache_sampling_r();
 
-#ifdef GC_CACHE_SAMPLING
+#if defined(GC_CACHE_SAMPLING)&&defined(GC_CACHE_ADAPT_POLICY4)
 // enable the timer interrupt
 #define CACHEADAPT_ENABLE_TIMER() \
   { \
@@ -59,16 +59,13 @@ void gc_output_cache_sampling_r();
     bamboo_unmask_timer_intr(); \
     bamboo_dtlb_sampling_process(); \
   }
-#else
-#define CACHEADAPT_ENABLE_TIMER() 
-#endif
 // disable the TILE_TIMER interrupt
 #define CACHEADAPT_DISABLE_TIMER() bamboo_mask_timer_intr() 
-
-#ifdef GC_CACHE_SAMPLING
 // reset the sampling arrays
 #define CACHEADAPT_SAMPLING_RESET()  bamboo_dtlb_sampling_reset()
 #else // GC_CACHE_SAMPING
+#define CACHEADAPT_ENABLE_TIMER()
+#define CACHEADAPT_DISABLE_TIMER()
 #define CACHEADAPT_SAMPLING_RESET() 
 #endif
 

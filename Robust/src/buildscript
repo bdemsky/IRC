@@ -819,7 +819,7 @@ JAVAOPTS="$JAVAOPTS -struct structfile"
 fi
 
 # for tilera code, generate multicorememsize.h
-./generate_memsize.sh ${TILERA_PAGE_SIZE} ${TILERA_PAGE_SIZE_BITS} ${TILERA_NUM_BLOCKS} ${TILERA_NUM_PAGES_PER_BLOCK}
+./generate_memsize.sh ${TILERA_PAGE_SIZE} ${TILERA_PAGE_SIZE_BITS} ${TILERA_NUM_BLOCKS} ${TILERA_NUM_PAGES_PER_BLOCK} ${BUILDDIR}
 
 
 #########################
