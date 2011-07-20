@@ -35,7 +35,7 @@ void * mycalloc_share(struct garbagelist * stackptr, int size) {
       return p;
     
     // no more global shared memory
-    if(hasgc < 5) {
+    if(hasgc < 30) {
       // start gc
       if(gcflag) {
 	gc(stackptr);

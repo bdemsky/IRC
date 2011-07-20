@@ -282,6 +282,13 @@ void gc_collect(struct garbagelist * stackptr) {
   // do gc
   send_msg_4(STARTUPCORE,GCFINISHPRE,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
 
+  // invalidate all shared mem pointers
+  bamboo_cur_msp = NULL;
+  bamboo_smem_size = 0;
+  bamboo_smem_zero_top = NULL;
+  gcflag = false;
+
+
   // core collector routine
   //wait for init phase
   WAITFORGCPHASE(INITPHASE);
@@ -310,12 +317,6 @@ void gc_collect(struct garbagelist * stackptr) {
 
   CACHEADAPT_PHASE_CLIENT();
 
-  // invalidate all shared mem pointers
-  bamboo_cur_msp = NULL;
-  bamboo_smem_size = 0;
-  bamboo_smem_zero_top = NULL;
-  gcflag = false;
-
   WAITFORGCPHASE(FINISHPHASE);
 
   GC_PRINTF("Finish gc! \n");
@@ -326,6 +327,12 @@ void gc_nocollect(struct garbagelist * stackptr) {
   // inform the master that this core is at a gc safe point and is ready to 
   // do gc
   send_msg_4(STARTUPCORE,GCFINISHPRE,BAMBOO_NUM_OF_CORE,self_numsendobjs,self_numreceiveobjs);
+
+  // invalidate all shared mem pointers
+  bamboo_cur_msp = NULL;
+  bamboo_smem_size = 0;
+  bamboo_smem_zero_top = NULL;
+  gcflag = false;
   
   WAITFORGCPHASE(INITPHASE);
 
@@ -353,12 +360,6 @@ void gc_nocollect(struct garbagelist * stackptr) {
 
   CACHEADAPT_PHASE_CLIENT();
 
-  // invalidate all shared mem pointers
-  bamboo_cur_msp = NULL;
-  bamboo_smem_size = 0;
-  bamboo_smem_zero_top = NULL;
-
-  gcflag = false;
   WAITFORGCPHASE(FINISHPHASE);
 
   GC_PRINTF("Finish gc! \n");
@@ -545,7 +546,7 @@ bool gc(struct garbagelist * stackptr) {
     while(!gc_checkCoreStatus())
       ;
 
-    pregccheck();
+    //pregccheck();
     GCPROFILE_START_MASTER();
     GC_PRINTF("start gc! \n");
     gc_master(stackptr);
