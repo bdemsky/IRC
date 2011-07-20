@@ -269,6 +269,10 @@ public class SSJavaAnalysis {
     return cd2lattice.get(cd);
   }
 
+  public MethodLattice<String> getMethodDefaultLattice(ClassDescriptor cd) {
+    return cd2methodDefault.get(cd);
+  }
+
   public MethodLattice<String> getMethodLattice(MethodDescriptor md) {
     if (md2lattice.containsKey(md)) {
       return md2lattice.get(md);
@@ -291,9 +295,10 @@ public class SSJavaAnalysis {
 
   public void addAnnotationRequire(MethodDescriptor md) {
 
+    ClassDescriptor cd = md.getClassDesc();
     // if a method requires to be annotated, class containg that method also
     // requires to be annotated
-    annotationRequireClassSet.add(md.getClassDesc());
+    annotationRequireClassSet.add(cd);
     annotationRequireSet.add(md);
   }
 

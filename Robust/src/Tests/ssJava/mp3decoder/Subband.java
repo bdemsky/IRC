@@ -4,6 +4,7 @@
  * Abstract base class for subband classes of layer I and II
  */
 @LATTICE("S<L,L<H,H<SH")
+@METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 static abstract class Subband
 {
  /*
@@ -32,8 +33,12 @@ static abstract class Subband
   0.00000190734863f, 0.00000151386361f, 0.00000120155435f, 0.00000000000000f /* illegal scalefactor */
   };
 
-  public abstract void read_allocation (Bitstream stream, Header header, Crc16 crc) throws DecoderException;
-  public abstract void read_scalefactor (Bitstream stream, Header header);
-  public abstract boolean read_sampledata (Bitstream stream);
-  public abstract boolean put_next_sample (int channels, SynthesisFilter filter1, SynthesisFilter filter2);
+  public abstract void read_allocation (@LOC("IN")  Bitstream stream, @LOC("IN") Header header, @LOC("IN") Crc16 crc) throws DecoderException;
+  public abstract void read_scalefactor (@LOC("IN") Bitstream stream, @LOC("IN") Header header);
+  
+  @RETURNLOC("OUT")
+  public abstract boolean read_sampledata (@LOC("IN") Bitstream stream);
+  
+  @RETURNLOC("OUT")
+  public abstract boolean put_next_sample (@LOC("IN") int channels,@LOC("IN")  SynthesisFilter filter1,@LOC("IN")  SynthesisFilter filter2);
 };

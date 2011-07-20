@@ -92,7 +92,6 @@ public class MethodAnnotationCheck {
 
             if (calleeMD.getClassDesc().isInterface()) {
               calleeMD.getClassDesc();
-
             }
 
             tovisit.add(calleeMD);
@@ -150,6 +149,35 @@ public class MethodAnnotationCheck {
           }
         }
       }
+
+      // need to check super classess if the current method is inherited from
+      // them, all of ancestor method should be annoated
+      ClassDescriptor currentCd = cd;
+      ClassDescriptor superCd = tu.getSuper(currentCd);
+      while (!superCd.getSymbol().equals("Object")) {
+        Set possiblematches = superCd.getMethodTable().getSet(md.getSymbol());
+        for (Iterator methodit = possiblematches.iterator(); methodit.hasNext();) {
+          MethodDescriptor matchmd = (MethodDescriptor) methodit.next();
+          if (md.matches(matchmd)) {
+            ssjava.addAnnotationRequire(matchmd);
+          }
+        }
+        currentCd = superCd;
+        superCd = tu.getSuper(currentCd);
+      }
+
+      Set<ClassDescriptor> superIFSet = tu.getSuperIFs(cd);
+      for (Iterator iterator = superIFSet.iterator(); iterator.hasNext();) {
+        ClassDescriptor parentInterface = (ClassDescriptor) iterator.next();
+        Set possiblematches = parentInterface.getMethodTable().getSet(md.getSymbol());
+        for (Iterator methodit = possiblematches.iterator(); methodit.hasNext();) {
+          MethodDescriptor matchmd = (MethodDescriptor) methodit.next();
+          if (md.matches(matchmd)) {
+            ssjava.addAnnotationRequire(matchmd);
+          }
+        }
+      }
+
     }
 
   }

@@ -189,7 +189,7 @@
 	 * and in derived class for intensity stereo mode
 	 */
      @LATTICE("S<L,L<H,H<SH,SH*,S*")
-	@METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=V,GLOBALLOC=IN")
+     @METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 	static class SubbandLayer1 extends Subband
 	{
 
@@ -299,7 +299,7 @@
 	 * Class for layer I subbands in joint stereo mode.
 	 */
      @LATTICE("S<L,L<H,H<SH,SH*")
-	@METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=V,GLOBALLOC=IN")
+     @METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 	static class SubbandLayer1IntensityStereo extends SubbandLayer1
 	{
 	  @LOC("L") protected float 		channel2_scalefactor;
@@ -378,7 +378,7 @@
 	 * Class for layer I subbands in stereo mode.
 	 */     
      @LATTICE("S<L,L<H,H<SH,SH*,S*")
-	@METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=V,GLOBALLOC=IN")
+     @METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 	static class SubbandLayer1Stereo extends SubbandLayer1
 	{
 	  @LOC("H") protected int 		channel2_allocation;

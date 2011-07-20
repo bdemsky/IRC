@@ -46,7 +46,7 @@ public abstract class Obuffer
   /**
    * Takes a 16 Bit PCM sample.
    */
-  public abstract void append(int channel, short value);
+  public abstract void append(@LOC("IN") int channel, @LOC("IN") short value);
 
   /**
    * Accepts 32 new PCM samples. 
@@ -86,7 +86,7 @@ public abstract class Obuffer
   /**
    * Write the samples to the file or directly to the audio hardware.
    */
-  public abstract void write_buffer(int val);
+  public abstract void write_buffer(@LOC("IN") int val);
   public abstract void close();
 
   /**
