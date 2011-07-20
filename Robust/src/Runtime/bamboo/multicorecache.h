@@ -51,7 +51,7 @@ void cacheAdapt_phase_master();
 void gc_output_cache_sampling();
 void gc_output_cache_sampling_r();
 
-#if defined(GC_CACHE_SAMPLING)&&defined(GC_CACHE_ADAPT_POLICY4)
+#if defined(GC_CACHE_SAMPLING)&&(defined(GC_CACHE_ADAPT_POLICY4)||defined(GC_CACHE_ADAPT_POLICY3))
 // enable the timer interrupt
 #define CACHEADAPT_ENABLE_TIMER() \
   { \
@@ -69,7 +69,7 @@ void gc_output_cache_sampling_r();
 #define CACHEADAPT_SAMPLING_RESET() 
 #endif
 
-#if defined(GC_CACHE_ADAPT_POLICY4)
+#if (defined(GC_CACHE_ADAPT_POLICY4)||defined(GC_CACHE_ADAPT_POLICY3))
 #define CACHEADAPT_FINISH_SRC_PAGE(a,b,c) cacheadapt_finish_src_page(a,b,c);
 #define CACHEADAPT_FINISH_DST_PAGE(a,b,c,d) cacheadapt_finish_dst_page(a,b,c,d);
 #define CACHEADAPT_FINISH_COMPACT(a) cacheadapt_finish_compact(a);

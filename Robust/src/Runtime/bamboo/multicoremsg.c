@@ -353,7 +353,7 @@ void processmsg_statusreport_I() {
 
 void processmsg_terminate_I() {
   disruntimedata();
-#if defined(MULTICORE_GC)&&defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)&&defined(GC_CACHE_ADAPT_POLICY4)
+#if defined(MULTICORE_GC)&&defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)&&(defined(GC_CACHE_ADAPT_POLICY4)||defined(GC_CACHE_ADAPT_POLICY3))
   bamboo_mask_timer_intr(); // disable the TILE_TIMER interrupt
 #endif
   BAMBOO_EXIT_APP(0);

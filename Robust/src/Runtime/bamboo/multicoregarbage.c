@@ -447,12 +447,12 @@ void gc_master(struct garbagelist * stackptr) {
   CACHEADAPT_GC(true);
   //tprintf("Check core status \n");
   GC_CHECK_ALL_CORE_STATUS();
-  GCPROFILE_ITEM_MASTER();
   unsigned long long tmpt = BAMBOO_GET_EXE_TIME();
   CACHEADAPT_OUTPUT_CACHE_SAMPLING();
   gc_output_cache_policy_time += (BAMBOO_GET_EXE_TIME()-tmpt);
   //tprintf("start mark phase\n");
   // do mark phase
+  GCPROFILE_ITEM_MASTER();
   master_mark(stackptr);
   GCPROFILE_ITEM_MASTER();
   //tprintf("finish mark phase\n");
@@ -508,7 +508,7 @@ void pregccheck() {
 }
 
 void pregcprocessing() {
-#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)&&defined(GC_CACHE_ADAPT_POLICY4)
+#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)&&(defined(GC_CACHE_ADAPT_POLICY4)||defined(GC_CACHE_ADAPT_POLICY3))
   // disable the timer interrupt
   bamboo_mask_timer_intr();
   // get the sampling data 
@@ -517,7 +517,7 @@ void pregcprocessing() {
 }
 
 void postgcprocessing() {
-#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)&&defined(GC_CACHE_ADAPT_POLICY4)
+#if defined(GC_CACHE_ADAPT)&&defined(GC_CACHE_SAMPLING)&&(defined(GC_CACHE_ADAPT_POLICY4)||defined(GC_CACHE_ADAPT_POLICY3))
   // enable the timer interrupt
   bamboo_tile_timer_set_next_event(GC_TILE_TIMER_EVENT_SETTING); 
   bamboo_unmask_timer_intr();
@@ -538,6 +538,9 @@ bool gc(struct garbagelist * stackptr) {
 
   // core coordinator routine
   if(0 == BAMBOO_NUM_OF_CORE) {
+    GC_PRINTF("start gc! \n");
+    GCPROFILE_START_MASTER();
+
     GC_PRINTF("Check if we can do gc or not\n");
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
     pregcprocessing();
@@ -547,8 +550,6 @@ bool gc(struct garbagelist * stackptr) {
       ;
 
     //pregccheck();
-    GCPROFILE_START_MASTER();
-    GC_PRINTF("start gc! \n");
     gc_master(stackptr);
   } else if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
     GC_PRINTF("Core reporting for gc.\n");

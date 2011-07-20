@@ -292,7 +292,7 @@ unsigned int cacheAdapt_decision(int coren) {
 
 // adapt the cache strategy for the mutator
 void cacheAdapt_mutator() {
-#if defined(GC_CACHE_ADAPT_POLICY4)
+#if (defined(GC_CACHE_ADAPT_POLICY4)||defined(GC_CACHE_ADAPT_POLICY3))
   BAMBOO_CACHE_MF();
   // check the changes and adapt them
   unsigned int * tmp_p = gccachepolicytbl;
@@ -327,7 +327,7 @@ void cacheAdapt_phase_client() {
   send_msg_2(STARTUPCORE, GCFINISHPREF, BAMBOO_NUM_OF_CORE);
   GC_PRINTF("Finish prefinish phase\n");
 
-#if defined(GC_CACHE_ADAPT_POLICY4)
+#if (defined(GC_CACHE_ADAPT_POLICY4)||defined(GC_CACHE_ADAPT_POLICY3))
   CACHEADAPT_SAMPLING_RESET();
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
     // zero out the gccachesamplingtbl
@@ -365,7 +365,7 @@ void cacheAdapt_phase_master() {
   cacheAdapt_gc(false);
   GC_CHECK_ALL_CORE_STATUS();
   
-#if defined(GC_CACHE_ADAPT_POLICY4)
+#if (defined(GC_CACHE_ADAPT_POLICY4)||defined(GC_CACHE_ADAPT_POLICY3))
   CACHEADAPT_SAMPLING_RESET();
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
     // zero out the gccachesamplingtbl
