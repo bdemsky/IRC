@@ -103,6 +103,18 @@ void cacheadapt_finish_dst_page(void *origptr, void *tostart, void *toptr, unsig
 //   -- clean dtlb entries
 //   -- change cache strategy
 void cacheAdapt_gc(bool isgccachestage) {
+#ifdef GC_CACHE_COHERENT_ON
+  if(!isgccachestage) {
+    // get out of GC
+#if defined(GC_CACHE_ADAPT_POLICY3)&&defined(GC_CACHE_ADAPT_POLICY4)
+    // flush the shared heap
+    BAMBOO_CACHE_FLUSH_L2();
+
+    // clean the dtlb entries
+    BAMBOO_CLEAN_DTLB();
+#endif
+  } 
+#else
   // flush the shared heap
   BAMBOO_CACHE_FLUSH_L2();
 
@@ -114,6 +126,7 @@ void cacheAdapt_gc(bool isgccachestage) {
   } else {
     bamboo_install_dtlb_handler_for_mutator();
   }
+#endif
 } 
 
 // the master core decides how to adapt cache strategy for the mutator 
