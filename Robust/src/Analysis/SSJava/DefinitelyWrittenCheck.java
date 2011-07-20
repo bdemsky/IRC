@@ -17,13 +17,16 @@ import IR.State;
 import IR.TypeDescriptor;
 import IR.Flat.FKind;
 import IR.Flat.FlatCall;
+import IR.Flat.FlatElementNode;
 import IR.Flat.FlatFieldNode;
 import IR.Flat.FlatLiteralNode;
 import IR.Flat.FlatMethod;
 import IR.Flat.FlatNode;
 import IR.Flat.FlatOpNode;
+import IR.Flat.FlatSetElementNode;
 import IR.Flat.FlatSetFieldNode;
 import IR.Flat.TempDescriptor;
+import IR.Tree.Modifiers;
 import Util.Pair;
 
 public class DefinitelyWrittenCheck {
@@ -82,6 +85,9 @@ public class DefinitelyWrittenCheck {
   // when analyzing flatcall, need to re-schedule set of callee
   private Set<MethodDescriptor> calleesToEnqueue;
 
+  public static final String arrayElementFieldName = "___element_";
+  static protected Hashtable<TypeDescriptor, FieldDescriptor> mapTypeToArrayField;
+
   private Set<ClearingSummary> possibleCalleeCompleteSummarySetToCaller;
 
   private LinkedList<MethodDescriptor> sortedDescriptors;
@@ -117,6 +123,7 @@ public class DefinitelyWrittenCheck {
     this.methodDescriptorsToVisitStack = new Stack<MethodDescriptor>();
     this.calleesToEnqueue = new HashSet<MethodDescriptor>();
     this.possibleCalleeCompleteSummarySetToCaller = new HashSet<ClearingSummary>();
+    this.mapTypeToArrayField = new Hashtable<TypeDescriptor, FieldDescriptor>();
     this.LOCAL = new TempDescriptor("LOCAL");
   }
 
@@ -776,10 +783,14 @@ public class DefinitelyWrittenCheck {
 
     assert ssjavaLoopEntrance != null;
 
+    System.out.println("ssjavaLoopEntrance=" + ssjavaLoopEntrance);
+
     // assume that ssjava loop is top-level loop in method, not nested loop
     Set nestedLoop = loopFinder.nestedLoops();
     for (Iterator loopIter = nestedLoop.iterator(); loopIter.hasNext();) {
       LoopFinder lf = (LoopFinder) loopIter.next();
+      System.out.println("lf=" + lf.loopEntrances());
+      System.out.println("elements=" + lf.loopIncElements());
       if (lf.loopEntrances().iterator().next().equals(ssjavaLoopEntrance)) {
         ssjavaLoop = lf;
       }
@@ -890,10 +901,23 @@ public class DefinitelyWrittenCheck {
       case FKind.FlatFieldNode:
       case FKind.FlatElementNode: {
 
-        FlatFieldNode ffn = (FlatFieldNode) fn;
-        lhs = ffn.getDst();
-        rhs = ffn.getSrc();
-        fld = ffn.getField();
+        if (fn.kind() == FKind.FlatFieldNode) {
+          FlatFieldNode ffn = (FlatFieldNode) fn;
+          lhs = ffn.getDst();
+          rhs = ffn.getSrc();
+          fld = ffn.getField();
+        } else {
+          FlatElementNode fen = (FlatElementNode) fn;
+          lhs = fen.getDst();
+          rhs = fen.getSrc();
+          TypeDescriptor td = rhs.getType().dereference();
+          fld = getArrayField(td);
+        }
+        
+        if(fld.isFinal() && fld.isStatic()){
+          // if field is final and static, no need to check 
+          break;
+        }
 
         // read field
         NTuple<Descriptor> srcHeapPath = mapHeapPath.get(rhs);
@@ -913,9 +937,17 @@ public class DefinitelyWrittenCheck {
       case FKind.FlatSetFieldNode:
       case FKind.FlatSetElementNode: {
 
-        FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
-        lhs = fsfn.getDst();
-        fld = fsfn.getField();
+        if (fn.kind() == FKind.FlatSetFieldNode) {
+          FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
+          lhs = fsfn.getDst();
+          fld = fsfn.getField();
+        } else {
+          FlatSetElementNode fsen = (FlatSetElementNode) fn;
+          lhs = fsen.getDst();
+          rhs = fsen.getSrc();
+          TypeDescriptor td = lhs.getType().dereference();
+          fld = getArrayField(td);
+        }
 
         // write(field)
         NTuple<Descriptor> lhsHeapPath = computePath(lhs);
@@ -1253,15 +1285,28 @@ public class DefinitelyWrittenCheck {
     }
       break;
 
-    case FKind.FlatFieldNode:
-    case FKind.FlatElementNode: {
+    case FKind.FlatElementNode:
+    case FKind.FlatFieldNode: {
 
       // y=x.f;
 
-      FlatFieldNode ffn = (FlatFieldNode) fn;
-      lhs = ffn.getDst();
-      rhs = ffn.getSrc();
-      fld = ffn.getField();
+      if (fn.kind() == FKind.FlatFieldNode) {
+        FlatFieldNode ffn = (FlatFieldNode) fn;
+        lhs = ffn.getDst();
+        rhs = ffn.getSrc();
+        fld = ffn.getField();
+      } else {
+        FlatElementNode fen = (FlatElementNode) fn;
+        lhs = fen.getDst();
+        rhs = fen.getSrc();
+        TypeDescriptor td = rhs.getType().dereference();
+        fld = getArrayField(td);
+      }
+      
+      if(fld.isFinal() && fld.isStatic()){
+        // if field is final and static, no need to check 
+        break;
+      }
 
       // set up heap path
       NTuple<Descriptor> srcHeapPath = mapHeapPath.get(rhs);
@@ -1292,10 +1337,19 @@ public class DefinitelyWrittenCheck {
     case FKind.FlatSetElementNode: {
 
       // x.f=y;
-      FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
-      lhs = fsfn.getDst();
-      fld = fsfn.getField();
-      rhs = fsfn.getSrc();
+
+      if (fn.kind() == FKind.FlatSetFieldNode) {
+        FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
+        lhs = fsfn.getDst();
+        fld = fsfn.getField();
+        rhs = fsfn.getSrc();
+      } else {
+        FlatSetElementNode fsen = (FlatSetElementNode) fn;
+        lhs = fsen.getDst();
+        rhs = fsen.getSrc();
+        TypeDescriptor td = lhs.getType().dereference();
+        fld = getArrayField(td);
+      }
 
       // set up heap path
       NTuple<Descriptor> lhsHeapPath = mapHeapPath.get(lhs);
@@ -1349,6 +1403,17 @@ public class DefinitelyWrittenCheck {
 
     }
 
+  }
+
+  static public FieldDescriptor getArrayField(TypeDescriptor td) {
+    FieldDescriptor fd = mapTypeToArrayField.get(td);
+    if (fd == null) {
+      fd =
+          new FieldDescriptor(new Modifiers(Modifiers.PUBLIC), td, arrayElementFieldName, null,
+              false);
+      mapTypeToArrayField.put(td, fd);
+    }
+    return fd;
   }
 
   private void mergeSharedLocationAnaylsis(ClearingSummary curr, Set<ClearingSummary> inSet) {

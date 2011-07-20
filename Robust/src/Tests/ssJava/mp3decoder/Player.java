@@ -209,7 +209,7 @@ public class Player
 	 * 
 	 * @return true if there are no more frames to decode, false otherwise.
 	 */
-	@LATTICE("O,THISLOC=O")
+	@LATTICE("O<TH,THISLOC=TH")
 	@RETURNLOC("O")
 	protected boolean decodeFrame() throws JavaLayerException
 	{		

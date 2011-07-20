@@ -758,7 +758,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	 /**
 	  * Class for layer II subbands in joint stereo mode.
 	  */
-     @LATTICE("S<L,L<H,L<ARR,ARR<F,SN<F,GN<F,F<H,H<SH,SN*,GN*")
+     @LATTICE("S<L,L<H,L<ARR,ARR<F,SN<F,GN<F,F<H,H<SH,SN*,GN*,L*")
 	@METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 	static class SubbandLayer2IntensityStereo extends SubbandLayer2
 	{
