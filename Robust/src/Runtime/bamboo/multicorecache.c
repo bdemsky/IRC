@@ -106,7 +106,7 @@ void cacheAdapt_gc(bool isgccachestage) {
 #ifdef GC_CACHE_COHERENT_ON
   if(!isgccachestage) {
     // get out of GC
-#if defined(GC_CACHE_ADAPT_POLICY3)&&defined(GC_CACHE_ADAPT_POLICY4)
+#if (defined(GC_CACHE_ADAPT_POLICY4)||defined(GC_CACHE_ADAPT_POLICY3))
     // flush the shared heap
     BAMBOO_CACHE_FLUSH_L2();
 
@@ -297,7 +297,7 @@ unsigned int cacheAdapt_decision(int coren) {
 #elif defined(GC_CACHE_ADAPT_POLICY2)
   //cacheAdapt_policy_local(coren);
 #elif defined(GC_CACHE_ADAPT_POLICY3)
-  //cacheAdapt_policy_hottest(coren);
+  cacheAdapt_policy_hottest(coren);
 #elif defined(GC_CACHE_ADAPT_POLICY4)
   cacheAdapt_policy_dominate(coren);
 #endif
