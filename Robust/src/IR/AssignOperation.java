@@ -137,7 +137,10 @@ public class AssignOperation {
       return "postinc";
     else if (operation==POSTDEC)
       return "postdec";
-    else throw new Error();
+    else if ( operation==URSHIFTEQ)
+      return ">>>=";
+    else 
+      throw new Error();    
   }
 
 
