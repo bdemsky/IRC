@@ -84,6 +84,7 @@ echo "-tilera_memprof build the memprof version (should be used together with -t
 echo -accurateprofile build with accurate profile information including pre/post task processing info
 echo -profile_interrupt build with profile information of interrupts
 echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
+echo -gccachecoherent turns on the cache coherence during gc
 echo
 echo Multicore GC options
 echo -perfcount performance counters
@@ -257,7 +258,8 @@ TILERAOUTPUTDIR="tilera"
 TILERA_PAGE_SIZE="0x10000"
 TILERA_PAGE_SIZE_BITS="16"
 TILERA_NUM_BLOCKS="20"
-TILERA_NUM_PAGES_PER_BLOCK="16" 
+TILERA_NUM_PAGES_PER_BLOCK="16"
+GCCACHECOHERENTFLAG=false
 
 if [[ -z $1 ]]
 then
@@ -434,6 +436,9 @@ PROFILEINTERRUPTFLAG=true
 elif [[ $1 = '-useio' ]]
 then
 USEIOFLAG=true
+elif [[ $1 = '-gccachecoherenton' ]]
+then
+GCCACHECOHERENTFLAG=true
 elif [[ $1 = '-taskstate' ]]
 then
 JAVAOPTS="$JAVAOPTS -taskstate"
@@ -1225,6 +1230,11 @@ fi
 if $GCCACHESAMPLINGFLAG
 then # GC_CACHE_ADAPT version
 TILERACFLAGS="${TILERACFLAGS} -DGC_CACHE_SAMPLING"
+fi
+
+if $GCCACHECOHERENTFLAG
+then # gc cache coherent version
+TILERACFLAGS="${TILERACFLAGS} -DGC_CACHE_COHERENT_ON"
 fi
 
 if $PMCFLAG
