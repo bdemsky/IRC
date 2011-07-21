@@ -436,7 +436,7 @@ PROFILEINTERRUPTFLAG=true
 elif [[ $1 = '-useio' ]]
 then
 USEIOFLAG=true
-elif [[ $1 = '-gccachecoherenton' ]]
+elif [[ $1 = '-gccachecoherent' ]]
 then
 GCCACHECOHERENTFLAG=true
 elif [[ $1 = '-taskstate' ]]
