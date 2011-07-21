@@ -241,9 +241,16 @@ public class TestRunner extends Thread {
     args[4] = 81;
     args[5] = 240;
     System.setgcprofileflag();
-    for(int i = 0; i < threadnum; ++i) {
+    TestRunner trarray[]=new TestRunner[threadnum];
+    for(int i = 1; i < threadnum; ++i) {
       TestRunner tr = new TestRunner(args);
       tr.start();
+      trarray[i]=tr;
+    }
+    TestRunner tr0 = new TestRunner(args);
+    tr0.run();
+    for(int i = 1; i < threadnum; ++i) {
+      trarray[i].join();
     }
   }
 }

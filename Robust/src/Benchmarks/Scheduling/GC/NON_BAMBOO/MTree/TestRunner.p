@@ -39,9 +39,16 @@ public class TestRunner extends Thread {
     int size = 40000;
     int nodenum = size*10;
     System.setgcprofileflag();
-    for(int i = 0; i < threadnum; ++i) {
+    TestRunner trarray[]=new TestRunner[threadnum];
+    for(int i = 1; i < threadnum; ++i) {
       TestRunner tr = new TestRunner(i, size, nodenum);
       tr.start();
+      trarray[i]=tr;
+    }
+    TestRunner tr0 = new TestRunner(0, size, nodenum);
+    tr0.run();
+    for(int i = 1; i < threadnum; ++i) {
+      trarray[i].join();
     }
   }
 }

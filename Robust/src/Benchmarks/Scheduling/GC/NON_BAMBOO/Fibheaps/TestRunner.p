@@ -61,9 +61,16 @@ public class TestRunner extends Thread {
   public static void main(String[] args) {
     int threadnum = THREADNUM;
     System.setgcprofileflag();
-    for(int i = 0; i < threadnum; ++i) {
+    TestRunner trarray[]=new TestRunner[threadnum];
+    for(int i = 1; i < threadnum; ++i) {
       TestRunner tr = new TestRunner();
       tr.start();
+      trarray[i]=tr;
+    }
+    TestRunner tr0 = new TestRunner();
+    tr0.run();
+    for(int i = 1; i < threadnum; ++i) {
+      trarray[i].join();
     }
   }
 }
