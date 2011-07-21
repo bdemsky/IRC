@@ -232,7 +232,6 @@ public class RayTracer extends Thread {
         // Sets the pixels
         row[x]= alpha | (red << 16) | (green << 8) | (blue);
       } // end for (x)
-
       image[y]=row;
     } // end for (y)
 

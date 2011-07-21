@@ -67,20 +67,20 @@ public class TestRunner extends RayTracer {
   }
 
   public void run() {
-    this.init();
-
-    int heightPerCore=height/numCore;
-    int startidx=heightPerCore * this.id;
-    int endidx=startidx + heightPerCore;
-    Interval interval = new Interval(0, width, height, startidx, endidx, 1);
-    render(interval);
-
+		    this.init();
+		    float heightPerCore=height/numCore;
+		    int startidx=(height*this.id)/numCore;
+		    int endidx=(height*(this.id+1))/numCore;
+		    if (id==(THREADNUM-1))
+		    endidx=height;
+		    Interval interval = new Interval(0, width, height, startidx, endidx, 1);
+		    render(interval);
     //System.out.println("CHECKSUM="+checksum);
 
   }
   public static void main(String[] args) {
     int threadnum = THREADNUM; // 56;
-    int size = 62*25; //threadnum * 25;
+    int size = 500; //threadnum * 25;
     System.setgcprofileflag();
     Composer comp = new Composer(threadnum, size);
     RayTracer rt = new RayTracer();
