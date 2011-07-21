@@ -463,7 +463,7 @@ final class SynthesisFilter
     new_v15 = p15;
     new_v13 = p15 + p7;
     new_v11 = p15 + p7 + p11;
-    new_v5 = new_v11 + p5 + p13;
+    new_v5 = p15 + p7 + p11 + p5 + p13;
     
 //    new_v7 = (new_v9 = p15 + p11 + p3) + p13;
     new_v9 = p15 + p11 + p3;

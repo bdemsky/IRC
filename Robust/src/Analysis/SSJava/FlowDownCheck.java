@@ -920,26 +920,6 @@ public class FlowDownCheck {
 
     ClassDescriptor cd = md.getClassDesc();
 
-    // check arguments
-    Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
-    for (int i = 0; i < con.numArgs(); i++) {
-      ExpressionNode en = con.getArg(i);
-      CompositeLocation argLoc =
-          checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation());
-      glbInputSet.add(argLoc);
-      addLocationType(en.getType(), argLoc);
-    }
-
-    // check array initializers
-    // if ((con.getArrayInitializer() != null)) {
-    // checkLocationFromArrayInitializerNode(md, nametable,
-    // con.getArrayInitializer());
-    // }
-
-    if (glbInputSet.size() > 0) {
-      return CompositeLattice.calculateGLB(glbInputSet);
-    }
-
     CompositeLocation compLoc = new CompositeLocation();
     compLoc.addLocation(Location.createTopLocation(md));
     return compLoc;
@@ -1175,11 +1155,11 @@ public class FlowDownCheck {
       srcLocation = new CompositeLocation();
       srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
 
-      // System.out.println(" an= " + an.printNode(0) + " an.getSrc()=" +
-      // an.getSrc().getClass()
-      // + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
-      // System.out.println("srcLocation=" + srcLocation);
-      // System.out.println("dstLocation=" + destLocation);
+       System.out.println("\n an= " + an.printNode(0) + " an.getSrc()=" +
+       an.getSrc().getClass()
+       + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
+       System.out.println("srcLocation=" + srcLocation);
+       System.out.println("dstLocation=" + destLocation);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
         throw new Error("The value flow from " + srcLocation + " to " + destLocation

@@ -1018,7 +1018,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-          @LATTICE("OUT<V,V<SH,SH<TEMP,TEMP<TMP,TMP<THIS,THIS<IN,SH*,TEMP*,TMP*,THISLOC=THIS,GLOBALLOC=IN")
+          @LATTICE("OUT<V,V<TEMP,TEMP<SH,TEMP<TMP,TMP<THIS,THIS<IN,SH*,TEMP*,TMP*,THISLOC=THIS,GLOBALLOC=IN")
 	  @RETURNLOC("V")
 	  public boolean read_sampledata (@LOC("IN") Bitstream stream)
 	  {

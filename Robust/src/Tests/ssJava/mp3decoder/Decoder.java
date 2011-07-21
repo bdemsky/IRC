@@ -27,7 +27,7 @@
  * @version 0.0.7 12/12/99
  * @since	0.0.5
  */
-@LATTICE("ST,OUT,FIL,DE,O,EQ,PA,INIT,DE*")
+@LATTICE("ST,OUT,FIL,DE<LA,O,EQ,PA,INIT,DE*")
 public class Decoder implements DecoderErrors
 {
 	static private final Params DEFAULT_PARAMS = new Params();
@@ -141,21 +141,41 @@ public class Decoder implements DecoderErrors
 	  //		    initialize(header,stream);
 	  //		}
 
-	  @LOC("DELTA(TH)") int layer = header.layer();
+	  @LOC("TH") int layer = header.layer();
 
 	  output.clear_buffer();
 
-	  @LOC("TH,Decoder.DE") FrameDecoder decoder = retrieveDecoder(header, stream, layer);
-	  decoder.decodeFrame();
+//	  @LOC("DE,Decoder.DE") FrameDecoder decoder = retrieveDecoder(header, stream, layer); // return ceil=DELTA(TH)
+//	  decoder.decodeFrame();
 
 	  if(layer==3){
-	    l3decoder=(LayerIIIDecoder)decoder;
+	    if (l3decoder==null)
+	    {
+	      l3decoder = new LayerIIIDecoder(stream, 
+	          header, filter1, filter2, 
+	          output, OutputChannels.BOTH_CHANNELS);
+	    }                             
+	    l3decoder.decodeFrame();
 	  }else if(layer==2){
-	    l2decoder=(LayerIIDecoder)decoder;
+	    if (l2decoder==null)
+	    {
+	      l2decoder = new LayerIIDecoder();
+	      l2decoder.create(stream, 
+	          header, filter1, filter2, 
+	          output, OutputChannels.BOTH_CHANNELS);                 
+	    }
+	    l2decoder.decodeFrame();
 	  }else{
-	    l1decoder=(LayerIDecoder)decoder;
+	    if (l1decoder==null)
+	    {
+	      l1decoder = new LayerIDecoder();
+	      l1decoder.create(stream, 
+	          header, filter1, filter2, 
+	          output, OutputChannels.BOTH_CHANNELS);                 
+	    }
+	    l1decoder.decodeFrame();
 	  }
-	  
+
 	  output.write_buffer(1);
 
 	  return output;	
@@ -224,12 +244,12 @@ public class Decoder implements DecoderErrors
 		return new DecoderException(errorcode, throwable);
 	}
 	
-	@LATTICE("DE<IN,THISLOC=IN")
-	@RETURNLOC("DE")
+	@LATTICE("IN,TH,THISLOC=TH")
+	@RETURNLOC("TH")
 	protected FrameDecoder retrieveDecoder(@LOC("IN") Header header, @LOC("IN") Bitstream stream, @LOC("IN") int layer)
 		throws DecoderException
 	{
-		@LOC("DE") FrameDecoder decoder = null;
+//		@LOC("DE") FrameDecoder decoder = null;
 		
 		// REVIEW: allow channel output selection type
 		// (LEFT, RIGHT, BOTH, DOWNMIX)
@@ -243,7 +263,8 @@ public class Decoder implements DecoderErrors
 					output, OutputChannels.BOTH_CHANNELS);
 			}						
 			
-			decoder = l3decoder;
+			return l3decoder;
+//			decoder = l3decoder;
 			break;
 		case 2:
 			if (l2decoder==null)
@@ -253,7 +274,8 @@ public class Decoder implements DecoderErrors
 					header, filter1, filter2, 
 					output, OutputChannels.BOTH_CHANNELS);				
 			}
-			decoder = l2decoder;
+              return l2decoder;
+//			decoder = l2decoder;
 			break;
 		case 1:
 			if (l1decoder==null)
@@ -263,16 +285,17 @@ public class Decoder implements DecoderErrors
 					header, filter1, filter2, 
 					output, OutputChannels.BOTH_CHANNELS);				
 			}
-			decoder = l1decoder;
+              return l1decoder;
+//			decoder = l1decoder;
 			break;
 		}
-						
-		if (decoder==null)
-		{
-			throw newDecoderException(UNSUPPORTED_LAYER, null);
-		}
-		
-		return decoder;
+//						
+//		if (decoder==null)
+//		{
+//			throw newDecoderException(UNSUPPORTED_LAYER, null);
+//		}
+//		
+//		return decoder;
 	}
 	
         public void initialize(Header header, Bitstream stream)

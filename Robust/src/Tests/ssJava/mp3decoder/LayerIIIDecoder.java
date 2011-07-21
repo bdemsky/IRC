@@ -282,11 +282,9 @@ final class LayerIIIDecoder implements FrameDecoder {
     get_side_info();
 
     for (i = 0; i < nSlots; i++)
-      br.hputbuf(stream.get_bits(8)); // br < stream
-
-    // br < main_data_end
-    main_data_end = br.hsstell() >>> 3; // of previous frame  
-     
+      br.hputbuf(stream.get_bits(8)); 
+    
+    main_data_end = br.hsstell() >>> 3;      
 
     if ((flush_main = (br.hsstell() & 7)) != 0) { // flush_main < br
       br.hgetbits(8 - flush_main); // br < flush_main
