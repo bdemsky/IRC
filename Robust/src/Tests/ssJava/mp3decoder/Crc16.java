@@ -46,16 +46,17 @@ public final class Crc16
    */
   public void add_bits (@LOC("IN") int bitstring, @LOC("IN") int length)
   {
-        @LOC("SH") int bitmask = 1 << (length - 1);
-  	do
-	 if (((crc & 0x8000) == 0) ^ ((bitstring & bitmask) == 0 ))
-	 {
-		crc <<= 1;
-		crc ^= polynomial;
-	 }
-	 else
-		crc <<= 1;
-  	while ((bitmask >>>= 1) != 0);
+    @LOC("SH") int bitmask = 1 << (length - 1);
+    do{
+      if (((crc & 0x8000) == 0) ^ ((bitstring & bitmask) == 0 ))
+      {
+        crc <<= 1;
+        crc ^= polynomial;
+      }
+      else{
+        crc <<= 1;
+      }
+    }while ((bitmask >>>= 1) != 0);
   }
 
   /**

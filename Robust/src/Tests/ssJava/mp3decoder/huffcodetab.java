@@ -45,8 +45,8 @@
 @METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=IN,GLOBALLOC=IN")
 final class huffcodetab
 {
-  @LOC("FINAL") private static final int	 MXOFF=250;
-  @LOC("FINAL") private static final int	 HTN=34;
+  private static final int	 MXOFF=250;
+  private static final int	 HTN=34;
   
   @LOC("FIELD") private char				 tablename0 = ' ';      /* string, containing table_description   */
   @LOC("FIELD") private char				 tablename1 = ' ';      /* string, containing table_description   */

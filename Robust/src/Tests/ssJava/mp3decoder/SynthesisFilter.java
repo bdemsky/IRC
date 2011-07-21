@@ -458,9 +458,17 @@ final class SynthesisFilter
     // manually doing something that a compiler should handle sucks
     // coding like this is hard to read
     @LOC("IN,SynthesisFilter.L4") float tmp2;
-    new_v5 = (new_v11 = (new_v13 = (new_v15 = p15) + p7) + p11)
-    + p5 + p13;
-    new_v7 = (new_v9 = p15 + p11 + p3) + p13;
+//    new_v5 = (new_v11 = (new_v13 = (new_v15 = p15) + p7) + p11)
+//    + p5 + p13;
+    new_v15 = p15;
+    new_v13 = p15 + p7;
+    new_v11 = p15 + p7 + p11;
+    new_v5 = new_v11 + p5 + p13;
+    
+//    new_v7 = (new_v9 = p15 + p11 + p3) + p13;
+    new_v9 = p15 + p11 + p3;
+    new_v7 = new_v9 + p13;
+    
     new_v16/*33-17*/ = -(new_v1 = (tmp1 = p13 + p15 + p9) + p1) - p14;
     new_v18/*35-17*/ = -(new_v3 = tmp1 + p5 + p7) - p6 - p14;
 

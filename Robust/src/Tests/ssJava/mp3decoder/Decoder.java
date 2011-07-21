@@ -27,7 +27,7 @@
  * @version 0.0.7 12/12/99
  * @since	0.0.5
  */
-@LATTICE("ST,OUT,FIL,DE,O,EQ,PA,INIT")
+@LATTICE("ST,OUT,FIL,DE,O,EQ,PA,INIT,DE*")
 public class Decoder implements DecoderErrors
 {
 	static private final Params DEFAULT_PARAMS = new Params();
@@ -145,10 +145,17 @@ public class Decoder implements DecoderErrors
 
 	  output.clear_buffer();
 
-	  @LOC("DE") FrameDecoder decoder = retrieveDecoder(header, stream, layer);
-
+	  @LOC("TH,Decoder.DE") FrameDecoder decoder = retrieveDecoder(header, stream, layer);
 	  decoder.decodeFrame();
 
+	  if(layer==3){
+	    l3decoder=(LayerIIIDecoder)decoder;
+	  }else if(layer==2){
+	    l2decoder=(LayerIIDecoder)decoder;
+	  }else{
+	    l1decoder=(LayerIDecoder)decoder;
+	  }
+	  
 	  output.write_buffer(1);
 
 	  return output;	

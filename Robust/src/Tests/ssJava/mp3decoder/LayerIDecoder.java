@@ -40,7 +40,7 @@
     @LOC("H") protected int 					which_channels;
     @LOC("H") protected int					mode;
 	
-    @LOC("H") protected int					num_subbands;
+    @LOC("SH") protected int					num_subbands;
     @LOC("L") protected Subband[]				subbands;
     @LOC("H") protected Crc16					crc	= null;	// new Crc16[1] to enable CRC checking.
 	
@@ -354,7 +354,7 @@
 	      sample = sample * factor + offset;		// requantization
 		  if (channels == OutputChannels.BOTH_CHANNELS)
 	      {
-		        @LOC("OUT") float sample1 = sample * scalefactor;
+		     @LOC("OUT") float sample1 = sample * scalefactor;
 			@LOC("OUT") float sample2 = sample * channel2_scalefactor;
 			filter1.input_sample(sample1, subbandnumber);
 			filter2.input_sample(sample2, subbandnumber);

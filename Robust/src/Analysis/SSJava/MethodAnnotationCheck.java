@@ -90,28 +90,19 @@ public class MethodAnnotationCheck {
           if (!visited.contains(p)) {
             visited.add(p);
 
-            if (calleeMD.getClassDesc().isInterface()) {
-              calleeMD.getClassDesc();
-            }
-
             tovisit.add(calleeMD);
 
-            if (calleeMD.isAbstract()) {
-              Set<MethodDescriptor> possibleCalleeSet =
-                  (Set<MethodDescriptor>) ssjava.getCallGraph().getMethods(calleeMD);
+            Set<MethodDescriptor> possibleCalleeSet =
+                (Set<MethodDescriptor>) ssjava.getCallGraph().getMethods(calleeMD);
 
-              for (Iterator iterator2 = possibleCalleeSet.iterator(); iterator2.hasNext();) {
-                MethodDescriptor possibleCallee = (MethodDescriptor) iterator2.next();
+            for (Iterator iterator2 = possibleCalleeSet.iterator(); iterator2.hasNext();) {
+              MethodDescriptor possibleCallee = (MethodDescriptor) iterator2.next();
 
-                if (!possibleCallee.isAbstract()) {
-                  ssjava.addAnnotationRequire(possibleCallee);
-                  tovisit.add(possibleCallee);
-                }
-
+              if (!possibleCallee.isAbstract()) {
+                ssjava.addAnnotationRequire(possibleCallee);
+                tovisit.add(possibleCallee);
               }
 
-            } else {
-              ssjava.addAnnotationRequire(calleeMD);
             }
 
           }

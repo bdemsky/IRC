@@ -65,8 +65,9 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	protected void readScaleFactorSelection()
 	{
 	  // eom note: num_subbands is defined in LayerIDecoder so it has (THIS, LayerIDecoder) Loc
-	      for (@LOC("V,LayerIIDecoder.SH") int i = 0; i < num_subbands; ++i)
-  		  ((SubbandLayer2)subbands[i]).read_scalefactor_selection(stream, crc);		
+	      for (@LOC("V,LayerIIDecoder.SH") int i = 0; i < num_subbands; ++i){
+	        ((SubbandLayer2)subbands[i]).read_scalefactor_selection(stream, crc);
+	      }
 	}
 	
 	
@@ -677,7 +678,8 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-          @LATTICE("OUT<V,V<SH,SH<TEMP,TEMP<TMP,TMP<THIS,THIS<IN,SH*,TEMP*,TMP*,THISLOC=THIS,GLOBALLOC=IN")
+//          @LATTICE("OUT<V,V<SH,SH<TEMP,TEMP<TMP,TMP<THIS,THIS<IN,SH*,TEMP*,TMP*,THISLOC=THIS,GLOBALLOC=IN")
+	  @LATTICE("OUT<V,V<TEMP,TEMP<TMP,TMP<SH,SH<THIS,THIS<IN,SH*,TEMP*,TMP*,THISLOC=THIS,GLOBALLOC=IN")
 	  @RETURNLOC("V")
 	  public boolean read_sampledata (@LOC("IN") Bitstream stream)
 	  {

@@ -43,6 +43,7 @@ import IR.Tree.ReturnNode;
 import IR.Tree.SubBlockNode;
 import IR.Tree.SwitchBlockNode;
 import IR.Tree.SwitchStatementNode;
+import IR.Tree.SynchronizedNode;
 import IR.Tree.TertiaryNode;
 import IR.Tree.TreeNode;
 import Util.Pair;
@@ -283,7 +284,41 @@ public class FlowDownCheck {
     case Kind.LoopNode:
       checkDeclarationInLoopNode(md, nametable, (LoopNode) bsn);
       break;
+
+    case Kind.IfStatementNode:
+      checkDeclarationInIfStatementNode(md, nametable, (IfStatementNode) bsn);
+      return;
+
+    case Kind.SwitchStatementNode:
+      checkDeclarationInSwitchStatementNode(md, nametable, (SwitchStatementNode) bsn);
+      return;
+
+    case Kind.SynchronizedNode:
+      checkDeclarationInSynchronizedNode(md, nametable, (SynchronizedNode) bsn);
+      return;
+
     }
+  }
+
+  private void checkDeclarationInSynchronizedNode(MethodDescriptor md, SymbolTable nametable,
+      SynchronizedNode sbn) {
+    checkDeclarationInBlockNode(md, nametable, sbn.getBlockNode());
+  }
+
+  private void checkDeclarationInSwitchStatementNode(MethodDescriptor md, SymbolTable nametable,
+      SwitchStatementNode ssn) {
+    BlockNode sbn = ssn.getSwitchBody();
+    for (int i = 0; i < sbn.size(); i++) {
+      SwitchBlockNode node = (SwitchBlockNode) sbn.get(i);
+      checkDeclarationInBlockNode(md, nametable, node.getSwitchBlockStatement());
+    }
+  }
+
+  private void checkDeclarationInIfStatementNode(MethodDescriptor md, SymbolTable nametable,
+      IfStatementNode isn) {
+    checkDeclarationInBlockNode(md, nametable, isn.getTrueBlock());
+    if (isn.getFalseBlock() != null)
+      checkDeclarationInBlockNode(md, nametable, isn.getFalseBlock());
   }
 
   private void checkDeclarationInLoopNode(MethodDescriptor md, SymbolTable nametable, LoopNode ln) {
@@ -433,12 +468,6 @@ public class FlowDownCheck {
       // check if return value is equal or higher than RETRUNLOC of method
       // declaration annotation
       CompositeLocation declaredReturnLoc = md2ReturnLoc.get(md);
-
-      System.out.println("\nreturnLocAt=" + declaredReturnLoc);
-      System.out.println("returnValueLoc=" + returnValueLoc);
-      System.out.println("COMPARE RESULT="
-          + CompositeLattice.compare(declaredReturnLoc, returnValueLoc,
-              generateErrorMessage(md.getClassDesc(), rn)));
 
       int compareResult =
           CompositeLattice.compare(returnValueLoc, declaredReturnLoc,
@@ -596,14 +625,9 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromDeclarationNode(MethodDescriptor md,
       SymbolTable nametable, DeclarationNode dn) {
 
-    System.out.println("##DeclarationNode=" + dn.printNode(0) + " "
-        + generateErrorMessage(md.getClassDesc(), dn));
-
     VarDescriptor vd = dn.getVarDescriptor();
 
     CompositeLocation destLoc = d2loc.get(vd);
-
-    System.out.println("##DeclarationNode destLoc=" + destLoc + " of vd=" + vd + " of md=" + md);
 
     if (dn.getExpression() != null) {
       CompositeLocation expressionLoc =
@@ -806,19 +830,17 @@ public class FlowDownCheck {
       argList.add(callerArg);
     }
 
-    System.out.println("##");
-    System.out.println("min.getMethod()=" + min.getMethod() + " argList=" + argList);
-    System.out.println("computeReturnLocation="
-        + md2ReturnLocGen.get(min.getMethod()).computeReturnLocation(argList));
+    System.out.println("\n## computeReturnLocation=" + min.getMethod() + " argList=" + argList);
+    CompositeLocation compLoc = md2ReturnLocGen.get(min.getMethod()).computeReturnLocation(argList);
+    DeltaLocation delta = new DeltaLocation(compLoc, 1);
+    System.out.println("##computeReturnLocation=" + delta);
 
-    return md2ReturnLocGen.get(min.getMethod()).computeReturnLocation(argList);
+    return delta;
 
   }
 
   private void checkCalleeConstraints(MethodDescriptor md, SymbolTable nametable,
       MethodInvokeNode min) {
-
-    System.out.println("checkCalleeConstraints " + generateErrorMessage(md.getClassDesc(), min));
 
     if (min.numArgs() > 1) {
       // caller needs to guarantee that it passes arguments in regarding to
@@ -828,7 +850,6 @@ public class FlowDownCheck {
         CompositeLocation callerArg1 =
             checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation());
 
-        ClassDescriptor calleecd = min.getMethod().getClassDesc();
         VarDescriptor calleevd = (VarDescriptor) min.getMethod().getParameter(i);
         CompositeLocation calleeLoc1 = d2loc.get(calleevd);
 
@@ -844,9 +865,6 @@ public class FlowDownCheck {
 
               VarDescriptor calleevd2 = (VarDescriptor) min.getMethod().getParameter(currentIdx);
               CompositeLocation calleeLoc2 = d2loc.get(calleevd2);
-
-              System.out.println("#callerResult=" + callerArg1 + " " + callerArg2);
-              System.out.println("#calleeResult=" + calleeLoc1 + " " + calleeLoc2);
 
               int callerResult =
                   CompositeLattice.compare(callerArg1, callerArg2,
@@ -944,6 +962,7 @@ public class FlowDownCheck {
 
     System.out.println("checking op node=" + on.printNode(0)
         + generateErrorMessage(md.getClassDesc(), on));
+    System.out.println("# op node=" + on.printNode(0));
     System.out.println("left loc=" + leftLoc + " from " + on.getLeft().getClass());
     if (on.getRight() != null) {
       System.out.println("right loc=" + rightLoc + " from " + on.getRight().kind());
@@ -1024,6 +1043,7 @@ public class FlowDownCheck {
         loc.addLocation(locElement);
         return loc;
       }
+
       Descriptor d = (Descriptor) nametable.get(varname);
 
       // CompositeLocation localLoc = null;
@@ -1040,6 +1060,7 @@ public class FlowDownCheck {
             // if it is 'static final', the location has TOP since no one can
             // change its value
             loc.addLocation(Location.createTopLocation(md));
+            return loc;
           } else {
             // if 'static', the location has pre-assigned global loc
             MethodLattice<String> localLattice = ssjava.getMethodLattice(md);
@@ -1061,6 +1082,24 @@ public class FlowDownCheck {
 
         Location fieldLoc = (Location) fd.getType().getExtension();
         loc.addLocation(fieldLoc);
+      } else if (d == null) {
+
+        // check if the var is a static field of the class
+        FieldDescriptor fd = nn.getField();
+        ClassDescriptor cd = nn.getClassDesc();
+
+        if (fd != null && cd != null) {
+
+          if (fd.isStatic() && fd.isFinal()) {
+            loc.addLocation(Location.createTopLocation(md));
+            return loc;
+          } else {
+            MethodLattice<String> localLattice = ssjava.getMethodLattice(md);
+            Location fieldLoc = new Location(md, localLattice.getThisLoc());
+            loc.addLocation(fieldLoc);
+          }
+        }
+
       }
     }
     return loc;
@@ -1074,8 +1113,14 @@ public class FlowDownCheck {
 
     FieldDescriptor fd = fan.getField();
 
-    if (ltd.isClassNameRef()) {
-      // using a class name directly
+    String varName = null;
+    if (left.kind() == Kind.NameNode) {
+      NameDescriptor nd = ((NameNode) left).getName();
+      varName = nd.toString();
+    }
+
+    if (ltd.isClassNameRef() || (varName != null && varName.equals("this"))) {
+      // using a class name directly or access using this
       if (fd.isStatic() && fd.isFinal()) {
         loc.addLocation(Location.createTopLocation(md));
         return loc;
@@ -1449,37 +1494,97 @@ public class FlowDownCheck {
         }
         Location loc2 = compLoc2.get(i);
 
-        if (!loc1.getDescriptor().equals(loc2.getDescriptor())) {
+        Descriptor d1 = loc1.getDescriptor();
+        Descriptor d2 = loc2.getDescriptor();
+
+        Descriptor descriptor;
+
+        if (d1 instanceof ClassDescriptor && d2 instanceof ClassDescriptor) {
+
+          if (d1.equals(d2)) {
+            descriptor = d1;
+          } else {
+            // identifying which one is parent class
+            Set<Descriptor> d1SubClassesSet = ssjava.tu.getSubClasses((ClassDescriptor) d1);
+            Set<Descriptor> d2SubClassesSet = ssjava.tu.getSubClasses((ClassDescriptor) d2);
+
+            if (d1 == null && d2 == null) {
+              throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
+                  + " because they are not comparable at " + msg);
+            } else if (d1 != null && d1SubClassesSet.contains(d2)) {
+              descriptor = d1;
+            } else if (d2 != null && d2SubClassesSet.contains(d1)) {
+              descriptor = d2;
+            } else {
+              throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
+                  + " because they are not comparable at " + msg);
+            }
+          }
+
+        } else if (d1 instanceof MethodDescriptor && d2 instanceof MethodDescriptor) {
+
+          if (d1.equals(d2)) {
+            descriptor = d1;
+          } else {
+
+            // identifying which one is parent class
+            MethodDescriptor md1 = (MethodDescriptor) d1;
+            MethodDescriptor md2 = (MethodDescriptor) d2;
+
+            if (!md1.matches(md2)) {
+              throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
+                  + " because they are not comparable at " + msg);
+            }
+
+            Set<Descriptor> d1SubClassesSet =
+                ssjava.tu.getSubClasses(((MethodDescriptor) d1).getClassDesc());
+            Set<Descriptor> d2SubClassesSet =
+                ssjava.tu.getSubClasses(((MethodDescriptor) d2).getClassDesc());
+
+            if (d1 == null && d2 == null) {
+              throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
+                  + " because they are not comparable at " + msg);
+            } else if (d1 != null && d1SubClassesSet.contains(d2)) {
+              descriptor = d1;
+            } else if (d2 != null && d2SubClassesSet.contains(d1)) {
+              descriptor = d2;
+            } else {
+              throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
+                  + " because they are not comparable at " + msg);
+            }
+          }
+
+        } else {
           throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
               + " because they are not comparable at " + msg);
         }
 
-        Descriptor d1 = loc1.getDescriptor();
-        Descriptor d2 = loc2.getDescriptor();
+        // SSJavaLattice<String> lattice1 = getLatticeByDescriptor(d1);
+        // SSJavaLattice<String> lattice2 = getLatticeByDescriptor(d2);
 
-        SSJavaLattice<String> lattice1 = getLatticeByDescriptor(d1);
-        SSJavaLattice<String> lattice2 = getLatticeByDescriptor(d2);
+        SSJavaLattice<String> lattice = getLatticeByDescriptor(descriptor);
 
         // check if the spin location is appeared only at the end of the
         // composite location
-        if (lattice1.getSpinLocSet().contains(loc1.getLocIdentifier())) {
+        if (lattice.getSpinLocSet().contains(loc1.getLocIdentifier())) {
           if (i != (compLoc1.getSize() - 1)) {
-            throw new Error("The spin location " + loc1.getLocIdentifier()
+            throw new Error("The shared location " + loc1.getLocIdentifier()
                 + " cannot be appeared in the middle of composite location at" + msg);
           }
         }
 
-        if (lattice2.getSpinLocSet().contains(loc2.getLocIdentifier())) {
+        if (lattice.getSpinLocSet().contains(loc2.getLocIdentifier())) {
           if (i != (compLoc2.getSize() - 1)) {
             throw new Error("The spin location " + loc2.getLocIdentifier()
                 + " cannot be appeared in the middle of composite location at " + msg);
           }
         }
 
-        if (!lattice1.equals(lattice2)) {
-          throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
-              + " because they are not comparable at " + msg);
-        }
+        // if (!lattice1.equals(lattice2)) {
+        // throw new Error("Failed to compare two locations of " + compLoc1 +
+        // " and " + compLoc2
+        // + " because they are not comparable at " + msg);
+        // }
 
         if (loc1.getLocIdentifier().equals(loc2.getLocIdentifier())) {
           numOfTie++;
@@ -1487,11 +1592,11 @@ public class FlowDownCheck {
           // note that the spinning location only can be appeared in the last
           // part of the composite location
           if (awareSharedLoc && numOfTie == compLoc1.getSize()
-              && lattice1.getSpinLocSet().contains(loc1.getLocIdentifier())) {
+              && lattice.getSpinLocSet().contains(loc1.getLocIdentifier())) {
             return ComparisonResult.GREATER;
           }
           continue;
-        } else if (lattice1.isGreaterThan(loc1.getLocIdentifier(), loc2.getLocIdentifier())) {
+        } else if (lattice.isGreaterThan(loc1.getLocIdentifier(), loc2.getLocIdentifier())) {
           return ComparisonResult.GREATER;
         } else {
           return ComparisonResult.LESS;
@@ -1731,12 +1836,6 @@ class ReturnLocGenerator {
     // compute GLB of arguments subset that are same or higher than return
     // location
     CompositeLocation glb = CompositeLattice.calculateGLB(inputGLB);
-
-    System.out.println("### computeReturnLocation");
-    System.out.println("### args=" + args);
-    System.out.println("### calculateGLB=" + inputGLB);
-    System.out.println("### glb=" + glb);
-
     return glb;
   }
 }
