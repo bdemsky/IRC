@@ -109,9 +109,9 @@ public class RayTracer extends Thread {
     /* create spheres */
 
     Primitive p;
-    int nx = 4; // 6
-    int ny = 4; // 6
-    int nz = 4; // 6
+    int nx = 6; // 4
+    int ny = 6; // 4
+    int nz = 6; // 4
     for (int i = 0; i < nx; i++) {
       for (int j = 0; j < ny; j++) {
         for (int k = 0; k < nz; k++) {
@@ -233,7 +233,7 @@ public class RayTracer extends Thread {
         row[x]= alpha | (red << 16) | (green << 8) | (blue);
       } // end for (x)
 
-      image[y-interval.yfrom]=row;
+      image[y]=row;
     } // end for (y)
 
 

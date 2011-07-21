@@ -15,12 +15,13 @@ public class TestRunner extends RayTracer {
   public TestRunner(int id, 
       int numCore,
       int size,
+      int image[][],					
       Scene scene) {
     super();
     this.id = id;
     this.numCore = numCore;
     this.size = size;
-
+    this.image=image;
     // create the objects to be rendered
     this.scene = scene; //createScene();
 
@@ -40,7 +41,7 @@ public class TestRunner extends RayTracer {
   }
 
   public void init() {
-    this.image=new int[this.size/this.numCore][];
+
   }
 
   public void JGFvalidate() {
@@ -84,9 +85,17 @@ public class TestRunner extends RayTracer {
     Composer comp = new Composer(threadnum, size);
     RayTracer rt = new RayTracer();
     Scene scene = rt.createScene();
-    for(int i = 0; i < threadnum; ++i) {
-      TestRunner tr = new TestRunner(i, threadnum, size, scene);
+    int image[][]=new int[size][];
+    TestRunner trarray[]=new TestRunner[threadnum];					 
+    for(int i = 1; i < threadnum; ++i) {
+      TestRunner tr = new TestRunner(i, threadnum, size, image, scene);
       tr.start();
-    }
-  }
+				       trarray[i]=tr;
+				       }
+             TestRunner tr0 = new TestRunner(0, threadnum, size, image, scene);
+      tr0.run();
+    for(int i = 1; i < threadnum; ++i) {
+				       trarray[i].join();
+				       }
+}
 }
