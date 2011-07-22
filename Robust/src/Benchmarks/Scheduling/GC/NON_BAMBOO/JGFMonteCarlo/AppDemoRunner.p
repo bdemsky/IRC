@@ -78,9 +78,9 @@ public class AppDemoRunner extends Thread {
     for(int i = 1; i < group; ++i) {
       AppDemoRunner adr = new AppDemoRunner(i, nruns, group, ad);
       adr.start();
-      trarray[i]=adr;
+      adrarray[i]=adr;
     }
-    AppDemoRunner adr0 = new AppDemoRunner(i, nruns, group, ad);
+    AppDemoRunner adr0 = new AppDemoRunner(0, nruns, group, ad);
     adr0.start();
     for(int i = 1; i < group; ++i) {
       adrarray[i].join();
