@@ -1,6 +1,8 @@
 package Analysis.SSJava;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -8,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
+
 
 import Analysis.SSJava.FlowDownCheck.ComparisonResult;
 import Analysis.SSJava.FlowDownCheck.CompositeLattice;
@@ -53,7 +56,11 @@ public class FlowDownCheck {
   State state;
   static SSJavaAnalysis ssjava;
 
-  HashSet toanalyze;
+  Set<ClassDescriptor> toanalyze;
+  List<ClassDescriptor> toanalyzeList;
+
+  Set<MethodDescriptor> toanalyzeMethod;
+  List<MethodDescriptor> toanalyzeMethodList;
 
   // mapping from 'descriptor' to 'composite location'
   Hashtable<Descriptor, CompositeLocation> d2loc;
@@ -64,10 +71,21 @@ public class FlowDownCheck {
   // mapping from 'locID' to 'class descriptor'
   Hashtable<String, ClassDescriptor> fieldLocName2cd;
 
+  boolean deterministic = true;
+
   public FlowDownCheck(SSJavaAnalysis ssjava, State state) {
     this.ssjava = ssjava;
     this.state = state;
-    this.toanalyze = new HashSet();
+    if (deterministic) {
+      this.toanalyzeList = new ArrayList<ClassDescriptor>();
+    } else {
+      this.toanalyze = new HashSet<ClassDescriptor>();
+    }
+    if (deterministic) {
+      this.toanalyzeMethodList = new ArrayList<MethodDescriptor>();
+    } else {
+      this.toanalyzeMethod = new HashSet<MethodDescriptor>();
+    }
     this.d2loc = new Hashtable<Descriptor, CompositeLocation>();
     this.fieldLocName2cd = new Hashtable<String, ClassDescriptor>();
     this.md2ReturnLoc = new Hashtable<MethodDescriptor, CompositeLocation>();
@@ -94,18 +112,83 @@ public class FlowDownCheck {
 
   }
 
-  public void flowDownCheck() {
+  public boolean toAnalyzeIsEmpty() {
+    if (deterministic) {
+      return toanalyzeList.isEmpty();
+    } else {
+      return toanalyze.isEmpty();
+    }
+  }
+
+  public ClassDescriptor toAnalyzeNext() {
+    if (deterministic) {
+      return toanalyzeList.remove(0);
+    } else {
+      ClassDescriptor cd = toanalyze.iterator().next();
+      toanalyze.remove(cd);
+      return cd;
+    }
+  }
+
+  public void setupToAnalyze() {
     SymbolTable classtable = state.getClassSymbolTable();
+    if (deterministic) {
+      toanalyzeList.clear();
+      toanalyzeList.addAll(classtable.getValueSet());
+      Collections.sort(toanalyzeList, new Comparator<ClassDescriptor>() {
+        public int compare(ClassDescriptor o1, ClassDescriptor o2) {
+          return o1.getClassName().compareTo(o2.getClassName());
+        }
+      });
+    } else {
+      toanalyze.clear();
+      toanalyze.addAll(classtable.getValueSet());
+    }
+  }
+
+  public void setupToAnalazeMethod(ClassDescriptor cd) {
+
+    SymbolTable methodtable = cd.getMethodTable();
+    if (deterministic) {
+      toanalyzeMethodList.clear();
+      toanalyzeMethodList.addAll(methodtable.getValueSet());
+      Collections.sort(toanalyzeMethodList, new Comparator<MethodDescriptor>() {
+        public int compare(MethodDescriptor o1, MethodDescriptor o2) {
+          return o1.getSymbol().compareTo(o2.getSymbol());
+        }
+      });
+    } else {
+      toanalyzeMethod.clear();
+      toanalyzeMethod.addAll(methodtable.getValueSet());
+    }
+  }
+
+  public boolean toAnalyzeMethodIsEmpty() {
+    if (deterministic) {
+      return toanalyzeMethodList.isEmpty();
+    } else {
+      return toanalyzeMethod.isEmpty();
+    }
+  }
+
+  public MethodDescriptor toAnalyzeMethodNext() {
+    if (deterministic) {
+      return toanalyzeMethodList.remove(0);
+    } else {
+      MethodDescriptor md = toanalyzeMethod.iterator().next();
+      toanalyzeMethod.remove(md);
+      return md;
+    }
+  }
+
+  public void flowDownCheck() {
 
     // phase 1 : checking declaration node and creating mapping of 'type
     // desciptor' & 'location'
-    toanalyze.addAll(classtable.getValueSet());
-    toanalyze.addAll(state.getTaskSymbolTable().getValueSet());
+    setupToAnalyze();
 
-    while (!toanalyze.isEmpty()) {
-      Object obj = toanalyze.iterator().next();
-      ClassDescriptor cd = (ClassDescriptor) obj;
-      toanalyze.remove(cd);
+    while (!toAnalyzeIsEmpty()) {
+      ClassDescriptor cd = toAnalyzeNext();
 
       if (ssjava.needToBeAnnoated(cd)) {
 
@@ -116,26 +199,28 @@ public class FlowDownCheck {
         }
 
         checkDeclarationInClass(cd);
-        for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
-          MethodDescriptor md = (MethodDescriptor) method_it.next();
+
+        setupToAnalazeMethod(cd);
+        while (!toAnalyzeMethodIsEmpty()) {
+          MethodDescriptor md = toAnalyzeMethodNext();
           if (ssjava.needTobeAnnotated(md)) {
             checkDeclarationInMethodBody(cd, md);
           }
         }
+
       }
 
     }
 
     // phase2 : checking assignments
-    toanalyze.addAll(classtable.getValueSet());
-    toanalyze.addAll(state.getTaskSymbolTable().getValueSet());
-    while (!toanalyze.isEmpty()) {
-      Object obj = toanalyze.iterator().next();
-      ClassDescriptor cd = (ClassDescriptor) obj;
-      toanalyze.remove(cd);
+    setupToAnalyze();
 
-      for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
-        MethodDescriptor md = (MethodDescriptor) method_it.next();
+    while (!toAnalyzeIsEmpty()) {
+      ClassDescriptor cd = toAnalyzeNext();
+
+      setupToAnalazeMethod(cd);
+      while (!toAnalyzeMethodIsEmpty()) {
+        MethodDescriptor md = toAnalyzeMethodNext();
         if (ssjava.needTobeAnnotated(md)) {
           checkMethodBody(cd, md);
         }
@@ -414,20 +499,12 @@ public class FlowDownCheck {
             constraint, false);
     BlockNode sbn = ssn.getSwitchBody();
 
-    Set<CompositeLocation> blockLocSet = new HashSet<CompositeLocation>();
-    for (int i = 0; i < sbn.size(); i++) {
-      CompositeLocation blockLoc =
-          checkLocationFromSwitchBlockNode(md, nametable, (SwitchBlockNode) sbn.get(i), constraint);
-      if (!CompositeLattice.isGreaterThan(condLoc, blockLoc,
-          generateErrorMessage(cd, ssn.getCondition()))) {
-        throw new Error(
-            "The location of the switch-condition statement is lower than the conditional body at "
-                + cd.getSourceFileName() + ":" + ssn.getCondition().getNumLine());
-      }
+    constraint = generateNewConstraint(constraint, condLoc);
 
-      blockLocSet.add(blockLoc);
+    for (int i = 0; i < sbn.size(); i++) {
+      checkLocationFromSwitchBlockNode(md, nametable, (SwitchBlockNode) sbn.get(i), constraint);
     }
-    return CompositeLattice.calculateGLB(blockLocSet);
+    return new CompositeLocation();
   }
 
   private CompositeLocation checkLocationFromSwitchBlockNode(MethodDescriptor md,
@@ -897,12 +974,10 @@ public class FlowDownCheck {
       // addTypeLocation(on.getRight().getType(), rightLoc);
     }
 
-    System.out.println("checking op node=" + on.printNode(0)
-        + generateErrorMessage(md.getClassDesc(), on));
-    System.out.println("# op node=" + on.printNode(0));
-    System.out.println("left loc=" + leftLoc + " from " + on.getLeft().getClass());
+    System.out.println("\n# OP NODE=" + on.printNode(0));
+    System.out.println("# left loc=" + leftLoc + " from " + on.getLeft().getClass());
     if (on.getRight() != null) {
-      System.out.println("right loc=" + rightLoc + " from " + on.getRight().kind());
+      System.out.println("# right loc=" + rightLoc + " from " + on.getRight().getClass());
     }
 
     Operation op = on.getOp();
