@@ -10,7 +10,7 @@
 BASEDIR=`pwd`
 RECOVERYDIR='recovery'
 JAVASINGLEDIR='java'
-WAITTIME=180
+WAITTIME=200
 KILLDELAY=6
 LOGDIR=~/research/Robust/src/Benchmarks/Recovery/runlog
 DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
@@ -27,8 +27,6 @@ ORDER=( 0 1 3 5 7 8 2
         0 8 7 3 6 5 4
         0 7 4 6 8 1 2 
         0 7 5 6 3 8 2 );
-
-#ORDER=( 0 7 5 6 3 8 2 );
 
 #
 # killClients <fileName> <# of machines>
@@ -108,7 +106,7 @@ function runNormalTest {
   fi
 
   tt=1;
-  while [ $tt -le $NUM_MACHINE ]; do
+  while [ $tt -le $NUMM ]; do
     echo "------------------------------- Normal Test $1 ----------------------------" >> log-$tt
     tt=`expr $tt + 1`
   done
@@ -161,7 +159,7 @@ function runSequentialFailureTest {
       echo "------------------------ dc-$k is killed ------------------------"
       killonemachine $fName $k
       
-      let "delay= $RANDOM % $KILLDELAY + 8"
+      let "delay= $RANDOM % $KILLDELAY + 10"
       sleep $delay
     fi 
   done
@@ -182,8 +180,6 @@ function runSingleFailureTest {
   test_iter=1;
 
 SINGLE_ORDER=( 1 8 4 6 3 2 7 5 );
-#SINGLE_ORDER=( 8 );
-
 
   for machinename in ${SINGLE_ORDER[@]}
   do
@@ -202,7 +198,81 @@ SINGLE_ORDER=( 1 8 4 6 3 2 7 5 );
     sleep $WAITTIME           # wait till the end of execution
     killclientswithSignal $fName 8  #kill rest of the alive machines
 # Insert Randowm delay 
-      let "delay= $RANDOM % $KILLDELAY + 4"
+      let "delay= $RANDOM % $KILLDELAY + 10"
+      sleep $delay
+  done
+ cd -
+}
+
+########### Simultaneous Failure case ##########
+function runSimultaneousFailureTest {
+# Run java version
+# j=1;
+  BM_DIR=${BM_NAME}
+  fName="$BM_NAME.bin";
+  cd ${BM_DIR}
+
+  test_iter=1;
+
+  ## Simultaneous Machine failure order ######
+  SIMULORDER=( 0 1 3 2 6 );
+
+  for k in ${SIMULORDER[@]}
+    do
+      if [ $k -eq 0 ]; then         # if k = 0, it is a new test
+        if [ $test_iter -ne 1 ]; then
+          sleep $WAITTIME           # wait the end of execution
+          killclientswithSignal $fName 8  #kill machines when there is more than 1 order
+          outputIter=0;
+          for outputIter in 1 2 3 4 5 6 7 8
+          do
+            echo "----------------------------------------------------------------------------------" >> log-$outputIter
+          done
+        fi
+
+        outputIter=0;
+        for outputIter in 1 2 3 4 5 6 7 8
+          do
+            echo "------------------------------- Simultaneous Failure Test $test_iter ----------------------------" >> log-$outputIter
+          done
+          echo "------------------------------- Simultaneous Failure Test $test_iter ----------------------------"
+          runMachines log   
+          sleep 10           # wait until all machine run
+          test_iter=`expr $test_iter + 1`
+      else                 # if k != 0, time to kill machines!
+        echo "------------------------ dc-$k is killed ------------------------" >> log-$k
+        echo "------------------------ dc-$k is killed ------------------------"
+        killonemachine $fName $k
+      
+        let "delay= $RANDOM % 10 + 2"
+        sleep $delay
+      fi 
+    done
+
+  sleep $WAITTIME           # wait the end of execution
+  killclientswithSignal $fName 8 #kill machines when finished processing everything in ORDER{ }
+  sleep 10
+ cd -
+
+
+for machinename in ${SINGLE_ORDER[@]}
+  do
+    outputIter=0;
+    for outputIter in 1 2 3 4 5 6 7 8
+    do
+      echo "------------------------------- Single Failure Test $test_iter ----------------------------" >> log-$outputIter
+    done
+    echo "------------------------------- Single Failure Test $test_iter ----------------------------"
+    runMachines log   
+    sleep 10           # wait until all machine run
+    test_iter=`expr $test_iter + 1`
+    echo "------------------------ dc-$machinename is killed ------------------------" >> log-$k
+    echo "------------------------ dc-$machinename is killed ------------------------"
+    killonemachine $fName $machinename
+    sleep $WAITTIME           # wait till the end of execution
+    killclientswithSignal $fName 8  #kill rest of the alive machines
+# Insert Randowm delay 
+      let "delay= $RANDOM % $KILLDELAY + 10"
       sleep $delay
   done
  cd -
@@ -348,9 +418,9 @@ function testcase {
   # terminate if it doesn't have parameter
   let "NUM_MACHINE= $nummachines + 0";
 
-  echo "====================================== Normal Test =============================="
-  runNormalTest $NUM_MACHINES 1 
-  echo "================================================================================"
+#  echo "====================================== Normal Test =============================="
+#  runNormalTest $NUM_MACHINES 1 
+#  echo "================================================================================"
 
 #  echo "====================================== Single Failure Test ============================="
 #  runSingleFailureTest $NUM_MACHINES
@@ -360,7 +430,11 @@ function testcase {
 #  runSequentialFailureTest $NUM_MACHINES
 #  echo "================================================================================="
 
-  
+  echo "====================================== Simultaneous Failure Test ============================="
+  runSimultaneousFailureTest $NUM_MACHINES
+  echo "================================================================================="
+
+ 
 #  echo "=============== Running javasingle for ${BM_NAME} on 1 machines ================="
 #  javasingle 1 ${BM_NAME}
 #  cd $TOPDIR
@@ -453,6 +527,6 @@ function dsmsingle {
 
 echo "---------- Starting Benchmarks ----------"
 nmach=$1
-#source bm_args.txt
-source bm_args_16threads.txt
+source bm_args.txt
+#source bm_args_16threads.txt
 echo "----------- done ------------"
