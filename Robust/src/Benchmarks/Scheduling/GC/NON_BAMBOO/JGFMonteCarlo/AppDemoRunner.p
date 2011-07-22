@@ -74,7 +74,7 @@ public class AppDemoRunner extends Thread {
     AppDemo ad = new AppDemo(datasize, nruns, group);
     ad.initSerial();
 
-    TestRunner adrarray[]=new AppDemoRunner[group];
+    AppDemoRunner adrarray[]=new AppDemoRunner[group];
     for(int i = 1; i < group; ++i) {
       AppDemoRunner adr = new AppDemoRunner(i, nruns, group, ad);
       adr.start();
