@@ -3,7 +3,7 @@ BUILDSCRIPT=../../../buildscript
 PROGRAM=test
 SOURCE_FILES=test.java
 
-BSFLAGS= -32bit -ssjava -printlinenum -mainclass $(PROGRAM)  -heapsize-mb 1000 -garbagestats -joptimize -optimize -debug #-nooptimize #src-after-pp #-debug
+BSFLAGS= -32bit -ssjava -ssjavadebug -printlinenum -mainclass $(PROGRAM)  -heapsize-mb 1000 -garbagestats -joptimize -optimize -debug #-nooptimize #src-after-pp #-debug
 
 default: $(PROGRAM)s.bin
 
