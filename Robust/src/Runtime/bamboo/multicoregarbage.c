@@ -439,11 +439,12 @@ void gc_master(struct garbagelist * stackptr) {
   tprintf("start GC!\n");
   gc_status_info.gcprocessing = true;
   gc_status_info.gcphase = INITPHASE;
+  initGC();
+
   GC_SEND_MSG_1_TO_CLIENT(GCSTARTINIT);
 
   waitconfirm = false;
   numconfirm = 0;
-  initGC();
   CACHEADAPT_GC(true);
   //tprintf("Check core status \n");
   GC_CHECK_ALL_CORE_STATUS();

@@ -371,7 +371,7 @@ void CALL00(___System______gc____) {
       }
       for(int i = 0; i < NUMCORES4GC; i++) {
         if(i != STARTUPCORE) {
-          send_msg_1_I(i,GCSTARTPRE);
+          send_msg_1(i,GCSTARTPRE);
         }
       }
     }
