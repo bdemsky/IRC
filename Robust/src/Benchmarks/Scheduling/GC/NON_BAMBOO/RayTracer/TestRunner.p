@@ -80,7 +80,7 @@ public class TestRunner extends RayTracer {
   }
   public static void main(String[] args) {
     int threadnum = THREADNUM; // 56;
-    int size = 500; //threadnum * 25;
+    int size = 400; //threadnum * 25;
     System.setgcprofileflag();
     Composer comp = new Composer(threadnum, size);
     RayTracer rt = new RayTracer();
