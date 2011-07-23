@@ -23,6 +23,7 @@ void pmc_countbytes(struct pmc_unit * unit, void *bottomptr, void *topptr) {
   unsigned int totalbytes=0;
   void * lastunmarked=NULL;
   bool padokay=false;
+
   while(tmpptr<topptr) {
     unsigned int type;
     unsigned int size;
@@ -139,13 +140,20 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
     //Very top most unit defines boundary of region...we can't move that right now
     unsigned int lastunit=internal?region->highunit-1:region->highunit-2;
     void * lastunitend=pmc_unitend(lastunit);
-    while(lastunitend>=region->lastptr) {
+    //move units that are nominally supposed to be in free area back to the right location
+    while(lastunitend>=region->lastptr&&lastunit>=region->lowunit) {
       pmc_heapptr->units[lastunit].endptr=lastunitend;
       //tprintf("Ch3: %u -> %x\n", lastunit, lastunitend);
       lastunit--;
       lastunitend=pmc_unitend(lastunit);
     }
+    //move units that are actually in the free area (but nominaly not supposed to be) to the end pointer
+    while(lastunit>=region->lowunit&&pmc_heapptr->units[lastunit].endptr>region->lastptr) {
+      pmc_heapptr->units[lastunit].endptr=region->lastptr;
+      lastunit--;
+    }
   }
+
 
   while(tmpptr<topptr) {
     unsigned int type;
