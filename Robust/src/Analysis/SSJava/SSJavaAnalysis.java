@@ -88,8 +88,9 @@ public class SSJavaAnalysis {
     System.out.println("SSJAVA: SSJava is checking the following methods:");
     for (Iterator<MethodDescriptor> iterator = annotationRequireSet.iterator(); iterator.hasNext();) {
       MethodDescriptor md = iterator.next();
-      System.out.println("SSJAVA: " + md);
+      System.out.print(" " + md);
     }
+    System.out.println();
   }
 
   private void doMethodAnnotationCheck() {
@@ -131,7 +132,7 @@ public class SSJavaAnalysis {
           MethodLattice<String> locOrder =
               new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
           cd2methodDefault.put(cd, locOrder);
-          parseMethodLatticeDefinition(cd, an.getValue(), locOrder);
+          parseMethodDefaultLatticeDefinition(cd, an.getValue(), locOrder);
         }
       }
 
@@ -149,7 +150,7 @@ public class SSJavaAnalysis {
                 MethodLattice<String> locOrder =
                     new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
                 md2lattice.put(md, locOrder);
-                parseMethodLatticeDefinition(cd, an.getValue(), locOrder);
+                parseMethodDefaultLatticeDefinition(cd, an.getValue(), locOrder);
               } else if (an.getMarker().equals(TERMINATE)) {
                 // developer explicitly wants to skip loop termination analysis
                 String value = an.getValue();
@@ -169,7 +170,7 @@ public class SSJavaAnalysis {
     }
   }
 
-  private void parseMethodLatticeDefinition(ClassDescriptor cd, String value,
+  private void parseMethodDefaultLatticeDefinition(ClassDescriptor cd, String value,
       MethodLattice<String> locOrder) {
 
     value = value.replaceAll(" ", ""); // remove all blank spaces
@@ -193,6 +194,9 @@ public class SSJavaAnalysis {
       } else if (orderElement.startsWith(GLOBALLOC + "=")) {
         String globalLoc = orderElement.substring(10);
         locOrder.setGlobalLoc(globalLoc);
+      } else if (orderElement.startsWith(RETURNLOC + "=")) {
+        String returnLoc = orderElement.substring(10);
+        locOrder.setReturnLoc(returnLoc);
       } else if (orderElement.contains("*")) {
         // spin loc definition
         locOrder.addSpinLoc(orderElement.substring(0, orderElement.length() - 1));

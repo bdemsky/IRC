@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
-
 import Analysis.SSJava.FlowDownCheck.ComparisonResult;
 import Analysis.SSJava.FlowDownCheck.CompositeLattice;
 import IR.AnnotationDescriptor;
@@ -222,6 +221,7 @@ public class FlowDownCheck {
       while (!toAnalyzeMethodIsEmpty()) {
         MethodDescriptor md = toAnalyzeMethodNext();
         if (ssjava.needTobeAnnotated(md)) {
+          System.out.println("SSJAVA: Checking assignments: " + md);
           checkMethodBody(cd, md);
         }
       }
@@ -292,10 +292,18 @@ public class FlowDownCheck {
   private void checkDeclarationInMethodBody(ClassDescriptor cd, MethodDescriptor md) {
     BlockNode bn = state.getMethodBody(md);
 
-    if (ssjava.needTobeAnnotated(md)) {
-      // first, check annotations on method declaration
+    // first, check annotations on method parameters
+    List<CompositeLocation> paramList = new ArrayList<CompositeLocation>();
+    for (int i = 0; i < md.numParameters(); i++) {
+      // process annotations on method parameters
+      VarDescriptor vd = (VarDescriptor) md.getParameter(i);
+      assignLocationOfVarDescriptor(vd, md, md.getParameterTable(), bn);
+      paramList.add(d2loc.get(vd));
+    }
 
-      // parsing returnloc annotation
+    // second, check return location annotation
+    if (!md.getReturnType().isVoid()) {
+      CompositeLocation returnLocComp = null;
       Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
       if (methodAnnotations != null) {
         for (int i = 0; i < methodAnnotations.size(); i++) {
@@ -303,46 +311,41 @@ public class FlowDownCheck {
           if (an.getMarker().equals(ssjava.RETURNLOC)) {
             // developer explicitly defines method lattice
             String returnLocDeclaration = an.getValue();
-            CompositeLocation returnLocComp =
-                parseLocationDeclaration(md, null, returnLocDeclaration);
+            returnLocComp = parseLocationDeclaration(md, null, returnLocDeclaration);
             md2ReturnLoc.put(md, returnLocComp);
           }
         }
-        if (!md.getReturnType().isVoid() && !md2ReturnLoc.containsKey(md)) {
-          throw new Error("Return location is not specified for the method " + md + " at "
-              + cd.getSourceFileName());
+      }
+      if (returnLocComp == null) {
+        MethodLattice<String> methodDefaultLattice = ssjava.getMethodDefaultLattice(cd);
+        if (methodDefaultLattice.getReturnLoc() != null) {
+          returnLocComp = parseLocationDeclaration(md, null, methodDefaultLattice.getReturnLoc());
+          md2ReturnLoc.put(md, returnLocComp);
         }
       }
 
-      List<CompositeLocation> paramList = new ArrayList<CompositeLocation>();
-
-      boolean hasReturnValue = (!md.getReturnType().isVoid());
-      if (hasReturnValue) {
-        MethodLattice<String> methodLattice = ssjava.getMethodLattice(md);
-        String thisLocId = methodLattice.getThisLoc();
-        if (thisLocId == null) {
-          throw new Error("Method '" + md + "' does not have the definition of 'this' location at "
-              + md.getClassDesc().getSourceFileName());
-        }
-        CompositeLocation thisLoc = new CompositeLocation(new Location(md, thisLocId));
-        paramList.add(thisLoc);
+      if (!md2ReturnLoc.containsKey(md)) {
+        throw new Error("Return location is not specified for the method " + md + " at "
+            + cd.getSourceFileName());
       }
 
-      for (int i = 0; i < md.numParameters(); i++) {
-        // process annotations on method parameters
-        VarDescriptor vd = (VarDescriptor) md.getParameter(i);
-        assignLocationOfVarDescriptor(vd, md, md.getParameterTable(), bn);
-        if (hasReturnValue) {
-          paramList.add(d2loc.get(vd));
-        }
+      // check this location
+      MethodLattice<String> methodLattice = ssjava.getMethodLattice(md);
+      String thisLocId = methodLattice.getThisLoc();
+      if (thisLocId == null) {
+        throw new Error("Method '" + md + "' does not have the definition of 'this' location at "
+            + md.getClassDesc().getSourceFileName());
       }
+      CompositeLocation thisLoc = new CompositeLocation(new Location(md, thisLocId));
+      paramList.add(0, thisLoc);
 
-      if (hasReturnValue) {
-        md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), paramList,
-            generateErrorMessage(cd, null)));
-      }
-      checkDeclarationInBlockNode(md, md.getParameterTable(), bn);
+      md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), paramList,
+          generateErrorMessage(cd, null)));
     }
+
+    // third, check declarations inside of method
+
+    checkDeclarationInBlockNode(md, md.getParameterTable(), bn);
 
   }
 
@@ -527,6 +530,15 @@ public class FlowDownCheck {
       returnValueLoc =
           checkLocationFromExpressionNode(md, nametable, returnExp, new CompositeLocation(),
               constraint, false);
+
+      // if this return statement is inside branch, return value has an implicit
+      // flow from conditional location
+      if (constraint != null) {
+        Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
+        inputGLB.add(returnValueLoc);
+        inputGLB.add(constraint);
+        returnValueLoc = CompositeLattice.calculateGLB(inputGLB);
+      }
 
       // check if return value is equal or higher than RETRUNLOC of method
       // declaration annotation
