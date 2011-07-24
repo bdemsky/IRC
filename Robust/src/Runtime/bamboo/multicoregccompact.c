@@ -525,7 +525,9 @@ void compact() {
 void master_compact() {
   // predict number of blocks to fill for each core
   numblockspercore = loadbalance()+1;
-  
+  numblockspercore = (numblockspercore>GCNUMLOCALBLOCK)?GCNUMLOCALBLOCK:numblockspercore;
+
+
   GC_PRINTF("mark phase finished \n");
   
   gc_resetCoreStatus();
