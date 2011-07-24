@@ -6,17 +6,17 @@ task t1(StartupObject s{initialstate}) {
   //System.printString("task t1\n");
 
   // make a shared array
-  //int kLongLivedTreeDepth  = 12; // 256kb 16;  // about 4Mb
-  //Helper helper = new Helper(kLongLivedTreeDepth);
+  int kLongLivedTreeDepth  = 12; // 256kb 16;  // about 4Mb
+  Helper helper = new Helper(kLongLivedTreeDepth);
   
-  int kArraySize = 1250;//0;//0; // 1Mb 500000;  // about 4Mb
-  int array[] = new int[kArraySize];
-  for (int i = 0; i < kArraySize/2; ++i) {
+  //int kArraySize = 1250;//0;//0; // 1Mb 500000;  // about 4Mb
+  //int array[] = new int[kArraySize];
+  /*for (int i = 0; i < kArraySize/2; ++i) {
     array[i] = i;
-  }
+  }*/
   int threadnum = 62; // 56;
   for(int i = 0; i < threadnum; ++i) {
-    TestRunner gcb = newflag TestRunner(array/*helper.root*/){run};
+    TestRunner gcb = newflag TestRunner(/*array*/helper.root){run};
   }
 
   taskexit(s{!initialstate});
@@ -63,18 +63,18 @@ public class TestRunner {
   public static final int kMinTreeDepth;// = 4;
   public static final int kMaxTreeDepth;// = 16;
   
-  //Node sharedroot;
-  int[] sharedarray;
+  Node sharedroot;
+  //int[] sharedarray;
   
-  //public TestRunner(Node sroot) {
-  public TestRunner(int[] sarray) {
+  public TestRunner(Node sroot) {
+  //public TestRunner(int[] sarray) {
     kStretchTreeDepth    = 16;// 4Mb 18;  // about 16Mb
     kLongLivedTreeDepth  = 14; // 1Mb 16;  // about 4Mb
     kArraySize  = 250000; // 1Mb 500000;  // about 4Mb
     kMinTreeDepth = 4;
     kMaxTreeDepth = 8;//14;
-    //this.sharedroot = sroot;
-    this.sharedarray = sarray;
+    this.sharedroot = sroot;
+    //this.sharedarray = sarray;
   }
 
   // Nodes used by a tree of a given size
@@ -134,13 +134,13 @@ public class TestRunner {
   
   void tc3(int depth) {
     // access the shared tree
-    //traverseTree(this.sharedroot, depth);
-    int sum = 0;
+    traverseTree(this.sharedroot, depth);
+    /*int sum = 0;
     for(int i = 0; i < sharedarray.length; i++) {
       tc1(depth);
       sum += sharedarray[i];
       //tc2(depth);
-    }
+    }*/
   }
 
   void TimeConstruction(int depth) {
