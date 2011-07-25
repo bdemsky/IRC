@@ -93,7 +93,7 @@ public class TestRunner extends Thread {
   void TimeConstruction(int depth) {
     Node    root;
     //long    tStart, tFinish;
-    int  iNumIters = NumIters(depth);
+    int  iNumIters = NumIters(depth)/300;
     Node tempTree;
 
     for (int i = 0; i < iNumIters; ++i) {
