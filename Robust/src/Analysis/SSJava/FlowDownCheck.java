@@ -826,8 +826,6 @@ public class FlowDownCheck {
       SymbolTable nametable, MethodInvokeNode min, CompositeLocation loc,
       CompositeLocation constraint) {
 
-    checkCalleeConstraints(md, nametable, min, constraint);
-
     CompositeLocation baseLocation = null;
     if (min.getExpression() != null) {
       baseLocation =
@@ -837,6 +835,8 @@ public class FlowDownCheck {
       String thisLocId = ssjava.getMethodLattice(md).getThisLoc();
       baseLocation = new CompositeLocation(new Location(md, thisLocId));
     }
+
+    checkCalleeConstraints(md, nametable, min, baseLocation, constraint);
 
     if (!min.getMethod().getReturnType().isVoid()) {
       // If method has a return value, compute the highest possible return
@@ -876,55 +876,89 @@ public class FlowDownCheck {
   }
 
   private void checkCalleeConstraints(MethodDescriptor md, SymbolTable nametable,
-      MethodInvokeNode min, CompositeLocation constraint) {
+      MethodInvokeNode min, CompositeLocation callerBaseLoc, CompositeLocation constraint) {
 
-    if (min.numArgs() > 1) {
+    MethodDescriptor calleemd = min.getMethod();
+
+    MethodLattice<String> calleeLattice = ssjava.getMethodLattice(calleemd);
+    CompositeLocation calleeThisLoc =
+        new CompositeLocation(new Location(calleemd, calleeLattice.getThisLoc()));
+
+    List<CompositeLocation> callerArgList = new ArrayList<CompositeLocation>();
+    List<CompositeLocation> calleeParamList = new ArrayList<CompositeLocation>();
+
+    if (min.numArgs() > 0) {
       // caller needs to guarantee that it passes arguments in regarding to
       // callee's hierarchy
+
+      // setup caller args set
+      // first, add caller's base(this) location
+      callerArgList.add(callerBaseLoc);
+      // second, add caller's arguments
       for (int i = 0; i < min.numArgs(); i++) {
         ExpressionNode en = min.getArg(i);
-        CompositeLocation callerArg1 =
+        CompositeLocation callerArgLoc =
             checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(), constraint,
                 false);
+        callerArgList.add(callerArgLoc);
+      }
 
-        VarDescriptor calleevd = (VarDescriptor) min.getMethod().getParameter(i);
-        CompositeLocation calleeLoc1 = d2loc.get(calleevd);
+      // setup callee params set
+      // first, add callee's this location
+      calleeParamList.add(calleeThisLoc);
+      // second, add callee's parameters
+      for (int i = 0; i < calleemd.numParameters(); i++) {
+        VarDescriptor calleevd = (VarDescriptor) calleemd.getParameter(i);
+        CompositeLocation calleeLoc = d2loc.get(calleevd);
+        calleeParamList.add(calleeLoc);
+      }
 
-        if (!callerArg1.get(0).isTop()) {
-          // here, check if ordering relations among caller's args respect
-          // ordering relations in-between callee's args
-          for (int currentIdx = 0; currentIdx < min.numArgs(); currentIdx++) {
-            if (currentIdx != i) { // skip itself
-              ExpressionNode argExp = min.getArg(currentIdx);
+      // here, check if ordering relations among caller's args respect
+      // ordering relations in-between callee's args
+      for (int i = 0; i < calleeParamList.size(); i++) {
+        CompositeLocation calleeLoc1 = calleeParamList.get(i);
+        CompositeLocation callerLoc1 = callerArgList.get(i);
 
-              CompositeLocation callerArg2 =
-                  checkLocationFromExpressionNode(md, nametable, argExp, new CompositeLocation(),
-                      constraint, false);
+        for (int j = 0; j < calleeParamList.size(); j++) {
+          if (i != j) {
+            CompositeLocation calleeLoc2 = calleeParamList.get(j);
+            CompositeLocation callerLoc2 = callerArgList.get(j);
 
-              VarDescriptor calleevd2 = (VarDescriptor) min.getMethod().getParameter(currentIdx);
-              CompositeLocation calleeLoc2 = d2loc.get(calleevd2);
+            int callerResult =
+                CompositeLattice.compare(callerLoc1, callerLoc2,
+                    generateErrorMessage(md.getClassDesc(), min));
+            int calleeResult =
+                CompositeLattice.compare(calleeLoc1, calleeLoc2,
+                    generateErrorMessage(md.getClassDesc(), min));
 
-              int callerResult =
-                  CompositeLattice.compare(callerArg1, callerArg2,
-                      generateErrorMessage(md.getClassDesc(), min));
-              int calleeResult =
-                  CompositeLattice.compare(calleeLoc1, calleeLoc2,
-                      generateErrorMessage(md.getClassDesc(), min));
+            if (calleeResult == ComparisonResult.GREATER
+                && callerResult != ComparisonResult.GREATER) {
+              // If calleeLoc1 is higher than calleeLoc2
+              // then, caller should have same ordering relation in-bet
+              // callerLoc1 & callerLoc2
 
-              if (calleeResult == ComparisonResult.GREATER
-                  && callerResult != ComparisonResult.GREATER) {
-                // If calleeLoc1 is higher than calleeLoc2
-                // then, caller should have same ordering relation in-bet
-                // callerLoc1 & callerLoc2
+              String paramName1, paramName2;
 
-                throw new Error("Caller doesn't respect ordering relations among method arguments:"
-                    + md.getClassDesc().getSourceFileName() + ":" + min.getNumLine());
+              if (i == 0) {
+                paramName1 = "'THIS'";
+              } else {
+                paramName1 = "'parameter " + calleemd.getParamName(i - 1) + "'";
               }
 
+              if (j == 0) {
+                paramName2 = "'THIS'";
+              } else {
+                paramName2 = "'parameter " + calleemd.getParamName(j - 1) + "'";
+              }
+
+              throw new Error(
+                  "Caller doesn't respect an ordering relation among method arguments: callee expects that "
+                      + paramName1 + " should be higher than " + paramName2 + " at "
+                      + md.getClassDesc().getSourceFileName() + ":" + min.getNumLine());
             }
           }
-        }
 
+        }
       }
 
     }
@@ -1659,7 +1693,7 @@ public class FlowDownCheck {
 
     public static CompositeLocation calculateGLB(Set<CompositeLocation> inputSet, String errMsg) {
 
-       System.out.println("Calculating GLB=" + inputSet);
+      System.out.println("Calculating GLB=" + inputSet);
       CompositeLocation glbCompLoc = new CompositeLocation();
 
       // calculate GLB of the first(priority) element
