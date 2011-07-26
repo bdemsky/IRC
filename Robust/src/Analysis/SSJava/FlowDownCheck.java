@@ -537,7 +537,8 @@ public class FlowDownCheck {
         Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
         inputGLB.add(returnValueLoc);
         inputGLB.add(constraint);
-        returnValueLoc = CompositeLattice.calculateGLB(inputGLB);
+        returnValueLoc =
+            CompositeLattice.calculateGLB(inputGLB, generateErrorMessage(md.getClassDesc(), rn));
       }
 
       // check if return value is equal or higher than RETRUNLOC of method
@@ -621,7 +622,7 @@ public class FlowDownCheck {
       Set<CompositeLocation> inputSet = new HashSet<CompositeLocation>();
       inputSet.add(currentCon);
       inputSet.add(newCon);
-      return CompositeLattice.calculateGLB(inputSet);
+      return CompositeLattice.calculateGLB(inputSet, "");
     }
 
   }
@@ -818,7 +819,7 @@ public class FlowDownCheck {
     glbInputSet.add(trueLoc);
     glbInputSet.add(falseLoc);
 
-    return CompositeLattice.calculateGLB(glbInputSet);
+    return CompositeLattice.calculateGLB(glbInputSet, generateErrorMessage(cd, tn));
   }
 
   private CompositeLocation checkLocationFromMethodInvokeNode(MethodDescriptor md,
@@ -954,7 +955,7 @@ public class FlowDownCheck {
       Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
       inputGLB.add(arrayLoc);
       inputGLB.add(indexLoc);
-      return CompositeLattice.calculateGLB(inputGLB);
+      return CompositeLattice.calculateGLB(inputGLB, generateErrorMessage(cd, aan));
     }
 
   }
@@ -1027,7 +1028,9 @@ public class FlowDownCheck {
       Set<CompositeLocation> inputSet = new HashSet<CompositeLocation>();
       inputSet.add(leftLoc);
       inputSet.add(rightLoc);
-      CompositeLocation glbCompLoc = CompositeLattice.calculateGLB(inputSet);
+      CompositeLocation glbCompLoc =
+          CompositeLattice.calculateGLB(inputSet, generateErrorMessage(cd, on));
+      System.out.println("# glbCompLoc=" + glbCompLoc);
       return glbCompLoc;
 
     default:
@@ -1212,7 +1215,7 @@ public class FlowDownCheck {
       if (constraint != null) {
         inputGLBSet.add(rhsLocation);
         inputGLBSet.add(constraint);
-        srcLocation = CompositeLattice.calculateGLB(inputGLBSet);
+        srcLocation = CompositeLattice.calculateGLB(inputGLBSet, generateErrorMessage(cd, an));
       } else {
         srcLocation = rhsLocation;
       }
@@ -1232,10 +1235,14 @@ public class FlowDownCheck {
       if (constraint != null) {
         inputGLBSet.add(rhsLocation);
         inputGLBSet.add(constraint);
-        srcLocation = CompositeLattice.calculateGLB(inputGLBSet);
+        srcLocation = CompositeLattice.calculateGLB(inputGLBSet, generateErrorMessage(cd, an));
       } else {
         srcLocation = rhsLocation;
       }
+
+      System.out.println("srcLocation=" + srcLocation);
+      System.out.println("rhsLocation=" + rhsLocation);
+      System.out.println("constraint=" + constraint);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
         throw new Error("Location " + destLocation
@@ -1358,7 +1365,7 @@ public class FlowDownCheck {
     SSJavaLattice<String> localLattice = CompositeLattice.getLatticeByDescriptor(md);
     Location localLoc = new Location(md, localLocId);
     if (localLattice == null || (!localLattice.containsKey(localLocId))) {
-      System.out.println("locDec="+locDec);
+      System.out.println("locDec=" + locDec);
       throw new Error("Location " + localLocId
           + " is not defined in the local variable lattice at "
           + md.getClassDesc().getSourceFileName() + "::" + (n != null ? n.getNumLine() : md) + ".");
@@ -1650,9 +1657,9 @@ public class FlowDownCheck {
 
     }
 
-    public static CompositeLocation calculateGLB(Set<CompositeLocation> inputSet) {
+    public static CompositeLocation calculateGLB(Set<CompositeLocation> inputSet, String errMsg) {
 
-      // System.out.println("Calculating GLB=" + inputSet);
+       System.out.println("Calculating GLB=" + inputSet);
       CompositeLocation glbCompLoc = new CompositeLocation();
 
       // calculate GLB of the first(priority) element
@@ -1667,6 +1674,7 @@ public class FlowDownCheck {
       int maxTupleSize = 0;
       CompositeLocation maxCompLoc = null;
 
+      Location prevPriorityLoc = null;
       for (Iterator iterator = inputSet.iterator(); iterator.hasNext();) {
         CompositeLocation compLoc = (CompositeLocation) iterator.next();
         if (compLoc.getSize() > maxTupleSize) {
@@ -1688,10 +1696,14 @@ public class FlowDownCheck {
         // check if priority location are coming from the same lattice
         if (priorityDescriptor == null) {
           priorityDescriptor = priorityLoc.getDescriptor();
-        } else if (!priorityDescriptor.equals(priorityLoc.getDescriptor())) {
-          throw new Error("Failed to calculate GLB of " + inputSet
-              + " because they are from different lattices.");
+        } else {
+          priorityDescriptor = getCommonParentDescriptor(priorityLoc, prevPriorityLoc, errMsg);
         }
+        prevPriorityLoc = priorityLoc;
+        // else if (!priorityDescriptor.equals(priorityLoc.getDescriptor())) {
+        // throw new Error("Failed to calculate GLB of " + inputSet
+        // + " because they are from different lattices.");
+        // }
       }
 
       SSJavaLattice<String> locOrder = getLatticeByDescriptor(priorityDescriptor);
@@ -1726,7 +1738,6 @@ public class FlowDownCheck {
         }
 
         if (compSet.size() == 1) {
-
           // if GLB(x1,x2)==x1 or x2 : GLB case 2,3
           CompositeLocation comp = compSet.iterator().next();
           for (int i = 1; i < comp.getSize(); i++) {
@@ -1744,26 +1755,24 @@ public class FlowDownCheck {
           // if more than one location shares the same priority GLB
           // need to calculate the rest of GLB loc
 
-          // int compositeLocSize = compSet.iterator().next().getSize();
-          int compositeLocSize = maxFromCompSet.getSize();
-
-          Set<String> glbInputSet = new HashSet<String>();
-          Descriptor currentD = null;
-          for (int i = 1; i < compositeLocSize; i++) {
-            for (Iterator iterator = compSet.iterator(); iterator.hasNext();) {
-              CompositeLocation compositeLocation = (CompositeLocation) iterator.next();
-              if (compositeLocation.getSize() > i) {
-                Location currentLoc = compositeLocation.get(i);
-                currentD = currentLoc.getDescriptor();
-                // making set of the current location sharing the same idx
-                glbInputSet.add(currentLoc.getLocIdentifier());
-              }
+          // setup input set starting from the second tuple item
+          Set<CompositeLocation> innerGLBInput = new HashSet<CompositeLocation>();
+          for (Iterator iterator = compSet.iterator(); iterator.hasNext();) {
+            CompositeLocation compLoc = (CompositeLocation) iterator.next();
+            CompositeLocation innerCompLoc = new CompositeLocation();
+            for (int idx = 1; idx < compLoc.getSize(); idx++) {
+              innerCompLoc.addLocation(compLoc.get(idx));
             }
-            // calculate glb for the current lattice
+            if (innerCompLoc.getSize() > 0) {
+              innerGLBInput.add(innerCompLoc);
+            }
+          }
 
-            SSJavaLattice<String> currentLattice = getLatticeByDescriptor(currentD);
-            String currentGLBLocId = currentLattice.getGLB(glbInputSet);
-            glbCompLoc.addLocation(new Location(currentD, currentGLBLocId));
+          if (innerGLBInput.size() > 0) {
+            CompositeLocation innerGLB = CompositeLattice.calculateGLB(innerGLBInput, errMsg);
+            for (int idx = 0; idx < innerGLB.getSize(); idx++) {
+              glbCompLoc.addLocation(innerGLB.get(idx));
+            }
           }
 
           // if input location corresponding to glb is a delta, need to apply
@@ -1782,6 +1791,7 @@ public class FlowDownCheck {
         }
       }
 
+      System.out.println("GLB=" + glbCompLoc);
       return glbCompLoc;
 
     }
@@ -1802,6 +1812,77 @@ public class FlowDownCheck {
       }
 
       return lattice;
+    }
+
+    static Descriptor getCommonParentDescriptor(Location loc1, Location loc2, String msg) {
+
+      Descriptor d1 = loc1.getDescriptor();
+      Descriptor d2 = loc2.getDescriptor();
+
+      Descriptor descriptor;
+
+      if (d1 instanceof ClassDescriptor && d2 instanceof ClassDescriptor) {
+
+        if (d1.equals(d2)) {
+          descriptor = d1;
+        } else {
+          // identifying which one is parent class
+          Set<Descriptor> d1SubClassesSet = ssjava.tu.getSubClasses((ClassDescriptor) d1);
+          Set<Descriptor> d2SubClassesSet = ssjava.tu.getSubClasses((ClassDescriptor) d2);
+
+          if (d1 == null && d2 == null) {
+            throw new Error("Failed to compare two locations of " + loc1 + " and " + loc2
+                + " because they are not comparable at " + msg);
+          } else if (d1SubClassesSet != null && d1SubClassesSet.contains(d2)) {
+            descriptor = d1;
+          } else if (d2SubClassesSet != null && d2SubClassesSet.contains(d1)) {
+            descriptor = d2;
+          } else {
+            throw new Error("Failed to compare two locations of " + loc1 + " and " + loc2
+                + " because they are not comparable at " + msg);
+          }
+        }
+
+      } else if (d1 instanceof MethodDescriptor && d2 instanceof MethodDescriptor) {
+
+        if (d1.equals(d2)) {
+          descriptor = d1;
+        } else {
+
+          // identifying which one is parent class
+          MethodDescriptor md1 = (MethodDescriptor) d1;
+          MethodDescriptor md2 = (MethodDescriptor) d2;
+
+          if (!md1.matches(md2)) {
+            throw new Error("Failed to compare two locations of " + loc1 + " and " + loc2
+                + " because they are not comparable at " + msg);
+          }
+
+          Set<Descriptor> d1SubClassesSet =
+              ssjava.tu.getSubClasses(((MethodDescriptor) d1).getClassDesc());
+          Set<Descriptor> d2SubClassesSet =
+              ssjava.tu.getSubClasses(((MethodDescriptor) d2).getClassDesc());
+
+          if (d1 == null && d2 == null) {
+            throw new Error("Failed to compare two locations of " + loc1 + " and " + loc2
+                + " because they are not comparable at " + msg);
+          } else if (d1 != null && d1SubClassesSet.contains(d2)) {
+            descriptor = d1;
+          } else if (d2 != null && d2SubClassesSet.contains(d1)) {
+            descriptor = d2;
+          } else {
+            throw new Error("Failed to compare two locations of " + loc1 + " and " + loc2
+                + " because they are not comparable at " + msg);
+          }
+        }
+
+      } else {
+        throw new Error("Failed to compare two locations of " + loc1 + " and " + loc2
+            + " because they are not comparable at " + msg);
+      }
+
+      return descriptor;
+
     }
 
   }
@@ -1867,7 +1948,7 @@ class ReturnLocGenerator {
 
     // compute GLB of arguments subset that are same or higher than return
     // location
-    CompositeLocation glb = CompositeLattice.calculateGLB(inputGLB);
+    CompositeLocation glb = CompositeLattice.calculateGLB(inputGLB, "");
     return glb;
   }
 }
