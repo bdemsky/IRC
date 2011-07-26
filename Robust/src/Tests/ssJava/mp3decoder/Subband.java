@@ -4,7 +4,8 @@
  * Abstract base class for subband classes of layer I and II
  */
 @LATTICE("S<L,L<H,H<SH")
-@METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
+  @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
+//@METHODDEFAULT("OUT<V,V<SH,SH<THIS,THIS<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 static abstract class Subband
 {
  /*
@@ -13,7 +14,7 @@ static abstract class Subband
   *      is illegal (to prevent segmentation faults)
   */
   // Scalefactors for layer I and II, Annex 3-B.1 in ISO/IEC DIS 11172:
-  @LOC("H") public static final float scalefactors[] =
+  public static final float scalefactors[] =
   {
   2.00000000000000f, 1.58740105196820f, 1.25992104989487f, 1.00000000000000f,
   0.79370052598410f, 0.62996052494744f, 0.50000000000000f, 0.39685026299205f,

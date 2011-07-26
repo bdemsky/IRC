@@ -1309,9 +1309,10 @@ public class FlowDownCheck {
     return deltaLoc;
   }
 
-  private Location parseFieldLocDeclaraton(String decl, String msg) {
+  private Location parseFieldLocDeclaraton(String decl, String msg) throws Exception {
 
     int idx = decl.indexOf(".");
+
     String className = decl.substring(0, idx);
     String fieldName = decl.substring(idx + 1);
 
@@ -1321,6 +1322,7 @@ public class FlowDownCheck {
     Descriptor d = state.getClassSymbolTable().get(className);
 
     if (d == null) {
+      System.out.println("state.getClassSymbolTable()=" + state.getClassSymbolTable());
       throw new Error("The class in the location declaration '" + decl + "' does not exist at "
           + msg);
     }
@@ -1356,28 +1358,23 @@ public class FlowDownCheck {
     SSJavaLattice<String> localLattice = CompositeLattice.getLatticeByDescriptor(md);
     Location localLoc = new Location(md, localLocId);
     if (localLattice == null || (!localLattice.containsKey(localLocId))) {
+      System.out.println("locDec="+locDec);
       throw new Error("Location " + localLocId
           + " is not defined in the local variable lattice at "
-          + md.getClassDesc().getSourceFileName() + "::" + (n != null ? n.getNumLine() : "") + ".");
+          + md.getClassDesc().getSourceFileName() + "::" + (n != null ? n.getNumLine() : md) + ".");
     }
     compLoc.addLocation(localLoc);
 
     for (int i = 1; i < locIdList.size(); i++) {
       String locName = locIdList.get(i);
-
-      Location fieldLoc =
-          parseFieldLocDeclaraton(locName, generateErrorMessage(md.getClassDesc(), n));
-      // ClassDescriptor cd = fieldLocName2cd.get(locName);
-      // SSJavaLattice<String> fieldLattice =
-      // CompositeLattice.getLatticeByDescriptor(cd);
-      //
-      // if (fieldLattice == null || (!fieldLattice.containsKey(locName))) {
-      // throw new Error("Location " + locName +
-      // " is not defined in the field lattice at "
-      // + cd.getSourceFileName() + ".");
-      // }
-      // Location fieldLoc = new Location(cd, locName);
-      compLoc.addLocation(fieldLoc);
+      try {
+        Location fieldLoc =
+            parseFieldLocDeclaraton(locName, generateErrorMessage(md.getClassDesc(), n));
+        compLoc.addLocation(fieldLoc);
+      } catch (Exception e) {
+        throw new Error("The location declaration '" + locName + "' is wrong  at "
+            + generateErrorMessage(md.getClassDesc(), n));
+      }
     }
 
     return compLoc;
@@ -1463,7 +1460,7 @@ public class FlowDownCheck {
 
     public static boolean isGreaterThan(CompositeLocation loc1, CompositeLocation loc2, String msg) {
 
-      System.out.println("isGreaterThan=" + loc1 + " " + loc2 + " msg=" + msg);
+      System.out.println("\nisGreaterThan=" + loc1 + " " + loc2 + " msg=" + msg);
       int baseCompareResult = compareBaseLocationSet(loc1, loc2, true, msg);
       if (baseCompareResult == ComparisonResult.EQUAL) {
         if (compareDelta(loc1, loc2) == ComparisonResult.GREATER) {
@@ -1525,7 +1522,7 @@ public class FlowDownCheck {
         Location loc1 = compLoc1.get(i);
         if (i >= compLoc2.getSize()) {
           throw new Error("Failed to compare two locations of " + compLoc1 + " and " + compLoc2
-              + " because they are not comparable.");
+              + " because they are not comparable at " + msg);
         }
         Location loc2 = compLoc2.get(i);
 
