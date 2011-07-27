@@ -31,7 +31,7 @@
 @METHODDEFAULT("MODE<THIS,THIS<C,C<IN,THISLOC=THIS,C*")
 class LayerIDecoder implements FrameDecoder {
 
-  @LOC("H")
+  @LOC("SH")
   protected Bitstream stream;
   @LOC("SH")
   protected Header header;
@@ -161,7 +161,7 @@ class LayerIDecoder implements FrameDecoder {
    * Class for layer I subbands in single channel mode. Used for single channel
    * mode and in derived class for intensity stereo mode
    */
-  @LATTICE("S<L,L<H,H<SH,SH*,S*")
+  @LATTICE("S<L,L<H,H<SH,SH<SH0,SH*,S*")
   @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
   static class SubbandLayer1 extends Subband {
 
@@ -250,8 +250,8 @@ class LayerIDecoder implements FrameDecoder {
     }
 
     // ssjava
-    @LATTICE("THIS<IN,THISLOC=THIS,RETURNLOC=THIS")
-    // THIS,LayerIDecoder$SubbandLayer1.S
+    @LATTICE("THIS<IN,THISLOC=THIS")
+    @RETURNLOC("THIS,LayerIDecoder$SubbandLayer1.S")
     public boolean read_sampledata(@LOC("THIS,LayerIDecoder$SubbandLayer1.S") Bitstream stream) {
       if (allocation != 0) {
         sample = (float) (stream.get_bits(samplelength));
@@ -276,7 +276,7 @@ class LayerIDecoder implements FrameDecoder {
   /**
    * Class for layer I subbands in joint stereo mode.
    */
-  @LATTICE("S<L,L<H,H<SH,SH*")
+  @LATTICE("S<L,L<H,H<SH,SH<SH0,SH*")
   @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
   static class SubbandLayer1IntensityStereo extends SubbandLayer1 {
     @LOC("L")
@@ -292,8 +292,9 @@ class LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    public void read_allocation(@LOC("IN") Bitstream stream, @LOC("IN") Header header,
-        @LOC("IN") Crc16 crc) throws DecoderException {
+    @LATTICE("THIS<IN2,IN2<IN1,IN1<IN0,THISLOC=THIS")
+    public void read_allocation(@LOC("IN1") Bitstream stream, @LOC("IN0") Header header,
+        @LOC("IN2") Crc16 crc) throws DecoderException {
       super.read_allocation(stream, header, crc);
     }
 
@@ -335,7 +336,7 @@ class LayerIDecoder implements FrameDecoder {
   /**
    * Class for layer I subbands in stereo mode.
    */
-  @LATTICE("S<L,L<H,H<SH,SH*,S*")
+  @LATTICE("S<L,L<H,H<SH,SH<SH0,SH*,S*")
   @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
   static class SubbandLayer1Stereo extends SubbandLayer1 {
     @LOC("H")
@@ -361,8 +362,10 @@ class LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    public void read_allocation(@LOC("IN") Bitstream stream, @LOC("IN") Header header,
-        @LOC("IN") Crc16 crc) throws DecoderException {
+    // ssjava
+    public void read_allocation(@LOC("THIS,LayerIDecoder$SubbandLayer1Stereo.SH") Bitstream stream,
+        @LOC("IN") Header header, @LOC("THIS,LayerIDecoder$SubbandLayer1Stereo.L") Crc16 crc)
+        throws DecoderException {
       allocation = stream.get_bits(4);
       channel2_allocation = stream.get_bits(4);
       if (crc != null) {
@@ -394,9 +397,9 @@ class LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    @RETURNLOC("OUT")
-    public boolean read_sampledata(@LOC("IN") Bitstream stream) {
-      @LOC("OUT") boolean returnvalue = super.read_sampledata(stream);
+    @RETURNLOC("THIS,LayerIDecoder$SubbandLayer1Stereo.S")
+    public boolean read_sampledata(@LOC("THIS,LayerIDecoder$SubbandLayer1Stereo.S") Bitstream stream) {
+      @LOC("THIS,LayerIDecoder$SubbandLayer1Stereo.S") boolean returnvalue = super.read_sampledata(stream);
       if (channel2_allocation != 0) {
         channel2_sample = (float) (stream.get_bits(channel2_samplelength));
       }

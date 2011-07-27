@@ -65,7 +65,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
   /**
    * Class for layer II subbands in single channel mode.
    */
-  @LATTICE("S<L,L<H,L<SM,SM<H,H<SH,F,ARR,GN,SN,SH*,SM*")
+  @LATTICE("S<L,L<H,L<SM,SM<H,H<SH,SH<SH0,SH*,SM*,SH0*")
   @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
   static class SubbandLayer2 extends Subband {
     // this table contains 3 requantized samples for each legal codeword
@@ -576,7 +576,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    protected int get_allocationlength(@LOC("IN") Header header) {
+    protected int get_allocationlength(@LOC("THIS,LayerIIDecoder$SubbandLayer2.SH") Header header) {
 
       if (header.version() == Header.MPEG1) {
 
@@ -619,7 +619,8 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
 	   *
 	   */
     @LATTICE("OUT<THIS,THIS<IN,THISLOC=THIS")
-    protected void prepare_sample_reading(@LOC("IN") Header header, @LOC("IN") int allocation,
+    protected void prepare_sample_reading(@LOC("IN") Header header,
+        @LOC("THIS,LayerIIDecoder$SubbandLayer2.SH0") int allocation,
         // float[][] groupingtable,
         @LOC("IN") int channel, @LOC("OUT") float[] factor, @LOC("OUT") int[] codelength,
         @LOC("OUT") float[] c, @LOC("OUT") float[] d) {
@@ -678,11 +679,12 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
 	   */
     @LATTICE("V<THIS,THIS<IN,THISLOC=THIS")
     // ssjava
-    public void read_allocation(@LOC("IN") Bitstream stream,
-        @LOC("THIS,LayerIIDecoder$SubbandLayer2.SH") Header header, @LOC("IN") Crc16 crc) {
+    public void read_allocation(@LOC("THIS,LayerIIDecoder$SubbandLayer2.SH") Bitstream stream,
+        @LOC("THIS,LayerIIDecoder$SubbandLayer2.SH0") Header header,
+        @LOC("THIS,LayerIIDecoder$SubbandLayer2.H") Crc16 crc) {
 
-      @LOC("THIS,LayerIIDecoder$SubbandLayer2.SH") int length = get_allocationlength(header); // return
-                                                                                              // DELTA(THIS)
+      @LOC("THIS,LayerIIDecoder$SubbandLayer2.SH0") int length = get_allocationlength(header);
+
       allocation = stream.get_bits(length);
       if (crc != null) {
         crc.add_bits(allocation, length);
@@ -692,7 +694,8 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    public void read_scalefactor_selection(@LOC("IN") Bitstream stream, @LOC("IN") Crc16 crc) {
+    public void read_scalefactor_selection(@LOC("IN") Bitstream stream,
+        @LOC("THIS,LayerIIDecoder$SubbandLayer2.H") Crc16 crc) {
       if (allocation != 0) {
         scfsi = stream.get_bits(2);
         if (crc != null)
@@ -730,11 +733,8 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    // @LATTICE("OUT<V,V<SH,SH<TEMP,TEMP<TMP,TMP<THIS,THIS<IN,SH*,TEMP*,TMP*,THISLOC=THIS,GLOBALLOC=IN")
-    // @LATTICE("OUT<V,V<TEMP,TEMP<TMP,TMP<SH,SH<THIS,THIS<IN,SH*,TEMP*,TMP*,THISLOC=THIS,GLOBALLOC=IN")
-    // @RETURNLOC("V")
     // ssjava
-    public boolean read_sampledata(@LOC("IN") Bitstream stream) {
+    public boolean read_sampledata(@LOC("THIS,LayerIIDecoder$SubbandLayer2.SM") Bitstream stream) {
       if (allocation != 0) {
         if (groupingtable[0] != null) {
 
@@ -812,7 +812,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
   /**
    * Class for layer II subbands in joint stereo mode.
    */
-  @LATTICE("S<L,L<H,L<SM,SM<H,H<SH,F,ARR,GN,SN,SH*,SM*")
+  @LATTICE("S<L,L<H,L<SM,SM<H,H<SH,SH<SH0,SH*,SM*")
   @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
   static class SubbandLayer2IntensityStereo extends SubbandLayer2 {
     @LOC("SH")
@@ -834,15 +834,17 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    public void read_allocation(@LOC("IN") Bitstream stream, @LOC("THIS") Header header,
-        @LOC("IN") Crc16 crc) {
+    @LATTICE("THIS<IN2,IN2<IN1,IN1<IN0,THISLOC=THIS")
+    public void read_allocation(@LOC("IN1") Bitstream stream, @LOC("IN0") Header header,
+        @LOC("IN2") Crc16 crc) {
       super.read_allocation(stream, header, crc);
     }
 
     /**
 	   *
 	   */
-    public void read_scalefactor_selection(@LOC("IN") Bitstream stream, @LOC("IN") Crc16 crc) {
+    public void read_scalefactor_selection(@LOC("IN") Bitstream stream,
+        @LOC("THIS,LayerIIDecoder$SubbandLayer2IntensityStereo.H") Crc16 crc) {
       if (allocation != 0) {
         scfsi = stream.get_bits(2);
         channel2_scfsi = stream.get_bits(2);
@@ -950,7 +952,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
   /**
    * Class for layer II subbands in stereo mode.
    */
-  @LATTICE("S<L,L<H,L<SM,SM<H,H<SH,F,ARR,GN,SN,SH*,SM*")
+  @LATTICE("S<L,L<H,L<SM,SM<H,H<SH,SH<SH0,SH*,SM*,SH0*")
   @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
   static class SubbandLayer2Stereo extends SubbandLayer2 {
     @LOC("SH")
@@ -987,22 +989,28 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    @LATTICE("OUT<SH,SH<THIS,THIS<V,V<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
-    public void read_allocation(@LOC("IN") Bitstream stream,
-        @LOC("THIS,LayerIIDecoder$SubbandLayer2Stereo.SH") Header header, @LOC("IN") Crc16 crc) {
-      @LOC("THIS,LayerIIDecoder$SubbandLayer2Stereo.SH") int length = get_allocationlength(header);
+    @LATTICE("V<THIS,THIS<IN,THISLOC=THIS")
+    // ssjava
+    public void read_allocation(
+        @LOC("THIS,LayerIIDecoder$SubbandLayer2Stereo.SH") Bitstream stream,
+        @LOC("THIS,LayerIIDecoder$SubbandLayer2Stereo.SH0") Header header,
+        @LOC("THIS,LayerIIDecoder$SubbandLayer2Stereo.H") Crc16 crc) {
+
+      @LOC("THIS,LayerIIDecoder$SubbandLayer2Stereo.SH0") int length = get_allocationlength(header);
       allocation = stream.get_bits(length);
       channel2_allocation = stream.get_bits(length);
       if (crc != null) {
         crc.add_bits(allocation, length);
         crc.add_bits(channel2_allocation, length);
       }
+
     }
 
     /**
 	   *
 	   */
-    public void read_scalefactor_selection(@LOC("IN") Bitstream stream, @LOC("IN") Crc16 crc) {
+    public void read_scalefactor_selection(@LOC("IN") Bitstream stream,
+        @LOC("THIS,LayerIIDecoder$SubbandLayer2Stereo.H") Crc16 crc) {
       if (allocation != 0) {
         scfsi = stream.get_bits(2);
         if (crc != null)
@@ -1052,7 +1060,8 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
 	   *
 	   */
     // ssjava
-    public boolean read_sampledata(@LOC("IN") Bitstream stream) {
+    public boolean read_sampledata(
+        @LOC("THIS,LayerIIDecoder$SubbandLayer2Stereo.SM") Bitstream stream) {
       @LOC("V") boolean returnvalue = super.read_sampledata(stream);
 
       if (channel2_allocation != 0)
