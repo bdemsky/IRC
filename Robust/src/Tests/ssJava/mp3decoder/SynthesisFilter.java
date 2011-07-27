@@ -1265,23 +1265,22 @@ private void compute_pcm_samples(@LOC("GLOBAL") Obuffer buffer)
    * Calculate 32 PCM samples and put the into the Obuffer-object.
    */
   
-  @LATTICE("V<THIS,THIS<SH,SH*,THISLOC=THIS")	
-  public void calculate_pcm_samples(@LOC("V") Obuffer buffer)
-  {
-	compute_new_v();	
-	compute_pcm_samples(buffer);
-    
-	actual_write_pos = (actual_write_pos + 1) & 0xf;
-//	actual_v = (actual_v == v1) ? v2 : v1;
+  @LATTICE("V<THIS,THIS<SH,SH*,THISLOC=THIS")
+  public void calculate_pcm_samples(@LOC("V") Obuffer buffer) {
+    compute_new_v();
+    compute_pcm_samples(buffer);
 
-	// initialize samples[]:	
-    //for (register float *floatp = samples + 32; floatp > samples; )
-	// *--floatp = 0.0f;  
-	
-	// MDM: this may not be necessary. The Layer III decoder always
-	// outputs 32 subband samples, but I haven't checked layer I & II.
-	for (@LOC("SH") int p=0;p<32;p++) 
-		samples[p] = 0.0f;
+    actual_write_pos = (actual_write_pos + 1) & 0xf;
+    // actual_v = (actual_v == v1) ? v2 : v1;
+
+    // initialize samples[]:
+    // for (register float *floatp = samples + 32; floatp > samples; )
+    // *--floatp = 0.0f;
+
+    // MDM: this may not be necessary. The Layer III decoder always
+    // outputs 32 subband samples, but I haven't checked layer I & II.
+    for (@LOC("SH") int p = 0; p < 32; p++)
+      samples[p] = 0.0f;
   }
   
   

@@ -44,6 +44,7 @@ public final class Crc16
   /**
    * Feed a bitstring to the crc calculation (0 < length <= 32).
    */
+ @LATTICE("OUT<V,V<SH,SH<IN,SH*,THISLOC=V,GLOBALLOC=V")
   public void add_bits (@LOC("IN") int bitstring, @LOC("IN") int length)
   {
     @LOC("SH") int bitmask = 1 << (length - 1);

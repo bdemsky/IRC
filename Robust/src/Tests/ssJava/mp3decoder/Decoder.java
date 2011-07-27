@@ -27,7 +27,7 @@
  * @version 0.0.7 12/12/99
  * @since	0.0.5
  */
-@LATTICE("ST,OUT,FIL,DE<LA,O,EQ,PA,INIT,DE*")
+@LATTICE("ST,DE<OUT,DE<FIL,DE<LA,O,EQ,PA,INIT,DE*")
 public class Decoder implements DecoderErrors
 {
 	static private final Params DEFAULT_PARAMS = new Params();

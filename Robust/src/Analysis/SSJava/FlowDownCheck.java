@@ -300,34 +300,44 @@ public class FlowDownCheck {
       assignLocationOfVarDescriptor(vd, md, md.getParameterTable(), bn);
       paramList.add(d2loc.get(vd));
     }
+    Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
 
     // second, check return location annotation
     if (!md.getReturnType().isVoid()) {
       CompositeLocation returnLocComp = null;
-      Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
-      if (methodAnnotations != null) {
-        for (int i = 0; i < methodAnnotations.size(); i++) {
-          AnnotationDescriptor an = methodAnnotations.elementAt(i);
-          if (an.getMarker().equals(ssjava.RETURNLOC)) {
-            // developer explicitly defines method lattice
-            String returnLocDeclaration = an.getValue();
-            returnLocComp = parseLocationDeclaration(md, null, returnLocDeclaration);
-            md2ReturnLoc.put(md, returnLocComp);
+
+      String rtrStr = ssjava.getMethodLattice(md).getReturnLoc();
+      if (rtrStr != null) {
+        returnLocComp = new CompositeLocation(new Location(md, rtrStr));
+      } else {
+        if (methodAnnotations != null) {
+          for (int i = 0; i < methodAnnotations.size(); i++) {
+            AnnotationDescriptor an = methodAnnotations.elementAt(i);
+            if (an.getMarker().equals(ssjava.RETURNLOC)) {
+              // this case, developer explicitly defines method lattice
+              String returnLocDeclaration = an.getValue();
+              returnLocComp = parseLocationDeclaration(md, null, returnLocDeclaration);
+            }
+          }
+        } else {
+          // if developer does not define method lattice
+          // search return location in the method default lattice
+          if (returnLocComp == null) {
+            MethodLattice<String> methodDefaultLattice = ssjava.getMethodDefaultLattice(cd);
+            if (methodDefaultLattice.getReturnLoc() != null) {
+              returnLocComp =
+                  parseLocationDeclaration(md, null, methodDefaultLattice.getReturnLoc());
+            }
           }
         }
       }
-      if (returnLocComp == null) {
-        MethodLattice<String> methodDefaultLattice = ssjava.getMethodDefaultLattice(cd);
-        if (methodDefaultLattice.getReturnLoc() != null) {
-          returnLocComp = parseLocationDeclaration(md, null, methodDefaultLattice.getReturnLoc());
-          md2ReturnLoc.put(md, returnLocComp);
-        }
-      }
 
-      if (!md2ReturnLoc.containsKey(md)) {
+      if (returnLocComp == null) {
         throw new Error("Return location is not specified for the method " + md + " at "
             + cd.getSourceFileName());
       }
+
+      md2ReturnLoc.put(md, returnLocComp);
 
       // check this location
       MethodLattice<String> methodLattice = ssjava.getMethodLattice(md);
@@ -339,11 +349,13 @@ public class FlowDownCheck {
       CompositeLocation thisLoc = new CompositeLocation(new Location(md, thisLocId));
       paramList.add(0, thisLoc);
 
-      md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), paramList,
-          generateErrorMessage(cd, null)));
+      System.out.println("### ReturnLocGenerator="+md);
+      System.out.println("### md2ReturnLoc.get(md)="+md2ReturnLoc.get(md));
+      md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), paramList, md + " of "
+          + cd.getSourceFileName()));
     }
 
-    // third, check declarations inside of method
+    // fourth, check declarations inside of method
 
     checkDeclarationInBlockNode(md, md.getParameterTable(), bn);
 
@@ -953,8 +965,8 @@ public class FlowDownCheck {
 
               throw new Error(
                   "Caller doesn't respect an ordering relation among method arguments: callee expects that "
-                      + paramName1 + " should be higher than " + paramName2 + " at "
-                      + md.getClassDesc().getSourceFileName() + ":" + min.getNumLine());
+                      + paramName1 + " should be higher than " + paramName2 + " in " + calleemd
+                      + " at " + md.getClassDesc().getSourceFileName() + ":" + min.getNumLine());
             }
           }
 
@@ -1104,6 +1116,7 @@ public class FlowDownCheck {
         Location locElement = new Location(md, thisLocId);
         loc.addLocation(locElement);
         return loc;
+
       }
 
       Descriptor d = (Descriptor) nametable.get(varname);

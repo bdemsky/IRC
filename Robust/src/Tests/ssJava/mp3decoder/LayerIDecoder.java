@@ -39,7 +39,7 @@ class LayerIDecoder implements FrameDecoder {
   protected SynthesisFilter filter1;
   @LOC("H")
   protected SynthesisFilter filter2;
-  @LOC("H")
+  @LOC("SB")
   protected Obuffer buffer;
   @LOC("H")
   protected int which_channels;
@@ -217,8 +217,12 @@ class LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    public void read_allocation(@LOC("IN") Bitstream stream, @LOC("IN") Header header,
-        @LOC("IN") Crc16 crc) throws DecoderException {
+    // @LATTICE("IN<THIS,THISLOC=THIS")
+    @LATTICE("THIS<IN,THISLOC=THIS")
+    public void read_allocation(@LOC("THIS,LayerIDecoder$SubbandLayer1.SH") Bitstream stream,
+        @LOC("IN") Header header, @LOC("THIS,LayerIDecoder$SubbandLayer1.L") Crc16 crc)
+        throws DecoderException {
+
       if ((allocation = stream.get_bits(4)) == 15) {
         // CGJ: catch this condition and throw appropriate exception
         throw new DecoderException(DecoderErrors.ILLEGAL_SUBBAND_ALLOCATION, null);
@@ -226,8 +230,10 @@ class LayerIDecoder implements FrameDecoder {
         // MPEG-stream is corrupted!
       }
 
-      if (crc != null)
-        crc.add_bits(allocation, 4);
+      if (crc != null) {
+        crc.add_bits(allocation, 4); // allocation has [THIS,H]
+        // crc has [IN]
+      }
       if (allocation != 0) {
         samplelength = allocation + 1;
         factor = table_factor[allocation];
@@ -243,7 +249,10 @@ class LayerIDecoder implements FrameDecoder {
         scalefactor = scalefactors[stream.get_bits(6)];
     }
 
-    public boolean read_sampledata(@LOC("IN") Bitstream stream) {
+    // ssjava
+    @LATTICE("THIS<IN,THISLOC=THIS,RETURNLOC=THIS")
+    // THIS,LayerIDecoder$SubbandLayer1.S
+    public boolean read_sampledata(@LOC("THIS,LayerIDecoder$SubbandLayer1.S") Bitstream stream) {
       if (allocation != 0) {
         sample = (float) (stream.get_bits(samplelength));
       }
@@ -411,7 +420,7 @@ class LayerIDecoder implements FrameDecoder {
       }
       return true;
     }
-    
+
   };
 
 }
