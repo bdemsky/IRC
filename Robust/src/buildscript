@@ -88,6 +88,7 @@ echo -gccachecoherent turns on the cache coherence during gc
 echo
 echo Multicore GC options
 echo -perfcount performance counters
+echo -memperfcount Memory performance counters
 echo -multicoregc generate multi-core binary with garbage collection
 echo -pmc parallel collector
 echo "-numcore4gc set the number of cores for gc (should be used together with -multicoregc), defaultly set as 0"
@@ -216,6 +217,7 @@ INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
 MULTICOREGCFLAG=false;
 PERFCOUNT=false;
+MEMPERFCOUNT=false;
 PMCFLAG=false;
 GCMEMLOCALFLAG=false;
 GCMEMFIXEDFLAG=false;
@@ -534,6 +536,9 @@ JAVAOPTS="$JAVAOPTS -pmc"
 elif [[ $1 = '-perfcount' ]]
 then
 PERFCOUNT=true
+elif [[ $1 = '-memperfcount' ]]
+then
+MEMPERFCOUNT=true
 elif [[ $1 = '-gcmem_local' ]]
 then
 GCMEMLOCALFLAG=true
@@ -1135,6 +1140,11 @@ fi
 if $PERFCOUNT
 then #MULTICOREGC version
 TILERACFLAGS="${TILERACFLAGS} -DPERFCOUNT"
+fi
+
+if $MEMPERFCOUNT
+then #MULTICOREGC version
+TILERACFLAGS="${TILERACFLAGS} -DMEMPERFCOUNT"
 fi
 
 if $GCPROFILEFLAG

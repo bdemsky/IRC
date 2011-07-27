@@ -13,6 +13,9 @@
 #ifdef PERFCOUNT
 #include "bme_perf_counter.h"
 #endif
+#ifdef MEMPERFCOUNT
+#include "memprof.h"
+#endif
 
 extern int classsize[];
 extern int typearray[];
