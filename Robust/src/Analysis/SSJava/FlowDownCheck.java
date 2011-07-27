@@ -1595,14 +1595,14 @@ public class FlowDownCheck {
 
         // check if the shared location is appeared only at the end of the
         // composite location
-        if (lattice.getSpinLocSet().contains(loc1.getLocIdentifier())) {
+        if (lattice.getSharedLocSet().contains(loc1.getLocIdentifier())) {
           if (i != (compLoc1.getSize() - 1)) {
             throw new Error("The shared location " + loc1.getLocIdentifier()
                 + " cannot be appeared in the middle of composite location at" + msg);
           }
         }
 
-        if (lattice.getSpinLocSet().contains(loc2.getLocIdentifier())) {
+        if (lattice.getSharedLocSet().contains(loc2.getLocIdentifier())) {
           if (i != (compLoc2.getSize() - 1)) {
             throw new Error("The shared location " + loc2.getLocIdentifier()
                 + " cannot be appeared in the middle of composite location at " + msg);
@@ -1621,7 +1621,7 @@ public class FlowDownCheck {
           // note that the spinning location only can be appeared in the last
           // part of the composite location
           if (awareSharedLoc && numOfTie == compLoc1.getSize()
-              && lattice.getSpinLocSet().contains(loc1.getLocIdentifier())) {
+              && lattice.getSharedLocSet().contains(loc1.getLocIdentifier())) {
             return ComparisonResult.GREATER;
           }
           continue;

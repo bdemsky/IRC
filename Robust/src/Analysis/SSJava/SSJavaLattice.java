@@ -6,23 +6,27 @@ import java.util.Set;
 import Util.Lattice;
 
 public class SSJavaLattice<T> extends Lattice<T> {
-  
-  public static final String TOP="_top_";
-  public static final String BOTTOM="_bottom_";
 
-  Set<T> spinLocSet;
+  public static final String TOP = "_top_";
+  public static final String BOTTOM = "_bottom_";
+
+  Set<T> sharedLocSet;
 
   public SSJavaLattice(T top, T bottom) {
     super(top, bottom);
-    spinLocSet = new HashSet<T>();
+    sharedLocSet = new HashSet<T>();
   }
 
-  public Set<T> getSpinLocSet() {
-    return spinLocSet;
+  public Set<T> getSharedLocSet() {
+    return sharedLocSet;
   }
 
-  public void addSpinLoc(T loc) {
-    spinLocSet.add(loc);
+  public void addSharedLoc(T loc) {
+    sharedLocSet.add(loc);
+  }
+
+  public boolean isSharedLoc(T loc) {
+    return sharedLocSet.contains(loc);
   }
 
 }

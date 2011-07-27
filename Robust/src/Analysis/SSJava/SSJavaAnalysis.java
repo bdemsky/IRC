@@ -1,5 +1,8 @@
 package Analysis.SSJava;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -19,6 +22,7 @@ import IR.TypeUtil;
 import IR.Flat.BuildFlat;
 import IR.Flat.FlatMethod;
 import IR.Flat.TempDescriptor;
+import Util.Pair;
 
 public class SSJavaAnalysis {
 
@@ -128,6 +132,12 @@ public class SSJavaAnalysis {
               new SSJavaLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
           cd2lattice.put(cd, locOrder);
           parseClassLatticeDefinition(cd, an.getValue(), locOrder);
+
+          if (state.SSJAVADEBUG) {
+            // generate lattice dot file
+            writeLatticeDotFile(cd, locOrder);
+          }
+
         } else if (marker.equals(METHODDEFAULT)) {
           MethodLattice<String> locOrder =
               new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
@@ -170,6 +180,40 @@ public class SSJavaAnalysis {
     }
   }
 
+  private void writeLatticeDotFile(ClassDescriptor cd, SSJavaLattice<String> locOrder) {
+
+    String className = cd.getSymbol().replaceAll("[\\W_]", "");
+
+    Set<Pair<String, String>> pairSet = locOrder.getOrderingPairSet();
+
+    try {
+      BufferedWriter bw = new BufferedWriter(new FileWriter(className + ".dot"));
+
+      bw.write("digraph " + className + " {\n");
+
+      for (Iterator iterator = pairSet.iterator(); iterator.hasNext();) {
+        // pair is in the form of <higher, lower>
+        Pair<String, String> pair = (Pair<String, String>) iterator.next();
+
+        String highLocId = pair.getFirst();
+        if (locOrder.isSharedLoc(highLocId)) {
+          highLocId = "\"" + highLocId + "*\"";
+        }
+        String lowLocId = pair.getSecond();
+        if (locOrder.isSharedLoc(lowLocId)) {
+          lowLocId = "\"" + lowLocId + "*\"";
+        }
+        bw.write(highLocId + " -> " + lowLocId + ";\n");
+      }
+      bw.write("}\n");
+      bw.close();
+
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+  }
+
   private void parseMethodDefaultLatticeDefinition(ClassDescriptor cd, String value,
       MethodLattice<String> locOrder) {
 
@@ -199,7 +243,7 @@ public class SSJavaAnalysis {
         locOrder.setReturnLoc(returnLoc);
       } else if (orderElement.contains("*")) {
         // spin loc definition
-        locOrder.addSpinLoc(orderElement.substring(0, orderElement.length() - 1));
+        locOrder.addSharedLoc(orderElement.substring(0, orderElement.length() - 1));
       } else {
         // single element
         locOrder.put(orderElement);
@@ -239,7 +283,7 @@ public class SSJavaAnalysis {
         }
       } else if (orderElement.contains("*")) {
         // spin loc definition
-        locOrder.addSpinLoc(orderElement.substring(0, orderElement.length() - 1));
+        locOrder.addSharedLoc(orderElement.substring(0, orderElement.length() - 1));
       } else {
         // single element
         locOrder.put(orderElement);
@@ -247,7 +291,7 @@ public class SSJavaAnalysis {
     }
 
     // sanity check
-    Set<String> spinLocSet = locOrder.getSpinLocSet();
+    Set<String> spinLocSet = locOrder.getSharedLocSet();
     for (Iterator iterator = spinLocSet.iterator(); iterator.hasNext();) {
       String spinLoc = (String) iterator.next();
       if (!locOrder.containsKey(spinLoc)) {
@@ -345,7 +389,7 @@ public class SSJavaAnalysis {
 
   public boolean isSharedLocation(Location loc) {
     SSJavaLattice<String> lattice = getLattice(loc.getDescriptor());
-    return lattice.getSpinLocSet().contains(loc.getLocIdentifier());
+    return lattice.getSharedLocSet().contains(loc.getLocIdentifier());
   }
 
   public void mapSharedLocation2Descriptor(Location loc, Descriptor d) {
