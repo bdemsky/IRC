@@ -241,7 +241,7 @@ public class SSJavaAnalysis {
       } else if (orderElement.startsWith(RETURNLOC + "=")) {
         String returnLoc = orderElement.substring(10);
         locOrder.setReturnLoc(returnLoc);
-      } else if (orderElement.contains("*")) {
+      } else if (orderElement.endsWith("*")) {
         // spin loc definition
         locOrder.addSharedLoc(orderElement.substring(0, orderElement.length() - 1));
       } else {

@@ -1264,12 +1264,14 @@ public class FlowDownCheck {
       System.out.println("rhsLocation=" + rhsLocation);
       System.out.println("constraint=" + constraint);
 
-      if (constraint != null) {
-        inputGLBSet.add(rhsLocation);
-        inputGLBSet.add(constraint);
-        srcLocation = CompositeLattice.calculateGLB(inputGLBSet, generateErrorMessage(cd, an));
-      } else {
-        srcLocation = rhsLocation;
+      srcLocation = rhsLocation;
+
+      if (!rhsLocation.get(rhsLocation.getSize() - 1).isTop()) {
+        if (constraint != null) {
+          inputGLBSet.add(rhsLocation);
+          inputGLBSet.add(constraint);
+          srcLocation = CompositeLattice.calculateGLB(inputGLBSet, generateErrorMessage(cd, an));
+        }
       }
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
