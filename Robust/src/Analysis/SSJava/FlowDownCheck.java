@@ -844,8 +844,18 @@ public class FlowDownCheck {
           checkLocationFromExpressionNode(md, nametable, min.getExpression(),
               new CompositeLocation(), constraint, false);
     } else {
-      String thisLocId = ssjava.getMethodLattice(md).getThisLoc();
-      baseLocation = new CompositeLocation(new Location(md, thisLocId));
+
+      if (min.getMethod().isStatic()) {
+        String globalLocId = ssjava.getMethodLattice(md).getGlobalLoc();
+        if (globalLocId == null) {
+          throw new Error("Method lattice does not define global variable location at "
+              + generateErrorMessage(md.getClassDesc(), min));
+        }
+        baseLocation = new CompositeLocation(new Location(md, globalLocId));
+      } else {
+        String thisLocId = ssjava.getMethodLattice(md).getThisLoc();
+        baseLocation = new CompositeLocation(new Location(md, thisLocId));
+      }
     }
 
     checkCalleeConstraints(md, nametable, min, baseLocation, constraint);
@@ -1163,22 +1173,17 @@ public class FlowDownCheck {
         Location fieldLoc = (Location) fd.getType().getExtension();
         loc.addLocation(fieldLoc);
       } else if (d == null) {
-
-        // check if the var is a static field of the class
-        FieldDescriptor fd = nn.getField();
+        // access static field
         ClassDescriptor cd = nn.getClassDesc();
 
-        if (fd != null && cd != null) {
-
-          if (fd.isStatic() && fd.isFinal()) {
-            loc.addLocation(Location.createTopLocation(md));
-            return loc;
-          } else {
-            MethodLattice<String> localLattice = ssjava.getMethodLattice(md);
-            Location fieldLoc = new Location(md, localLattice.getThisLoc());
-            loc.addLocation(fieldLoc);
-          }
+        MethodLattice<String> localLattice = ssjava.getMethodLattice(md);
+        String globalLocId = localLattice.getGlobalLoc();
+        if (globalLocId == null) {
+          throw new Error("Method lattice does not define global variable location at "
+              + generateErrorMessage(md.getClassDesc(), nn));
         }
+        loc.addLocation(new Location(md, globalLocId));
+        return loc;
 
       }
     }
