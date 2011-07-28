@@ -46,8 +46,8 @@
 // 9th added for get_LSF_scale_factors
 // 10th added for get_scale_factors
 // llth added for decode
-// @LATTICE("NZ*,SI<SF1,RO<SI1,SI1<NZ,NZ<SI,SI1<SBI,SBI<SI,BUF<FT,SFB<SF1,SF1<SF0,SF0<HD1,BR<ST,ST,FT<SP,SP<OUT,OUT<SI1,SI1<SI,OUT<CH0,P2S<CH0,CH0<MAX0,MAX0<BR1,FS<BR1,BR1<BR,BR<HD1,HD1<HD,OUT*,BR1*,SI1*,MAX0*,CH0*,FS<BR,BR<SF,LR<IR,IR<IP,IP<SF,LR<K,K<F,LR<VAR,VAR<F,VAR<RAW,CSH<F,SAM<O,O<F,NS<SI,SI<CH,SFREQ<H,MAX<H,H<CH,FLCH<CH,FLCH<WC,SF<SFT,SFT<NS,NS<C,TS<RAW,O<TS,LY<F,C*,FS*,IP*,IR*,LR*,K*,O*,TS*,TS<BT,BT<GR,GR<SI,LR<S,S<ME,ME<CH,K<SH,K<LSF,LSF<H,LSF<CH,IP<SH,SH<J,J<S,S<ME,SH<SFREQ,SH<RO,IP<TMP2,LSF<H,TMP2<F,J*,SH*,O<RO2,RO2<RO3,RO3<RO4,RO4<RO5,O<RO1,RO1<RO5,RO5<RO6,RO6<RO7,RO7<RO8,RO8<RO9,RO9<SFREQ,RO9<F,RO1*,RO4*,RO5*,RO6*,RO9*,VAR<HD3,HD3<HD2,HD1<SFREQ,HD1<RAW,HD2*,HD3*,SFB<GLSFD5,GLSFD5<NS,GLSFD5<GLSFD4,NS<GLSFD3,GLSFD4<GLSFD3,GLSFD3<GLSFD2,GLSFD2<GLSFD1,GLSFD1<SI,GLSFD5*,SF<GLSFF4,GLSFF4<GLSFF3,GLSFF3<GLSFF2,GLSFF2<GLSFF1,GLSFF1<SI,GLSFF4*,GLSFF3*,GLSFF2*,SF<GSF5,GSF5<GSF4,GSF4<GSF3,GSF3<GSF2,GSF2<GSF1,GSF1<SI,GSF5*,GSF4*,O<D3,D3<D2,D2<D1,D1<FLCH,D1*,D2*")
-@LATTICE("LR*,OUT<LR,LR<RO,C*,NZ*,SI<SF1,RO<SI1,SI1<NZ,NZ<SI,SI1<SBI,SBI<SI,BUF<FT,SFB<SF1,SF1<SF0,SF0<HD1,BR<ST,ST,FT<SP,SP<OUT,OUT<SI1,SI1<SI,OUT<CH0,P2S<CH0,CH0<MAX0,MAX0<BR1,FS<BR1,BR1<BR,BR<HD1,HD1<HD,OUT*,BR1*,SI1*,MAX0*,CH0*,RAW,TS,NS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
+// @LATTICE("SF0*,SFB_SH<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SI1<SF2,SF2<SFB,SF1<BR,LR*,OUT<LR,LR<RO,NZ*,SI<SF1,RO<SI1,SI1<NZ,NZ<SI,SI1<SBI,SBI<SI,BUF<FT,SF1<SF0,SF0<HD1,BR<ST,ST,FT<SP,SP<OUT,OUT<SI1,SI1<SI,OUT<CH0,P2S<CH0,CH0<MAX0,MAX0<BR1,FS<BR1,BR1<BR,BR<HD1,HD1<HD,OUT*,BR1*,SI1*,MAX0*,CH0*,RAW,TS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
+@LATTICE("SI<P2S,SF1<CH0,SF0*,SFB_SH<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SI1<SF2,SF2<SFB,SF1<BR,LR*,OUT<LR,LR<RO,NZ*,SI<SF1,RO<SI1,SI1<NZ,NZ<SI,SI1<SBI,SBI<SI,BUF<FT,SF1<SF0,SF0<HD1,BR<ST,ST,FT<SP,SP<OUT,OUT<SI1,SI1<SI,P2S<CH0,CH0<MAX0,MAX0<BR1,FS<BR1,BR1<BR,BR<HD1,HD1<HD,OUT*,BR1*,SI1*,MAX0*,CH0*,RAW,TS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
 @METHODDEFAULT("OUT<V,V<THIS,THIS<SH,SH<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 final class LayerIIIDecoder implements FrameDecoder {
   static final double d43 = (4.0 / 3.0);
@@ -90,7 +90,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   private III_side_info_t si;
 
   // @LOC("SBT") private temporaire2[] III_scalefac_t;
-  @LOC("SF1")
+  @LOC("SF2")
   private temporaire2[] scalefac;
   // private III_scalefac_t scalefac;
 
@@ -458,17 +458,20 @@ final class LayerIIIDecoder implements FrameDecoder {
    * Reads the side info from the stream, assuming the entire. frame has been
    * read already. Mono : 136 bits (= 17 bytes) Stereo : 256 bits (= 32 bytes)
    */
-  @RETURNLOC("OUT")
+  @LATTICE("OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
   private boolean get_side_info() {
-    @LOC("IN") int ch;
-    @LOC("IN") int gr;
+
+    @LOC("THIS,LayerIIIDecoder.CH0") int ch;
+    @LOC("THIS,LayerIIIDecoder.CH0") int gr;
+
     if (header.version() == Header.MPEG1) {
 
       si.main_data_begin = stream.get_bits(9);
-      if (channels == 1)
+      if (channels == 1) {
         si.private_bits = stream.get_bits(5);
-      else
+      } else {
         si.private_bits = stream.get_bits(3);
+      }
 
       for (ch = 0; ch < channels; ch++) {
         si.ch[ch].scfsi[0] = stream.get_bits(1);
@@ -582,23 +585,24 @@ final class LayerIIIDecoder implements FrameDecoder {
   private void get_scale_factors(@LOC("THIS,LayerIIIDecoder.SF0") int ch,
       @LOC("THIS,LayerIIIDecoder.SF0") int gr) {
 
-    @LOC("THIS,LayerIIIDecoder.GSF4") int sfb;
-    @LOC("THIS,LayerIIIDecoder.GSF5") int window;
-    @LOC("THIS,LayerIIIDecoder.GSF1") gr_info_s gr_info = (si.ch[ch].gr[gr]);
-    @LOC("THIS,LayerIIIDecoder.GSF2") int scale_comp = gr_info.scalefac_compress;
-    @LOC("THIS,LayerIIIDecoder.GSF3") int length0 = slen[0][scale_comp];
-    @LOC("THIS,LayerIIIDecoder.GSF3") int length1 = slen[1][scale_comp];
+    // gr_info_s gr_info = (si.ch[ch].gr[gr]); remove alias
 
-    if ((gr_info.window_switching_flag != 0) && (gr_info.block_type == 2)) {
-      if ((gr_info.mixed_block_flag) != 0) { // MIXED
+    @LOC("THIS,LayerIIIDecoder.SFB_SH") int sfb;
+    @LOC("THIS,LayerIIIDecoder.SFB_SH") int window;
+    @LOC("THIS,LayerIIIDecoder.SFB_SH") int scale_comp = si.ch[ch].gr[gr].scalefac_compress;
+    @LOC("THIS,LayerIIIDecoder.SFB_SH") int length0 = slen[0][scale_comp];
+    @LOC("THIS,LayerIIIDecoder.SFB_SH") int length1 = slen[1][scale_comp];
+
+    if ((si.ch[ch].gr[gr].window_switching_flag != 0) && (si.ch[ch].gr[gr].block_type == 2)) {
+      if ((si.ch[ch].gr[gr].mixed_block_flag) != 0) { // MIXED
         for (sfb = 0; sfb < 8; sfb++)
-          scalefac[ch].l[sfb] = br.hgetbits(slen[0][gr_info.scalefac_compress]);
+          scalefac[ch].l[sfb] = br.hgetbits(slen[0][si.ch[ch].gr[gr].scalefac_compress]);
         for (sfb = 3; sfb < 6; sfb++)
           for (window = 0; window < 3; window++)
-            scalefac[ch].s[window][sfb] = br.hgetbits(slen[0][gr_info.scalefac_compress]);
+            scalefac[ch].s[window][sfb] = br.hgetbits(slen[0][si.ch[ch].gr[gr].scalefac_compress]);
         for (sfb = 6; sfb < 12; sfb++)
           for (window = 0; window < 3; window++)
-            scalefac[ch].s[window][sfb] = br.hgetbits(slen[1][gr_info.scalefac_compress]);
+            scalefac[ch].s[window][sfb] = br.hgetbits(slen[1][si.ch[ch].gr[gr].scalefac_compress]);
         for (sfb = 12, window = 0; window < 3; window++)
           scalefac[ch].s[window][sfb] = 0;
 
@@ -691,19 +695,23 @@ final class LayerIIIDecoder implements FrameDecoder {
   private final int[] new_slen = new int[4];
 
   // ssjava
-  @LATTICE("THIS<IN,THIS<I,THIS<X,THIS<M,I*,X*,M*,THISLOC=THIS,GLOBALLOC=THIS")
-  private void get_LSF_scale_data(@LOC("IN") int ch, @LOC("IN") int gr) {
+  // @LATTICE("THIS<IN,THIS<I,THIS<X,THIS<M,I*,X*,M*,THISLOC=THIS,GLOBALLOC=THIS")
+  @LATTICE("M<THIS,THIS<IN,THIS<C,C*,M*,THISLOC=THIS,GLOBALLOC=THIS")
+  private void get_LSF_scale_data(@LOC("THIS,LayerIIIDecoder.SF0") int ch,
+      @LOC("THIS,LayerIIIDecoder.SF0") int gr) {
 
     @LOC("THIS,LayerIIIDecoder.HD1") int mode_ext = header.mode_extension();
     // @LOC("THIS,LayerIIIDecoder.GLSFD1") gr_info_s gr_info =
     // (si.ch[ch].gr[gr]); // remove alias
 
-    @LOC("THIS,LayerIIIDecoder.SI1") int scalefac_comp = si.ch[ch].gr[gr].scalefac_compress;
-    @LOC("THIS,LayerIIIDecoder.SI1") int blocktypenumber;
+    @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.CH,LayerIIIDecoder$temporaire.GR,LayerIIIDecoder$gr_info_s.V") int scalefac_comp =
+        si.ch[ch].gr[gr].scalefac_compress;
+    @LOC("THIS,LayerIIIDecoder.SI") int blocktypenumber;
 
-    @LOC("THIS,LayerIIIDecoder.GLSFD3") int int_scalefac_comp;
-    @LOC("M") int m;
-    @LOC("THIS,LayerIIIDecoder.GLSFD4") int blocknumber = 0;
+    @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.CH,LayerIIIDecoder$temporaire.GR,LayerIIIDecoder$gr_info_s.V") int int_scalefac_comp;
+    @LOC("THIS,LayerIIIDecoder.SFB_SH") int m;
+    @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.CH,LayerIIIDecoder$temporaire.GR,LayerIIIDecoder$gr_info_s.V") int blocknumber =
+        0;
 
     if (si.ch[ch].gr[gr].block_type == 2) {
       if (si.ch[ch].gr[gr].mixed_block_flag == 0) {
@@ -775,13 +783,13 @@ final class LayerIIIDecoder implements FrameDecoder {
       }
     }
 
-    for (@LOC("X") int x = 0; x < 45; x++)
+    for (@LOC("C") int x = 0; x < 45; x++)
       // why 45, not 54?
       scalefac_buffer[x] = 0;
 
     m = 0;
-    for (@LOC("I") int i = 0; i < 4; i++) {
-      for (@LOC("THIS,LayerIIIDecoder.GLSFD5") int j = 0; j < nr_of_sfb_block[blocknumber][blocktypenumber][i]; j++) {
+    for (@LOC("C") int i = 0; i < 4; i++) {
+      for (@LOC("THIS,LayerIIIDecoder.SFB_SH") int j = 0; j < nr_of_sfb_block[blocknumber][blocktypenumber][i]; j++) {
         scalefac_buffer[m] = (new_slen[i] == 0) ? 0 : br.hgetbits(new_slen[i]);
         m++;
 
@@ -795,15 +803,16 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LATTICE("THIS<IN,THISLOC=THIS,GLOBALLOC=IN")
   private void get_LSF_scale_factors(@LOC("THIS,LayerIIIDecoder.SF0") int ch,
       @LOC("THIS,LayerIIIDecoder.SF0") int gr) {
-    @LOC("THIS,LayerIIIDecoder.GLSFF4") int m = 0;
-    @LOC("THIS,LayerIIIDecoder.GLSFF2") int sfb;
-    @LOC("THIS,LayerIIIDecoder.GLSFF3") int window;
-    @LOC("THIS,LayerIIIDecoder.GLSFF1") gr_info_s gr_info = (si.ch[ch].gr[gr]);
+
+    @LOC("THIS,LayerIIIDecoder.SFB_SH") int sfb;
+    @LOC("THIS,LayerIIIDecoder.SFB_SH") int m = 0;
+    @LOC("THIS,LayerIIIDecoder.SFB_SH") int window;
+    // gr_info_s gr_info = (si.ch[ch].gr[gr]); // remove alias
 
     get_LSF_scale_data(ch, gr);
 
-    if ((gr_info.window_switching_flag != 0) && (gr_info.block_type == 2)) {
-      if (gr_info.mixed_block_flag != 0) { // MIXED
+    if ((si.ch[ch].gr[gr].window_switching_flag != 0) && (si.ch[ch].gr[gr].block_type == 2)) {
+      if (si.ch[ch].gr[gr].mixed_block_flag != 0) { // MIXED
         for (sfb = 0; sfb < 8; sfb++) {
           scalefac[ch].l[sfb] = scalefac_buffer[m];
           m++;
@@ -843,35 +852,38 @@ final class LayerIIIDecoder implements FrameDecoder {
   /**
 	 *
 	 */
-  @LOC("LY")
-  int[] x = { 0 };
-  @LOC("F")
-  int[] y = { 0 };
-  @LOC("LY")
-  int[] v = { 0 };
-  @LOC("LY")
-  int[] w = { 0 };
+  // @LOC("LY")
+  // int[] x = { 0 };
+  // @LOC("F")
+  // int[] y = { 0 };
+  // @LOC("LY")
+  // int[] v = { 0 };
+  // @LOC("LY")
+  // int[] w = { 0 };
 
-  @LATTICE("H<I,I<R,R<B1,B1<B,B<THIS,THIS<IN,I*,THISLOC=THIS,GLOBALLOC=IN")
+  // @LATTICE("H<I,I<R,R<B1,B1<B,B<THIS,THIS<IN,I*,THISLOC=THIS,GLOBALLOC=IN")
+  @LATTICE("BUF<THIS,BUF*,R,B,B1,H,I,THIS<IN,I*,THISLOC=THIS")
   private void huffman_decode(@LOC("THIS,LayerIIIDecoder.HD1") int ch,
       @LOC("THIS,LayerIIIDecoder.HD1") int gr) {
 
-    x[0] = 0;
-    y[0] = 0;
-    v[0] = 0;
-    w[0] = 0;
+    // x[0] = 0;
+    // y[0] = 0;
+    // v[0] = 0;
+    // w[0] = 0;
+    @LOC("I") int x;
+    @LOC("I") int y;
+    @LOC("I") int v;
+    @LOC("I") int w;
 
-    @LOC("THIS,LayerIIIDecoder.HD1") int part2_3_end =
-        part2_start + si.ch[ch].gr[gr].part2_3_length;
+    @LOC("THIS,LayerIIIDecoder.NS") int part2_3_end = part2_start + si.ch[ch].gr[gr].part2_3_length;
+
     @LOC("THIS,LayerIIIDecoder.HD2") int num_bits;
-    @LOC("R") int region1Start;
-    @LOC("R") int region2Start;
+    @LOC("THIS,LayerIIIDecoder.SI1") int region1Start;
+    @LOC("THIS,LayerIIIDecoder.SI1") int region2Start;
     @LOC("THIS,LayerIIIDecoder.HD3") int index;
 
-    @LOC("B") int buf;
-    @LOC("B1") int buf1;
-
-    @LOC("H") huffcodetab h;
+    @LOC("THIS,LayerIIIDecoder.SI1") int buf;
+    @LOC("THIS,LayerIIIDecoder.SI1") int buf1;
 
     // Find region boundary for short block case
 
@@ -888,47 +900,67 @@ final class LayerIIIDecoder implements FrameDecoder {
       buf = si.ch[ch].gr[gr].region0_count + 1;
       buf1 = buf + si.ch[ch].gr[gr].region1_count + 1;
 
-      if (buf1 > sfBandIndex[sfreq].l.length - 1)
+      if (buf1 > sfBandIndex[sfreq].l.length - 1) {
         buf1 = sfBandIndex[sfreq].l.length - 1;
+      }
 
       region1Start = sfBandIndex[sfreq].l[buf];
       region2Start = sfBandIndex[sfreq].l[buf1]; /* MI */
     }
 
     index = 0;
+    @LOC("I") int h;
     // Read bigvalues area
     for (@LOC("I") int i = 0; i < (si.ch[ch].gr[gr].big_values << 1); i += 2) {
-      if (i < region1Start)
-        h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[0]];
-      else if (i < region2Start)
-        h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[1]];
-      else
-        h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[2]];
+      if (i < region1Start) {
+        // huffcodetab.huffman_decoder(h, x, y, v, w, br);
+        h = si.ch[ch].gr[gr].table_select[0];
+      } else if (i < region2Start) {
+        h = si.ch[ch].gr[gr].table_select[1];
+        // h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[1]];
+      } else {
+        h = si.ch[ch].gr[gr].table_select[2];
+        // h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[2]];
+      }
 
-      huffcodetab.huffman_decoder(h, x, y, v, w, br);
+      @LOC("I") HuffData huffData = huffcodetab.huffman_decoder(h, new HuffData(x, y, v, w, br));
+      x = huffData.x;
+      y = huffData.y;
+      v = huffData.v;
+      w = huffData.w;
+      br = huffData.br;
+
       // if (index >= is_1d.length)
       // System.out.println("i0="+i+"/"+(si.ch[ch].gr[gr].big_values<<1)+" Index="+index+" is_1d="+is_1d.length);
 
-      is_1d[index++] = x[0];
-      is_1d[index++] = y[0];
+      is_1d[index++] = x;
+      is_1d[index++] = y;
 
-      CheckSumHuff = CheckSumHuff + x[0] + y[0];
+      CheckSumHuff = CheckSumHuff + x + y;
       // System.out.println("x = "+x[0]+" y = "+y[0]);
     }
 
     // Read count1 area
-    h = huffcodetab.ht[si.ch[ch].gr[gr].count1table_select + 32];
+    // h = huffcodetab.ht[si.ch[ch].gr[gr].count1table_select + 32];
     num_bits = br.hsstell();
 
     while ((num_bits < part2_3_end) && (index < 576)) {
 
-      huffcodetab.huffman_decoder(h, x, y, v, w, br);
+      // huffcodetab.huffman_decoder(h, x, y, v, w, br);
+      @LOC("I") HuffData huffData2 =
+          huffcodetab.huffman_decoder(si.ch[ch].gr[gr].count1table_select + 32, new HuffData(x, y,
+              v, w, br));
+      x = huffData2.x;
+      y = huffData2.y;
+      v = huffData2.v;
+      w = huffData2.w;
+      br = huffData2.br;
 
-      is_1d[index++] = v[0];
-      is_1d[index++] = w[0];
-      is_1d[index++] = x[0];
-      is_1d[index++] = y[0];
-      CheckSumHuff = CheckSumHuff + v[0] + w[0] + x[0] + y[0];
+      is_1d[index++] = v;
+      is_1d[index++] = w;
+      is_1d[index++] = x;
+      is_1d[index++] = y;
+      CheckSumHuff = CheckSumHuff + v + w + x + y;
       // System.out.println("v = "+v[0]+" w = "+w[0]);
       // System.out.println("x = "+x[0]+" y = "+y[0]);
       num_bits = br.hsstell();
@@ -2094,35 +2126,35 @@ final class LayerIIIDecoder implements FrameDecoder {
     }
   }
 
-  @LATTICE("N<VAR")
+  @LATTICE("V,V*")
   static class gr_info_s {
-    @LOC("VAR")
+    @LOC("V")
     public int part2_3_length = 0;
-    @LOC("VAR")
+    @LOC("V")
     public int big_values = 0;
-    @LOC("VAR")
+    @LOC("V")
     public int global_gain = 0;
-    @LOC("VAR")
+    @LOC("V")
     public int scalefac_compress = 0;
-    @LOC("VAR")
+    @LOC("V")
     public int window_switching_flag = 0;
-    @LOC("VAR")
+    @LOC("V")
     public int block_type = 0;
-    @LOC("VAR")
+    @LOC("V")
     public int mixed_block_flag = 0;
-    @LOC("VAR")
+    @LOC("V")
     public int[] table_select;
-    @LOC("VAR")
+    @LOC("V")
     public int[] subblock_gain;
-    @LOC("VAR")
+    @LOC("V")
     public int region0_count = 0;
-    @LOC("VAR")
+    @LOC("V")
     public int region1_count = 0;
-    @LOC("VAR")
+    @LOC("V")
     public int preflag = 0;
-    @LOC("VAR")
+    @LOC("V")
     public int scalefac_scale = 0;
-    @LOC("VAR")
+    @LOC("V")
     public int count1table_select = 0;
 
     /**
@@ -2200,18 +2232,15 @@ final class LayerIIIDecoder implements FrameDecoder {
   // }
   // }
 
-  @LOC("F")
   private static final int slen[][] = { { 0, 0, 0, 0, 3, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4 },
       { 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 2, 3 } };
 
-  @LOC("F")
   public static final int pretab[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3,
       2, 0 };
 
   @LOC("SBI")
   private SBI[] sfBandIndex; // Init in the constructor.
 
-  @LOC("F")
   public static final float two_to_negative_half_pow[] = { 1.0000000000E+00f, 7.0710678119E-01f,
       5.0000000000E-01f, 3.5355339059E-01f, 2.5000000000E-01f, 1.7677669530E-01f,
       1.2500000000E-01f, 8.8388347648E-02f, 6.2500000000E-02f, 4.4194173824E-02f,
@@ -2243,7 +2272,6 @@ final class LayerIIIDecoder implements FrameDecoder {
     return t43;
   }
 
-  @LOC("F")
   public static final float io[][] = {
       { 1.0000000000E+00f, 8.4089641526E-01f, 7.0710678119E-01f, 5.9460355751E-01f,
           5.0000000001E-01f, 4.2044820763E-01f, 3.5355339060E-01f, 2.9730177876E-01f,
@@ -2262,7 +2290,6 @@ final class LayerIIIDecoder implements FrameDecoder {
           2.4414062501E-04f, 1.7263349151E-04f, 1.2207031251E-04f, 8.6316745755E-05f,
           6.1035156254E-05f, 4.3158372878E-05f, 3.0517578127E-05f, 2.1579186439E-05f } };
 
-  @LOC("F")
   public static final float TAN12[] = { 0.0f, 0.26794919f, 0.57735027f, 1.0f, 1.73205081f,
       3.73205081f, 9.9999999e10f, -3.73205081f, -1.73205081f, -1.0f, -0.57735027f, -0.26794919f,
       0.0f, 0.26794919f, 0.57735027f, 1.0f };
@@ -2600,7 +2627,6 @@ final class LayerIIIDecoder implements FrameDecoder {
   /***************************************************************/
   /* INV_MDCT */
   /***************************************************************/
-  @LOC("F")
   public static final float win[][] = {
       { -1.6141214951E-02f, -5.3603178919E-02f, -1.0070713296E-01f, -1.6280817573E-01f,
           -4.9999999679E-01f, -3.8388735032E-01f, -6.2061144372E-01f, -1.1659756083E+00f,
@@ -2667,7 +2693,6 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LOC("F")
   public Sftable sftable;
 
-  @LOC("NS")
   public static final int nr_of_sfb_block[][][] = {
       { { 6, 5, 5, 5 }, { 9, 9, 9, 9 }, { 6, 9, 9, 9 } },
       { { 6, 5, 7, 3 }, { 9, 9, 12, 6 }, { 6, 9, 12, 6 } },
