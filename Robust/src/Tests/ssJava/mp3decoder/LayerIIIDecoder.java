@@ -47,7 +47,7 @@
 // 10th added for get_scale_factors
 // llth added for decode
 // @LATTICE("SF0*,SFB_SH<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SI1<SF2,SF2<SFB,SF1<BR,LR*,OUT<LR,LR<RO,NZ*,SI<SF1,RO<SI1,SI1<NZ,NZ<SI,SI1<SBI,SBI<SI,BUF<FT,SF1<SF0,SF0<HD1,BR<ST,ST,FT<SP,SP<OUT,OUT<SI1,SI1<SI,OUT<CH0,P2S<CH0,CH0<MAX0,MAX0<BR1,FS<BR1,BR1<BR,BR<HD1,HD1<HD,OUT*,BR1*,SI1*,MAX0*,CH0*,RAW,TS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
-@LATTICE("SI<P2S,SF1<CH0,SF0*,SFB_SH<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SI1<SF2,SF2<SFB,SF1<BR,LR*,OUT<LR,LR<RO,NZ*,SI<SF1,RO<SI1,SI1<NZ,NZ<SI,SI1<SBI,SBI<SI,BUF<FT,SF1<SF0,SF0<HD1,BR<ST,ST,FT<SP,SP<OUT,OUT<SI1,SI1<SI,P2S<CH0,CH0<MAX0,MAX0<BR1,FS<BR1,BR1<BR,BR<HD1,HD1<HD,OUT*,BR1*,SI1*,MAX0*,CH0*,RAW,TS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
+@LATTICE("IS1D*,RO<IS1D,IS1D<SI2,SI2<SI1,SI<P2S,SF1<CH0,SF0*,SFB_SH<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SI1<SF2,SF2<SFB,SF1<BR,LR*,OUT<LR,LR<RO,NZ*,SI<SF1,SI1<NZ,NZ<SI,SI1<SBI,SBI<SI,BUF<FT,SF1<SF0,SF0<HD1,BR<ST,ST,FT<SP,SP<OUT,OUT<SI1,SI1<SI,P2S<CH0,CH0<MAX0,MAX0<BR1,FS<BR1,BR1<BR,BR<HD1,HD1<HD,OUT*,BR1*,SI1*,MAX0*,CH0*,RAW,TS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
 @METHODDEFAULT("OUT<V,V<THIS,THIS<SH,SH<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
 final class LayerIIIDecoder implements FrameDecoder {
   static final double d43 = (4.0 / 3.0);
@@ -56,9 +56,9 @@ final class LayerIIIDecoder implements FrameDecoder {
 
   // MDM: removed, as this wasn't being used.
   // private float CheckSumOut1d = 0.0f;
-  @LOC("CSH")
-  private int CheckSumHuff = 0;
   @LOC("SI1")
+  private int CheckSumHuff = 0;
+  @LOC("IS1D")
   private int[] is_1d;
   @LOC("RO")
   private float[][][] ro;
@@ -66,7 +66,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   private float[][][] lr;
   @LOC("OUT")
   private float[] out_1d; // 576 samples
-  @LOC("VAR")
+  @LOC("OUT")
   private float[][] prevblck;
   @LOC("K")
   private float[][] k;
@@ -852,35 +852,44 @@ final class LayerIIIDecoder implements FrameDecoder {
   /**
 	 *
 	 */
-  // @LOC("LY")
+  // @LOC("SI1")
   // int[] x = { 0 };
-  // @LOC("F")
+  // @LOC("SI1")
   // int[] y = { 0 };
-  // @LOC("LY")
+  // @LOC("SI1")
   // int[] v = { 0 };
-  // @LOC("LY")
+  // @LOC("SI1")
   // int[] w = { 0 };
+  @LOC("SI1")
+  int x = 0;
+  @LOC("SI1")
+  int y = 0;
+  @LOC("SI1")
+  int v = 0;
+  @LOC("SI1")
+  int w = 0;
 
   // @LATTICE("H<I,I<R,R<B1,B1<B,B<THIS,THIS<IN,I*,THISLOC=THIS,GLOBALLOC=IN")
-  @LATTICE("BUF<THIS,BUF*,R,B,B1,H,I,THIS<IN,I*,THISLOC=THIS")
+  @LATTICE("BUF<THIS,BUF*,R,B,B1,H,I,THIS<IN,I*,THISLOC=THIS,GLOBALLOC=THIS")
   private void huffman_decode(@LOC("THIS,LayerIIIDecoder.HD1") int ch,
       @LOC("THIS,LayerIIIDecoder.HD1") int gr) {
 
-    // x[0] = 0;
-    // y[0] = 0;
-    // v[0] = 0;
-    // w[0] = 0;
-    @LOC("I") int x;
-    @LOC("I") int y;
-    @LOC("I") int v;
-    @LOC("I") int w;
+    // @LOC("THIS,LayerIIIDecoder.IS1D") int x;
+    // @LOC("THIS,LayerIIIDecoder.IS1D") int y;
+    // @LOC("THIS,LayerIIIDecoder.IS1D") int v;
+    // @LOC("THIS,LayerIIIDecoder.IS1D") int w;
 
-    @LOC("THIS,LayerIIIDecoder.NS") int part2_3_end = part2_start + si.ch[ch].gr[gr].part2_3_length;
+    x = 0;
+    y = 0;
+    v = 0;
+    w = 0;
 
-    @LOC("THIS,LayerIIIDecoder.HD2") int num_bits;
+    @LOC("THIS,LayerIIIDecoder.NZ") int part2_3_end = part2_start + si.ch[ch].gr[gr].part2_3_length;
+
+    @LOC("THIS,LayerIIIDecoder.NZ") int num_bits;
     @LOC("THIS,LayerIIIDecoder.SI1") int region1Start;
     @LOC("THIS,LayerIIIDecoder.SI1") int region2Start;
-    @LOC("THIS,LayerIIIDecoder.HD3") int index;
+    @LOC("THIS,LayerIIIDecoder.NZ") int index;
 
     @LOC("THIS,LayerIIIDecoder.SI1") int buf;
     @LOC("THIS,LayerIIIDecoder.SI1") int buf1;
@@ -909,9 +918,9 @@ final class LayerIIIDecoder implements FrameDecoder {
     }
 
     index = 0;
-    @LOC("I") int h;
+    @LOC("THIS,LayerIIIDecoder.SI1") int h;
     // Read bigvalues area
-    for (@LOC("I") int i = 0; i < (si.ch[ch].gr[gr].big_values << 1); i += 2) {
+    for (@LOC("THIS,LayerIIIDecoder.NZ") int i = 0; i < (si.ch[ch].gr[gr].big_values << 1); i += 2) {
       if (i < region1Start) {
         // huffcodetab.huffman_decoder(h, x, y, v, w, br);
         h = si.ch[ch].gr[gr].table_select[0];
@@ -923,12 +932,14 @@ final class LayerIIIDecoder implements FrameDecoder {
         // h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[2]];
       }
 
-      @LOC("I") HuffData huffData = huffcodetab.huffman_decoder(h, new HuffData(x, y, v, w, br));
-      x = huffData.x;
-      y = huffData.y;
-      v = huffData.v;
-      w = huffData.w;
-      br = huffData.br;
+      // @LOC("THIS,LayerIIIDecoder.SI2") HuffData huffData =
+      // huffcodetab.huffman_decoder(h, new HuffData(x, y, v, w, br));
+      // x = huffData.x;
+      // y = huffData.y;
+      // v = huffData.v;
+      // w = huffData.w;
+      // br = huffData.br;
+      huffcodetab_huffman_decoder(h);
 
       // if (index >= is_1d.length)
       // System.out.println("i0="+i+"/"+(si.ch[ch].gr[gr].big_values<<1)+" Index="+index+" is_1d="+is_1d.length);
@@ -947,14 +958,16 @@ final class LayerIIIDecoder implements FrameDecoder {
     while ((num_bits < part2_3_end) && (index < 576)) {
 
       // huffcodetab.huffman_decoder(h, x, y, v, w, br);
-      @LOC("I") HuffData huffData2 =
-          huffcodetab.huffman_decoder(si.ch[ch].gr[gr].count1table_select + 32, new HuffData(x, y,
-              v, w, br));
-      x = huffData2.x;
-      y = huffData2.y;
-      v = huffData2.v;
-      w = huffData2.w;
-      br = huffData2.br;
+      // @LOC("I") HuffData huffData2 =
+      // huffcodetab.huffman_decoder(si.ch[ch].gr[gr].count1table_select + 32,
+      // new HuffData(x, y,
+      // v, w, br));
+      // x = huffData2.x;
+      // y = huffData2.y;
+      // v = huffData2.v;
+      // w = huffData2.w;
+      // br = huffData2.br;
+      huffcodetab_huffman_decoder(h);
 
       is_1d[index++] = v;
       is_1d[index++] = w;
@@ -992,6 +1005,12 @@ final class LayerIIIDecoder implements FrameDecoder {
       is_1d[index] = 0;
   }
 
+  @LATTICE("THIS,IN,THISLOC=THIS,RETURNLOC=THIS")
+  private int huffcodetab_huffman_decoder(@LOC("IN") int h) {
+    // TODO need to move huffmancodetab implementation here
+    return 0;
+  }
+
   /**
 	 *
 	 */
@@ -1012,7 +1031,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 	 *
 	 */
   // @LATTICE("OUT<QUO,QUO<REST,REST<IDX,IDX<VAR,VAR<CB,CB<J,CB<GR,GR<IN,J<IN,QUO*,REST*,IDX*,CB*,J*,THISLOC=IN,GLOBALLOC=IN")
-  @LATTICE("THIS,THISLOC=THIS")
+  @LATTICE("THIS,THISLOC=THIS,GLOBALLOC=THIS")
   // ssjava
   private void dequantize_sample(
   /* @LOC("OUT") float xr[][], */@LOC("THIS,LayerIIIDecoder.SI") int ch,
@@ -1058,7 +1077,7 @@ final class LayerIIIDecoder implements FrameDecoder {
       if (is_1d[j] == 0) {
         ro[ch][quotien][reste] = 0.0f;
       } else {
-        @LOC("THIS,LayerIIIDecoder.SI1") int abv = is_1d[j];
+        @LOC("THIS,LayerIIIDecoder.IS1D") int abv = is_1d[j];
         // Pow Array fix (11/17/04)
         if (abv < t_43.length) {
           if (is_1d[j] > 0)
@@ -1613,74 +1632,76 @@ final class LayerIIIDecoder implements FrameDecoder {
 
   // MDM: tsOutCopy and rawout do not need initializing, so the arrays
   // can be reused.
-  @LOC("TS")
+  @LOC("OUT")
   float[] tsOutCopy = new float[18];
-  @LOC("RAW")
+  @LOC("OUT")
   float[] rawout = new float[36];
 
-  @LATTICE("THIS<SB,THIS<SH,SH<IN,IN<GLOBAL,SB*,SH*,THISLOC=THIS,GLOBALLOC=GLOBAL")
+  @LATTICE("THIS<SB,SB*,THISLOC=THIS")
   private void hybrid(@LOC("THIS,LayerIIIDecoder.SI") int ch, @LOC("THIS,LayerIIIDecoder.SI") int gr) {
-    @LOC("THIS,LayerIIIDecoder.BT") int bt;
+
+    @LOC("THIS,LayerIIIDecoder.SI1") int bt;
     @LOC("SB") int sb18;
-    @LOC("THIS,LayerIIIDecoder.GR") gr_info_s gr_info = (si.ch[ch].gr[gr]);
-    @LOC("THIS,LayerIIIDecoder.TS") float[] tsOut;
+    // gr_info_s gr_info = (si.ch[ch].gr[gr]); //remove alias
+//    @LOC("THIS,LayerIIIDecoder.TS") float[] tsOut; //remove alias
 
     // float[][] prvblk;
 
     for (sb18 = 0; sb18 < 576; sb18 += 18) {
       bt =
-          ((gr_info.window_switching_flag != 0) && (gr_info.mixed_block_flag != 0) && (sb18 < 36))
-              ? 0 : gr_info.block_type;
+          ((si.ch[ch].gr[gr].window_switching_flag != 0)
+              && (si.ch[ch].gr[gr].mixed_block_flag != 0) && (sb18 < 36)) ? 0
+              : si.ch[ch].gr[gr].block_type;
 
-      tsOut = out_1d;
+//      tsOut = out_1d;
       // Modif E.B 02/22/99
-      for (@LOC("SH") int cc = 0; cc < 18; cc++)
-        tsOutCopy[cc] = tsOut[cc + sb18];
+      for (@LOC("SB") int cc = 0; cc < 18; cc++)
+        tsOutCopy[cc] = out_1d[cc + sb18];
 
-      inv_mdct(tsOutCopy, rawout, bt);
+      inv_mdct(bt);
 
-      for (@LOC("SH") int cc = 0; cc < 18; cc++)
-        tsOut[cc + sb18] = tsOutCopy[cc];
+      for (@LOC("SB") int cc = 0; cc < 18; cc++)
+        out_1d[cc + sb18] = tsOutCopy[cc];
       // Fin Modif
 
       // overlap addition
       // prvblk = prevblck; //eliminated unnecessary areas
 
-      tsOut[0 + sb18] = rawout[0] + prevblck[ch][sb18 + 0];
+      out_1d[0 + sb18] = rawout[0] + prevblck[ch][sb18 + 0];
       prevblck[ch][sb18 + 0] = rawout[18];
-      tsOut[1 + sb18] = rawout[1] + prevblck[ch][sb18 + 1];
+      out_1d[1 + sb18] = rawout[1] + prevblck[ch][sb18 + 1];
       prevblck[ch][sb18 + 1] = rawout[19];
-      tsOut[2 + sb18] = rawout[2] + prevblck[ch][sb18 + 2];
+      out_1d[2 + sb18] = rawout[2] + prevblck[ch][sb18 + 2];
       prevblck[ch][sb18 + 2] = rawout[20];
-      tsOut[3 + sb18] = rawout[3] + prevblck[ch][sb18 + 3];
+      out_1d[3 + sb18] = rawout[3] + prevblck[ch][sb18 + 3];
       prevblck[ch][sb18 + 3] = rawout[21];
-      tsOut[4 + sb18] = rawout[4] + prevblck[ch][sb18 + 4];
+      out_1d[4 + sb18] = rawout[4] + prevblck[ch][sb18 + 4];
       prevblck[ch][sb18 + 4] = rawout[22];
-      tsOut[5 + sb18] = rawout[5] + prevblck[ch][sb18 + 5];
+      out_1d[5 + sb18] = rawout[5] + prevblck[ch][sb18 + 5];
       prevblck[ch][sb18 + 5] = rawout[23];
-      tsOut[6 + sb18] = rawout[6] + prevblck[ch][sb18 + 6];
+      out_1d[6 + sb18] = rawout[6] + prevblck[ch][sb18 + 6];
       prevblck[ch][sb18 + 6] = rawout[24];
-      tsOut[7 + sb18] = rawout[7] + prevblck[ch][sb18 + 7];
+      out_1d[7 + sb18] = rawout[7] + prevblck[ch][sb18 + 7];
       prevblck[ch][sb18 + 7] = rawout[25];
-      tsOut[8 + sb18] = rawout[8] + prevblck[ch][sb18 + 8];
+      out_1d[8 + sb18] = rawout[8] + prevblck[ch][sb18 + 8];
       prevblck[ch][sb18 + 8] = rawout[26];
-      tsOut[9 + sb18] = rawout[9] + prevblck[ch][sb18 + 9];
+      out_1d[9 + sb18] = rawout[9] + prevblck[ch][sb18 + 9];
       prevblck[ch][sb18 + 9] = rawout[27];
-      tsOut[10 + sb18] = rawout[10] + prevblck[ch][sb18 + 10];
+      out_1d[10 + sb18] = rawout[10] + prevblck[ch][sb18 + 10];
       prevblck[ch][sb18 + 10] = rawout[28];
-      tsOut[11 + sb18] = rawout[11] + prevblck[ch][sb18 + 11];
+      out_1d[11 + sb18] = rawout[11] + prevblck[ch][sb18 + 11];
       prevblck[ch][sb18 + 11] = rawout[29];
-      tsOut[12 + sb18] = rawout[12] + prevblck[ch][sb18 + 12];
+      out_1d[12 + sb18] = rawout[12] + prevblck[ch][sb18 + 12];
       prevblck[ch][sb18 + 12] = rawout[30];
-      tsOut[13 + sb18] = rawout[13] + prevblck[ch][sb18 + 13];
+      out_1d[13 + sb18] = rawout[13] + prevblck[ch][sb18 + 13];
       prevblck[ch][sb18 + 13] = rawout[31];
-      tsOut[14 + sb18] = rawout[14] + prevblck[ch][sb18 + 14];
+      out_1d[14 + sb18] = rawout[14] + prevblck[ch][sb18 + 14];
       prevblck[ch][sb18 + 14] = rawout[32];
-      tsOut[15 + sb18] = rawout[15] + prevblck[ch][sb18 + 15];
+      out_1d[15 + sb18] = rawout[15] + prevblck[ch][sb18 + 15];
       prevblck[ch][sb18 + 15] = rawout[33];
-      tsOut[16 + sb18] = rawout[16] + prevblck[ch][sb18 + 16];
+      out_1d[16 + sb18] = rawout[16] + prevblck[ch][sb18 + 16];
       prevblck[ch][sb18 + 16] = rawout[34];
-      tsOut[17 + sb18] = rawout[17] + prevblck[ch][sb18 + 17];
+      out_1d[17 + sb18] = rawout[17] + prevblck[ch][sb18 + 17];
       prevblck[ch][sb18 + 17] = rawout[35];
     }
   }
@@ -1702,8 +1723,9 @@ final class LayerIIIDecoder implements FrameDecoder {
   /**
    * Fast INV_MDCT.
    */
-  @LATTICE("OUT<6I,OUT<TMPF,TMPF<EO,EO<TMP,TMP<SUM,TMP<IIP,IIP<I00,I00<SH,SUM<PP,PP<SH,SH<I,I<IN,TMPF*,SH*,I*,6I*,GLOBALLOC=IN")
-  public void inv_mdct(@LOC("SH") float[] in, @LOC("OUT") float[] out, @LOC("IN") int block_type) {
+  @LATTICE("OUT<6I,OUT<TMPF,TMPF<EO,EO<TMP,TMP<SUM,TMP<IIP,IIP<I00,I00<SH,SUM<PP,PP<SH,SH<I,I<IN,TMPF*,SH*,I*,6I*,GLOBALLOC=IN,THISLOC=IN")
+//  public void inv_mdct(@LOC("SH") float[] in, @LOC("OUT") float[] out, @LOC("IN") int block_type) {//remove alias
+  public void inv_mdct(@LOC("IN") int block_type) {
     // float[] win_bt;
     @LOC("I") int i;
 
@@ -1752,42 +1774,42 @@ final class LayerIIIDecoder implements FrameDecoder {
        * out[p+1] = out[p+2] = out[p+3] = out[p+4] = out[p+5] = out[p+6] =
        * out[p+7] = out[p+8] = 0.0f; }
        */
-      out[0] = 0.0f;
-      out[1] = 0.0f;
-      out[2] = 0.0f;
-      out[3] = 0.0f;
-      out[4] = 0.0f;
-      out[5] = 0.0f;
-      out[6] = 0.0f;
-      out[7] = 0.0f;
-      out[8] = 0.0f;
-      out[9] = 0.0f;
-      out[10] = 0.0f;
-      out[11] = 0.0f;
-      out[12] = 0.0f;
-      out[13] = 0.0f;
-      out[14] = 0.0f;
-      out[15] = 0.0f;
-      out[16] = 0.0f;
-      out[17] = 0.0f;
-      out[18] = 0.0f;
-      out[19] = 0.0f;
-      out[20] = 0.0f;
-      out[21] = 0.0f;
-      out[22] = 0.0f;
-      out[23] = 0.0f;
-      out[24] = 0.0f;
-      out[25] = 0.0f;
-      out[26] = 0.0f;
-      out[27] = 0.0f;
-      out[28] = 0.0f;
-      out[29] = 0.0f;
-      out[30] = 0.0f;
-      out[31] = 0.0f;
-      out[32] = 0.0f;
-      out[33] = 0.0f;
-      out[34] = 0.0f;
-      out[35] = 0.0f;
+      rawout[0] = 0.0f;
+      rawout[1] = 0.0f;
+      rawout[2] = 0.0f;
+      rawout[3] = 0.0f;
+      rawout[4] = 0.0f;
+      rawout[5] = 0.0f;
+      rawout[6] = 0.0f;
+      rawout[7] = 0.0f;
+      rawout[8] = 0.0f;
+      rawout[9] = 0.0f;
+      rawout[10] = 0.0f;
+      rawout[11] = 0.0f;
+      rawout[12] = 0.0f;
+      rawout[13] = 0.0f;
+      rawout[14] = 0.0f;
+      rawout[15] = 0.0f;
+      rawout[16] = 0.0f;
+      rawout[17] = 0.0f;
+      rawout[18] = 0.0f;
+      rawout[19] = 0.0f;
+      rawout[20] = 0.0f;
+      rawout[21] = 0.0f;
+      rawout[22] = 0.0f;
+      rawout[23] = 0.0f;
+      rawout[24] = 0.0f;
+      rawout[25] = 0.0f;
+      rawout[26] = 0.0f;
+      rawout[27] = 0.0f;
+      rawout[28] = 0.0f;
+      rawout[29] = 0.0f;
+      rawout[30] = 0.0f;
+      rawout[31] = 0.0f;
+      rawout[32] = 0.0f;
+      rawout[33] = 0.0f;
+      rawout[34] = 0.0f;
+      rawout[35] = 0.0f;
 
       @LOC("6I") int six_i = 0;
 
@@ -1795,33 +1817,33 @@ final class LayerIIIDecoder implements FrameDecoder {
         // 12 point IMDCT
         // Begin 12 point IDCT
         // Input aliasing for 12 pt IDCT
-        in[15 + i] += in[12 + i];
-        in[12 + i] += in[9 + i];
-        in[9 + i] += in[6 + i];
-        in[6 + i] += in[3 + i];
-        in[3 + i] += in[0 + i];
+        tsOutCopy[15 + i] += tsOutCopy[12 + i];
+        tsOutCopy[12 + i] += tsOutCopy[9 + i];
+        tsOutCopy[9 + i] += tsOutCopy[6 + i];
+        tsOutCopy[6 + i] += tsOutCopy[3 + i];
+        tsOutCopy[3 + i] += tsOutCopy[0 + i];
 
         // Input aliasing on odd indices (for 6 point IDCT)
-        in[15 + i] += in[9 + i];
-        in[9 + i] += in[3 + i];
+        tsOutCopy[15 + i] += tsOutCopy[9 + i];
+        tsOutCopy[9 + i] += tsOutCopy[3 + i];
 
         // 3 point IDCT on even indices
         @LOC("PP") float pp1;
         @LOC("PP") float pp2;
         @LOC("SUM") float sum;
-        pp2 = in[12 + i] * 0.500000000f;
-        pp1 = in[6 + i] * 0.866025403f;
-        sum = in[0 + i] + pp2;
-        tmpf_1 = in[0 + i] - in[12 + i];
+        pp2 = tsOutCopy[12 + i] * 0.500000000f;
+        pp1 = tsOutCopy[6 + i] * 0.866025403f;
+        sum = tsOutCopy[0 + i] + pp2;
+        tmpf_1 = tsOutCopy[0 + i] - tsOutCopy[12 + i];
         tmpf_0 = sum + pp1;
         tmpf_2 = sum - pp1;
 
         // End 3 point IDCT on even indices
         // 3 point IDCT on odd indices (for 6 point IDCT)
-        pp2 = in[15 + i] * 0.500000000f;
-        pp1 = in[9 + i] * 0.866025403f;
-        sum = in[3 + i] + pp2;
-        tmpf_4 = in[3 + i] - in[15 + i];
+        pp2 = tsOutCopy[15 + i] * 0.500000000f;
+        pp1 = tsOutCopy[9 + i] * 0.866025403f;
+        sum = tsOutCopy[3 + i] + pp2;
+        tmpf_4 = tsOutCopy[3 + i] - tsOutCopy[15 + i];
         tmpf_5 = sum + pp1;
         tmpf_3 = sum - pp1;
         // End 3 point IDCT on odd indices
@@ -1872,52 +1894,52 @@ final class LayerIIIDecoder implements FrameDecoder {
 
         tmpf_0 *= 0.130526192f;
 
-        out[six_i + 6] += tmpf_0;
-        out[six_i + 7] += tmpf_1;
-        out[six_i + 8] += tmpf_2;
-        out[six_i + 9] += tmpf_3;
-        out[six_i + 10] += tmpf_4;
-        out[six_i + 11] += tmpf_5;
-        out[six_i + 12] += tmpf_6;
-        out[six_i + 13] += tmpf_7;
-        out[six_i + 14] += tmpf_8;
-        out[six_i + 15] += tmpf_9;
-        out[six_i + 16] += tmpf_10;
-        out[six_i + 17] += tmpf_11;
+        rawout[six_i + 6] += tmpf_0;
+        rawout[six_i + 7] += tmpf_1;
+        rawout[six_i + 8] += tmpf_2;
+        rawout[six_i + 9] += tmpf_3;
+        rawout[six_i + 10] += tmpf_4;
+        rawout[six_i + 11] += tmpf_5;
+        rawout[six_i + 12] += tmpf_6;
+        rawout[six_i + 13] += tmpf_7;
+        rawout[six_i + 14] += tmpf_8;
+        rawout[six_i + 15] += tmpf_9;
+        rawout[six_i + 16] += tmpf_10;
+        rawout[six_i + 17] += tmpf_11;
 
         six_i += 6;
       }
     } else {
       // 36 point IDCT
       // input aliasing for 36 point IDCT
-      in[17] += in[16];
-      in[16] += in[15];
-      in[15] += in[14];
-      in[14] += in[13];
-      in[13] += in[12];
-      in[12] += in[11];
-      in[11] += in[10];
-      in[10] += in[9];
-      in[9] += in[8];
-      in[8] += in[7];
-      in[7] += in[6];
-      in[6] += in[5];
-      in[5] += in[4];
-      in[4] += in[3];
-      in[3] += in[2];
-      in[2] += in[1];
-      in[1] += in[0];
+      tsOutCopy[17] += tsOutCopy[16];
+      tsOutCopy[16] += tsOutCopy[15];
+      tsOutCopy[15] += tsOutCopy[14];
+      tsOutCopy[14] += tsOutCopy[13];
+      tsOutCopy[13] += tsOutCopy[12];
+      tsOutCopy[12] += tsOutCopy[11];
+      tsOutCopy[11] += tsOutCopy[10];
+      tsOutCopy[10] += tsOutCopy[9];
+      tsOutCopy[9] += tsOutCopy[8];
+      tsOutCopy[8] += tsOutCopy[7];
+      tsOutCopy[7] += tsOutCopy[6];
+      tsOutCopy[6] += tsOutCopy[5];
+      tsOutCopy[5] += tsOutCopy[4];
+      tsOutCopy[4] += tsOutCopy[3];
+      tsOutCopy[3] += tsOutCopy[2];
+      tsOutCopy[2] += tsOutCopy[1];
+      tsOutCopy[1] += tsOutCopy[0];
 
       // 18 point IDCT for odd indices
       // input aliasing for 18 point IDCT
-      in[17] += in[15];
-      in[15] += in[13];
-      in[13] += in[11];
-      in[11] += in[9];
-      in[9] += in[7];
-      in[7] += in[5];
-      in[5] += in[3];
-      in[3] += in[1];
+      tsOutCopy[17] += tsOutCopy[15];
+      tsOutCopy[15] += tsOutCopy[13];
+      tsOutCopy[13] += tsOutCopy[11];
+      tsOutCopy[11] += tsOutCopy[9];
+      tsOutCopy[9] += tsOutCopy[7];
+      tsOutCopy[7] += tsOutCopy[5];
+      tsOutCopy[5] += tsOutCopy[3];
+      tsOutCopy[3] += tsOutCopy[1];
 
       @LOC("TMP") float tmp0;
       @LOC("TMP") float tmp1;
@@ -1953,58 +1975,58 @@ final class LayerIIIDecoder implements FrameDecoder {
       // 9 point IDCT on even indices
 
       // 5 points on odd indices (not realy an IDCT)
-      @LOC("I00") float i00 = in[0] + in[0];
-      @LOC("IIP") float iip12 = i00 + in[12];
+      @LOC("I00") float i00 = tsOutCopy[0] + tsOutCopy[0];
+      @LOC("IIP") float iip12 = i00 + tsOutCopy[12];
 
       tmp0 =
-          iip12 + in[4] * 1.8793852415718f + in[8] * 1.532088886238f + in[16] * 0.34729635533386f;
-      tmp1 = i00 + in[4] - in[8] - in[12] - in[12] - in[16];
+          iip12 + tsOutCopy[4] * 1.8793852415718f + tsOutCopy[8] * 1.532088886238f + tsOutCopy[16] * 0.34729635533386f;
+      tmp1 = i00 + tsOutCopy[4] - tsOutCopy[8] - tsOutCopy[12] - tsOutCopy[12] - tsOutCopy[16];
       tmp2 =
-          iip12 - in[4] * 0.34729635533386f - in[8] * 1.8793852415718f + in[16] * 1.532088886238f;
+          iip12 - tsOutCopy[4] * 0.34729635533386f - tsOutCopy[8] * 1.8793852415718f + tsOutCopy[16] * 1.532088886238f;
       tmp3 =
-          iip12 - in[4] * 1.532088886238f + in[8] * 0.34729635533386f - in[16] * 1.8793852415718f;
-      tmp4 = in[0] - in[4] + in[8] - in[12] + in[16];
+          iip12 - tsOutCopy[4] * 1.532088886238f + tsOutCopy[8] * 0.34729635533386f - tsOutCopy[16] * 1.8793852415718f;
+      tmp4 = tsOutCopy[0] - tsOutCopy[4] + tsOutCopy[8] - tsOutCopy[12] + tsOutCopy[16];
 
       // 4 points on even indices
-      @LOC("I00") float i66_ = in[6] * 1.732050808f; // Sqrt[3]
+      @LOC("I00") float i66_ = tsOutCopy[6] * 1.732050808f; // Sqrt[3]
 
       tmp0_ =
-          in[2] * 1.9696155060244f + i66_ + in[10] * 1.2855752193731f + in[14] * 0.68404028665134f;
-      tmp1_ = (in[2] - in[10] - in[14]) * 1.732050808f;
+          tsOutCopy[2] * 1.9696155060244f + i66_ + tsOutCopy[10] * 1.2855752193731f + tsOutCopy[14] * 0.68404028665134f;
+      tmp1_ = (tsOutCopy[2] - tsOutCopy[10] - tsOutCopy[14]) * 1.732050808f;
       tmp2_ =
-          in[2] * 1.2855752193731f - i66_ - in[10] * 0.68404028665134f + in[14] * 1.9696155060244f;
+          tsOutCopy[2] * 1.2855752193731f - i66_ - tsOutCopy[10] * 0.68404028665134f + tsOutCopy[14] * 1.9696155060244f;
       tmp3_ =
-          in[2] * 0.68404028665134f - i66_ + in[10] * 1.9696155060244f - in[14] * 1.2855752193731f;
+          tsOutCopy[2] * 0.68404028665134f - i66_ + tsOutCopy[10] * 1.9696155060244f - tsOutCopy[14] * 1.2855752193731f;
 
       // 9 point IDCT on odd indices
       // 5 points on odd indices (not realy an IDCT)
-      @LOC("I00") float i0 = in[0 + 1] + in[0 + 1];
-      @LOC("IIP") float i0p12 = i0 + in[12 + 1];
+      @LOC("I00") float i0 = tsOutCopy[0 + 1] + tsOutCopy[0 + 1];
+      @LOC("IIP") float i0p12 = i0 + tsOutCopy[12 + 1];
 
       tmp0o =
-          i0p12 + in[4 + 1] * 1.8793852415718f + in[8 + 1] * 1.532088886238f + in[16 + 1]
+          i0p12 + tsOutCopy[4 + 1] * 1.8793852415718f + tsOutCopy[8 + 1] * 1.532088886238f + tsOutCopy[16 + 1]
               * 0.34729635533386f;
-      tmp1o = i0 + in[4 + 1] - in[8 + 1] - in[12 + 1] - in[12 + 1] - in[16 + 1];
+      tmp1o = i0 + tsOutCopy[4 + 1] - tsOutCopy[8 + 1] - tsOutCopy[12 + 1] - tsOutCopy[12 + 1] - tsOutCopy[16 + 1];
       tmp2o =
-          i0p12 - in[4 + 1] * 0.34729635533386f - in[8 + 1] * 1.8793852415718f + in[16 + 1]
+          i0p12 - tsOutCopy[4 + 1] * 0.34729635533386f - tsOutCopy[8 + 1] * 1.8793852415718f + tsOutCopy[16 + 1]
               * 1.532088886238f;
       tmp3o =
-          i0p12 - in[4 + 1] * 1.532088886238f + in[8 + 1] * 0.34729635533386f - in[16 + 1]
+          i0p12 - tsOutCopy[4 + 1] * 1.532088886238f + tsOutCopy[8 + 1] * 0.34729635533386f - tsOutCopy[16 + 1]
               * 1.8793852415718f;
-      tmp4o = (in[0 + 1] - in[4 + 1] + in[8 + 1] - in[12 + 1] + in[16 + 1]) * 0.707106781f; // Twiddled
+      tmp4o = (tsOutCopy[0 + 1] - tsOutCopy[4 + 1] + tsOutCopy[8 + 1] - tsOutCopy[12 + 1] + tsOutCopy[16 + 1]) * 0.707106781f; // Twiddled
 
       // 4 points on even indices
-      @LOC("I00") float i6_ = in[6 + 1] * 1.732050808f; // Sqrt[3]
+      @LOC("I00") float i6_ = tsOutCopy[6 + 1] * 1.732050808f; // Sqrt[3]
 
       tmp0_o =
-          in[2 + 1] * 1.9696155060244f + i6_ + in[10 + 1] * 1.2855752193731f + in[14 + 1]
+          tsOutCopy[2 + 1] * 1.9696155060244f + i6_ + tsOutCopy[10 + 1] * 1.2855752193731f + tsOutCopy[14 + 1]
               * 0.68404028665134f;
-      tmp1_o = (in[2 + 1] - in[10 + 1] - in[14 + 1]) * 1.732050808f;
+      tmp1_o = (tsOutCopy[2 + 1] - tsOutCopy[10 + 1] - tsOutCopy[14 + 1]) * 1.732050808f;
       tmp2_o =
-          in[2 + 1] * 1.2855752193731f - i6_ - in[10 + 1] * 0.68404028665134f + in[14 + 1]
+          tsOutCopy[2 + 1] * 1.2855752193731f - i6_ - tsOutCopy[10 + 1] * 0.68404028665134f + tsOutCopy[14 + 1]
               * 1.9696155060244f;
       tmp3_o =
-          in[2 + 1] * 0.68404028665134f - i6_ + in[10 + 1] * 1.9696155060244f - in[14 + 1]
+          tsOutCopy[2 + 1] * 0.68404028665134f - i6_ + tsOutCopy[10 + 1] * 1.9696155060244f - tsOutCopy[14 + 1]
               * 1.2855752193731f;
 
       // Twiddle factors on odd indices
@@ -2055,43 +2077,44 @@ final class LayerIIIDecoder implements FrameDecoder {
       // win_bt = win[block_type]; //substituted this so that a new area does
       // not become created
 
-      out[0] = -tmpf_9 * win[block_type][0];
-      out[1] = -tmpf_10 * win[block_type][1];
-      out[2] = -tmpf_11 * win[block_type][2];
-      out[3] = -tmpf_12 * win[block_type][3];
-      out[4] = -tmpf_13 * win[block_type][4];
-      out[5] = -tmpf_14 * win[block_type][5];
-      out[6] = -tmpf_15 * win[block_type][6];
-      out[7] = -tmpf_16 * win[block_type][7];
-      out[8] = -tmpf_17 * win[block_type][8];
-      out[9] = tmpf_17 * win[block_type][9];
-      out[10] = tmpf_16 * win[block_type][10];
-      out[11] = tmpf_15 * win[block_type][11];
-      out[12] = tmpf_14 * win[block_type][12];
-      out[13] = tmpf_13 * win[block_type][13];
-      out[14] = tmpf_12 * win[block_type][14];
-      out[15] = tmpf_11 * win[block_type][15];
-      out[16] = tmpf_10 * win[block_type][16];
-      out[17] = tmpf_9 * win[block_type][17];
-      out[18] = tmpf_8 * win[block_type][18];
-      out[19] = tmpf_7 * win[block_type][19];
-      out[20] = tmpf_6 * win[block_type][20];
-      out[21] = tmpf_5 * win[block_type][21];
-      out[22] = tmpf_4 * win[block_type][22];
-      out[23] = tmpf_3 * win[block_type][23];
-      out[24] = tmpf_2 * win[block_type][24];
-      out[25] = tmpf_1 * win[block_type][25];
-      out[26] = tmpf_0 * win[block_type][26];
-      out[27] = tmpf_0 * win[block_type][27];
-      out[28] = tmpf_1 * win[block_type][28];
-      out[29] = tmpf_2 * win[block_type][29];
-      out[30] = tmpf_3 * win[block_type][30];
-      out[31] = tmpf_4 * win[block_type][31];
-      out[32] = tmpf_5 * win[block_type][32];
-      out[33] = tmpf_6 * win[block_type][33];
-      out[34] = tmpf_7 * win[block_type][34];
-      out[35] = tmpf_8 * win[block_type][35];
+      rawout[0] = -tmpf_9 * win[block_type][0];
+      rawout[1] = -tmpf_10 * win[block_type][1];
+      rawout[2] = -tmpf_11 * win[block_type][2];
+      rawout[3] = -tmpf_12 * win[block_type][3];
+      rawout[4] = -tmpf_13 * win[block_type][4];
+      rawout[5] = -tmpf_14 * win[block_type][5];
+      rawout[6] = -tmpf_15 * win[block_type][6];
+      rawout[7] = -tmpf_16 * win[block_type][7];
+      rawout[8] = -tmpf_17 * win[block_type][8];
+      rawout[9] = tmpf_17 * win[block_type][9];
+      rawout[10] = tmpf_16 * win[block_type][10];
+      rawout[11] = tmpf_15 * win[block_type][11];
+      rawout[12] = tmpf_14 * win[block_type][12];
+      rawout[13] = tmpf_13 * win[block_type][13];
+      rawout[14] = tmpf_12 * win[block_type][14];
+      rawout[15] = tmpf_11 * win[block_type][15];
+      rawout[16] = tmpf_10 * win[block_type][16];
+      rawout[17] = tmpf_9 * win[block_type][17];
+      rawout[18] = tmpf_8 * win[block_type][18];
+      rawout[19] = tmpf_7 * win[block_type][19];
+      rawout[20] = tmpf_6 * win[block_type][20];
+      rawout[21] = tmpf_5 * win[block_type][21];
+      rawout[22] = tmpf_4 * win[block_type][22];
+      rawout[23] = tmpf_3 * win[block_type][23];
+      rawout[24] = tmpf_2 * win[block_type][24];
+      rawout[25] = tmpf_1 * win[block_type][25];
+      rawout[26] = tmpf_0 * win[block_type][26];
+      rawout[27] = tmpf_0 * win[block_type][27];
+      rawout[28] = tmpf_1 * win[block_type][28];
+      rawout[29] = tmpf_2 * win[block_type][29];
+      rawout[30] = tmpf_3 * win[block_type][30];
+      rawout[31] = tmpf_4 * win[block_type][31];
+      rawout[32] = tmpf_5 * win[block_type][32];
+      rawout[33] = tmpf_6 * win[block_type][33];
+      rawout[34] = tmpf_7 * win[block_type][34];
+      rawout[35] = tmpf_8 * win[block_type][35];
     }
+    
   }
 
   @LOC("C")

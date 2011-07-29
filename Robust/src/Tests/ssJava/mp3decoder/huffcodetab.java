@@ -506,7 +506,7 @@ final class huffcodetab {
    * returned in y, discard x.
    */
   @LATTICE("X<Y,V<Y,W<Y,Y<VAR,VAR<IN,OUT<IN,VAR*,Y*,X*,V*,W*,THISLOC=IN,GLOBALLOC=IN")
-  @RETURNLOC("OUT")
+  @RETURNLOC("IN")
   // public static int huffman_decoder(/* @LOC("IN") huffcodetab h, */@LOC("IN")
   // int idx,
   // @LOC("X") int[] x, @LOC("Y") int[] y, @LOC("V") int[] v, @LOC("W") int[] w,

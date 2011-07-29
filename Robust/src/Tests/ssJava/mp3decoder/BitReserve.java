@@ -148,7 +148,7 @@ final class BitReserve {
   /**
    * Rewind N bits in Stream.
    */
-  public void rewindNbits(@LOC("IN") int N) {
+  public void rewindNbits(@LOC("THIS,BitReserve.BIT") int N) {
     totbit -= N;
     buf_byte_idx -= N;
     if (buf_byte_idx < 0)

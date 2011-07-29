@@ -1,11 +1,12 @@
 // need to have this class for liner type system
+@LATTICE("V")
 public class HuffData {
 
-  public int x;
-  public int y;
-  public int w;
-  public int v;
-  public BitReserve br;
+  @LOC("V") public int x;
+  @LOC("V") public int y;
+  @LOC("V") public int w;
+  @LOC("V") public int v;
+  @LOC("V") public BitReserve br;
 
   public HuffData(int x, int y, int w, int v, BitReserve br) {
     this.x = x;
