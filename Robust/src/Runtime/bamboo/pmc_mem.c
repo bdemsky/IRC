@@ -27,7 +27,7 @@ void * pmc_alloc(unsigned int * numbytesallocated, unsigned int minimumbytes) {
 	
 	//update unit end points
 	for(unsigned int index=startindex;index<(endindex-1);index++) {
-	  void *ptr=pmc_unitend(index);
+	  void *ptr=(pmc_unitend(index)>pmc_heapptr->units[index].endptr)?(pmc_unitend(index)):(pmc_heapptr->units[index].endptr);
 	  if ((ptr>startptr)&&(ptr<=newstartptr)) {
 	    //tprintf("Ch: %u -> %x\n", index, newstartptr);
 	    pmc_heapptr->units[index].endptr=newstartptr;

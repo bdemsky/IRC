@@ -128,7 +128,13 @@ void pmc_forward(struct pmc_region *region, unsigned int totalbytes, void *botto
   if (!lower) {
     //We're resetting the boundaries of units at the low address end of the region...
     //Be sure not to reset the boundary of our last unit...it is shared with another region
-
+    //Very bottom most unit defines boundary of region...we can't move that right now
+    while((endunit<region->startptr)&&(currunit<highbound)) {
+      pmc_heapptr->units[currunit].endptr=region->startptr;
+      //tprintf("Ch6: %u -> %x\n", currunit, endunit);
+      currunit++;
+      endunit=pmc_unitend(currunit);
+    }
     while(endunit<=region->lastptr&&(currunit<highbound)) {
       pmc_heapptr->units[currunit].endptr=endunit;
       //tprintf("Ch2: %u -> %x\n", currunit, endunit);

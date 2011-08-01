@@ -145,12 +145,12 @@ void gc(struct garbagelist *gl) {
   //tprintf("done\n");
 
   //if (BAMBOO_NUM_OF_CORE==STARTUPCORE) {
-    //    for(int i=0;i<NUMCORES4GC;i+=2) {
-    //      void *startptr=pmc_heapptr->regions[i].lastptr;
-    //      void *finishptr=pmc_heapptr->regions[i+1].lastptr;
-    //      tprintf("Partition %u from %x to %x\n", i, startptr, finishptr);
-    //      tprintf("%x %x %x %x\n", pmc_heapptr->regions[i].startptr, pmc_heapptr->regions[i].endptr, pmc_heapptr->regions[i+1].startptr, pmc_heapptr->regions[i+1].endptr);
-    //    }
+  //      for(int i=0;i<NUMCORES4GC;i+=2) {
+  //        void *startptr=pmc_heapptr->regions[i].lastptr;
+  //        void *finishptr=pmc_heapptr->regions[i+1].lastptr;
+  //        tprintf("Partition %u from %x to %x\n", i, startptr, finishptr);
+  //        tprintf("%x %x %x %x\n", pmc_heapptr->regions[i].startptr, pmc_heapptr->regions[i].endptr, pmc_heapptr->regions[i+1].startptr, pmc_heapptr->regions[i+1].endptr);
+  //      }
   //  }
 
   gcflag=false;
@@ -182,8 +182,9 @@ void padspace(void *ptr, unsigned int length) {
 
 void gettype_size(void * ptr, unsigned int * ttype, unsigned int * tsize) {
   int type = ((int *)ptr)[0];
-  //  if (type>TOTALNUMCLASSANDARRAY) {
+  //  if ((type>TOTALNUMCLASSANDARRAY)||(type<0)) {
   //    tprintf("ptr=%x type=%u\n", ptr, type);
+  //    BAMBOO_EXIT();
   //  }
 
   if(type < NUMCLASSES) {
