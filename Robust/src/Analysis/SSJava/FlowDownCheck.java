@@ -306,30 +306,24 @@ public class FlowDownCheck {
     if (!md.getReturnType().isVoid()) {
       CompositeLocation returnLocComp = null;
 
-      String rtrStr = ssjava.getMethodLattice(md).getReturnLoc();
-      if (rtrStr != null) {
-        returnLocComp = new CompositeLocation(new Location(md, rtrStr));
-      } else {
-        if (methodAnnotations != null) {
-          for (int i = 0; i < methodAnnotations.size(); i++) {
-            AnnotationDescriptor an = methodAnnotations.elementAt(i);
-            if (an.getMarker().equals(ssjava.RETURNLOC)) {
-              // this case, developer explicitly defines method lattice
-              String returnLocDeclaration = an.getValue();
-              returnLocComp = parseLocationDeclaration(md, null, returnLocDeclaration);
-            }
-          }
-        } else {
-          // if developer does not define method lattice
-          // search return location in the method default lattice
-          if (returnLocComp == null) {
-            MethodLattice<String> methodDefaultLattice = ssjava.getMethodDefaultLattice(cd);
-            if (methodDefaultLattice.getReturnLoc() != null) {
-              returnLocComp =
-                  parseLocationDeclaration(md, null, methodDefaultLattice.getReturnLoc());
-            }
+      boolean hasReturnLocDeclaration = false;
+      if (methodAnnotations != null) {
+        for (int i = 0; i < methodAnnotations.size(); i++) {
+          AnnotationDescriptor an = methodAnnotations.elementAt(i);
+          if (an.getMarker().equals(ssjava.RETURNLOC)) {
+            // this case, developer explicitly defines method lattice
+            String returnLocDeclaration = an.getValue();
+            returnLocComp = parseLocationDeclaration(md, null, returnLocDeclaration);
+            hasReturnLocDeclaration = true;
           }
         }
+      }
+
+      if (!hasReturnLocDeclaration) {
+        // if developer does not define method lattice
+        // search return location in the method default lattice
+        String rtrStr = ssjava.getMethodLattice(md).getReturnLoc();
+        returnLocComp = new CompositeLocation(new Location(md, rtrStr));
       }
 
       if (returnLocComp == null) {
@@ -351,8 +345,8 @@ public class FlowDownCheck {
 
       System.out.println("### ReturnLocGenerator=" + md);
       System.out.println("### md2ReturnLoc.get(md)=" + md2ReturnLoc.get(md));
-      md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), paramList, md + " of "
-          + cd.getSourceFileName()));
+      md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), md, paramList, md
+          + " of " + cd.getSourceFileName()));
     }
 
     // fourth, check declarations inside of method
@@ -860,6 +854,8 @@ public class FlowDownCheck {
 
     checkCalleeConstraints(md, nametable, min, baseLocation, constraint);
 
+    checkCallerArgumentLocationConstraints(md, nametable, min, baseLocation, constraint);
+
     if (!min.getMethod().getReturnType().isVoid()) {
       // If method has a return value, compute the highest possible return
       // location in the caller's perspective
@@ -870,6 +866,86 @@ public class FlowDownCheck {
 
     return new CompositeLocation();
 
+  }
+
+  private void checkCallerArgumentLocationConstraints(MethodDescriptor md, SymbolTable nametable,
+      MethodInvokeNode min, CompositeLocation baseLoc, CompositeLocation constraint) {
+    // if parameter location consists of THIS and FIELD location,
+    // caller should pass an argument that is comparable to the declared
+    // parameter location
+    // and is not lower than the declared parameter location in the field
+    // lattice.
+
+    MethodDescriptor calleemd = min.getMethod();
+
+    List<CompositeLocation> callerArgList = new ArrayList<CompositeLocation>();
+    List<CompositeLocation> calleeParamList = new ArrayList<CompositeLocation>();
+
+    MethodLattice<String> calleeLattice = ssjava.getMethodLattice(calleemd);
+    Location calleeThisLoc = new Location(calleemd, calleeLattice.getThisLoc());
+
+    for (int i = 0; i < min.numArgs(); i++) {
+      ExpressionNode en = min.getArg(i);
+      CompositeLocation callerArgLoc =
+          checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(), constraint,
+              false);
+      callerArgList.add(callerArgLoc);
+    }
+
+    // setup callee params set
+    for (int i = 0; i < calleemd.numParameters(); i++) {
+      VarDescriptor calleevd = (VarDescriptor) calleemd.getParameter(i);
+      CompositeLocation calleeLoc = d2loc.get(calleevd);
+      calleeParamList.add(calleeLoc);
+    }
+
+    String errorMsg = generateErrorMessage(md.getClassDesc(), min);
+
+    for (int i = 0; i < calleeParamList.size(); i++) {
+      CompositeLocation calleeParamLoc = calleeParamList.get(i);
+      if (calleeParamLoc.get(0).equals(calleeThisLoc) && calleeParamLoc.getSize() > 1) {
+        // callee parameter location has field information
+        CompositeLocation argLocation =
+            translateCallerLocToCallee(md, calleeThisLoc, callerArgList.get(i),errorMsg);
+
+        if (!CompositeLattice.isGreaterThan(argLocation, calleeParamLoc, errorMsg)) {
+          throw new Error("Caller argument '" + min.getArg(i).printNode(0)
+              + "' should be higher than corresponding callee's parameter at " + errorMsg);
+        }
+
+      }
+    }
+
+  }
+
+  private CompositeLocation translateCallerLocToCallee(MethodDescriptor md, Location calleeThisLoc,
+      CompositeLocation callerArgLoc,String errorMsg) {
+
+    ClassDescriptor calleeClassDesc = md.getClassDesc();
+    CompositeLocation translate = new CompositeLocation();
+
+    int startIdx = 0;
+    for (int i = 0; i < callerArgLoc.getSize(); i++) {
+      if (callerArgLoc.get(i).getDescriptor().equals(calleeClassDesc)) {
+        startIdx = i;
+      }
+    }
+
+    if (startIdx == 0) {
+      // caller arg location doesn't have field information
+      throw new Error("Caller argument location " + callerArgLoc
+          + " does not contain field information while callee has ordering constraints on field at "+errorMsg);
+    }
+
+    translate.addLocation(calleeThisLoc);
+
+    for (int i = startIdx + 1; i < callerArgLoc.getSize(); i++) {
+      translate.addLocation(callerArgLoc.get(i));
+    }
+
+    System.out.println("TRANSLATED=" + translate + " from callerArgLoc=" + callerArgLoc);
+
+    return translate;
   }
 
   private CompositeLocation computeCeilingLocationForCaller(MethodDescriptor md,
@@ -1908,50 +1984,77 @@ class ReturnLocGenerator {
   public static final int PARAMISSAME = 1;
   public static final int IGNORE = 2;
 
-  Hashtable<Integer, Integer> paramIdx2paramType;
+  private Hashtable<Integer, Integer> paramIdx2paramType;
 
-  public ReturnLocGenerator(CompositeLocation returnLoc, List<CompositeLocation> params, String msg) {
-    // creating mappings
-    paramIdx2paramType = new Hashtable<Integer, Integer>();
-    for (int i = 0; i < params.size(); i++) {
-      CompositeLocation param = params.get(i);
-      int compareResult = CompositeLattice.compare(param, returnLoc, true, msg);
+  private CompositeLocation declaredReturnLoc = null;
 
-      int type;
-      if (compareResult == ComparisonResult.GREATER) {
-        type = 0;
-      } else if (compareResult == ComparisonResult.EQUAL) {
-        type = 1;
-      } else {
-        type = 2;
+  public ReturnLocGenerator(CompositeLocation returnLoc, MethodDescriptor md,
+      List<CompositeLocation> params, String msg) {
+
+    CompositeLocation thisLoc = params.get(0);
+    if (returnLoc.get(0).equals(thisLoc.get(0)) && returnLoc.getSize() > 1) {
+      // if the declared return location consists of THIS and field location,
+      // return location for the caller's side has to have same field element
+      this.declaredReturnLoc = returnLoc;
+    } else {
+      // creating mappings
+      paramIdx2paramType = new Hashtable<Integer, Integer>();
+      for (int i = 0; i < params.size(); i++) {
+        CompositeLocation param = params.get(i);
+        int compareResult = CompositeLattice.compare(param, returnLoc, true, msg);
+
+        int type;
+        if (compareResult == ComparisonResult.GREATER) {
+          type = 0;
+        } else if (compareResult == ComparisonResult.EQUAL) {
+          type = 1;
+        } else {
+          type = 2;
+        }
+        paramIdx2paramType.put(new Integer(i), new Integer(type));
       }
-      paramIdx2paramType.put(new Integer(i), new Integer(type));
     }
 
   }
 
   public CompositeLocation computeReturnLocation(List<CompositeLocation> args) {
 
-    // compute the highest possible location in caller's side
-    assert paramIdx2paramType.keySet().size() == args.size();
+    if (declaredReturnLoc != null) {
+      // when developer specify that the return value is [THIS,field]
+      // needs to translate to the caller's location
+      CompositeLocation callerLoc = new CompositeLocation();
+      CompositeLocation callerBaseLocation = args.get(0);
 
-    Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
-    for (int i = 0; i < args.size(); i++) {
-      int type = (paramIdx2paramType.get(new Integer(i))).intValue();
-      CompositeLocation argLoc = args.get(i);
-      if (type == PARAMISHIGHER) {
-        // return loc is lower than param
-        DeltaLocation delta = new DeltaLocation(argLoc, 1);
-        inputGLB.add(delta);
-      } else if (type == PARAMISSAME) {
-        // return loc is equal or lower than param
-        inputGLB.add(argLoc);
+      for (int i = 0; i < callerBaseLocation.getSize(); i++) {
+        callerLoc.addLocation(callerBaseLocation.get(i));
       }
+      for (int i = 1; i < declaredReturnLoc.getSize(); i++) {
+        callerLoc.addLocation(declaredReturnLoc.get(i));
+      }
+      return callerLoc;
+    } else {
+      // compute the highest possible location in caller's side
+      assert paramIdx2paramType.keySet().size() == args.size();
+
+      Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
+      for (int i = 0; i < args.size(); i++) {
+        int type = (paramIdx2paramType.get(new Integer(i))).intValue();
+        CompositeLocation argLoc = args.get(i);
+        if (type == PARAMISHIGHER) {
+          // return loc is lower than param
+          DeltaLocation delta = new DeltaLocation(argLoc, 1);
+          inputGLB.add(delta);
+        } else if (type == PARAMISSAME) {
+          // return loc is equal or lower than param
+          inputGLB.add(argLoc);
+        }
+      }
+
+      // compute GLB of arguments subset that are same or higher than return
+      // location
+      CompositeLocation glb = CompositeLattice.calculateGLB(inputGLB, "");
+      return glb;
     }
 
-    // compute GLB of arguments subset that are same or higher than return
-    // location
-    CompositeLocation glb = CompositeLattice.calculateGLB(inputGLB, "");
-    return glb;
   }
 }
