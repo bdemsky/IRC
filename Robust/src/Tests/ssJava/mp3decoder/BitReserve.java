@@ -37,7 +37,7 @@
 
 // REVIEW: there is no range checking, so buffer underflow or overflow
 // can silently occur.
-@LATTICE("BUF<OFF,BIT,BIT*,OFF*")
+@LATTICE("BUF<OFF,BUF<BIT,BIT*,OFF*")
 @METHODDEFAULT("OUT<THIS,THIS<IN,IN*,THISLOC=THIS,RETURNLOC=OUT")
 final class BitReserve {
   /**
@@ -74,9 +74,9 @@ final class BitReserve {
   /**
    * Return totbit Field.
    */
-
+  @RETURNLOC("THIS,BitReserve.BIT")
   public int hsstell() {
-    return (totbit);
+    return (totbit); 
   }
 
   /**

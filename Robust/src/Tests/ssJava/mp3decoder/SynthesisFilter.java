@@ -1265,8 +1265,8 @@ private void compute_pcm_samples(@LOC("GLOBAL") Obuffer buffer)
    * Calculate 32 PCM samples and put the into the Obuffer-object.
    */
   
-  @LATTICE("V<THIS,THIS<SH,SH*,THISLOC=THIS")
-  public void calculate_pcm_samples(@LOC("V") Obuffer buffer) {
+  @LATTICE("THIS<IN,THIS<SH,SH*,THISLOC=THIS")
+  public void calculate_pcm_samples(@LOC("IN") Obuffer buffer) {
     compute_new_v();
     compute_pcm_samples(buffer);
 

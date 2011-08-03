@@ -32,7 +32,7 @@
 
 // REVIEW: the audio device should not be opened until the
 // first MPEG audio frame has been decoded. 
-@LATTICE("B<DE,DE<ST,HE<ST,ST<FR")
+@LATTICE("B<DE,DE<ST,DE<HE,HE<ST,ST<FR")
 public class Player
 {	  	
 	/**

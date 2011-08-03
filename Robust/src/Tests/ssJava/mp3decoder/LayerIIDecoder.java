@@ -30,7 +30,7 @@
 /**
  * Implements decoding of MPEG Audio Layer II frames.
  */
-@LATTICE("SB<H,H<SH,SH*,,SB*")
+@LATTICE("SB1<SB,SB<F,F<H,H<SH,SH*,SB1*")
 @METHODDEFAULT("MODE<THIS,THIS<C,C<IN,THISLOC=THIS,C*")
 class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
 
@@ -38,7 +38,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
   }
 
   protected void createSubbands() {
-    @LOC("THIS,LayerIIDecoder.SB") int i;
+    @LOC("THIS,LayerIIDecoder.H") int i;
     if (mode == Header.SINGLE_CHANNEL)
       for (i = 0; i < num_subbands; ++i)
         subbands[i] = new SubbandLayer2(i);
@@ -57,7 +57,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
   protected void readScaleFactorSelection() {
     // eom note: num_subbands is defined in LayerIDecoder so it has (THIS,
     // LayerIDecoder) Loc
-    for (@LOC("THIS,LayerIIDecoder.SB") int i = 0; i < num_subbands; ++i) {
+    for (@LOC("THIS,LayerIIDecoder.SH") int i = 0; i < num_subbands; ++i) {
       ((SubbandLayer2) subbands[i]).read_scalefactor_selection(stream, crc);
     }
   }
@@ -620,7 +620,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder {
 	   */
     @LATTICE("OUT<THIS,THIS<IN,THISLOC=THIS")
     protected void prepare_sample_reading(@LOC("IN") Header header,
-        @LOC("THIS,LayerIIDecoder$SubbandLayer2.SH0") int allocation,
+        @LOC("THIS,LayerIIDecoder$SubbandLayer2.SH") int allocation,
         // float[][] groupingtable,
         @LOC("IN") int channel, @LOC("OUT") float[] factor, @LOC("OUT") int[] codelength,
         @LOC("OUT") float[] c, @LOC("OUT") float[] d) {

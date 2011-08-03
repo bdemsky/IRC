@@ -38,10 +38,10 @@
  */
 @LATTICE("")
 @METHODDEFAULT("D<IN,D<C,C*,THISLOC=D")
-public abstract class Obuffer
-{
- public static final int     OBUFFERSIZE = 2 * 1152;  // max. 2 * 1152 samples per frame
- public static final int   MAXCHANNELS = 2;        // max. number of channels
+public abstract class Obuffer {
+  public static final int OBUFFERSIZE = 2 * 1152; // max. 2 * 1152 samples per
+                                                  // frame
+  public static final int MAXCHANNELS = 2; // max. number of channels
 
   /**
    * Takes a 16 Bit PCM sample.
@@ -49,44 +49,40 @@ public abstract class Obuffer
   public abstract void append(@LOC("IN") int channel, @LOC("IN") short value);
 
   /**
-   * Accepts 32 new PCM samples. 
+   * Accepts 32 new PCM samples.
    */
-  public void appendSamples(@LOC("IN") int channel, @LOC("IN") float[] f)
-  {
-    @LOC("DELTA(DELTA(D))") short s;
-    for (@LOC("C") int i=0; i<32;)
-    {
-      s = clip(f[i++]); // flow from "IN" to "D"
-      append(channel, s);  
+  @LATTICE("THIS<C,C<IN,C*,THISLOC=THIS")
+  public void appendSamples(@LOC("IN") int channel, @LOC("IN") float[] f) {
+    @LOC("C") short s;
+    for (@LOC("C") int i = 0; i < 32;) {
+      s = clip(f[i++]);
+      append(channel, s);
     }
   }
 
   /**
    * Clip Sample to 16 Bits
    */
-  @RETURNLOC("D")
-  private final short clip(@LOC("IN") float sample)
-  {
-    
-    @LOC("D") short s=(short)sample;
-    
-    if(sample > 32767.0f){
-      s=(short)32767;
-    }else if(sample < -32768.0f){
-      s=(short)-32768;
+  @LATTICE("THIS,OUT<IN,RETURNLOC=OUT,THISLOC=THIS")
+  private final short clip(@LOC("IN") float sample) {
+
+    @LOC("OUT") short s = (short) sample;
+
+    if (sample > 32767.0f) {
+      s = (short) 32767;
+    } else if (sample < -32768.0f) {
+      s = (short) -32768;
     }
-    
+
     return s;
 
-//    return ((sample > 32767.0f) ?   (short) 32767 :
-//      ((sample < -32768.0f) ?  (short)  -32768 :
-//        (short) sample));
   }
 
   /**
    * Write the samples to the file or directly to the audio hardware.
    */
   public abstract void write_buffer(@LOC("IN") int val);
+
   public abstract void close();
 
   /**

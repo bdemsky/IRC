@@ -27,7 +27,7 @@
 /**
  * Implements decoding of MPEG Audio Layer I frames.
  */
-@LATTICE("SB<H,H<SH,SH*,SB*")
+@LATTICE("SB1<SB,SB<F,F<H,H<SH,SH*,SB1*")
 @METHODDEFAULT("MODE<THIS,THIS<C,C<IN,THISLOC=THIS,C*")
 class LayerIDecoder implements FrameDecoder {
 
@@ -35,18 +35,18 @@ class LayerIDecoder implements FrameDecoder {
   protected Bitstream stream;
   @LOC("SH")
   protected Header header;
-  @LOC("H")
+  @LOC("F")
   protected SynthesisFilter filter1;
-  @LOC("H")
+  @LOC("F")
   protected SynthesisFilter filter2;
-  @LOC("SB")
+  @LOC("H")
   protected Obuffer buffer;
   @LOC("H")
   protected int which_channels;
-  @LOC("SH")
+  @LOC("H")
   protected int mode;
 
-  @LOC("SB")
+  @LOC("H")
   protected int num_subbands;
   @LOC("SB")
   protected Subband[] subbands;
@@ -90,7 +90,7 @@ class LayerIDecoder implements FrameDecoder {
   }
 
   protected void createSubbands() {
-    @LOC("THIS,LayerIDecoder.SB") int i;
+    @LOC("THIS,LayerIDecoder.H") int i;
     if (mode == Header.SINGLE_CHANNEL) {
       for (i = 0; i < num_subbands; ++i) {
         subbands[i] = new SubbandLayer1(i);
@@ -128,13 +128,13 @@ class LayerIDecoder implements FrameDecoder {
   @LATTICE("MODE<THIS,THIS<C,THISLOC=THIS,C*")
   protected void readSampleData() {
 
-    @LOC("THIS,LayerIDecoder.SB") boolean read_ready = false;
-    @LOC("THIS,LayerIDecoder.SB") boolean write_ready = false;
+    @LOC("THIS,LayerIDecoder.SB1") boolean read_ready = false;
+    @LOC("THIS,LayerIDecoder.SB1") boolean write_ready = false;
 
     @LOC("MODE") int mode = header.mode(); // header.mode() will return
                                            // DELTA(THIS)
 
-    @LOC("THIS,LayerIDecoder.SB") int i;
+    @LOC("THIS,LayerIDecoder.SB1") int i;
     do {
 
       for (i = 0; i < num_subbands; ++i) {

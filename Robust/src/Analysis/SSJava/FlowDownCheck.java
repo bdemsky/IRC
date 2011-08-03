@@ -582,7 +582,7 @@ public class FlowDownCheck {
       CompositeLocation condLoc =
           checkLocationFromExpressionNode(md, nametable, ln.getCondition(),
               new CompositeLocation(), constraint, false);
-      addLocationType(ln.getCondition().getType(), (condLoc));
+      // addLocationType(ln.getCondition().getType(), (condLoc));
 
       constraint = generateNewConstraint(constraint, condLoc);
       checkLocationFromBlockNode(md, nametable, ln.getBody(), constraint);
@@ -598,7 +598,7 @@ public class FlowDownCheck {
       CompositeLocation condLoc =
           checkLocationFromExpressionNode(md, bn.getVarTable(), ln.getCondition(),
               new CompositeLocation(), constraint, false);
-      addLocationType(ln.getCondition().getType(), condLoc);
+      // addLocationType(ln.getCondition().getType(), condLoc);
 
       constraint = generateNewConstraint(constraint, condLoc);
 
@@ -640,7 +640,7 @@ public class FlowDownCheck {
         checkLocationFromExpressionNode(md, nametable, isn.getCondition(), new CompositeLocation(),
             constraint, false);
 
-    addLocationType(isn.getCondition().getType(), condLoc);
+    // addLocationType(isn.getCondition().getType(), condLoc);
 
     constraint = generateNewConstraint(constraint, condLoc);
     checkLocationFromBlockNode(md, nametable, isn.getTrueBlock(), constraint);
@@ -790,15 +790,15 @@ public class FlowDownCheck {
     CompositeLocation condLoc =
         checkLocationFromExpressionNode(md, nametable, tn.getCond(), new CompositeLocation(),
             constraint, false);
-    addLocationType(tn.getCond().getType(), condLoc);
+    // addLocationType(tn.getCond().getType(), condLoc);
     CompositeLocation trueLoc =
         checkLocationFromExpressionNode(md, nametable, tn.getTrueExpr(), new CompositeLocation(),
             constraint, false);
-    addLocationType(tn.getTrueExpr().getType(), trueLoc);
+    // addLocationType(tn.getTrueExpr().getType(), trueLoc);
     CompositeLocation falseLoc =
         checkLocationFromExpressionNode(md, nametable, tn.getFalseExpr(), new CompositeLocation(),
             constraint, false);
-    addLocationType(tn.getFalseExpr().getType(), falseLoc);
+    // addLocationType(tn.getFalseExpr().getType(), falseLoc);
 
     // locations from true/false branches can be TOP when there are only literal
     // values
@@ -869,7 +869,7 @@ public class FlowDownCheck {
   }
 
   private void checkCallerArgumentLocationConstraints(MethodDescriptor md, SymbolTable nametable,
-      MethodInvokeNode min, CompositeLocation baseLoc, CompositeLocation constraint) {
+      MethodInvokeNode min, CompositeLocation callerBaseLoc, CompositeLocation constraint) {
     // if parameter location consists of THIS and FIELD location,
     // caller should pass an argument that is comparable to the declared
     // parameter location
@@ -901,16 +901,32 @@ public class FlowDownCheck {
 
     String errorMsg = generateErrorMessage(md.getClassDesc(), min);
 
+    System.out.println("checkCallerArgumentLocationConstraints=" + min.printNode(0));
+    System.out.println("base location=" + callerBaseLoc);
+
     for (int i = 0; i < calleeParamList.size(); i++) {
       CompositeLocation calleeParamLoc = calleeParamList.get(i);
       if (calleeParamLoc.get(0).equals(calleeThisLoc) && calleeParamLoc.getSize() > 1) {
-        // callee parameter location has field information
-        CompositeLocation argLocation =
-            translateCallerLocToCallee(md, calleeThisLoc, callerArgList.get(i),errorMsg);
 
-        if (!CompositeLattice.isGreaterThan(argLocation, calleeParamLoc, errorMsg)) {
-          throw new Error("Caller argument '" + min.getArg(i).printNode(0)
-              + "' should be higher than corresponding callee's parameter at " + errorMsg);
+        // callee parameter location has field information
+        CompositeLocation callerArgLoc = callerArgList.get(i);
+
+        CompositeLocation paramLocation =
+            translateCalleeParamLocToCaller(md, calleeParamLoc, callerBaseLoc, errorMsg);
+
+        Set<CompositeLocation> inputGLBSet = new HashSet<CompositeLocation>();
+        if (constraint != null) {
+          inputGLBSet.add(callerArgLoc);
+          inputGLBSet.add(constraint);
+          callerArgLoc =
+              CompositeLattice.calculateGLB(inputGLBSet,
+                  generateErrorMessage(md.getClassDesc(), min));
+        }
+
+        if (!CompositeLattice.isGreaterThan(callerArgLoc, paramLocation, errorMsg)) {
+          throw new Error("Caller argument '" + min.getArg(i).printNode(0) + " : " + callerArgLoc
+              + "' should be higher than corresponding callee's parameter : " + paramLocation
+              + " at " + errorMsg);
         }
 
       }
@@ -918,32 +934,20 @@ public class FlowDownCheck {
 
   }
 
-  private CompositeLocation translateCallerLocToCallee(MethodDescriptor md, Location calleeThisLoc,
-      CompositeLocation callerArgLoc,String errorMsg) {
+  private CompositeLocation translateCalleeParamLocToCaller(MethodDescriptor md,
+      CompositeLocation calleeParamLoc, CompositeLocation callerBaseLocation, String errorMsg) {
 
-    ClassDescriptor calleeClassDesc = md.getClassDesc();
     CompositeLocation translate = new CompositeLocation();
 
-    int startIdx = 0;
-    for (int i = 0; i < callerArgLoc.getSize(); i++) {
-      if (callerArgLoc.get(i).getDescriptor().equals(calleeClassDesc)) {
-        startIdx = i;
-      }
+    for (int i = 0; i < callerBaseLocation.getSize(); i++) {
+      translate.addLocation(callerBaseLocation.get(i));
     }
 
-    if (startIdx == 0) {
-      // caller arg location doesn't have field information
-      throw new Error("Caller argument location " + callerArgLoc
-          + " does not contain field information while callee has ordering constraints on field at "+errorMsg);
+    for (int i = 1; i < calleeParamLoc.getSize(); i++) {
+      translate.addLocation(calleeParamLoc.get(i));
     }
 
-    translate.addLocation(calleeThisLoc);
-
-    for (int i = startIdx + 1; i < callerArgLoc.getSize(); i++) {
-      translate.addLocation(callerArgLoc.get(i));
-    }
-
-    System.out.println("TRANSLATED=" + translate + " from callerArgLoc=" + callerArgLoc);
+    System.out.println("TRANSLATED=" + translate + " from calleeParamLoc=" + calleeParamLoc);
 
     return translate;
   }
@@ -1290,6 +1294,8 @@ public class FlowDownCheck {
     }
 
     loc = checkLocationFromExpressionNode(md, nametable, left, loc, constraint, false);
+    System.out.println("### checkLocationFromFieldAccessNode=" + fan.printNode(0));
+    System.out.println("### left=" + left.printNode(0));
     if (!left.getType().isPrimitive()) {
       Location fieldLoc = getFieldLocation(fd);
       loc.addLocation(fieldLoc);
@@ -1299,6 +1305,9 @@ public class FlowDownCheck {
   }
 
   private Location getFieldLocation(FieldDescriptor fd) {
+
+    System.out.println("### getFieldLocation=" + fd);
+    System.out.println("### fd.getType().getExtension()=" + fd.getType().getExtension());
 
     Location fieldLoc = (Location) fd.getType().getExtension();
 
@@ -1380,9 +1389,17 @@ public class FlowDownCheck {
       System.out.println("constraint=" + constraint);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
-        throw new Error("Location " + destLocation
-            + " is not allowed to have the value flow that moves within the same location at "
-            + cd.getSourceFileName() + "::" + an.getNumLine());
+
+        if (srcLocation.equals(destLocation)) {
+          throw new Error("Location " + srcLocation
+              + " is not allowed to have the value flow that moves within the same location at '"
+              + an.printNode(0) + "' of " + cd.getSourceFileName() + "::" + an.getNumLine());
+        } else {
+          throw new Error("The value flow from " + srcLocation + " to " + destLocation
+              + " does not respect location hierarchy on the assignment " + an.printNode(0)
+              + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
+        }
+
       }
 
     }
