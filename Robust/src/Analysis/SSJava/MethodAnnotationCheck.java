@@ -30,6 +30,8 @@ import IR.Tree.MethodInvokeNode;
 import IR.Tree.OpNode;
 import IR.Tree.ReturnNode;
 import IR.Tree.SubBlockNode;
+import IR.Tree.SwitchBlockNode;
+import IR.Tree.SwitchStatementNode;
 import IR.Tree.TertiaryNode;
 import Util.Pair;
 
@@ -94,6 +96,8 @@ public class MethodAnnotationCheck {
 
             Set<MethodDescriptor> possibleCalleeSet =
                 (Set<MethodDescriptor>) ssjava.getCallGraph().getMethods(calleeMD);
+
+            System.out.println("caller=" + callerMD + " callee=" + possibleCalleeSet);
 
             for (Iterator iterator2 = possibleCalleeSet.iterator(); iterator2.hasNext();) {
               MethodDescriptor possibleCallee = (MethodDescriptor) iterator2.next();
@@ -226,7 +230,23 @@ public class MethodAnnotationCheck {
       checkReturnNode(md, nametable, (ReturnNode) bsn, flag);
       break;
 
+    case Kind.SwitchStatementNode:
+      checkSwitchStatementNode(md, nametable, (SwitchStatementNode) bsn, flag);
+      return;
+
     }
+  }
+
+  private void checkSwitchStatementNode(MethodDescriptor md, SymbolTable nametable,
+      SwitchStatementNode ssn, boolean flag) {
+
+    checkExpressionNode(md, nametable, ssn.getCondition(), flag);
+
+    BlockNode sbn = ssn.getSwitchBody();
+    for (int i = 0; i < sbn.size(); i++) {
+      checkBlockNode(md, nametable, ((SwitchBlockNode) sbn.get(i)).getSwitchBlockStatement(), flag);
+    }
+
   }
 
   private void checkDeclarationNode(MethodDescriptor md, SymbolTable nametable, DeclarationNode dn,

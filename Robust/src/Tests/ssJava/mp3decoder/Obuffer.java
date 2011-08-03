@@ -46,14 +46,14 @@ public abstract class Obuffer {
   /**
    * Takes a 16 Bit PCM sample.
    */
-  public abstract void append(@LOC("IN") int channel, @LOC("IN") short value);
+  public abstract void append(@LOC("D") int channel, @LOC("D") short value);
 
   /**
    * Accepts 32 new PCM samples.
    */
-  @LATTICE("THIS<C,C<IN,C*,THISLOC=THIS")
+  @LATTICE("S<IN,IN<C,C*,THISLOC=IN")
   public void appendSamples(@LOC("IN") int channel, @LOC("IN") float[] f) {
-    @LOC("C") short s;
+    @LOC("S") short s;
     for (@LOC("C") int i = 0; i < 32;) {
       s = clip(f[i++]);
       append(channel, s);

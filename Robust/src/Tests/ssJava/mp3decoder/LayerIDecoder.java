@@ -263,6 +263,7 @@ class LayerIDecoder implements FrameDecoder {
       return false;
     }
 
+    @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
     public boolean put_next_sample(@LOC("IN") int channels, @LOC("IN") SynthesisFilter filter1,
         @LOC("IN") SynthesisFilter filter2) {
       if ((allocation != 0) && (channels != OutputChannels.RIGHT_CHANNEL)) {

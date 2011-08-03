@@ -979,6 +979,8 @@ public class FlowDownCheck {
 
   private void checkCalleeConstraints(MethodDescriptor md, SymbolTable nametable,
       MethodInvokeNode min, CompositeLocation callerBaseLoc, CompositeLocation constraint) {
+    
+    System.out.println("checkCalleeConstraints="+min.printNode(0));
 
     MethodDescriptor calleemd = min.getMethod();
 
@@ -1012,6 +1014,7 @@ public class FlowDownCheck {
       for (int i = 0; i < calleemd.numParameters(); i++) {
         VarDescriptor calleevd = (VarDescriptor) calleemd.getParameter(i);
         CompositeLocation calleeLoc = d2loc.get(calleevd);
+        System.out.println("calleevd="+calleevd+" loc="+calleeLoc);
         calleeParamList.add(calleeLoc);
       }
 
@@ -1030,6 +1033,9 @@ public class FlowDownCheck {
                 || callerLoc2.get(callerLoc2.getSize() - 1).isTop()) {
               continue CHECK;
             }
+            
+            System.out.println("calleeLoc1="+calleeLoc1);
+            System.out.println("calleeLoc2="+calleeLoc2+"calleeParamList="+calleeParamList);
 
             int callerResult =
                 CompositeLattice.compare(callerLoc1, callerLoc2, true,

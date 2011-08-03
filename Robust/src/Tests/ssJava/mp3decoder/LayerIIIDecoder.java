@@ -80,7 +80,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   private SynthesisFilter filter1;
   @LOC("FT")
   private SynthesisFilter filter2;
-  @LOC("BUF")
+  @LOC("SP")
   private Obuffer buffer; // output buffer
   @LOC("CH0")
   private int which_channels;
