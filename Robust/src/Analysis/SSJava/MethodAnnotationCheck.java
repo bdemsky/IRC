@@ -97,8 +97,6 @@ public class MethodAnnotationCheck {
             Set<MethodDescriptor> possibleCalleeSet =
                 (Set<MethodDescriptor>) ssjava.getCallGraph().getMethods(calleeMD);
 
-            System.out.println("caller=" + callerMD + " callee=" + possibleCalleeSet);
-
             for (Iterator iterator2 = possibleCalleeSet.iterator(); iterator2.hasNext();) {
               MethodDescriptor possibleCallee = (MethodDescriptor) iterator2.next();
 

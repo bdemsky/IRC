@@ -68,8 +68,6 @@ public class Player
 
 	@LOC("B") private int			lastPosition = 0;
 	
-	@LOC("HE") private Header header;
-	
 	/**
 	 * Creates a new <code>Player</code> instance. 
 	 */
@@ -84,11 +82,6 @@ public class Player
 		bitstream = new Bitstream(stream);		
 		decoder = new Decoder();
 		
-		// decoder initialization
-		// taking out from ssjava loop 
-		header = bitstream.readFrame();  
-		decoder.initialize(header, bitstream);
-				
 //		if (device!=null)
 //		{		
 //			audio = device;
@@ -219,13 +212,13 @@ public class Player
 			//if (out==null)
 			//	return false;
 
-//			Header h = bitstream.readFrame();	
-//			
-//			if (h==null)
-//				return false;
+			Header h = bitstream.readFrame();	
+			
+			if (h==null)
+				return false;
 				
 			// sample buffer set when decoder constructed
-			@LOC("O") SampleBuffer output = (SampleBuffer)decoder.decodeFrame(header, bitstream);
+			@LOC("O") SampleBuffer output = (SampleBuffer)decoder.decodeFrame(h, bitstream);
 																																					
 			//synchronized (this)
 			//{

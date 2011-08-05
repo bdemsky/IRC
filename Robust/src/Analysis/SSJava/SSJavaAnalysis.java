@@ -35,6 +35,7 @@ public class SSJavaAnalysis {
   public static final String LOC = "LOC";
   public static final String DELTA = "DELTA";
   public static final String TERMINATE = "TERMINATE";
+  public static final String DELEGATE = "DELEGATE";
 
   State state;
   TypeUtil tu;
@@ -78,6 +79,7 @@ public class SSJavaAnalysis {
   }
 
   public void doCheck() {
+    doLinearTypeCheck();
     doMethodAnnotationCheck();
     if (state.SSJAVADEBUG) {
       debugPrint();
@@ -85,7 +87,11 @@ public class SSJavaAnalysis {
     parseLocationAnnotation();
     doFlowDownCheck();
     doDefinitelyWrittenCheck();
-    doSingleReferenceCheck();
+  }
+
+  private void doLinearTypeCheck() {
+    LinearTypeCheck checker = new LinearTypeCheck(this, state);
+    checker.linearTypeCheck();
   }
 
   public void debugPrint() {
@@ -111,11 +117,6 @@ public class SSJavaAnalysis {
   public void doDefinitelyWrittenCheck() {
     DefinitelyWrittenCheck checker = new DefinitelyWrittenCheck(this, state);
     checker.definitelyWrittenCheck();
-  }
-
-  public void doSingleReferenceCheck() {
-    SingleReferenceCheck checker = new SingleReferenceCheck(this, state);
-    checker.singleReferenceCheck();
   }
 
   private void parseLocationAnnotation() {

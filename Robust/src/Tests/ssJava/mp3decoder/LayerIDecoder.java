@@ -161,12 +161,11 @@ class LayerIDecoder implements FrameDecoder {
    * Class for layer I subbands in single channel mode. Used for single channel
    * mode and in derived class for intensity stereo mode
    */
-  @LATTICE("S<L,L<H,H<SH,SH<SH0,SH*,S*")
+  @LATTICE("S<L,L<H,H<SH,SH<SH0,SH*,L*")
   @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
   static class SubbandLayer1 extends Subband {
 
     // Factors and offsets for sample requantization
-    @LOC("H")
     public static final float table_factor[] = { 0.0f, (1.0f / 2.0f) * (4.0f / 3.0f),
         (1.0f / 4.0f) * (8.0f / 7.0f), (1.0f / 8.0f) * (16.0f / 15.0f),
         (1.0f / 16.0f) * (32.0f / 31.0f), (1.0f / 32.0f) * (64.0f / 63.0f),
@@ -176,7 +175,6 @@ class LayerIDecoder implements FrameDecoder {
         (1.0f / 4096.0f) * (8192.0f / 8191.0f), (1.0f / 8192.0f) * (16384.0f / 16383.0f),
         (1.0f / 16384.0f) * (32768.0f / 32767.0f) };
 
-    @LOC("H")
     public static final float table_offset[] = { 0.0f, ((1.0f / 2.0f) - 1.0f) * (4.0f / 3.0f),
         ((1.0f / 4.0f) - 1.0f) * (8.0f / 7.0f), ((1.0f / 8.0f) - 1.0f) * (16.0f / 15.0f),
         ((1.0f / 16.0f) - 1.0f) * (32.0f / 31.0f), ((1.0f / 32.0f) - 1.0f) * (64.0f / 63.0f),
@@ -199,7 +197,7 @@ class LayerIDecoder implements FrameDecoder {
     protected float scalefactor;
     @LOC("L")
     protected int samplelength;
-    @LOC("S")
+    @LOC("L")
     protected float sample;
     @LOC("L")
     protected float factor;
@@ -263,11 +261,14 @@ class LayerIDecoder implements FrameDecoder {
       return false;
     }
 
-    @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
-    public boolean put_next_sample(@LOC("IN") int channels, @LOC("IN") SynthesisFilter filter1,
-        @LOC("IN") SynthesisFilter filter2) {
+    // @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
+    @LATTICE("THIS<IN,OUT,THISLOC=THIS,RETURNLOC=OUT")
+    public boolean put_next_sample(@LOC("IN") int channels,
+        @LOC("THIS,LayerIDecoder$SubbandLayer1.S") SynthesisFilter filter1,
+        @LOC("THIS,LayerIDecoder$SubbandLayer1.S") SynthesisFilter filter2) {
       if ((allocation != 0) && (channels != OutputChannels.RIGHT_CHANNEL)) {
-        @LOC("OUT") float scaled_sample = (sample * factor + offset) * scalefactor;
+        @LOC("THIS,LayerIDecoder$SubbandLayer1.L") float scaled_sample =
+            (sample * factor + offset) * scalefactor;
         filter1.input_sample(scaled_sample, subbandnumber);
       }
       return true;
@@ -400,7 +401,8 @@ class LayerIDecoder implements FrameDecoder {
 	   */
     @RETURNLOC("THIS,LayerIDecoder$SubbandLayer1Stereo.S")
     public boolean read_sampledata(@LOC("THIS,LayerIDecoder$SubbandLayer1Stereo.S") Bitstream stream) {
-      @LOC("THIS,LayerIDecoder$SubbandLayer1Stereo.S") boolean returnvalue = super.read_sampledata(stream);
+      @LOC("THIS,LayerIDecoder$SubbandLayer1Stereo.S") boolean returnvalue =
+          super.read_sampledata(stream);
       if (channel2_allocation != 0) {
         channel2_sample = (float) (stream.get_bits(channel2_samplelength));
       }
