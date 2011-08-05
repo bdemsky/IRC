@@ -58,25 +58,28 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
 
   struct blockrecord * blockrecord=&allocationinfo.blocktable[blockindex];
 
-  blockrecord->status=BS_FREE;
-  blockrecord->usedspace=(unsigned INTPTR)(heaptop-OFFSET2BASEVA(blockindex)-gcbaseva);
-  blockrecord->freespace=BLOCKSIZE(localblocknum)-blockrecord->usedspace;
-  /* Update the lowest free block */
-  if (blockindex < allocationinfo.lowestfreeblock) {
-    allocationinfo.lowestfreeblock=blockindex;
-  }
+  unsigned INTPTR newusedspace=(unsigned INTPTR)(heaptop-OFFSET2BASEVA(blockindex)-gcbaseva);
+  if(blockrecord->usedspace < newusedspace) {
+    blockrecord->status=BS_FREE;
+    blockrecord->usedspace=newusedspace;
+    blockrecord->freespace=BLOCKSIZE(localblocknum)-blockrecord->usedspace;
+    /* Update the lowest free block */
+    if (blockindex < allocationinfo.lowestfreeblock) {
+      allocationinfo.lowestfreeblock=blockindex;
+    }
 
-  /* This is our own block...means we should mark other blocks above us as free*/
-  
-  if (cnum==blockrecord->corenum) {
-    unsigned INTPTR nextlocalblocknum=localblocknum+1;
-    for(;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
-      unsigned INTPTR blocknum=BLOCKINDEX2(cnum, nextlocalblocknum);
-      struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blocknum];
-      nextblockrecord->status=BS_FREE;
-      nextblockrecord->usedspace=0;
-      //this is true because this cannot be the lowest block
-      nextblockrecord->freespace=BLOCKSIZE(1);
+    /* This is our own block...means we should mark other blocks above us as free*/
+
+    if (cnum==blockrecord->corenum) {
+      unsigned INTPTR nextlocalblocknum=localblocknum+1;
+      for(;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
+        unsigned INTPTR blocknum=BLOCKINDEX2(cnum, nextlocalblocknum);
+        struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blocknum];
+        nextblockrecord->status=BS_FREE;
+        nextblockrecord->usedspace=0;
+        //this is true because this cannot be the lowest block
+        nextblockrecord->freespace=BLOCKSIZE(1);
+      }
     }
   }
 
@@ -570,6 +573,7 @@ void master_compact() {
   while(!gc_checkCoreStatus())
     ;
 
+// GC_CACHE_COHERENT_ON should be true for gcmappingtbl, and the gcmappingtbl should be zeroed out before starting gc
 #ifdef GC_DEBUG
   void *nextvalid=gcbaseva;
   for(void *tmp=gcbaseva; tmp<gcbaseva+BAMBOO_SHARED_MEM_SIZE;tmp+=ALIGNMENTSIZE) {

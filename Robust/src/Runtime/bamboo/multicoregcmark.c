@@ -50,7 +50,7 @@ bool isLarge(void * ptr, int * ttype, unsigned int * tsize) {
 
 //push the null check into the mark macro
 
-//#define MARKOBJ(objptr) {void * marktmpptr=objptr; if (marktmpptr!=NULL) {markObj(marktmpptr);if ((marktmpptr<gcbaseva)||(marktmpptr>(gcbaseva+BAMBOO_SHARED_MEM_SIZE))) tprintf("Bad pointer %x in line %u\n",marktmpptr, __LINE__);  }}
+//#define MARKOBJ(objptr) {void * marktmpptr=objptr; if (marktmpptr!=NULL) {markObj(marktmpptr);if ((marktmpptr<gcbaseva)||(marktmpptr>(gcbaseva+BAMBOO_SHARED_MEM_SIZE))) tprintf("Bad pointer %x in line %u\n",marktmpptr, __LINE__); }}
 
 #define MARKOBJ(objptr) {void * marktmpptr=objptr; if (marktmpptr!=NULL) {markObj(marktmpptr);}}
 
@@ -259,10 +259,10 @@ void mark(struct garbagelist * stackptr) {
       if (unit!=iunits) {
 	tprintf("Bad mark on %x %u!=%u\n", ptr, unit, iunits);
 	tprintf("hibits=%x lobits=%x\n", hibits, lobits);
-	tprintf("ohigh=%x olow=%x", ohigh, olow);
+	tprintf("ohigh=%x olow=%x\n", ohigh, olow);
 	unsigned INTPTR nhigh=gcmarktbl[hibits];
 	unsigned INTPTR nlow=gcmarktbl[hibits+1];
-	tprintf("nhigh=%x nlow=%x", nhigh, nlow);
+	tprintf("nhigh=%x nlow=%x\n", nhigh, nlow);
       }
 #endif
       if(islarge) {
