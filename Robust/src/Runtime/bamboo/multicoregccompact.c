@@ -58,8 +58,16 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
 
   struct blockrecord * blockrecord=&allocationinfo.blocktable[blockindex];
 
-  unsigned INTPTR newusedspace=(unsigned INTPTR)(heaptop-OFFSET2BASEVA(blockindex)-gcbaseva);
-  if(blockrecord->usedspace < newusedspace) {
+  unsigned INTPTR newusedspace=heaptop-OFFSET2BASEVA(blockindex)-gcbaseva;
+  if((blockrecord->corenum!=cnum) && (newusedspace==0)) {
+    // In this case, the cnum core just filled up a previous block and returned
+    // the end address of that block which belongs to the following block. We 
+    // need to fix up the blockindex to the previous full block. As that block 
+    // has been marked as BS_USED already, nothing else is needed here.
+    blockindex--;
+    localblocknum=GLOBALBLOCK2LOCAL(blockindex);
+    blockrecord=&allocationinfo.blocktable[blockindex];
+  } else {
     blockrecord->status=BS_FREE;
     blockrecord->usedspace=newusedspace;
     blockrecord->freespace=BLOCKSIZE(localblocknum)-blockrecord->usedspace;
@@ -67,19 +75,19 @@ void handleReturnMem_I(unsigned int cnum, void *heaptop) {
     if (blockindex < allocationinfo.lowestfreeblock) {
       allocationinfo.lowestfreeblock=blockindex;
     }
+  }
 
-    /* This is our own block...means we should mark other blocks above us as free*/
+  /* This is our own block...means we should mark other blocks above us as free*/
 
-    if (cnum==blockrecord->corenum) {
-      unsigned INTPTR nextlocalblocknum=localblocknum+1;
-      for(;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
-        unsigned INTPTR blocknum=BLOCKINDEX2(cnum, nextlocalblocknum);
-        struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blocknum];
-        nextblockrecord->status=BS_FREE;
-        nextblockrecord->usedspace=0;
-        //this is true because this cannot be the lowest block
-        nextblockrecord->freespace=BLOCKSIZE(1);
-      }
+  if (cnum==blockrecord->corenum) {
+    unsigned INTPTR nextlocalblocknum=localblocknum+1;
+    for(;nextlocalblocknum<numblockspercore;nextlocalblocknum++) {
+      unsigned INTPTR blocknum=BLOCKINDEX2(cnum, nextlocalblocknum);       
+      struct blockrecord * nextblockrecord=&allocationinfo.blocktable[blocknum];
+      nextblockrecord->status=BS_FREE;
+      nextblockrecord->usedspace=0;       
+      //this is true because this cannot be the lowest block
+      nextblockrecord->freespace=BLOCKSIZE(1);
     }
   }
 
