@@ -6,33 +6,34 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
+import Analysis.Liveness;
 import IR.AnnotationDescriptor;
 import IR.ClassDescriptor;
-import IR.Descriptor;
 import IR.MethodDescriptor;
+import IR.NameDescriptor;
+import IR.Operation;
 import IR.State;
 import IR.SymbolTable;
-import IR.TaskDescriptor;
 import IR.TypeDescriptor;
 import IR.VarDescriptor;
+import IR.Flat.FKind;
+import IR.Flat.FlatMethod;
+import IR.Flat.FlatNode;
+import IR.Flat.FlatOpNode;
+import IR.Flat.TempDescriptor;
 import IR.Tree.ArrayAccessNode;
 import IR.Tree.ArrayInitializerNode;
 import IR.Tree.AssignmentNode;
-import IR.Tree.AtomicNode;
 import IR.Tree.BlockExpressionNode;
 import IR.Tree.BlockNode;
 import IR.Tree.BlockStatementNode;
 import IR.Tree.CastNode;
-import IR.Tree.ClassTypeNode;
-import IR.Tree.ContinueBreakNode;
 import IR.Tree.CreateObjectNode;
 import IR.Tree.DeclarationNode;
 import IR.Tree.ExpressionNode;
 import IR.Tree.FieldAccessNode;
 import IR.Tree.IfStatementNode;
-import IR.Tree.InstanceOfNode;
 import IR.Tree.Kind;
-import IR.Tree.LiteralNode;
 import IR.Tree.LoopNode;
 import IR.Tree.MethodInvokeNode;
 import IR.Tree.NameNode;
@@ -41,25 +42,33 @@ import IR.Tree.OpNode;
 import IR.Tree.ReturnNode;
 import IR.Tree.SubBlockNode;
 import IR.Tree.SwitchBlockNode;
-import IR.Tree.SwitchLabelNode;
 import IR.Tree.SwitchStatementNode;
 import IR.Tree.SynchronizedNode;
-import IR.Tree.TagDeclarationNode;
-import IR.Tree.TaskExitNode;
 import IR.Tree.TertiaryNode;
+import IR.Tree.TreeNode;
 
 public class LinearTypeCheck {
 
   State state;
   SSJavaAnalysis ssjava;
   String needToNullify = null;
+  AssignmentNode prevAssignNode;
 
   Hashtable<MethodDescriptor, Set<VarDescriptor>> md2DelegateParamSet;
+
+  Set<TreeNode> linearTypeCheckSet;
+
+  Hashtable<TreeNode, FlatMethod> mapTreeNode2FlatMethod;
+
+  Liveness liveness;
 
   public LinearTypeCheck(SSJavaAnalysis ssjava, State state) {
     this.ssjava = ssjava;
     this.state = state;
-    md2DelegateParamSet = new Hashtable<MethodDescriptor, Set<VarDescriptor>>();
+    this.md2DelegateParamSet = new Hashtable<MethodDescriptor, Set<VarDescriptor>>();
+    this.linearTypeCheckSet = new HashSet<TreeNode>();
+    this.mapTreeNode2FlatMethod = new Hashtable<TreeNode, FlatMethod>();
+    this.liveness = new Liveness();
   }
 
   public void linearTypeCheck() {
@@ -73,8 +82,6 @@ public class LinearTypeCheck {
         parseAnnotations(md);
       }
     }
-    System.out.println("###");
-    System.out.println("md2DelegateParamSet=" + md2DelegateParamSet);
 
     // second, check the linear type
     it = state.getClassSymbolTable().getDescriptorsIterator();
@@ -82,12 +89,42 @@ public class LinearTypeCheck {
       ClassDescriptor cd = (ClassDescriptor) it.next();
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
-        if (ssjava.needTobeAnnotated(md)) {
-          checkMethodBody(cd, md);
-        }
+        checkMethodBody(cd, md);
       }
     }
 
+    // third, check if original references are destroyed after creating new
+    // alias
+
+    for (Iterator<TreeNode> iterator = linearTypeCheckSet.iterator(); iterator.hasNext();) {
+      TreeNode tn = iterator.next();
+      Set<FlatNode> fnSet = ssjava.getBuildFlat().getFlatNodeSet(tn);
+      if (fnSet != null) {
+        for (Iterator iterator2 = fnSet.iterator(); iterator2.hasNext();) {
+          FlatNode fn = (FlatNode) iterator2.next();
+          if (isLiveOut(tn, fn)) {
+            throw new Error(
+                "Local variable '"
+                    + tn.printNode(0)
+                    + "', which is read by a method, should be destroyed after introducing new alias at "
+                    + mapTreeNode2FlatMethod.get(tn).getMethod().getClassDesc().getSourceFileName()
+                    + "::" + tn.getNumLine());
+          }
+
+        }
+      }
+
+    }
+
+  }
+
+  private boolean isLiveOut(TreeNode tn, FlatNode fn) {
+    Set<TempDescriptor> liveOutTemp = liveness.getLiveOutTemps(mapTreeNode2FlatMethod.get(tn), fn);
+    if (fn.kind() == FKind.FlatOpNode) {
+      FlatOpNode fon = (FlatOpNode) fn;
+      return liveOutTemp.contains(fon.getLeft());
+    }
+    return false;
   }
 
   private void parseAnnotations(MethodDescriptor md) {
@@ -133,8 +170,10 @@ public class LinearTypeCheck {
     if (needToNullify != null) {
       if (!checkNullifying(bsn)) {
         throw new Error(
-            "Reference field, which is read by a method, should be assigned to null before executing any following statement of the reference copy statement at "
-                + md.getClassDesc().getSourceFileName() + "::" + bsn.getNumLine());
+            "Reference field '"
+                + needToNullify
+                + "', which is read by a method, should be assigned to null before executing any following statement of the reference copy statement at "
+                + md.getClassDesc().getSourceFileName() + "::" + prevAssignNode.getNumLine());
       }
     }
 
@@ -173,7 +212,6 @@ public class LinearTypeCheck {
       return;
     }
 
-    throw new Error();
   }
 
   private void checkSynchronizedNode(MethodDescriptor md, SymbolTable nametable,
@@ -278,7 +316,6 @@ public class LinearTypeCheck {
       // checkClassTypeNode(md, nametable, (ClassTypeNode) ens);
       // return;
     }
-    throw new Error();
   }
 
   private void checkTertiaryNode(MethodDescriptor md, SymbolTable nametable, TertiaryNode en) {
@@ -317,6 +354,7 @@ public class LinearTypeCheck {
 
   private void checkCreateObjectNode(MethodDescriptor md, SymbolTable nametable,
       CreateObjectNode con) {
+
     TypeDescriptor[] tdarray = new TypeDescriptor[con.numArgs()];
     for (int i = 0; i < con.numArgs(); i++) {
       ExpressionNode en = con.getArg(i);
@@ -348,7 +386,12 @@ public class LinearTypeCheck {
       if (en.kind() == Kind.AssignmentNode) {
         AssignmentNode an = (AssignmentNode) en;
 
-        if (an.getSrc().getType().isNull() && an.getDest().printNode(0).equals(needToNullify)) {
+        String destName = an.getDest().printNode(0);
+        if (destName.startsWith("this.")) {
+          destName = destName.substring(5);
+        }
+
+        if (an.getSrc().getType().isNull() && destName.equals(needToNullify)) {
           needToNullify = null;
           return true;
         }
@@ -377,12 +420,63 @@ public class LinearTypeCheck {
     }
   }
 
-  private void checkAssignmentNode(Descriptor md, SymbolTable nametable, AssignmentNode an) {
-    needToNullify(an.getSrc());
+  private void checkAssignmentNode(MethodDescriptor md, SymbolTable nametable, AssignmentNode an) {
+
+    boolean postinc = true;
+    if (an.getOperation().getBaseOp() == null
+        || (an.getOperation().getBaseOp().getOp() != Operation.POSTINC && an.getOperation()
+            .getBaseOp().getOp() != Operation.POSTDEC))
+      postinc = false;
+
+    if (!postinc) {
+      if (!an.getSrc().getType().isImmutable()) {
+        if (an.getSrc().kind() == Kind.NameNode) {
+
+          NameNode nn = (NameNode) an.getSrc();
+
+          if (nn.getField() != null) {
+            needToNullify = nn.getField().getSymbol();
+            prevAssignNode = an;
+          } else if (nn.getExpression() != null) {
+            if (nn.getExpression() instanceof FieldAccessNode) {
+              FieldAccessNode fan = (FieldAccessNode) nn.getExpression();
+              needToNullify = fan.printNode(0);
+              prevAssignNode = an;
+
+            }
+
+          } else {
+            // local variable case
+            linearTypeCheckSet.add(an.getSrc());
+            mapTreeNode2FlatMethod.put(an.getSrc(), state.getMethodFlat(md));
+          }
+        } else if (an.getSrc().kind() == Kind.FieldAccessNode) {
+          FieldAccessNode fan = (FieldAccessNode) an.getSrc();
+          needToNullify = fan.printNode(0);
+          if (needToNullify.startsWith("this.")) {
+            needToNullify = needToNullify.substring(5);
+          }
+          prevAssignNode = an;
+        }
+
+      }
+    }
+
+    // needToNullify(an.getSrc());
   }
 
-  private void checkDeclarationNode(Descriptor md, SymbolTable nametable, DeclarationNode dn) {
-    needToNullify(dn.getExpression());
+  private String getVarNameFromNameNode(NameNode nn) {
+    NameDescriptor nd = nn.getName();
+    String varName = nd.toString();
+    return varName;
+  }
+
+  private void checkDeclarationNode(MethodDescriptor md, SymbolTable nametable, DeclarationNode dn) {
+    if (dn.getExpression() != null) {
+      checkExpressionNode(md, nametable, dn.getExpression());
+    }
+
+    // needToNullify(dn.getExpression());
   }
 
   private void needToNullify(ExpressionNode en) {

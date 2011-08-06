@@ -16,6 +16,10 @@ public class BuildFlat {
 
   // for synchronized blocks
   Stack<TempDescriptor> lockStack;
+  
+  // maps tree node to the set of flat node that is translated from the tree node 
+  // WARNING: ONLY DID FOR NAMENODE NOW!
+  Hashtable<TreeNode,Set<FlatNode>> mapNode2FlatNodeSet;
 
   public BuildFlat(State st, TypeUtil typeutil) {
     state=st;
@@ -24,6 +28,7 @@ public class BuildFlat {
     this.breakset=new HashSet();
     this.continueset=new HashSet();
     this.lockStack = new Stack<TempDescriptor>();
+    this.mapNode2FlatNodeSet=new Hashtable<TreeNode,Set<FlatNode>>();
   }
 
   public Hashtable getMap() {
@@ -1018,6 +1023,7 @@ public class BuildFlat {
       }
       FlatFieldNode ffn=new FlatFieldNode(nn.getField(), tmp, out_temp);
       ffn.setNumLine(nn.getNumLine());
+      addMapNode2FlatNodeSet(nn,ffn);
       return new NodePair(ffn,ffn);
     } else {
       TempDescriptor tmp=getTempforVar(nn.isTag()?nn.getTagVar():nn.getVar());
@@ -1027,6 +1033,7 @@ public class BuildFlat {
       }
       FlatOpNode fon=new FlatOpNode(out_temp, tmp, null, new Operation(Operation.ASSIGN));
       fon.setNumLine(nn.getNumLine());
+      addMapNode2FlatNodeSet(nn,fon);
       return new NodePair(fon,fon);
     }
   }
@@ -1750,4 +1757,20 @@ public class BuildFlat {
     }
     throw new Error();
   }
+  
+  private void addMapNode2FlatNodeSet(TreeNode tn, FlatNode fn){
+    Set<FlatNode> fnSet=mapNode2FlatNodeSet.get(tn);
+    if(fnSet==null){
+      fnSet=new HashSet<FlatNode>();
+      mapNode2FlatNodeSet.put(tn, fnSet);
+    }
+    fnSet.add(fn);
+  }
+  
+  public Set<FlatNode> getFlatNodeSet(TreeNode tn){
+    // WARNING: ONLY DID FOR NAMENODE NOW!
+    assert(tn instanceof NameNode);
+    return mapNode2FlatNodeSet.get(tn);
+  }
+  
 }

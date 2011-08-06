@@ -21,7 +21,7 @@ import IR.State;
 import IR.TypeUtil;
 import IR.Flat.BuildFlat;
 import IR.Flat.FlatMethod;
-import IR.Flat.TempDescriptor;
+import IR.Tree.TreeNode;
 import Util.Pair;
 
 public class SSJavaAnalysis {
@@ -41,6 +41,7 @@ public class SSJavaAnalysis {
   TypeUtil tu;
   FlowDownCheck flowDownChecker;
   MethodAnnotationCheck methodAnnotationChecker;
+  BuildFlat bf;
 
   // set containing method requires to be annoated
   Set<MethodDescriptor> annotationRequireSet;
@@ -65,7 +66,9 @@ public class SSJavaAnalysis {
 
   CallGraph callgraph;
 
-  public SSJavaAnalysis(State state, TypeUtil tu, CallGraph callgraph) {
+  LinearTypeCheck checker;
+
+  public SSJavaAnalysis(State state, TypeUtil tu, BuildFlat bf, CallGraph callgraph) {
     this.state = state;
     this.tu = tu;
     this.callgraph = callgraph;
@@ -76,10 +79,12 @@ public class SSJavaAnalysis {
     this.annotationRequireClassSet = new HashSet<ClassDescriptor>();
     this.skipLoopTerminate = new Hashtable<MethodDescriptor, Integer>();
     this.mapSharedLocation2DescriptorSet = new Hashtable<Location, Set<Descriptor>>();
+    this.bf = bf;
   }
 
   public void doCheck() {
     doLinearTypeCheck();
+    System.exit(0);
     doMethodAnnotationCheck();
     if (state.SSJAVADEBUG) {
       debugPrint();
@@ -400,6 +405,10 @@ public class SSJavaAnalysis {
       mapSharedLocation2DescriptorSet.put(loc, set);
     }
     set.add(d);
+  }
+
+  public BuildFlat getBuildFlat() {
+    return bf;
   }
 
 }

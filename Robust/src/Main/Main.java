@@ -483,7 +483,7 @@ public class Main {
     CallGraph callgraph=jb!=null?jb:(state.TASK?new BaseCallGraph(state, tu):new JavaCallGraph(state, tu));
 
     // SSJava
-    SSJavaAnalysis ssjava=new SSJavaAnalysis(state,tu,callgraph);
+    SSJavaAnalysis ssjava=new SSJavaAnalysis(state,tu,bf,callgraph);
     if(state.SSJAVA) {
       ssjava.doCheck();
       State.logEvent("Done SSJava Checking");
