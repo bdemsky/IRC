@@ -9,6 +9,7 @@ import java.util.Vector;
 import Analysis.Liveness;
 import IR.AnnotationDescriptor;
 import IR.ClassDescriptor;
+import IR.Descriptor;
 import IR.MethodDescriptor;
 import IR.NameDescriptor;
 import IR.Operation;
@@ -54,7 +55,7 @@ public class LinearTypeCheck {
   String needToNullify = null;
   AssignmentNode prevAssignNode;
 
-  Hashtable<MethodDescriptor, Set<VarDescriptor>> md2DelegateParamSet;
+  Hashtable<MethodDescriptor, Set<String>> md2OwnSet;
 
   Set<TreeNode> linearTypeCheckSet;
 
@@ -65,7 +66,7 @@ public class LinearTypeCheck {
   public LinearTypeCheck(SSJavaAnalysis ssjava, State state) {
     this.ssjava = ssjava;
     this.state = state;
-    this.md2DelegateParamSet = new Hashtable<MethodDescriptor, Set<VarDescriptor>>();
+    this.md2OwnSet = new Hashtable<MethodDescriptor, Set<String>>();
     this.linearTypeCheckSet = new HashSet<TreeNode>();
     this.mapTreeNode2FlatMethod = new Hashtable<TreeNode, FlatMethod>();
     this.liveness = new Liveness();
@@ -139,17 +140,21 @@ public class LinearTypeCheck {
         AnnotationDescriptor ad = annotationVec.elementAt(anIdx);
         if (ad.getMarker().equals(SSJavaAnalysis.DELEGATE)) {
 
-          Set<VarDescriptor> delegateSet = md2DelegateParamSet.get(md);
-          if (delegateSet == null) {
-            delegateSet = new HashSet<VarDescriptor>();
-            md2DelegateParamSet.put(md, delegateSet);
-          }
-          delegateSet.add(vd);
+          addOwnSet(md, vd.getName());
+          SSJavaType locationType = new SSJavaType(true);
+          vd.getType().setExtension(locationType);
         }
       }
-
     }
+  }
 
+  private void addOwnSet(MethodDescriptor md, String own) {
+    Set<String> ownSet = md2OwnSet.get(md);
+    if (ownSet == null) {
+      ownSet = new HashSet<String>();
+      md2OwnSet.put(md, ownSet);
+    }
+    ownSet.add(own);
   }
 
   private void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
@@ -338,9 +343,49 @@ public class LinearTypeCheck {
 
   }
 
-  private void checkMethodInvokeNode(MethodDescriptor md, SymbolTable nametable, MethodInvokeNode en) {
-    // TODO Auto-generated method stub
+  private void checkMethodInvokeNode(MethodDescriptor md, SymbolTable nametable,
+      MethodInvokeNode min) {
 
+    MethodDescriptor calleeMethodDesc = min.getMethod();
+
+    for (int i = 0; i < min.numArgs(); i++) {
+      ExpressionNode argNode = min.getArg(i);
+
+      VarDescriptor paramDesc = (VarDescriptor) calleeMethodDesc.getParameter(i);
+      TypeDescriptor paramType = calleeMethodDesc.getParamType(i);
+
+      if (isReference(argNode.getType())) {
+
+        if (argNode.kind() == Kind.NameNode) {
+          NameNode argNN = (NameNode) argNode;
+          NameDescriptor argNameDesc = argNN.getName();
+
+          if (isOwned(calleeMethodDesc, paramDesc.getName())
+              && !isOwned(md, argNameDesc.getIdentifier())) {
+            // method expects that argument is owned by caller
+
+            throw new Error("Caller passes an argument not owned by itself at " + md.getClassDesc()
+                + "::" + min.getNumLine());
+
+          }
+
+        }
+
+        md2OwnSet.get(calleeMethodDesc);
+
+      }
+    }
+
+  }
+
+  private boolean isOwned(MethodDescriptor md, String id) {
+    if (md2OwnSet.get(md) == null) {
+      return false;
+    } else if (md2OwnSet.get(md).contains(id)) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   private void checkArrayAccessNode(MethodDescriptor md, SymbolTable nametable, ArrayAccessNode en) {
@@ -365,6 +410,10 @@ public class LinearTypeCheck {
     if ((con.getArrayInitializer() != null)) {
       checkArrayInitializerNode(md, nametable, con.getArrayInitializer());
     }
+
+    // the current method owns a instance that it makes inside
+    SSJavaType locationType = new SSJavaType(true);
+    con.getType().setExtension(locationType);
 
   }
 
@@ -429,7 +478,10 @@ public class LinearTypeCheck {
       postinc = false;
 
     if (!postinc) {
-      if (!an.getSrc().getType().isImmutable()) {
+
+      checkExpressionNode(md, nametable, an.getSrc());
+
+      if (isReference(an.getSrc().getType())) {
         if (an.getSrc().kind() == Kind.NameNode) {
 
           NameNode nn = (NameNode) an.getSrc();
@@ -459,10 +511,84 @@ public class LinearTypeCheck {
           prevAssignNode = an;
         }
 
+        // here, transfer ownership from LHS to RHS when it creates alias
+        if (isReference(an.getDest().getType()) && !an.getSrc().getType().isNull()) {
+
+          if (!isField(an.getDest())) {
+            if (an.getDest().kind() == Kind.NameNode) {
+              NameNode nn = ((NameNode) an.getDest());
+              String baseId = getBase(an.getSrc());
+
+              if (isField(an.getSrc())) {
+                if (isOwned(md, baseId)) {
+                  addOwnSet(md, nn.getName().toString());
+                }
+              } else {
+                if (isOwned(md, an.getSrc().printNode(0))) {
+                  addOwnSet(md, nn.getName().toString());
+                }
+              }
+            }
+          } else {
+            // if instance is not owned by the method, not able to store
+            // instance
+            // into field
+            if (!isOwned(md, an.getSrc().printNode(0))) {
+              throw new Error(
+                  "Method is not allowed to store an instance not owned by itself into a field at "
+                      + md.getClassDesc() + "::" + an.getNumLine());
+            }
+          }
+
+        }
       }
+
     }
 
-    // needToNullify(an.getSrc());
+  }
+
+  private boolean isLocationTypeOwned(SSJavaType locationType) {
+    if (locationType != null) {
+      return locationType.isOwned();
+    } else {
+      return false;
+    }
+  }
+
+  private boolean isField(ExpressionNode en) {
+
+    if (en.kind() == Kind.NameNode) {
+      NameNode nn = (NameNode) en;
+      if (nn.getField() != null) {
+        return true;
+      }
+
+      if (nn.getName() != null && nn.getName().getBase() != null) {
+        return true;
+      }
+
+    } else if (en.kind() == Kind.FieldAccessNode) {
+      return true;
+    }
+    return false;
+  }
+
+  private String getBase(ExpressionNode en) {
+
+    if (en.kind() == Kind.NameNode) {
+      NameNode nn = (NameNode) en;
+      if (nn.getName().getBase() != null) {
+        return nn.getName().getBase().toString();
+      } else {
+        return null;
+      }
+    } else if (en.kind() == Kind.FieldAccessNode) {
+      FieldAccessNode fan = (FieldAccessNode) en;
+      return fan.getExpression().printNode(0);
+    }
+
+    return null;
+
   }
 
   private String getVarNameFromNameNode(NameNode nn) {
@@ -474,23 +600,19 @@ public class LinearTypeCheck {
   private void checkDeclarationNode(MethodDescriptor md, SymbolTable nametable, DeclarationNode dn) {
     if (dn.getExpression() != null) {
       checkExpressionNode(md, nametable, dn.getExpression());
+      if (dn.getExpression().kind() == Kind.CreateObjectNode) {
+        addOwnSet(md, dn.getVarDescriptor().getName());
+      }
+
     }
 
-    // needToNullify(dn.getExpression());
   }
 
-  private void needToNullify(ExpressionNode en) {
-
-    if (en != null && en.getType().isPtr() && !en.getType().isString()) {
-      if (en.kind() != Kind.CreateObjectNode && en.kind() != Kind.LiteralNode) {
-        if (en.kind() == Kind.CastNode) {
-          needToNullify = ((CastNode) en).getExpression().printNode(0);
-        } else {
-          needToNullify = en.printNode(0);
-        }
-      }
+  private boolean isReference(TypeDescriptor td) {
+    if (td.isPtr() && !td.isImmutable()) {
+      return true;
     }
-
+    return false;
   }
 
 }

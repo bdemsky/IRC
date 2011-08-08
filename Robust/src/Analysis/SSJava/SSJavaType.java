@@ -27,4 +27,8 @@ public class SSJavaType implements TypeExtension {
     this.isOwned = isOwned;
   }
 
+  public String toString() {
+    return compLoc + "::owned=" + isOwned;
+  }
+
 }

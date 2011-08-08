@@ -36,6 +36,7 @@ public class SSJavaAnalysis {
   public static final String DELTA = "DELTA";
   public static final String TERMINATE = "TERMINATE";
   public static final String DELEGATE = "DELEGATE";
+  public static final String DELEGATETHIS = "DELEGATETHIS";
 
   State state;
   TypeUtil tu;
@@ -84,7 +85,6 @@ public class SSJavaAnalysis {
 
   public void doCheck() {
     doLinearTypeCheck();
-    System.exit(0);
     doMethodAnnotationCheck();
     if (state.SSJAVADEBUG) {
       debugPrint();
