@@ -48,8 +48,9 @@ public class String {
     this.offset=0;
   }
   
-  public String(@LOC("IN") String str) {
+  public String( @DELEGATE  @LOC("IN") String str) {
     this.value=str.value;
+    str.value=null;
     this.count=str.count;
     this.offset=str.offset;
   }
@@ -78,12 +79,6 @@ public class String {
     this.offset=0;
   }
   
-  public String(String str) {
-    this.value=str.value;
-    this.count=str.count;
-    this.offset=str.offset;
-  }
-
   @LATTICE("O<V,V<C,C<IN,THISLOC=IN,C*")
   @RETURNLOC("O")
   public String concat(@LOC("IN") String str) {
