@@ -1632,8 +1632,8 @@ public class BuildIR {
 
         md.addParameter(type, paramname);
         if(isNode(paramn, "annotation_parameter")) {
-          ParseNode bodynode=paramn.getChild("annotation_body");
-          parseParameterAnnotation(bodynode,type);
+          ParseNode listnode=paramn.getChild("annotation_list");
+          parseParameterAnnotation(listnode,type);
         }
 
       }
@@ -1697,16 +1697,35 @@ public class BuildIR {
     }
   }
 
-  private void parseParameterAnnotation(ParseNode body_list,TypeDescriptor type) {
-    ParseNode body_node = body_list.getFirstChild();
-    if (isNode(body_node, "marker_annotation")) {
-      type.addAnnotationMarker(new AnnotationDescriptor(body_node.getChild("name").getTerminal()));
-    } else if (isNode(body_node, "single_annotation")) {
-      type.addAnnotationMarker(new AnnotationDescriptor(body_node.getChild("name").getTerminal(),
-                                                        body_node.getChild("element_value").getTerminal()));
-    } else if (isNode(body_node, "normal_annotation")) {
-      throw new Error("Annotation with multiple data members is not supported yet.");
+  private void parseParameterAnnotation(ParseNode pn,TypeDescriptor type) {
+    
+    
+    ParseNodeVector pnv = pn.getChildren();
+    for (int i = 0; i < pnv.size(); i++) {
+      ParseNode body_list = pnv.elementAt(i);
+      if (isNode(body_list, "annotation_body")) {
+        ParseNode body_node = body_list.getFirstChild();
+        if (isNode(body_node, "marker_annotation")) {
+          type.addAnnotationMarker(new AnnotationDescriptor(body_node.getChild("name").getTerminal()));
+        } else if (isNode(body_node, "single_annotation")) {
+          type.addAnnotationMarker(new AnnotationDescriptor(body_node.getChild("name").getTerminal(),
+                                                   body_node.getChild("element_value").getTerminal()));
+        } else if (isNode(body_node, "normal_annotation")) {
+          throw new Error("Annotation with multiple data members is not supported yet.");
+        }
+      }
     }
+    
+    
+//    ParseNode body_node = body_list.getFirstChild();
+//    if (isNode(body_node, "marker_annotation")) {
+//      type.addAnnotationMarker(new AnnotationDescriptor(body_node.getChild("name").getTerminal()));
+//    } else if (isNode(body_node, "single_annotation")) {
+//      type.addAnnotationMarker(new AnnotationDescriptor(body_node.getChild("name").getTerminal(),
+//                                                        body_node.getChild("element_value").getTerminal()));
+//    } else if (isNode(body_node, "normal_annotation")) {
+//      throw new Error("Annotation with multiple data members is not supported yet.");
+//    }
   }
 
   private boolean isNode(ParseNode pn, String label) {
