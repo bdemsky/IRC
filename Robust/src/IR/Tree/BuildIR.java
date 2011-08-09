@@ -1698,8 +1698,6 @@ public class BuildIR {
   }
 
   private void parseParameterAnnotation(ParseNode pn,TypeDescriptor type) {
-    
-    
     ParseNodeVector pnv = pn.getChildren();
     for (int i = 0; i < pnv.size(); i++) {
       ParseNode body_list = pnv.elementAt(i);
@@ -1715,17 +1713,6 @@ public class BuildIR {
         }
       }
     }
-    
-    
-//    ParseNode body_node = body_list.getFirstChild();
-//    if (isNode(body_node, "marker_annotation")) {
-//      type.addAnnotationMarker(new AnnotationDescriptor(body_node.getChild("name").getTerminal()));
-//    } else if (isNode(body_node, "single_annotation")) {
-//      type.addAnnotationMarker(new AnnotationDescriptor(body_node.getChild("name").getTerminal(),
-//                                                        body_node.getChild("element_value").getTerminal()));
-//    } else if (isNode(body_node, "normal_annotation")) {
-//      throw new Error("Annotation with multiple data members is not supported yet.");
-//    }
   }
 
   private boolean isNode(ParseNode pn, String label) {
