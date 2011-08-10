@@ -1,15 +1,18 @@
 package Analysis.SSJava;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
 import Analysis.Liveness;
 import IR.AnnotationDescriptor;
 import IR.ClassDescriptor;
-import IR.Descriptor;
 import IR.MethodDescriptor;
 import IR.Operation;
 import IR.State;
@@ -62,6 +65,8 @@ public class LinearTypeCheck {
 
   Liveness liveness;
 
+  boolean deterministic = true;
+
   public LinearTypeCheck(SSJavaAnalysis ssjava, State state) {
     this.ssjava = ssjava;
     this.state = state;
@@ -84,12 +89,47 @@ public class LinearTypeCheck {
     }
 
     // second, check the linear type
-    it = state.getClassSymbolTable().getDescriptorsIterator();
-    while (it.hasNext()) {
-      ClassDescriptor cd = (ClassDescriptor) it.next();
-      for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
-        MethodDescriptor md = (MethodDescriptor) method_it.next();
-        checkMethodBody(cd, md);
+    if (deterministic) {
+
+      SymbolTable classtable = state.getClassSymbolTable();
+
+      List<ClassDescriptor> toanalyzeList = new ArrayList<ClassDescriptor>();
+      List<MethodDescriptor> toanalyzeMethodList = new ArrayList<MethodDescriptor>();
+
+      toanalyzeList.addAll(classtable.getValueSet());
+      Collections.sort(toanalyzeList, new Comparator<ClassDescriptor>() {
+        public int compare(ClassDescriptor o1, ClassDescriptor o2) {
+          return o1.getClassName().compareTo(o2.getClassName());
+        }
+      });
+
+      for (int i = 0; i < toanalyzeList.size(); i++) {
+        ClassDescriptor cd = toanalyzeList.get(i);
+
+        SymbolTable methodtable = cd.getMethodTable();
+        toanalyzeMethodList.clear();
+        toanalyzeMethodList.addAll(methodtable.getValueSet());
+        Collections.sort(toanalyzeMethodList, new Comparator<MethodDescriptor>() {
+          public int compare(MethodDescriptor o1, MethodDescriptor o2) {
+            return o1.getSymbol().compareTo(o2.getSymbol());
+          }
+        });
+
+        for (int mdIdx = 0; mdIdx < toanalyzeMethodList.size(); mdIdx++) {
+          MethodDescriptor md = toanalyzeMethodList.get(mdIdx);
+          checkMethodBody(cd, md);
+        }
+
+      }
+
+    } else {
+      it = state.getClassSymbolTable().getDescriptorsIterator();
+      while (it.hasNext()) {
+        ClassDescriptor cd = (ClassDescriptor) it.next();
+        for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
+          MethodDescriptor md = (MethodDescriptor) method_it.next();
+          checkMethodBody(cd, md);
+        }
       }
     }
 
@@ -395,6 +435,12 @@ public class LinearTypeCheck {
 
         if (isParamOwnedByCallee) {
 
+          // cannot pass field reference through ownership transition
+          if (isField(argNode)) {
+            throw new Error("Caller cannot transfer its ownership of the field reference at "
+                + md.getClassDesc() + "::" + min.getNumLine());
+          }
+
           // method expects that argument is owned by caller
           SSJavaType locationType = (SSJavaType) argType.getExtension();
 
@@ -402,6 +448,7 @@ public class LinearTypeCheck {
             throw new Error("Caller passes an argument not owned by itself at " + md.getClassDesc()
                 + "::" + min.getNumLine());
           }
+
         }
 
       }
@@ -503,6 +550,7 @@ public class LinearTypeCheck {
       checkExpressionNode(md, nametable, an.getSrc());
 
       if (isReference(an.getSrc().getType()) && isReference(an.getDest().getType())) {
+
         if (an.getSrc().kind() == Kind.NameNode) {
 
           NameNode nn = (NameNode) an.getSrc();
@@ -531,12 +579,14 @@ public class LinearTypeCheck {
           }
           prevAssignNode = an;
         } else if (an.getSrc().kind() == Kind.ArrayAccessNode) {
-          throw new Error(
-              "Not allowed to create an alias to the middle of the multidimensional array at "
-                  + md.getClassDesc() + "::" + an.getNumLine());
+          if (an.getSrc().getType().isPtr()) {
+            throw new Error(
+                "Not allowed to create an alias to the middle of the multidimensional array at "
+                    + md.getClassDesc().getSourceFileName() + "::" + an.getNumLine());
+          }
         }
 
-        if (!an.getSrc().getType().isNull()) {
+        if (isCreatingAlias(an.getSrc())) {
 
           TypeDescriptor srcType = getTypeDescriptor(an.getSrc());
           boolean isSourceOwned = false;
@@ -556,7 +606,7 @@ public class LinearTypeCheck {
             if (!isSourceOwned) {
               throw new Error(
                   "Method is not allowed to store an instance not owned by itself into a field at "
-                      + md.getClassDesc() + "::" + an.getNumLine());
+                      + md.getClassDesc().getSourceFileName() + "::" + an.getNumLine());
             }
           }
 
@@ -565,6 +615,16 @@ public class LinearTypeCheck {
       }
 
     }
+
+  }
+
+  private boolean isCreatingAlias(ExpressionNode en) {
+
+    int kind = en.kind();
+    if (kind == Kind.NameNode || kind == Kind.ArrayAccessNode || kind == Kind.FieldAccessNode) {
+      return true;
+    }
+    return false;
 
   }
 
