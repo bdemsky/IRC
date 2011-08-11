@@ -139,6 +139,10 @@ public final class Bitstream implements BitstreamErrors {
   @LOC("FF")
   private boolean firstframe = true;
 
+  private BitReserve br;
+  private int main_data_begin;
+  private int frame_start;
+
   /**
    * Construct a IBitstream that reads data from a given InputStream.
    * 
@@ -157,6 +161,9 @@ public final class Bitstream implements BitstreamErrors {
     closeFrame();
     // current_frame_number = -1;
     // last_frame_number = -1;
+
+    br = new BitReserve();
+
   }
 
   /**
@@ -370,6 +377,47 @@ public final class Bitstream implements BitstreamErrors {
     return get_bits(n);
   }
 
+  public int peek_bits(int number_of_bits) {
+
+    int peekbitindex = bitindex;
+    int peekPointer = wordpointer;
+
+    int returnvalue = 0;
+    int sum = peekbitindex + number_of_bits;
+
+    if (peekPointer < 0) {
+      peekPointer = 0;
+    }
+
+    if (sum <= 32) {
+      // all bits contained in *wordpointer
+      returnvalue = (framebuffer[peekPointer] >>> (32 - sum)) & bitmask[number_of_bits];
+      // returnvalue = (wordpointer[0] >> (32 - sum)) &
+      // bitmask[number_of_bits];
+      if ((peekbitindex += number_of_bits) == 32) {
+        peekbitindex = 0;
+        peekPointer++; // added by me!
+      }
+      return returnvalue;
+    }
+
+    // E.B : Check that ?
+    // ((short[])&returnvalue)[0] = ((short[])wordpointer + 1)[0];
+    // wordpointer++; // Added by me!
+    // ((short[])&returnvalue + 1)[0] = ((short[])wordpointer)[0];
+    int Right = (framebuffer[peekPointer] & 0x0000FFFF);
+    peekPointer++;
+    int Left = (framebuffer[peekPointer] & 0xFFFF0000);
+    returnvalue = ((Right << 16) & 0xFFFF0000) | ((Left >>> 16) & 0x0000FFFF);
+
+    returnvalue >>>= 48 - sum; // returnvalue >>= 16 - (number_of_bits - (32
+                               // - bitindex))
+    returnvalue &= bitmask[number_of_bits];
+    peekbitindex = sum - 32;
+    return returnvalue;
+
+  }
+
   public int readCheckedBits(int n) {
     // REVIEW: implement CRC check.
     return get_bits(n);
@@ -505,7 +553,7 @@ public final class Bitstream implements BitstreamErrors {
    */
   @LATTICE("OUT<RL,RL<THIS,THIS<IN,OUT*,THISLOC=THIS,RETURNLOC=OUT")
   public int get_bits(@LOC("IN") int number_of_bits) {
-    
+
     @LOC("OUT") int returnvalue = 0;
     @LOC("THIS,Bitstream.BI") int sum = bitindex + number_of_bits;
 
@@ -612,5 +660,71 @@ public final class Bitstream implements BitstreamErrors {
       throw newBitstreamException(STREAM_ERROR, ex);
     }
     return totalBytesRead;
+  }
+
+  public SideInfoBuffer getSideInfoBuffer(int channelType) {
+
+    if (wordpointer < 0)
+      wordpointer = 0;
+
+    SideInfoBuffer sib = new SideInfoBuffer();
+
+    // first, store main_data_begin from the side inforamtion
+    main_data_begin = peek_bits(9);
+    System.out.println("main_data_begin=" + main_data_begin);
+
+    int max;
+    if (channelType == 1) { // mono
+      max = wordpointer + 4;
+    } else {
+      max = wordpointer + 8;
+    }
+
+    try {
+      for (; wordpointer < max; wordpointer++) {
+        sib.setBuffer(wordpointer, framebuffer[wordpointer]);
+      }
+    } catch (ArrayIndexOutOfBoundsException e) {
+      System.out.print("wordpointer=" + wordpointer);
+      System.out.println("framebuffer length=" + framebuffer.length);
+    }
+
+    return sib;
+  }
+
+  public BitReserve getBitReserve(int nSlots) {
+
+    int flush_main;
+    int bytes_to_discard;
+    int i;
+
+    for (i = 0; i < nSlots; i++)
+      br.hputbuf(get_bits(8));
+
+    int main_data_end = br.hsstell() >>> 3; // of previous frame
+
+    if ((flush_main = (br.hsstell() & 7)) != 0) {
+      br.hgetbits(8 - flush_main);
+      main_data_end++;
+    }
+
+    bytes_to_discard = frame_start - main_data_end - main_data_begin;
+
+    frame_start += nSlots;
+
+    if (bytes_to_discard < 0) {
+      System.out.println("HERE?");
+      return null;
+    }
+
+    if (main_data_end > 4096) {
+      frame_start -= 4096;
+      br.rewindNbytes(4096);
+    }
+
+    for (; bytes_to_discard > 0; bytes_to_discard--)
+      br.hgetbits(8);
+
+    return br;
   }
 }

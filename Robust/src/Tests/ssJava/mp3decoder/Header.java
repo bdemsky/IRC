@@ -112,6 +112,9 @@ public final class Header {
   @LOC("T")
   private int _headerstring = -1; // E.B
 
+  private SideInfoBuffer sib;
+  private BitReserve br;
+
   Header() {
   }
 
@@ -802,4 +805,21 @@ public final class Header {
   public int intensity_stereo_bound() {
     return h_intensity_stereo_bound;
   }
+
+  public void setSideInfoBuf(SideInfoBuffer sib) {
+    this.sib = sib;
+  }
+
+  public void setBitReserve(BitReserve br) {
+    this.br = br;
+  }
+
+  public SideInfoBuffer getSideInfoBuffer() {
+    return sib;
+  }
+
+  public BitReserve getBitReserve() {
+    return br;
+  }
+
 }

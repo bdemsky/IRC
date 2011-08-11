@@ -248,8 +248,7 @@ public class Decoder implements DecoderErrors {
     case 3:
       if (l3decoder == null) {
         l3decoder =
-            new LayerIIIDecoder(stream, header, filter1, filter2, output,
-                OutputChannels.BOTH_CHANNELS);
+            new LayerIIIDecoder(header, filter1, filter2, output, OutputChannels.BOTH_CHANNELS);
       }
 
       return l3decoder;

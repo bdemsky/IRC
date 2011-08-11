@@ -72,8 +72,6 @@ final class LayerIIIDecoder implements FrameDecoder {
   private float[][] k;
   @LOC("NZ")
   private int[] nonzero;
-  @LOC("ST")
-  private Bitstream stream;
   @LOC("HD")
   private Header header;
   @LOC("FT")
@@ -114,9 +112,8 @@ final class LayerIIIDecoder implements FrameDecoder {
   // REVIEW: these constructor arguments should be moved to the
   // decodeFrame() method, where possible, so that one
   @LATTICE("THIS<VAR,THIS<I,THIS<J,J<CH,I*,J*,CH*,THISLOC=THIS,GLOBALLOC=THIS")
-  public LayerIIIDecoder(@LOC("VAR") Bitstream stream0, @LOC("VAR") Header header0,
-      @LOC("VAR") SynthesisFilter filtera, @LOC("VAR") SynthesisFilter filterb,
-      @LOC("VAR") Obuffer buffer0, @LOC("VAR") int which_ch0) {
+  public LayerIIIDecoder(@LOC("VAR") Header header0, @LOC("VAR") SynthesisFilter filtera,
+      @LOC("VAR") SynthesisFilter filterb, @LOC("VAR") Obuffer buffer0, @LOC("VAR") int which_ch0) {
 
     huffcodetab.inithuff();
     is_1d = new int[SBLIMIT * SSLIMIT + 4];
@@ -209,7 +206,6 @@ final class LayerIIIDecoder implements FrameDecoder {
     scalefac_buffer = new int[54];
     // END OF scalefac_buffer
 
-    stream = stream0;
     header = header0;
     filter1 = filtera;
     filter2 = filterb;
@@ -309,43 +305,9 @@ final class LayerIIIDecoder implements FrameDecoder {
     @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int bytes_to_discard;
     @LOC("C") int i;
 
-    get_side_info();
-
-    for (i = 0; i < nSlots; i++) {
-      br.hputbuf(stream.get_bits(8));
-      // LOC(stream.get_bits)=DELTA[Loc[decode.THIS],Loc[LayerIIIDecoder.ST]]
-      // param should be higher than br
-    }
-
-    main_data_end = br.hsstell() >>> 3;
-
-    if ((flush_main = (br.hsstell() & 7)) != 0) { // flush_main < br
-      br.hgetbits(8 - flush_main); // br < flush_main
-      main_data_end++; // main_data_end*
-    }
-
-    // bytes_to_discard < GLB(frame_start,main_data_end,si)
-    bytes_to_discard = frame_start - main_data_end - si.main_data_begin;
-
-    // frame_start should be *
-    frame_start += nSlots;
-
-    if (bytes_to_discard < 0) {
-      return;
-    }
-
-    if (main_data_end > 4096) { // main_data_end should be > than 'frame_start'
-                                // and 'br'
-      frame_start -= 4096;
-      br.rewindNbytes(4096);
-    }
-
-    for (; bytes_to_discard > 0; bytes_to_discard--) {
-      // bytes_to_discard > br
-      br.hgetbits(8);
-    }
-
-    // doing something from here
+    // modifications for linear type
+    get_side_info(header.getSideInfoBuffer());
+    br = header.getBitReserve();
 
     // here 'gr' and 'max_gr' should be higher than 'ch','channels', and more
     for (gr = 0; gr < max_gr; gr++) { // two granules per channel
@@ -459,47 +421,48 @@ final class LayerIIIDecoder implements FrameDecoder {
    * Reads the side info from the stream, assuming the entire. frame has been
    * read already. Mono : 136 bits (= 17 bytes) Stereo : 256 bits (= 32 bytes)
    */
-  @LATTICE("OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
-  private boolean get_side_info() {
-
-    @LOC("THIS,LayerIIIDecoder.CH0") int ch;
-    @LOC("THIS,LayerIIIDecoder.CH0") int gr;
-
+  private boolean get_side_info(SideInfoBuffer sib) {
+    int ch, gr;
+    // System.out.println("#get_side_info");
     if (header.version() == Header.MPEG1) {
 
-      si.main_data_begin = stream.get_bits(9);
-      if (channels == 1) {
-        si.private_bits = stream.get_bits(5);
-      } else {
-        si.private_bits = stream.get_bits(3);
-      }
+      si.main_data_begin = sib.get_bits(9);
+      if (channels == 1)
+        si.private_bits = sib.get_bits(5);
+      else
+        si.private_bits = sib.get_bits(3);
 
       for (ch = 0; ch < channels; ch++) {
-        si.ch[ch].scfsi[0] = stream.get_bits(1);
-        si.ch[ch].scfsi[1] = stream.get_bits(1);
-        si.ch[ch].scfsi[2] = stream.get_bits(1);
-        si.ch[ch].scfsi[3] = stream.get_bits(1);
+        si.ch[ch].scfsi[0] = sib.get_bits(1);
+        si.ch[ch].scfsi[1] = sib.get_bits(1);
+        si.ch[ch].scfsi[2] = sib.get_bits(1);
+        si.ch[ch].scfsi[3] = sib.get_bits(1);
       }
 
+      // System.out.println("BEFORE GR,CH");
+
       for (gr = 0; gr < 2; gr++) {
+        // System.out.println("GR=" + gr);
         for (ch = 0; ch < channels; ch++) {
-          si.ch[ch].gr[gr].part2_3_length = stream.get_bits(12);
-          si.ch[ch].gr[gr].big_values = stream.get_bits(9);
-          si.ch[ch].gr[gr].global_gain = stream.get_bits(8);
-          si.ch[ch].gr[gr].scalefac_compress = stream.get_bits(4);
-          si.ch[ch].gr[gr].window_switching_flag = stream.get_bits(1);
+          // System.out.println("CH");
+          si.ch[ch].gr[gr].part2_3_length = sib.get_bits(12);
+          si.ch[ch].gr[gr].big_values = sib.get_bits(9);
+          si.ch[ch].gr[gr].global_gain = sib.get_bits(8);
+          si.ch[ch].gr[gr].scalefac_compress = sib.get_bits(4);
+          si.ch[ch].gr[gr].window_switching_flag = sib.get_bits(1);
           if ((si.ch[ch].gr[gr].window_switching_flag) != 0) {
-            si.ch[ch].gr[gr].block_type = stream.get_bits(2);
-            si.ch[ch].gr[gr].mixed_block_flag = stream.get_bits(1);
+            si.ch[ch].gr[gr].block_type = sib.get_bits(2);
+            si.ch[ch].gr[gr].mixed_block_flag = sib.get_bits(1);
 
-            si.ch[ch].gr[gr].table_select[0] = stream.get_bits(5);
-            si.ch[ch].gr[gr].table_select[1] = stream.get_bits(5);
+            si.ch[ch].gr[gr].table_select[0] = sib.get_bits(5);
+            si.ch[ch].gr[gr].table_select[1] = sib.get_bits(5);
 
-            si.ch[ch].gr[gr].subblock_gain[0] = stream.get_bits(3);
-            si.ch[ch].gr[gr].subblock_gain[1] = stream.get_bits(3);
-            si.ch[ch].gr[gr].subblock_gain[2] = stream.get_bits(3);
+            si.ch[ch].gr[gr].subblock_gain[0] = sib.get_bits(3);
+            si.ch[ch].gr[gr].subblock_gain[1] = sib.get_bits(3);
+            si.ch[ch].gr[gr].subblock_gain[2] = sib.get_bits(3);
 
-            // Set region_count parameters since they are implicit in this case.
+            // Set region_count parameters since they are implicit
+            // in this case.
 
             if (si.ch[ch].gr[gr].block_type == 0) {
               // Side info bad: block_type == 0 in split block
@@ -511,47 +474,48 @@ final class LayerIIIDecoder implements FrameDecoder {
             }
             si.ch[ch].gr[gr].region1_count = 20 - si.ch[ch].gr[gr].region0_count;
           } else {
-            si.ch[ch].gr[gr].table_select[0] = stream.get_bits(5);
-            si.ch[ch].gr[gr].table_select[1] = stream.get_bits(5);
-            si.ch[ch].gr[gr].table_select[2] = stream.get_bits(5);
-            si.ch[ch].gr[gr].region0_count = stream.get_bits(4);
-            si.ch[ch].gr[gr].region1_count = stream.get_bits(3);
+            si.ch[ch].gr[gr].table_select[0] = sib.get_bits(5);
+            si.ch[ch].gr[gr].table_select[1] = sib.get_bits(5);
+            si.ch[ch].gr[gr].table_select[2] = sib.get_bits(5);
+            si.ch[ch].gr[gr].region0_count = sib.get_bits(4);
+            si.ch[ch].gr[gr].region1_count = sib.get_bits(3);
             si.ch[ch].gr[gr].block_type = 0;
           }
-          si.ch[ch].gr[gr].preflag = stream.get_bits(1);
-          si.ch[ch].gr[gr].scalefac_scale = stream.get_bits(1);
-          si.ch[ch].gr[gr].count1table_select = stream.get_bits(1);
+          si.ch[ch].gr[gr].preflag = sib.get_bits(1);
+          si.ch[ch].gr[gr].scalefac_scale = sib.get_bits(1);
+          si.ch[ch].gr[gr].count1table_select = sib.get_bits(1);
         }
       }
 
     } else { // MPEG-2 LSF, SZD: MPEG-2.5 LSF
 
-      si.main_data_begin = stream.get_bits(8);
+      si.main_data_begin = sib.get_bits(8);
       if (channels == 1)
-        si.private_bits = stream.get_bits(1);
+        si.private_bits = sib.get_bits(1);
       else
-        si.private_bits = stream.get_bits(2);
+        si.private_bits = sib.get_bits(2);
 
       for (ch = 0; ch < channels; ch++) {
 
-        si.ch[ch].gr[0].part2_3_length = stream.get_bits(12);
-        si.ch[ch].gr[0].big_values = stream.get_bits(9);
-        si.ch[ch].gr[0].global_gain = stream.get_bits(8);
-        si.ch[ch].gr[0].scalefac_compress = stream.get_bits(9);
-        si.ch[ch].gr[0].window_switching_flag = stream.get_bits(1);
+        si.ch[ch].gr[0].part2_3_length = sib.get_bits(12);
+        si.ch[ch].gr[0].big_values = sib.get_bits(9);
+        si.ch[ch].gr[0].global_gain = sib.get_bits(8);
+        si.ch[ch].gr[0].scalefac_compress = sib.get_bits(9);
+        si.ch[ch].gr[0].window_switching_flag = sib.get_bits(1);
 
         if ((si.ch[ch].gr[0].window_switching_flag) != 0) {
 
-          si.ch[ch].gr[0].block_type = stream.get_bits(2);
-          si.ch[ch].gr[0].mixed_block_flag = stream.get_bits(1);
-          si.ch[ch].gr[0].table_select[0] = stream.get_bits(5);
-          si.ch[ch].gr[0].table_select[1] = stream.get_bits(5);
+          si.ch[ch].gr[0].block_type = sib.get_bits(2);
+          si.ch[ch].gr[0].mixed_block_flag = sib.get_bits(1);
+          si.ch[ch].gr[0].table_select[0] = sib.get_bits(5);
+          si.ch[ch].gr[0].table_select[1] = sib.get_bits(5);
 
-          si.ch[ch].gr[0].subblock_gain[0] = stream.get_bits(3);
-          si.ch[ch].gr[0].subblock_gain[1] = stream.get_bits(3);
-          si.ch[ch].gr[0].subblock_gain[2] = stream.get_bits(3);
+          si.ch[ch].gr[0].subblock_gain[0] = sib.get_bits(3);
+          si.ch[ch].gr[0].subblock_gain[1] = sib.get_bits(3);
+          si.ch[ch].gr[0].subblock_gain[2] = sib.get_bits(3);
 
-          // Set region_count parameters since they are implicit in this case.
+          // Set region_count parameters since they are implicit in
+          // this case.
 
           if (si.ch[ch].gr[0].block_type == 0) {
             // Side info bad: block_type == 0 in split block
@@ -564,16 +528,16 @@ final class LayerIIIDecoder implements FrameDecoder {
           }
 
         } else {
-          si.ch[ch].gr[0].table_select[0] = stream.get_bits(5);
-          si.ch[ch].gr[0].table_select[1] = stream.get_bits(5);
-          si.ch[ch].gr[0].table_select[2] = stream.get_bits(5);
-          si.ch[ch].gr[0].region0_count = stream.get_bits(4);
-          si.ch[ch].gr[0].region1_count = stream.get_bits(3);
+          si.ch[ch].gr[0].table_select[0] = sib.get_bits(5);
+          si.ch[ch].gr[0].table_select[1] = sib.get_bits(5);
+          si.ch[ch].gr[0].table_select[2] = sib.get_bits(5);
+          si.ch[ch].gr[0].region0_count = sib.get_bits(4);
+          si.ch[ch].gr[0].region1_count = sib.get_bits(3);
           si.ch[ch].gr[0].block_type = 0;
         }
 
-        si.ch[ch].gr[0].scalefac_scale = stream.get_bits(1);
-        si.ch[ch].gr[0].count1table_select = stream.get_bits(1);
+        si.ch[ch].gr[0].scalefac_scale = sib.get_bits(1);
+        si.ch[ch].gr[0].count1table_select = sib.get_bits(1);
       } // for(ch=0; ch<channels; ch++)
     } // if (header.version() == MPEG1)
     return true;
