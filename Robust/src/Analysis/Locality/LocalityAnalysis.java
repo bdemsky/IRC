@@ -323,7 +323,7 @@ public class LocalityAnalysis {
       }
     }
 
-    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
+    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm,-1);
 
     while(!tovisit.isEmpty()) {
       FlatNode fn=tovisit.iterator().next();
@@ -1213,7 +1213,7 @@ public class LocalityAnalysis {
     Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptab=getNodeTempInfo(lb);
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
-    Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=Liveness.computeLiveTemps(fm);
+    Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=Liveness.computeLiveTemps(fm,-1);
     Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>> nodetosavetemps=new Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>();
     tempstosave.put(lb, nodetosavetemps);
     Hashtable<FlatNode, FlatAtomicEnterNode> nodemap=new Hashtable<FlatNode, FlatAtomicEnterNode>();

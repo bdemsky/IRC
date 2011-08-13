@@ -76,7 +76,7 @@ public class Pointer implements HeapAnalysis {
   public BasicBlock getBBlock(FlatMethod fm) {
     if (!blockMap.containsKey(fm)) {
       blockMap.put(fm, BasicBlock.getBBlock(fm));
-      Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
+      Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm,-1);
       for(BBlock bblock : blockMap.get(fm).getBlocks()) {
         FlatNode fn=bblock.nodes.get(0);
         if (fn==fm) {

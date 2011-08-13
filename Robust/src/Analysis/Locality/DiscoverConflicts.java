@@ -568,7 +568,7 @@ public class DiscoverConflicts {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
-    Hashtable<FlatNode, Set<TempDescriptor>> livetemps=Liveness.computeLiveTemps(fm);
+    Hashtable<FlatNode, Set<TempDescriptor>> livetemps=Liveness.computeLiveTemps(fm,-1);
     tovisit.add(fm);
     discovered.add(fm);
 
@@ -726,7 +726,7 @@ public class DiscoverConflicts {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
-    Hashtable<FlatNode, Set<TempDescriptor>> livetemps=Liveness.computeLiveTemps(fm);
+    Hashtable<FlatNode, Set<TempDescriptor>> livetemps=Liveness.computeLiveTemps(fm,-1);
     tovisit.add(fm);
     discovered.add(fm);
 

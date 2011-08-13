@@ -13,27 +13,36 @@ public class CopyPropagation {
   }
 
   public void optimize(FlatMethod fm) {
-    Hashtable<FlatNode, Set<TempDescriptor>> livetemps=Liveness.computeLiveTemps(fm);
     Hashtable<FlatNode, Hashtable<TempDescriptor, TempDescriptor>> table
       =new Hashtable<FlatNode, Hashtable<TempDescriptor, TempDescriptor>>();
     boolean changed=false;
     TempDescriptor bogustd=new TempDescriptor("bogus");
     do {
+      Hashtable<FlatNode, Set<TempDescriptor>> livetemps=Liveness.computeLiveTemps(fm,1000);
+      if(livetemps==null){
+        System.out.println("Skipping CopyPropagation of "+fm.getMethod()+" due to size.");
+        return;
+      }
       changed=false;
       HashSet tovisit=new HashSet();
       tovisit.add(fm);
       while(!tovisit.isEmpty()) {
         FlatNode fn=(FlatNode) tovisit.iterator().next();
         tovisit.remove(fn);
-
         Hashtable<TempDescriptor, TempDescriptor> tab;
-        if (fn.numPrev()>=1&&table.containsKey(fn.getPrev(0)))
-          tab=new Hashtable<TempDescriptor, TempDescriptor>(table.get(fn.getPrev(0)));
-        else
+        Set<TempDescriptor> liveset=livetemps.get(fn);
+
+        if (fn.numPrev()>=1&&table.containsKey(fn.getPrev(0))) {
+          tab=new Hashtable<TempDescriptor, TempDescriptor>();
+          for(Map.Entry<TempDescriptor, TempDescriptor> entry:table.get(fn.getPrev(0)).entrySet()) {
+              if (liveset.contains(entry.getKey())) {
+                  tab.put(entry.getKey(), entry.getValue());
+              }
+          }
+        } else
           tab=new Hashtable<TempDescriptor, TempDescriptor>();
         //Compute intersection
 
-        Set<TempDescriptor> liveset=livetemps.get(fn);
         for(int i=1; i<fn.numPrev(); i++) {
           Hashtable<TempDescriptor, TempDescriptor> tp=table.get(fn.getPrev(i));
           if (tp==null)
@@ -45,13 +54,13 @@ public class CopyPropagation {
               continue;
             TempDescriptor dsttmp=tp.get(tmp);
             if (!tab.containsKey(tmp)) {
-              tab.put(tmp, dsttmp);
+                tab.put(tmp, dsttmp);
             } else if (tab.get(tmp)!=dsttmp) {
               tab.put(tmp, bogustd);
             }
           }
         }
-
+        
         HashSet<TempDescriptor> toremove=new HashSet<TempDescriptor>();
         TempDescriptor[] writes=fn.writesTemps();
         for(int i=0; i<writes.length; i++) {

@@ -39,7 +39,7 @@ public class UseDef {
   public void analyze(FlatMethod fm) {
     Hashtable<FlatNode, Set<TempFlatPair>> tmp=new Hashtable<FlatNode, Set<TempFlatPair>>();
     HashSet<FlatNode> toanalyze=new HashSet<FlatNode>();
-    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
+    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm,-1);
     toanalyze.addAll(fm.getNodeSet());
     while(!toanalyze.isEmpty()) {
       FlatNode fn=toanalyze.iterator().next();

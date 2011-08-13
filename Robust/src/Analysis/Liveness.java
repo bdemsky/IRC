@@ -13,10 +13,10 @@ public class Liveness {
   /* This methods takes in a FlatMethod and returns a map from a
    * FlatNode to the set of temps that are live into the FlatNode.*/
 
-  public static Hashtable<FlatNode, Set<TempDescriptor>> computeLiveTemps(FlatMethod fm) {
-    return computeLiveTemps(fm, null);
+  public static Hashtable<FlatNode, Set<TempDescriptor>> computeLiveTemps(FlatMethod fm, int threshold) {
+    return computeLiveTemps(fm, null, threshold);
   }
-  public static Hashtable<FlatNode, Set<TempDescriptor>> computeLiveTemps(FlatMethod fm, LocalityBinding lb) {
+  public static Hashtable<FlatNode, Set<TempDescriptor>> computeLiveTemps(FlatMethod fm, LocalityBinding lb, int threshold) {
     Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=new Hashtable<FlatNode, Set<TempDescriptor>>();
     
     Set<FlatNode> toprocess=fm.getNodeSet();
@@ -42,6 +42,9 @@ public class Liveness {
       if (!nodetotemps.containsKey(fn)||
           !nodetotemps.get(fn).equals(tempset)) {
 	nodetotemps.put(fn, tempset);
+	if(threshold!=-1 && nodetotemps.size()>threshold){
+	  return null;
+	}
 	for(int i=0; i<fn.numPrev(); i++)
 	  toprocess.add(fn.getPrev(i));
       }
@@ -54,7 +57,7 @@ public class Liveness {
   }
 
   public static Hashtable<FlatNode, Set<TempDescriptor>> computeLiveOut(FlatMethod fm, LocalityBinding lb) {
-    Hashtable<FlatNode, Set<TempDescriptor>> liveinmap=computeLiveTemps(fm, lb);
+    Hashtable<FlatNode, Set<TempDescriptor>> liveinmap=computeLiveTemps(fm, lb,-1);
     Hashtable<FlatNode, Set<TempDescriptor>> liveoutmap=new Hashtable<FlatNode, Set<TempDescriptor>>();
     
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext();) {
@@ -88,7 +91,7 @@ public class Liveness {
 
   public Set<TempDescriptor> getLiveInTemps( FlatMethod fm, FlatNode fn ) {
     if( !fm2liveMap.containsKey( fm ) ) {
-      fm2liveMap.put( fm, Liveness.computeLiveTemps( fm ) );
+      fm2liveMap.put( fm, Liveness.computeLiveTemps( fm,-1 ) );
     }
     return fm2liveMap.get( fm ).get( fn );
   }

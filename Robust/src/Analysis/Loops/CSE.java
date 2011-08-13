@@ -37,13 +37,26 @@ public class CSE {
         }
       }
       Hashtable<Expression, TempDescriptor> tab=computeIntersection(fn, availexpr);
-
+      
+//      if(tab.size()>1000){
+//        System.out.println("Skipping CSE of "+fm.getMethod()+" due to size.");
+//        return;
+//      }
+      
       //Do kills of expression/variable mappings
       TempDescriptor[] write=fn.writesTemps();
       for(int i=0; i<write.length; i++) {
-        if (tab.containsKey(write[i]))
-          tab.remove(write[i]);
+        for(Iterator it=tab.entrySet().iterator(); it.hasNext(); ) {
+          Map.Entry m=(Map.Entry)it.next();
+          TempDescriptor td=(TempDescriptor)m.getValue();
+          if(td.equals(write[i])){
+            it.remove();
+          }        
+        }
       }
+      
+      
+      
 
       switch(fn.kind()) {
       case FKind.FlatAtomicEnterNode:

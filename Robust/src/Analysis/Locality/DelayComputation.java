@@ -199,7 +199,7 @@ public class DelayComputation {
 
     Set<TempDescriptor> liveinto=new HashSet<TempDescriptor>();
 
-    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, Liveness.computeLiveTemps(fm), true);
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, Liveness.computeLiveTemps(fm,-1), true);
 
     for(Iterator<FlatNode> fnit=secondpart.iterator(); fnit.hasNext(); ) {
       FlatNode fn=fnit.next();
@@ -227,8 +227,8 @@ public class DelayComputation {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Set<FlatNode> exits=faen.getExits();
-    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
-    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, Liveness.computeLiveTemps(fm), true);
+    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm,-1);
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, Liveness.computeLiveTemps(fm,-1), true);
 
     Set<FlatNode> atomicnodes=faen.getReachableSet(faen.getExits());
 
@@ -272,7 +272,7 @@ public class DelayComputation {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Set<FlatNode> exits=faen.getExits();
-    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
+    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm,-1);
     Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, livemap, true);
 
     Set<FlatNode> atomicnodes=faen.getReachableSet(faen.getExits());
@@ -324,7 +324,7 @@ public class DelayComputation {
       derefset=derefmap.get(lb);
     HashSet<FlatNode> otherset=othermap.get(lb);
     HashSet<FlatNode> cannotdelayset=cannotdelaymap.get(lb);
-    Hashtable<FlatNode,Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
+    Hashtable<FlatNode,Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm,-1);
     Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefsmap=ReachingDefs.computeReachingDefs(fm, livemap, true);
     HashSet<FlatNode> unionset=new HashSet<FlatNode>(delayedset);
     Hashtable<FlatNode, Hashtable<TempDescriptor, HashSet<FlatNode>>> map=new Hashtable<FlatNode, Hashtable<TempDescriptor, HashSet<FlatNode>>>();
