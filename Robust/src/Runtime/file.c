@@ -153,6 +153,7 @@ int CALL11(___FileInputStream______nativeAvailable____I, int fd, int fd) {
   int avail;
   int cur=lseek(fd, 0, SEEK_CUR);
   int fsize = lseek(fd, 0, SEEK_END);
+  lseek(fd,cur,SEEK_SET); // seek back to the current position
   avail=fsize-cur;
   return avail;
 #endif

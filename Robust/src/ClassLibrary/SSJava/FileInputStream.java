@@ -48,9 +48,7 @@ public class FileInputStream extends InputStream {
     }
     byte readbuf[] = new byte[len];
     int rtr = nativeRead(fd, readbuf, len);
-    for (int i = offset; i < len + offset; i++) {
-      b[i] = readbuf[i - offset];
-    }
+    System.arraycopy(readbuf, 0, b, offset, len);
     return rtr;
   }
 
