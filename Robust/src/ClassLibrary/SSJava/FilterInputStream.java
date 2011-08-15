@@ -86,7 +86,6 @@ public class FilterInputStream extends InputStream
     protected FilterInputStream(@LOC("IN") InputStream in)
   {
     this.in = in;
-    in = null;
   }
 
   /**

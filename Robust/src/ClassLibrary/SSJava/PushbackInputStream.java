@@ -38,64 +38,67 @@ exception statement from your version. */
 //package java.io;
 
 /**
-  * This subclass of <code>FilterInputStream</code> provides the ability to 
-  * unread data from a stream.  It maintains an internal buffer of unread
-  * data that is supplied to the next read operation.  This is conceptually
-  * similar to mark/reset functionality, except that in this case the 
-  * position to reset the stream to does not need to be known in advance.
-  * <p>
-  * The default pushback buffer size one byte, but this can be overridden
-  * by the creator of the stream.
-  * <p>
-  *
-  * @author Aaron M. Renn (arenn@urbanophile.com)
-  * @author Warren Levy (warrenl@cygnus.com)
-  */
+ * This subclass of <code>FilterInputStream</code> provides the ability to
+ * unread data from a stream. It maintains an internal buffer of unread data
+ * that is supplied to the next read operation. This is conceptually similar to
+ * mark/reset functionality, except that in this case the position to reset the
+ * stream to does not need to be known in advance.
+ * <p>
+ * The default pushback buffer size one byte, but this can be overridden by the
+ * creator of the stream.
+ * <p>
+ * 
+ * @author Aaron M. Renn (arenn@urbanophile.com)
+ * @author Warren Levy (warrenl@cygnus.com)
+ */
 @LATTICE("IN<T,IN<POS,POS<SH,SH<F,SH*,POS*")
 @METHODDEFAULT("OUT<SH,SH<IN,SH*,THISLOC=OUT,GLOBALLOC=OUT")
-public class PushbackInputStream extends FilterInputStream
-{
+public class PushbackInputStream extends FilterInputStream {
   /**
    * This is the default buffer size
    */
-  @LOC("F") private static final int DEFAULT_BUFFER_SIZE = 1;
+  @LOC("F")
+  private static final int DEFAULT_BUFFER_SIZE = 1;
 
   /**
    * This is the buffer that is used to store the pushed back data
    */
-  @LOC("SH") protected byte[] buf;
+  @LOC("SH")
+  protected byte[] buf;
 
   /**
-   * This is the position in the buffer from which the next byte will be
-   * read.  Bytes are stored in reverse order in the buffer, starting from
-   * <code>buf[buf.length - 1]</code> to <code>buf[0]</code>.  Thus when 
-   * <code>pos</code> is 0 the buffer is full and <code>buf.length</code> when 
+   * This is the position in the buffer from which the next byte will be read.
+   * Bytes are stored in reverse order in the buffer, starting from
+   * <code>buf[buf.length - 1]</code> to <code>buf[0]</code>. Thus when
+   * <code>pos</code> is 0 the buffer is full and <code>buf.length</code> when
    * it is empty
    */
-  @LOC("POS") protected int pos;
+  @LOC("POS")
+  protected int pos;
 
   /**
-   * This method initializes a <code>PushbackInputStream</code> to
-   * read from the specified subordinate <code>InputStream</code>
-   * with a default pushback buffer size of 1.
-   *
-   * @param in The subordinate stream to read from
+   * This method initializes a <code>PushbackInputStream</code> to read from the
+   * specified subordinate <code>InputStream</code> with a default pushback
+   * buffer size of 1.
+   * 
+   * @param in
+   *          The subordinate stream to read from
    */
-  public PushbackInputStream(InputStream in)
-  {
+  public PushbackInputStream(InputStream in) {
     this(in, DEFAULT_BUFFER_SIZE);
   }
 
   /**
-   * This method initializes a <code>PushbackInputStream</code> to
-   * read from the specified subordinate <code>InputStream</code> with
-   * the specified buffer size
-   *
-   * @param in The subordinate <code>InputStream</code> to read from
-   * @param size The pushback buffer size to use
+   * This method initializes a <code>PushbackInputStream</code> to read from the
+   * specified subordinate <code>InputStream</code> with the specified buffer
+   * size
+   * 
+   * @param in
+   *          The subordinate <code>InputStream</code> to read from
+   * @param size
+   *          The pushback buffer size to use
    */
-    public PushbackInputStream(@LOC("IN")InputStream in, @LOC("IN")int size)
-  {
+  public PushbackInputStream(@LOC("IN") InputStream in, @LOC("IN") int size) {
     super(in);
     if (size < 0)
       throw new IllegalArgumentException();
@@ -104,79 +107,74 @@ public class PushbackInputStream extends FilterInputStream
   }
 
   /**
-   * This method returns the number of bytes that can be read from this
-   * stream before a read can block.  A return of 0 indicates that blocking
-   * might (or might not) occur on the very next read attempt.
+   * This method returns the number of bytes that can be read from this stream
+   * before a read can block. A return of 0 indicates that blocking might (or
+   * might not) occur on the very next read attempt.
    * <p>
-   * This method will return the number of bytes available from the
-   * pushback buffer plus the number of bytes available from the 
-   * underlying stream.
-   *
+   * This method will return the number of bytes available from the pushback
+   * buffer plus the number of bytes available from the underlying stream.
+   * 
    * @return The number of bytes that can be read before blocking could occur
-   *
-   * @exception IOException If an error occurs
+   * 
+   * @exception IOException
+   *              If an error occurs
    */
-  public int available() throws IOException
-  {
-    try 
-      {
-	return (buf.length - pos) + super.available();
-      } 
-    catch (NullPointerException npe) 
-      {
-	throw new IOException ("Stream closed");
-      }
+  public int available() throws IOException {
+    try {
+      return (buf.length - pos) + super.available();
+    } catch (NullPointerException npe) {
+      throw new IOException("Stream closed");
+    }
   }
 
   /**
    * This method closes the stream and releases any associated resources.
    * 
-   * @exception IOException If an error occurs.
+   * @exception IOException
+   *              If an error occurs.
    */
-  public synchronized void close() throws IOException
-  {
+  public synchronized void close() throws IOException {
     buf = null;
     super.close();
   }
 
   /**
-   * This method returns <code>false</code> to indicate that it does
-   * not support mark/reset functionality.
-   *
-   * @return This method returns <code>false</code> to indicate that
-   * this class does not support mark/reset functionality
+   * This method returns <code>false</code> to indicate that it does not support
+   * mark/reset functionality.
+   * 
+   * @return This method returns <code>false</code> to indicate that this class
+   *         does not support mark/reset functionality
    */
-  public boolean markSupported()
-  {
+  public boolean markSupported() {
     return false;
   }
 
   /**
-   * This method always throws an IOException in this class because
-   * mark/reset functionality is not supported.
-   *
-   * @exception IOException Always thrown for this class
+   * This method always throws an IOException in this class because mark/reset
+   * functionality is not supported.
+   * 
+   * @exception IOException
+   *              Always thrown for this class
    */
-  public void reset() throws IOException
-  {
+  public void reset() throws IOException {
     throw new IOException("Mark not supported in this class");
   }
 
   /**
-   * This method reads an unsigned byte from the input stream and returns it
-   * as an int in the range of 0-255.  This method also will return -1 if
-   * the end of the stream has been reached.  The byte returned will be read
-   * from the pushback buffer, unless the buffer is empty, in which case
-   * the byte will be read from the underlying stream.
+   * This method reads an unsigned byte from the input stream and returns it as
+   * an int in the range of 0-255. This method also will return -1 if the end of
+   * the stream has been reached. The byte returned will be read from the
+   * pushback buffer, unless the buffer is empty, in which case the byte will be
+   * read from the underlying stream.
    * <p>
    * This method will block until the byte can be read.
-   *
+   * 
    * @return The byte read or -1 if end of stream
-   *
-   * @exception IOException If an error occurs
+   * 
+   * @exception IOException
+   *              If an error occurs
    */
-  public synchronized int read() throws IOException
-  {
+  public synchronized int read() throws IOException {
     if (pos < buf.length)
       return ((int) buf[pos++]) & 0xFF;
 
@@ -184,71 +182,74 @@ public class PushbackInputStream extends FilterInputStream
   }
 
   /**
-   * This method read bytes from a stream and stores them into a
-   * caller supplied buffer.  It starts storing the data at index
-   * <code>offset</code> into the buffer and attempts to read
-   * <code>len</code> bytes.  This method can return before reading the
-   * number of bytes requested.  The actual number of bytes read is
-   * returned as an int.  A -1 is returned to indicate the end of the
+   * This method read bytes from a stream and stores them into a caller supplied
+   * buffer. It starts storing the data at index <code>offset</code> into the
+   * buffer and attempts to read <code>len</code> bytes. This method can return
+   * before reading the number of bytes requested. The actual number of bytes
+   * read is returned as an int. A -1 is returned to indicate the end of the
    * stream.
-   *  <p>
+   * <p>
    * This method will block until some data can be read.
    * <p>
-   * This method first reads bytes from the pushback buffer in order to 
-   * satisfy the read request.  If the pushback buffer cannot provide all
-   * of the bytes requested, the remaining bytes are read from the 
-   * underlying stream.
-   *
-   * @param b The array into which the bytes read should be stored
-   * @param off The offset into the array to start storing bytes
-   * @param len The requested number of bytes to read
-   *
+   * This method first reads bytes from the pushback buffer in order to satisfy
+   * the read request. If the pushback buffer cannot provide all of the bytes
+   * requested, the remaining bytes are read from the underlying stream.
+   * 
+   * @param b
+   *          The array into which the bytes read should be stored
+   * @param off
+   *          The offset into the array to start storing bytes
+   * @param len
+   *          The requested number of bytes to read
+   * 
    * @return The actual number of bytes read, or -1 if end of stream.
-   *
-   * @exception IOException If an error occurs.
+   * 
+   * @exception IOException
+   *              If an error occurs.
    */
   @LATTICE("OUT<THIS,THISLOC=THIS")
   @RETURNLOC("THIS")
-  public synchronized int read(@LOC("OUT") byte[] b,
-                               @LOC("THIS,PushbackInputStream.POS") int off,
-                               @LOC("THIS,PushbackInputStream.POS") int len) throws IOException
-  {
-    @LOC("THIS,PushbackInputStream.POS") int numBytes = Math.min(buf.length - pos,len);
+  public synchronized int read(@LOC("OUT") byte[] b, @LOC("THIS,PushbackInputStream.POS") int off,
+      @LOC("THIS,PushbackInputStream.POS") int len) throws IOException {
+    @LOC("THIS,PushbackInputStream.POS") int numBytes = Math.min(buf.length - pos, len);
+System.out.println("numBytes="+numBytes+" buf.length="+buf.length+" pos="+pos);
+    if (numBytes > 0) {
+      
+      System.out.println("buf[pos]="+buf[pos]);
+      
+      System.arraycopy(buf, pos, b, off, numBytes);
+      pos += numBytes;
+      len -= numBytes;
+      off += numBytes;
+    }
 
-    if (numBytes > 0)
-      {
-	System.arraycopy (buf, pos, b, off, numBytes);
-	pos += numBytes;
-	len -= numBytes;
-	off += numBytes;
-      }
-
-    if (len > 0) 
-      {
-        len = super.read(b, off, len);
-        if (len == -1) //EOF
-	  return numBytes > 0 ? numBytes : -1;
-	numBytes += len;
-      }
+    if (len > 0) {
+      System.out.println("len>0");
+      len = super.read(b, off, len);
+      if (len == -1) // EOF
+        return numBytes > 0 ? numBytes : -1;
+      numBytes += len;
+    }
     return numBytes;
   }
 
   /**
-   * This method pushes a single byte of data into the pushback buffer.
-   * The byte pushed back is the one that will be returned as the first byte
-   * of the next read.
+   * This method pushes a single byte of data into the pushback buffer. The byte
+   * pushed back is the one that will be returned as the first byte of the next
+   * read.
    * <p>
    * If the pushback buffer is full, this method throws an exception.
    * <p>
-   * The argument to this method is an <code>int</code>.  Only the low
-   * eight bits of this value are pushed back.
-   *
-   * @param b The byte to be pushed back, passed as an int
-   *
-   * @exception IOException If the pushback buffer is full.
+   * The argument to this method is an <code>int</code>. Only the low eight bits
+   * of this value are pushed back.
+   * 
+   * @param b
+   *          The byte to be pushed back, passed as an int
+   * 
+   * @exception IOException
+   *              If the pushback buffer is full.
    */
-  public synchronized void unread(int b) throws IOException
-  {
+  public synchronized void unread(int b) throws IOException {
     if (pos <= 0)
       throw new IOException("Insufficient space in pushback buffer");
 
@@ -256,43 +257,46 @@ public class PushbackInputStream extends FilterInputStream
   }
 
   /**
-   * This method pushes all of the bytes in the passed byte array into 
-   * the pushback bfer.  These bytes are pushed in reverse order so that
-   * the next byte read from the stream after this operation will be
-   * <code>b[0]</code> followed by <code>b[1]</code>, etc.
+   * This method pushes all of the bytes in the passed byte array into the
+   * pushback bfer. These bytes are pushed in reverse order so that the next
+   * byte read from the stream after this operation will be <code>b[0]</code>
+   * followed by <code>b[1]</code>, etc.
    * <p>
-   * If the pushback buffer cannot hold all of the requested bytes, an
-   * exception is thrown.
-   *
-   * @param b The byte array to be pushed back
-   *
-   * @exception IOException If the pushback buffer is full
+   * If the pushback buffer cannot hold all of the requested bytes, an exception
+   * is thrown.
+   * 
+   * @param b
+   *          The byte array to be pushed back
+   * 
+   * @exception IOException
+   *              If the pushback buffer is full
    */
-  public synchronized void unread(byte[] b) throws IOException
-  {
+  public synchronized void unread(byte[] b) throws IOException {
     unread(b, 0, b.length);
   }
 
   /**
-   * This method pushed back bytes from the passed in array into the
-   * pushback buffer.  The bytes from <code>b[offset]</code> to
-   * <code>b[offset + len]</code> are pushed in reverse order so that
-   * the next byte read from the stream after this operation will be
-   * <code>b[offset]</code> followed by <code>b[offset + 1]</code>,
-   * etc.
+   * This method pushed back bytes from the passed in array into the pushback
+   * buffer. The bytes from <code>b[offset]</code> to
+   * <code>b[offset + len]</code> are pushed in reverse order so that the next
+   * byte read from the stream after this operation will be
+   * <code>b[offset]</code> followed by <code>b[offset + 1]</code>, etc.
    * <p>
-   * If the pushback buffer cannot hold all of the requested bytes, an
-   * exception is thrown.
-   *
-   * @param b The byte array to be pushed back
-   * @param off The index into the array where the bytes to be push start
-   * @param len The number of bytes to be pushed.
-   *
-   * @exception IOException If the pushback buffer is full
+   * If the pushback buffer cannot hold all of the requested bytes, an exception
+   * is thrown.
+   * 
+   * @param b
+   *          The byte array to be pushed back
+   * @param off
+   *          The index into the array where the bytes to be push start
+   * @param len
+   *          The number of bytes to be pushed.
+   * 
+   * @exception IOException
+   *              If the pushback buffer is full
    */
   public synchronized void unread(@LOC("IN") byte[] b, @LOC("IN") int off, @LOC("IN") int len)
-    throws IOException
-  {
+      throws IOException {
     if (pos < len)
       throw new IOException("Insufficient space in pushback buffer");
 
@@ -307,34 +311,34 @@ public class PushbackInputStream extends FilterInputStream
   }
 
   /**
-   * This method skips the specified number of bytes in the stream.  It
-   * returns the actual number of bytes skipped, which may be less than the
-   * requested amount.
+   * This method skips the specified number of bytes in the stream. It returns
+   * the actual number of bytes skipped, which may be less than the requested
+   * amount.
    * <p>
    * This method first discards bytes from the buffer, then calls the
-   * <code>skip</code> method on the underlying <code>InputStream</code> to 
-   * skip additional bytes if necessary.
-   *
-   * @param n The requested number of bytes to skip
-   *
+   * <code>skip</code> method on the underlying <code>InputStream</code> to skip
+   * additional bytes if necessary.
+   * 
+   * @param n
+   *          The requested number of bytes to skip
+   * 
    * @return The actual number of bytes skipped.
-   *
-   * @exception IOException If an error occurs
-   *
+   * 
+   * @exception IOException
+   *              If an error occurs
+   * 
    * @since 1.2
    */
-  public synchronized long skip(long n) throws IOException
-  {
+  public synchronized long skip(long n) throws IOException {
     final long origN = n;
 
-    if (n > 0L)
-      {
-	int numread = (int) Math.min((long) (buf.length - pos), n);
-	pos += numread;
-	n -= numread;
-	if (n > 0)
-	  n -= super.skip(n);
-      }
+    if (n > 0L) {
+      int numread = (int) Math.min((long) (buf.length - pos), n);
+      pos += numread;
+      n -= numread;
+      if (n > 0)
+        n -= super.skip(n);
+    }
 
     return origN - n;
   }

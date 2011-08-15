@@ -106,6 +106,9 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LOC("SBI")
   private int sfreq;
 
+  private int part2_start;
+
+
   /**
    * Constructor.
    */
@@ -329,7 +332,7 @@ final class LayerIIIDecoder implements FrameDecoder {
           get_LSF_scale_factors(ch, gr); // no need to care from this side
 
         // here, decoding the compressed audio data
-        huffman_decode(part2_start, ch, gr); // no need to care from this side
+        huffman_decode(ch, gr); // no need to care from this side
         // System.out.println("CheckSum HuffMan = " + CheckSumHuff);
         dequantize_sample(/* ro[ch], */ch, gr); // no need to care from this
                                                 // side
@@ -825,39 +828,29 @@ final class LayerIIIDecoder implements FrameDecoder {
   // @LOC("SI1")
   // int[] w = { 0 };
   @LOC("SI1")
-  int x = 0;
+  int x[] = { 0 };
   @LOC("SI1")
-  int y = 0;
+  int y[] = { 0 };
   @LOC("SI1")
-  int v = 0;
+  int v[] = { 0 };
   @LOC("SI1")
-  int w = 0;
+  int w[] = { 0 };
 
-  // @LATTICE("H<I,I<R,R<B1,B1<B,B<THIS,THIS<IN,I*,THISLOC=THIS,GLOBALLOC=IN")
-  @LATTICE("BUF<THIS,BUF*,R,B,B1,H,I,THIS<IN,I*,THISLOC=THIS,GLOBALLOC=THIS")
-  private void huffman_decode(@LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int part2_start,
-      @LOC("THIS,LayerIIIDecoder.CH0") int ch, @LOC("THIS,LayerIIIDecoder.CH0") int gr) {
+  private void huffman_decode(int ch, int gr) {
+    x[0] = 0;
+    y[0] = 0;
+    v[0] = 0;
+    w[0] = 0;
 
-    // @LOC("THIS,LayerIIIDecoder.IS1D") int x;
-    // @LOC("THIS,LayerIIIDecoder.IS1D") int y;
-    // @LOC("THIS,LayerIIIDecoder.IS1D") int v;
-    // @LOC("THIS,LayerIIIDecoder.IS1D") int w;
+    int part2_3_end = part2_start + si.ch[ch].gr[gr].part2_3_length;
+    int num_bits;
+    int region1Start;
+    int region2Start;
+    int index;
 
-    x = 0;
-    y = 0;
-    v = 0;
-    w = 0;
+    int buf, buf1;
 
-    @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int part2_3_end =
-        part2_start + si.ch[ch].gr[gr].part2_3_length;
-
-    @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int num_bits;
-    @LOC("THIS,LayerIIIDecoder.SI1") int region1Start;
-    @LOC("THIS,LayerIIIDecoder.SI1") int region2Start;
-    @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int index;
-
-    @LOC("THIS,LayerIIIDecoder.SI1") int buf;
-    @LOC("THIS,LayerIIIDecoder.SI1") int buf1;
+    huffcodetab h;
 
     // Find region boundary for short block case
 
@@ -865,8 +858,8 @@ final class LayerIIIDecoder implements FrameDecoder {
 
       // Region2.
       // MS: Extrahandling for 8KHZ
-      region1Start = (sfreq == 8) ? 72 : 36; // sfb[9/3]*3=36 or in case 8KHZ =
-                                             // 72
+      region1Start = (sfreq == 8) ? 72 : 36; // sfb[9/3]*3=36 or in case
+                                             // 8KHZ = 72
       region2Start = 576; // No Region2 for short block case
 
     } else { // Find region boundary for long block case
@@ -874,72 +867,47 @@ final class LayerIIIDecoder implements FrameDecoder {
       buf = si.ch[ch].gr[gr].region0_count + 1;
       buf1 = buf + si.ch[ch].gr[gr].region1_count + 1;
 
-      if (buf1 > sfBandIndex[sfreq].l.length - 1) {
+      if (buf1 > sfBandIndex[sfreq].l.length - 1)
         buf1 = sfBandIndex[sfreq].l.length - 1;
-      }
 
       region1Start = sfBandIndex[sfreq].l[buf];
       region2Start = sfBandIndex[sfreq].l[buf1]; /* MI */
     }
 
     index = 0;
-    @LOC("THIS,LayerIIIDecoder.SI1") int h;
     // Read bigvalues area
-    for (@LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int i = 0; i < (si.ch[ch].gr[gr].big_values << 1); i +=
-        2) {
-      if (i < region1Start) {
-        // huffcodetab.huffman_decoder(h, x, y, v, w, br);
-        h = si.ch[ch].gr[gr].table_select[0];
-      } else if (i < region2Start) {
-        h = si.ch[ch].gr[gr].table_select[1];
-        // h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[1]];
-      } else {
-        h = si.ch[ch].gr[gr].table_select[2];
-        // h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[2]];
-      }
+    for (int i = 0; i < (si.ch[ch].gr[gr].big_values << 1); i += 2) {
+      if (i < region1Start)
+        h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[0]];
+      else if (i < region2Start)
+        h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[1]];
+      else
+        h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[2]];
 
-      // @LOC("THIS,LayerIIIDecoder.SI2") HuffData huffData =
-      // huffcodetab.huffman_decoder(h, new HuffData(x, y, v, w, br));
-      // x = huffData.x;
-      // y = huffData.y;
-      // v = huffData.v;
-      // w = huffData.w;
-      // br = huffData.br;
-      huffcodetab_huffman_decoder(h);
-
+      huffcodetab.huffman_decoder(h, x, y, v, w, br);
       // if (index >= is_1d.length)
       // System.out.println("i0="+i+"/"+(si.ch[ch].gr[gr].big_values<<1)+" Index="+index+" is_1d="+is_1d.length);
 
-      is_1d[index++] = x;
-      is_1d[index++] = y;
+      is_1d[index++] = x[0];
+      is_1d[index++] = y[0];
 
-      CheckSumHuff = CheckSumHuff + x + y;
+      CheckSumHuff = CheckSumHuff + x[0] + y[0];
       // System.out.println("x = "+x[0]+" y = "+y[0]);
     }
 
     // Read count1 area
-    // h = huffcodetab.ht[si.ch[ch].gr[gr].count1table_select + 32];
+    h = huffcodetab.ht[si.ch[ch].gr[gr].count1table_select + 32];
     num_bits = br.hsstell();
 
     while ((num_bits < part2_3_end) && (index < 576)) {
 
-      // huffcodetab.huffman_decoder(h, x, y, v, w, br);
-      // @LOC("I") HuffData huffData2 =
-      // huffcodetab.huffman_decoder(si.ch[ch].gr[gr].count1table_select + 32,
-      // new HuffData(x, y,
-      // v, w, br));
-      // x = huffData2.x;
-      // y = huffData2.y;
-      // v = huffData2.v;
-      // w = huffData2.w;
-      // br = huffData2.br;
-      huffcodetab_huffman_decoder(h);
+      huffcodetab.huffman_decoder(h, x, y, v, w, br);
 
-      is_1d[index++] = v;
-      is_1d[index++] = w;
-      is_1d[index++] = x;
-      is_1d[index++] = y;
-      CheckSumHuff = CheckSumHuff + v + w + x + y;
+      is_1d[index++] = v[0];
+      is_1d[index++] = w[0];
+      is_1d[index++] = x[0];
+      is_1d[index++] = y[0];
+      CheckSumHuff = CheckSumHuff + v[0] + w[0] + x[0] + y[0];
       // System.out.println("v = "+v[0]+" w = "+w[0]);
       // System.out.println("x = "+x[0]+" y = "+y[0]);
       num_bits = br.hsstell();

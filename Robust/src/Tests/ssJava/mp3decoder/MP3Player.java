@@ -14,6 +14,7 @@ public class MP3Player {
     if (args.length == 1) {
       filename = args[0];
     }
+    play();
   }
 
   /**
@@ -34,9 +35,7 @@ public class MP3Player {
       player.play();
     } catch (IOException ex) {
       throw new JavaLayerException("Problem playing file " + filename, ex);
-    } catch (Exception ex) {
-      throw new JavaLayerException("Problem playing file " + filename, ex);
-    }
+    } 
   }
 
 }

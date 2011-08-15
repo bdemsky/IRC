@@ -1,3 +1,4 @@
+
 /*
  * 11/19/04		1.0 moved to LGPL.
  * 29/01/00		Initial version. mdm@techie.com
@@ -18,8 +19,6 @@
  *----------------------------------------------------------------------
  */
 
-
-//import java.io.InputStream;
 
 	
 /**
@@ -113,11 +112,13 @@ public class Player
 	public boolean play(@LOC("IN") int frames) throws JavaLayerException
 	{
 	    @LOC("IN") boolean ret = true;
-	    
-	     SSJAVA:
+         
+         
+	    SSJAVA:
 		while (frames-- > 0 && ret)
 		{
-			 ret = decodeFrame();
+		  System.out.println("DECODE");
+		   ret = decodeFrame();
 		}
 		/*
 		if (!ret)
@@ -219,7 +220,15 @@ public class Player
 				
 			// sample buffer set when decoder constructed
 			@LOC("O") SampleBuffer output = (SampleBuffer)decoder.decodeFrame(h, bitstream);
-																																					
+														
+	          // eom debug
+               short[] outbuf = output.getBuffer();
+               for (int i = 0; i < outbuf.length; i++) {
+//                 bw.write(outbuf[i]);
+                 System.out.println(outbuf[i]);
+               }
+               //
+               
 			//synchronized (this)
 			//{
 			//	out = audio;

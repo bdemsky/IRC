@@ -59,10 +59,10 @@ public class Decoder implements DecoderErrors {
    */
   @LOC("DE")
   private LayerIIIDecoder l3decoder;
-  @LOC("DE")
-  private LayerIIDecoder l2decoder;
-  @LOC("DE")
-  private LayerIDecoder l1decoder;
+  // @LOC("DE")
+  // private LayerIIDecoder l2decoder;
+  // @LOC("DE")
+  // private LayerIDecoder l1decoder;
 
   @LOC("O")
   private int outputFrequency;
@@ -146,7 +146,7 @@ public class Decoder implements DecoderErrors {
     @LOC("TH") int layer = header.layer();
 
     output.clear_buffer();
-
+System.out.println("HERE?="+layer);
     @LOC("DE,Decoder.DE") FrameDecoder decoder = retrieveDecoder(header, stream, layer); // return
                                                                                          // ceil=DELTA(TH)
     decoder.decodeFrame();
@@ -254,22 +254,24 @@ public class Decoder implements DecoderErrors {
       return l3decoder;
       // decoder = l3decoder;
       break;
-    case 2:
-      if (l2decoder == null) {
-        l2decoder = new LayerIIDecoder();
-        l2decoder.create(stream, header, filter1, filter2, output, OutputChannels.BOTH_CHANNELS);
-      }
-      return l2decoder;
-      // decoder = l2decoder;
-      break;
-    case 1:
-      if (l1decoder == null) {
-        l1decoder = new LayerIDecoder();
-        l1decoder.create(stream, header, filter1, filter2, output, OutputChannels.BOTH_CHANNELS);
-      }
-      return l1decoder;
-      // decoder = l1decoder;
-      break;
+    // case 2:
+    // if (l2decoder == null) {
+    // l2decoder = new LayerIIDecoder();
+    // l2decoder.create(stream, header, filter1, filter2, output,
+    // OutputChannels.BOTH_CHANNELS);
+    // }
+    // return l2decoder;
+    // // decoder = l2decoder;
+    // break;
+    // case 1:
+    // if (l1decoder == null) {
+    // l1decoder = new LayerIDecoder();
+    // l1decoder.create(stream, header, filter1, filter2, output,
+    // OutputChannels.BOTH_CHANNELS);
+    // }
+    // return l1decoder;
+    // // decoder = l1decoder;
+    // break;
     }
     //
     // if (decoder==null)

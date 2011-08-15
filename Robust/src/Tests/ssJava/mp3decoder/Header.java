@@ -143,10 +143,12 @@ public final class Header {
    * Read a 32-bit header from the bitstream.
    */
   void read_header(Bitstream stream, Crc16[] crcp) throws BitstreamException {
+    System.out.print("READ_HEADER_ST");
     int headerstring;
     int channel_bitrate;
     boolean sync = false;
     do {
+      System.out.println("DO!");
       headerstring = stream.syncHeader(syncmode);
       _headerstring = headerstring; // E.B
       if (syncmode == Bitstream.INITIAL_SYNC) {
@@ -216,6 +218,7 @@ public final class Header {
       } else {
         stream.unreadFrame();
       }
+      System.out.println("do");
     } while (!sync);
     stream.parse_frame();
     if (h_protection_bit == 0) {
@@ -236,6 +239,7 @@ public final class Header {
        * offset[cf-1] + h_padding_bit; } else { offset[0] = h_padding_bit; }
        */
     }
+    System.out.print("READ_HEADER_ED");
   }
 
   /**

@@ -1,12 +1,12 @@
 /*
  * 11/19/04  1.0 moved to LGPL.
  * 
- * 11/17/04	 Uncomplete frames discarded. E.B, javalayer@javazoom.net 
+ * 11/17/04     Uncomplete frames discarded. E.B, javalayer@javazoom.net 
  *
- * 12/05/03	 ID3v2 tag returned. E.B, javalayer@javazoom.net 
+ * 12/05/03     ID3v2 tag returned. E.B, javalayer@javazoom.net 
  *
- * 12/12/99	 Based on Ibitstream. Exceptions thrown on errors,
- *			 Temporary removed seek functionality. mdm@techie.com
+ * 12/12/99     Based on Ibitstream. Exceptions thrown on errors,
+ *              Temporary removed seek functionality. mdm@techie.com
  *
  * 02/12/99 : Java Conversion by E.B , javalayer@javazoom.net
  *
@@ -107,8 +107,8 @@ public final class Bitstream implements BitstreamErrors {
   private int header_pos = 0;
 
   /**
-	 *
-	 */
+      *
+      */
   @LOC("F")
   private boolean single_ch_mode;
   // private int current_frame_number;
@@ -266,19 +266,30 @@ public final class Bitstream implements BitstreamErrors {
    *         of the stream has been reached.
    */
   public Header readFrame() throws BitstreamException {
+    
+    System.out.println("ST");
+    
     Header result = null;
     try {
+      System.out.println("HERE?");
       result = readNextFrame();
+      System.out.println("HERE?2");
       // E.B, Parse VBR (if any) first frame.
       if (firstframe == true) {
         result.parseVBR(frame_bytes);
         firstframe = false;
       }
+      
+      int channels = (header.mode() == Header.SINGLE_CHANNEL) ? 1 : 2;
+      result.setSideInfoBuf(getSideInfoBuffer(channels));
+      result.setBitReserve(getBitReserve(result.slots()));
+      
     } catch (BitstreamException ex) {
       if ((ex.getErrorCode() == INVALIDFRAME)) {
         // Try to skip this frame.
         // System.out.println("INVALIDFRAME");
-        try {
+        try {    System.out.println("ET");
+
           closeFrame();
           result = readNextFrame();
         } catch (BitstreamException e) {
@@ -292,6 +303,8 @@ public final class Bitstream implements BitstreamErrors {
         throw newBitstreamException(ex.getErrorCode(), ex);
       }
     }
+    System.out.println("EN");
+
     return result;
   }
 
@@ -302,6 +315,7 @@ public final class Bitstream implements BitstreamErrors {
    * @throws BitstreamException
    */
   private Header readNextFrame() throws BitstreamException {
+    System.out.println("framesize="+framesize);
     if (framesize == -1) {
       nextFrame();
     }
@@ -315,6 +329,7 @@ public final class Bitstream implements BitstreamErrors {
    */
   private void nextFrame() throws BitstreamException {
     // entire frame is read by the header class.
+    System.out.println("nextFrame()");
     header.read_header(this, crc);
   }
 
