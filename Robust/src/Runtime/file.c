@@ -144,3 +144,17 @@ long long CALL01(___File______nativeLength_____AR_B, struct ArrayObject * ___pat
 #endif
 }
 #endif
+
+#ifdef D___FileInputStream______nativeAvailable____I
+int CALL11(___FileInputStream______nativeAvailable____I, int fd, int fd) {
+#ifdef MULTICORE
+  return 0;
+#else
+  int avail;
+  int cur=lseek(fd, 0, SEEK_CUR);
+  int fsize = lseek(fd, 0, SEEK_END);
+  avail=fsize-cur;
+  return avail;
+#endif
+}
+#endif

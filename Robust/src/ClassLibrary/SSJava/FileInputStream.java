@@ -16,6 +16,7 @@ public class FileInputStream extends InputStream {
   private static native int nativeRead(int fd, byte[] array, int numBytes);
   private static native int nativePeek(int fd);
   private static native void nativeClose(int fd);
+  private static native int nativeAvailable(int fd);
 
   public int read() {
     byte b[]=new byte[1];
@@ -34,6 +35,18 @@ public class FileInputStream extends InputStream {
 
   public int peek() {
     return nativePeek(fd);
+  }
+  
+  public int read(byte[] b, int offset,  int len) {
+    if (offset < 0 || len < 0 || offset + len > b.length){
+      return -1;
+    }      
+    byte readbuf[]=new byte[len];
+    int rtr=nativeRead(fd, readbuf, len);
+    for(int i=offset;i<len+offset;i++){
+      b[i]=readbuf[i-offset];
+    }
+    return rtr;
   }
 
   public int read(byte[] b) {
@@ -71,5 +84,9 @@ public class FileInputStream extends InputStream {
 
   public void close() {
     nativeClose(fd);
+  }
+  
+  public int available(){
+    return nativeAvailable(fd);
   }
 }
