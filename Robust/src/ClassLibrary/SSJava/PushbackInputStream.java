@@ -212,10 +212,8 @@ public class PushbackInputStream extends FilterInputStream {
   public synchronized int read(@LOC("OUT") byte[] b, @LOC("THIS,PushbackInputStream.POS") int off,
       @LOC("THIS,PushbackInputStream.POS") int len) throws IOException {
     @LOC("THIS,PushbackInputStream.POS") int numBytes = Math.min(buf.length - pos, len);
-System.out.println("numBytes="+numBytes+" buf.length="+buf.length+" pos="+pos);
+
     if (numBytes > 0) {
-      
-      System.out.println("buf[pos]="+buf[pos]);
       
       System.arraycopy(buf, pos, b, off, numBytes);
       pos += numBytes;
@@ -224,7 +222,6 @@ System.out.println("numBytes="+numBytes+" buf.length="+buf.length+" pos="+pos);
     }
 
     if (len > 0) {
-      System.out.println("len>0");
       len = super.read(b, off, len);
       if (len == -1) // EOF
         return numBytes > 0 ? numBytes : -1;

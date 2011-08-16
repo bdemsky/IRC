@@ -262,7 +262,8 @@ public class BufferedInputStream extends FilterInputStream {
    */
   public synchronized int read(byte[] b, int off, int len) throws IOException {
     if (off < 0 || len < 0 || b.length - off < len)
-      throw new IndexOutOfBoundsException();
+//      throw new IndexOutOfBoundsException();
+      return -1;
 
     if (len == 0)
       return 0;

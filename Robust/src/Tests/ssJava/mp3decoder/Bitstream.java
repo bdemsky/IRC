@@ -266,30 +266,31 @@ public final class Bitstream implements BitstreamErrors {
    *         of the stream has been reached.
    */
   public Header readFrame() throws BitstreamException {
-    
-    System.out.println("ST");
-    
+
     Header result = null;
     try {
-      System.out.println("HERE?");
       result = readNextFrame();
-      System.out.println("HERE?2");
+      if (result == null) {
+        return null;
+      }
       // E.B, Parse VBR (if any) first frame.
       if (firstframe == true) {
         result.parseVBR(frame_bytes);
         firstframe = false;
       }
-      
+
       int channels = (header.mode() == Header.SINGLE_CHANNEL) ? 1 : 2;
+
       result.setSideInfoBuf(getSideInfoBuffer(channels));
       result.setBitReserve(getBitReserve(result.slots()));
-      
+
+      closeFrame();
+
     } catch (BitstreamException ex) {
       if ((ex.getErrorCode() == INVALIDFRAME)) {
         // Try to skip this frame.
         // System.out.println("INVALIDFRAME");
-        try {    System.out.println("ET");
-
+        try {
           closeFrame();
           result = readNextFrame();
         } catch (BitstreamException e) {
@@ -303,7 +304,6 @@ public final class Bitstream implements BitstreamErrors {
         throw newBitstreamException(ex.getErrorCode(), ex);
       }
     }
-    System.out.println("EN");
 
     return result;
   }
@@ -315,9 +315,10 @@ public final class Bitstream implements BitstreamErrors {
    * @throws BitstreamException
    */
   private Header readNextFrame() throws BitstreamException {
-    System.out.println("framesize="+framesize);
     if (framesize == -1) {
-      nextFrame();
+      if (nextFrame() == -1) {
+        return null;
+      }
     }
     return header;
   }
@@ -327,10 +328,10 @@ public final class Bitstream implements BitstreamErrors {
    * 
    * @throws BitstreamException
    */
-  private void nextFrame() throws BitstreamException {
+  private int nextFrame() throws BitstreamException {
     // entire frame is read by the header class.
-    System.out.println("nextFrame()");
-    header.read_header(this, crc);
+    // header.read_header(this, crc);
+    return header.read_header(this, crc);
   }
 
   /**
@@ -468,8 +469,11 @@ public final class Bitstream implements BitstreamErrors {
     do {
       headerstring <<= 8;
 
-      if (readBytes(syncbuf, 3, 1) != 1)
+      if (readBytes(syncbuf, 3, 1) != 1) {
+        // System.out.println("THROW NEW BITSTREAM EXCEPTION");
+        return -1;
         throw newBitstreamException(STREAM_EOF, null);
+      }
 
       headerstring |= (syncbuf[3] & 0x000000FF);
 
@@ -686,7 +690,6 @@ public final class Bitstream implements BitstreamErrors {
 
     // first, store main_data_begin from the side inforamtion
     main_data_begin = peek_bits(9);
-    System.out.println("main_data_begin=" + main_data_begin);
 
     int max;
     if (channelType == 1) { // mono
@@ -728,7 +731,6 @@ public final class Bitstream implements BitstreamErrors {
     frame_start += nSlots;
 
     if (bytes_to_discard < 0) {
-      System.out.println("HERE?");
       return null;
     }
 

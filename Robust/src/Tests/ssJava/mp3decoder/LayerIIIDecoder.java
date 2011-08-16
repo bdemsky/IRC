@@ -108,7 +108,6 @@ final class LayerIIIDecoder implements FrameDecoder {
 
   private int part2_start;
 
-
   /**
    * Constructor.
    */
@@ -318,9 +317,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 
       // 'ch', 'channels' should be higher than all locs in the below body
       for (ch = 0; ch < channels; ch++) {
-        @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int part2_start = br.hsstell(); // part2_start
-                                                                                       // <
-                                                                                       // br
+        part2_start = br.hsstell();
 
         // grab scale factors from the main data.
         // following the scale factors is the actual compressed data
@@ -333,7 +330,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 
         // here, decoding the compressed audio data
         huffman_decode(ch, gr); // no need to care from this side
-        // System.out.println("CheckSum HuffMan = " + CheckSumHuff);
+//        System.out.println("CheckSum HuffMan = " + CheckSumHuff);
         dequantize_sample(/* ro[ch], */ch, gr); // no need to care from this
                                                 // side
       }
@@ -354,14 +351,20 @@ final class LayerIIIDecoder implements FrameDecoder {
 
         reorder(/* lr[ch], */ch, gr);
         antialias(ch, gr);
-        // for (int hb = 0;hb<576;hb++) CheckSumOut1d = CheckSumOut1d +
-        // out_1d[hb];
-        // System.out.println("CheckSumOut1d = "+CheckSumOut1d);
+        
+//        float CheckSumOut1d=0;
+//        for (int hb = 0;hb<576;hb++) {
+//             CheckSumOut1d = CheckSumOut1d + out_1d[hb];
+//        }
+//        System.out.println("CheckSumOut1d = "+CheckSumOut1d);
+        
 
         hybrid(ch, gr);
 
-        // for (int hb = 0;hb<576;hb++) CheckSumOut1d = CheckSumOut1d +
-        // out_1d[hb];
+        // float CheckSumOut1d=0;
+        // for (int hb = 0;hb<576;hb++) {
+        // CheckSumOut1d = CheckSumOut1d + out_1d[hb];
+        // }
         // System.out.println("CheckSumOut1d = "+CheckSumOut1d);
 
         for (sb18 = 18; sb18 < 576; sb18 += 36) {
@@ -892,7 +895,7 @@ final class LayerIIIDecoder implements FrameDecoder {
       is_1d[index++] = y[0];
 
       CheckSumHuff = CheckSumHuff + x[0] + y[0];
-      // System.out.println("x = "+x[0]+" y = "+y[0]);
+//      System.out.println("x = " + x[0] + " y = " + y[0]);
     }
 
     // Read count1 area

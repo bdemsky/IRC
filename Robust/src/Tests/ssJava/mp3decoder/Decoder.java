@@ -146,7 +146,7 @@ public class Decoder implements DecoderErrors {
     @LOC("TH") int layer = header.layer();
 
     output.clear_buffer();
-System.out.println("HERE?="+layer);
+    
     @LOC("DE,Decoder.DE") FrameDecoder decoder = retrieveDecoder(header, stream, layer); // return
                                                                                          // ceil=DELTA(TH)
     decoder.decodeFrame();
