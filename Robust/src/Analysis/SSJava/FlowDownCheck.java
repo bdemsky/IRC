@@ -222,7 +222,7 @@ public class FlowDownCheck {
         MethodDescriptor md = toAnalyzeMethodNext();
         if (ssjava.needTobeAnnotated(md)) {
           System.out.println("SSJAVA: Checking assignments: " + md);
-          checkMethodBody(cd, md);
+          checkMethodBody(cd, md, null);
         }
       }
     }
@@ -431,9 +431,10 @@ public class FlowDownCheck {
     checkDeclarationInBlockNode(md, nametable, ln.getBody());
   }
 
-  private void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
+  private void checkMethodBody(ClassDescriptor cd, MethodDescriptor md,
+      CompositeLocation constraints) {
     BlockNode bn = state.getMethodBody(md);
-    checkLocationFromBlockNode(md, md.getParameterTable(), bn, null);
+    checkLocationFromBlockNode(md, md.getParameterTable(), bn, constraints);
   }
 
   private String generateErrorMessage(ClassDescriptor cd, TreeNode tn) {
@@ -832,40 +833,81 @@ public class FlowDownCheck {
       SymbolTable nametable, MethodInvokeNode min, CompositeLocation loc,
       CompositeLocation constraint) {
 
-    CompositeLocation baseLocation = null;
-    if (min.getExpression() != null) {
-      baseLocation =
-          checkLocationFromExpressionNode(md, nametable, min.getExpression(),
-              new CompositeLocation(), constraint, false);
-    } else {
+    ClassDescriptor cd = md.getClassDesc();
+    MethodDescriptor calleeMD = min.getMethod();
 
-      if (min.getMethod().isStatic()) {
-        String globalLocId = ssjava.getMethodLattice(md).getGlobalLoc();
-        if (globalLocId == null) {
-          throw new Error("Method lattice does not define global variable location at "
-              + generateErrorMessage(md.getClassDesc(), min));
-        }
-        baseLocation = new CompositeLocation(new Location(md, globalLocId));
+    if (!ssjava.isTrustMethod(calleeMD)) {
+      CompositeLocation baseLocation = null;
+      if (min.getExpression() != null) {
+        baseLocation =
+            checkLocationFromExpressionNode(md, nametable, min.getExpression(),
+                new CompositeLocation(), constraint, false);
       } else {
-        String thisLocId = ssjava.getMethodLattice(md).getThisLoc();
-        baseLocation = new CompositeLocation(new Location(md, thisLocId));
+
+        if (min.getMethod().isStatic()) {
+          String globalLocId = ssjava.getMethodLattice(md).getGlobalLoc();
+          if (globalLocId == null) {
+            throw new Error("Method lattice does not define global variable location at "
+                + generateErrorMessage(md.getClassDesc(), min));
+          }
+          baseLocation = new CompositeLocation(new Location(md, globalLocId));
+        } else {
+          String thisLocId = ssjava.getMethodLattice(md).getThisLoc();
+          baseLocation = new CompositeLocation(new Location(md, thisLocId));
+        }
+
       }
-    }
 
-    checkCalleeConstraints(md, nametable, min, baseLocation, constraint);
+      System.out.println("\n#checkLocationFromMethodInvokeNode=" + min.printNode(0)
+          + " baseLocation=" + baseLocation);
 
-    checkCallerArgumentLocationConstraints(md, nametable, min, baseLocation, constraint);
+      int compareResult =
+          CompositeLattice.compare(constraint, baseLocation, true, generateErrorMessage(cd, min));
 
-    if (!min.getMethod().getReturnType().isVoid()) {
-      // If method has a return value, compute the highest possible return
-      // location in the caller's perspective
-      CompositeLocation ceilingLoc =
-          computeCeilingLocationForCaller(md, nametable, min, baseLocation, constraint);
-      return ceilingLoc;
+      if (compareResult == ComparisonResult.LESS) {
+        throw new Error("Method invocation does not respect the current branch constraint at "
+            + generateErrorMessage(cd, min));
+      } else if (compareResult != ComparisonResult.GREATER) {
+        // if the current constraint is higher than method's THIS location
+        // no need to check constraints!
+        CompositeLocation calleeConstraint =
+            translateCallerLocToCalleeLoc(calleeMD, baseLocation, constraint);
+        checkMethodBody(calleeMD.getClassDesc(), calleeMD, calleeConstraint);
+      }
+
+      checkCalleeConstraints(md, nametable, min, baseLocation, constraint);
+
+      checkCallerArgumentLocationConstraints(md, nametable, min, baseLocation, constraint);
+
+      if (!min.getMethod().getReturnType().isVoid()) {
+        // If method has a return value, compute the highest possible return
+        // location in the caller's perspective
+        CompositeLocation ceilingLoc =
+            computeCeilingLocationForCaller(md, nametable, min, baseLocation, constraint);
+        return ceilingLoc;
+      }
     }
 
     return new CompositeLocation();
 
+  }
+
+  private CompositeLocation translateCallerLocToCalleeLoc(MethodDescriptor calleeMD,
+      CompositeLocation calleeBaseLoc, CompositeLocation constraint) {
+
+    CompositeLocation calleeConstraint = new CompositeLocation();
+
+    // if (constraint.startsWith(calleeBaseLoc)) {
+    // if the first part of constraint loc is matched with callee base loc
+    Location thisLoc = new Location(calleeMD, ssjava.getMethodLattice(calleeMD).getThisLoc());
+    calleeConstraint.addLocation(thisLoc);
+    for (int i = calleeBaseLoc.getSize(); i < constraint.getSize(); i++) {
+      calleeConstraint.addLocation(constraint.get(i));
+    }
+
+    // }
+
+    return calleeConstraint;
   }
 
   private void checkCallerArgumentLocationConstraints(MethodDescriptor md, SymbolTable nametable,
@@ -969,18 +1011,17 @@ public class FlowDownCheck {
     }
 
     System.out.println("\n## computeReturnLocation=" + min.getMethod() + " argList=" + argList);
-    CompositeLocation compLoc = md2ReturnLocGen.get(min.getMethod()).computeReturnLocation(argList);
-    DeltaLocation delta = new DeltaLocation(compLoc, 1);
-    System.out.println("##computeReturnLocation=" + delta);
+    CompositeLocation ceilLoc = md2ReturnLocGen.get(min.getMethod()).computeReturnLocation(argList);
+    System.out.println("## ReturnLocation=" + ceilLoc);
 
-    return delta;
+    return ceilLoc;
 
   }
 
   private void checkCalleeConstraints(MethodDescriptor md, SymbolTable nametable,
       MethodInvokeNode min, CompositeLocation callerBaseLoc, CompositeLocation constraint) {
-    
-    System.out.println("checkCalleeConstraints="+min.printNode(0));
+
+    System.out.println("checkCalleeConstraints=" + min.printNode(0));
 
     MethodDescriptor calleemd = min.getMethod();
 
@@ -1014,7 +1055,7 @@ public class FlowDownCheck {
       for (int i = 0; i < calleemd.numParameters(); i++) {
         VarDescriptor calleevd = (VarDescriptor) calleemd.getParameter(i);
         CompositeLocation calleeLoc = d2loc.get(calleevd);
-        System.out.println("calleevd="+calleevd+" loc="+calleeLoc);
+        System.out.println("calleevd=" + calleevd + " loc=" + calleeLoc);
         calleeParamList.add(calleeLoc);
       }
 
@@ -1033,9 +1074,9 @@ public class FlowDownCheck {
                 || callerLoc2.get(callerLoc2.getSize() - 1).isTop()) {
               continue CHECK;
             }
-            
-            System.out.println("calleeLoc1="+calleeLoc1);
-            System.out.println("calleeLoc2="+calleeLoc2+"calleeParamList="+calleeParamList);
+
+            System.out.println("calleeLoc1=" + calleeLoc1);
+            System.out.println("calleeLoc2=" + calleeLoc2 + "calleeParamList=" + calleeParamList);
 
             int callerResult =
                 CompositeLattice.compare(callerLoc1, callerLoc2, true,
@@ -1356,24 +1397,31 @@ public class FlowDownCheck {
           checkLocationFromExpressionNode(md, nametable, an.getSrc(), new CompositeLocation(),
               constraint, false);
 
-      System.out.println("dstLocation=" + destLocation);
-      System.out.println("rhsLocation=" + rhsLocation);
-      System.out.println("constraint=" + constraint);
-
       srcLocation = rhsLocation;
 
-      if (!rhsLocation.get(rhsLocation.getSize() - 1).isTop()) {
-        if (constraint != null) {
-          inputGLBSet.add(rhsLocation);
-          inputGLBSet.add(constraint);
-          srcLocation = CompositeLattice.calculateGLB(inputGLBSet, generateErrorMessage(cd, an));
-        }
+      // if (!rhsLocation.get(rhsLocation.getSize() - 1).isTop()) {
+      if (constraint != null) {
+        inputGLBSet.add(rhsLocation);
+        inputGLBSet.add(constraint);
+        srcLocation = CompositeLattice.calculateGLB(inputGLBSet, generateErrorMessage(cd, an));
       }
+      // }
+
+      System.out.println("dstLocation=" + destLocation);
+      System.out.println("rhsLocation=" + rhsLocation);
+      System.out.println("srcLocation=" + srcLocation);
+      System.out.println("constraint=" + constraint);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
+
+        String context = "";
+        if (constraint != null) {
+          context = " and the current context constraint is " + constraint;
+        }
+
         throw new Error("The value flow from " + srcLocation + " to " + destLocation
-            + " does not respect location hierarchy on the assignment " + an.printNode(0) + " at "
-            + cd.getSourceFileName() + "::" + an.getNumLine());
+            + " does not respect location hierarchy on the assignment " + an.printNode(0) + context
+            + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
       }
 
     } else {
@@ -2063,12 +2111,8 @@ class ReturnLocGenerator {
       for (int i = 0; i < args.size(); i++) {
         int type = (paramIdx2paramType.get(new Integer(i))).intValue();
         CompositeLocation argLoc = args.get(i);
-        if (type == PARAMISHIGHER) {
-          // return loc is lower than param
-          DeltaLocation delta = new DeltaLocation(argLoc, 1);
-          inputGLB.add(delta);
-        } else if (type == PARAMISSAME) {
-          // return loc is equal or lower than param
+        if (type == PARAMISHIGHER || type == PARAMISSAME) {
+          // return loc is equal to or lower than param
           inputGLB.add(argLoc);
         }
       }

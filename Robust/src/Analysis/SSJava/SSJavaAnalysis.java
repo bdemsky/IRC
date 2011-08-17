@@ -68,6 +68,9 @@ public class SSJavaAnalysis {
   // the set of method descriptor required to check the linear type property
   Set<MethodDescriptor> linearTypeCheckMethodSet;
 
+  // the set of method descriptors annotated as "TRUST"
+  Set<MethodDescriptor> trustWorthyMDSet;
+
   CallGraph callgraph;
 
   LinearTypeCheck checker;
@@ -85,6 +88,7 @@ public class SSJavaAnalysis {
     this.mapSharedLocation2DescriptorSet = new Hashtable<Location, Set<Descriptor>>();
     this.linearTypeCheckMethodSet = new HashSet<MethodDescriptor>();
     this.bf = bf;
+    trustWorthyMDSet = new HashSet<MethodDescriptor>();
   }
 
   public void doCheck() {
@@ -99,6 +103,14 @@ public class SSJavaAnalysis {
     doDefinitelyWrittenCheck();
   }
 
+  public void addTrustMethod(MethodDescriptor md) {
+    trustWorthyMDSet.add(md);
+  }
+
+  public boolean isTrustMethod(MethodDescriptor md) {
+    return trustWorthyMDSet.contains(md);
+  }
+
   private void computeLinearTypeCheckMethodSet() {
 
     Set<MethodDescriptor> allCalledSet = callgraph.getMethodCalls(tu.getMain());
@@ -106,9 +118,7 @@ public class SSJavaAnalysis {
 
     Set<MethodDescriptor> trustedSet = new HashSet<MethodDescriptor>();
 
-    Set<MethodDescriptor> trustAnnoatedSet = methodAnnotationChecker.getTrustWorthyMDSet();
-
-    for (Iterator iterator = trustAnnoatedSet.iterator(); iterator.hasNext();) {
+    for (Iterator iterator = trustWorthyMDSet.iterator(); iterator.hasNext();) {
       MethodDescriptor trustMethod = (MethodDescriptor) iterator.next();
       Set<MethodDescriptor> calledFromTrustMethodSet = callgraph.getMethodCalls(trustMethod);
       trustedSet.add(trustMethod);
@@ -122,7 +132,7 @@ public class SSJavaAnalysis {
     for (Iterator iterator = trustedSet.iterator(); iterator.hasNext();) {
       MethodDescriptor md = (MethodDescriptor) iterator.next();
       Set<MethodDescriptor> callerSet = callgraph.getCallerSet(md);
-      if (!trustedSet.containsAll(callerSet) && !trustAnnoatedSet.contains(md)) {
+      if (!trustedSet.containsAll(callerSet) && !trustWorthyMDSet.contains(md)) {
         linearTypeCheckMethodSet.add(md);
       }
     }

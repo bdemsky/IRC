@@ -45,7 +45,6 @@ public class MethodAnnotationCheck {
 
   Set<MethodDescriptor> annotatedMDSet;
   Hashtable<MethodDescriptor, Set<MethodDescriptor>> caller2calleeSet;
-  Set<MethodDescriptor> trustWorthyMDSet;
 
   public MethodAnnotationCheck(SSJavaAnalysis ssjava, State state, TypeUtil tu) {
     this.ssjava = ssjava;
@@ -53,11 +52,6 @@ public class MethodAnnotationCheck {
     this.tu = tu;
     caller2calleeSet = new Hashtable<MethodDescriptor, Set<MethodDescriptor>>();
     annotatedMDSet = new HashSet<MethodDescriptor>();
-    trustWorthyMDSet = new HashSet<MethodDescriptor>();
-  }
-
-  public Set<MethodDescriptor> getTrustWorthyMDSet() {
-    return trustWorthyMDSet;
   }
 
   public void methodAnnoatationCheck() {
@@ -101,7 +95,7 @@ public class MethodAnnotationCheck {
           if (!visited.contains(p)) {
             visited.add(p);
 
-            if (!trustWorthyMDSet.contains(calleeMD)) {
+            if (!ssjava.isTrustMethod(calleeMD)) {
               // if method is annotated as "TRUST", do not need to check for
               // linear type & flow-down rule
               tovisit.add(calleeMD);
@@ -133,7 +127,7 @@ public class MethodAnnotationCheck {
       for (int i = 0; i < methodAnnotations.size(); i++) {
         AnnotationDescriptor an = methodAnnotations.elementAt(i);
         if (an.getMarker().equals(ssjava.TRUST)) {
-          trustWorthyMDSet.add(md);
+          ssjava.addTrustMethod(md);
         }
       }
     }

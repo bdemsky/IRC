@@ -35,6 +35,18 @@ public class CompositeLocation implements TypeExtension {
     return locTuple.size() == 0;
   }
 
+  public boolean startsWith(CompositeLocation prefix) {
+    // tests if this composite location starts with the prefix
+
+    for (int i = 0; i < prefix.getSize(); i++) {
+      if (!prefix.get(i).equals(get(i))) {
+        return false;
+      }
+    }
+    return true;
+
+  }
+
   public String toString() {
 
     String rtr = "CompLoc[";
