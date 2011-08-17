@@ -4,7 +4,9 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Vector;
 
+import IR.AnnotationDescriptor;
 import IR.ClassDescriptor;
 import IR.MethodDescriptor;
 import IR.Operation;
@@ -43,6 +45,7 @@ public class MethodAnnotationCheck {
 
   Set<MethodDescriptor> annotatedMDSet;
   Hashtable<MethodDescriptor, Set<MethodDescriptor>> caller2calleeSet;
+  Set<MethodDescriptor> trustWorthyMDSet;
 
   public MethodAnnotationCheck(SSJavaAnalysis ssjava, State state, TypeUtil tu) {
     this.ssjava = ssjava;
@@ -50,6 +53,11 @@ public class MethodAnnotationCheck {
     this.tu = tu;
     caller2calleeSet = new Hashtable<MethodDescriptor, Set<MethodDescriptor>>();
     annotatedMDSet = new HashSet<MethodDescriptor>();
+    trustWorthyMDSet = new HashSet<MethodDescriptor>();
+  }
+
+  public Set<MethodDescriptor> getTrustWorthyMDSet() {
+    return trustWorthyMDSet;
   }
 
   public void methodAnnoatationCheck() {
@@ -65,6 +73,7 @@ public class MethodAnnotationCheck {
       if (!cd.isInterface()) {
         for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
           MethodDescriptor md = (MethodDescriptor) method_it.next();
+          checkTrustworthyMethodAnnotation(md);
           checkMethodBody(cd, md);
         }
       }
@@ -92,19 +101,22 @@ public class MethodAnnotationCheck {
           if (!visited.contains(p)) {
             visited.add(p);
 
-            tovisit.add(calleeMD);
+            if (!trustWorthyMDSet.contains(calleeMD)) {
+              // if method is annotated as "TRUST", do not need to check for
+              // linear type & flow-down rule
+              tovisit.add(calleeMD);
 
-            Set<MethodDescriptor> possibleCalleeSet =
-                (Set<MethodDescriptor>) ssjava.getCallGraph().getMethods(calleeMD);
+              Set<MethodDescriptor> possibleCalleeSet =
+                  (Set<MethodDescriptor>) ssjava.getCallGraph().getMethods(calleeMD);
 
-            for (Iterator iterator2 = possibleCalleeSet.iterator(); iterator2.hasNext();) {
-              MethodDescriptor possibleCallee = (MethodDescriptor) iterator2.next();
+              for (Iterator iterator2 = possibleCalleeSet.iterator(); iterator2.hasNext();) {
+                MethodDescriptor possibleCallee = (MethodDescriptor) iterator2.next();
 
-              if (!possibleCallee.isAbstract()) {
-                ssjava.addAnnotationRequire(possibleCallee);
-                tovisit.add(possibleCallee);
+                if (!possibleCallee.isAbstract()) {
+                  ssjava.addAnnotationRequire(possibleCallee);
+                  tovisit.add(possibleCallee);
+                }
               }
-
             }
 
           }
@@ -112,6 +124,19 @@ public class MethodAnnotationCheck {
       }
     }
 
+  }
+
+  private void checkTrustworthyMethodAnnotation(MethodDescriptor md) {
+    // method annotation parsing
+    Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
+    if (methodAnnotations != null) {
+      for (int i = 0; i < methodAnnotations.size(); i++) {
+        AnnotationDescriptor an = methodAnnotations.elementAt(i);
+        if (an.getMarker().equals(ssjava.TRUST)) {
+          trustWorthyMDSet.add(md);
+        }
+      }
+    }
   }
 
   public void methodAnnoataionInheritanceCheck() {
@@ -144,19 +169,21 @@ public class MethodAnnotationCheck {
       }
 
       // need to check super classess if the current method is inherited from
-      // them, all of ancestor method should be annoated
-      ClassDescriptor currentCd = cd;
-      ClassDescriptor superCd = tu.getSuper(currentCd);
-      while (!superCd.getSymbol().equals("Object")) {
-        Set possiblematches = superCd.getMethodTable().getSet(md.getSymbol());
+      // them, all of ancestor method should be annotated.
+
+      ClassDescriptor curClassDesc;
+      ClassDescriptor parentClassDesc = cd;
+
+      while (!parentClassDesc.getSymbol().equals("Object")) {
+        curClassDesc = parentClassDesc;
+        parentClassDesc = tu.getSuper(curClassDesc);
+        Set possiblematches = parentClassDesc.getMethodTable().getSet(md.getSymbol());
         for (Iterator methodit = possiblematches.iterator(); methodit.hasNext();) {
           MethodDescriptor matchmd = (MethodDescriptor) methodit.next();
           if (md.matches(matchmd)) {
             ssjava.addAnnotationRequire(matchmd);
           }
         }
-        currentCd = superCd;
-        superCd = tu.getSuper(currentCd);
       }
 
       Set<ClassDescriptor> superIFSet = tu.getSuperIFs(cd);

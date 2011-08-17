@@ -21,7 +21,6 @@ import IR.State;
 import IR.TypeUtil;
 import IR.Flat.BuildFlat;
 import IR.Flat.FlatMethod;
-import IR.Tree.TreeNode;
 import Util.Pair;
 
 public class SSJavaAnalysis {
@@ -37,6 +36,7 @@ public class SSJavaAnalysis {
   public static final String TERMINATE = "TERMINATE";
   public static final String DELEGATE = "DELEGATE";
   public static final String DELEGATETHIS = "DELEGATETHIS";
+  public static final String TRUST = "TRUST";
 
   State state;
   TypeUtil tu;
@@ -65,6 +65,9 @@ public class SSJavaAnalysis {
   // set containing a class that has at least one annoated method
   Set<ClassDescriptor> annotationRequireClassSet;
 
+  // the set of method descriptor required to check the linear type property
+  Set<MethodDescriptor> linearTypeCheckMethodSet;
+
   CallGraph callgraph;
 
   LinearTypeCheck checker;
@@ -80,18 +83,50 @@ public class SSJavaAnalysis {
     this.annotationRequireClassSet = new HashSet<ClassDescriptor>();
     this.skipLoopTerminate = new Hashtable<MethodDescriptor, Integer>();
     this.mapSharedLocation2DescriptorSet = new Hashtable<Location, Set<Descriptor>>();
+    this.linearTypeCheckMethodSet = new HashSet<MethodDescriptor>();
     this.bf = bf;
   }
 
   public void doCheck() {
-    doLinearTypeCheck();
     doMethodAnnotationCheck();
+    computeLinearTypeCheckMethodSet();
+    doLinearTypeCheck();
     if (state.SSJAVADEBUG) {
       debugPrint();
     }
     parseLocationAnnotation();
     doFlowDownCheck();
     doDefinitelyWrittenCheck();
+  }
+
+  private void computeLinearTypeCheckMethodSet() {
+
+    Set<MethodDescriptor> allCalledSet = callgraph.getMethodCalls(tu.getMain());
+    linearTypeCheckMethodSet.addAll(allCalledSet);
+
+    Set<MethodDescriptor> trustedSet = new HashSet<MethodDescriptor>();
+
+    Set<MethodDescriptor> trustAnnoatedSet = methodAnnotationChecker.getTrustWorthyMDSet();
+
+    for (Iterator iterator = trustAnnoatedSet.iterator(); iterator.hasNext();) {
+      MethodDescriptor trustMethod = (MethodDescriptor) iterator.next();
+      Set<MethodDescriptor> calledFromTrustMethodSet = callgraph.getMethodCalls(trustMethod);
+      trustedSet.add(trustMethod);
+      trustedSet.addAll(calledFromTrustMethodSet);
+    }
+
+    linearTypeCheckMethodSet.removeAll(trustedSet);
+
+    // if a method is called only by trusted method, no need to check linear
+    // type & flow down rule
+    for (Iterator iterator = trustedSet.iterator(); iterator.hasNext();) {
+      MethodDescriptor md = (MethodDescriptor) iterator.next();
+      Set<MethodDescriptor> callerSet = callgraph.getCallerSet(md);
+      if (!trustedSet.containsAll(callerSet) && !trustAnnoatedSet.contains(md)) {
+        linearTypeCheckMethodSet.add(md);
+      }
+    }
+
   }
 
   private void doLinearTypeCheck() {
@@ -174,7 +209,6 @@ public class SSJavaAnalysis {
                 if (value != null) {
                   maxIteration = Integer.parseInt(value);
                 }
-                System.out.println("###md=" + md);
                 skipLoopTerminate.put(md, new Integer(maxIteration));
               }
             }
@@ -333,6 +367,10 @@ public class SSJavaAnalysis {
     } else {
       return cd2methodDefault.get(md.getClassDesc());
     }
+  }
+
+  public boolean needToCheckLinearType(MethodDescriptor md) {
+    return linearTypeCheckMethodSet.contains(md);
   }
 
   public boolean needTobeAnnotated(MethodDescriptor md) {

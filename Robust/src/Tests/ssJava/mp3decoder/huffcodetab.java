@@ -482,8 +482,8 @@ final class huffcodetab {
    * Big Constructor : Computes all Huffman Tables.
    */
   private huffcodetab(@LOC("V") String S, @LOC("V") int XLEN, @LOC("V") int YLEN,
-      @LOC("V") int LINBITS, @LOC("V") int LINMAX, @LOC("V") int REF, @LOC("V") int[] TABLE,
-      @LOC("V") int[] HLEN, @LOC("V") int[][] VAL, @LOC("V") int TREELEN) {
+      @LOC("V") int LINBITS, @LOC("V") int LINMAX, @LOC("V") int REF, @DELEGATE @LOC("V") int[] TABLE,
+      @DELEGATE @LOC("V") int[] HLEN,@DELEGATE @LOC("V") int[][] VAL, @LOC("V") int TREELEN) {
     tablename0 = S.charAt(0);
     tablename1 = S.charAt(1);
     tablename2 = S.charAt(2);
@@ -506,11 +506,12 @@ final class huffcodetab {
    * note! for counta,countb -the 4 bit value is returned in y,
    * discard x.
    */
-  public static int huffman_decoder(huffcodetab h, int[] x, int[] y, int[] v, int[] w, BitReserve br)
+  public static int huffman_decoder(int htIdx, int[] x, int[] y, int[] v, int[] w, BitReserve br)
   {
      // array of all huffcodtable headers
      // 0..31 Huffman code table 0..31
      // 32,33 count1-tables
+    
 
      int dmask = 1 << ((4 * 8) - 1);
      int hs    = 4 * 8;
@@ -519,10 +520,10 @@ final class huffcodetab {
      int error = 1;
      level = dmask;
 
-     if (h.val == null) return 2;
+     if (ht[htIdx].val == null) return 2;
 
      /* table 0 needs no bits */
-     if ( h.treelen == 0)
+     if ( ht[htIdx].treelen == 0)
       { 
         x[0] = y[0] = 0;
         return 0;
@@ -536,10 +537,10 @@ final class huffcodetab {
       int bits[] = bitbuf;*/
       do 
       {
-         if (h.val[point][0]==0)
+         if (ht[htIdx].val[point][0]==0)
           {   /*end of tree*/
-             x[0] = h.val[point][1] >>> 4;
-             y[0] = h.val[point][1] & 0xf;
+             x[0] = ht[htIdx].val[point][1] >>> 4;
+             y[0] = ht[htIdx].val[point][1] & 0xf;
              error = 0;
              break;
          }
@@ -556,13 +557,13 @@ final class huffcodetab {
           //if (bits[bitIndex++]!=0)
           if (br.hget1bit()!=0)
           {
-             while (h.val[point][1] >= MXOFF) point += h.val[point][1];
-             point += h.val[point][1];
+             while (ht[htIdx].val[point][1] >= MXOFF) point += ht[htIdx].val[point][1];
+             point += ht[htIdx].val[point][1];
          }
          else
           {
-             while (h.val[point][0] >= MXOFF) point += h.val[point][0];
-             point += h.val[point][0];
+             while (ht[htIdx].val[point][0] >= MXOFF) point += ht[htIdx].val[point][0];
+             point += ht[htIdx].val[point][0];
          }
          level >>>= 1;
           // MDM: ht[0] is always 0;
@@ -575,8 +576,8 @@ final class huffcodetab {
                br.rewindNbits(unread);
       */
        /* Process sign encodings for quadruples tables. */
-      // System.out.println(h.tablename);
-       if (h.tablename0 == '3' && (h.tablename1 == '2' || h.tablename1 == '3'))
+      // System.out.println(ht[htIdx].tablename);
+       if (ht[htIdx].tablename0 == '3' && (ht[htIdx].tablename1 == '2' || ht[htIdx].tablename1 == '3'))
        {
           v[0] = (y[0]>>3) & 1;
           w[0] = (y[0]>>2) & 1;
@@ -601,14 +602,14 @@ final class huffcodetab {
             // x and y are reversed in the test bitstream.
             // Reverse x and y here to make test bitstream work.
 
-           if (h.linbits != 0)
-             if ((h.xlen-1) == x[0])
-               x[0] += br.hgetbits(h.linbits);
+           if (ht[htIdx].linbits != 0)
+             if ((ht[htIdx].xlen-1) == x[0])
+               x[0] += br.hgetbits(ht[htIdx].linbits);
             if (x[0] != 0)
                  if (br.hget1bit() != 0) x[0] = -x[0];
-            if (h.linbits != 0)
-                if ((h.ylen-1) == y[0])
-                    y[0] += br.hgetbits(h.linbits);
+            if (ht[htIdx].linbits != 0)
+                if ((ht[htIdx].ylen-1) == y[0])
+                    y[0] += br.hgetbits(ht[htIdx].linbits);
             if (y[0] != 0)
                  if (br.hget1bit() != 0) y[0] = -y[0];
         }

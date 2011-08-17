@@ -129,7 +129,6 @@ public class String {
     String newstr=new String();
     newstr.count=this.count+str.count;
     char charstr[]=new char[newstr.count];
-    newstr.value=charstr;
     newstr.offset=0;
     for(int i=0; i<count; i++) {
       charstr[i]=value[i+offset];
@@ -137,6 +136,7 @@ public class String {
     for(int i=0; i<str.count; i++) {
       charstr[i+count]=str.value[i+str.offset];
     }
+    newstr.value=charstr;
     return newstr;
   }
 

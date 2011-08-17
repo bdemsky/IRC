@@ -1,3 +1,5 @@
+import java.awt.image.SampleModel;
+
 import FileOutputStream;
 
 /*
@@ -41,9 +43,7 @@ public class Player {
   /**
    * The MPEG audio bitstream.
    */
-  // javac blank final bug.
-  /* final */@LOC("ST")
-  private Bitstream bitstream;
+  // private Bitstream bitstream;
 
   /**
    * The MPEG audio decoder.
@@ -74,12 +74,12 @@ public class Player {
   /**
    * Creates a new <code>Player</code> instance.
    */
-  public Player(InputStream stream) throws JavaLayerException {
-    this(stream, null);
+  public Player() throws JavaLayerException {
+    this(null);
   }
 
-  public Player(InputStream stream, AudioDevice device) throws JavaLayerException {
-    bitstream = new Bitstream(stream);
+  public Player(AudioDevice device) throws JavaLayerException {
+    // bitstream = new Bitstream(stream);
     decoder = new Decoder();
 
     // if (device!=null)
@@ -112,15 +112,11 @@ public class Player {
   public boolean play(@LOC("IN") int frames) throws JavaLayerException {
     @LOC("IN") boolean ret = true;
 
-    // FileOutputStream fos = new FileOutputStream("output.txt");
-
     int count = 0;
     SSJAVA: while (frames-- > 0 && ret) {
       ret = decodeFrame();
     }
 
-    // fos.flush();
-    // fos.close();
     /*
      * if (!ret) { // last frame, ensure all data flushed to the audio device.
      * AudioDevice out = audio; if (out!=null) { out.flush(); synchronized
@@ -183,25 +179,22 @@ public class Player {
       // if (out==null)
       // return false;
 
-      Header h = bitstream.readFrame();
+      // Header h = bitstream.readFrame();
+      Header h = BitstreamWrapper.readFrame();
 
       if (h == null)
         return false;
 
-      // eom debug
-      // System.out.println("header framesize=" + h.framesize);
-      // System.out.println("br total="+h.getBitReserve().hsstell());
-      //
-
-      // sample buffer set when decoder constructed
-      @LOC("O") SampleBuffer output = (SampleBuffer) decoder.decodeFrame(h, bitstream);
+      // @LOC("O") SampleBuffer output = (SampleBuffer) decoder.decodeFrame(h);
+      decoder.decodeFrame(h);
 
       // eom debug
-      int sum=0;
-      short[] outbuf = output.getBuffer();
-      for (int i = 0; i < output.getBufferLength(); i++) {
-//        System.out.println(outbuf[i]);
-        sum+=outbuf[i];
+      int sum = 0;
+      short[] outbuf = SampleBufferWrapper.getOutput().getBuffer();
+      // short[] outbuf = output.getBuffer();
+      for (int i = 0; i < SampleBufferWrapper.getOutput().getBufferLength(); i++) {
+        // System.out.println(outbuf[i]);
+        sum += outbuf[i];
       }
       System.out.println(sum);
       //

@@ -33,26 +33,26 @@ public class Decoder implements DecoderErrors {
   /**
    * The Bistream from which the MPEG audio frames are read.
    */
-  @LOC("ST")
-  private Bitstream stream;
+  // @LOC("ST")
+  // private Bitstream stream;
 
   /**
    * The Obuffer instance that will receive the decoded PCM samples.
    */
-  @LOC("OUT")
-  private Obuffer output;
+  // @LOC("OUT")
+  // private Obuffer output;
 
   /**
    * Synthesis filter for the left channel.
    */
-  @LOC("FIL")
-  private SynthesisFilter filter1;
+  // @LOC("FIL")
+  // private SynthesisFilter filter1;
 
   /**
    * Sythesis filter for the right channel.
    */
-  @LOC("FIL")
-  private SynthesisFilter filter2;
+  // @LOC("FIL")
+  // private SynthesisFilter filter2;
 
   /**
    * The decoder used to decode layer III frames.
@@ -93,9 +93,11 @@ public class Decoder implements DecoderErrors {
    *          The <code>Params</code> instance that describes the customizable
    *          aspects of the decoder.
    */
-  public Decoder(Params params0) {
-    if (params0 == null)
-      params0 = DEFAULT_PARAMS;
+  public Decoder(@DELEGATE Params params0) {
+
+    if (params0 == null) {
+      params0 = getDefaultParams();
+    }
 
     params = params0;
 
@@ -109,20 +111,20 @@ public class Decoder implements DecoderErrors {
     return (Params) DEFAULT_PARAMS.clone();
   }
 
-  public void setEqualizer(Equalizer eq) {
-    if (eq == null)
-      eq = Equalizer.PASS_THRU_EQ;
-
-    equalizer.setFrom(eq);
-
-    float[] factors = equalizer.getBandFactors();
-
-    if (filter1 != null)
-      filter1.setEQ(factors);
-
-    if (filter2 != null)
-      filter2.setEQ(factors);
-  }
+  // public void setEqualizer(Equalizer eq) {
+  // if (eq == null)
+  // eq = Equalizer.PASS_THRU_EQ;
+  //
+  // equalizer.setFrom(eq);
+  //
+  // float[] factors = equalizer.getBandFactors();
+  //
+  // if (filter1 != null)
+  // filter1.setEQ(factors);
+  //
+  // if (filter2 != null)
+  // filter2.setEQ(factors);
+  // }
 
   /**
    * Decodes one frame from an MPEG audio bitstream.
@@ -136,56 +138,61 @@ public class Decoder implements DecoderErrors {
    */
   @LATTICE("O<DE,DE<TH,TH<IN,THISLOC=TH")
   @RETURNLOC("O")
-  public Obuffer decodeFrame(@LOC("IN") Header header, @LOC("IN") Bitstream stream)
-      throws DecoderException {
+  public Obuffer decodeFrame(@LOC("IN") Header header) throws DecoderException {
 
     if (!initialized) {
-      initialize(header);
+      float scalefactor = 32700.0f;
+
+      int mode = header.mode();
+      int layer = header.layer();
+      int channels = mode == Header.SINGLE_CHANNEL ? 1 : 2;
+
+      // set up output buffer if not set up by client.
+      // if (output == null)
+      // output = new SampleBuffer(header.frequency(), channels);
+      SampleBufferWrapper.init(header.frequency(), channels);
+
+      float[] factors = equalizer.getBandFactors();
+      SynthesisFilter filter1 = new SynthesisFilter(0, scalefactor, factors);
+
+      // REVIEW: allow mono output for stereo
+      SynthesisFilter filter2 = null;
+      if (channels == 2) {
+        filter2 = new SynthesisFilter(1, scalefactor, factors);
+      }
+
+      outputChannels = channels;
+      outputFrequency = header.frequency();
+
+      l3decoder = new LayerIIIDecoder(filter1, filter2, OutputChannels.BOTH_CHANNELS);
+
+      initialized = true;
     }
 
     @LOC("TH") int layer = header.layer();
 
-    output.clear_buffer();
-    
-    @LOC("DE,Decoder.DE") FrameDecoder decoder = retrieveDecoder(header, stream, layer); // return
-                                                                                         // ceil=DELTA(TH)
-    decoder.decodeFrame();
+    SampleBufferWrapper.getOutput().clear_buffer();
+    // output.clear_buffer();
 
-    // if (layer == 3) {
-    // if (l3decoder == null) {
-    // l3decoder =
-    // new LayerIIIDecoder(stream, header, filter1, filter2, output,
-    // OutputChannels.BOTH_CHANNELS);
-    // }
-    // l3decoder.decodeFrame();
-    // } else if (layer == 2) {
-    // if (l2decoder == null) {
-    // l2decoder = new LayerIIDecoder();
-    // l2decoder.create(stream, header, filter1, filter2, output,
-    // OutputChannels.BOTH_CHANNELS);
-    // }
-    // l2decoder.decodeFrame();
-    // } else {
-    // if (l1decoder == null) {
-    // l1decoder = new LayerIDecoder();
-    // l1decoder.create(stream, header, filter1, filter2, output,
-    // OutputChannels.BOTH_CHANNELS);
-    // }
-    // l1decoder.decodeFrame();
-    // }
+    // @LOC("DE,Decoder.DE") FrameDecoder decoder = retrieveDecoder(header,
+    // stream, layer);
+    // decoder.decodeFrame();
 
-    output.write_buffer(1);
+    l3decoder.decodeFrame(header);
 
-    return output;
+    SampleBufferWrapper.getOutput().write_buffer(1);
+    // output.write_buffer(1);
+
+    // return output;
   }
 
   /**
    * Changes the output buffer. This will take effect the next time
    * decodeFrame() is called.
    */
-  public void setOutputBuffer(Obuffer out) {
-    output = out;
-  }
+  // public void setOutputBuffer(Obuffer out) {
+  // output = out;
+  // }
 
   /**
    * Retrieves the sample frequency of the PCM samples output by this decoder.
@@ -236,78 +243,6 @@ public class Decoder implements DecoderErrors {
     return new DecoderException(errorcode, throwable);
   }
 
-  @LATTICE("IN,TH,THISLOC=TH")
-  @RETURNLOC("TH")
-  protected FrameDecoder retrieveDecoder(@LOC("IN") Header header, @LOC("IN") Bitstream stream,
-      @LOC("IN") int layer) throws DecoderException {
-    // @LOC("DE") FrameDecoder decoder = null;
-
-    // REVIEW: allow channel output selection type
-    // (LEFT, RIGHT, BOTH, DOWNMIX)
-    switch (layer) {
-    case 3:
-      if (l3decoder == null) {
-        l3decoder =
-            new LayerIIIDecoder(header, filter1, filter2, output, OutputChannels.BOTH_CHANNELS);
-      }
-
-      return l3decoder;
-      // decoder = l3decoder;
-      break;
-    // case 2:
-    // if (l2decoder == null) {
-    // l2decoder = new LayerIIDecoder();
-    // l2decoder.create(stream, header, filter1, filter2, output,
-    // OutputChannels.BOTH_CHANNELS);
-    // }
-    // return l2decoder;
-    // // decoder = l2decoder;
-    // break;
-    // case 1:
-    // if (l1decoder == null) {
-    // l1decoder = new LayerIDecoder();
-    // l1decoder.create(stream, header, filter1, filter2, output,
-    // OutputChannels.BOTH_CHANNELS);
-    // }
-    // return l1decoder;
-    // // decoder = l1decoder;
-    // break;
-    }
-    //
-    // if (decoder==null)
-    // {
-    // throw newDecoderException(UNSUPPORTED_LAYER, null);
-    // }
-    //
-    // return decoder;
-  }
-
-  public void initialize(Header header) throws DecoderException {
-
-    // REVIEW: allow customizable scale factor
-    float scalefactor = 32700.0f;
-
-    int mode = header.mode();
-    int layer = header.layer();
-    int channels = mode == Header.SINGLE_CHANNEL ? 1 : 2;
-
-    // set up output buffer if not set up by client.
-    if (output == null)
-      output = new SampleBuffer(header.frequency(), channels);
-
-    float[] factors = equalizer.getBandFactors();
-    filter1 = new SynthesisFilter(0, scalefactor, factors);
-
-    // REVIEW: allow mono output for stereo
-    if (channels == 2)
-      filter2 = new SynthesisFilter(1, scalefactor, factors);
-
-    outputChannels = channels;
-    outputFrequency = header.frequency();
-
-    initialized = true;
-  }
-
   /**
    * The <code>Params</code> class presents the customizable aspects of the
    * decoder.
@@ -315,7 +250,9 @@ public class Decoder implements DecoderErrors {
    * Instances of this class are not thread safe.
    */
   public static class Params implements Cloneable {
-    private OutputChannels outputChannels = OutputChannels.BOTH;
+
+    // private OutputChannels outputChannels = OutputChannels.BOTH;
+    private OutputChannels outputChannels = new OutputChannels(0);
 
     private Equalizer equalizer = new Equalizer();
 
@@ -325,8 +262,8 @@ public class Decoder implements DecoderErrors {
     public Object clone() {
       // TODO: need to have better clone method
       Params clone = new Params();
-      clone.outputChannels = outputChannels;
-      clone.equalizer = equalizer;
+      clone.outputChannels = new OutputChannels(outputChannels.getChannelsOutputCode());
+      clone.equalizer = new Equalizer();
       return clone;
       // try
       // {
