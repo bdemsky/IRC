@@ -40,7 +40,7 @@
 /**
  * Class to implements Huffman decoder.
  */
-@LATTICE("FIELD<FINAL")
+@LATTICE("FIELD<FINAL,FIELD*")
 @METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=IN,GLOBALLOC=IN")
 final class huffcodetab {
   private static final int MXOFF = 250;
@@ -482,8 +482,9 @@ final class huffcodetab {
    * Big Constructor : Computes all Huffman Tables.
    */
   private huffcodetab(@LOC("V") String S, @LOC("V") int XLEN, @LOC("V") int YLEN,
-      @LOC("V") int LINBITS, @LOC("V") int LINMAX, @LOC("V") int REF, @DELEGATE @LOC("V") int[] TABLE,
-      @DELEGATE @LOC("V") int[] HLEN,@DELEGATE @LOC("V") int[][] VAL, @LOC("V") int TREELEN) {
+      @LOC("V") int LINBITS, @LOC("V") int LINMAX, @LOC("V") int REF,
+      @DELEGATE @LOC("V") int[] TABLE, @DELEGATE @LOC("V") int[] HLEN,
+      @DELEGATE @LOC("V") int[][] VAL, @LOC("V") int TREELEN) {
     tablename0 = S.charAt(0);
     tablename1 = S.charAt(1);
     tablename2 = S.charAt(2);
@@ -500,122 +501,122 @@ final class huffcodetab {
     VAL = null;
     treelen = TREELEN;
   }
-  
+
   /**
-   * Do the huffman-decoding.
-   * note! for counta,countb -the 4 bit value is returned in y,
-   * discard x.
+   * Do the huffman-decoding. note! for counta,countb -the 4 bit value is
+   * returned in y, discard x.
    */
-  public static int huffman_decoder(int htIdx, int[] x, int[] y, int[] v, int[] w, BitReserve br)
-  {
-     // array of all huffcodtable headers
-     // 0..31 Huffman code table 0..31
-     // 32,33 count1-tables
-    
+  @LATTICE("OUT<THIS,THIS<V,V<IN,IN<C,C*,THISLOC=THIS,RETURNLOC=OUT,GLOBALLOC=IN")
+  public static int huffman_decoder(@LOC("THIS,LayerIIIDecoder.SI2") int htIdx,
+      @LOC("THIS,LayerIIIDecoder.SI1") int[] x, @LOC("THIS,LayerIIIDecoder.SI1") int[] y,
+      @LOC("THIS,LayerIIIDecoder.SI1") int[] v, @LOC("THIS,LayerIIIDecoder.SI1") int[] w,
+      @LOC("THIS,LayerIIIDecoder.BR") BitReserve br) {
+    // array of all huffcodtable headers
+    // 0..31 Huffman code table 0..31
+    // 32,33 count1-tables
 
-     int dmask = 1 << ((4 * 8) - 1);
-     int hs    = 4 * 8;
-     int level;
-     int point = 0;
-     int error = 1;
-     level = dmask;
+    @LOC("C") int dmask = 1 << ((4 * 8) - 1);
+    @LOC("THIS,LayerIIIDecoder.SI1") int hs = 4 * 8;
+    @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int level;
+    @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int point = 0;
+    @LOC("OUT") int error = 1;
+    level = dmask;
 
-     if (ht[htIdx].val == null) return 2;
+    if (ht[htIdx].val == null)
+      return 2;
 
-     /* table 0 needs no bits */
-     if ( ht[htIdx].treelen == 0)
-      { 
-        x[0] = y[0] = 0;
-        return 0;
-     }
+    /* table 0 needs no bits */
+    if (ht[htIdx].treelen == 0) {
+      x[0] = 0;
+      y[0] = 0;
+      return 0;
+    }
 
-     /* Lookup in Huffman table. */
+    /* Lookup in Huffman table. */
 
-      /*int bitsAvailable = 0;      
-      int bitIndex = 0;
-      
-      int bits[] = bitbuf;*/
-      do 
-      {
-         if (ht[htIdx].val[point][0]==0)
-          {   /*end of tree*/
-             x[0] = ht[htIdx].val[point][1] >>> 4;
-             y[0] = ht[htIdx].val[point][1] & 0xf;
-             error = 0;
-             break;
-         }
-         
-          // hget1bit() is called thousands of times, and so needs to be
-          // ultra fast. 
-          /*
-          if (bitIndex==bitsAvailable)
-          {
-               bitsAvailable = br.readBits(bits, 32);            
-               bitIndex = 0;
-          }
-          */
-          //if (bits[bitIndex++]!=0)
-          if (br.hget1bit()!=0)
-          {
-             while (ht[htIdx].val[point][1] >= MXOFF) point += ht[htIdx].val[point][1];
-             point += ht[htIdx].val[point][1];
-         }
-         else
-          {
-             while (ht[htIdx].val[point][0] >= MXOFF) point += ht[htIdx].val[point][0];
-             point += ht[htIdx].val[point][0];
-         }
-         level >>>= 1;
-          // MDM: ht[0] is always 0;
-      } while ((level !=0 )  || (point < 0 /*ht[0].treelen*/) );
-          
-          // put back any bits not consumed
-     /*   
-      int unread = (bitsAvailable-bitIndex);
-          if (unread>0)
-               br.rewindNbits(unread);
-      */
-       /* Process sign encodings for quadruples tables. */
-      // System.out.println(ht[htIdx].tablename);
-       if (ht[htIdx].tablename0 == '3' && (ht[htIdx].tablename1 == '2' || ht[htIdx].tablename1 == '3'))
-       {
-          v[0] = (y[0]>>3) & 1;
-          w[0] = (y[0]>>2) & 1;
-          x[0] = (y[0]>>1) & 1;
-          y[0] = y[0] & 1;
+    /*
+     * int bitsAvailable = 0; int bitIndex = 0;
+     * 
+     * int bits[] = bitbuf;
+     */
+    do {
+      if (ht[htIdx].val[point][0] == 0) { /* end of tree */
+        x[0] = ht[htIdx].val[point][1] >>> 4;
+        y[0] = ht[htIdx].val[point][1] & 0xf;
+        error = 0;
+        break;
+      }
 
-         /* v, w, x and y are reversed in the bitstream.
-            switch them around to make test bistream work. */
+      // hget1bit() is called thousands of times, and so needs to be
+      // ultra fast.
+      /*
+       * if (bitIndex==bitsAvailable) { bitsAvailable = br.readBits(bits, 32);
+       * bitIndex = 0; }
+       */
+      // if (bits[bitIndex++]!=0)
+      if (br.hget1bit() != 0) {
+        while (ht[htIdx].val[point][1] >= MXOFF)
+          point += ht[htIdx].val[point][1];
+        point += ht[htIdx].val[point][1];
+      } else {
+        while (ht[htIdx].val[point][0] >= MXOFF)
+          point += ht[htIdx].val[point][0];
+        point += ht[htIdx].val[point][0];
+      }
+      level >>>= 1;
+      // MDM: ht[0] is always 0;
+    } while ((level != 0) || (point < 0 /* ht[0].treelen */));
 
-          if (v[0]!=0)
-            if (br.hget1bit() != 0) v[0] = -v[0];
-          if (w[0]!=0)
-            if (br.hget1bit() != 0) w[0] = -w[0];
-          if (x[0]!=0)
-            if (br.hget1bit() != 0) x[0] = -x[0];
-          if (y[0]!=0)
-            if (br.hget1bit() != 0) y[0] = -y[0];
-       }
-        else
-        {
-            // Process sign and escape encodings for dual tables.
-            // x and y are reversed in the test bitstream.
-            // Reverse x and y here to make test bitstream work.
+    // put back any bits not consumed
+    /*
+     * int unread = (bitsAvailable-bitIndex); if (unread>0)
+     * br.rewindNbits(unread);
+     */
+    /* Process sign encodings for quadruples tables. */
+    // System.out.println(ht[htIdx].tablename);
+    if (ht[htIdx].tablename0 == '3' && (ht[htIdx].tablename1 == '2' || ht[htIdx].tablename1 == '3')) {
+      v[0] = (y[0] >> 3) & 1;
+      w[0] = (y[0] >> 2) & 1;
+      x[0] = (y[0] >> 1) & 1;
+      y[0] = y[0] & 1;
 
-           if (ht[htIdx].linbits != 0)
-             if ((ht[htIdx].xlen-1) == x[0])
-               x[0] += br.hgetbits(ht[htIdx].linbits);
-            if (x[0] != 0)
-                 if (br.hget1bit() != 0) x[0] = -x[0];
-            if (ht[htIdx].linbits != 0)
-                if ((ht[htIdx].ylen-1) == y[0])
-                    y[0] += br.hgetbits(ht[htIdx].linbits);
-            if (y[0] != 0)
-                 if (br.hget1bit() != 0) y[0] = -y[0];
-        }
-        return error;
+      /*
+       * v, w, x and y are reversed in the bitstream. switch them around to make
+       * test bistream work.
+       */
+
+      if (v[0] != 0)
+        if (br.hget1bit() != 0)
+          v[0] = -v[0];
+      if (w[0] != 0)
+        if (br.hget1bit() != 0)
+          w[0] = -w[0];
+      if (x[0] != 0)
+        if (br.hget1bit() != 0)
+          x[0] = -x[0];
+      if (y[0] != 0)
+        if (br.hget1bit() != 0)
+          y[0] = -y[0];
+    } else {
+      // Process sign and escape encodings for dual tables.
+      // x and y are reversed in the test bitstream.
+      // Reverse x and y here to make test bitstream work.
+
+      if (ht[htIdx].linbits != 0)
+        if ((ht[htIdx].xlen - 1) == x[0])
+          x[0] += br.hgetbits(ht[htIdx].linbits);
+      if (x[0] != 0)
+        if (br.hget1bit() != 0)
+          x[0] = -x[0];
+      if (ht[htIdx].linbits != 0)
+        if ((ht[htIdx].ylen - 1) == y[0])
+          y[0] += br.hgetbits(ht[htIdx].linbits);
+      if (y[0] != 0)
+        if (br.hget1bit() != 0)
+          y[0] = -y[0];
+    }
+    return error;
   }
-  
 
   /**
    * Do the huffman-decoding. note! for counta,countb -the 4 bit value is
@@ -639,8 +640,8 @@ final class huffcodetab {
     @LOC("OUT") int error = 1;
     level = dmask;
 
-    if (ht[idx].val == null){
-//      return 2;
+    if (ht[idx].val == null) {
+      // return 2;
       return data;
     }
 
@@ -648,7 +649,7 @@ final class huffcodetab {
     if (ht[idx].treelen == 0) {
       data.y = 0;
       data.x = 0;
-//      return 0;
+      // return 0;
       return data;
     }
 
@@ -735,11 +736,11 @@ final class huffcodetab {
         if (data.br.hget1bit() != 0)
           data.y = -data.y;
     }
-    
+
     return data;
-//    return error;
+    // return error;
   }
-  
+
   public static void inithuff() {
 
     if (ht != null)

@@ -26,7 +26,7 @@
  * @version 0.0.7 12/12/99
  * @since 0.0.5
  */
-@LATTICE("OUT<DE,DE<FILTER,FILTER<FACTORS,FACTORS<EQ,EQ<PARAM,PARAM<INIT")
+@LATTICE("OUT<DE,DE<FILTER,FILTER<FACTORS,FACTORS<EQ,EQ<PARAM,PARAM<H,H<INIT,PARAM*,INIT*")
 @METHODDEFAULT("THIS,THISLOC=THIS,RETURNLOC=THIS")
 public class Decoder implements DecoderErrors {
 
@@ -139,14 +139,14 @@ public class Decoder implements DecoderErrors {
    * @return A SampleBuffer containing the decoded samples.
    */
   @LATTICE("THIS<VAR,THISLOC=THIS,VAR*")
-  public void decodeFrame(@LOC("VAR") Header header) throws DecoderException {
+  public void decodeFrame(@LOC("THIS,Decoder.H") Header header) throws DecoderException {
 
     if (!initialized) {
       @LOC("VAR") float scalefactor = 32700.0f;
 
-      @LOC("VAR") int mode = header.mode();
-      @LOC("VAR") int layer = header.layer();
-      @LOC("VAR") int channels = mode == Header.SINGLE_CHANNEL ? 1 : 2;
+      @LOC("THIS,Decoder.PARAM") int mode = header.mode();
+      @LOC("THIS,Decoder.PARAM") int layer = header.layer();
+      @LOC("THIS,Decoder.PARAM") int channels = mode == Header.SINGLE_CHANNEL ? 1 : 2;
 
       // set up output buffer if not set up by client.
       // if (output == null)
@@ -171,9 +171,9 @@ public class Decoder implements DecoderErrors {
       initialized = true;
     }
 
-    SampleBufferWrapper.getOutput().clear_buffer();
-    l3decoder.decodeFrame(header);
-    SampleBufferWrapper.getOutput().write_buffer(1);
+    SampleBufferWrapper.clear_buffer();
+    l3decoder.decode(header);
+    // SampleBufferWrapper.getOutput().write_buffer(1);
 
   }
 

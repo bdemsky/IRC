@@ -35,7 +35,7 @@ public class Character {
     value = c.value;
   }
 
-  @LATTICE("OUT<THIS,RETURNLOC=OUT,THISLOC=THIS")
+  @LATTICE("OUT<THIS,RETURNLOC=OUT,THISLOC=THIS,GLOBALLOC=OUT")
   public String toString() {
     return ""+value;
   }

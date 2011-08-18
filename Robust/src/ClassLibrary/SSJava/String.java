@@ -1,6 +1,6 @@
 import Vector;
 
-@LATTICE("V<C, V<O")
+@LATTICE("V<C, V<O,V*")
 @METHODDEFAULT("O<V,V<C,C<IN,C*,THISLOC=O,RETURNLOC=O")
 public class String {
 
@@ -295,7 +295,8 @@ public class String {
     return this;
   }
 
-  public static String valueOf(@LOC("IN") Object o) {
+  @LATTICE("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
+  public static String valueOf(@LOC("THIS") Object o) {
     if (o == null)
       return "null";
     else
@@ -315,7 +316,7 @@ public class String {
     return new String(ar);
   }
 
-  public static String valueOf(@LOC("IN") int x) {
+  public static String valueOf(@LOC("C") int x) {
     @LOC("C") int length = 0;
     @LOC("C") int tmp;
     if (x < 0)
@@ -358,7 +359,7 @@ public class String {
 
   public static native int convertdoubletochar(double val, char[] chararray);
 
-  public static String valueOf(@LOC("IN") long x) {
+  public static String valueOf(@LOC("C") long x) {
     @LOC("C") int length = 0;
     @LOC("C") long tmp;
     if (x < 0)
@@ -402,11 +403,13 @@ public class String {
     return count - s.count;
   }
 
+  @LATTICE("OUT<THIS,THIS<C,C*,THISLOC=THIS")
+  @RETURNLOC("OUT")
   public int hashCode() {
     if (cachedHashcode != 0)
       return cachedHashcode;
-    @LOC("C") int hashcode = 0;
-    for (@LOC("C") int i = 0; i < count; i++)
+    @LOC("THIS,String.V") int hashcode = 0;
+    for (@LOC("THIS,String.V") int i = 0; i < count; i++)
       hashcode = hashcode * 31 + value[i + offset];
     cachedHashcode = hashcode;
     return hashcode;

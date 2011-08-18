@@ -136,7 +136,7 @@ public class FlowDownCheck {
       toanalyzeList.addAll(classtable.getValueSet());
       Collections.sort(toanalyzeList, new Comparator<ClassDescriptor>() {
         public int compare(ClassDescriptor o1, ClassDescriptor o2) {
-          return o1.getClassName().compareTo(o2.getClassName());
+          return o1.getClassName().compareToIgnoreCase(o2.getClassName());
         }
       });
     } else {
@@ -153,7 +153,7 @@ public class FlowDownCheck {
       toanalyzeMethodList.addAll(methodtable.getValueSet());
       Collections.sort(toanalyzeMethodList, new Comparator<MethodDescriptor>() {
         public int compare(MethodDescriptor o1, MethodDescriptor o2) {
-          return o1.getSymbol().compareTo(o2.getSymbol());
+          return o1.getSymbol().compareToIgnoreCase(o2.getSymbol());
         }
       });
     } else {
@@ -325,9 +325,9 @@ public class FlowDownCheck {
         // if developer does not define method lattice
         // search return location in the method default lattice
         String rtrStr = ssjava.getMethodLattice(md).getReturnLoc();
-        if(rtrStr!=null){
+        if (rtrStr != null) {
           returnLocComp = new CompositeLocation(new Location(md, rtrStr));
-        }        
+        }
       }
 
       if (returnLocComp == null) {
@@ -822,7 +822,7 @@ public class FlowDownCheck {
         && !CompositeLattice.isGreaterThan(condLoc, falseLoc,
             generateErrorMessage(cd, tn.getCond()))) {
       throw new Error(
-          "The location of the condition expression is lower than the true expression at "
+          "The location of the condition expression is lower than the false expression at "
               + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
     }
 
@@ -831,7 +831,12 @@ public class FlowDownCheck {
     glbInputSet.add(trueLoc);
     glbInputSet.add(falseLoc);
 
-    return CompositeLattice.calculateGLB(glbInputSet, generateErrorMessage(cd, tn));
+    if (glbInputSet.size() == 1) {
+      return trueLoc;
+    } else {
+      return CompositeLattice.calculateGLB(glbInputSet, generateErrorMessage(cd, tn));
+    }
+
   }
 
   private CompositeLocation checkLocationFromMethodInvokeNode(MethodDescriptor md,
@@ -841,14 +846,20 @@ public class FlowDownCheck {
     ClassDescriptor cd = md.getClassDesc();
     MethodDescriptor calleeMD = min.getMethod();
 
-    if (!ssjava.isTrustMethod(calleeMD)) {
+    NameDescriptor baseName = min.getBaseName();
+    boolean isSystemout = false;
+    if (baseName != null) {
+      isSystemout = baseName.getSymbol().equals("System.out");
+    }
+
+    if (!ssjava.isTrustMethod(calleeMD) && !calleeMD.getModifiers().isNative() && !isSystemout) {
+
       CompositeLocation baseLocation = null;
       if (min.getExpression() != null) {
         baseLocation =
             checkLocationFromExpressionNode(md, nametable, min.getExpression(),
                 new CompositeLocation(), constraint, false);
       } else {
-
         if (min.getMethod().isStatic()) {
           String globalLocId = ssjava.getMethodLattice(md).getGlobalLoc();
           if (globalLocId == null) {
@@ -864,20 +875,24 @@ public class FlowDownCheck {
       }
 
       System.out.println("\n#checkLocationFromMethodInvokeNode=" + min.printNode(0)
-          + " baseLocation=" + baseLocation);
+          + " baseLocation=" + baseLocation + " constraint=" + constraint);
 
-      int compareResult =
-          CompositeLattice.compare(constraint, baseLocation, true, generateErrorMessage(cd, min));
+      if (constraint != null) {
+        int compareResult =
+            CompositeLattice.compare(constraint, baseLocation, true, generateErrorMessage(cd, min));
 
-      if (compareResult == ComparisonResult.LESS) {
-        throw new Error("Method invocation does not respect the current branch constraint at "
-            + generateErrorMessage(cd, min));
-      } else if (compareResult != ComparisonResult.GREATER) {
-        // if the current constraint is higher than method's THIS location
-        // no need to check constraints!
-        CompositeLocation calleeConstraint =
-            translateCallerLocToCalleeLoc(calleeMD, baseLocation, constraint);
-        checkMethodBody(calleeMD.getClassDesc(), calleeMD, calleeConstraint);
+        if (compareResult == ComparisonResult.LESS) {
+          throw new Error("Method invocation does not respect the current branch constraint at "
+              + generateErrorMessage(cd, min));
+        } else if (compareResult != ComparisonResult.GREATER) {
+          // if the current constraint is higher than method's THIS location
+          // no need to check constraints!
+          CompositeLocation calleeConstraint =
+              translateCallerLocToCalleeLoc(calleeMD, baseLocation, constraint);
+          System.out.println("check method body for constraint:" + calleeMD + " calleeConstraint="
+              + calleeConstraint);
+          checkMethodBody(calleeMD.getClassDesc(), calleeMD, calleeConstraint);
+        }
       }
 
       checkCalleeConstraints(md, nametable, min, baseLocation, constraint);
@@ -893,7 +908,7 @@ public class FlowDownCheck {
       }
     }
 
-    return new CompositeLocation();
+    return new CompositeLocation(Location.createTopLocation(md));
 
   }
 
@@ -949,7 +964,7 @@ public class FlowDownCheck {
     String errorMsg = generateErrorMessage(md.getClassDesc(), min);
 
     System.out.println("checkCallerArgumentLocationConstraints=" + min.printNode(0));
-    System.out.println("base location=" + callerBaseLoc);
+    System.out.println("base location=" + callerBaseLoc + " constraint=" + constraint);
 
     for (int i = 0; i < calleeParamList.size(); i++) {
       CompositeLocation calleeParamLoc = calleeParamList.get(i);
@@ -1344,7 +1359,13 @@ public class FlowDownCheck {
         return loc;
       }
     }
-
+    
+    if(left instanceof ArrayAccessNode){
+      System.out.println("HEREE!!");
+      ArrayAccessNode aan=(ArrayAccessNode)left;
+      left=aan.getExpression();
+    }
+    
     loc = checkLocationFromExpressionNode(md, nametable, left, loc, constraint, false);
     System.out.println("### checkLocationFromFieldAccessNode=" + fan.printNode(0));
     System.out.println("### left=" + left.printNode(0));
@@ -1352,7 +1373,7 @@ public class FlowDownCheck {
       Location fieldLoc = getFieldLocation(fd);
       loc.addLocation(fieldLoc);
     }
-
+    System.out.println("### field loc="+loc);
     return loc;
   }
 
@@ -1474,8 +1495,9 @@ public class FlowDownCheck {
 
     // currently enforce every variable to have corresponding location
     if (annotationVec.size() == 0) {
-      throw new Error("Location is not assigned to variable '" + vd.getSymbol() + "' in the method '"
-          + md + "' of the class " + cd.getSymbol() + " at " + generateErrorMessage(cd, n));
+      throw new Error("Location is not assigned to variable '" + vd.getSymbol()
+          + "' in the method '" + md + "' of the class " + cd.getSymbol() + " at "
+          + generateErrorMessage(cd, n));
     }
 
     if (annotationVec.size() > 1) { // variable can have at most one location
@@ -2124,8 +2146,14 @@ class ReturnLocGenerator {
 
       // compute GLB of arguments subset that are same or higher than return
       // location
-      CompositeLocation glb = CompositeLattice.calculateGLB(inputGLB, "");
-      return glb;
+      if (inputGLB.isEmpty()) {
+        CompositeLocation rtr =
+            new CompositeLocation(Location.createTopLocation(args.get(0).get(0).getDescriptor()));
+        return rtr;
+      } else {
+        CompositeLocation glb = CompositeLattice.calculateGLB(inputGLB, "");
+        return glb;
+      }
     }
 
   }

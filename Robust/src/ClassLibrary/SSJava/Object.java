@@ -1,7 +1,7 @@
 import String;
 
 @LATTICE("")
-@METHODDEFAULT("TH<IN,THISLOC=IN")
+@METHODDEFAULT("TH<IN,THISLOC=IN,GLOBALLOC=TH")
 public class Object {
 
   @RETURNLOC("TH")

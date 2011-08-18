@@ -107,10 +107,10 @@ public class Player {
    * @return true if the last frame was played, or false if there are more
    *         frames.
    */
-  @LATTICE("IN<T,IN*,THISLOC=T")
-  @RETURNLOC("IN")
+  @LATTICE("T<IN,T*,IN*,THISLOC=T")
+  @RETURNLOC("T")
   public boolean play(@LOC("IN") int frames) throws JavaLayerException {
-    @LOC("IN") boolean ret = true;
+    @LOC("T") boolean ret = true;
 
     SSJAVA: while (frames-- > 0 && ret) {
       ret = decodeFrame();
@@ -170,7 +170,7 @@ public class Player {
    * 
    * @return true if there are no more frames to decode, false otherwise.
    */
-  @LATTICE("C,O<THIS,THIS<IN,C*,THISLOC=THIS,RETURNLOC=O")
+  @LATTICE("C<THIS,O<THIS,THIS<IN,C*,THISLOC=THIS,RETURNLOC=O,GLOBALLOC=THIS")
   protected boolean decodeFrame() throws JavaLayerException {
     try {
       // AudioDevice out = audio;
@@ -178,7 +178,7 @@ public class Player {
       // return false;
 
       // Header h = bitstream.readFrame();
-      @LOC("IN") Header h = BitstreamWrapper.readFrame();
+      @LOC("THIS,Player.ST") Header h = BitstreamWrapper.readFrame();
 
       if (h == null)
         return false;

@@ -56,7 +56,7 @@ exception statement from your version. */
  * @status updated to 1.5
  */
 @LATTICE("V<C, V<O")
-@METHODDEFAULT("O<V,V<C,C<IN,C*,THISLOC=IN,RETURNLOC=O")
+@METHODDEFAULT("O<V,V<C,C<IN,THISLOC=IN,C*,GLOBALLOC=V,RETURNLOC=V")
 public final class Long //extends Number implements Comparable<Long>
 {
   /**

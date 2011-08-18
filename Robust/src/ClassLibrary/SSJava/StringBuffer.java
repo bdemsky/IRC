@@ -1,9 +1,9 @@
-@LATTICE("V<C, V<O")
-@METHODDEFAULT("O<V,V<C,C<IN,C*,THISLOC=O,RETURNLOC=O")
+@LATTICE("V<C, V<O,V*")
+@METHODDEFAULT("G<O,O<V,V<C,C<IN,C*,THISLOC=O,RETURNLOC=O,GLOBALLOC=G")
 public class StringBuffer {
   @LOC("V")
   char value[];
-  @LOC("C")
+  @LOC("V")
   int count;
 
   // private static final int DEFAULTSIZE=16;
@@ -37,23 +37,26 @@ public class StringBuffer {
     return value[x];
   }
 
+  @LATTICE("OUT<THIS,THIS<VAR,VAR<G,G<IN,THISLOC=THIS,GLOBALLOC=G,RETURNLOC=OUT")
   public StringBuffer append(@LOC("IN") char c) {
-    return append(String.valueOf(c));
+    @LOC("VAR") String str = String.valueOf(c);
+    return append(str);
   }
 
   public StringBuffer append(@LOC("IN") String s) {
     if ((s.count + count) > value.length) {
       // Need to allocate
-      @LOC("C") char newvalue[] = new char[s.count + count + 16]; // 16 is
-                                                                  // DEFAULTSIZE
-      for (@LOC("C") int i = 0; i < count; i++)
+      @LOC("O,StringBuffer.V") char newvalue[] = new char[s.count + count + 16]; // 16
+                                                                                 // is
+      // DEFAULTSIZE
+      for (@LOC("O,StringBuffer.V") int i = 0; i < count; i++)
         newvalue[i] = value[i];
-      for (@LOC("C") int i = 0; i < s.count; i++)
+      for (@LOC("O,StringBuffer.V") int i = 0; i < s.count; i++)
         newvalue[i + count] = s.value[i + s.offset];
       value = newvalue;
       count += s.count;
     } else {
-      for (@LOC("C") int i = 0; i < s.count; i++) {
+      for (@LOC("O,StringBuffer.V") int i = 0; i < s.count; i++) {
         value[i + count] = s.value[i + s.offset];
       }
       count += s.count;

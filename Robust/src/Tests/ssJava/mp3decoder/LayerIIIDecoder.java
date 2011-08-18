@@ -47,7 +47,7 @@
 // 10th added for get_scale_factors
 // llth added for decode
 // @LATTICE("IS1D*,RO<IS1D,IS1D<SI2,SI2<SI1,SI<P2S,SF1<CH0,SF0*,SFB_SH<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SI1<SF2,SF2<SFB,SF1<BR,LR*,OUT<LR,LR<RO,NZ*,SI<SF1,SI1<NZ,NZ<SI,SI1<SBI,SBI<SI,BUF<FT,SF1<SF0,SF0<HD1,BR<ST,ST,FT<SP,SP<OUT,OUT<SI1,SI1<SI,P2S<CH0,CH0<MAX0,MAX0<BR1,FS<BR1,BR1<BR,BR<HD1,HD1<HD,OUT*,BR1*,SI1*,MAX0*,CH0*,RAW,TS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
-@LATTICE("ISR*,ISP*,LR<ISR,ISR<ISP,SI1<SF2,NS*,HD<ST,IS1D*,RO1<RO,RO1*,RO<IS1D,IS1D<SI2,SI2<SI1,BR<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SF2<SFB,LR*,OUT<LR,ISP<RO1,NZ*,SI<SF1,BR1<NZ,NZ<BR,SI1<RT,RT<SBI,SBI<SI,BUF<FT,SF1<CH0,CH0<HD1,FT<SP,SP<OUT,OUT<SI1,SI1<SI,SFB_SH<BR1,BR1<BR,HD1<HD,OUT*,BR1*,SI1*,CH0*,RAW,TS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
+@LATTICE("SI0*,INIT*,ISR*,ISP*,HD<CH0,LR<ISR,ISR<ISP,SI1<SF2,NS*,CH0<ST,ST<INIT,IS1D*,RO1<RO,RO1*,RO<IS1D,IS1D<SI2,SI2<SI1,BR<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SF2<SFB,LR*,OUT<LR,ISP<RO1,NZ*,SI<SI0,SI0<SF15,SF15<SF1,BR1<NZ,NZ<BR,SI1<RT,RT<SBI,SBI<SI,BUF<FT,SF1<HD1,SF1<HD1,FT<SP,SP<OUT,OUT<SI1,SI1<SI,SFB_SH<BR1,BR1<BR,HD1<HD,OUT*,BR1*,SI1*,CH0*,RAW,TS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
 @METHODDEFAULT("OUT<V,V<THIS,THIS<SH,SH<IN,SH*,THISLOC=THIS,GLOBALLOC=IN,RETURNLOC=OUT")
 final class LayerIIIDecoder implements FrameDecoder {
   static final double d43 = (4.0 / 3.0);
@@ -72,8 +72,6 @@ final class LayerIIIDecoder implements FrameDecoder {
   private float[][] k;
   @LOC("NZ")
   private int[] nonzero;
-  // @LOC("HD")
-  // private Header header;
   @LOC("FT")
   private SynthesisFilter filter1;
   @LOC("FT")
@@ -106,10 +104,10 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LOC("SBI")
   private int sfreq;
 
-  @LOC("ST")
+  @LOC("BR1")
   private int part2_start;
 
-  @LOC("ST")
+  @LOC("INIT")
   private boolean initialized = false;
 
   // constructor for the linear type system
@@ -213,7 +211,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   }
 
   @LATTICE("THIS<C,THIS<IN,C*,THISLOC=THIS")
-  private void init(@LOC("IN") Header header) {
+  private void init(@LOC("THIS,LayerIIIDecoder.HD1") Header header) {
 
     frame_start = 0;
     channels = (header.mode() == Header.SINGLE_CHANNEL) ? 1 : 2;
@@ -245,8 +243,8 @@ final class LayerIIIDecoder implements FrameDecoder {
       first_channel = last_channel = 0;
     }
 
-    for (@LOC("C") int ch = 0; ch < 2; ch++)
-      for (@LOC("C") int j = 0; j < 576; j++)
+    for (@LOC("THIS,LayerIIIDecoder.CH0") int ch = 0; ch < 2; ch++)
+      for (@LOC("THIS,LayerIIIDecoder.CH0") int j = 0; j < 576; j++)
         prevblck[ch][j] = 0.0f;
 
     nonzero[0] = nonzero[1] = 576;
@@ -459,8 +457,8 @@ final class LayerIIIDecoder implements FrameDecoder {
    * {filter1,filter2}
    */
   // @LATTICE("BYTE<THIS,THIS<MAIN,MAIN<VAR,THIS<GR,GR<VAR,BYTE*,GR*,THISLOC=THIS,GLOBALLOC=VAR")
-  @LATTICE("VAR<THIS,C<THIS,THIS<IN,THISLOC=THIS,C*,VAR*")
-  public void decode(@LOC("IN") Header header) {
+  @LATTICE("HEADER<VAR,VAR<THIS,C<THIS,THIS<IN,THISLOC=THIS,C*,VAR*")
+  public void decode(@LOC("THIS,LayerIIIDecoder.HD") Header header) {
 
     if (!initialized) {
       init(header);
@@ -485,17 +483,20 @@ final class LayerIIIDecoder implements FrameDecoder {
     get_side_info(header);
     br = header.getBitReserve();
 
+    @LOC("THIS,LayerIIIDecoder.HD1") int version = header.version();
+
     // here 'gr' and 'max_gr' should be higher than 'ch','channels', and more
     for (gr = 0; gr < max_gr; gr++) { // two granules per channel
       // in the loop body, access set={part2_start}
 
       // 'ch', 'channels' should be higher than all locs in the below body
       for (ch = 0; ch < channels; ch++) {
-        part2_start = br.hsstell();
+        // part2_start = br.hsstell();
+        @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int part2_start_local = br.hsstell();
 
         // grab scale factors from the main data.
         // following the scale factors is the actual compressed data
-        if (header.version() == Header.MPEG1)
+        if (version == Header.MPEG1)
           get_scale_factors(header, ch, gr); // no need to care from this side
         // here move scale factor data from 'br' buffer to 'scalefac' field
         else
@@ -504,7 +505,8 @@ final class LayerIIIDecoder implements FrameDecoder {
                                                  // side
 
         // here, decoding the compressed audio data
-        huffman_decode(ch, gr); // no need to care from this side
+        huffman_decode(part2_start_local, ch, gr); // no need to care from this
+                                                   // side
         // System.out.println("CheckSum HuffMan = " + CheckSumHuff);
         dequantize_sample(/* ro[ch], */ch, gr); // no need to care from this
                                                 // side
@@ -601,15 +603,17 @@ final class LayerIIIDecoder implements FrameDecoder {
    * Reads the side info from the stream, assuming the entire. frame has been
    * read already. Mono : 136 bits (= 17 bytes) Stereo : 256 bits (= 32 bytes)
    */
-  @LATTICE("THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=THIS")
-  private boolean get_side_info(@LOC("IN") Header header) {
+  @LATTICE("OUT<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
+  private boolean get_side_info(@LOC("THIS,LayerIIIDecoder.HD1") Header header) {
 
-    @LOC("IN") SideInfoBuffer sib = header.getSideInfoBuffer();
+    @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.TEMP") SideInfoBuffer sib =
+        header.getSideInfoBuffer();
+    @LOC("THIS,LayerIIIDecoder.SF1") int version = header.version();
 
-    @LOC("C") int ch;
-    @LOC("C") int gr;
+    @LOC("THIS,LayerIIIDecoder.SI0") int ch;
+    @LOC("THIS,LayerIIIDecoder.SI0") int gr;
     // System.out.println("#get_side_info");
-    if (header.version() == Header.MPEG1) {
+    if (version == Header.MPEG1) {
 
       si.main_data_begin = sib.get_bits(9);
       if (channels == 1)
@@ -634,8 +638,11 @@ final class LayerIIIDecoder implements FrameDecoder {
           si.ch[ch].gr[gr].big_values = sib.get_bits(9);
           si.ch[ch].gr[gr].global_gain = sib.get_bits(8);
           si.ch[ch].gr[gr].scalefac_compress = sib.get_bits(4);
-          si.ch[ch].gr[gr].window_switching_flag = sib.get_bits(1);
-          if ((si.ch[ch].gr[gr].window_switching_flag) != 0) {
+          @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.TEMP") int cond =
+              sib.get_bits(1);
+          // si.ch[ch].gr[gr].window_switching_flag = sib.get_bits(1);
+          // if ((si.ch[ch].gr[gr].window_switching_flag) != 0) {
+          if (cond != 0) {
             si.ch[ch].gr[gr].block_type = sib.get_bits(2);
             si.ch[ch].gr[gr].mixed_block_flag = sib.get_bits(1);
 
@@ -666,6 +673,9 @@ final class LayerIIIDecoder implements FrameDecoder {
             si.ch[ch].gr[gr].region1_count = sib.get_bits(3);
             si.ch[ch].gr[gr].block_type = 0;
           }
+          //
+          si.ch[ch].gr[gr].window_switching_flag = cond;
+          //
           si.ch[ch].gr[gr].preflag = sib.get_bits(1);
           si.ch[ch].gr[gr].scalefac_scale = sib.get_bits(1);
           si.ch[ch].gr[gr].count1table_select = sib.get_bits(1);
@@ -686,9 +696,12 @@ final class LayerIIIDecoder implements FrameDecoder {
         si.ch[ch].gr[0].big_values = sib.get_bits(9);
         si.ch[ch].gr[0].global_gain = sib.get_bits(8);
         si.ch[ch].gr[0].scalefac_compress = sib.get_bits(9);
-        si.ch[ch].gr[0].window_switching_flag = sib.get_bits(1);
 
-        if ((si.ch[ch].gr[0].window_switching_flag) != 0) {
+        @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.TEMP") int cond =
+            sib.get_bits(1);
+        // si.ch[ch].gr[0].window_switching_flag = sib.get_bits(1);
+        // if ((si.ch[ch].gr[0].window_switching_flag) != 0) {
+        if (cond != 0) {
 
           si.ch[ch].gr[0].block_type = sib.get_bits(2);
           si.ch[ch].gr[0].mixed_block_flag = sib.get_bits(1);
@@ -720,6 +733,9 @@ final class LayerIIIDecoder implements FrameDecoder {
           si.ch[ch].gr[0].region1_count = sib.get_bits(3);
           si.ch[ch].gr[0].block_type = 0;
         }
+        //
+        si.ch[ch].gr[gr].window_switching_flag = cond;
+        //
 
         si.ch[ch].gr[0].scalefac_scale = sib.get_bits(1);
         si.ch[ch].gr[0].count1table_select = sib.get_bits(1);
@@ -732,8 +748,8 @@ final class LayerIIIDecoder implements FrameDecoder {
 	 *
 	 */
   @LATTICE("THIS<IN,THISLOC=THIS,GLOBALLOC=IN")
-  private void get_scale_factors(@LOC("IN") Header header, @LOC("THIS,LayerIIIDecoder.CH0") int ch,
-      @LOC("THIS,LayerIIIDecoder.CH0") int gr) {
+  private void get_scale_factors(@LOC("THIS,LayerIIIDecoder.SF1") Header header,
+      @LOC("THIS,LayerIIIDecoder.SF1") int ch, @LOC("THIS,LayerIIIDecoder.SF1") int gr) {
 
     // gr_info_s gr_info = (si.ch[ch].gr[gr]); remove alias
 
@@ -846,16 +862,16 @@ final class LayerIIIDecoder implements FrameDecoder {
 
   // ssjava
   @LATTICE("M<THIS,THIS<IN,THIS<C,C*,M*,THISLOC=THIS,GLOBALLOC=THIS")
-  private void get_LSF_scale_data(@LOC("IN") Header header,
-      @LOC("THIS,LayerIIIDecoder.CH0") int ch, @LOC("THIS,LayerIIIDecoder.CH0") int gr) {
+  private void get_LSF_scale_data(@LOC("THIS,LayerIIIDecoder.SF15") Header header,
+      @LOC("THIS,LayerIIIDecoder.SF15") int ch, @LOC("THIS,LayerIIIDecoder.SF15") int gr) {
 
-    @LOC("THIS,LayerIIIDecoder.HD1") int mode_ext = header.mode_extension();
+    @LOC("THIS,LayerIIIDecoder.SI0") int mode_ext = header.mode_extension();
     // @LOC("THIS,LayerIIIDecoder.GLSFD1") gr_info_s gr_info =
     // (si.ch[ch].gr[gr]); // remove alias
 
     @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.CH,LayerIIIDecoder$temporaire.GR,LayerIIIDecoder$gr_info_s.V") int scalefac_comp =
         si.ch[ch].gr[gr].scalefac_compress;
-    @LOC("THIS,LayerIIIDecoder.SI") int blocktypenumber;
+    @LOC("THIS,LayerIIIDecoder.NS") int blocktypenumber;
 
     @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.CH,LayerIIIDecoder$temporaire.GR,LayerIIIDecoder$gr_info_s.V") int int_scalefac_comp;
     @LOC("THIS,LayerIIIDecoder.SFB_SH") int m;
@@ -932,12 +948,12 @@ final class LayerIIIDecoder implements FrameDecoder {
       }
     }
 
-    for (@LOC("C") int x = 0; x < 45; x++)
+    for (@LOC("THIS,LayerIIIDecoder.NS") int x = 0; x < 45; x++)
       // why 45, not 54?
       scalefac_buffer[x] = 0;
 
     m = 0;
-    for (@LOC("C") int i = 0; i < 4; i++) {
+    for (@LOC("THIS,LayerIIIDecoder.NS") int i = 0; i < 4; i++) {
       for (@LOC("THIS,LayerIIIDecoder.NS") int j = 0; j < nr_of_sfb_block[blocknumber][blocktypenumber][i]; j++) {
         scalefac_buffer[m] = (new_slen[i] == 0) ? 0 : br.hgetbits(new_slen[i]);
         m++;
@@ -950,8 +966,8 @@ final class LayerIIIDecoder implements FrameDecoder {
 	 *
 	 */
   @LATTICE("THIS<IN,THISLOC=THIS,GLOBALLOC=IN")
-  private void get_LSF_scale_factors(@LOC("IN") Header header,
-      @LOC("THIS,LayerIIIDecoder.CH0") int ch, @LOC("THIS,LayerIIIDecoder.CH0") int gr) {
+  private void get_LSF_scale_factors(@LOC("THIS,LayerIIIDecoder.SF1") Header header,
+      @LOC("THIS,LayerIIIDecoder.SF1") int ch, @LOC("THIS,LayerIIIDecoder.SF1") int gr) {
 
     @LOC("THIS,LayerIIIDecoder.SFB_SH") int sfb;
     @LOC("THIS,LayerIIIDecoder.SFB_SH") int m = 0;
@@ -1018,15 +1034,16 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LOC("SI1")
   int w[] = { 0 };
 
-  private void huffman_decode(@LOC("THIS,LayerIIIDecoder.CH0") int ch,
-      @LOC("THIS,LayerIIIDecoder.CH0") int gr) {
+  @LATTICE("OUT<GLOBAL,GLOBAL<THIS,THISLOC=THIS,GLOBALLOC=GLOBAL,RETURNLOC=OUT")
+  private void huffman_decode(@LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int part2_start_local,
+      @LOC("THIS,LayerIIIDecoder.CH0") int ch, @LOC("THIS,LayerIIIDecoder.CH0") int gr) {
     x[0] = 0;
     y[0] = 0;
     v[0] = 0;
     w[0] = 0;
 
     @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int part2_3_end =
-        part2_start + si.ch[ch].gr[gr].part2_3_length;
+        part2_start_local + si.ch[ch].gr[gr].part2_3_length;
     @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int num_bits;
     @LOC("THIS,LayerIIIDecoder.SI1") int region1Start;
     @LOC("THIS,LayerIIIDecoder.SI1") int region2Start;
@@ -1062,7 +1079,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     for (@LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int i = 0; i < (si.ch[ch].gr[gr].big_values << 1); i +=
         2) {
 
-      @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT")  int htIdx;
+      @LOC("THIS,LayerIIIDecoder.SI2") int htIdx;
       if (i < region1Start) {
         htIdx = si.ch[ch].gr[gr].table_select[0];
         // h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[0]];
@@ -1087,7 +1104,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 
     // Read count1 area
 
-    @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT")     int htIdx = si.ch[ch].gr[gr].count1table_select + 32;
+    @LOC("THIS,LayerIIIDecoder.SI2") int htIdx = si.ch[ch].gr[gr].count1table_select + 32;
     // h = huffcodetab.ht[si.ch[ch].gr[gr].count1table_select + 32];
     num_bits = br.hsstell();
 
@@ -1434,7 +1451,8 @@ final class LayerIIIDecoder implements FrameDecoder {
 
   // ssjava
   @LATTICE("IO<THIS,THIS<IN,THISLOC=THIS,GLOBALLOC=IN")
-  private void stereo(@LOC("IN") Header header, @LOC("THIS,LayerIIIDecoder.CH0") int gr) {
+  private void stereo(@LOC("THIS,LayerIIIDecoder.HD1") Header header,
+      @LOC("THIS,LayerIIIDecoder.CH0") int gr) {
     @LOC("THIS,LayerIIIDecoder.RO1") int sb;
     @LOC("THIS,LayerIIIDecoder.RO1") int ss;
 
@@ -1450,7 +1468,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     } else {
 
       // gr_info_s gr_info = (si.ch[0].gr[gr]); remove alias
-      @LOC("THIS,LayerIIIDecoder.HD1") int mode_ext = header.mode_extension();
+      @LOC("THIS,LayerIIIDecoder.SF1") int mode_ext = header.mode_extension();
 
       @LOC("THIS,LayerIIIDecoder.RO1") int sfb;
       @LOC("THIS,LayerIIIDecoder.RO1") int i;
@@ -1458,11 +1476,11 @@ final class LayerIIIDecoder implements FrameDecoder {
       @LOC("THIS,LayerIIIDecoder.RO1") int temp;
       @LOC("THIS,LayerIIIDecoder.RO1") int temp2;
 
-      @LOC("THIS,LayerIIIDecoder.CH0") boolean ms_stereo =
+      @LOC("THIS,LayerIIIDecoder.SF15") boolean ms_stereo =
           ((header.mode() == Header.JOINT_STEREO) && ((mode_ext & 0x2) != 0));
-      @LOC("THIS,LayerIIIDecoder.CH0") boolean i_stereo =
+      @LOC("THIS,LayerIIIDecoder.SF15") boolean i_stereo =
           ((header.mode() == Header.JOINT_STEREO) && ((mode_ext & 0x1) != 0));
-      @LOC("THIS,LayerIIIDecoder.CH0") boolean lsf =
+      @LOC("THIS,LayerIIIDecoder.SF15") boolean lsf =
           ((header.version() == Header.MPEG2_LSF || header.version() == Header.MPEG25_LSF)); // SZD
 
       @LOC("THIS,LayerIIIDecoder.LR") int io_type = (si.ch[0].gr[gr].scalefac_compress & 1);
@@ -1776,26 +1794,28 @@ final class LayerIIIDecoder implements FrameDecoder {
   private void hybrid(@LOC("THIS,LayerIIIDecoder.SI") int ch, @LOC("THIS,LayerIIIDecoder.SI") int gr) {
 
     @LOC("THIS,LayerIIIDecoder.SI1") int bt;
-    @LOC("SB") int sb18;
+    @LOC("THIS,LayerIIIDecoder.SI1") int sb18;
     // gr_info_s gr_info = (si.ch[ch].gr[gr]); //remove alias
     // @LOC("THIS,LayerIIIDecoder.TS") float[] tsOut; //remove alias
 
     // float[][] prvblk;
 
     for (sb18 = 0; sb18 < 576; sb18 += 18) {
-      bt =
-          ((si.ch[ch].gr[gr].window_switching_flag != 0)
-              && (si.ch[ch].gr[gr].mixed_block_flag != 0) && (sb18 < 36)) ? 0
-              : si.ch[ch].gr[gr].block_type;
+      if ((si.ch[ch].gr[gr].window_switching_flag != 0) && (si.ch[ch].gr[gr].mixed_block_flag != 0)
+          && (sb18 < 36)) {
+        bt = 0;
+      } else {
+        bt = si.ch[ch].gr[gr].block_type;
+      }
 
       // tsOut = out_1d;
       // Modif E.B 02/22/99
-      for (@LOC("SB") int cc = 0; cc < 18; cc++)
+      for (@LOC("THIS,LayerIIIDecoder.SI1") int cc = 0; cc < 18; cc++)
         tsOutCopy[cc] = out_1d[cc + sb18];
 
       inv_mdct(bt);
 
-      for (@LOC("SB") int cc = 0; cc < 18; cc++)
+      for (@LOC("THIS,LayerIIIDecoder.SI1") int cc = 0; cc < 18; cc++)
         out_1d[cc + sb18] = tsOutCopy[cc];
       // Fin Modif
 
@@ -1844,10 +1864,9 @@ final class LayerIIIDecoder implements FrameDecoder {
   /**
 	 *
 	 */
-  @LATTICE("THIS<SB,THIS<SS,SB<GLOBAL,SS<GLOBAL,SS*,SB*,THISLOC=THIS,GLOBALLOC=GLOBAL")
   private void do_downmix() {
-    for (@LOC("SB") int sb = 0; sb < SSLIMIT; sb++) {
-      for (@LOC("SS") int ss = 0; ss < SSLIMIT; ss += 3) {
+    for (@LOC("THIS,LayerIIIDecoder.ISR") int sb = 0; sb < SSLIMIT; sb++) {
+      for (@LOC("THIS,LayerIIIDecoder.ISR") int ss = 0; ss < SSLIMIT; ss += 3) {
         lr[0][sb][ss] = (lr[0][sb][ss] + lr[1][sb][ss]) * 0.5f;
         lr[0][sb][ss + 1] = (lr[0][sb][ss + 1] + lr[1][sb][ss + 1]) * 0.5f;
         lr[0][sb][ss + 2] = (lr[0][sb][ss + 2] + lr[1][sb][ss + 2]) * 0.5f;
@@ -2354,7 +2373,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     }
   }
 
-  @LATTICE("CH")
+  @LATTICE("CH<TEMP,TEMP*")
   static class III_side_info_t {
 
     @LOC("CH")

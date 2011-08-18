@@ -106,7 +106,7 @@ public class MethodAnnotationCheck {
               for (Iterator iterator2 = possibleCalleeSet.iterator(); iterator2.hasNext();) {
                 MethodDescriptor possibleCallee = (MethodDescriptor) iterator2.next();
 
-                if (!possibleCallee.isAbstract()) {
+                if (!possibleCallee.isAbstract() && !possibleCallee.getModifiers().isNative()) {
                   ssjava.addAnnotationRequire(possibleCallee);
                   tovisit.add(possibleCallee);
                 }

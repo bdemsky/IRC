@@ -34,7 +34,8 @@
  * from 32, 44.1 or 48 kHz to 8 kHz, if ULAW is defined. Frequencies above 4 kHz
  * are removed by ignoring higher subbands.
  */
-@LATTICE("OUT<V,V<SAMPLE,SAMPLE<EQ,EQ<IDX")
+@LATTICE("OUT<V1,V1<V,V<NEWV,NEWV<SAMPLE,SAMPLE<EQ,EQ<IDX,NEWV*,IDX*")
+@METHODDEFAULT("OUT<THIS,THIS<C,C<IN,C*,THISLOC=THIS,GLOBALLOC=THIS")
 final class SynthesisFilter {
 
   @LOC("IDX")
@@ -117,81 +118,52 @@ final class SynthesisFilter {
    */
 
   /**
-   * Reset the synthesis filter.
-   */
-  public void reset() {
-    // float[] floatp;
-    // float[] floatp2;
-
-    // initialize v1[] and v2[]:
-    // for (floatp = v1 + 512, floatp2 = v2 + 512; floatp > v1; )
-    // *--floatp = *--floatp2 = 0.0;
-    for (int p = 0; p < 512; p++)
-      v1[p] = v2[p] = 0.0f;
-
-    // initialize samples[]:
-    // for (floatp = samples + 32; floatp > samples; )
-    // *--floatp = 0.0;
-    for (int p2 = 0; p2 < 32; p2++)
-      samples[p2] = 0.0f;
-
-    // actual_v = v1;
-    actual_write_pos = 15;
-  }
-
-  /**
    * Inject Sample.
    */
-  public void input_sample(float sample, int subbandnumber) {
+  public void input_sample(@LOC("IN") float sample, @LOC("IN") int subbandnumber) {
     samples[subbandnumber] = eq[subbandnumber] * sample;
   }
 
-  public void input_samples(float[] s) {
-    for (int i = 31; i >= 0; i--) {
+  public void input_samples(@LOC("IN") float[] s) {
+    for (@LOC("C") int i = 31; i >= 0; i--) {
       samples[i] = s[i] * eq[i];
     }
   }
 
   private void compute_new_v2_v1() {
 
-    float new_v0, new_v1, new_v2, new_v3, new_v4, new_v5, new_v6, new_v7, new_v8, new_v9;
-    float new_v10, new_v11, new_v12, new_v13, new_v14, new_v15, new_v16, new_v17, new_v18, new_v19;
-    float new_v20, new_v21, new_v22, new_v23, new_v24, new_v25, new_v26, new_v27, new_v28, new_v29;
-    float new_v30, new_v31;
-
-    new_v0 =
-        new_v1 =
-            new_v2 =
-                new_v3 =
-                    new_v4 =
-                        new_v5 =
-                            new_v6 =
-                                new_v7 =
-                                    new_v8 =
-                                        new_v9 =
-                                            new_v10 =
-                                                new_v11 =
-                                                    new_v12 =
-                                                        new_v13 =
-                                                            new_v14 =
-                                                                new_v15 =
-                                                                    new_v16 =
-                                                                        new_v17 =
-                                                                            new_v18 =
-                                                                                new_v19 =
-                                                                                    new_v20 =
-                                                                                        new_v21 =
-                                                                                            new_v22 =
-                                                                                                new_v23 =
-                                                                                                    new_v24 =
-                                                                                                        new_v25 =
-                                                                                                            new_v26 =
-                                                                                                                new_v27 =
-                                                                                                                    new_v28 =
-                                                                                                                        new_v29 =
-                                                                                                                            new_v30 =
-                                                                                                                                new_v31 =
-                                                                                                                                    0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v0 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v1 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v2 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v3 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v4 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v5 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v6 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v7 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v8 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v9 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v10 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v11 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v12 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v13 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v14 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v15 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v16 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v17 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v18 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v19 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v20 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v21 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v22 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v23 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v24 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v25 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v26 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v27 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v28 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v29 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v30 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v31 = 0.0f;
 
     // float[] new_v = new float[32]; // new V[0-15] and V[33-48] of Figure
     // 3-A.2 in ISO DIS 11172-3
@@ -200,72 +172,72 @@ final class SynthesisFilter {
 
     // float[] s = samples;
 
-    float s0 = samples[0];
-    float s1 = samples[1];
-    float s2 = samples[2];
-    float s3 = samples[3];
-    float s4 = samples[4];
-    float s5 = samples[5];
-    float s6 = samples[6];
-    float s7 = samples[7];
-    float s8 = samples[8];
-    float s9 = samples[9];
-    float s10 = samples[10];
-    float s11 = samples[11];
-    float s12 = samples[12];
-    float s13 = samples[13];
-    float s14 = samples[14];
-    float s15 = samples[15];
-    float s16 = samples[16];
-    float s17 = samples[17];
-    float s18 = samples[18];
-    float s19 = samples[19];
-    float s20 = samples[20];
-    float s21 = samples[21];
-    float s22 = samples[22];
-    float s23 = samples[23];
-    float s24 = samples[24];
-    float s25 = samples[25];
-    float s26 = samples[26];
-    float s27 = samples[27];
-    float s28 = samples[28];
-    float s29 = samples[29];
-    float s30 = samples[30];
-    float s31 = samples[31];
+    @LOC("THIS,SynthesisFilter.NEWV") float s0 = samples[0];
+    @LOC("THIS,SynthesisFilter.NEWV") float s1 = samples[1];
+    @LOC("THIS,SynthesisFilter.NEWV") float s2 = samples[2];
+    @LOC("THIS,SynthesisFilter.NEWV") float s3 = samples[3];
+    @LOC("THIS,SynthesisFilter.NEWV") float s4 = samples[4];
+    @LOC("THIS,SynthesisFilter.NEWV") float s5 = samples[5];
+    @LOC("THIS,SynthesisFilter.NEWV") float s6 = samples[6];
+    @LOC("THIS,SynthesisFilter.NEWV") float s7 = samples[7];
+    @LOC("THIS,SynthesisFilter.NEWV") float s8 = samples[8];
+    @LOC("THIS,SynthesisFilter.NEWV") float s9 = samples[9];
+    @LOC("THIS,SynthesisFilter.NEWV") float s10 = samples[10];
+    @LOC("THIS,SynthesisFilter.NEWV") float s11 = samples[11];
+    @LOC("THIS,SynthesisFilter.NEWV") float s12 = samples[12];
+    @LOC("THIS,SynthesisFilter.NEWV") float s13 = samples[13];
+    @LOC("THIS,SynthesisFilter.NEWV") float s14 = samples[14];
+    @LOC("THIS,SynthesisFilter.NEWV") float s15 = samples[15];
+    @LOC("THIS,SynthesisFilter.NEWV") float s16 = samples[16];
+    @LOC("THIS,SynthesisFilter.NEWV") float s17 = samples[17];
+    @LOC("THIS,SynthesisFilter.NEWV") float s18 = samples[18];
+    @LOC("THIS,SynthesisFilter.NEWV") float s19 = samples[19];
+    @LOC("THIS,SynthesisFilter.NEWV") float s20 = samples[20];
+    @LOC("THIS,SynthesisFilter.NEWV") float s21 = samples[21];
+    @LOC("THIS,SynthesisFilter.NEWV") float s22 = samples[22];
+    @LOC("THIS,SynthesisFilter.NEWV") float s23 = samples[23];
+    @LOC("THIS,SynthesisFilter.NEWV") float s24 = samples[24];
+    @LOC("THIS,SynthesisFilter.NEWV") float s25 = samples[25];
+    @LOC("THIS,SynthesisFilter.NEWV") float s26 = samples[26];
+    @LOC("THIS,SynthesisFilter.NEWV") float s27 = samples[27];
+    @LOC("THIS,SynthesisFilter.NEWV") float s28 = samples[28];
+    @LOC("THIS,SynthesisFilter.NEWV") float s29 = samples[29];
+    @LOC("THIS,SynthesisFilter.NEWV") float s30 = samples[30];
+    @LOC("THIS,SynthesisFilter.NEWV") float s31 = samples[31];
 
-    float p0 = s0 + s31;
-    float p1 = s1 + s30;
-    float p2 = s2 + s29;
-    float p3 = s3 + s28;
-    float p4 = s4 + s27;
-    float p5 = s5 + s26;
-    float p6 = s6 + s25;
-    float p7 = s7 + s24;
-    float p8 = s8 + s23;
-    float p9 = s9 + s22;
-    float p10 = s10 + s21;
-    float p11 = s11 + s20;
-    float p12 = s12 + s19;
-    float p13 = s13 + s18;
-    float p14 = s14 + s17;
-    float p15 = s15 + s16;
+    @LOC("THIS,SynthesisFilter.NEWV") float p0 = s0 + s31;
+    @LOC("THIS,SynthesisFilter.NEWV") float p1 = s1 + s30;
+    @LOC("THIS,SynthesisFilter.NEWV") float p2 = s2 + s29;
+    @LOC("THIS,SynthesisFilter.NEWV") float p3 = s3 + s28;
+    @LOC("THIS,SynthesisFilter.NEWV") float p4 = s4 + s27;
+    @LOC("THIS,SynthesisFilter.NEWV") float p5 = s5 + s26;
+    @LOC("THIS,SynthesisFilter.NEWV") float p6 = s6 + s25;
+    @LOC("THIS,SynthesisFilter.NEWV") float p7 = s7 + s24;
+    @LOC("THIS,SynthesisFilter.NEWV") float p8 = s8 + s23;
+    @LOC("THIS,SynthesisFilter.NEWV") float p9 = s9 + s22;
+    @LOC("THIS,SynthesisFilter.NEWV") float p10 = s10 + s21;
+    @LOC("THIS,SynthesisFilter.NEWV") float p11 = s11 + s20;
+    @LOC("THIS,SynthesisFilter.NEWV") float p12 = s12 + s19;
+    @LOC("THIS,SynthesisFilter.NEWV") float p13 = s13 + s18;
+    @LOC("THIS,SynthesisFilter.NEWV") float p14 = s14 + s17;
+    @LOC("THIS,SynthesisFilter.NEWV") float p15 = s15 + s16;
 
-    float pp0 = p0 + p15;
-    float pp1 = p1 + p14;
-    float pp2 = p2 + p13;
-    float pp3 = p3 + p12;
-    float pp4 = p4 + p11;
-    float pp5 = p5 + p10;
-    float pp6 = p6 + p9;
-    float pp7 = p7 + p8;
-    float pp8 = (p0 - p15) * cos1_32;
-    float pp9 = (p1 - p14) * cos3_32;
-    float pp10 = (p2 - p13) * cos5_32;
-    float pp11 = (p3 - p12) * cos7_32;
-    float pp12 = (p4 - p11) * cos9_32;
-    float pp13 = (p5 - p10) * cos11_32;
-    float pp14 = (p6 - p9) * cos13_32;
-    float pp15 = (p7 - p8) * cos15_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp0 = p0 + p15;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp1 = p1 + p14;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp2 = p2 + p13;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp3 = p3 + p12;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp4 = p4 + p11;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp5 = p5 + p10;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp6 = p6 + p9;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp7 = p7 + p8;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp8 = (p0 - p15) * cos1_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp9 = (p1 - p14) * cos3_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp10 = (p2 - p13) * cos5_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp11 = (p3 - p12) * cos7_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp12 = (p4 - p11) * cos9_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp13 = (p5 - p10) * cos11_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp14 = (p6 - p9) * cos13_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp15 = (p7 - p8) * cos15_32;
 
     p0 = pp0 + pp7;
     p1 = pp1 + pp6;
@@ -319,7 +291,7 @@ final class SynthesisFilter {
     p15 = (pp14 - pp15) * cos1_4;
 
     // this is pretty insane coding
-    float tmp1;
+    @LOC("THIS,SynthesisFilter.NEWV") float tmp1;
     new_v19/* 36-17 */= -(new_v4 = (new_v12 = p7) + p5) - p6;
     new_v27/* 44-17 */= -p6 - p7 - p4;
     new_v6 = (new_v10 = (new_v14 = p15) + p11) + p13;
@@ -418,7 +390,7 @@ final class SynthesisFilter {
 
     // manually doing something that a compiler should handle sucks
     // coding like this is hard to read
-    float tmp2;
+    @LOC("THIS,SynthesisFilter.NEWV") float tmp2;
     new_v5 = (new_v11 = (new_v13 = (new_v15 = p15) + p7) + p11) + p5 + p13;
     new_v7 = (new_v9 = p15 + p11 + p3) + p13;
     new_v16/* 33-17 */= -(new_v1 = (tmp1 = p13 + p15 + p9) + p1) - p14;
@@ -435,7 +407,7 @@ final class SynthesisFilter {
     // float[] x2 = actual_v + actual_write_pos;
     // float dest[] = actual_v; v2
 
-    int pos = actual_write_pos;
+    @LOC("THIS,SynthesisFilter.NEWV") int pos = actual_write_pos;
 
     v2[0 + pos] = new_v0;
     v2[16 + pos] = new_v1;
@@ -516,44 +488,38 @@ final class SynthesisFilter {
 
   private void compute_new_v1_v2() {
 
-    float new_v0, new_v1, new_v2, new_v3, new_v4, new_v5, new_v6, new_v7, new_v8, new_v9;
-    float new_v10, new_v11, new_v12, new_v13, new_v14, new_v15, new_v16, new_v17, new_v18, new_v19;
-    float new_v20, new_v21, new_v22, new_v23, new_v24, new_v25, new_v26, new_v27, new_v28, new_v29;
-    float new_v30, new_v31;
-
-    new_v0 =
-        new_v1 =
-            new_v2 =
-                new_v3 =
-                    new_v4 =
-                        new_v5 =
-                            new_v6 =
-                                new_v7 =
-                                    new_v8 =
-                                        new_v9 =
-                                            new_v10 =
-                                                new_v11 =
-                                                    new_v12 =
-                                                        new_v13 =
-                                                            new_v14 =
-                                                                new_v15 =
-                                                                    new_v16 =
-                                                                        new_v17 =
-                                                                            new_v18 =
-                                                                                new_v19 =
-                                                                                    new_v20 =
-                                                                                        new_v21 =
-                                                                                            new_v22 =
-                                                                                                new_v23 =
-                                                                                                    new_v24 =
-                                                                                                        new_v25 =
-                                                                                                            new_v26 =
-                                                                                                                new_v27 =
-                                                                                                                    new_v28 =
-                                                                                                                        new_v29 =
-                                                                                                                            new_v30 =
-                                                                                                                                new_v31 =
-                                                                                                                                    0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v0 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v1 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v2 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v3 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v4 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v5 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v6 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v7 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v8 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v9 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v10 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v11 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v12 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v13 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v14 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v15 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v16 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v17 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v18 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v19 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v20 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v21 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v22 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v23 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v24 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v25 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v26 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v27 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v28 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v29 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v30 = 0.0f;
+    @LOC("THIS,SynthesisFilter.NEWV") float new_v31 = 0.0f;
 
     // float[] new_v = new float[32]; // new V[0-15] and V[33-48] of Figure
     // 3-A.2 in ISO DIS 11172-3
@@ -562,72 +528,72 @@ final class SynthesisFilter {
 
     // float[] s = samples;
 
-    float s0 = samples[0];
-    float s1 = samples[1];
-    float s2 = samples[2];
-    float s3 = samples[3];
-    float s4 = samples[4];
-    float s5 = samples[5];
-    float s6 = samples[6];
-    float s7 = samples[7];
-    float s8 = samples[8];
-    float s9 = samples[9];
-    float s10 = samples[10];
-    float s11 = samples[11];
-    float s12 = samples[12];
-    float s13 = samples[13];
-    float s14 = samples[14];
-    float s15 = samples[15];
-    float s16 = samples[16];
-    float s17 = samples[17];
-    float s18 = samples[18];
-    float s19 = samples[19];
-    float s20 = samples[20];
-    float s21 = samples[21];
-    float s22 = samples[22];
-    float s23 = samples[23];
-    float s24 = samples[24];
-    float s25 = samples[25];
-    float s26 = samples[26];
-    float s27 = samples[27];
-    float s28 = samples[28];
-    float s29 = samples[29];
-    float s30 = samples[30];
-    float s31 = samples[31];
+    @LOC("THIS,SynthesisFilter.NEWV") float s0 = samples[0];
+    @LOC("THIS,SynthesisFilter.NEWV") float s1 = samples[1];
+    @LOC("THIS,SynthesisFilter.NEWV") float s2 = samples[2];
+    @LOC("THIS,SynthesisFilter.NEWV") float s3 = samples[3];
+    @LOC("THIS,SynthesisFilter.NEWV") float s4 = samples[4];
+    @LOC("THIS,SynthesisFilter.NEWV") float s5 = samples[5];
+    @LOC("THIS,SynthesisFilter.NEWV") float s6 = samples[6];
+    @LOC("THIS,SynthesisFilter.NEWV") float s7 = samples[7];
+    @LOC("THIS,SynthesisFilter.NEWV") float s8 = samples[8];
+    @LOC("THIS,SynthesisFilter.NEWV") float s9 = samples[9];
+    @LOC("THIS,SynthesisFilter.NEWV") float s10 = samples[10];
+    @LOC("THIS,SynthesisFilter.NEWV") float s11 = samples[11];
+    @LOC("THIS,SynthesisFilter.NEWV") float s12 = samples[12];
+    @LOC("THIS,SynthesisFilter.NEWV") float s13 = samples[13];
+    @LOC("THIS,SynthesisFilter.NEWV") float s14 = samples[14];
+    @LOC("THIS,SynthesisFilter.NEWV") float s15 = samples[15];
+    @LOC("THIS,SynthesisFilter.NEWV") float s16 = samples[16];
+    @LOC("THIS,SynthesisFilter.NEWV") float s17 = samples[17];
+    @LOC("THIS,SynthesisFilter.NEWV") float s18 = samples[18];
+    @LOC("THIS,SynthesisFilter.NEWV") float s19 = samples[19];
+    @LOC("THIS,SynthesisFilter.NEWV") float s20 = samples[20];
+    @LOC("THIS,SynthesisFilter.NEWV") float s21 = samples[21];
+    @LOC("THIS,SynthesisFilter.NEWV") float s22 = samples[22];
+    @LOC("THIS,SynthesisFilter.NEWV") float s23 = samples[23];
+    @LOC("THIS,SynthesisFilter.NEWV") float s24 = samples[24];
+    @LOC("THIS,SynthesisFilter.NEWV") float s25 = samples[25];
+    @LOC("THIS,SynthesisFilter.NEWV") float s26 = samples[26];
+    @LOC("THIS,SynthesisFilter.NEWV") float s27 = samples[27];
+    @LOC("THIS,SynthesisFilter.NEWV") float s28 = samples[28];
+    @LOC("THIS,SynthesisFilter.NEWV") float s29 = samples[29];
+    @LOC("THIS,SynthesisFilter.NEWV") float s30 = samples[30];
+    @LOC("THIS,SynthesisFilter.NEWV") float s31 = samples[31];
 
-    float p0 = s0 + s31;
-    float p1 = s1 + s30;
-    float p2 = s2 + s29;
-    float p3 = s3 + s28;
-    float p4 = s4 + s27;
-    float p5 = s5 + s26;
-    float p6 = s6 + s25;
-    float p7 = s7 + s24;
-    float p8 = s8 + s23;
-    float p9 = s9 + s22;
-    float p10 = s10 + s21;
-    float p11 = s11 + s20;
-    float p12 = s12 + s19;
-    float p13 = s13 + s18;
-    float p14 = s14 + s17;
-    float p15 = s15 + s16;
+    @LOC("THIS,SynthesisFilter.NEWV") float p0 = s0 + s31;
+    @LOC("THIS,SynthesisFilter.NEWV") float p1 = s1 + s30;
+    @LOC("THIS,SynthesisFilter.NEWV") float p2 = s2 + s29;
+    @LOC("THIS,SynthesisFilter.NEWV") float p3 = s3 + s28;
+    @LOC("THIS,SynthesisFilter.NEWV") float p4 = s4 + s27;
+    @LOC("THIS,SynthesisFilter.NEWV") float p5 = s5 + s26;
+    @LOC("THIS,SynthesisFilter.NEWV") float p6 = s6 + s25;
+    @LOC("THIS,SynthesisFilter.NEWV") float p7 = s7 + s24;
+    @LOC("THIS,SynthesisFilter.NEWV") float p8 = s8 + s23;
+    @LOC("THIS,SynthesisFilter.NEWV") float p9 = s9 + s22;
+    @LOC("THIS,SynthesisFilter.NEWV") float p10 = s10 + s21;
+    @LOC("THIS,SynthesisFilter.NEWV") float p11 = s11 + s20;
+    @LOC("THIS,SynthesisFilter.NEWV") float p12 = s12 + s19;
+    @LOC("THIS,SynthesisFilter.NEWV") float p13 = s13 + s18;
+    @LOC("THIS,SynthesisFilter.NEWV") float p14 = s14 + s17;
+    @LOC("THIS,SynthesisFilter.NEWV") float p15 = s15 + s16;
 
-    float pp0 = p0 + p15;
-    float pp1 = p1 + p14;
-    float pp2 = p2 + p13;
-    float pp3 = p3 + p12;
-    float pp4 = p4 + p11;
-    float pp5 = p5 + p10;
-    float pp6 = p6 + p9;
-    float pp7 = p7 + p8;
-    float pp8 = (p0 - p15) * cos1_32;
-    float pp9 = (p1 - p14) * cos3_32;
-    float pp10 = (p2 - p13) * cos5_32;
-    float pp11 = (p3 - p12) * cos7_32;
-    float pp12 = (p4 - p11) * cos9_32;
-    float pp13 = (p5 - p10) * cos11_32;
-    float pp14 = (p6 - p9) * cos13_32;
-    float pp15 = (p7 - p8) * cos15_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp0 = p0 + p15;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp1 = p1 + p14;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp2 = p2 + p13;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp3 = p3 + p12;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp4 = p4 + p11;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp5 = p5 + p10;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp6 = p6 + p9;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp7 = p7 + p8;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp8 = (p0 - p15) * cos1_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp9 = (p1 - p14) * cos3_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp10 = (p2 - p13) * cos5_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp11 = (p3 - p12) * cos7_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp12 = (p4 - p11) * cos9_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp13 = (p5 - p10) * cos11_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp14 = (p6 - p9) * cos13_32;
+    @LOC("THIS,SynthesisFilter.NEWV") float pp15 = (p7 - p8) * cos15_32;
 
     p0 = pp0 + pp7;
     p1 = pp1 + pp6;
@@ -681,7 +647,7 @@ final class SynthesisFilter {
     p15 = (pp14 - pp15) * cos1_4;
 
     // this is pretty insane coding
-    float tmp1;
+    @LOC("THIS,SynthesisFilter.NEWV") float tmp1;
     new_v19/* 36-17 */= -(new_v4 = (new_v12 = p7) + p5) - p6;
     new_v27/* 44-17 */= -p6 - p7 - p4;
     new_v6 = (new_v10 = (new_v14 = p15) + p11) + p13;
@@ -780,7 +746,7 @@ final class SynthesisFilter {
 
     // manually doing something that a compiler should handle sucks
     // coding like this is hard to read
-    float tmp2;
+    @LOC("THIS,SynthesisFilter.NEWV") float tmp2;
     new_v5 = (new_v11 = (new_v13 = (new_v15 = p15) + p7) + p11) + p5 + p13;
     new_v7 = (new_v9 = p15 + p11 + p3) + p13;
     new_v16/* 33-17 */= -(new_v1 = (tmp1 = p13 + p15 + p9) + p1) - p14;
@@ -797,7 +763,7 @@ final class SynthesisFilter {
     // float[] x2 = actual_v + actual_write_pos;
     // float dest[] = actual_v; actual_v=v1;
 
-    int pos = actual_write_pos;
+    @LOC("THIS,SynthesisFilter.NEWV") int pos = actual_write_pos;
 
     v1[0 + pos] = new_v0;
     v1[16 + pos] = new_v1;
@@ -880,7 +846,8 @@ final class SynthesisFilter {
    * Compute PCM Samples.
    */
 
-  @LOC("OUT") private float[] _tmpOut = new float[32];
+  @LOC("OUT")
+  private float[] _tmpOut = new float[32];
 
   private void compute_pcm_samples0() {
 
@@ -888,11 +855,11 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
-        float pcm_sample;
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
         // final float[] dp = d16[i];
         pcm_sample =
             (float) (((v1[0 + dvp] * d16[i][0]) + (v1[15 + dvp] * d16[i][1])
@@ -912,11 +879,11 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
-        float pcm_sample;
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
         // final float[] dp = d16[i];
         pcm_sample =
             (float) (((v2[0 + dvp] * d16[i][0]) + (v2[15 + dvp] * d16[i][1])
@@ -942,12 +909,12 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[1 + dvp] * d16[i][0]) + (v1[0 + dvp] * d16[i][1])
@@ -967,12 +934,12 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[1 + dvp] * d16[i][0]) + (v2[0 + dvp] * d16[i][1])
@@ -998,12 +965,12 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[2 + dvp] * d16[i][0]) + (v1[1 + dvp] * d16[i][1])
@@ -1023,12 +990,12 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[2 + dvp] * d16[i][0]) + (v2[1 + dvp] * d16[i][1])
@@ -1053,15 +1020,14 @@ final class SynthesisFilter {
     if (vidx == 1) {
       // final float[] vp = actual_v;
 
-      int idx = 0;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[3 + dvp] * d16[i][0]) + (v1[2 + dvp] * d16[i][1])
@@ -1080,15 +1046,14 @@ final class SynthesisFilter {
     } else {
       // final float[] vp = actual_v;
 
-      int idx = 0;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[3 + dvp] * d16[i][0]) + (v2[2 + dvp] * d16[i][1])
@@ -1115,12 +1080,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[4 + dvp] * d16[i][0]) + (v1[3 + dvp] * d16[i][1])
@@ -1140,12 +1105,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[4 + dvp] * d16[i][0]) + (v2[3 + dvp] * d16[i][1])
@@ -1171,12 +1136,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[5 + dvp] * d16[i][0]) + (v1[4 + dvp] * d16[i][1])
@@ -1196,12 +1161,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[5 + dvp] * d16[i][0]) + (v2[4 + dvp] * d16[i][1])
@@ -1227,12 +1192,12 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[6 + dvp] * d16[i][0]) + (v1[5 + dvp] * d16[i][1])
@@ -1252,12 +1217,12 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[6 + dvp] * d16[i][0]) + (v2[5 + dvp] * d16[i][1])
@@ -1283,12 +1248,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[7 + dvp] * d16[i][0]) + (v1[6 + dvp] * d16[i][1])
@@ -1308,12 +1273,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[7 + dvp] * d16[i][0]) + (v2[6 + dvp] * d16[i][1])
@@ -1340,12 +1305,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[8 + dvp] * d16[i][0]) + (v1[7 + dvp] * d16[i][1])
@@ -1366,12 +1331,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[8 + dvp] * d16[i][0]) + (v2[7 + dvp] * d16[i][1])
@@ -1397,12 +1362,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[9 + dvp] * d16[i][0]) + (v1[8 + dvp] * d16[i][1])
@@ -1422,12 +1387,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[9 + dvp] * d16[i][0]) + (v2[8 + dvp] * d16[i][1])
@@ -1451,12 +1416,12 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[10 + dvp] * d16[i][0]) + (v1[9 + dvp] * d16[i][1])
@@ -1475,12 +1440,12 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[10 + dvp] * d16[i][0]) + (v2[9 + dvp] * d16[i][1])
@@ -1506,12 +1471,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[11 + dvp] * d16[i][0]) + (v1[10 + dvp] * d16[i][1])
@@ -1531,12 +1496,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[11 + dvp] * d16[i][0]) + (v2[10 + dvp] * d16[i][1])
@@ -1561,12 +1526,12 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[12 + dvp] * d16[i][0]) + (v1[11 + dvp] * d16[i][1])
@@ -1585,12 +1550,12 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[12 + dvp] * d16[i][0]) + (v2[11 + dvp] * d16[i][1])
@@ -1616,12 +1581,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[13 + dvp] * d16[i][0]) + (v1[12 + dvp] * d16[i][1])
@@ -1641,12 +1606,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[13 + dvp] * d16[i][0]) + (v2[12 + dvp] * d16[i][1])
@@ -1672,12 +1637,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v1[14 + dvp] * d16[i][0]) + (v1[13 + dvp] * d16[i][1])
@@ -1697,12 +1662,12 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-        float pcm_sample;
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
 
         pcm_sample =
             (float) (((v2[14 + dvp] * d16[i][0]) + (v2[13 + dvp] * d16[i][1])
@@ -1727,11 +1692,11 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
-        float pcm_sample;
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
         // final float d16[i][] = d16[i];
         pcm_sample =
             (float) (((v1[15 + dvp] * d16[i][0]) + (v1[14 + dvp] * d16[i][1])
@@ -1750,11 +1715,11 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-      int dvp = 0;
+      @LOC("THIS,SynthesisFilter.NEWV") int dvp = 0;
 
       // fat chance of having this loop unroll
-      for (int i = 0; i < 32; i++) {
-        float pcm_sample;
+      for (@LOC("THIS,SynthesisFilter.NEWV") int i = 0; i < 32; i++) {
+        @LOC("THIS,SynthesisFilter.V1") float pcm_sample;
         // final float d16[i][] = d16[i];
         pcm_sample =
             (float) (((v2[15 + dvp] * d16[i][0]) + (v2[14 + dvp] * d16[i][1])
@@ -1878,7 +1843,7 @@ final class SynthesisFilter {
 
     // MDM: this may not be necessary. The Layer III decoder always
     // outputs 32 subband samples, but I haven't checked layer I & II.
-    for (int p = 0; p < 32; p++)
+    for (@LOC("C") int p = 0; p < 32; p++)
       samples[p] = 0.0f;
   }
 

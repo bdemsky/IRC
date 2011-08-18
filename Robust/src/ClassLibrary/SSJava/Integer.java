@@ -1,5 +1,5 @@
 @LATTICE("V<C, V<O")
-@METHODDEFAULT("O<V,V<C,C<IN,THISLOC=IN,C*")
+@METHODDEFAULT("O<V,V<C,C<IN,THISLOC=IN,C*,GLOBALLOC=V")
 public class Integer {
   
   @LOC("V")  private int value;

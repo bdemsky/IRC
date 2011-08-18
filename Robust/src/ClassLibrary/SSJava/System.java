@@ -20,15 +20,15 @@ public class System {
     System.printString(s + "\n");
   }
 
-  public static void println(int o) {
+  public static void println(@LOC("IN") int o) {
     System.printString("" + o + "\n");
   }
 
-  public static void println(double o) {
+  public static void println(@LOC("IN") double o) {
     System.printString("" + o + "\n");
   }
 
-  public static void println(long o) {
+  public static void println(@LOC("IN") long o) {
     System.printString("" + o + "\n");
   }
 
@@ -36,7 +36,7 @@ public class System {
     System.printString("\n");
   }
 
-  public static void print(String s) {
+  public static void print(@LOC("IN") String s) {
     System.printString(s);
   }
 

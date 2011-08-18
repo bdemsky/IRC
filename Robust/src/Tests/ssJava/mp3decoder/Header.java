@@ -33,9 +33,8 @@
 /**
  * Class for extracting information from a frame header.
  */
-@LATTICE("HI<HNS,HNS<H,C<H,NS<FS,FS<H,FS<HV,H<SYNC,HV<SYNC,HV<T,SYNC*,HV*,FS*,HI*")
-// @METHODDEFAULT("OUT<V,V<THIS,THIS<SH,SH<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
-@METHODDEFAULT("THIS,THISLOC=THIS,RETURNLOC=THIS")
+@LATTICE("HI<HNS,HNS<H,C<H,NS<FS,FS<H,FS<HV,H<SYNC,HV<SYNC,H<T,HV<T,SYNC*,HV*,FS*,HI*")
+@METHODDEFAULT("THIS<IN,THISLOC=THIS,GLOBALLOC=THIS,RETURNLOC=THIS")
 public final class Header {
 
   public static final int[][] frequencies = { { 22050, 24000, 16000, 1 },
@@ -361,6 +360,7 @@ public final class Header {
   /**
    * Returns version.
    */
+  @RETURNLOC("THIS,Header.HV")
   public int version() {
     return h_version;
   }
@@ -368,6 +368,7 @@ public final class Header {
   /**
    * Returns Layer ID.
    */
+  @RETURNLOC("THIS,Header.H")
   public int layer() {
     return h_layer;
   }
@@ -382,6 +383,7 @@ public final class Header {
   /**
    * Returns Sample Frequency.
    */
+  @RETURNLOC("THIS,Header.H")
   public int sample_frequency() {
     return h_sample_frequency;
   }
@@ -389,6 +391,7 @@ public final class Header {
   /**
    * Returns Frequency.
    */
+  @RETURNLOC("THIS,Header.FS")
   public int frequency() {
     return frequencies[h_version][h_sample_frequency];
   }
@@ -396,6 +399,7 @@ public final class Header {
   /**
    * Returns Mode.
    */
+  @RETURNLOC("THIS,Header.H")
   public int mode() {
     return h_mode;
   }
@@ -403,6 +407,7 @@ public final class Header {
   /**
    * Returns Protection bit.
    */
+  @RETURNLOC("THIS,Header.H")
   public boolean checksums() {
     if (h_protection_bit == 0)
       return true;
@@ -473,6 +478,7 @@ public final class Header {
   /**
    * Returns Slots.
    */
+  @RETURNLOC("THIS,Header.NS")
   public int slots() {
     return nSlots;
   }
@@ -480,6 +486,7 @@ public final class Header {
   /**
    * Returns Mode Extension.
    */
+  @RETURNLOC("THIS,Header.H")
   public int mode_extension() {
     return h_mode_extension;
   }
@@ -636,6 +643,7 @@ public final class Header {
   /**
    * Return Layer version.
    */
+  @RETURNLOC("THIS,Header.H")
   public String layer_string() {
     switch (h_layer) {
     case 1:
@@ -688,11 +696,14 @@ public final class Header {
    * 
    * @return bitrate in bps
    */
+  @RETURNLOC("THIS,Header.FS")
   public String bitrate_string() {
+    @LOC("THIS,Header.T") String kbs = " kb/s";
     if (h_vbr == true) {
-      return Integer.toString(bitrate() / 1000) + " kb/s";
-    } else
+      return Integer.toString(bitrate() / 1000) + kbs;
+    } else {
       return bitrate_str[h_version][h_layer - 1][h_bitrate_index];
+    }
   }
 
   /**
@@ -700,11 +711,13 @@ public final class Header {
    * 
    * @return bitrate in bps and average bitrate for VBR header
    */
+  @RETURNLOC("THIS,Header.FS")
   public int bitrate() {
     if (h_vbr == true) {
       return ((int) ((h_vbr_bytes * 8) / (ms_per_frame() * h_vbr_frames))) * 1000;
-    } else
+    } else {
       return bitrates[h_version][h_layer - 1][h_bitrate_index];
+    }
   }
 
   /**
@@ -721,6 +734,7 @@ public final class Header {
    * 
    * @return frequency string in kHz
    */
+  @RETURNLOC("THIS,Header.FS")
   public String sample_frequency_string() {
     switch (h_sample_frequency) {
     case THIRTYTWO:
@@ -754,6 +768,7 @@ public final class Header {
   /**
    * Returns Mode.
    */
+  @RETURNLOC("THIS,Header.H")
   public String mode_string() {
     switch (h_mode) {
     case STEREO:
@@ -773,6 +788,7 @@ public final class Header {
    * 
    * @return MPEG-1 or MPEG-2 LSF or MPEG-2.5 LSF
    */
+  @RETURNLOC("THIS,Header.HV")
   public String version_string() {
     switch (h_version) {
     case MPEG1:
@@ -813,10 +829,12 @@ public final class Header {
     this.br = br;
   }
 
+  @RETURNLOC("THIS,Header.T")
   public SideInfoBuffer getSideInfoBuffer() {
     return sib;
   }
 
+  @RETURNLOC("THIS,Header.T")
   public BitReserve getBitReserve() {
     return br;
   }

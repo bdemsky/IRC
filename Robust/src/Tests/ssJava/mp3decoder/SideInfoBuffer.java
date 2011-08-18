@@ -42,7 +42,7 @@ public class SideInfoBuffer {
       0x000000FF, 0x000001FF, 0x000003FF, 0x000007FF, 0x00000FFF, 0x00001FFF, 0x00003FFF,
       0x00007FFF, 0x0000FFFF, 0x0001FFFF };
 
-  @LATTICE("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
+  @LATTICE("OUT<THIS,THIS<IN,OUT*,THISLOC=THIS,RETURNLOC=OUT")
   public int get_bits(@LOC("IN") int number_of_bits) {
     @LOC("OUT") int returnvalue = 0;
     @LOC("THIS,SideInfoBuffer.IDX") int sum = bitindex + number_of_bits;
@@ -70,9 +70,9 @@ public class SideInfoBuffer {
     // ((short[])&returnvalue)[0] = ((short[])wordpointer + 1)[0];
     // wordpointer++; // Added by me!
     // ((short[])&returnvalue + 1)[0] = ((short[])wordpointer)[0];
-    @LOC("THIS,SideInfoBuffer.IDX") int Right = (framebuffer[wordpointer] & 0x0000FFFF);
+    @LOC("OUT") int Right = (framebuffer[wordpointer] & 0x0000FFFF);
     wordpointer++;
-    @LOC("THIS,SideInfoBuffer.IDX") int Left = (framebuffer[wordpointer] & 0xFFFF0000);
+    @LOC("OUT") int Left = (framebuffer[wordpointer] & 0xFFFF0000);
     returnvalue = ((Right << 16) & 0xFFFF0000) | ((Left >>> 16) & 0x0000FFFF);
 
     returnvalue >>>= 48 - sum; // returnvalue >>= 16 - (number_of_bits - (32
