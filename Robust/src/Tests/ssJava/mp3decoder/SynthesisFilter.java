@@ -34,16 +34,25 @@
  * from 32, 44.1 or 48 kHz to 8 kHz, if ULAW is defined. Frequencies above 4 kHz
  * are removed by ignoring higher subbands.
  */
+@LATTICE("OUT<V,V<SAMPLE,SAMPLE<EQ,EQ<IDX")
 final class SynthesisFilter {
-  private int vcount = 0;
+
+  @LOC("IDX")
   private int vidx = 1;
+  @LOC("V")
   private float[] v1;
+  @LOC("V")
   private float[] v2;
   // private float[] actual_v; // v1 or v2
+  @LOC("IDX")
   private int actual_write_pos; // 0-15
+  @LOC("SAMPLE")
   private float[] samples; // 32 new subband samples
+  @LOC("V")
   private int channel;
+  @LOC("V")
   private float scalefactor;
+  @LOC("EQ")
   private float[] eq;
 
   /**
@@ -871,7 +880,7 @@ final class SynthesisFilter {
    * Compute PCM Samples.
    */
 
-  private float[] _tmpOut = new float[32];
+  @LOC("OUT") private float[] _tmpOut = new float[32];
 
   private void compute_pcm_samples0() {
 
@@ -1819,7 +1828,7 @@ final class SynthesisFilter {
     // if (buffer != null) {
     // buffer.appendSamples(channel, _tmpOut);
     // }
-    SampleBufferWrapper.getOutput().appendSamples(channel, _tmpOut);
+    SampleBufferWrapper.appendSamples(channel, _tmpOut);
 
     /*
      * // MDM: I was considering putting in quality control for // low-spec
@@ -1914,6 +1923,7 @@ final class SynthesisFilter {
    * d[] split into subarrays of length 16. This provides for more faster access
    * by allowing a block of 16 to be addressed with constant offset.
    **/
+  @LOC("V")
   private static float d16[][] = null;
 
   /**

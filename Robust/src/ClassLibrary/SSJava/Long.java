@@ -55,6 +55,8 @@ exception statement from your version. */
  * @since 1.0
  * @status updated to 1.5
  */
+@LATTICE("V<C, V<O")
+@METHODDEFAULT("O<V,V<C,C<IN,C*,THISLOC=IN,RETURNLOC=O")
 public final class Long //extends Number implements Comparable<Long>
 {
   /**
@@ -104,7 +106,7 @@ public final class Long //extends Number implements Comparable<Long>
    *
    * @serial the wrapped long
    */
-  private final long value;
+  @LOC("V") private final long value;
 
   /**
    * Create a <code>Long</code> object representing the value of the

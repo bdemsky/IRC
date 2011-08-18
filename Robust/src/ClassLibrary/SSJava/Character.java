@@ -1,3 +1,4 @@
+@LATTICE("VALUE")
 public class Character {
 
   public static int digit(char ch, int radix) {
@@ -24,7 +25,7 @@ public class Character {
       return false;
   }
 
-  char value;
+  @LOC("VALUE") char value;
 
   public Character(char c) {
     value = c;
@@ -34,6 +35,7 @@ public class Character {
     value = c.value;
   }
 
+  @LATTICE("OUT<THIS,RETURNLOC=OUT,THISLOC=THIS")
   public String toString() {
     return ""+value;
   }

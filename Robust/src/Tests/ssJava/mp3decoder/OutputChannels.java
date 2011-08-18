@@ -27,7 +27,7 @@
  * @since 0.0.7
  */
 @LATTICE("B<T")
-@METHODDEFAULT("OUT<IN")
+@METHODDEFAULT("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
 public class OutputChannels {
   /**
    * Flag to indicate output should include both channels.
@@ -49,13 +49,9 @@ public class OutputChannels {
    */
   public static final int DOWNMIX_CHANNELS = 3;
 
-  @LOC("B")
   public static final OutputChannels LEFT = new OutputChannels(LEFT_CHANNEL);
-  @LOC("B")
   public static final OutputChannels RIGHT = new OutputChannels(RIGHT_CHANNEL);
-  @LOC("B")
   public static final OutputChannels BOTH = new OutputChannels(BOTH_CHANNELS);
-  @LOC("B")
   public static final OutputChannels DOWNMIX = new OutputChannels(DOWNMIX_CHANNELS);
 
   @LOC("T")

@@ -292,12 +292,14 @@ public class FlowDownCheck {
   private void checkDeclarationInMethodBody(ClassDescriptor cd, MethodDescriptor md) {
     BlockNode bn = state.getMethodBody(md);
 
+    System.out.println("\n#checkDeclarationInMethodBody=" + md);
+
     // first, check annotations on method parameters
     List<CompositeLocation> paramList = new ArrayList<CompositeLocation>();
     for (int i = 0; i < md.numParameters(); i++) {
       // process annotations on method parameters
       VarDescriptor vd = (VarDescriptor) md.getParameter(i);
-      assignLocationOfVarDescriptor(vd, md, md.getParameterTable(), bn);
+      assignLocationOfVarDescriptor(vd, md, md.getParameterTable(), null);
       paramList.add(d2loc.get(vd));
     }
     Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
@@ -323,7 +325,9 @@ public class FlowDownCheck {
         // if developer does not define method lattice
         // search return location in the method default lattice
         String rtrStr = ssjava.getMethodLattice(md).getReturnLoc();
-        returnLocComp = new CompositeLocation(new Location(md, rtrStr));
+        if(rtrStr!=null){
+          returnLocComp = new CompositeLocation(new Location(md, rtrStr));
+        }        
       }
 
       if (returnLocComp == null) {
@@ -345,6 +349,7 @@ public class FlowDownCheck {
 
       System.out.println("### ReturnLocGenerator=" + md);
       System.out.println("### md2ReturnLoc.get(md)=" + md2ReturnLoc.get(md));
+
       md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), md, paramList, md
           + " of " + cd.getSourceFileName()));
     }
@@ -1469,8 +1474,8 @@ public class FlowDownCheck {
 
     // currently enforce every variable to have corresponding location
     if (annotationVec.size() == 0) {
-      throw new Error("Location is not assigned to variable " + vd.getSymbol() + " in the method "
-          + md.getSymbol() + " of the class " + cd.getSymbol());
+      throw new Error("Location is not assigned to variable '" + vd.getSymbol() + "' in the method '"
+          + md + "' of the class " + cd.getSymbol() + " at " + generateErrorMessage(cd, n));
     }
 
     if (annotationVec.size() > 1) { // variable can have at most one location

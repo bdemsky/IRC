@@ -112,7 +112,6 @@ public class Player {
   public boolean play(@LOC("IN") int frames) throws JavaLayerException {
     @LOC("IN") boolean ret = true;
 
-    int count = 0;
     SSJAVA: while (frames-- > 0 && ret) {
       ret = decodeFrame();
     }
@@ -171,8 +170,7 @@ public class Player {
    * 
    * @return true if there are no more frames to decode, false otherwise.
    */
-  @LATTICE("O<TH,THISLOC=TH")
-  @RETURNLOC("O")
+  @LATTICE("C,O<THIS,THIS<IN,C*,THISLOC=THIS,RETURNLOC=O")
   protected boolean decodeFrame() throws JavaLayerException {
     try {
       // AudioDevice out = audio;
@@ -180,7 +178,7 @@ public class Player {
       // return false;
 
       // Header h = bitstream.readFrame();
-      Header h = BitstreamWrapper.readFrame();
+      @LOC("IN") Header h = BitstreamWrapper.readFrame();
 
       if (h == null)
         return false;
@@ -189,10 +187,10 @@ public class Player {
       decoder.decodeFrame(h);
 
       // eom debug
-      int sum = 0;
-      short[] outbuf = SampleBufferWrapper.getOutput().getBuffer();
+      @LOC("C") int sum = 0;
+      @LOC("C") short[] outbuf = SampleBufferWrapper.getBuffer();
       // short[] outbuf = output.getBuffer();
-      for (int i = 0; i < SampleBufferWrapper.getOutput().getBufferLength(); i++) {
+      for (@LOC("C") int i = 0; i < SampleBufferWrapper.getBufferLength(); i++) {
         // System.out.println(outbuf[i]);
         sum += outbuf[i];
       }

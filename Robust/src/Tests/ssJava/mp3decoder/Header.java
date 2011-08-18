@@ -34,7 +34,8 @@
  * Class for extracting information from a frame header.
  */
 @LATTICE("HI<HNS,HNS<H,C<H,NS<FS,FS<H,FS<HV,H<SYNC,HV<SYNC,HV<T,SYNC*,HV*,FS*,HI*")
-@METHODDEFAULT("OUT<V,V<THIS,THIS<SH,SH<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
+// @METHODDEFAULT("OUT<V,V<THIS,THIS<SH,SH<IN,SH*,THISLOC=THIS,GLOBALLOC=IN")
+@METHODDEFAULT("THIS,THISLOC=THIS,RETURNLOC=THIS")
 public final class Header {
 
   public static final int[][] frequencies = { { 22050, 24000, 16000, 1 },
@@ -112,14 +113,17 @@ public final class Header {
   @LOC("T")
   private int _headerstring = -1; // E.B
 
+  @LOC("T")
   private SideInfoBuffer sib;
+  @LOC("T")
   private BitReserve br;
 
   Header() {
   }
 
+  @LATTICE("OUT<BUF,BUF<THIS,THISLOC=THIS,RETURNLOC=OUT")
   public String toString() {
-    StringBuffer buffer = new StringBuffer(200);
+    @LOC("BUF") StringBuffer buffer = new StringBuffer(200);
     buffer.append("Layer ");
     buffer.append(layer_string());
     buffer.append(" frame ");
@@ -135,7 +139,7 @@ public final class Header {
     buffer.append(' ');
     buffer.append(bitrate_string());
 
-    String s = buffer.toString();
+    @LOC("OUT") String s = buffer.toString();
     return s;
   }
 
@@ -148,7 +152,7 @@ public final class Header {
     boolean sync = false;
     do {
       headerstring = stream.syncHeader(syncmode);
-      if(headerstring==-1){
+      if (headerstring == -1) {
         return -1;
       }
       _headerstring = headerstring; // E.B
@@ -357,7 +361,6 @@ public final class Header {
   /**
    * Returns version.
    */
-  @RETURNLOC("OUT")
   public int version() {
     return h_version;
   }
@@ -365,7 +368,6 @@ public final class Header {
   /**
    * Returns Layer ID.
    */
-  @RETURNLOC("OUT")
   public int layer() {
     return h_layer;
   }
@@ -373,7 +375,6 @@ public final class Header {
   /**
    * Returns bitrate index.
    */
-  @RETURNLOC("OUT")
   public int bitrate_index() {
     return h_bitrate_index;
   }
@@ -395,7 +396,6 @@ public final class Header {
   /**
    * Returns Mode.
    */
-  @RETURNLOC("OUT")
   public int mode() {
     return h_mode;
   }
@@ -473,7 +473,6 @@ public final class Header {
   /**
    * Returns Slots.
    */
-  @RETURNLOC("OUT")
   public int slots() {
     return nSlots;
   }
@@ -481,13 +480,11 @@ public final class Header {
   /**
    * Returns Mode Extension.
    */
-  @RETURNLOC("OUT")
   public int mode_extension() {
     return h_mode_extension;
   }
 
   // E.B -> private to public
-  @LOC("T")
   public static final int bitrates[][][] = {
       {
           { 0 /* free format */, 32000, 48000, 56000, 64000, 80000, 96000, 112000, 128000, 144000,
@@ -601,15 +598,16 @@ public final class Header {
    * 
    * @return milliseconds per frame
    */
+  @LATTICE("OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
   public float ms_per_frame() // E.B
   {
     if (h_vbr == true) {
-      double tpf = h_vbr_time_per_frame[layer()] / frequency();
+      @LOC("OUT") double tpf = h_vbr_time_per_frame[layer()] / frequency();
       if ((h_version == MPEG2_LSF) || (h_version == MPEG25_LSF))
         tpf /= 2;
       return ((float) (tpf * 1000));
     } else {
-      float ms_per_frame_array[][] =
+      @LOC("OUT") float ms_per_frame_array[][] =
           { { 8.707483f, 8.0f, 12.0f }, { 26.12245f, 24.0f, 36.0f }, { 26.12245f, 24.0f, 36.0f } };
       return (ms_per_frame_array[h_layer - 1][h_sample_frequency]);
     }
@@ -651,7 +649,6 @@ public final class Header {
   }
 
   // E.B -> private to public
-  @LOC("T")
   public static final String bitrate_str[][][] = {
       {
           { "free format", "32 kbit/s", "48 kbit/s", "56 kbit/s", "64 kbit/s", "80 kbit/s",
@@ -793,7 +790,6 @@ public final class Header {
    * 
    * @return number of subbands
    */
-  @RETURNLOC("OUT")
   public int number_of_subbands() {
     return h_number_of_subbands;
   }
@@ -805,7 +801,6 @@ public final class Header {
    * 
    * @return intensity
    */
-  @RETURNLOC("OUT")
   public int intensity_stereo_bound() {
     return h_intensity_stereo_bound;
   }

@@ -95,8 +95,8 @@ public class Integer {
   }
   
   @RETURNLOC("V")
-  public static String toString(int i) {
-    Integer I = new Integer(i);
+  public static String toString(@LOC("IN") int i) {
+   @LOC("C") Integer I = new Integer(i);
     return I.toString();
   }
 

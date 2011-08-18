@@ -12,4 +12,19 @@ public class SampleBufferWrapper {
     return output;
   }
 
+  @TRUST
+  static short[] getBuffer() {
+    return output.getBuffer();
+  }
+
+  @TRUST
+  static int getBufferLength() {
+    return output.getBufferLength();
+  }
+
+  @TRUST
+  static void appendSamples(int channel, float[] f) {
+    output.appendSamples(channel, f);
+  }
+
 }
