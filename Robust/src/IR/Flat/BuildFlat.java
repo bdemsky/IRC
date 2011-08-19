@@ -1452,7 +1452,7 @@ public class BuildFlat {
       breakset=oldbs;
       continueset=oldcs;
       if(ln.getLabel()!=null){
-        state.fn2labelMap.put(condition.getBegin(), ln.getLabel());
+        state.fn2labelMap.put(begin, ln.getLabel());
       }
       return new NodePair(begin,nopend);
     } else throw new Error();
