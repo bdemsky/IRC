@@ -9,8 +9,9 @@ public class LoopNode extends BlockStatementNode {
   public static int FORLOOP=1;
   public static int WHILELOOP=2;
   public static int DOWHILELOOP=3;
+  String label=null;
 
-  public LoopNode(BlockNode initializer,ExpressionNode condition, BlockNode update, BlockNode body) {
+  public LoopNode(BlockNode initializer,ExpressionNode condition, BlockNode update, BlockNode body, String label) {
     this.initializer=initializer;
     this.condition=condition;
     this.update=update;
@@ -18,12 +19,14 @@ public class LoopNode extends BlockStatementNode {
     initializer.setStyle(BlockNode.EXPRLIST);
     update.setStyle(BlockNode.EXPRLIST);
     type=FORLOOP;
+    this.label=label;
   }
 
-  public LoopNode(ExpressionNode condition, BlockNode body, int type) {
+  public LoopNode(ExpressionNode condition, BlockNode body, int type, String label) {
     this.condition=condition;
     this.body=body;
     this.type=type;
+    this.label=label;
   }
 
   public BlockNode getInitializer() {
@@ -60,5 +63,13 @@ public class LoopNode extends BlockStatementNode {
 
   public int kind() {
     return Kind.LoopNode;
+  }
+  
+  public void setLabel(String l) {
+    label=l;
+  }
+
+  public String getLabel() {
+    return label;
   }
 }

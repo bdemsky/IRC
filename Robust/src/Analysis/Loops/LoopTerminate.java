@@ -5,7 +5,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import Analysis.SSJava.SSJavaAnalysis;
 import IR.Operation;
+import IR.State;
 import IR.Flat.FKind;
 import IR.Flat.FlatCondBranch;
 import IR.Flat.FlatMethod;
@@ -28,10 +30,15 @@ public class LoopTerminate {
 
   Set<FlatNode> computed;
 
+  State state;
+  SSJavaAnalysis ssjava;
+
   /**
    * Constructor for Loop Termination Analysis
    */
-  public LoopTerminate() {
+  public LoopTerminate(SSJavaAnalysis ssjava, State state) {
+    this.ssjava = ssjava;
+    this.state = state;
     this.inductionSet = new HashSet<TempDescriptor>();
     this.inductionVar2DefNode = new HashMap<TempDescriptor, FlatNode>();
     this.derivedVar2basicInduction = new HashMap<TempDescriptor, TempDescriptor>();
@@ -93,10 +100,14 @@ public class LoopTerminate {
     assert loopEntrances.size() == 1;
     FlatNode loopEntrance = (FlatNode) loopEntrances.iterator().next();
 
-    init();
-    detectBasicInductionVar(loopElements);
-    detectDerivedInductionVar(loopElements);
-    checkConditionBranch(loopEntrance, loopElements);
+    String loopLabel = (String) state.fn2labelMap.get(loopEntrance);
+
+    if (loopLabel == null || !loopLabel.startsWith(ssjava.TERMINATE)) {
+      init();
+      detectBasicInductionVar(loopElements);
+      detectDerivedInductionVar(loopElements);
+      checkConditionBranch(loopEntrance, loopElements);
+    }
 
   }
 

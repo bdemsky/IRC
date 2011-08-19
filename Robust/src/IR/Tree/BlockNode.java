@@ -11,8 +11,6 @@ public class BlockNode extends TreeNode {
   public final static int NOBRACES=1;
   public final static int EXPRLIST=2;
 
-  String label=null;
-
   public BlockNode() {
     blockstatements=new Vector();
     table=new SymbolTable();
@@ -86,14 +84,6 @@ public class BlockNode extends TreeNode {
 
   public int kind() {
     return Kind.BlockNode;
-  }
-
-  public void setLabel(String l) {
-    label=l;
-  }
-
-  public String getLabel() {
-    return label;
   }
 
 }

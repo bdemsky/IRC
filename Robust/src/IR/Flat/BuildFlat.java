@@ -309,10 +309,6 @@ public class BuildFlat {
       NodePair np=flattenBlockStatementNode(bn.get(i));
       FlatNode np_begin=np.getBegin();
       FlatNode np_end=np.getEnd();
-      if(bn.getLabel()!=null) {
-        // interim implementation to have the labeled statement
-        state.fn2labelMap.put(np_begin, bn.getLabel());
-      }
       if (begin==null) {
         begin=np_begin;
       }
@@ -1342,6 +1338,7 @@ public class BuildFlat {
   }
 
   private NodePair flattenLoopNode(LoopNode ln) {
+    
     HashSet oldbs=breakset;
     HashSet oldcs=continueset;
     breakset=new HashSet();
@@ -1383,6 +1380,9 @@ public class BuildFlat {
       }
       breakset=oldbs;
       continueset=oldcs;
+      if(ln.getLabel()!=null){
+        state.fn2labelMap.put(condition.getBegin(), ln.getLabel());
+      }
       return new NodePair(begin,nopend);
     } else if (ln.getType()==LoopNode.WHILELOOP) {
       TempDescriptor cond_temp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
@@ -1416,6 +1416,9 @@ public class BuildFlat {
       }
       breakset=oldbs;
       continueset=oldcs;
+      if(ln.getLabel()!=null){
+        state.fn2labelMap.put(begin, ln.getLabel());
+      }
       return new NodePair(begin,nopend);
     } else if (ln.getType()==LoopNode.DOWHILELOOP) {
       TempDescriptor cond_temp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
@@ -1448,6 +1451,9 @@ public class BuildFlat {
       }
       breakset=oldbs;
       continueset=oldcs;
+      if(ln.getLabel()!=null){
+        state.fn2labelMap.put(condition.getBegin(), ln.getLabel());
+      }
       return new NodePair(begin,nopend);
     } else throw new Error();
   }

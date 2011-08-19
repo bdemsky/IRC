@@ -92,15 +92,15 @@ public class SSJavaAnalysis {
   }
 
   public void doCheck() {
-    doMethodAnnotationCheck();
-    computeLinearTypeCheckMethodSet();
-    doLinearTypeCheck();
-    if (state.SSJAVADEBUG) {
-      debugPrint();
-    }
-    parseLocationAnnotation();
-    doFlowDownCheck();
-    doDefinitelyWrittenCheck();
+     doMethodAnnotationCheck();
+    // computeLinearTypeCheckMethodSet();
+    // doLinearTypeCheck();
+    // if (state.SSJAVADEBUG) {
+    // debugPrint();
+    // }
+    // parseLocationAnnotation();
+    // doFlowDownCheck();
+    // doDefinitelyWrittenCheck();
   }
 
   public void addTrustMethod(MethodDescriptor md) {
@@ -409,22 +409,10 @@ public class SSJavaAnalysis {
   }
 
   public void doLoopTerminationCheck(LoopOptimize lo, FlatMethod fm) {
-    LoopTerminate lt = new LoopTerminate();
+    LoopTerminate lt = new LoopTerminate(this,state);
     if (needTobeAnnotated(fm.getMethod())) {
       lt.terminateAnalysis(fm, lo.getLoopInvariant(fm));
     }
-  }
-
-  public void doLoopTerminationCheck(LoopOptimize lo) {
-    LoopTerminate lt = new LoopTerminate();
-    for (Iterator iterator = annotationRequireSet.iterator(); iterator.hasNext();) {
-      MethodDescriptor md = (MethodDescriptor) iterator.next();
-      if (!skipLoopTerminate.containsKey(md)) {
-        FlatMethod fm = state.getMethodFlat(md);
-        lt.terminateAnalysis(fm, lo.getLoopInvariant(fm));
-      }
-    }
-
   }
 
   public CallGraph getCallGraph() {

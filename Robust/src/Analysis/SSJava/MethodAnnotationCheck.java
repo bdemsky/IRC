@@ -203,20 +203,10 @@ public class MethodAnnotationCheck {
 
   private void checkBlockNode(MethodDescriptor md, SymbolTable nametable, BlockNode bn, boolean flag) {
     bn.getVarTable().setParent(nametable);
-    String label = bn.getLabel();
-    boolean isSSJavaLoop = flag;
-    if (label != null && label.equals(ssjava.SSJAVA)) {
-      if (isSSJavaLoop) {
-        throw new Error("Only outermost loop can be the self-stabilizing loop.");
-      } else {
-        annotatedMDSet.add(md);
-        isSSJavaLoop = true;
-      }
-    }
 
     for (int i = 0; i < bn.size(); i++) {
       BlockStatementNode bsn = bn.get(i);
-      checkBlockStatementNode(md, bn.getVarTable(), bsn, isSSJavaLoop);
+      checkBlockStatementNode(md, bn.getVarTable(), bsn, flag);
     }
 
   }
@@ -285,9 +275,21 @@ public class MethodAnnotationCheck {
   }
 
   private void checkLoopNode(MethodDescriptor md, SymbolTable nametable, LoopNode ln, boolean flag) {
+
+    String label = ln.getLabel();
+    boolean isSSJavaLoop = flag;
+    if (label != null && label.equals(ssjava.SSJAVA)) {
+      if (isSSJavaLoop) {
+        throw new Error("Only outermost loop can be the self-stabilizing loop.");
+      } else {
+        annotatedMDSet.add(md);
+        isSSJavaLoop = true;
+      }
+    }
+
     if (ln.getType() == LoopNode.WHILELOOP || ln.getType() == LoopNode.DOWHILELOOP) {
-      checkExpressionNode(md, nametable, ln.getCondition(), flag);
-      checkBlockNode(md, nametable, ln.getBody(), flag);
+      checkExpressionNode(md, nametable, ln.getCondition(), isSSJavaLoop);
+      checkBlockNode(md, nametable, ln.getBody(), isSSJavaLoop);
     } else {
       // For loop case
       /* Link in the initializer naming environment */
@@ -295,12 +297,12 @@ public class MethodAnnotationCheck {
       bn.getVarTable().setParent(nametable);
       for (int i = 0; i < bn.size(); i++) {
         BlockStatementNode bsn = bn.get(i);
-        checkBlockStatementNode(md, bn.getVarTable(), bsn, flag);
+        checkBlockStatementNode(md, bn.getVarTable(), bsn, isSSJavaLoop);
       }
       // check the condition
-      checkExpressionNode(md, bn.getVarTable(), ln.getCondition(), flag);
-      checkBlockNode(md, bn.getVarTable(), ln.getBody(), flag);
-      checkBlockNode(md, bn.getVarTable(), ln.getUpdate(), flag);
+      checkExpressionNode(md, bn.getVarTable(), ln.getCondition(), isSSJavaLoop);
+      checkBlockNode(md, bn.getVarTable(), ln.getBody(), isSSJavaLoop);
+      checkBlockNode(md, bn.getVarTable(), ln.getUpdate(), isSSJavaLoop);
     }
   }
 

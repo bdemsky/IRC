@@ -1341,14 +1341,18 @@ public class BuildIR {
     return bn;
   }
 
-  public BlockNode parseSingleBlock(ParseNode pn) {
+  public BlockNode parseSingleBlock(ParseNode pn, String label){
     BlockNode bn=new BlockNode();
-    Vector bsv=parseBlockStatement(pn);
+    Vector bsv=parseBlockStatement(pn,label);
     for(int j=0; j<bsv.size(); j++) {
       bn.addBlockStatement((BlockStatementNode)bsv.get(j));
     }
     bn.setStyle(BlockNode.NOBRACES);
     return bn;
+  }
+  
+  public BlockNode parseSingleBlock(ParseNode pn) {
+    return parseSingleBlock(pn,null);
   }
 
   public Vector parseSESEBlock(Vector parentbs, ParseNode pn) {
@@ -1359,8 +1363,12 @@ public class BuildIR {
     }
     return bv;
   }
+  
+  public Vector parseBlockStatement(ParseNode pn){
+    return parseBlockStatement(pn,null);
+  }
 
-  public Vector parseBlockStatement(ParseNode pn) {
+  public Vector parseBlockStatement(ParseNode pn, String label) {
     Vector blockstatements=new Vector();
     if (isNode(pn,"tag_declaration")) {
       String name=pn.getChild("single").getTerminal();
@@ -1526,7 +1534,7 @@ public class BuildIR {
         // no condition clause, make a 'true' expression as the condition
         condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
       }
-      LoopNode ln=new LoopNode(init,condition,update,body);
+      LoopNode ln=new LoopNode(init,condition,update,body,label);
       ln.setNumLine(pn.getLine());
       blockstatements.add(ln);
     } else if (isNode(pn,"whilestatement")) {
@@ -1536,7 +1544,7 @@ public class BuildIR {
         // no condition clause, make a 'true' expression as the condition
         condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
       }
-      blockstatements.add(new LoopNode(condition,body,LoopNode.WHILELOOP));
+      blockstatements.add(new LoopNode(condition,body,LoopNode.WHILELOOP,label));
     } else if (isNode(pn,"dowhilestatement")) {
       ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
       BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
@@ -1544,7 +1552,7 @@ public class BuildIR {
         // no condition clause, make a 'true' expression as the condition
         condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
       }
-      blockstatements.add(new LoopNode(condition,body,LoopNode.DOWHILELOOP));
+      blockstatements.add(new LoopNode(condition,body,LoopNode.DOWHILELOOP,label));
     } else if (isNode(pn,"sese")) {
       ParseNode pnID=pn.getChild("identifier");
       String stID=null;
@@ -1575,9 +1583,8 @@ public class BuildIR {
       blockstatements.add(new GenReachNode(graphName) );
 
     } else if(isNode(pn,"labeledstatement")) {
-      String label = pn.getChild("name").getTerminal();
-      BlockNode bn=parseSingleBlock(pn.getChild("statement").getFirstChild());
-      bn.setLabel(label);
+      String labeledstatement = pn.getChild("name").getTerminal();
+      BlockNode bn=parseSingleBlock(pn.getChild("statement").getFirstChild(),labeledstatement);
       blockstatements.add(new SubBlockNode(bn));
     } else {
       System.out.println("---------------");
