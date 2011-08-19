@@ -52,7 +52,7 @@ final class BitReserve {
    */
   private static final int BUFSIZE_MASK = BUFSIZE - 1;
 
-  @LOC("OFF")
+  @LOC("BIT")
   private int offset;
 
   @LOC("BIT")
@@ -61,7 +61,7 @@ final class BitReserve {
   @LOC("BIT")
   private int buf_byte_idx;
 
-  @LOC("BUF")
+  @LOC("BIT")
   private final int[] buf;
 
   BitReserve() {
@@ -76,7 +76,7 @@ final class BitReserve {
    */
   @RETURNLOC("THIS,BitReserve.BIT")
   public int hsstell() {
-    return (totbit); 
+    return (totbit);
   }
 
   /**
@@ -116,9 +116,10 @@ final class BitReserve {
    * 
    * @returns 0 if next bit is reset, or 1 if next bit is set.
    */
+  @RETURNLOC("THIS,BitReserve.BIT")
   public int hget1bit() {
     totbit++;
-    @LOC("OUT") int val = buf[buf_byte_idx];
+    @LOC("THIS,BitReserve.BIT") int val = buf[buf_byte_idx];
     buf_byte_idx = (buf_byte_idx + 1) & BUFSIZE_MASK;
     return val;
   }

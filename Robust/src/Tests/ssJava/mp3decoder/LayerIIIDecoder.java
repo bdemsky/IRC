@@ -47,7 +47,7 @@
 // 10th added for get_scale_factors
 // llth added for decode
 // @LATTICE("IS1D*,RO<IS1D,IS1D<SI2,SI2<SI1,SI<P2S,SF1<CH0,SF0*,SFB_SH<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SI1<SF2,SF2<SFB,SF1<BR,LR*,OUT<LR,LR<RO,NZ*,SI<SF1,SI1<NZ,NZ<SI,SI1<SBI,SBI<SI,BUF<FT,SF1<SF0,SF0<HD1,BR<ST,ST,FT<SP,SP<OUT,OUT<SI1,SI1<SI,P2S<CH0,CH0<MAX0,MAX0<BR1,FS<BR1,BR1<BR,BR<HD1,HD1<HD,OUT*,BR1*,SI1*,MAX0*,CH0*,RAW,TS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
-@LATTICE("SI0*,INIT*,ISR*,ISP*,HD<CH0,LR<ISR,ISR<ISP,SI1<SF2,NS*,CH0<ST,ST<INIT,IS1D*,RO1<RO,RO1*,RO<IS1D,IS1D<SI2,SI2<SI1,BR<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SF2<SFB,LR*,OUT<LR,ISP<RO1,NZ*,SI<SI0,SI0<SF15,SF15<SF1,BR1<NZ,NZ<BR,SI1<RT,RT<SBI,SBI<SI,BUF<FT,SF1<HD1,SF1<HD1,FT<SP,SP<OUT,OUT<SI1,SI1<SI,SFB_SH<BR1,BR1<BR,HD1<HD,OUT*,BR1*,SI1*,CH0*,RAW,TS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
+@LATTICE("SI0*,INIT*,ISR*,ISP*,HD<CH0,LR<ISR,ISR<ISP,SI1<SF2,NS*,CH0<ST,ST<INIT,IS1D*,RO1<RO,RO1*,RO<IS1D,IS1D<SI2,SI2<SI1,BR<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SF2<SFB,LR*,OUT<LR,ISP<RO1,NZ*,SI<SI0,SI0<SF15,SF15<SF1,BR1<NZ,NZ<BR,SI1<RT,RT<SBI,SBI<SI,BUF<FT,SF1<HD1,SF1<HD1,FT<SP,SP<OUT,OUT<SI1,SI1<SI,SFB_SH<BR1,BR1<BR,HD1<HD,OUT*,BR1*,SI1*,CH0*")
 @METHODDEFAULT("OUT<V,V<THIS,THIS<SH,SH<IN,SH*,THISLOC=THIS,GLOBALLOC=IN,RETURNLOC=OUT")
 final class LayerIIIDecoder implements FrameDecoder {
   static final double d43 = (4.0 / 3.0);
@@ -197,12 +197,6 @@ final class LayerIIIDecoder implements FrameDecoder {
       for (@LOC("I") int i = 0; i < 9; i++)
         reorder_table[i] = reorder(sfBandIndex[i].s);
     }
-
-    // Sftable
-    @LOC("VAR") int[] ll0 = { 0, 6, 11, 16, 21 };
-    @LOC("VAR") int[] ss0 = { 0, 6, 12 };
-    sftable = new Sftable(ll0, ss0);
-    // END OF Sftable
 
     // scalefac_buffer
     scalefac_buffer = new int[54];
@@ -1025,22 +1019,23 @@ final class LayerIIIDecoder implements FrameDecoder {
   // int[] v = { 0 };
   // @LOC("SI1")
   // int[] w = { 0 };
-  @LOC("SI1")
-  int x[] = { 0 };
-  @LOC("SI1")
-  int y[] = { 0 };
-  @LOC("SI1")
-  int v[] = { 0 };
-  @LOC("SI1")
-  int w[] = { 0 };
+  // @LOC("SI1")
+  // int x[] = { 0 };
+  // @LOC("SI1")
+  // int y[] = { 0 };
+  // @LOC("SI1")
+  // int v[] = { 0 };
+  // @LOC("SI1")
+  // int w[] = { 0 };
 
-  @LATTICE("OUT<GLOBAL,GLOBAL<THIS,THISLOC=THIS,GLOBALLOC=GLOBAL,RETURNLOC=OUT")
+  @LATTICE("VAR<OUT,OUT<THIS,THIS<RE,THISLOC=THIS,GLOBALLOC=OUT,RETURNLOC=OUT")
   private void huffman_decode(@LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int part2_start_local,
       @LOC("THIS,LayerIIIDecoder.CH0") int ch, @LOC("THIS,LayerIIIDecoder.CH0") int gr) {
-    x[0] = 0;
-    y[0] = 0;
-    v[0] = 0;
-    w[0] = 0;
+
+    @LOC("RE") int x[] = new int[1];
+    @LOC("RE") int y[] = new int[1];
+    @LOC("RE") int v[] = new int[1];
+    @LOC("RE") int w[] = new int[1];
 
     @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int part2_3_end =
         part2_start_local + si.ch[ch].gr[gr].part2_3_length;
@@ -2860,27 +2855,6 @@ final class LayerIIIDecoder implements FrameDecoder {
   /***************************************************************/
   /* END OF INV_MDCT */
   /***************************************************************/
-  @LATTICE("N<VAR")
-  class Sftable {
-    @LOC("VAR")
-    public int[] l;
-    @LOC("VAR")
-    public int[] s;
-
-    public Sftable() {
-      l = new int[5];
-      s = new int[3];
-    }
-
-    @LATTICE("THIS<IN,THISLOC=THIS")
-    public Sftable(@DELEGATE @LOC("IN") int[] thel, @DELEGATE @LOC("IN") int[] thes) {
-      l = thel;
-      s = thes;
-    }
-  }
-
-  @LOC("F")
-  public Sftable sftable;
 
   public static final int nr_of_sfb_block[][][] = {
       { { 6, 5, 5, 5 }, { 9, 9, 9, 9 }, { 6, 9, 9, 9 } },

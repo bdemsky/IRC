@@ -506,20 +506,21 @@ final class huffcodetab {
    * Do the huffman-decoding. note! for counta,countb -the 4 bit value is
    * returned in y, discard x.
    */
-  @LATTICE("OUT<THIS,THIS<V,V<IN,IN<C,C*,THISLOC=THIS,RETURNLOC=OUT,GLOBALLOC=IN")
+  @LATTICE("OUT<V1,THIS<V1,V1<V,V<IN,IN<C,C*,V*,THISLOC=THIS,GLOBALLOC=IN")
+  @RETURNLOC("OUT,BitReserve.BIT")
   public static int huffman_decoder(@LOC("THIS,LayerIIIDecoder.SI2") int htIdx,
-      @LOC("THIS,LayerIIIDecoder.SI1") int[] x, @LOC("THIS,LayerIIIDecoder.SI1") int[] y,
-      @LOC("THIS,LayerIIIDecoder.SI1") int[] v, @LOC("THIS,LayerIIIDecoder.SI1") int[] w,
-      @LOC("THIS,LayerIIIDecoder.BR") BitReserve br) {
+      @LOC("OUT,BitReserve.BIT") int[] x, @LOC("OUT,BitReserve.BIT") int[] y,
+      @LOC("OUT,BitReserve.BIT") int[] v, @LOC("OUT,BitReserve.BIT") int[] w,
+      @LOC("OUT") BitReserve br) {
     // array of all huffcodtable headers
     // 0..31 Huffman code table 0..31
     // 32,33 count1-tables
 
     @LOC("C") int dmask = 1 << ((4 * 8) - 1);
     @LOC("THIS,LayerIIIDecoder.SI1") int hs = 4 * 8;
-    @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int level;
-    @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int point = 0;
-    @LOC("OUT") int error = 1;
+    @LOC("OUT,BitReserve.BIT") int level;
+    @LOC("OUT,BitReserve.BIT") int point = 0;
+    @LOC("OUT,BitReserve.BIT") int error = 1;
     level = dmask;
 
     if (ht[htIdx].val == null)
@@ -616,129 +617,6 @@ final class huffcodetab {
           y[0] = -y[0];
     }
     return error;
-  }
-
-  /**
-   * Do the huffman-decoding. note! for counta,countb -the 4 bit value is
-   * returned in y, discard x.
-   */
-  @LATTICE("X<Y,V<Y,W<Y,Y<VAR,VAR<IN,OUT<IN,VAR*,Y*,X*,V*,W*,THISLOC=IN,GLOBALLOC=IN")
-  @RETURNLOC("IN")
-  // public static int huffman_decoder(/* @LOC("IN") huffcodetab h, */@LOC("IN")
-  // int idx,
-  // @LOC("X") int[] x, @LOC("Y") int[] y, @LOC("V") int[] v, @LOC("W") int[] w,
-  // @LOC("IN") BitReserve br) {
-  public static HuffData huffman_decoder(@LOC("IN") int idx, @LOC("IN") HuffData data) {
-    // array of all huffcodtable headers
-    // 0..31 Huffman code table 0..31
-    // 32,33 count1-tables
-
-    @LOC("IN") int dmask = 1 << ((4 * 8) - 1);
-    @LOC("IN") int hs = 4 * 8;
-    @LOC("VAR") int level;
-    @LOC("VAR") int point = 0;
-    @LOC("OUT") int error = 1;
-    level = dmask;
-
-    if (ht[idx].val == null) {
-      // return 2;
-      return data;
-    }
-
-    /* table 0 needs no bits */
-    if (ht[idx].treelen == 0) {
-      data.y = 0;
-      data.x = 0;
-      // return 0;
-      return data;
-    }
-
-    /* Lookup in Huffman table. */
-
-    /*
-     * int bitsAvailable = 0; int bitIndex = 0;
-     * 
-     * int bits[] = bitbuf;
-     */
-    do {
-      if (ht[idx].val[point][0] == 0) { /* end of tree */
-        data.x = ht[idx].val[point][1] >>> 4;
-        data.y = ht[idx].val[point][1] & 0xf;
-        error = 0;
-        break;
-      }
-
-      // hget1bit() is called thousands of times, and so needs to be
-      // ultra fast.
-      /*
-       * if (bitIndex==bitsAvailable) { bitsAvailable = br.readBits(bits, 32);
-       * bitIndex = 0; }
-       */
-      // if (bits[bitIndex++]!=0)
-      if (data.br.hget1bit() != 0) {
-        while (ht[idx].val[point][1] >= MXOFF)
-          point += ht[idx].val[point][1];
-        point += ht[idx].val[point][1];
-      } else {
-        while (ht[idx].val[point][0] >= MXOFF)
-          point += ht[idx].val[point][0];
-        point += ht[idx].val[point][0];
-      }
-      level >>>= 1;
-      // MDM: ht[0] is always 0;
-    } while ((level != 0) || (point < 0 /* ht[0].treelen */));
-
-    // put back any bits not consumed
-    /*
-     * int unread = (bitsAvailable-bitIndex); if (unread>0)
-     * br.rewindNbits(unread);
-     */
-    /* Process sign encodings for quadruples tables. */
-    // System.out.println(h.tablename);
-    if (ht[idx].tablename0 == '3' && (ht[idx].tablename1 == '2' || ht[idx].tablename1 == '3')) {
-      data.v = (data.y >> 3) & 1;
-      data.w = (data.y >> 2) & 1;
-      data.x = (data.y >> 1) & 1;
-      data.y = data.y & 1;
-
-      /*
-       * v, w, x and y are reversed in the bitstream. switch them around to make
-       * test bistream work.
-       */
-
-      if (data.v != 0)
-        if (data.br.hget1bit() != 0)
-          data.v = -data.v;
-      if (data.w != 0)
-        if (data.br.hget1bit() != 0)
-          data.w = -data.w;
-      if (data.x != 0)
-        if (data.br.hget1bit() != 0)
-          data.x = -data.x;
-      if (data.y != 0)
-        if (data.br.hget1bit() != 0)
-          data.y = -data.y;
-    } else {
-      // Process sign and escape encodings for dual tables.
-      // x and y are reversed in the test bitstream.
-      // Reverse x and y here to make test bitstream work.
-
-      if (ht[idx].linbits != 0)
-        if ((ht[idx].xlen - 1) == data.x)
-          data.x += data.br.hgetbits(ht[idx].linbits);
-      if (data.x != 0)
-        if (data.br.hget1bit() != 0)
-          data.x = -data.x;
-      if (ht[idx].linbits != 0)
-        if ((ht[idx].ylen - 1) == data.y)
-          data.y += data.br.hgetbits(ht[idx].linbits);
-      if (data.y != 0)
-        if (data.br.hget1bit() != 0)
-          data.y = -data.y;
-    }
-
-    return data;
-    // return error;
   }
 
   public static void inithuff() {
