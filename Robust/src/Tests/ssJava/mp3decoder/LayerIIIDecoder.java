@@ -87,7 +87,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 
   // @LOC("SBT") private temporaire2[] III_scalefac_t;
   @LOC("SF2")
-  private temporaire2[] scalefac;
+  private final temporaire2[] scalefac;
   // private III_scalefac_t scalefac;
 
   @LOC("CH0")
@@ -96,7 +96,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   private int frame_start;
   // @LOC("SI1") private int part2_start;
   @LOC("CH0")
-  private int channels;
+  private final int channels;
   @LOC("CH0")
   private int first_channel;
   @LOC("CH0")
@@ -243,7 +243,6 @@ final class LayerIIIDecoder implements FrameDecoder {
 
     nonzero[0] = nonzero[1] = 576;
 
-    br = new BitReserve();
     si = new III_side_info_t();
 
     initialized = true;
@@ -457,7 +456,14 @@ final class LayerIIIDecoder implements FrameDecoder {
     if (!initialized) {
       init(header);
     }
-
+    
+    // overwrites once per a loop
+    samples1 = new float[32];
+    samples2 = new float[32];
+    prevblck = new float[2][SBLIMIT * SSLIMIT];
+    si = new III_side_info_t();
+    //
+    
     @LOC("THIS,LayerIIIDecoder.HD1") int nSlots = header.slots();
 
     @LOC("THIS,LayerIIIDecoder.CH0") int gr;

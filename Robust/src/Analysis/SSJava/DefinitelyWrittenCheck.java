@@ -783,14 +783,10 @@ public class DefinitelyWrittenCheck {
 
     assert ssjavaLoopEntrance != null;
 
-    System.out.println("ssjavaLoopEntrance=" + ssjavaLoopEntrance);
-
     // assume that ssjava loop is top-level loop in method, not nested loop
     Set nestedLoop = loopFinder.nestedLoops();
     for (Iterator loopIter = nestedLoop.iterator(); loopIter.hasNext();) {
       LoopFinder lf = (LoopFinder) loopIter.next();
-      System.out.println("lf=" + lf.loopEntrances());
-      System.out.println("elements=" + lf.loopIncElements());
       if (lf.loopEntrances().iterator().next().equals(ssjavaLoopEntrance)) {
         ssjavaLoop = lf;
       }
@@ -913,9 +909,9 @@ public class DefinitelyWrittenCheck {
           TypeDescriptor td = rhs.getType().dereference();
           fld = getArrayField(td);
         }
-        
-        if(fld.isFinal() && fld.isStatic()){
-          // if field is final and static, no need to check 
+
+        if (fld.isFinal() /* && fld.isStatic() */) {
+          // if field is final and static, no need to check
           break;
         }
 
@@ -961,7 +957,6 @@ public class DefinitelyWrittenCheck {
       case FKind.FlatCall: {
         FlatCall fc = (FlatCall) fn;
         bindHeapPathCallerArgWithCaleeParam(fc);
-
         // add <hp,statement,false> in which hp is an element of
         // READ_bound set
         // of callee: callee has 'read' requirement!
@@ -1157,7 +1152,8 @@ public class DefinitelyWrittenCheck {
         (LinkedList<MethodDescriptor>) sortedDescriptors.clone();
 
     // no need to analyze method having ssjava loop
-    methodContainingSSJavaLoop = descriptorListToAnalyze.removeFirst();
+    // methodContainingSSJavaLoop = descriptorListToAnalyze.removeFirst();
+    methodContainingSSJavaLoop = ssjava.getMethodContainingSSJavaLoop();
 
     // current descriptors to visit in fixed-point interprocedural analysis,
     // prioritized by
@@ -1302,9 +1298,9 @@ public class DefinitelyWrittenCheck {
         TypeDescriptor td = rhs.getType().dereference();
         fld = getArrayField(td);
       }
-      
-      if(fld.isFinal() && fld.isStatic()){
-        // if field is final and static, no need to check 
+
+      if (fld.isFinal() /* && fld.isStatic() */) {
+        // if field is final and static, no need to check
         break;
       }
 
@@ -1372,24 +1368,26 @@ public class DefinitelyWrittenCheck {
 
       FlatCall fc = (FlatCall) fn;
 
-      bindHeapPathCallerArgWithCaleeParam(fc);
+      if (fc.getThis() != null) {
+        bindHeapPathCallerArgWithCaleeParam(fc);
 
-      // add heap path, which is an element of READ_bound set and is not
-      // an
-      // element of WT set, to the caller's READ set
-      for (Iterator iterator = calleeUnionBoundReadSet.iterator(); iterator.hasNext();) {
-        NTuple<Descriptor> read = (NTuple<Descriptor>) iterator.next();
-        if (!writtenSet.contains(read)) {
-          readSet.add(read);
+        // add heap path, which is an element of READ_bound set and is not
+        // an
+        // element of WT set, to the caller's READ set
+        for (Iterator iterator = calleeUnionBoundReadSet.iterator(); iterator.hasNext();) {
+          NTuple<Descriptor> read = (NTuple<Descriptor>) iterator.next();
+          if (!writtenSet.contains(read)) {
+            readSet.add(read);
+          }
         }
-      }
-      writtenSet.removeAll(calleeUnionBoundReadSet);
+        writtenSet.removeAll(calleeUnionBoundReadSet);
 
-      // add heap path, which is an element of OVERWRITE_bound set, to the
-      // caller's WT set
-      for (Iterator iterator = calleeIntersectBoundOverWriteSet.iterator(); iterator.hasNext();) {
-        NTuple<Descriptor> write = (NTuple<Descriptor>) iterator.next();
-        writtenSet.add(write);
+        // add heap path, which is an element of OVERWRITE_bound set, to the
+        // caller's WT set
+        for (Iterator iterator = calleeIntersectBoundOverWriteSet.iterator(); iterator.hasNext();) {
+          NTuple<Descriptor> write = (NTuple<Descriptor>) iterator.next();
+          writtenSet.add(write);
+        }
       }
 
     }

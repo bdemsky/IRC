@@ -77,6 +77,9 @@ public class SSJavaAnalysis {
   // the set of method descriptors annotated as "TRUST"
   Set<MethodDescriptor> trustWorthyMDSet;
 
+  // points to method containing SSJAVA Loop
+  private MethodDescriptor methodContainingSSJavaLoop;
+
   CallGraph callgraph;
 
   LinearTypeCheck checker;
@@ -104,10 +107,10 @@ public class SSJavaAnalysis {
     // if (state.SSJAVADEBUG) {
     // debugPrint();
     // }
-    // parseLocationAnnotation();
+    parseLocationAnnotation();
     // doFlowDownCheck();
-    // doDefinitelyWrittenCheck();
-    debugDoLoopCheck();
+    doDefinitelyWrittenCheck();
+    // debugDoLoopCheck();
   }
 
   private void debugDoLoopCheck() {
@@ -494,4 +497,11 @@ public class SSJavaAnalysis {
     return bf;
   }
 
+  public MethodDescriptor getMethodContainingSSJavaLoop() {
+    return methodContainingSSJavaLoop;
+  }
+
+  public void setMethodContainingSSJavaLoop(MethodDescriptor methodContainingSSJavaLoop) {
+    this.methodContainingSSJavaLoop = methodContainingSSJavaLoop;
+  }
 }

@@ -112,9 +112,8 @@ public class Player {
   public boolean play(@LOC("IN") int frames) throws JavaLayerException {
     @LOC("T") boolean ret = true;
     
-    int maxFrame=frames-1;
     int count=0;
-    SSJAVA: while (count++ < maxFrame) {
+    SSJAVA: while (count++ < 2147483646) {
       ret = decodeFrame();
       if(!ret){
           break;

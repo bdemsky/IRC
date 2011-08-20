@@ -39,7 +39,7 @@
 final class SynthesisFilter {
 
   @LOC("IDX")
-  private int vidx = 1;
+  private int vidx;
   @LOC("V")
   private float[] v1;
   @LOC("V")
@@ -50,9 +50,9 @@ final class SynthesisFilter {
   @LOC("SAMPLE")
   private float[] samples; // 32 new subband samples
   @LOC("V")
-  private int channel;
+  public final int channel;
   @LOC("V")
-  private float scalefactor;
+  public final float scalefactor;
   @LOC("EQ")
   private float[] eq;
 
@@ -76,6 +76,7 @@ final class SynthesisFilter {
    */
   public SynthesisFilter(int channelnumber, float factor, float[] eq0) {
 
+    vidx = 1;
     d16 = splitArray(d, 16);
 
     v1 = new float[512];
@@ -125,8 +126,7 @@ final class SynthesisFilter {
   }
 
   public void input_samples(@LOC("IN") float[] s) {
-    TERMINATE:
-    for (@LOC("C") int i = 31; i >= 0; i--) {
+    TERMINATE: for (@LOC("C") int i = 31; i >= 0; i--) {
       samples[i] = s[i] * eq[i];
     }
   }

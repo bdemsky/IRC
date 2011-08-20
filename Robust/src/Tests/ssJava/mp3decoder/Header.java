@@ -119,7 +119,7 @@ public final class Header {
 
   Header() {
   }
-
+  
   @LATTICE("OUT<BUF,BUF<THIS,THISLOC=THIS,RETURNLOC=OUT")
   public String toString() {
     @LOC("BUF") StringBuffer buffer = new StringBuffer(200);
@@ -696,6 +696,7 @@ public final class Header {
    * 
    * @return bitrate in bps
    */
+  
   @RETURNLOC("THIS,Header.FS")
   public String bitrate_string() {
     @LOC("THIS,Header.T") String kbs = " kb/s";

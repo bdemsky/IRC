@@ -282,6 +282,7 @@ public class MethodAnnotationCheck {
       if (isSSJavaLoop) {
         throw new Error("Only outermost loop can be the self-stabilizing loop.");
       } else {
+        ssjava.setMethodContainingSSJavaLoop(md);
         annotatedMDSet.add(md);
         isSSJavaLoop = true;
       }
