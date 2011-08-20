@@ -323,6 +323,7 @@ public class String {
       tmp = -x;
     else
       tmp = x;
+    TERMINATE:
     do {
       tmp = tmp / 10;
       length = length + 1;
@@ -341,6 +342,7 @@ public class String {
     } else
       voffset = 0;
 
+    TERMINATE:
     do {
       chararray[--length + voffset] = (char) (x % 10 + '0');
       x = x / 10;
@@ -366,6 +368,8 @@ public class String {
       tmp = -x;
     else
       tmp = x;
+    
+    TERMINATE:
     do {
       tmp = tmp / 10;
       length = length + 1;
@@ -384,6 +388,7 @@ public class String {
     } else
       voffset = 0;
 
+    TERMINATE:
     do {
       chararray[--length + voffset] = (char) (x % 10 + '0');
       x = x / 10;

@@ -3,14 +3,19 @@ package Analysis.SSJava;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
 import Analysis.CallGraph.CallGraph;
+import Analysis.Loops.GlobalFieldType;
 import Analysis.Loops.LoopOptimize;
 import Analysis.Loops.LoopTerminate;
 import IR.AnnotationDescriptor;
@@ -18,6 +23,7 @@ import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.MethodDescriptor;
 import IR.State;
+import IR.SymbolTable;
 import IR.TypeUtil;
 import IR.Flat.BuildFlat;
 import IR.Flat.FlatMethod;
@@ -92,7 +98,7 @@ public class SSJavaAnalysis {
   }
 
   public void doCheck() {
-     doMethodAnnotationCheck();
+    doMethodAnnotationCheck();
     // computeLinearTypeCheckMethodSet();
     // doLinearTypeCheck();
     // if (state.SSJAVADEBUG) {
@@ -101,6 +107,47 @@ public class SSJavaAnalysis {
     // parseLocationAnnotation();
     // doFlowDownCheck();
     // doDefinitelyWrittenCheck();
+    debugDoLoopCheck();
+  }
+
+  private void debugDoLoopCheck() {
+    GlobalFieldType gft = new GlobalFieldType(callgraph, state, tu.getMain());
+    LoopOptimize lo = new LoopOptimize(gft, tu);
+
+    SymbolTable classtable = state.getClassSymbolTable();
+
+    List<ClassDescriptor> toanalyzeList = new ArrayList<ClassDescriptor>();
+    List<MethodDescriptor> toanalyzeMethodList = new ArrayList<MethodDescriptor>();
+
+    toanalyzeList.addAll(classtable.getValueSet());
+    Collections.sort(toanalyzeList, new Comparator<ClassDescriptor>() {
+      public int compare(ClassDescriptor o1, ClassDescriptor o2) {
+        return o1.getClassName().compareTo(o2.getClassName());
+      }
+    });
+
+    for (int i = 0; i < toanalyzeList.size(); i++) {
+      ClassDescriptor cd = toanalyzeList.get(i);
+
+      SymbolTable methodtable = cd.getMethodTable();
+      toanalyzeMethodList.clear();
+      toanalyzeMethodList.addAll(methodtable.getValueSet());
+      Collections.sort(toanalyzeMethodList, new Comparator<MethodDescriptor>() {
+        public int compare(MethodDescriptor o1, MethodDescriptor o2) {
+          return o1.getSymbol().compareTo(o2.getSymbol());
+        }
+      });
+
+      for (int mdIdx = 0; mdIdx < toanalyzeMethodList.size(); mdIdx++) {
+        MethodDescriptor md = toanalyzeMethodList.get(mdIdx);
+        if (needTobeAnnotated(md)) {
+          lo.analyze(state.getMethodFlat(md));
+          doLoopTerminationCheck(lo, state.getMethodFlat(md));
+        }
+      }
+
+    }
+
   }
 
   public void addTrustMethod(MethodDescriptor md) {
@@ -409,7 +456,7 @@ public class SSJavaAnalysis {
   }
 
   public void doLoopTerminationCheck(LoopOptimize lo, FlatMethod fm) {
-    LoopTerminate lt = new LoopTerminate(this,state);
+    LoopTerminate lt = new LoopTerminate(this, state);
     if (needTobeAnnotated(fm.getMethod())) {
       lt.terminateAnalysis(fm, lo.getLoopInvariant(fm));
     }

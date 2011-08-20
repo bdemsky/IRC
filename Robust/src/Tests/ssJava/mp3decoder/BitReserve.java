@@ -93,11 +93,13 @@ final class BitReserve {
 
     @LOC("THIS,BitReserve.BIT") int pos = buf_byte_idx;
     if (pos + N < BUFSIZE) {
+      TERMINATE:
       while (N-- > 0) {
         val <<= 1;
         val |= ((buf[pos++] != 0) ? 1 : 0);
       }
     } else {
+      TERMINATE:
       while (N-- > 0) {
         val <<= 1;
         val |= ((buf[pos] != 0) ? 1 : 0);

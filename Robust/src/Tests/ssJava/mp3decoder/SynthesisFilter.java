@@ -125,6 +125,7 @@ final class SynthesisFilter {
   }
 
   public void input_samples(@LOC("IN") float[] s) {
+    TERMINATE:
     for (@LOC("C") int i = 31; i >= 0; i--) {
       samples[i] = s[i] * eq[i];
     }

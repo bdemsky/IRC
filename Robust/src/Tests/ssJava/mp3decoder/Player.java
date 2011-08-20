@@ -111,9 +111,14 @@ public class Player {
   @RETURNLOC("T")
   public boolean play(@LOC("IN") int frames) throws JavaLayerException {
     @LOC("T") boolean ret = true;
-
-    SSJAVA: while (frames-- > 0 && ret) {
+    
+    int maxFrame=frames-1;
+    int count=0;
+    SSJAVA: while (count++ < maxFrame) {
       ret = decodeFrame();
+      if(!ret){
+          break;
+      }
     }
 
     /*
@@ -190,6 +195,7 @@ public class Player {
       @LOC("C") int sum = 0;
       @LOC("C") short[] outbuf = SampleBufferWrapper.getBuffer();
       // short[] outbuf = output.getBuffer();
+      TERMINATE:
       for (@LOC("C") int i = 0; i < SampleBufferWrapper.getBufferLength(); i++) {
         // System.out.println(outbuf[i]);
         sum += outbuf[i];

@@ -540,7 +540,7 @@ final class huffcodetab {
      * 
      * int bits[] = bitbuf;
      */
-    do {
+    TERMINATE: do {
       if (ht[htIdx].val[point][0] == 0) { /* end of tree */
         x[0] = ht[htIdx].val[point][1] >>> 4;
         y[0] = ht[htIdx].val[point][1] & 0xf;
@@ -556,11 +556,11 @@ final class huffcodetab {
        */
       // if (bits[bitIndex++]!=0)
       if (br.hget1bit() != 0) {
-        while (ht[htIdx].val[point][1] >= MXOFF)
+        TERMINATE: while (ht[htIdx].val[point][1] >= MXOFF)
           point += ht[htIdx].val[point][1];
         point += ht[htIdx].val[point][1];
       } else {
-        while (ht[htIdx].val[point][0] >= MXOFF)
+        TERMINATE: while (ht[htIdx].val[point][0] >= MXOFF)
           point += ht[htIdx].val[point][0];
         point += ht[htIdx].val[point][0];
       }
