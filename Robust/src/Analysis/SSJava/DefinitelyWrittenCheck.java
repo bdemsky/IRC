@@ -962,7 +962,6 @@ public class DefinitelyWrittenCheck {
         // of callee: callee has 'read' requirement!
         for (Iterator iterator = calleeUnionBoundReadSet.iterator(); iterator.hasNext();) {
           NTuple<Descriptor> read = (NTuple<Descriptor>) iterator.next();
-
           Hashtable<FlatNode, Boolean> gen = curr.get(read);
           if (gen == null) {
             gen = new Hashtable<FlatNode, Boolean>();
@@ -1029,7 +1028,6 @@ public class DefinitelyWrittenCheck {
     // transform all READ/OVERWRITE set from the any possible
     // callees to the
     // caller
-
     calleeUnionBoundReadSet.clear();
     calleeIntersectBoundOverWriteSet.clear();
 
@@ -1380,7 +1378,6 @@ public class DefinitelyWrittenCheck {
             readSet.add(read);
           }
         }
-        writtenSet.removeAll(calleeUnionBoundReadSet);
 
         // add heap path, which is an element of OVERWRITE_bound set, to the
         // caller's WT set
@@ -1388,7 +1385,7 @@ public class DefinitelyWrittenCheck {
           NTuple<Descriptor> write = (NTuple<Descriptor>) iterator.next();
           writtenSet.add(write);
         }
-      }
+      } 
 
     }
       break;
