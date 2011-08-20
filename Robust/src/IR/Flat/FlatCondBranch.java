@@ -3,6 +3,7 @@ import java.util.Vector;
 
 public class FlatCondBranch extends FlatNode {
   TempDescriptor test_cond;
+  FlatNode loopEntrance;
   double trueprob=0.5;
   boolean loop=false;
 
@@ -28,6 +29,14 @@ public class FlatCondBranch extends FlatNode {
 
   public boolean isLoopBranch() {
     return loop;
+  }
+  
+  public void setLoopEntrance(FlatNode loopEntrance){
+    this.loopEntrance=loopEntrance;
+  }
+  
+  public FlatNode getLoopEntrance(){
+    return loopEntrance;
   }
 
   public void setTrueProb(double p) {

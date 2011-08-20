@@ -1355,6 +1355,7 @@ public class BuildFlat {
       fcb.setNumLine(ln.getNumLine());
       fcb.setTrueProb(State.TRUEPROB);
       fcb.setLoop();
+      fcb.setLoopEntrance(condition.getBegin());
       FlatNop nopend=new FlatNop();
       FlatBackEdge backedge=new FlatBackEdge();
 
@@ -1393,6 +1394,7 @@ public class BuildFlat {
       fcb.setNumLine(ln.getNumLine());
       fcb.setTrueProb(State.TRUEPROB);
       fcb.setLoop();
+      fcb.setLoopEntrance(begin);
       FlatNop nopend=new FlatNop();
       FlatBackEdge backedge=new FlatBackEdge();
 
@@ -1418,7 +1420,7 @@ public class BuildFlat {
       continueset=oldcs;
       if(ln.getLabel()!=null){
         state.fn2labelMap.put(begin, ln.getLabel());
-      }
+      }      
       return new NodePair(begin,nopend);
     } else if (ln.getType()==LoopNode.DOWHILELOOP) {
       TempDescriptor cond_temp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
@@ -1429,6 +1431,7 @@ public class BuildFlat {
       fcb.setNumLine(ln.getNumLine());
       fcb.setTrueProb(State.TRUEPROB);
       fcb.setLoop();
+      fcb.setLoopEntrance(begin);
       FlatNop nopend=new FlatNop();
       FlatBackEdge backedge=new FlatBackEdge();
 
