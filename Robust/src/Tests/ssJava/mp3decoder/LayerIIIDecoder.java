@@ -65,6 +65,8 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LOC("LR")
   private float[][][] lr;
   @LOC("OUT")
+  private float[] inter; // 576 samples
+  @LOC("OUT")
   private float[] out_1d; // 576 samples
   @LOC("OUT")
   private float[][] prevblck;
@@ -122,6 +124,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     ro = new float[2][SBLIMIT][SSLIMIT];
     lr = new float[2][SBLIMIT][SSLIMIT];
     out_1d = new float[SBLIMIT * SSLIMIT];
+    inter = new float[SBLIMIT * SSLIMIT];
     prevblck = new float[2][SBLIMIT * SSLIMIT];
     k = new float[2][SBLIMIT * SSLIMIT];
     nonzero = new int[2];
@@ -456,14 +459,14 @@ final class LayerIIIDecoder implements FrameDecoder {
     if (!initialized) {
       init(header);
     }
-    
+
     // overwrites once per a loop
     samples1 = new float[32];
     samples2 = new float[32];
-    prevblck = new float[2][SBLIMIT * SSLIMIT];
+    // prevblck = new float[2][SBLIMIT * SSLIMIT];
     si = new III_side_info_t();
     //
-    
+
     @LOC("THIS,LayerIIIDecoder.HD1") int nSlots = header.slots();
 
     @LOC("THIS,LayerIIIDecoder.CH0") int gr;
@@ -534,6 +537,10 @@ final class LayerIIIDecoder implements FrameDecoder {
         // CheckSumOut1d = CheckSumOut1d + out_1d[hb];
         // }
         // System.out.println("CheckSumOut1d = "+CheckSumOut1d);
+
+        for (@LOC("THIS,LayerIIIDecoder.SI1") int index = 0; index < 576; index++) {
+          out_1d[index] = inter[index];
+        }
 
         hybrid(ch, gr);
 
@@ -954,7 +961,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 
     m = 0;
     for (@LOC("THIS,LayerIIIDecoder.NS") int i = 0; i < 4; i++) {
-      int jmax=nr_of_sfb_block[blocknumber][blocktypenumber][i];
+      @LOC("THIS,LayerIIIDecoder.NS") int jmax = nr_of_sfb_block[blocknumber][blocktypenumber][i];
       for (@LOC("THIS,LayerIIIDecoder.NS") int j = 0; j < jmax; j++) {
         scalefac_buffer[m] = (new_slen[i] == 0) ? 0 : br.hgetbits(new_slen[i]);
         m++;
@@ -1078,8 +1085,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 
     index = 0;
     // Read bigvalues area
-    TERMINATE:
-    for (@LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int i = 0; i < (si.ch[ch].gr[gr].big_values << 1); i +=
+    TERMINATE: for (@LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int i = 0; i < (si.ch[ch].gr[gr].big_values << 1); i +=
         2) {
 
       @LOC("THIS,LayerIIIDecoder.SI2") int htIdx;
@@ -1111,8 +1117,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     // h = huffcodetab.ht[si.ch[ch].gr[gr].count1table_select + 32];
     num_bits = br.hsstell();
 
-    TERMINATE:
-    while ((num_bits < part2_3_end) && (index < 576)) {
+    TERMINATE: while ((num_bits < part2_3_end) && (index < 576)) {
 
       huffcodetab.huffman_decoder(htIdx, x, y, v, w, br);
 
@@ -1375,7 +1380,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     if ((si.ch[ch].gr[gr].window_switching_flag != 0) && (si.ch[ch].gr[gr].block_type == 2)) {
 
       for (index = 0; index < 576; index++) {
-        out_1d[index] = 0.0f;
+        inter[index] = 0.0f;
       }
 
       if (si.ch[ch].gr[gr].mixed_block_flag != 0) {
@@ -1384,7 +1389,7 @@ final class LayerIIIDecoder implements FrameDecoder {
           // Modif E.B 02/22/99
           @LOC("THIS,LayerIIIDecoder.SI1") int reste = index % SSLIMIT;
           @LOC("THIS,LayerIIIDecoder.SI1") int quotien = (int) ((index - reste) / SSLIMIT);
-          out_1d[index] = lr[ch][quotien][reste];
+          inter[index] = lr[ch][quotien][reste];
         }
         // REORDERING FOR REST SWITCHED SHORT
         /*
@@ -1408,21 +1413,21 @@ final class LayerIIIDecoder implements FrameDecoder {
             @LOC("THIS,LayerIIIDecoder.SI1") int reste = src_line % SSLIMIT;
             @LOC("THIS,LayerIIIDecoder.SI1") int quotien = (int) ((src_line - reste) / SSLIMIT);
 
-            out_1d[des_line] = lr[ch][quotien][reste];
+            inter[des_line] = lr[ch][quotien][reste];
             src_line += sfb_lines;
             des_line++;
 
             reste = src_line % SSLIMIT;
             quotien = (int) ((src_line - reste) / SSLIMIT);
 
-            out_1d[des_line] = lr[ch][quotien][reste];
+            inter[des_line] = lr[ch][quotien][reste];
             src_line += sfb_lines;
             des_line++;
 
             reste = src_line % SSLIMIT;
             quotien = (int) ((src_line - reste) / SSLIMIT);
 
-            out_1d[des_line] = lr[ch][quotien][reste];
+            inter[des_line] = lr[ch][quotien][reste];
           }
         }
 
@@ -1431,7 +1436,7 @@ final class LayerIIIDecoder implements FrameDecoder {
           @LOC("THIS,LayerIIIDecoder.SI1") int j = reorder_table[sfreq][index];
           @LOC("THIS,LayerIIIDecoder.SI1") int reste = j % SSLIMIT;
           @LOC("THIS,LayerIIIDecoder.SI1") int quotien = (int) ((j - reste) / SSLIMIT);
-          out_1d[index] = lr[ch][quotien][reste];
+          inter[index] = lr[ch][quotien][reste];
         }
       }
     } else { // long blocks
@@ -1439,7 +1444,7 @@ final class LayerIIIDecoder implements FrameDecoder {
         // Modif E.B 02/22/99
         @LOC("THIS,LayerIIIDecoder.SI1") int reste = index % SSLIMIT;
         @LOC("THIS,LayerIIIDecoder.SI1") int quotien = (int) ((index - reste) / SSLIMIT);
-        out_1d[index] = lr[ch][quotien][reste];
+        inter[index] = lr[ch][quotien][reste];
       }
     }
   }
@@ -1506,13 +1511,11 @@ final class LayerIIIDecoder implements FrameDecoder {
             for (@LOC("THIS,LayerIIIDecoder.RO1") int j = 0; j < 3; j++) {
               @LOC("THIS,LayerIIIDecoder.RO1") int sfbcnt;
               sfbcnt = 2;
-              TERMINATE:
-              for (sfb = 12; sfb >= 3; sfb--) {
+              TERMINATE: for (sfb = 12; sfb >= 3; sfb--) {
                 i = sfBandIndex[sfreq].s[sfb];
                 lines = sfBandIndex[sfreq].s[sfb + 1] - i;
                 i = (i << 2) - i + (j + 1) * lines - 1;
-                TERMINATE:
-                while (lines > 0) {
+                TERMINATE: while (lines > 0) {
                   if (ro[1][i / 18][i % 18] != 0.0f) {
                     // MDM: in java, array access is very slow.
                     // Is quicker to compute div and mod values.
@@ -1538,8 +1541,7 @@ final class LayerIIIDecoder implements FrameDecoder {
                 sb = sfBandIndex[sfreq].s[sfb + 1] - temp;
                 i = (temp << 2) - temp + j * sb;
 
-                TERMINATE:
-                for (; sb > 0; sb--) {
+                TERMINATE: for (; sb > 0; sb--) {
                   is_pos[i] = scalefac[1].s[j][sfb];
                   if (is_pos[i] != 7)
                     if (lsf)
@@ -1557,8 +1559,7 @@ final class LayerIIIDecoder implements FrameDecoder {
               temp = sfBandIndex[sfreq].s[11];
               sb = sfBandIndex[sfreq].s[12] - temp;
               i = (temp << 2) - temp + j * sb;
-              TERMINATE:
-              for (; sb > 0; sb--) {
+              TERMINATE: for (; sb > 0; sb--) {
                 is_pos[i] = is_pos[sfb];
 
                 if (lsf) {
@@ -1574,8 +1575,7 @@ final class LayerIIIDecoder implements FrameDecoder {
               i = 2;
               ss = 17;
               sb = -1;
-              TERMINATE:
-              while (i >= 0) {
+              TERMINATE: while (i >= 0) {
                 if (ro[1][i][ss] != 0.0f) {
                   sb = (i << 4) + (i << 1) + ss;
                   i = -1;
@@ -1594,8 +1594,7 @@ final class LayerIIIDecoder implements FrameDecoder {
               i = sfBandIndex[sfreq].l[i];
               for (; sfb < 8; sfb++) {
                 sb = sfBandIndex[sfreq].l[sfb + 1] - sfBandIndex[sfreq].l[sfb];
-                TERMINATE:
-                for (; sb > 0; sb--) {
+                TERMINATE: for (; sb > 0; sb--) {
                   is_pos[i] = scalefac[1].l[sfb];
                   if (is_pos[i] != 7)
                     if (lsf)
@@ -1610,13 +1609,11 @@ final class LayerIIIDecoder implements FrameDecoder {
             for (@LOC("THIS,LayerIIIDecoder.RO1") int j = 0; j < 3; j++) {
               @LOC("THIS,LayerIIIDecoder.RO1") int sfbcnt;
               sfbcnt = -1;
-              TERMINATE:
-              for (sfb = 12; sfb >= 0; sfb--) {
+              TERMINATE: for (sfb = 12; sfb >= 0; sfb--) {
                 temp = sfBandIndex[sfreq].s[sfb];
                 lines = sfBandIndex[sfreq].s[sfb + 1] - temp;
                 i = (temp << 2) - temp + (j + 1) * lines - 1;
-                TERMINATE:
-                while (lines > 0) {
+                TERMINATE: while (lines > 0) {
                   if (ro[1][i / 18][i % 18] != 0.0f) {
                     // MDM: in java, array access is very slow.
                     // Is quicker to compute div and mod values.
@@ -1635,8 +1632,7 @@ final class LayerIIIDecoder implements FrameDecoder {
                 temp = sfBandIndex[sfreq].s[sfb];
                 sb = sfBandIndex[sfreq].s[sfb + 1] - temp;
                 i = (temp << 2) - temp + j * sb;
-                TERMINATE:
-                for (; sb > 0; sb--) {
+                TERMINATE: for (; sb > 0; sb--) {
                   is_pos[i] = scalefac[1].s[j][sfb];
                   if (is_pos[i] != 7)
                     if (lsf)
@@ -1654,8 +1650,7 @@ final class LayerIIIDecoder implements FrameDecoder {
               sfb = (temp << 2) - temp + j * sb;
               sb = sfBandIndex[sfreq].s[12] - temp2;
               i = (temp2 << 2) - temp2 + j * sb;
-              TERMINATE:
-              for (; sb > 0; sb--) {
+              TERMINATE: for (; sb > 0; sb--) {
                 is_pos[i] = is_pos[sfb];
 
                 if (lsf) {
@@ -1672,8 +1667,7 @@ final class LayerIIIDecoder implements FrameDecoder {
           i = 31;
           ss = 17;
           sb = 0;
-          TERMINATE:
-          while (i >= 0) {
+          TERMINATE: while (i >= 0) {
             if (ro[1][i][ss] != 0.0f) {
               sb = (i << 4) + (i << 1) + ss;
               i = -1;
@@ -1693,8 +1687,7 @@ final class LayerIIIDecoder implements FrameDecoder {
           i = sfBandIndex[sfreq].l[i];
           for (; sfb < 21; sfb++) {
             sb = sfBandIndex[sfreq].l[sfb + 1] - sfBandIndex[sfreq].l[sfb];
-            TERMINATE:
-            for (; sb > 0; sb--) {
+            TERMINATE: for (; sb > 0; sb--) {
               is_pos[i] = scalefac[1].l[sfb];
               if (is_pos[i] != 7)
                 if (lsf)
@@ -1705,8 +1698,7 @@ final class LayerIIIDecoder implements FrameDecoder {
             }
           }
           sfb = sfBandIndex[sfreq].l[20];
-          TERMINATE:
-          for (sb = 576 - sfBandIndex[sfreq].l[21]; (sb > 0) && (i < 576); sb--) {
+          TERMINATE: for (sb = 576 - sfBandIndex[sfreq].l[21]; (sb > 0) && (i < 576); sb--) {
             is_pos[i] = is_pos[sfb]; // error here : i >=576
 
             if (lsf) {
@@ -1784,10 +1776,10 @@ final class LayerIIIDecoder implements FrameDecoder {
       for (ss = 0; ss < 8; ss++) {
         @LOC("THIS,LayerIIIDecoder.SI1") int src_idx1 = sb18 + 17 - ss;
         @LOC("THIS,LayerIIIDecoder.SI1") int src_idx2 = sb18 + 18 + ss;
-        @LOC("THIS,LayerIIIDecoder.OUT") float bu = out_1d[src_idx1];
-        @LOC("THIS,LayerIIIDecoder.OUT") float bd = out_1d[src_idx2];
-        out_1d[src_idx1] = (bu * cs[ss]) - (bd * ca[ss]);
-        out_1d[src_idx2] = (bd * cs[ss]) + (bu * ca[ss]);
+        @LOC("THIS,LayerIIIDecoder.OUT") float bu = inter[src_idx1];
+        @LOC("THIS,LayerIIIDecoder.OUT") float bd = inter[src_idx2];
+        inter[src_idx1] = (bu * cs[ss]) - (bd * ca[ss]);
+        inter[src_idx2] = (bd * cs[ss]) + (bu * ca[ss]);
       }
     }
   }
@@ -1833,8 +1825,6 @@ final class LayerIIIDecoder implements FrameDecoder {
       // Fin Modif
 
       // overlap addition
-      // prvblk = prevblck; //eliminated unnecessary areas
-
       out_1d[0 + sb18] = rawout[0] + prevblck[ch][sb18 + 0];
       prevblck[ch][sb18 + 0] = rawout[18];
       out_1d[1 + sb18] = rawout[1] + prevblck[ch][sb18 + 1];

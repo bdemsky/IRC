@@ -1889,8 +1889,9 @@ final class SynthesisFilter {
    * d[] split into subarrays of length 16. This provides for more faster access
    * by allowing a block of 16 to be addressed with constant offset.
    **/
+  //TODO CONST
   @LOC("V")
-  private static float d16[][] = null;
+  private final static float d16[][] = null; 
 
   /**
    * Converts a 1D array into a number of smaller arrays. This is used to
