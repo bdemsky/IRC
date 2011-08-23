@@ -143,7 +143,6 @@ public class DefinitelyWrittenCheck {
     ClearingSummary result =
         mapMethodDescriptorToCompleteClearingSummary.get(sortedDescriptors.peekFirst());
 
-    System.out.println("checkSharedLocationResult=" + result);
 
     Set<NTuple<Descriptor>> hpKeySet = result.keySet();
     for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
@@ -166,7 +165,6 @@ public class DefinitelyWrittenCheck {
     // the same time once per the out-most loop
 
     computeReadSharedDescriptorSet();
-    System.out.println("Reading Shared Location=" + mapSharedLocation2DescriptorSet);
 
     methodDescriptorsToVisitStack.clear();
 
@@ -960,6 +958,8 @@ public class DefinitelyWrittenCheck {
         // add <hp,statement,false> in which hp is an element of
         // READ_bound set
         // of callee: callee has 'read' requirement!
+
+        
         for (Iterator iterator = calleeUnionBoundReadSet.iterator(); iterator.hasNext();) {
           NTuple<Descriptor> read = (NTuple<Descriptor>) iterator.next();
           Hashtable<FlatNode, Boolean> gen = curr.get(read);
@@ -1320,8 +1320,7 @@ public class DefinitelyWrittenCheck {
           }
         }
 
-        // need to kill hp(x.f) from WT
-        writtenSet.remove(readingHeapPath);
+        //no need to kill hp(x.f) from WT
       }
 
     }
@@ -1368,7 +1367,7 @@ public class DefinitelyWrittenCheck {
 
       if (fc.getThis() != null) {
         bindHeapPathCallerArgWithCaleeParam(fc);
-
+        
         // add heap path, which is an element of READ_bound set and is not
         // an
         // element of WT set, to the caller's READ set
