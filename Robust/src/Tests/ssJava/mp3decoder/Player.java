@@ -107,16 +107,22 @@ public class Player {
    * @return true if the last frame was played, or false if there are more
    *         frames.
    */
-  @LATTICE("T<IN,T*,IN*,THISLOC=T")
-  @RETURNLOC("T")
+  @LATTICE("OUT<THIS,THIS<IN,IN*,THISLOC=THIS")
+  @RETURNLOC("OUT")
   public boolean play(@LOC("IN") int frames) throws JavaLayerException {
-    @LOC("T") boolean ret = true;
-    
-    @LOC("T") int count=0;
+    @LOC("OUT") boolean ret = true;
+
+    // initialization before ssjava loop
+    @LOC("THIS,Player.FR") boolean init = true;
+    @LOC("THIS,Player.ST") Header h = BitstreamWrapper.readFrame();
+    decoder.init(h);
+
+    @LOC("IN") int count = 0;
     SSJAVA: while (count++ < 2147483646) {
-      ret = decodeFrame();
-      if(!ret){
-          break;
+      ret = decodeFrame(init, h);
+      init = false;
+      if (!ret) {
+        break;
       }
     }
 
@@ -175,14 +181,17 @@ public class Player {
    * @return true if there are no more frames to decode, false otherwise.
    */
   @LATTICE("C<THIS,O<THIS,THIS<IN,C*,THISLOC=THIS,RETURNLOC=O,GLOBALLOC=THIS")
-  protected boolean decodeFrame() throws JavaLayerException {
+  protected boolean decodeFrame(@LOC("THIS,Player.FR") boolean init, @LOC("THIS,Player.ST") Header h)
+      throws JavaLayerException {
     try {
       // AudioDevice out = audio;
       // if (out==null)
       // return false;
 
       // Header h = bitstream.readFrame();
-      @LOC("THIS,Player.ST") Header h = BitstreamWrapper.readFrame();
+      if (!init) {
+        h = BitstreamWrapper.readFrame();
+      }
 
       if (h == null)
         return false;
@@ -194,8 +203,7 @@ public class Player {
       @LOC("C") int sum = 0;
       @LOC("C") short[] outbuf = SampleBufferWrapper.getBuffer();
       // short[] outbuf = output.getBuffer();
-      TERMINATE:
-      for (@LOC("C") int i = 0; i < SampleBufferWrapper.getBufferLength(); i++) {
+      TERMINATE: for (@LOC("C") int i = 0; i < SampleBufferWrapper.getBufferLength(); i++) {
         // System.out.println(outbuf[i]);
         sum += outbuf[i];
       }

@@ -113,7 +113,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   private boolean initialized = false;
 
   // constructor for the linear type system
-  public LayerIIIDecoder(@DELEGATE @LOC("VAR") SynthesisFilter filtera,
+  public LayerIIIDecoder(Header h, @DELEGATE @LOC("VAR") SynthesisFilter filtera,
       @DELEGATE @LOC("VAR") SynthesisFilter filterb, @LOC("VAR") int which_ch0) {
 
     filter1 = filtera;
@@ -205,6 +205,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     scalefac_buffer = new int[54];
     // END OF scalefac_buffer
 
+    init(h);
   }
 
   @LATTICE("THIS<C,THIS<IN,C*,THISLOC=THIS")
@@ -456,13 +457,22 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LATTICE("HEADER<VAR,VAR<THIS,C<THIS,THIS<IN,THISLOC=THIS,C*,VAR*")
   public void decode(@LOC("THIS,LayerIIIDecoder.HD") Header header) {
 
-    if (!initialized) {
-      init(header);
-    }
+    // if (!initialized) {
+    // init(header);
+    // }
 
     // overwrites once per a loop
-    samples1 = new float[32];
-    samples2 = new float[32];
+    SSJAVA.arrayinit(samples1, 0);
+    SSJAVA.arrayinit(samples2, 0);
+    SSJAVA.arrayinit(ro, 2, SBLIMIT, SSLIMIT, 0);
+    SSJAVA.arrayinit(lr, 2, SBLIMIT, SSLIMIT, 0);
+    SSJAVA.arrayinit(is_pos, 7);
+    SSJAVA.arrayinit(is_ratio, 0);
+    SSJAVA.arrayinit(out_1d, 0);
+    SSJAVA.arrayinit(inter, 0);
+    SSJAVA.arrayinit(k, 2, SBLIMIT * SSLIMIT, 0);
+    SSJAVA.arrayinit(is_1d, 0);
+    CheckSumHuff = 0;
     // prevblck = new float[2][SBLIMIT * SSLIMIT];
     si = new III_side_info_t();
     //
@@ -1379,9 +1389,9 @@ final class LayerIIIDecoder implements FrameDecoder {
 
     if ((si.ch[ch].gr[gr].window_switching_flag != 0) && (si.ch[ch].gr[gr].block_type == 2)) {
 
-      for (index = 0; index < 576; index++) {
-        inter[index] = 0.0f;
-      }
+      // for (index = 0; index < 576; index++) {
+      // inter[index] = 0.0f;
+      // }
 
       if (si.ch[ch].gr[gr].mixed_block_flag != 0) {
         // NO REORDER FOR LOW 2 SUBBANDS
@@ -1495,12 +1505,10 @@ final class LayerIIIDecoder implements FrameDecoder {
       @LOC("THIS,LayerIIIDecoder.LR") int io_type = (si.ch[0].gr[gr].scalefac_compress & 1);
 
       // initialization
-
-      for (i = 0; i < 576; i++) {
-        is_pos[i] = 7;
-
-        is_ratio[i] = 0.0f;
-      }
+      // for (i = 0; i < 576; i++) {
+      // is_pos[i] = 7;
+      // is_ratio[i] = 0.0f;
+      // }
 
       if (i_stereo) {
         if ((si.ch[0].gr[gr].window_switching_flag != 0) && (si.ch[0].gr[gr].block_type == 2)) {

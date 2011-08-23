@@ -97,16 +97,16 @@ public class SSJavaAnalysis {
     this.mapSharedLocation2DescriptorSet = new Hashtable<Location, Set<Descriptor>>();
     this.linearTypeCheckMethodSet = new HashSet<MethodDescriptor>();
     this.bf = bf;
-    trustWorthyMDSet = new HashSet<MethodDescriptor>();
+    this.trustWorthyMDSet = new HashSet<MethodDescriptor>();
   }
 
   public void doCheck() {
     doMethodAnnotationCheck();
     // computeLinearTypeCheckMethodSet();
     // doLinearTypeCheck();
-    // if (state.SSJAVADEBUG) {
-    // debugPrint();
-    // }
+    if (state.SSJAVADEBUG) {
+      debugPrint();
+    }
     parseLocationAnnotation();
     // doFlowDownCheck();
     doDefinitelyWrittenCheck();
@@ -450,8 +450,10 @@ public class SSJavaAnalysis {
     ClassDescriptor cd = md.getClassDesc();
     // if a method requires to be annotated, class containg that method also
     // requires to be annotated
-    annotationRequireClassSet.add(cd);
-    annotationRequireSet.add(md);
+    if (!isSSJavaUtil(cd)) {
+      annotationRequireClassSet.add(cd);
+      annotationRequireSet.add(md);
+    }
   }
 
   public Set<MethodDescriptor> getAnnotationRequireSet() {
@@ -503,5 +505,12 @@ public class SSJavaAnalysis {
 
   public void setMethodContainingSSJavaLoop(MethodDescriptor methodContainingSSJavaLoop) {
     this.methodContainingSSJavaLoop = methodContainingSSJavaLoop;
+  }
+
+  public boolean isSSJavaUtil(ClassDescriptor cd) {
+    if (cd.getSymbol().equals("SSJAVA")) {
+      return true;
+    }
+    return false;
   }
 }

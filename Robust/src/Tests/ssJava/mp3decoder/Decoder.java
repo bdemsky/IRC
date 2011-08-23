@@ -127,6 +127,35 @@ public class Decoder implements DecoderErrors {
   // if (filter2 != null)
   // filter2.setEQ(factors);
   // }
+  @LATTICE("THIS<VAR,THISLOC=THIS,VAR*")
+  public void init( @LOC("THIS,Decoder.H") Header header) {
+    @LOC("VAR") float scalefactor = 32700.0f;
+
+    @LOC("THIS,Decoder.PARAM") int mode = header.mode();
+    @LOC("THIS,Decoder.PARAM") int layer = header.layer();
+    @LOC("THIS,Decoder.PARAM") int channels = mode == Header.SINGLE_CHANNEL ? 1 : 2;
+
+    // set up output buffer if not set up by client.
+    // if (output == null)
+    // output = new SampleBuffer(header.frequency(), channels);
+    SampleBufferWrapper.init(header.frequency(), channels);
+
+    @LOC("THIS,Decoder.FACTORS") float[] factors = equalizer.getBandFactors();
+    @LOC("THIS,Decoder.FILTER") SynthesisFilter filter1 =
+        new SynthesisFilter(0, scalefactor, factors);
+
+    // REVIEW: allow mono output for stereo
+    @LOC("THIS,Decoder.FILTER") SynthesisFilter filter2 = null;
+    if (channels == 2) {
+      filter2 = new SynthesisFilter(1, scalefactor, factors);
+    }
+
+    outputChannels = channels;
+    outputFrequency = header.frequency();
+
+    l3decoder = new LayerIIIDecoder(header,filter1, filter2, OutputChannels.BOTH_CHANNELS);
+
+  }
 
   /**
    * Decodes one frame from an MPEG audio bitstream.
@@ -140,36 +169,6 @@ public class Decoder implements DecoderErrors {
    */
   @LATTICE("THIS<VAR,THISLOC=THIS,VAR*")
   public void decodeFrame(@LOC("THIS,Decoder.H") Header header) throws DecoderException {
-
-    if (!initialized) {
-      @LOC("VAR") float scalefactor = 32700.0f;
-
-      @LOC("THIS,Decoder.PARAM") int mode = header.mode();
-      @LOC("THIS,Decoder.PARAM") int layer = header.layer();
-      @LOC("THIS,Decoder.PARAM") int channels = mode == Header.SINGLE_CHANNEL ? 1 : 2;
-
-      // set up output buffer if not set up by client.
-      // if (output == null)
-      // output = new SampleBuffer(header.frequency(), channels);
-      SampleBufferWrapper.init(header.frequency(), channels);
-
-      @LOC("THIS,Decoder.FACTORS") float[] factors = equalizer.getBandFactors();
-      @LOC("THIS,Decoder.FILTER") SynthesisFilter filter1 =
-          new SynthesisFilter(0, scalefactor, factors);
-
-      // REVIEW: allow mono output for stereo
-      @LOC("THIS,Decoder.FILTER") SynthesisFilter filter2 = null;
-      if (channels == 2) {
-        filter2 = new SynthesisFilter(1, scalefactor, factors);
-      }
-
-      outputChannels = channels;
-      outputFrequency = header.frequency();
-
-      l3decoder = new LayerIIIDecoder(filter1, filter2, OutputChannels.BOTH_CHANNELS);
-
-      initialized = true;
-    }
 
     SampleBufferWrapper.clear_buffer();
     l3decoder.decode(header);

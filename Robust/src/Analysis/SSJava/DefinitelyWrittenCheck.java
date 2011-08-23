@@ -57,6 +57,10 @@ public class DefinitelyWrittenCheck {
   // overwritten on every possible path during method invocation
   private Hashtable<FlatMethod, Set<NTuple<Descriptor>>> mapFlatMethodToOverWrite;
 
+  // maps a flat method to the WRITE that is the set of heap path that is
+  // written to
+  private Hashtable<FlatMethod, Set<NTuple<Descriptor>>> mapFlatMethodToWrite;
+
   // points to method containing SSJAVA Loop
   private MethodDescriptor methodContainingSSJavaLoop;
 
@@ -98,6 +102,7 @@ public class DefinitelyWrittenCheck {
 
   private Set<NTuple<Descriptor>> calleeUnionBoundReadSet;
   private Set<NTuple<Descriptor>> calleeIntersectBoundOverWriteSet;
+  private Set<NTuple<Descriptor>> calleeBoundWriteSet;
 
   private TempDescriptor LOCAL;
 
@@ -110,10 +115,12 @@ public class DefinitelyWrittenCheck {
     this.mapHeapPath = new Hashtable<Descriptor, NTuple<Descriptor>>();
     this.mapFlatMethodToRead = new Hashtable<FlatMethod, Set<NTuple<Descriptor>>>();
     this.mapFlatMethodToOverWrite = new Hashtable<FlatMethod, Set<NTuple<Descriptor>>>();
+    this.mapFlatMethodToWrite = new Hashtable<FlatMethod, Set<NTuple<Descriptor>>>();
     this.definitelyWrittenResults =
         new Hashtable<FlatNode, Hashtable<NTuple<Descriptor>, Hashtable<FlatNode, Boolean>>>();
     this.calleeUnionBoundReadSet = new HashSet<NTuple<Descriptor>>();
     this.calleeIntersectBoundOverWriteSet = new HashSet<NTuple<Descriptor>>();
+    this.calleeBoundWriteSet = new HashSet<NTuple<Descriptor>>();
 
     this.mapMethodDescriptorToCompleteClearingSummary =
         new Hashtable<MethodDescriptor, ClearingSummary>();
@@ -131,8 +138,8 @@ public class DefinitelyWrittenCheck {
     if (!ssjava.getAnnotationRequireSet().isEmpty()) {
       methodReadOverWriteAnalysis();
       writtenAnalyis();
-      sharedLocationAnalysis();
-      checkSharedLocationResult();
+      // sharedLocationAnalysis();
+      // checkSharedLocationResult();
     }
   }
 
@@ -142,7 +149,6 @@ public class DefinitelyWrittenCheck {
     // shared location analysis
     ClearingSummary result =
         mapMethodDescriptorToCompleteClearingSummary.get(sortedDescriptors.peekFirst());
-
 
     Set<NTuple<Descriptor>> hpKeySet = result.keySet();
     for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
@@ -342,18 +348,36 @@ public class DefinitelyWrittenCheck {
     case FKind.FlatFieldNode:
     case FKind.FlatElementNode: {
 
-      FlatFieldNode ffn = (FlatFieldNode) fn;
-      lhs = ffn.getDst();
-      rhs = ffn.getSrc();
-      fld = ffn.getField();
+      if (fn.kind() == FKind.FlatFieldNode) {
+        FlatFieldNode ffn = (FlatFieldNode) fn;
+        lhs = ffn.getDst();
+        rhs = ffn.getSrc();
+        fld = ffn.getField();
+      } else {
+        FlatElementNode fen = (FlatElementNode) fn;
+        lhs = fen.getDst();
+        rhs = fen.getSrc();
+        TypeDescriptor td = rhs.getType().dereference();
+        fld = getArrayField(td);
+      }
+
+      // FlatFieldNode ffn = (FlatFieldNode) fn;
+      // lhs = ffn.getDst();
+      // rhs = ffn.getSrc();
+      // fld = ffn.getField();
 
       // read field
       NTuple<Descriptor> srcHeapPath = mapHeapPath.get(rhs);
+
+      // if (srcHeapPath != null) {
+      // // if lhs srcHeapPath is null, it means that it is not reachable from
+      // // callee's parameters. so just ignore it
       NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
 
       if (fld.getType().isImmutable()) {
         readLocation(curr, fldHeapPath, fld);
       }
+      // }
 
     }
       break;
@@ -395,8 +419,8 @@ public class DefinitelyWrittenCheck {
       MethodDescriptor mdCallee = fc.getMethod();
       FlatMethod fmCallee = state.getMethodFlat(mdCallee);
       Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
-      TypeDescriptor typeDesc = fc.getThis().getType();
-      setPossibleCallees.addAll(callGraph.getMethods(mdCallee, typeDesc));
+      // TypeDescriptor typeDesc = fc.getThis().getType();
+      setPossibleCallees.addAll(callGraph.getMethods(mdCallee));
 
       possibleCalleeCompleteSummarySetToCaller.clear();
 
@@ -453,15 +477,17 @@ public class DefinitelyWrittenCheck {
     Hashtable<Integer, NTuple<Descriptor>> mapArgIdx2CallerArgHeapPath =
         new Hashtable<Integer, NTuple<Descriptor>>();
 
-    // arg idx is starting from 'this' arg
-    NTuple<Descriptor> thisHeapPath = mapHeapPath.get(fc.getThis());
-    if (thisHeapPath == null) {
-      // method is called without creating new flat node representing 'this'
-      thisHeapPath = new NTuple<Descriptor>();
-      thisHeapPath.add(fc.getThis());
-    }
+    if (fc.getThis() != null) {
+      // arg idx is starting from 'this' arg
+      NTuple<Descriptor> thisHeapPath = mapHeapPath.get(fc.getThis());
+      if (thisHeapPath == null) {
+        // method is called without creating new flat node representing 'this'
+        thisHeapPath = new NTuple<Descriptor>();
+        thisHeapPath.add(fc.getThis());
+      }
 
-    mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
+      mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
+    }
 
     for (int i = 0; i < fc.numArgs(); i++) {
       TempDescriptor arg = fc.getArg(i);
@@ -635,10 +661,23 @@ public class DefinitelyWrittenCheck {
     case FKind.FlatFieldNode:
     case FKind.FlatElementNode: {
 
-      FlatFieldNode ffn = (FlatFieldNode) fn;
-      lhs = ffn.getDst();
-      rhs = ffn.getSrc();
-      fld = ffn.getField();
+      if (fn.kind() == FKind.FlatFieldNode) {
+        FlatFieldNode ffn = (FlatFieldNode) fn;
+        lhs = ffn.getDst();
+        rhs = ffn.getSrc();
+        fld = ffn.getField();
+      } else {
+        FlatElementNode fen = (FlatElementNode) fn;
+        lhs = fen.getDst();
+        rhs = fen.getSrc();
+        TypeDescriptor td = rhs.getType().dereference();
+        fld = getArrayField(td);
+      }
+
+      // FlatFieldNode ffn = (FlatFieldNode) fn;
+      // lhs = ffn.getDst();
+      // rhs = ffn.getSrc();
+      // fld = ffn.getField();
 
       // read field
       NTuple<Descriptor> srcHeapPath = mapHeapPath.get(rhs);
@@ -954,12 +993,13 @@ public class DefinitelyWrittenCheck {
 
       case FKind.FlatCall: {
         FlatCall fc = (FlatCall) fn;
+
         bindHeapPathCallerArgWithCaleeParam(fc);
         // add <hp,statement,false> in which hp is an element of
         // READ_bound set
         // of callee: callee has 'read' requirement!
 
-        
+
         for (Iterator iterator = calleeUnionBoundReadSet.iterator(); iterator.hasNext();) {
           NTuple<Descriptor> read = (NTuple<Descriptor>) iterator.next();
           Hashtable<FlatNode, Boolean> gen = curr.get(read);
@@ -1030,80 +1070,119 @@ public class DefinitelyWrittenCheck {
     // caller
     calleeUnionBoundReadSet.clear();
     calleeIntersectBoundOverWriteSet.clear();
+    calleeBoundWriteSet.clear();
 
-    MethodDescriptor mdCallee = fc.getMethod();
-    FlatMethod fmCallee = state.getMethodFlat(mdCallee);
-    Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
-    TypeDescriptor typeDesc = fc.getThis().getType();
-    setPossibleCallees.addAll(callGraph.getMethods(mdCallee, typeDesc));
-
-    // create mapping from arg idx to its heap paths
-    Hashtable<Integer, NTuple<Descriptor>> mapArgIdx2CallerArgHeapPath =
-        new Hashtable<Integer, NTuple<Descriptor>>();
-
-    // arg idx is starting from 'this' arg
-    NTuple<Descriptor> thisHeapPath = mapHeapPath.get(fc.getThis());
-    if (thisHeapPath == null) {
-      // method is called without creating new flat node representing 'this'
-      thisHeapPath = new NTuple<Descriptor>();
-      thisHeapPath.add(fc.getThis());
-    }
-
-    mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
-
-    for (int i = 0; i < fc.numArgs(); i++) {
-      TempDescriptor arg = fc.getArg(i);
+    if (ssjava.isSSJavaUtil(fc.getMethod().getClassDesc())) {
+      // ssjava util case!
+      // have write effects on the first argument
+      TempDescriptor arg = fc.getArg(0);
       NTuple<Descriptor> argHeapPath = computePath(arg);
-      mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(i + 1), argHeapPath);
-    }
+      calleeIntersectBoundOverWriteSet.add(argHeapPath);
+    } else {
+      MethodDescriptor mdCallee = fc.getMethod();
+      // FlatMethod fmCallee = state.getMethodFlat(mdCallee);
+      Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
+      // setPossibleCallees.addAll(callGraph.getMethods(mdCallee, typeDesc));
+      setPossibleCallees.addAll(callGraph.getMethods(mdCallee));
 
-    for (Iterator iterator = setPossibleCallees.iterator(); iterator.hasNext();) {
-      MethodDescriptor callee = (MethodDescriptor) iterator.next();
-      FlatMethod calleeFlatMethod = state.getMethodFlat(callee);
+      // create mapping from arg idx to its heap paths
+      Hashtable<Integer, NTuple<Descriptor>> mapArgIdx2CallerArgHeapPath =
+          new Hashtable<Integer, NTuple<Descriptor>>();
 
-      // binding caller's args and callee's params
+      // arg idx is starting from 'this' arg
+      if (fc.getThis() != null) {
+        NTuple<Descriptor> thisHeapPath = mapHeapPath.get(fc.getThis());
+        if (thisHeapPath == null) {
+          // method is called without creating new flat node representing 'this'
+          thisHeapPath = new NTuple<Descriptor>();
+          thisHeapPath.add(fc.getThis());
+        }
 
-      Set<NTuple<Descriptor>> calleeReadSet = mapFlatMethodToRead.get(calleeFlatMethod);
-      if (calleeReadSet == null) {
-        calleeReadSet = new HashSet<NTuple<Descriptor>>();
-        mapFlatMethodToRead.put(calleeFlatMethod, calleeReadSet);
-      }
-      Set<NTuple<Descriptor>> calleeOverWriteSet = mapFlatMethodToOverWrite.get(calleeFlatMethod);
-      if (calleeOverWriteSet == null) {
-        calleeOverWriteSet = new HashSet<NTuple<Descriptor>>();
-        mapFlatMethodToOverWrite.put(calleeFlatMethod, calleeOverWriteSet);
-      }
-
-      Hashtable<Integer, TempDescriptor> mapParamIdx2ParamTempDesc =
-          new Hashtable<Integer, TempDescriptor>();
-      for (int i = 0; i < calleeFlatMethod.numParameters(); i++) {
-        TempDescriptor param = calleeFlatMethod.getParameter(i);
-        mapParamIdx2ParamTempDesc.put(Integer.valueOf(i), param);
+        mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
       }
 
-      Set<NTuple<Descriptor>> calleeBoundReadSet =
-          bindSet(calleeReadSet, mapParamIdx2ParamTempDesc, mapArgIdx2CallerArgHeapPath);
-      // union of the current read set and the current callee's
-      // read set
-      calleeUnionBoundReadSet.addAll(calleeBoundReadSet);
-      Set<NTuple<Descriptor>> calleeBoundWriteSet =
-          bindSet(calleeOverWriteSet, mapParamIdx2ParamTempDesc, mapArgIdx2CallerArgHeapPath);
-      // intersection of the current overwrite set and the current
-      // callee's
-      // overwrite set
-      merge(calleeIntersectBoundOverWriteSet, calleeBoundWriteSet);
+      for (int i = 0; i < fc.numArgs(); i++) {
+        TempDescriptor arg = fc.getArg(i);
+        NTuple<Descriptor> argHeapPath = computePath(arg);
+        mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(i + 1), argHeapPath);
+      }
+
+      for (Iterator iterator = setPossibleCallees.iterator(); iterator.hasNext();) {
+        MethodDescriptor callee = (MethodDescriptor) iterator.next();
+        FlatMethod calleeFlatMethod = state.getMethodFlat(callee);
+
+        // binding caller's args and callee's params
+
+        Set<NTuple<Descriptor>> calleeReadSet = mapFlatMethodToRead.get(calleeFlatMethod);
+        if (calleeReadSet == null) {
+          calleeReadSet = new HashSet<NTuple<Descriptor>>();
+          mapFlatMethodToRead.put(calleeFlatMethod, calleeReadSet);
+        }
+
+        Set<NTuple<Descriptor>> calleeOverWriteSet = mapFlatMethodToOverWrite.get(calleeFlatMethod);
+
+        if (calleeOverWriteSet == null) {
+          calleeOverWriteSet = new HashSet<NTuple<Descriptor>>();
+          mapFlatMethodToOverWrite.put(calleeFlatMethod, calleeOverWriteSet);
+        }
+
+        Set<NTuple<Descriptor>> calleeWriteSet = mapFlatMethodToWrite.get(calleeFlatMethod);
+
+        if (calleeWriteSet == null) {
+          calleeWriteSet = new HashSet<NTuple<Descriptor>>();
+          mapFlatMethodToWrite.put(calleeFlatMethod, calleeWriteSet);
+        }
+
+        Hashtable<Integer, TempDescriptor> mapParamIdx2ParamTempDesc =
+            new Hashtable<Integer, TempDescriptor>();
+        int offset = 0;
+        if (calleeFlatMethod.getMethod().isStatic()) {
+          // static method does not have implicit 'this' arg
+          offset = 1;
+        }
+        for (int i = 0; i < calleeFlatMethod.numParameters(); i++) {
+          TempDescriptor param = calleeFlatMethod.getParameter(i);
+          mapParamIdx2ParamTempDesc.put(Integer.valueOf(i + offset), param);
+        }
+
+        Set<NTuple<Descriptor>> calleeBoundReadSet =
+            bindSet(calleeReadSet, mapParamIdx2ParamTempDesc, mapArgIdx2CallerArgHeapPath);
+        // union of the current read set and the current callee's
+        // read set
+        calleeUnionBoundReadSet.addAll(calleeBoundReadSet);
+        Set<NTuple<Descriptor>> calleeBoundOverWriteSet =
+            bindSet(calleeOverWriteSet, mapParamIdx2ParamTempDesc, mapArgIdx2CallerArgHeapPath);
+        // intersection of the current overwrite set and the current
+        // callee's
+        // overwrite set
+        merge(calleeIntersectBoundOverWriteSet, calleeBoundOverWriteSet);
+
+        Set<NTuple<Descriptor>> boundWriteSetFromCallee =
+            bindSet(calleeWriteSet, mapParamIdx2ParamTempDesc, mapArgIdx2CallerArgHeapPath);
+        calleeBoundWriteSet.addAll(boundWriteSetFromCallee);
+      }
+
     }
 
   }
 
   private void checkFlag(boolean booleanValue, FlatNode fn, NTuple<Descriptor> hp) {
     if (booleanValue) {
-      throw new Error(
-          "There is a variable, which is reachable through references "
-              + hp
-              + ", who comes back to the same read statement without being overwritten at the out-most iteration at "
-              + methodContainingSSJavaLoop.getClassDesc().getSourceFileName() + "::"
-              + fn.getNumLine());
+      // the definitely written analysis only takes care about locations that
+      // are written to inside of the SSJava loop
+      for (Iterator iterator = calleeBoundWriteSet.iterator(); iterator.hasNext();) {
+        NTuple<Descriptor> write = (NTuple<Descriptor>) iterator.next();
+        if (hp.startsWith(write)) {
+          // it has write effect!
+          //throw new Error(
+          System.out.println("###"+
+              "There is a variable, which is reachable through references "
+                  + hp
+                  + ", who comes back to the same read statement without being overwritten at the out-most iteration at "
+                  + methodContainingSSJavaLoop.getClassDesc().getSourceFileName() + "::"
+                  + fn.getNumLine());
+        }
+      }
     }
   }
 
@@ -1174,15 +1253,19 @@ public class DefinitelyWrittenCheck {
 
       Set<NTuple<Descriptor>> readSet = new HashSet<NTuple<Descriptor>>();
       Set<NTuple<Descriptor>> overWriteSet = new HashSet<NTuple<Descriptor>>();
+      Set<NTuple<Descriptor>> writeSet = new HashSet<NTuple<Descriptor>>();
 
-      methodReadOverWrite_analyzeMethod(fm, readSet, overWriteSet);
+      methodReadOverWrite_analyzeMethod(fm, readSet, overWriteSet, writeSet);
 
       Set<NTuple<Descriptor>> prevRead = mapFlatMethodToRead.get(fm);
       Set<NTuple<Descriptor>> prevOverWrite = mapFlatMethodToOverWrite.get(fm);
+      Set<NTuple<Descriptor>> prevWrite = mapFlatMethodToWrite.get(fm);
 
-      if (!(readSet.equals(prevRead) && overWriteSet.equals(prevOverWrite))) {
+      if (!(readSet.equals(prevRead) && overWriteSet.equals(prevOverWrite) && writeSet
+          .equals(prevWrite))) {
         mapFlatMethodToRead.put(fm, readSet);
         mapFlatMethodToOverWrite.put(fm, overWriteSet);
+        mapFlatMethodToWrite.put(fm, writeSet);
 
         // results for callee changed, so enqueue dependents caller for
         // further
@@ -1204,7 +1287,7 @@ public class DefinitelyWrittenCheck {
   }
 
   private void methodReadOverWrite_analyzeMethod(FlatMethod fm, Set<NTuple<Descriptor>> readSet,
-      Set<NTuple<Descriptor>> overWriteSet) {
+      Set<NTuple<Descriptor>> overWriteSet, Set<NTuple<Descriptor>> writeSet) {
     if (state.SSJAVADEBUG) {
       System.out.println("Definitely written Analyzing: " + fm);
     }
@@ -1227,7 +1310,7 @@ public class DefinitelyWrittenCheck {
         }
       }
 
-      methodReadOverWrite_nodeActions(fn, curr, readSet, overWriteSet);
+      methodReadOverWrite_nodeActions(fn, curr, readSet, overWriteSet, writeSet);
 
       Set<NTuple<Descriptor>> writtenSetPrev = mapFlatNodeToWrittenSet.get(fn);
       if (!curr.equals(writtenSetPrev)) {
@@ -1240,10 +1323,12 @@ public class DefinitelyWrittenCheck {
 
     }
 
+
   }
 
   private void methodReadOverWrite_nodeActions(FlatNode fn, Set<NTuple<Descriptor>> writtenSet,
-      Set<NTuple<Descriptor>> readSet, Set<NTuple<Descriptor>> overWriteSet) {
+      Set<NTuple<Descriptor>> readSet, Set<NTuple<Descriptor>> overWriteSet,
+      Set<NTuple<Descriptor>> writeSet) {
     TempDescriptor lhs;
     TempDescriptor rhs;
     FieldDescriptor fld;
@@ -1320,7 +1405,7 @@ public class DefinitelyWrittenCheck {
           }
         }
 
-        //no need to kill hp(x.f) from WT
+        // no need to kill hp(x.f) from WT
       }
 
     }
@@ -1356,6 +1441,8 @@ public class DefinitelyWrittenCheck {
         // write(x.f)
         // need to add hp(y) to WT
         writtenSet.add(newHeapPath);
+
+        writeSet.add(newHeapPath);
       }
 
     }
@@ -1365,26 +1452,31 @@ public class DefinitelyWrittenCheck {
 
       FlatCall fc = (FlatCall) fn;
 
-      if (fc.getThis() != null) {
-        bindHeapPathCallerArgWithCaleeParam(fc);
-        
-        // add heap path, which is an element of READ_bound set and is not
-        // an
-        // element of WT set, to the caller's READ set
-        for (Iterator iterator = calleeUnionBoundReadSet.iterator(); iterator.hasNext();) {
-          NTuple<Descriptor> read = (NTuple<Descriptor>) iterator.next();
-          if (!writtenSet.contains(read)) {
-            readSet.add(read);
-          }
-        }
+      bindHeapPathCallerArgWithCaleeParam(fc);
 
-        // add heap path, which is an element of OVERWRITE_bound set, to the
-        // caller's WT set
-        for (Iterator iterator = calleeIntersectBoundOverWriteSet.iterator(); iterator.hasNext();) {
-          NTuple<Descriptor> write = (NTuple<Descriptor>) iterator.next();
-          writtenSet.add(write);
+      // add heap path, which is an element of READ_bound set and is not
+      // an
+      // element of WT set, to the caller's READ set
+      for (Iterator iterator = calleeUnionBoundReadSet.iterator(); iterator.hasNext();) {
+        NTuple<Descriptor> read = (NTuple<Descriptor>) iterator.next();
+        if (!writtenSet.contains(read)) {
+          readSet.add(read);
         }
-      } 
+      }
+
+      // add heap path, which is an element of OVERWRITE_bound set, to the
+      // caller's WT set
+      for (Iterator iterator = calleeIntersectBoundOverWriteSet.iterator(); iterator.hasNext();) {
+        NTuple<Descriptor> write = (NTuple<Descriptor>) iterator.next();
+        writtenSet.add(write);
+      }
+
+      // add heap path, which is an element of WRITE_BOUND set, to the
+      // caller's writeSet
+      for (Iterator iterator = calleeBoundWriteSet.iterator(); iterator.hasNext();) {
+        NTuple<Descriptor> write = (NTuple<Descriptor>) iterator.next();
+        writeSet.add(write);
+      }
 
     }
       break;
@@ -1521,7 +1613,6 @@ public class DefinitelyWrittenCheck {
 
       NTuple<Descriptor> callerArgHeapPath = mapCallerArgIdx2HeapPath.get(idx);
       TempDescriptor calleeParam = mapParamIdx2ParamTempDesc.get(idx);
-
       for (Iterator iterator2 = calleeSet.iterator(); iterator2.hasNext();) {
         NTuple<Descriptor> element = (NTuple<Descriptor>) iterator2.next();
         if (element.startsWith(calleeParam)) {

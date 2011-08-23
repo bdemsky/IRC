@@ -64,7 +64,7 @@ public class MethodAnnotationCheck {
       ClassDescriptor cd = (ClassDescriptor) obj;
       toanalyze.remove(cd);
 
-      if (!cd.isInterface()) {
+      if (!ssjava.isSSJavaUtil(cd) && !cd.isInterface()) {
         for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
           MethodDescriptor md = (MethodDescriptor) method_it.next();
           checkTrustworthyMethodAnnotation(md);

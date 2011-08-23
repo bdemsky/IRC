@@ -852,7 +852,8 @@ public class FlowDownCheck {
       isSystemout = baseName.getSymbol().equals("System.out");
     }
 
-    if (!ssjava.isTrustMethod(calleeMD) && !calleeMD.getModifiers().isNative() && !isSystemout) {
+    if (!ssjava.isSSJavaUtil(calleeMD.getClassDesc()) && !ssjava.isTrustMethod(calleeMD)
+        && !calleeMD.getModifiers().isNative() && !isSystemout) {
 
       CompositeLocation baseLocation = null;
       if (min.getExpression() != null) {
@@ -897,7 +898,8 @@ public class FlowDownCheck {
 
       checkCalleeConstraints(md, nametable, min, baseLocation, constraint);
 
-      checkCallerArgumentLocationConstraints(md, nametable, min, baseLocation, constraint);
+      // checkCallerArgumentLocationConstraints(md, nametable, min,
+      // baseLocation, constraint);
 
       if (!min.getMethod().getReturnType().isVoid()) {
         // If method has a return value, compute the highest possible return
@@ -1359,13 +1361,13 @@ public class FlowDownCheck {
         return loc;
       }
     }
-    
-    if(left instanceof ArrayAccessNode){
+
+    if (left instanceof ArrayAccessNode) {
       System.out.println("HEREE!!");
-      ArrayAccessNode aan=(ArrayAccessNode)left;
-      left=aan.getExpression();
+      ArrayAccessNode aan = (ArrayAccessNode) left;
+      left = aan.getExpression();
     }
-    
+
     loc = checkLocationFromExpressionNode(md, nametable, left, loc, constraint, false);
     System.out.println("### checkLocationFromFieldAccessNode=" + fan.printNode(0));
     System.out.println("### left=" + left.printNode(0));
@@ -1373,7 +1375,7 @@ public class FlowDownCheck {
       Location fieldLoc = getFieldLocation(fd);
       loc.addLocation(fieldLoc);
     }
-    System.out.println("### field loc="+loc);
+    System.out.println("### field loc=" + loc);
     return loc;
   }
 
