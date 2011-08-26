@@ -39,14 +39,14 @@
 final class SynthesisFilter {
 
   @LOC("IDX")
-  private int vidx;
+  public int vidx;
   @LOC("V")
   private float[] v1;
   @LOC("V")
   private float[] v2;
   // private float[] actual_v; // v1 or v2
   @LOC("IDX")
-  private int actual_write_pos; // 0-15
+  public int actual_write_pos; // 0-15
   @LOC("SAMPLE")
   private float[] samples; // 32 new subband samples
   @LOC("V")
@@ -1830,6 +1830,7 @@ final class SynthesisFilter {
     // System.out.println("3.actual_v=" + (actual_v == v1) + " vidx=" + vidx);
 
     actual_write_pos = (actual_write_pos + 1) & 0xf;
+//    System.out.println("actual_write_pos="+actual_write_pos);
     // actual_v = (actual_v == v1) ? v2 : v1;
 
     if (vidx == 1) {

@@ -70,6 +70,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   private float[] out_1d; // 576 samples
   @LOC("OUT")
   private float[][] prevblck;
+
   @LOC("LR")
   private float[][] k;
   @LOC("NZ")
@@ -112,9 +113,14 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LOC("INIT")
   private boolean initialized = false;
 
+  @LOC("OUT")
+  float[][] raw_full; // 18 left shfited since it will be copied into prevblck!
+
   // constructor for the linear type system
   public LayerIIIDecoder(Header h, @DELEGATE @LOC("VAR") SynthesisFilter filtera,
       @DELEGATE @LOC("VAR") SynthesisFilter filterb, @LOC("VAR") int which_ch0) {
+
+    raw_full = new float[2][SBLIMIT * SSLIMIT];
 
     filter1 = filtera;
     filter2 = filterb;
@@ -472,6 +478,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     SSJAVA.arrayinit(inter, 0);
     SSJAVA.arrayinit(k, 2, SBLIMIT * SSLIMIT, 0);
     SSJAVA.arrayinit(is_1d, 0);
+    SSJAVA.arrayinit(tsOutCopy, 0);
     CheckSumHuff = 0;
     // prevblck = new float[2][SBLIMIT * SSLIMIT];
     si = new III_side_info_t();
@@ -497,6 +504,16 @@ final class LayerIIIDecoder implements FrameDecoder {
     br = header.getBitReserve();
 
     @LOC("THIS,LayerIIIDecoder.HD1") int version = header.version();
+
+    // additional codes for the definitely written property
+    filter1.vidx = 1;
+    filter2.vidx = 1;
+    // filter1.actual_write_pos=0;
+    // filter2.actual_write_pos=0;
+    //
+
+    // System.out.println("filter1="+filter1.vidx+" "+filter1.actual_write_pos);
+    // System.out.println("filter1="+filter2.vidx+" "+filter2.actual_write_pos);
 
     // here 'gr' and 'max_gr' should be higher than 'ch','channels', and more
     for (gr = 0; gr < max_gr; gr++) { // two granules per channel
@@ -594,9 +611,21 @@ final class LayerIIIDecoder implements FrameDecoder {
             filter2.input_samples(samples2);
             filter2.calculate_pcm_samples();
           }
-
         }
+
       } // channels
+
+      // TODO
+      // init prev
+      SSJAVA.arrayinit(prevblck, 2, SBLIMIT * SSLIMIT, 0);
+      // copy from raw_full to prev
+      SSJAVA.arraycopy(prevblck, raw_full, 2, SBLIMIT * SSLIMIT);
+      // for (int chidx = 0; chidx < 2; chidx++) {
+      // for (int sidx = 0; sidx < SBLIMIT * SSLIMIT; sidx++) {
+      // prevblck[chidx][sidx] = raw_full[chidx][sidx];
+      // }
+      // }
+
     } // granule
 
     // System.out.println("Counter = ................................."+counter);
@@ -1834,41 +1863,80 @@ final class LayerIIIDecoder implements FrameDecoder {
 
       // overlap addition
       out_1d[0 + sb18] = rawout[0] + prevblck[ch][sb18 + 0];
-      prevblck[ch][sb18 + 0] = rawout[18];
       out_1d[1 + sb18] = rawout[1] + prevblck[ch][sb18 + 1];
-      prevblck[ch][sb18 + 1] = rawout[19];
       out_1d[2 + sb18] = rawout[2] + prevblck[ch][sb18 + 2];
-      prevblck[ch][sb18 + 2] = rawout[20];
       out_1d[3 + sb18] = rawout[3] + prevblck[ch][sb18 + 3];
-      prevblck[ch][sb18 + 3] = rawout[21];
       out_1d[4 + sb18] = rawout[4] + prevblck[ch][sb18 + 4];
-      prevblck[ch][sb18 + 4] = rawout[22];
       out_1d[5 + sb18] = rawout[5] + prevblck[ch][sb18 + 5];
-      prevblck[ch][sb18 + 5] = rawout[23];
       out_1d[6 + sb18] = rawout[6] + prevblck[ch][sb18 + 6];
-      prevblck[ch][sb18 + 6] = rawout[24];
       out_1d[7 + sb18] = rawout[7] + prevblck[ch][sb18 + 7];
-      prevblck[ch][sb18 + 7] = rawout[25];
       out_1d[8 + sb18] = rawout[8] + prevblck[ch][sb18 + 8];
-      prevblck[ch][sb18 + 8] = rawout[26];
       out_1d[9 + sb18] = rawout[9] + prevblck[ch][sb18 + 9];
-      prevblck[ch][sb18 + 9] = rawout[27];
       out_1d[10 + sb18] = rawout[10] + prevblck[ch][sb18 + 10];
-      prevblck[ch][sb18 + 10] = rawout[28];
       out_1d[11 + sb18] = rawout[11] + prevblck[ch][sb18 + 11];
-      prevblck[ch][sb18 + 11] = rawout[29];
       out_1d[12 + sb18] = rawout[12] + prevblck[ch][sb18 + 12];
-      prevblck[ch][sb18 + 12] = rawout[30];
       out_1d[13 + sb18] = rawout[13] + prevblck[ch][sb18 + 13];
-      prevblck[ch][sb18 + 13] = rawout[31];
       out_1d[14 + sb18] = rawout[14] + prevblck[ch][sb18 + 14];
-      prevblck[ch][sb18 + 14] = rawout[32];
       out_1d[15 + sb18] = rawout[15] + prevblck[ch][sb18 + 15];
-      prevblck[ch][sb18 + 15] = rawout[33];
       out_1d[16 + sb18] = rawout[16] + prevblck[ch][sb18 + 16];
-      prevblck[ch][sb18 + 16] = rawout[34];
       out_1d[17 + sb18] = rawout[17] + prevblck[ch][sb18 + 17];
-      prevblck[ch][sb18 + 17] = rawout[35];
+      raw_full[ch][sb18 + 0] = rawout[18];
+      raw_full[ch][sb18 + 1] = rawout[19];
+      raw_full[ch][sb18 + 2] = rawout[20];
+      raw_full[ch][sb18 + 3] = rawout[21];
+      raw_full[ch][sb18 + 4] = rawout[22];
+      raw_full[ch][sb18 + 5] = rawout[23];
+      raw_full[ch][sb18 + 6] = rawout[24];
+      raw_full[ch][sb18 + 7] = rawout[25];
+      raw_full[ch][sb18 + 8] = rawout[26];
+      raw_full[ch][sb18 + 9] = rawout[27];
+      raw_full[ch][sb18 + 10] = rawout[28];
+      raw_full[ch][sb18 + 11] = rawout[29];
+      raw_full[ch][sb18 + 12] = rawout[30];
+      raw_full[ch][sb18 + 13] = rawout[31];
+      raw_full[ch][sb18 + 14] = rawout[32];
+      raw_full[ch][sb18 + 15] = rawout[33];
+      raw_full[ch][sb18 + 16] = rawout[34];
+      raw_full[ch][sb18 + 17] = rawout[35];
+
+      // original implementation:
+      // out_1d[0 + sb18] = rawout[0] + prevblck[ch][sb18 + 0];
+      // prevblck[ch][sb18 + 0] = rawout[18];
+      // out_1d[1 + sb18] = rawout[1] + prevblck[ch][sb18 + 1];
+      // prevblck[ch][sb18 + 1] = rawout[19];
+      // out_1d[2 + sb18] = rawout[2] + prevblck[ch][sb18 + 2];
+      // prevblck[ch][sb18 + 2] = rawout[20];
+      // out_1d[3 + sb18] = rawout[3] + prevblck[ch][sb18 + 3];
+      // prevblck[ch][sb18 + 3] = rawout[21];
+      // out_1d[4 + sb18] = rawout[4] + prevblck[ch][sb18 + 4];
+      // prevblck[ch][sb18 + 4] = rawout[22];
+      // out_1d[5 + sb18] = rawout[5] + prevblck[ch][sb18 + 5];
+      // prevblck[ch][sb18 + 5] = rawout[23];
+      // out_1d[6 + sb18] = rawout[6] + prevblck[ch][sb18 + 6];
+      // prevblck[ch][sb18 + 6] = rawout[24];
+      // out_1d[7 + sb18] = rawout[7] + prevblck[ch][sb18 + 7];
+      // prevblck[ch][sb18 + 7] = rawout[25];
+      // out_1d[8 + sb18] = rawout[8] + prevblck[ch][sb18 + 8];
+      // prevblck[ch][sb18 + 8] = rawout[26];
+      // out_1d[9 + sb18] = rawout[9] + prevblck[ch][sb18 + 9];
+      // prevblck[ch][sb18 + 9] = rawout[27];
+      // out_1d[10 + sb18] = rawout[10] + prevblck[ch][sb18 + 10];
+      // prevblck[ch][sb18 + 10] = rawout[28];
+      // out_1d[11 + sb18] = rawout[11] + prevblck[ch][sb18 + 11];
+      // prevblck[ch][sb18 + 11] = rawout[29];
+      // out_1d[12 + sb18] = rawout[12] + prevblck[ch][sb18 + 12];
+      // prevblck[ch][sb18 + 12] = rawout[30];
+      // out_1d[13 + sb18] = rawout[13] + prevblck[ch][sb18 + 13];
+      // prevblck[ch][sb18 + 13] = rawout[31];
+      // out_1d[14 + sb18] = rawout[14] + prevblck[ch][sb18 + 14];
+      // prevblck[ch][sb18 + 14] = rawout[32];
+      // out_1d[15 + sb18] = rawout[15] + prevblck[ch][sb18 + 15];
+      // prevblck[ch][sb18 + 15] = rawout[33];
+      // out_1d[16 + sb18] = rawout[16] + prevblck[ch][sb18 + 16];
+      // prevblck[ch][sb18 + 16] = rawout[34];
+      // out_1d[17 + sb18] = rawout[17] + prevblck[ch][sb18 + 17];
+      // prevblck[ch][sb18 + 17] = rawout[35];
+
     }
   }
 
