@@ -775,6 +775,7 @@ msg:
     return -1;
   }
   if(BAMBOO_CHECK_SEND_MODE()) {
+    BAMBOO_ASSERT((msgdataindex!=msgdatalast)||(!msgdatafull));
     // during send, don't process the msg now
     return -3; 
   }
