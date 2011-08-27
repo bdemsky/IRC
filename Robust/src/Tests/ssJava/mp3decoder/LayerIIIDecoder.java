@@ -47,7 +47,7 @@
 // 10th added for get_scale_factors
 // llth added for decode
 // @LATTICE("IS1D*,RO<IS1D,IS1D<SI2,SI2<SI1,SI<P2S,SF1<CH0,SF0*,SFB_SH<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SI1<SF2,SF2<SFB,SF1<BR,LR*,OUT<LR,LR<RO,NZ*,SI<SF1,SI1<NZ,NZ<SI,SI1<SBI,SBI<SI,BUF<FT,SF1<SF0,SF0<HD1,BR<ST,ST,FT<SP,SP<OUT,OUT<SI1,SI1<SI,P2S<CH0,CH0<MAX0,MAX0<BR1,FS<BR1,BR1<BR,BR<HD1,HD1<HD,OUT*,BR1*,SI1*,MAX0*,CH0*,RAW,TS,F,C,K,LY,VAR,IR,IP,CSH,GLSFD3,GLSFD4,GLSFD5,GLSFF4,GLSFF2,GLSFF3,GLSFF1,GSF4,GSF5,GSF1,GSF2,GSF3,HD2,HD3,BT,GR,RO6,RO5,RO9,RO8,RO7,RO4,RO1,RO3,RO2,SH,ME,TMP2,S,LSF,J")
-@LATTICE("SI0*,INIT*,ISR*,ISP*,HD<CH0,LR<ISR,ISR<ISP,SI1<SF2,NS*,CH0<ST,ST<INIT,IS1D*,RO1<RO,RO1*,RO<IS1D,IS1D<SI2,SI2<SI1,BR<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SF2<SFB,LR*,OUT<LR,ISP<RO1,NZ*,SI<SI0,SI0<SF15,SF15<SF1,BR1<NZ,NZ<BR,SI1<RT,RT<SBI,SBI<SI,BUF<FT,SF1<HD1,SF1<HD1,FT<SP,SP<OUT,OUT<SI1,SI1<SI,SFB_SH<BR1,BR1<BR,HD1<HD,OUT*,BR1*,SI1*,CH0*")
+@LATTICE("SI0*,INIT*,ISR*,ISP*,HD<CH0,LR<ISR,ISR<ISP,SI1<SF2,NS*,CH0<ST,ST<INIT,IS1D*,RO1<RO,RO1*,RO<IS1D,IS1D<SI2,SI2<SI1,BR<NS,NS<SI,SFB_SH*,SFB<SFB_SH,C,C*,SF2<SFB,LR*,TSOUT*,OUT1<PREV,PREV<RAWFULL,RAWFULL<RAWOUT,RAWOUT<TSOUT,TSOUT<OUT0,OUT0<LR,ISP<RO1,NZ*,SI<SI0,SI0<SF15,SF15<SF1,BR1<NZ,NZ<BR,SI1<RT,RT<SBI,SBI<SI,BUF<FT,SF1<HD1,SF1<HD1,FT<SP,SP<OUT1,SI1<SI,SFB_SH<BR1,BR1<BR,HD1<HD,OUT0*,OUT1*,BR1*,SI1*,CH0*")
 @METHODDEFAULT("OUT<V,V<THIS,THIS<SH,SH<IN,SH*,THISLOC=THIS,GLOBALLOC=IN,RETURNLOC=OUT")
 final class LayerIIIDecoder implements FrameDecoder {
   static final double d43 = (4.0 / 3.0);
@@ -64,11 +64,11 @@ final class LayerIIIDecoder implements FrameDecoder {
   private float[][][] ro;
   @LOC("LR")
   private float[][][] lr;
-  @LOC("OUT")
+  @LOC("OUT0")
   private float[] inter; // 576 samples
-  @LOC("OUT")
+  @LOC("OUT1")
   private float[] out_1d; // 576 samples
-  @LOC("OUT")
+  @LOC("PREV")
   private float[][] prevblck;
 
   @LOC("LR")
@@ -113,13 +113,14 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LOC("INIT")
   private boolean initialized = false;
 
-  @LOC("OUT")
+  @LOC("RAWFULL")
   float[][] raw_full; // 18 left shfited since it will be copied into prevblck!
 
   // constructor for the linear type system
   public LayerIIIDecoder(Header h, @DELEGATE @LOC("VAR") SynthesisFilter filtera,
       @DELEGATE @LOC("VAR") SynthesisFilter filterb, @LOC("VAR") int which_ch0) {
 
+    filter_pos = 11;
     raw_full = new float[2][SBLIMIT * SSLIMIT];
 
     filter1 = filtera;
@@ -451,6 +452,8 @@ final class LayerIIIDecoder implements FrameDecoder {
   private float[] samples1 = new float[32];
   @LOC("SP")
   private float[] samples2 = new float[32];
+  @LOC("SI1")
+  private int filter_pos;
 
   /*
    * location hierarchy of decode() {header} {stream} {si} {br, flush_main,
@@ -479,6 +482,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     SSJAVA.arrayinit(k, 2, SBLIMIT * SSLIMIT, 0);
     SSJAVA.arrayinit(is_1d, 0);
     SSJAVA.arrayinit(tsOutCopy, 0);
+    SSJAVA.arrayinit(scalefac_buffer, 0);
     CheckSumHuff = 0;
     // prevblck = new float[2][SBLIMIT * SSLIMIT];
     si = new III_side_info_t();
@@ -506,10 +510,11 @@ final class LayerIIIDecoder implements FrameDecoder {
     @LOC("THIS,LayerIIIDecoder.HD1") int version = header.version();
 
     // additional codes for the definitely written property
+    filter_pos = (filter_pos + 4) & 0xf;
     filter1.vidx = 1;
     filter2.vidx = 1;
-    // filter1.actual_write_pos=0;
-    // filter2.actual_write_pos=0;
+    filter1.actual_write_pos = filter_pos;
+    filter2.actual_write_pos = filter_pos;
     //
 
     // System.out.println("filter1="+filter1.vidx+" "+filter1.actual_write_pos);
@@ -551,10 +556,6 @@ final class LayerIIIDecoder implements FrameDecoder {
       for (ch = first_channel; ch <= last_channel; ch++) { // 'ch' and
                                                            // 'first_channel' >
                                                            // the body
-
-        // in the body
-        // read set= lr,ch,gr,out_1d, sb18, ss, SSLIMIT, out_1d
-        // write set= out_1d
 
         reorder(/* lr[ch], */ch, gr);
         antialias(ch, gr);
@@ -598,6 +599,8 @@ final class LayerIIIDecoder implements FrameDecoder {
               sb++; // sb should be loc*
             }
             filter1.input_samples(samples1);
+            // System.out.println("filter1 writepos=" + filter1.actual_write_pos
+            // + " vidx=" + filter1.vidx);
             filter1.calculate_pcm_samples();
           }
         } else {
@@ -612,7 +615,8 @@ final class LayerIIIDecoder implements FrameDecoder {
             filter2.calculate_pcm_samples();
           }
         }
-
+        // System.out.println("#END CH=" + ch + " actual_write_pos=" +
+        // filter1.actual_write_pos);
       } // channels
 
       // TODO
@@ -625,8 +629,15 @@ final class LayerIIIDecoder implements FrameDecoder {
       // prevblck[chidx][sidx] = raw_full[chidx][sidx];
       // }
       // }
-
+      // System.out.println("#END GR=" + gr + " actual_write_pos=" +
+      // filter1.actual_write_pos);
     } // granule
+
+    // System.out.println("#END FRAME actual_write_pos=" +
+    // filter1.actual_write_pos);
+
+    filter1.clear();
+    filter2.clear();
 
     // System.out.println("Counter = ................................."+counter);
     // if (counter < 609)
@@ -994,9 +1005,9 @@ final class LayerIIIDecoder implements FrameDecoder {
       }
     }
 
-    for (@LOC("THIS,LayerIIIDecoder.NS") int x = 0; x < 45; x++)
-      // why 45, not 54?
-      scalefac_buffer[x] = 0;
+    // for (@LOC("THIS,LayerIIIDecoder.NS") int x = 0; x < 45; x++)
+    // // why 45, not 54?
+    // scalefac_buffer[x] = 0;
 
     m = 0;
     for (@LOC("THIS,LayerIIIDecoder.NS") int i = 0; i < 4; i++) {
@@ -1813,8 +1824,8 @@ final class LayerIIIDecoder implements FrameDecoder {
       for (ss = 0; ss < 8; ss++) {
         @LOC("THIS,LayerIIIDecoder.SI1") int src_idx1 = sb18 + 17 - ss;
         @LOC("THIS,LayerIIIDecoder.SI1") int src_idx2 = sb18 + 18 + ss;
-        @LOC("THIS,LayerIIIDecoder.OUT") float bu = inter[src_idx1];
-        @LOC("THIS,LayerIIIDecoder.OUT") float bd = inter[src_idx2];
+        @LOC("THIS,LayerIIIDecoder.OUT0") float bu = inter[src_idx1];
+        @LOC("THIS,LayerIIIDecoder.OUT0") float bd = inter[src_idx2];
         inter[src_idx1] = (bu * cs[ss]) - (bd * ca[ss]);
         inter[src_idx2] = (bd * cs[ss]) + (bu * ca[ss]);
       }
@@ -1827,9 +1838,9 @@ final class LayerIIIDecoder implements FrameDecoder {
 
   // MDM: tsOutCopy and rawout do not need initializing, so the arrays
   // can be reused.
-  @LOC("OUT")
+  @LOC("TSOUT")
   float[] tsOutCopy = new float[18];
-  @LOC("OUT")
+  @LOC("RAWOUT")
   float[] rawout = new float[36];
 
   @LATTICE("THIS<SB,SB*,THISLOC=THIS")
@@ -1852,13 +1863,17 @@ final class LayerIIIDecoder implements FrameDecoder {
 
       // tsOut = out_1d;
       // Modif E.B 02/22/99
-      for (@LOC("THIS,LayerIIIDecoder.SI1") int cc = 0; cc < 18; cc++)
-        tsOutCopy[cc] = out_1d[cc + sb18];
+      for (@LOC("THIS,LayerIIIDecoder.SI1") int cc = 0; cc < 18; cc++) {
+        // tsOutCopy[cc] = out_1d[cc + sb18];
+        tsOutCopy[cc] = inter[cc + sb18];
+      }
 
       inv_mdct(bt);
 
-      for (@LOC("THIS,LayerIIIDecoder.SI1") int cc = 0; cc < 18; cc++)
+      for (@LOC("THIS,LayerIIIDecoder.SI1") int cc = 0; cc < 18; cc++) {
         out_1d[cc + sb18] = tsOutCopy[cc];
+      }
+
       // Fin Modif
 
       // overlap addition
@@ -1961,28 +1976,28 @@ final class LayerIIIDecoder implements FrameDecoder {
   // @LOC("IN") int block_type) {//remove alias
   // ssjava
   @LATTICE("THIS,THISLOC=THIS")
-  public void inv_mdct(@LOC("THIS,LayerIIIDecoder.OUT") int block_type) {
+  public void inv_mdct(@LOC("THIS,LayerIIIDecoder.TSOUT") int block_type) {
     // float[] win_bt;
-    @LOC("THIS,LayerIIIDecoder.OUT") int i;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") int i;
 
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_0;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_1;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_2;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_3;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_4;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_5;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_6;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_7;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_8;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_9;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_10;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_11;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_12;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_13;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_14;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_15;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_16;
-    @LOC("THIS,LayerIIIDecoder.OUT") float tmpf_17;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_0;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_1;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_2;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_3;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_4;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_5;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_6;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_7;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_8;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_9;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_10;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_11;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_12;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_13;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_14;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_15;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_16;
+    @LOC("THIS,LayerIIIDecoder.TSOUT") float tmpf_17;
 
     tmpf_0 =
         tmpf_1 =
@@ -2047,7 +2062,7 @@ final class LayerIIIDecoder implements FrameDecoder {
       rawout[34] = 0.0f;
       rawout[35] = 0.0f;
 
-      @LOC("THIS,LayerIIIDecoder.OUT") int six_i = 0;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") int six_i = 0;
 
       for (i = 0; i < 3; i++) {
         // 12 point IMDCT
@@ -2064,9 +2079,9 @@ final class LayerIIIDecoder implements FrameDecoder {
         tsOutCopy[9 + i] += tsOutCopy[3 + i];
 
         // 3 point IDCT on even indices
-        @LOC("THIS,LayerIIIDecoder.OUT") float pp1;
-        @LOC("THIS,LayerIIIDecoder.OUT") float pp2;
-        @LOC("THIS,LayerIIIDecoder.OUT") float sum;
+        @LOC("THIS,LayerIIIDecoder.TSOUT") float pp1;
+        @LOC("THIS,LayerIIIDecoder.TSOUT") float pp2;
+        @LOC("THIS,LayerIIIDecoder.TSOUT") float sum;
         pp2 = tsOutCopy[12 + i] * 0.500000000f;
         pp1 = tsOutCopy[6 + i] * 0.866025403f;
         sum = tsOutCopy[0 + i] + pp2;
@@ -2090,7 +2105,7 @@ final class LayerIIIDecoder implements FrameDecoder {
         tmpf_5 *= 0.517638090f;
 
         // Output butterflies on 2 3 point IDCT's (for 6 point IDCT)
-        @LOC("THIS,LayerIIIDecoder.OUT") float save = tmpf_0;
+        @LOC("THIS,LayerIIIDecoder.TSOUT") float save = tmpf_0;
         tmpf_0 += tmpf_5;
         tmpf_5 = save - tmpf_5;
         save = tmpf_1;
@@ -2177,24 +2192,24 @@ final class LayerIIIDecoder implements FrameDecoder {
       tsOutCopy[5] += tsOutCopy[3];
       tsOutCopy[3] += tsOutCopy[1];
 
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp0;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp1;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp2;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp3;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp4;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp0_;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp1_;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp2_;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp3_;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp0o;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp1o;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp2o;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp3o;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp4o;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp0_o;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp1_o;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp2_o;
-      @LOC("THIS,LayerIIIDecoder.OUT") float tmp3_o;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp0;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp1;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp2;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp3;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp4;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp0_;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp1_;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp2_;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp3_;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp0o;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp1o;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp2o;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp3o;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp4o;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp0_o;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp1_o;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp2_o;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float tmp3_o;
 
       // Fast 9 Point Inverse Discrete Cosine Transform
       //
@@ -2211,8 +2226,8 @@ final class LayerIIIDecoder implements FrameDecoder {
       // 9 point IDCT on even indices
 
       // 5 points on odd indices (not realy an IDCT)
-      @LOC("THIS,LayerIIIDecoder.OUT") float i00 = tsOutCopy[0] + tsOutCopy[0];
-      @LOC("THIS,LayerIIIDecoder.OUT") float iip12 = i00 + tsOutCopy[12];
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float i00 = tsOutCopy[0] + tsOutCopy[0];
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float iip12 = i00 + tsOutCopy[12];
 
       tmp0 =
           iip12 + tsOutCopy[4] * 1.8793852415718f + tsOutCopy[8] * 1.532088886238f + tsOutCopy[16]
@@ -2227,7 +2242,7 @@ final class LayerIIIDecoder implements FrameDecoder {
       tmp4 = tsOutCopy[0] - tsOutCopy[4] + tsOutCopy[8] - tsOutCopy[12] + tsOutCopy[16];
 
       // 4 points on even indices
-      @LOC("THIS,LayerIIIDecoder.OUT") float i66_ = tsOutCopy[6] * 1.732050808f; // Sqrt[3]
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float i66_ = tsOutCopy[6] * 1.732050808f; // Sqrt[3]
 
       tmp0_ =
           tsOutCopy[2] * 1.9696155060244f + i66_ + tsOutCopy[10] * 1.2855752193731f + tsOutCopy[14]
@@ -2242,8 +2257,8 @@ final class LayerIIIDecoder implements FrameDecoder {
 
       // 9 point IDCT on odd indices
       // 5 points on odd indices (not realy an IDCT)
-      @LOC("THIS,LayerIIIDecoder.OUT") float i0 = tsOutCopy[0 + 1] + tsOutCopy[0 + 1];
-      @LOC("THIS,LayerIIIDecoder.OUT") float i0p12 = i0 + tsOutCopy[12 + 1];
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float i0 = tsOutCopy[0 + 1] + tsOutCopy[0 + 1];
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float i0p12 = i0 + tsOutCopy[12 + 1];
 
       tmp0o =
           i0p12 + tsOutCopy[4 + 1] * 1.8793852415718f + tsOutCopy[8 + 1] * 1.532088886238f
@@ -2261,7 +2276,7 @@ final class LayerIIIDecoder implements FrameDecoder {
           (tsOutCopy[0 + 1] - tsOutCopy[4 + 1] + tsOutCopy[8 + 1] - tsOutCopy[12 + 1] + tsOutCopy[16 + 1]) * 0.707106781f; // Twiddled
 
       // 4 points on even indices
-      @LOC("THIS,LayerIIIDecoder.OUT") float i6_ = tsOutCopy[6 + 1] * 1.732050808f; // Sqrt[3]
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float i6_ = tsOutCopy[6 + 1] * 1.732050808f; // Sqrt[3]
 
       tmp0_o =
           tsOutCopy[2 + 1] * 1.9696155060244f + i6_ + tsOutCopy[10 + 1] * 1.2855752193731f
@@ -2280,8 +2295,8 @@ final class LayerIIIDecoder implements FrameDecoder {
       // and
       // twiddle factors for 36 point IDCT
 
-      @LOC("THIS,LayerIIIDecoder.OUT") float e;
-      @LOC("THIS,LayerIIIDecoder.OUT") float o;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float e;
+      @LOC("THIS,LayerIIIDecoder.TSOUT") float o;
       e = tmp0 + tmp0_;
       o = (tmp0o + tmp0_o) * 0.501909918f;
       tmpf_0 = e + o;

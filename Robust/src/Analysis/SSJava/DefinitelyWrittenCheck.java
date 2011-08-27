@@ -35,6 +35,8 @@ public class DefinitelyWrittenCheck {
   State state;
   CallGraph callGraph;
 
+  int debugcount = 0;
+
   // maps a descriptor to its known dependents: namely
   // methods or tasks that call the descriptor's method
   // AND are part of this analysis (reachable from main)
@@ -833,6 +835,10 @@ public class DefinitelyWrittenCheck {
 
     writtenAnalysis_analyzeLoop();
 
+    if (debugcount > 0) {
+      throw new Error();
+    }
+
   }
 
   private void writtenAnalysis_analyzeLoop() {
@@ -998,7 +1004,6 @@ public class DefinitelyWrittenCheck {
         // add <hp,statement,false> in which hp is an element of
         // READ_bound set
         // of callee: callee has 'read' requirement!
-
 
         for (Iterator iterator = calleeUnionBoundReadSet.iterator(); iterator.hasNext();) {
           NTuple<Descriptor> read = (NTuple<Descriptor>) iterator.next();
@@ -1174,13 +1179,15 @@ public class DefinitelyWrittenCheck {
         NTuple<Descriptor> write = (NTuple<Descriptor>) iterator.next();
         if (hp.startsWith(write)) {
           // it has write effect!
-          //throw new Error(
-          System.out.println("###"+
-              "There is a variable, which is reachable through references "
+          // throw new Error(
+          System.out
+              .println("###"
+                  + "There is a variable, which is reachable through references "
                   + hp
                   + ", who comes back to the same read statement without being overwritten at the out-most iteration at "
                   + methodContainingSSJavaLoop.getClassDesc().getSourceFileName() + "::"
                   + fn.getNumLine());
+          debugcount++;
         }
       }
     }
@@ -1322,7 +1329,6 @@ public class DefinitelyWrittenCheck {
       }
 
     }
-
 
   }
 

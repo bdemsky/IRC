@@ -102,13 +102,13 @@ public class SSJavaAnalysis {
 
   public void doCheck() {
     doMethodAnnotationCheck();
-    // computeLinearTypeCheckMethodSet();
-    // doLinearTypeCheck();
-    if (state.SSJAVADEBUG) {
-      debugPrint();
-    }
+    computeLinearTypeCheckMethodSet();
+    doLinearTypeCheck();
+    // if (state.SSJAVADEBUG) {
+    // debugPrint();
+    // }
     parseLocationAnnotation();
-    // doFlowDownCheck();
+    doFlowDownCheck();
     doDefinitelyWrittenCheck();
     // debugDoLoopCheck();
   }
