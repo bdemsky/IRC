@@ -31,7 +31,16 @@ public class SharedStatus {
   }
 
   public void removeVar(Location loc, Descriptor d) {
-    getStatus(loc).getFirst().remove(d);
+
+    Set<Descriptor> dSet = getStatus(loc).getFirst();
+    boolean isClared = getStatus(loc).getSecond().booleanValue();
+    dSet.remove(d);
+
+//    if (dSet.isEmpty() && !isClared) {
+      // if status has empty descriptor set and 'false' status, remove it!
+//      mapLocation2Status.remove(loc);
+//    }
+
   }
 
   public String toString() {

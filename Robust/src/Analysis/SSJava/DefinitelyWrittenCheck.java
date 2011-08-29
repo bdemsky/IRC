@@ -15,6 +15,7 @@ import IR.MethodDescriptor;
 import IR.Operation;
 import IR.State;
 import IR.TypeDescriptor;
+import IR.TypeExtension;
 import IR.Flat.FKind;
 import IR.Flat.FlatCall;
 import IR.Flat.FlatElementNode;
@@ -140,8 +141,8 @@ public class DefinitelyWrittenCheck {
     if (!ssjava.getAnnotationRequireSet().isEmpty()) {
       methodReadOverWriteAnalysis();
       writtenAnalyis();
-      // sharedLocationAnalysis();
-      // checkSharedLocationResult();
+      sharedLocationAnalysis();
+      checkSharedLocationResult();
     }
   }
 
@@ -149,8 +150,11 @@ public class DefinitelyWrittenCheck {
 
     // mapping of method containing ssjava loop has the final result of
     // shared location analysis
+
     ClearingSummary result =
-        mapMethodDescriptorToCompleteClearingSummary.get(sortedDescriptors.peekFirst());
+        mapMethodDescriptorToCompleteClearingSummary.get(methodContainingSSJavaLoop);
+
+    System.out.println("###RESULT=" + result);
 
     Set<NTuple<Descriptor>> hpKeySet = result.keySet();
     for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
@@ -161,7 +165,8 @@ public class DefinitelyWrittenCheck {
         Location locKey = (Location) iterator2.next();
         if (!state.getFlag(locKey)) {
           throw new Error(
-              "Some concrete locations of the shared abstract location are not cleared at the same time.");
+              "Some concrete locations of the shared abstract location are not cleared at the same time:"
+                  + state);
         }
       }
     }
@@ -174,9 +179,25 @@ public class DefinitelyWrittenCheck {
 
     computeReadSharedDescriptorSet();
 
+
+    // methodDescriptorsToVisitStack.clear();
+    // methodDescriptorsToVisitStack.add(sortedDescriptors.peekFirst());
+
+    LinkedList<MethodDescriptor> descriptorListToAnalyze =
+        (LinkedList<MethodDescriptor>) sortedDescriptors.clone();
+
+    // current descriptors to visit in fixed-point interprocedural analysis,
+    // prioritized by
+    // dependency in the call graph
     methodDescriptorsToVisitStack.clear();
 
-    methodDescriptorsToVisitStack.add(sortedDescriptors.peekFirst());
+    Set<MethodDescriptor> methodDescriptorToVistSet = new HashSet<MethodDescriptor>();
+    methodDescriptorToVistSet.addAll(descriptorListToAnalyze);
+
+    while (!descriptorListToAnalyze.isEmpty()) {
+      MethodDescriptor md = descriptorListToAnalyze.removeFirst();
+      methodDescriptorsToVisitStack.add(md);
+    }
 
     // analyze scheduled methods until there are no more to visit
     while (!methodDescriptorsToVisitStack.isEmpty()) {
@@ -188,6 +209,12 @@ public class DefinitelyWrittenCheck {
       ClearingSummary prevCompleteSummary = mapMethodDescriptorToCompleteClearingSummary.get(md);
 
       if (!completeSummary.equals(prevCompleteSummary)) {
+
+        ClearingSummary summaryFromCaller = mapMethodDescriptorToInitialClearingSummary.get(md);
+//        System.out.println("# summaryFromCaller=" + summaryFromCaller);
+//        System.out.println("# completeSummary=" + completeSummary);
+//        System.out.println("# prev=" + prevCompleteSummary);
+//        System.out.println("# changed!\n");
 
         mapMethodDescriptorToCompleteClearingSummary.put(md, completeSummary);
 
@@ -319,8 +346,10 @@ public class DefinitelyWrittenCheck {
           mapMethodDescriptorToInitialClearingSummary.get(fm.getMethod());
 
       Set<ClearingSummary> inSet = new HashSet<ClearingSummary>();
-      inSet.add(summaryFromCaller);
-      mergeSharedLocationAnaylsis(curr, inSet);
+      if (summaryFromCaller != null) {
+        inSet.add(summaryFromCaller);
+        mergeSharedLocationAnaylsis(curr, inSet);
+      }
 
     }
       break;
@@ -371,14 +400,23 @@ public class DefinitelyWrittenCheck {
       // read field
       NTuple<Descriptor> srcHeapPath = mapHeapPath.get(rhs);
 
-      // if (srcHeapPath != null) {
-      // // if lhs srcHeapPath is null, it means that it is not reachable from
-      // // callee's parameters. so just ignore it
-      NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
+      if (srcHeapPath != null) {
+        // if lhs srcHeapPath is null, it means that it is not reachable from
+        // callee's parameters. so just ignore it
+        NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
 
-      if (fld.getType().isImmutable()) {
-        readLocation(curr, fldHeapPath, fld);
+        if (fld.getType().isImmutable()) {
+          readLocation(curr, fldHeapPath, fld);
+        }else{
+          fldHeapPath.add(fld);
+          mapHeapPath.put(lhs, fldHeapPath);
+        }
+
+
+        
+
       }
+
       // }
 
     }
@@ -387,15 +425,25 @@ public class DefinitelyWrittenCheck {
     case FKind.FlatSetFieldNode:
     case FKind.FlatSetElementNode: {
 
-      FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
-      lhs = fsfn.getDst();
-      fld = fsfn.getField();
+      if (fn.kind() == FKind.FlatSetFieldNode) {
+        FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
+        lhs = fsfn.getDst();
+        fld = fsfn.getField();
+        rhs = fsfn.getSrc();
+      } else {
+        FlatSetElementNode fsen = (FlatSetElementNode) fn;
+        lhs = fsen.getDst();
+        rhs = fsen.getSrc();
+        TypeDescriptor td = lhs.getType().dereference();
+        fld = getArrayField(td);
+      }
 
       // write(field)
       NTuple<Descriptor> lhsHeapPath = computePath(lhs);
       NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(lhsHeapPath.getList());
       if (fld.getType().isImmutable()) {
         writeLocation(curr, fldHeapPath, fld);
+        fldHeapPath.add(fld);
       } else {
         // updates reference field case:
         // 2. if there exists a tuple t in sharing summary that starts with
@@ -417,46 +465,65 @@ public class DefinitelyWrittenCheck {
 
       FlatCall fc = (FlatCall) fn;
 
-      // find out the set of callees
-      MethodDescriptor mdCallee = fc.getMethod();
-      FlatMethod fmCallee = state.getMethodFlat(mdCallee);
-      Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
-      // TypeDescriptor typeDesc = fc.getThis().getType();
-      setPossibleCallees.addAll(callGraph.getMethods(mdCallee));
+      if (ssjava.isSSJavaUtil(fc.getMethod().getClassDesc())) {
+        // ssjava util case!
+        // have write effects on the first argument
+        NTuple<Descriptor> argHeapPath = computePath(fc.getArg(0));
+        // writeLocation(curr, argHeapPath, fc.getArg(0));
+      } else {
+        // find out the set of callees
+        MethodDescriptor mdCallee = fc.getMethod();
+        FlatMethod fmCallee = state.getMethodFlat(mdCallee);
+        Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
+        // TypeDescriptor typeDesc = fc.getThis().getType();
+        setPossibleCallees.addAll(callGraph.getMethods(mdCallee));
 
-      possibleCalleeCompleteSummarySetToCaller.clear();
+        possibleCalleeCompleteSummarySetToCaller.clear();
 
-      for (Iterator iterator = setPossibleCallees.iterator(); iterator.hasNext();) {
-        MethodDescriptor mdPossibleCallee = (MethodDescriptor) iterator.next();
-        FlatMethod calleeFlatMethod = state.getMethodFlat(mdPossibleCallee);
 
-        addDependent(mdPossibleCallee, // callee
-            caller); // caller
+        for (Iterator iterator = setPossibleCallees.iterator(); iterator.hasNext();) {
+          MethodDescriptor mdPossibleCallee = (MethodDescriptor) iterator.next();
+          FlatMethod calleeFlatMethod = state.getMethodFlat(mdPossibleCallee);
 
-        calleesToEnqueue.add(mdPossibleCallee);
+          addDependent(mdPossibleCallee, // callee
+              caller); // caller
 
-        // updates possible callee's initial summary using caller's current
-        // writing status
-        ClearingSummary prevCalleeInitSummary =
-            mapMethodDescriptorToInitialClearingSummary.get(mdPossibleCallee);
+          calleesToEnqueue.add(mdPossibleCallee);
 
-        ClearingSummary calleeInitSummary =
-            bindHeapPathOfCalleeCallerEffects(fc, calleeFlatMethod, curr);
+          // updates possible callee's initial summary using caller's current
+          // writing status
+          ClearingSummary prevCalleeInitSummary =
+              mapMethodDescriptorToInitialClearingSummary.get(mdPossibleCallee);
 
-        // if changes, update the init summary
-        // and reschedule the callee for analysis
-        if (!calleeInitSummary.equals(prevCalleeInitSummary)) {
+          ClearingSummary calleeInitSummary =
+              bindHeapPathOfCalleeCallerEffects(fc, calleeFlatMethod, curr);
 
-          if (!methodDescriptorsToVisitStack.contains(mdPossibleCallee)) {
-            methodDescriptorsToVisitStack.add(mdPossibleCallee);
+          Set<ClearingSummary> inSet = new HashSet<ClearingSummary>();
+          if (prevCalleeInitSummary != null) {
+            inSet.add(prevCalleeInitSummary);
+            mergeSharedLocationAnaylsis(calleeInitSummary, inSet);
           }
-          mapMethodDescriptorToInitialClearingSummary.put(mdPossibleCallee, calleeInitSummary);
+
+          // if changes, update the init summary
+          // and reschedule the callee for analysis
+          if (!calleeInitSummary.equals(prevCalleeInitSummary)) {
+//            System.out.println("#CALLEE INIT CHANGED=" + mdPossibleCallee);
+//            System.out.println("# prev=" + prevCalleeInitSummary);
+//            System.out.println("# current=" + calleeInitSummary);
+//            System.out.println("#");
+
+            if (!methodDescriptorsToVisitStack.contains(mdPossibleCallee)) {
+              methodDescriptorsToVisitStack.add(mdPossibleCallee);
+            }
+
+            mapMethodDescriptorToInitialClearingSummary.put(mdPossibleCallee, calleeInitSummary);
+          }
+
         }
-
+//        System.out.println("callee " + fc + " summary=" + possibleCalleeCompleteSummarySetToCaller);
+        // contribute callee's writing effects to the caller
+        mergeSharedLocationAnaylsis(curr, possibleCalleeCompleteSummarySetToCaller);
       }
-
-      // contribute callee's writing effects to the caller
-      mergeSharedLocationAnaylsis(curr, possibleCalleeCompleteSummarySetToCaller);
 
     }
       break;
@@ -499,28 +566,39 @@ public class DefinitelyWrittenCheck {
 
     Hashtable<Integer, TempDescriptor> mapParamIdx2ParamTempDesc =
         new Hashtable<Integer, TempDescriptor>();
+    int offset = 0;
+    if (calleeFlatMethod.getMethod().isStatic()) {
+      // static method does not have implicit 'this' arg
+      offset = 1;
+    }
     for (int i = 0; i < calleeFlatMethod.numParameters(); i++) {
       TempDescriptor param = calleeFlatMethod.getParameter(i);
-      mapParamIdx2ParamTempDesc.put(Integer.valueOf(i), param);
+      mapParamIdx2ParamTempDesc.put(Integer.valueOf(i + offset), param);
     }
 
     // binding caller's writing effects to callee's params
     for (int i = 0; i < calleeFlatMethod.numParameters(); i++) {
       NTuple<Descriptor> argHeapPath = mapArgIdx2CallerArgHeapPath.get(Integer.valueOf(i));
-      TempDescriptor calleeParamHeapPath = mapParamIdx2ParamTempDesc.get(Integer.valueOf(i));
 
-      // iterate over caller's writing effect set
-      Set<NTuple<Descriptor>> hpKeySet = curr.keySet();
-      for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
-        NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
-        // current element is reachable caller's arg
-        // so need to bind it to the caller's side and add it to the callee's
-        // init summary
-        if (hpKey.startsWith(argHeapPath)) {
-          NTuple<Descriptor> boundHeapPath = replace(hpKey, argHeapPath, calleeParamHeapPath);
-          boundSet.put(boundHeapPath, curr.get(hpKey).clone());
+      if (argHeapPath != null) {
+        // if method is static, the first argument is nulll because static
+        // method does not have implicit "THIS" arg
+        TempDescriptor calleeParamHeapPath = mapParamIdx2ParamTempDesc.get(Integer.valueOf(i));
+
+        // iterate over caller's writing effect set
+        Set<NTuple<Descriptor>> hpKeySet = curr.keySet();
+        for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
+          NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
+          // current element is reachable caller's arg
+          // so need to bind it to the caller's side and add it to the
+          // callee's
+          // init summary
+          if (hpKey.startsWith(argHeapPath)) {
+            NTuple<Descriptor> boundHeapPath = replace(hpKey, argHeapPath, calleeParamHeapPath);
+            boundSet.put(boundHeapPath, curr.get(hpKey).clone());
+          }
+
         }
-
       }
 
     }
@@ -528,29 +606,37 @@ public class DefinitelyWrittenCheck {
     // contribute callee's complete summary into the caller's current summary
     ClearingSummary calleeCompleteSummary =
         mapMethodDescriptorToCompleteClearingSummary.get(calleeFlatMethod.getMethod());
-
     if (calleeCompleteSummary != null) {
       ClearingSummary boundCalleeEfffects = new ClearingSummary();
       for (int i = 0; i < calleeFlatMethod.numParameters(); i++) {
+        // for (int i = 0; i < fc.numArgs(); i++) {
         NTuple<Descriptor> argHeapPath = mapArgIdx2CallerArgHeapPath.get(Integer.valueOf(i));
-        TempDescriptor calleeParamHeapPath = mapParamIdx2ParamTempDesc.get(Integer.valueOf(i));
 
-        // iterate over callee's writing effect set
-        Set<NTuple<Descriptor>> hpKeySet = calleeCompleteSummary.keySet();
-        for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
-          NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
-          // current element is reachable caller's arg
-          // so need to bind it to the caller's side and add it to the callee's
-          // init summary
-          if (hpKey.startsWith(calleeParamHeapPath)) {
+        if (argHeapPath != null) {
+          // if method is static, the first argument is nulll because static
+          // method does not have implicit "THIS" arg
+          TempDescriptor calleeParamHeapPath = mapParamIdx2ParamTempDesc.get(Integer.valueOf(i));
 
-            NTuple<Descriptor> boundHeapPathForCaller = replace(hpKey, argHeapPath);
+          // iterate over callee's writing effect set
+          Set<NTuple<Descriptor>> hpKeySet = calleeCompleteSummary.keySet();
+          for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
+            NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
+            // current element is reachable caller's arg
+            // so need to bind it to the caller's side and add it to the
+            // callee's
+            // init summary
+            if (hpKey.startsWith(calleeParamHeapPath)) {
 
-            boundCalleeEfffects.put(boundHeapPathForCaller, calleeCompleteSummary.get(hpKey)
-                .clone());
+              NTuple<Descriptor> boundHeapPathForCaller = replace(hpKey, argHeapPath);
 
+              boundCalleeEfffects.put(boundHeapPathForCaller, calleeCompleteSummary.get(hpKey)
+                  .clone());
+
+            }
           }
+
         }
+
       }
       possibleCalleeCompleteSummarySetToCaller.add(boundCalleeEfffects);
     }
@@ -668,30 +754,36 @@ public class DefinitelyWrittenCheck {
         lhs = ffn.getDst();
         rhs = ffn.getSrc();
         fld = ffn.getField();
+        if (fld.isStatic() && fld.isFinal()) {
+          break;
+        }
       } else {
         FlatElementNode fen = (FlatElementNode) fn;
         lhs = fen.getDst();
         rhs = fen.getSrc();
         TypeDescriptor td = rhs.getType().dereference();
         fld = getArrayField(td);
+        if (fld.isStatic() && fld.isFinal()) {
+          break;
+        }
       }
-
-      // FlatFieldNode ffn = (FlatFieldNode) fn;
-      // lhs = ffn.getDst();
-      // rhs = ffn.getSrc();
-      // fld = ffn.getField();
 
       // read field
       NTuple<Descriptor> srcHeapPath = mapHeapPath.get(rhs);
-      NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
-      // fldHeapPath.add(fld);
+      if (srcHeapPath != null) {
+        // if srcHeapPath is null, it means that it is not reachable from
+        // callee's parameters. so just ignore it
 
-      if (fld.getType().isImmutable()) {
-        addReadDescriptor(fldHeapPath, fld);
+        NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
+        // fldHeapPath.add(fld);
+
+        if (fld.getType().isImmutable()) {
+          addReadDescriptor(fldHeapPath, fld);
+        }
+
+        // propagate rhs's heap path to the lhs
+        mapHeapPath.put(lhs, fldHeapPath);
       }
-
-      // propagate rhs's heap path to the lhs
-      mapHeapPath.put(lhs, fldHeapPath);
 
     }
       break;
@@ -699,9 +791,17 @@ public class DefinitelyWrittenCheck {
     case FKind.FlatSetFieldNode:
     case FKind.FlatSetElementNode: {
 
-      FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
-      lhs = fsfn.getDst();
-      fld = fsfn.getField();
+      if (fn.kind() == FKind.FlatSetFieldNode) {
+        FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
+        lhs = fsfn.getDst();
+        fld = fsfn.getField();
+      } else {
+        FlatSetElementNode fsen = (FlatSetElementNode) fn;
+        lhs = fsen.getDst();
+        rhs = fsen.getSrc();
+        TypeDescriptor td = lhs.getType().dereference();
+        fld = getArrayField(td);
+      }
 
       // write(field)
       NTuple<Descriptor> lhsHeapPath = computePath(lhs);
@@ -725,15 +825,14 @@ public class DefinitelyWrittenCheck {
   private void addReadDescriptor(NTuple<Descriptor> hp, Descriptor d) {
 
     Location loc = getLocation(d);
-
     if (loc != null && ssjava.isSharedLocation(loc)) {
-
       Set<Descriptor> set = mapSharedLocation2DescriptorSet.get(loc);
       if (set == null) {
         set = new HashSet<Descriptor>();
         mapSharedLocation2DescriptorSet.put(loc, set);
       }
       set.add(d);
+
     }
 
   }
@@ -744,20 +843,27 @@ public class DefinitelyWrittenCheck {
       return (Location) ((FieldDescriptor) d).getType().getExtension();
     } else {
       assert d instanceof TempDescriptor;
-      CompositeLocation comp = (CompositeLocation) ((TempDescriptor) d).getType().getExtension();
-      if (comp == null) {
-        return null;
-      } else {
-        return comp.get(comp.getSize() - 1);
+      TempDescriptor td = (TempDescriptor) d;
+
+      TypeExtension te = td.getType().getExtension();
+      if (te != null) {
+        if (te instanceof CompositeLocation) {
+          CompositeLocation comp = (CompositeLocation) te;
+
+          return comp.get(comp.getSize() - 1);
+        } else {
+          return (Location) te;
+        }
       }
     }
 
+    return null;
   }
 
   private void writeLocation(ClearingSummary curr, NTuple<Descriptor> hp, Descriptor d) {
+
     Location loc = getLocation(d);
     if (loc != null && hasReadingEffectOnSharedLocation(hp, loc, d)) {
-
       // 1. add field x to the clearing set
       SharedStatus state = getState(curr, hp);
       state.addVar(loc, d);
@@ -1509,7 +1615,6 @@ public class DefinitelyWrittenCheck {
   }
 
   private void mergeSharedLocationAnaylsis(ClearingSummary curr, Set<ClearingSummary> inSet) {
-
     if (inSet.size() == 0) {
       return;
     }
@@ -1526,7 +1631,6 @@ public class DefinitelyWrittenCheck {
       for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
         NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
         SharedStatus inState = inTable.get(hpKey);
-
         SharedStatus currState = curr.get(hpKey);
         if (currState == null) {
           currState = new SharedStatus();

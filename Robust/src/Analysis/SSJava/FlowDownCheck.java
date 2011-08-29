@@ -292,7 +292,6 @@ public class FlowDownCheck {
   private void checkDeclarationInMethodBody(ClassDescriptor cd, MethodDescriptor md) {
     BlockNode bn = state.getMethodBody(md);
 
-    System.out.println("\n#checkDeclarationInMethodBody=" + md);
 
     // first, check annotations on method parameters
     List<CompositeLocation> paramList = new ArrayList<CompositeLocation>();
@@ -347,8 +346,8 @@ public class FlowDownCheck {
       CompositeLocation thisLoc = new CompositeLocation(new Location(md, thisLocId));
       paramList.add(0, thisLoc);
 
-      System.out.println("### ReturnLocGenerator=" + md);
-      System.out.println("### md2ReturnLoc.get(md)=" + md2ReturnLoc.get(md));
+//      System.out.println("### ReturnLocGenerator=" + md);
+//      System.out.println("### md2ReturnLoc.get(md)=" + md2ReturnLoc.get(md));
 
       md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), md, paramList, md
           + " of " + cd.getSourceFileName()));
@@ -875,8 +874,8 @@ public class FlowDownCheck {
 
       }
 
-      System.out.println("\n#checkLocationFromMethodInvokeNode=" + min.printNode(0)
-          + " baseLocation=" + baseLocation + " constraint=" + constraint);
+//      System.out.println("\n#checkLocationFromMethodInvokeNode=" + min.printNode(0)
+//          + " baseLocation=" + baseLocation + " constraint=" + constraint);
 
       if (constraint != null) {
         int compareResult =
@@ -890,8 +889,8 @@ public class FlowDownCheck {
           // no need to check constraints!
           CompositeLocation calleeConstraint =
               translateCallerLocToCalleeLoc(calleeMD, baseLocation, constraint);
-          System.out.println("check method body for constraint:" + calleeMD + " calleeConstraint="
-              + calleeConstraint);
+//          System.out.println("check method body for constraint:" + calleeMD + " calleeConstraint="
+//              + calleeConstraint);
           checkMethodBody(calleeMD.getClassDesc(), calleeMD, calleeConstraint);
         }
       }
@@ -965,8 +964,8 @@ public class FlowDownCheck {
 
     String errorMsg = generateErrorMessage(md.getClassDesc(), min);
 
-    System.out.println("checkCallerArgumentLocationConstraints=" + min.printNode(0));
-    System.out.println("base location=" + callerBaseLoc + " constraint=" + constraint);
+//    System.out.println("checkCallerArgumentLocationConstraints=" + min.printNode(0));
+//    System.out.println("base location=" + callerBaseLoc + " constraint=" + constraint);
 
     for (int i = 0; i < calleeParamList.size(); i++) {
       CompositeLocation calleeParamLoc = calleeParamList.get(i);
@@ -1011,7 +1010,7 @@ public class FlowDownCheck {
       translate.addLocation(calleeParamLoc.get(i));
     }
 
-    System.out.println("TRANSLATED=" + translate + " from calleeParamLoc=" + calleeParamLoc);
+//    System.out.println("TRANSLATED=" + translate + " from calleeParamLoc=" + calleeParamLoc);
 
     return translate;
   }
@@ -1032,9 +1031,9 @@ public class FlowDownCheck {
       argList.add(callerArg);
     }
 
-    System.out.println("\n## computeReturnLocation=" + min.getMethod() + " argList=" + argList);
+//    System.out.println("\n## computeReturnLocation=" + min.getMethod() + " argList=" + argList);
     CompositeLocation ceilLoc = md2ReturnLocGen.get(min.getMethod()).computeReturnLocation(argList);
-    System.out.println("## ReturnLocation=" + ceilLoc);
+//    System.out.println("## ReturnLocation=" + ceilLoc);
 
     return ceilLoc;
 
@@ -1043,7 +1042,7 @@ public class FlowDownCheck {
   private void checkCalleeConstraints(MethodDescriptor md, SymbolTable nametable,
       MethodInvokeNode min, CompositeLocation callerBaseLoc, CompositeLocation constraint) {
 
-    System.out.println("checkCalleeConstraints=" + min.printNode(0));
+//    System.out.println("checkCalleeConstraints=" + min.printNode(0));
 
     MethodDescriptor calleemd = min.getMethod();
 
@@ -1077,7 +1076,7 @@ public class FlowDownCheck {
       for (int i = 0; i < calleemd.numParameters(); i++) {
         VarDescriptor calleevd = (VarDescriptor) calleemd.getParameter(i);
         CompositeLocation calleeLoc = d2loc.get(calleevd);
-        System.out.println("calleevd=" + calleevd + " loc=" + calleeLoc);
+//        System.out.println("calleevd=" + calleevd + " loc=" + calleeLoc);
         calleeParamList.add(calleeLoc);
       }
 
@@ -1097,8 +1096,8 @@ public class FlowDownCheck {
               continue CHECK;
             }
 
-            System.out.println("calleeLoc1=" + calleeLoc1);
-            System.out.println("calleeLoc2=" + calleeLoc2 + "calleeParamList=" + calleeParamList);
+//            System.out.println("calleeLoc1=" + calleeLoc1);
+//            System.out.println("calleeLoc2=" + calleeLoc2 + "calleeParamList=" + calleeParamList);
 
             int callerResult =
                 CompositeLattice.compare(callerLoc1, callerLoc2, true,
@@ -1197,11 +1196,11 @@ public class FlowDownCheck {
       // addTypeLocation(on.getRight().getType(), rightLoc);
     }
 
-    System.out.println("\n# OP NODE=" + on.printNode(0));
-    System.out.println("# left loc=" + leftLoc + " from " + on.getLeft().getClass());
-    if (on.getRight() != null) {
-      System.out.println("# right loc=" + rightLoc + " from " + on.getRight().getClass());
-    }
+//    System.out.println("\n# OP NODE=" + on.printNode(0));
+//    System.out.println("# left loc=" + leftLoc + " from " + on.getLeft().getClass());
+//    if (on.getRight() != null) {
+//      System.out.println("# right loc=" + rightLoc + " from " + on.getRight().getClass());
+//    }
 
     Operation op = on.getOp();
 
@@ -1240,7 +1239,7 @@ public class FlowDownCheck {
       inputSet.add(rightLoc);
       CompositeLocation glbCompLoc =
           CompositeLattice.calculateGLB(inputSet, generateErrorMessage(cd, on));
-      System.out.println("# glbCompLoc=" + glbCompLoc);
+//      System.out.println("# glbCompLoc=" + glbCompLoc);
       return glbCompLoc;
 
     default:
@@ -1363,26 +1362,25 @@ public class FlowDownCheck {
     }
 
     if (left instanceof ArrayAccessNode) {
-      System.out.println("HEREE!!");
       ArrayAccessNode aan = (ArrayAccessNode) left;
       left = aan.getExpression();
     }
 
     loc = checkLocationFromExpressionNode(md, nametable, left, loc, constraint, false);
-    System.out.println("### checkLocationFromFieldAccessNode=" + fan.printNode(0));
-    System.out.println("### left=" + left.printNode(0));
+//    System.out.println("### checkLocationFromFieldAccessNode=" + fan.printNode(0));
+//    System.out.println("### left=" + left.printNode(0));
     if (!left.getType().isPrimitive()) {
       Location fieldLoc = getFieldLocation(fd);
       loc.addLocation(fieldLoc);
     }
-    System.out.println("### field loc=" + loc);
+//    System.out.println("### field loc=" + loc);
     return loc;
   }
 
   private Location getFieldLocation(FieldDescriptor fd) {
 
-    System.out.println("### getFieldLocation=" + fd);
-    System.out.println("### fd.getType().getExtension()=" + fd.getType().getExtension());
+//    System.out.println("### getFieldLocation=" + fd);
+//    System.out.println("### fd.getType().getExtension()=" + fd.getType().getExtension());
 
     Location fieldLoc = (Location) fd.getType().getExtension();
 
@@ -1399,7 +1397,7 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromAssignmentNode(MethodDescriptor md,
       SymbolTable nametable, AssignmentNode an, CompositeLocation loc, CompositeLocation constraint) {
 
-    System.out.println("\n# ASSIGNMENTNODE=" + an.printNode(0));
+//    System.out.println("\n# ASSIGNMENTNODE=" + an.printNode(0));
 
     ClassDescriptor cd = md.getClassDesc();
 
@@ -1435,10 +1433,10 @@ public class FlowDownCheck {
       }
       // }
 
-      System.out.println("dstLocation=" + destLocation);
-      System.out.println("rhsLocation=" + rhsLocation);
-      System.out.println("srcLocation=" + srcLocation);
-      System.out.println("constraint=" + constraint);
+//      System.out.println("dstLocation=" + destLocation);
+//      System.out.println("rhsLocation=" + rhsLocation);
+//      System.out.println("srcLocation=" + srcLocation);
+//      System.out.println("constraint=" + constraint);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
 
@@ -1466,9 +1464,9 @@ public class FlowDownCheck {
         srcLocation = rhsLocation;
       }
 
-      System.out.println("srcLocation=" + srcLocation);
-      System.out.println("rhsLocation=" + rhsLocation);
-      System.out.println("constraint=" + constraint);
+//      System.out.println("srcLocation=" + srcLocation);
+//      System.out.println("rhsLocation=" + rhsLocation);
+//      System.out.println("constraint=" + constraint);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
 
@@ -1564,7 +1562,7 @@ public class FlowDownCheck {
     Descriptor d = state.getClassSymbolTable().get(className);
 
     if (d == null) {
-      System.out.println("state.getClassSymbolTable()=" + state.getClassSymbolTable());
+//      System.out.println("state.getClassSymbolTable()=" + state.getClassSymbolTable());
       throw new Error("The class in the location declaration '" + decl + "' does not exist at "
           + msg);
     }
@@ -1600,7 +1598,6 @@ public class FlowDownCheck {
     SSJavaLattice<String> localLattice = CompositeLattice.getLatticeByDescriptor(md);
     Location localLoc = new Location(md, localLocId);
     if (localLattice == null || (!localLattice.containsKey(localLocId))) {
-      System.out.println("locDec=" + locDec);
       throw new Error("Location " + localLocId
           + " is not defined in the local variable lattice at "
           + md.getClassDesc().getSourceFileName() + "::" + (n != null ? n.getNumLine() : md) + ".");
@@ -1702,7 +1699,7 @@ public class FlowDownCheck {
 
     public static boolean isGreaterThan(CompositeLocation loc1, CompositeLocation loc2, String msg) {
 
-      System.out.println("\nisGreaterThan=" + loc1 + " " + loc2 + " msg=" + msg);
+//      System.out.println("\nisGreaterThan=" + loc1 + " " + loc2 + " msg=" + msg);
       int baseCompareResult = compareBaseLocationSet(loc1, loc2, true, false, msg);
       if (baseCompareResult == ComparisonResult.EQUAL) {
         if (compareDelta(loc1, loc2) == ComparisonResult.GREATER) {
@@ -1721,7 +1718,7 @@ public class FlowDownCheck {
     public static int compare(CompositeLocation loc1, CompositeLocation loc2, boolean ignore,
         String msg) {
 
-      System.out.println("compare=" + loc1 + " " + loc2);
+//      System.out.println("compare=" + loc1 + " " + loc2);
       int baseCompareResult = compareBaseLocationSet(loc1, loc2, false, ignore, msg);
 
       if (baseCompareResult == ComparisonResult.EQUAL) {
@@ -1838,7 +1835,7 @@ public class FlowDownCheck {
 
     public static CompositeLocation calculateGLB(Set<CompositeLocation> inputSet, String errMsg) {
 
-      System.out.println("Calculating GLB=" + inputSet);
+//      System.out.println("Calculating GLB=" + inputSet);
       CompositeLocation glbCompLoc = new CompositeLocation();
 
       // calculate GLB of the first(priority) element
@@ -1970,7 +1967,7 @@ public class FlowDownCheck {
         }
       }
 
-      System.out.println("GLB=" + glbCompLoc);
+//      System.out.println("GLB=" + glbCompLoc);
       return glbCompLoc;
 
     }
