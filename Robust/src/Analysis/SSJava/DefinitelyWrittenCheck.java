@@ -84,13 +84,17 @@ public class DefinitelyWrittenCheck {
 
   // maps shared location to the set of descriptors which belong to the shared
   // location
-  private Hashtable<Location, Set<Descriptor>> mapSharedLocation2DescriptorSet;
 
   // keep current descriptors to visit in fixed-point interprocedural analysis,
   private Stack<MethodDescriptor> methodDescriptorsToVisitStack;
 
   // when analyzing flatcall, need to re-schedule set of callee
   private Set<MethodDescriptor> calleesToEnqueue;
+
+  // maps heap path to the mapping of a shared location and the set of reading
+  // descriptors
+  // it is for setting clearance flag when all read set is overwritten
+  private Hashtable<NTuple<Descriptor>, Hashtable<Location, Set<Descriptor>>> mapHeapPathToLocSharedDescReadSet;
 
   public static final String arrayElementFieldName = "___element_";
   static protected Hashtable<TypeDescriptor, FieldDescriptor> mapTypeToArrayField;
@@ -131,13 +135,14 @@ public class DefinitelyWrittenCheck {
         new Hashtable<MethodDescriptor, ClearingSummary>();
     this.mapMethodDescriptorToInitialClearingSummary =
         new Hashtable<MethodDescriptor, ClearingSummary>();
-    this.mapSharedLocation2DescriptorSet = new Hashtable<Location, Set<Descriptor>>();
     this.methodDescriptorsToVisitStack = new Stack<MethodDescriptor>();
     this.calleesToEnqueue = new HashSet<MethodDescriptor>();
     this.possibleCalleeCompleteSummarySetToCaller = new HashSet<ClearingSummary>();
     this.mapTypeToArrayField = new Hashtable<TypeDescriptor, FieldDescriptor>();
     this.LOCAL = new TempDescriptor("LOCAL");
     this.mapDescToLocation = new Hashtable<Descriptor, Location>();
+    this.mapHeapPathToLocSharedDescReadSet =
+        new Hashtable<NTuple<Descriptor>, Hashtable<Location, Set<Descriptor>>>();
   }
 
   public void definitelyWrittenCheck() {
@@ -157,6 +162,8 @@ public class DefinitelyWrittenCheck {
     ClearingSummary result =
         mapMethodDescriptorToCompleteClearingSummary.get(methodContainingSSJavaLoop);
 
+    System.out.println("\n\n#RESULT=" + result);
+
     Set<NTuple<Descriptor>> hpKeySet = result.keySet();
     for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
       NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
@@ -165,9 +172,30 @@ public class DefinitelyWrittenCheck {
       for (Iterator iterator2 = locKeySet.iterator(); iterator2.hasNext();) {
         Location locKey = (Location) iterator2.next();
         if (!state.getFlag(locKey)) {
+          printNotClearedResult(result);
           throw new Error(
-              "Some concrete locations of the shared abstract location are not cleared at the same time:"
-                  + state);
+              "Some concrete locations of the shared abstract location are not cleared at the same time:");
+        }
+      }
+    }
+
+  }
+
+  private void printNotClearedResult(ClearingSummary result) {
+    Set<NTuple<Descriptor>> keySet = result.keySet();
+
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
+      SharedStatus status = result.get(hpKey);
+      Hashtable<Location, Pair<Set<Descriptor>, Boolean>> map = status.getMap();
+      Set<Location> locKeySet = map.keySet();
+      for (Iterator iterator2 = locKeySet.iterator(); iterator2.hasNext();) {
+        Location locKey = (Location) iterator2.next();
+        Pair<Set<Descriptor>, Boolean> pair = map.get(locKey);
+        if (!pair.getSecond().booleanValue()) {
+          // not cleared!
+          System.out.println("Concrete locations of the shared location '" + locKey
+              + "' are not cleared out, which are reachable through the heap path '" + hpKey + "'");
         }
       }
     }
@@ -179,6 +207,9 @@ public class DefinitelyWrittenCheck {
     // the same time once per the out-most loop
 
     computeReadSharedDescriptorSet();
+
+    System.out.println("###");
+    System.out.println("READ SHARED=" + mapHeapPathToLocSharedDescReadSet);
 
     // methodDescriptorsToVisitStack.clear();
     // methodDescriptorsToVisitStack.add(sortedDescriptors.peekFirst());
@@ -249,7 +280,7 @@ public class DefinitelyWrittenCheck {
       boolean onlyVisitSSJavaLoop) {
 
     if (state.SSJAVADEBUG) {
-      System.out.println("Definitely written for shared locations Analyzing: " + md + " "
+      System.out.println("Definite clearance for shared locations Analyzing: " + md + " "
           + onlyVisitSSJavaLoop);
     }
 
@@ -833,23 +864,37 @@ public class DefinitelyWrittenCheck {
   }
 
   private boolean hasReadingEffectOnSharedLocation(NTuple<Descriptor> hp, Location loc, Descriptor d) {
-    if (!mapSharedLocation2DescriptorSet.containsKey(loc)) {
+
+    Hashtable<Location, Set<Descriptor>> mapLocToDescSet =
+        mapHeapPathToLocSharedDescReadSet.get(hp);
+    if (mapLocToDescSet == null) {
       return false;
     } else {
-      return mapSharedLocation2DescriptorSet.get(loc).contains(d);
+      Set<Descriptor> setDesc = mapLocToDescSet.get(loc);
+      if (setDesc == null) {
+        return false;
+      } else {
+        return setDesc.contains(d);
+      }
     }
+
   }
 
   private void addReadDescriptor(NTuple<Descriptor> hp, Location loc, Descriptor d) {
 
-    // Location loc = getLocation(d);
     if (loc != null && ssjava.isSharedLocation(loc)) {
-      Set<Descriptor> set = mapSharedLocation2DescriptorSet.get(loc);
-      if (set == null) {
-        set = new HashSet<Descriptor>();
-        mapSharedLocation2DescriptorSet.put(loc, set);
+      Hashtable<Location, Set<Descriptor>> mapLocToDescSet =
+          mapHeapPathToLocSharedDescReadSet.get(hp);
+      if (mapLocToDescSet == null) {
+        mapLocToDescSet = new Hashtable<Location, Set<Descriptor>>();
+        mapHeapPathToLocSharedDescReadSet.put(hp, mapLocToDescSet);
       }
-      set.add(d);
+      Set<Descriptor> descSet = mapLocToDescSet.get(loc);
+      if (descSet == null) {
+        descSet = new HashSet<Descriptor>();
+        mapLocToDescSet.put(loc, descSet);
+      }
+      descSet.add(d);
     }
 
   }
@@ -884,6 +929,7 @@ public class DefinitelyWrittenCheck {
 
     Location loc = getLocation(d);
     // System.out.println("# WRITE LOC hp=" + hp + " d=" + d);
+
     if (loc != null && hasReadingEffectOnSharedLocation(hp, loc, d)) {
       // 1. add field x to the clearing set
       SharedStatus state = getState(curr, hp);
@@ -891,13 +937,30 @@ public class DefinitelyWrittenCheck {
 
       // 3. if the set v contains all of variables belonging to the shared
       // location, set flag to true
-      Set<Descriptor> sharedVarSet = mapSharedLocation2DescriptorSet.get(loc);
-      if (state.getVarSet(loc).containsAll(sharedVarSet)) {
+      if (overwrittenAllSharedConcreteLocation(hp, loc, state.getVarSet(loc))) {
         state.updateFlag(loc, true);
       }
     }
     // System.out.println("# WRITE CURR=" + curr);
 
+  }
+
+  private boolean overwrittenAllSharedConcreteLocation(NTuple<Descriptor> hp, Location loc,
+      Set<Descriptor> writtenSet) {
+
+    Hashtable<Location, Set<Descriptor>> mapLocToDescSet =
+        mapHeapPathToLocSharedDescReadSet.get(hp);
+
+    if (mapLocToDescSet != null) {
+      Set<Descriptor> descSet = mapLocToDescSet.get(loc);
+      if (writtenSet.containsAll(descSet)) {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
   }
 
   private void readLocation(ClearingSummary curr, NTuple<Descriptor> hp, Descriptor d) {
