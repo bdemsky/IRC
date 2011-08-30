@@ -33,7 +33,7 @@
 /**
  * Class for extracting information from a frame header.
  */
-@LATTICE("HI<HNS,HNS<H,C<H,NS<FS,FS<H,FS<HV,H<SYNC,HV<SYNC,H<T,HV<T,SYNC*,HV*,FS*,HI*")
+@LATTICE("HI<HNS,HNS<H,C<H,NS<FS,FS<H,FS<HV,H<SYNC,HV<SYNC,H<T,HV<T,SYNC*,HV,FS*,HI*")
 @METHODDEFAULT("THIS<IN,THISLOC=THIS,GLOBALLOC=THIS,RETURNLOC=THIS")
 public final class Header {
 

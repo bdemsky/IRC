@@ -119,11 +119,14 @@ public class Player {
 
     @LOC("IN") int count = 0;
     SSJAVA: while (count++ < 2147483646) {
+      if (h == null) {
+        break;
+      }
       ret = decodeFrame(init, h);
-      init = false;
       if (!ret) {
         break;
       }
+      h = BitstreamWrapper.readFrame();
     }
 
     /*
@@ -189,12 +192,10 @@ public class Player {
       // return false;
 
       // Header h = bitstream.readFrame();
-      if (!init) {
-        h = BitstreamWrapper.readFrame();
-      }
 
-      if (h == null)
-        return false;
+      // if (h == null){
+      // return false;
+      // }
 
       // @LOC("O") SampleBuffer output = (SampleBuffer) decoder.decodeFrame(h);
       decoder.decodeFrame(h);

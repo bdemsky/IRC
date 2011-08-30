@@ -13,8 +13,12 @@ public class SharedStatus {
   // maps location to its current writing var set and flag
   Hashtable<Location, Pair<Set<Descriptor>, Boolean>> mapLocation2Status;
 
+  // set of location having write effects
+  public HashSet<Location> writeLocSet;
+
   public SharedStatus() {
     mapLocation2Status = new Hashtable<Location, Pair<Set<Descriptor>, Boolean>>();
+    writeLocSet = new HashSet<Location>();
   }
 
   private Pair<Set<Descriptor>, Boolean> getStatus(Location loc) {
@@ -30,16 +34,14 @@ public class SharedStatus {
     getStatus(loc).getFirst().add(d);
   }
 
+  public void setWriteEffect(Location loc) {
+    writeLocSet.add(loc);
+  }
+
   public void removeVar(Location loc, Descriptor d) {
 
     Set<Descriptor> dSet = getStatus(loc).getFirst();
-    boolean isClared = getStatus(loc).getSecond().booleanValue();
     dSet.remove(d);
-
-//    if (dSet.isEmpty() && !isClared) {
-      // if status has empty descriptor set and 'false' status, remove it!
-//      mapLocation2Status.remove(loc);
-//    }
 
   }
 
@@ -66,6 +68,16 @@ public class SharedStatus {
       }
       mergeSet(currPair.getFirst(), inPair.getFirst());
     }
+
+    writeLocSet.addAll(inState.getWriteLocSet());
+  }
+
+  public boolean haveWriteEffect(Location loc) {
+    return writeLocSet.contains(loc);
+  }
+
+  public Set<Location> getWriteLocSet() {
+    return writeLocSet;
   }
 
   public void mergeSet(Set<Descriptor> curr, Set<Descriptor> in) {
@@ -126,6 +138,7 @@ public class SharedStatus {
     SharedStatus newState = new SharedStatus();
     newState.mapLocation2Status =
         (Hashtable<Location, Pair<Set<Descriptor>, Boolean>>) mapLocation2Status.clone();
+    newState.writeLocSet=(HashSet<Location>) writeLocSet.clone();
     return newState;
   }
 }

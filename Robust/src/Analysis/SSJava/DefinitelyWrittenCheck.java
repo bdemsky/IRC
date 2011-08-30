@@ -191,11 +191,14 @@ public class DefinitelyWrittenCheck {
       Set<Location> locKeySet = map.keySet();
       for (Iterator iterator2 = locKeySet.iterator(); iterator2.hasNext();) {
         Location locKey = (Location) iterator2.next();
-        Pair<Set<Descriptor>, Boolean> pair = map.get(locKey);
-        if (!pair.getSecond().booleanValue()) {
-          // not cleared!
-          System.out.println("Concrete locations of the shared location '" + locKey
-              + "' are not cleared out, which are reachable through the heap path '" + hpKey + "'");
+        if (status.haveWriteEffect(locKey)) {
+          Pair<Set<Descriptor>, Boolean> pair = map.get(locKey);
+          if (!pair.getSecond().booleanValue()) {
+            // not cleared!
+            System.out.println("Concrete locations of the shared location '" + locKey
+                + "' are not cleared out, which are reachable through the heap path '" + hpKey
+                + "'");
+          }
         }
       }
     }
@@ -242,6 +245,7 @@ public class DefinitelyWrittenCheck {
       if (!completeSummary.equals(prevCompleteSummary)) {
 
         ClearingSummary summaryFromCaller = mapMethodDescriptorToInitialClearingSummary.get(md);
+        // System.out.println("###");
         // System.out.println("# summaryFromCaller=" + summaryFromCaller);
         // System.out.println("# completeSummary=" + completeSummary);
         // System.out.println("# prev=" + prevCompleteSummary);
@@ -359,6 +363,15 @@ public class DefinitelyWrittenCheck {
       }
     }
     mergeSharedLocationAnaylsis(completeSummary, summarySet);
+
+    if (md.getSymbol().startsWith("decodeFrame")) {
+      System.out.println("#");
+      System.out.println("# method=" + md);
+      System.out.println("XXXXX summarySet=" + summarySet);
+      System.out.println("XXXXX completeSummary=" + completeSummary);
+      System.out.println("#");
+    }
+
     return completeSummary;
   }
 
@@ -398,8 +411,8 @@ public class DefinitelyWrittenCheck {
           rhsHeapPath.add(LOCAL);
           lhsHeapPath.add(LOCAL);
           if (!lhs.getSymbol().startsWith("neverused")) {
-            readLocation(curr, rhsHeapPath, rhs);
-            writeLocation(curr, lhsHeapPath, lhs);
+            readLocation(curr, rhsHeapPath, getLocation(rhs), rhs);
+            writeLocation(curr, lhsHeapPath, getLocation(lhs), lhs);
           }
         }
       }
@@ -431,10 +444,46 @@ public class DefinitelyWrittenCheck {
         // callee's parameters. so just ignore it
         NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
 
+        // if (!fld.getType().isArray() && fld.getType().isImmutable()) {
+        // addReadDescriptor(fldHeapPath, getLocation(fld), fld);
+        // } else {
+        // if (fn.kind() == FKind.FlatFieldNode) {
+        // mapDescToLocation.put(lhs, getLocation(fld));
+        // readLocation(curr, fldHeapPath, getLocation(fld), fld);
+        // } else {
+        // fldHeapPath.add(fld);
+        // }
+        // mapHeapPath.put(lhs, fldHeapPath);
+        // }
+
         if (!fld.getType().isArray() && fld.getType().isImmutable()) {
-          readLocation(curr, fldHeapPath, fld);
+          Location loc;
+          if (fn.kind() == FKind.FlatElementNode) {
+            // array element read case
+            loc = mapDescToLocation.get(rhs);
+            NTuple<Descriptor> newHeapPath = new NTuple<Descriptor>();
+            for (int i = 0; i < fldHeapPath.size() - 1; i++) {
+              newHeapPath.add(fldHeapPath.get(i));
+            }
+
+            Descriptor desc = fldHeapPath.get(fldHeapPath.size() - 1);
+            if (desc instanceof FieldDescriptor) {
+              fld = (FieldDescriptor) desc;
+              fldHeapPath = newHeapPath;
+              readLocation(curr, fldHeapPath, loc, fld);
+            }
+          } else {
+            loc = getLocation(fld);
+            readLocation(curr, fldHeapPath, loc, fld);
+          }
         } else {
-          fldHeapPath.add(fld);
+
+          if (fn.kind() != FKind.FlatElementNode) {
+            // if it is multi dimensional array, do not need to add heap path
+            // because all accesses from the same array is represented by
+            // "_element_"
+            fldHeapPath.add(fld);
+          }
           mapHeapPath.put(lhs, fldHeapPath);
         }
 
@@ -465,19 +514,22 @@ public class DefinitelyWrittenCheck {
       NTuple<Descriptor> lhsHeapPath = computePath(lhs);
       NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(lhsHeapPath.getList());
       if (fld.getType().isImmutable()) {
-        writeLocation(curr, fldHeapPath, fld);
+        writeLocation(curr, fldHeapPath, getLocation(fld), fld);
+
+        Descriptor desc = fldHeapPath.get(fldHeapPath.size() - 1);
+        if (desc instanceof FieldDescriptor) {
+          NTuple<Descriptor> arrayPath = new NTuple<Descriptor>();
+          for (int i = 0; i < fldHeapPath.size() - 1; i++) {
+            arrayPath.add(fldHeapPath.get(i));
+          }
+          SharedStatus state = getState(curr, arrayPath);
+          state.setWriteEffect(getLocation(desc));
+        }
+
       } else {
         // updates reference field case:
-        // 2. if there exists a tuple t in sharing summary that starts with
-        // hp(x) then, set flag of tuple t to 'true'
         fldHeapPath.add(fld);
-        Set<NTuple<Descriptor>> hpKeySet = curr.keySet();
-        for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
-          NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
-          if (hpKey.startsWith(fldHeapPath)) {
-            curr.get(hpKey).updateFlag(true);
-          }
-        }
+        updateWriteEffectOnReferenceField(curr, fldHeapPath);
       }
 
     }
@@ -490,8 +542,24 @@ public class DefinitelyWrittenCheck {
       if (ssjava.isSSJavaUtil(fc.getMethod().getClassDesc())) {
         // ssjava util case!
         // have write effects on the first argument
-        NTuple<Descriptor> argHeapPath = computePath(fc.getArg(0));
-        writeLocation(curr, argHeapPath, fc.getArg(0));
+
+        if (fc.getArg(0).getType().isArray()) {
+          // updates reference field case:
+          // 2. if there exists a tuple t in sharing summary that starts with
+          // hp(x) then, set flag of tuple t to 'true'
+          NTuple<Descriptor> argHeapPath = computePath(fc.getArg(0));
+
+          Location loc = getLocation(fc.getArg(0));
+          NTuple<Descriptor> newHeapPath = new NTuple<Descriptor>();
+          for (int i = 0; i < argHeapPath.size() - 1; i++) {
+            newHeapPath.add(argHeapPath.get(i));
+          }
+          fld = (FieldDescriptor) argHeapPath.get(argHeapPath.size() - 1);
+          argHeapPath = newHeapPath;
+
+          writeLocation(curr, argHeapPath, loc, fld);
+        }
+
       } else {
         // find out the set of callees
         MethodDescriptor mdCallee = fc.getMethod();
@@ -541,10 +609,15 @@ public class DefinitelyWrittenCheck {
           }
 
         }
-        // System.out.println("callee " + fc + " summary=" +
-        // possibleCalleeCompleteSummarySetToCaller);
+
         // contribute callee's writing effects to the caller
         mergeSharedLocationAnaylsis(curr, possibleCalleeCompleteSummarySetToCaller);
+        if (fc.getMethod().getSymbol().startsWith("decode")) {
+          System.out.println("XXXXX callee " + fc + " summary="
+              + possibleCalleeCompleteSummarySetToCaller);
+          System.out.println("XXXXX curr=" + curr);
+        }
+
       }
 
     }
@@ -557,6 +630,34 @@ public class DefinitelyWrittenCheck {
 
     }
 
+  }
+
+  private void updateWriteEffectOnReferenceField(ClearingSummary curr, NTuple<Descriptor> heapPath) {
+
+    // DEBUG!
+    // System.out.println("UPDATE WRITE REF=" + heapPath);
+    // Descriptor d = heapPath.get(heapPath.size() - 1);
+    // boolean print = false;
+    // if (d instanceof FieldDescriptor) {
+    // FieldDescriptor fd = (FieldDescriptor) d;
+    // if (fd.getSymbol().equals("si")) {
+    // System.out.println("UPDATE PREV CURR=" + curr);
+    // print = true;
+    // }
+    // }
+    // 2. if there exists a tuple t in sharing summary that starts with
+    // hp(x) then, set flag of tuple t to 'true'
+    Set<NTuple<Descriptor>> hpKeySet = curr.keySet();
+    for (Iterator iterator = hpKeySet.iterator(); iterator.hasNext();) {
+      NTuple<Descriptor> hpKey = (NTuple<Descriptor>) iterator.next();
+      if (hpKey.startsWith(heapPath)) {
+        curr.get(hpKey).updateFlag(true);
+      }
+    }
+
+    // if (print) {
+    // System.out.println("UPDATE CURR=" + curr);
+    // }
   }
 
   private ClearingSummary bindHeapPathOfCalleeCallerEffects(FlatCall fc,
@@ -801,20 +902,31 @@ public class DefinitelyWrittenCheck {
 
           Location loc;
           if (fn.kind() == FKind.FlatElementNode) {
+            // array element read case
             loc = mapDescToLocation.get(rhs);
+            NTuple<Descriptor> newHeapPath = new NTuple<Descriptor>();
+            for (int i = 0; i < fldHeapPath.size() - 1; i++) {
+              newHeapPath.add(fldHeapPath.get(i));
+            }
+
+            Descriptor desc = fldHeapPath.get(fldHeapPath.size() - 1);
+            if (desc instanceof FieldDescriptor) {
+              fld = (FieldDescriptor) desc;
+              fldHeapPath = newHeapPath;
+              addReadDescriptor(fldHeapPath, loc, fld);
+            }
           } else {
             loc = getLocation(fld);
+            addReadDescriptor(fldHeapPath, loc, fld);
           }
-
-          addReadDescriptor(fldHeapPath, loc, fld);
         } else {
           // propagate rhs's heap path to the lhs
 
           if (fn.kind() == FKind.FlatElementNode) {
             mapDescToLocation.put(lhs, getLocation(rhs));
+          } else {
+            fldHeapPath.add(fld);
           }
-
-          fldHeapPath.add(fld);
           mapHeapPath.put(lhs, fldHeapPath);
         }
 
@@ -843,20 +955,6 @@ public class DefinitelyWrittenCheck {
       NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(lhsHeapPath.getList());
       // writeLocation(curr, fldHeapPath, fld, getLocation(fld));
 
-    }
-      break;
-
-    case FKind.FlatCall: {
-
-      FlatCall fc = (FlatCall) fn;
-
-      if (ssjava.isSSJavaUtil(fc.getMethod().getClassDesc())) {
-        // ssjava util case!
-        // have write effects on the first argument
-        NTuple<Descriptor> argHeapPath = computePath(fc.getArg(0));
-        Location loc = getLocation(fc.getArg(0));
-        addReadDescriptor(argHeapPath, loc, fc.getArg(0));
-      }
     }
       break;
 
@@ -925,14 +1023,13 @@ public class DefinitelyWrittenCheck {
     return mapDescToLocation.get(d);
   }
 
-  private void writeLocation(ClearingSummary curr, NTuple<Descriptor> hp, Descriptor d) {
+  private void writeLocation(ClearingSummary curr, NTuple<Descriptor> hp, Location loc, Descriptor d) {
 
-    Location loc = getLocation(d);
-    // System.out.println("# WRITE LOC hp=" + hp + " d=" + d);
-
+    // System.out.println("# WRITE LOC hp=" + hp + " d=" + d + " loc=" + loc);
+    SharedStatus state = getState(curr, hp);
     if (loc != null && hasReadingEffectOnSharedLocation(hp, loc, d)) {
       // 1. add field x to the clearing set
-      SharedStatus state = getState(curr, hp);
+
       state.addVar(loc, d);
 
       // 3. if the set v contains all of variables belonging to the shared
@@ -941,6 +1038,7 @@ public class DefinitelyWrittenCheck {
         state.updateFlag(loc, true);
       }
     }
+    state.setWriteEffect(loc);
     // System.out.println("# WRITE CURR=" + curr);
 
   }
@@ -963,15 +1061,14 @@ public class DefinitelyWrittenCheck {
     }
   }
 
-  private void readLocation(ClearingSummary curr, NTuple<Descriptor> hp, Descriptor d) {
+  private void readLocation(ClearingSummary curr, NTuple<Descriptor> hp, Location loc, Descriptor d) {
     // remove reading var x from written set
-    Location loc = getLocation(d);
-    // System.out.println("# READ LOC hp="+hp+" d="+d);
+    // System.out.println("# READ LOC hp=" + hp + " d=" + d + " loc=" + loc);
     if (loc != null && hasReadingEffectOnSharedLocation(hp, loc, d)) {
       SharedStatus state = getState(curr, hp);
       state.removeVar(loc, d);
     }
-    // System.out.println("# READ CURR="+curr);
+    // System.out.println("# READ CURR=" + curr);
   }
 
   private SharedStatus getState(ClearingSummary curr, NTuple<Descriptor> hp) {

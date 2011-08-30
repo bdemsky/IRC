@@ -76,7 +76,9 @@ public class MethodAnnotationCheck {
 
     for (Iterator iterator = annotatedMDSet.iterator(); iterator.hasNext();) {
       MethodDescriptor md = (MethodDescriptor) iterator.next();
-      ssjava.addAnnotationRequire(md);
+      if (!ssjava.isTrustMethod(md)) {
+        ssjava.addAnnotationRequire(md);
+      }
     }
 
     Set<Pair> visited = new HashSet<Pair>();
@@ -95,7 +97,7 @@ public class MethodAnnotationCheck {
           if (!visited.contains(p)) {
             visited.add(p);
 
-            if (!ssjava.isTrustMethod(calleeMD)) {
+            if (!ssjava.isTrustMethod(callerMD) && !ssjava.isTrustMethod(calleeMD)) {
               // if method is annotated as "TRUST", do not need to check for
               // linear type & flow-down rule
               tovisit.add(calleeMD);
