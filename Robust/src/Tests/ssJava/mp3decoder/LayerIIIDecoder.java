@@ -483,6 +483,8 @@ final class LayerIIIDecoder implements FrameDecoder {
     SSJAVA.arrayinit(is_1d, 0);
     SSJAVA.arrayinit(tsOutCopy, 0);
     SSJAVA.arrayinit(scalefac_buffer, 0);
+    SSJAVA.arrayinit(nonzero, 576);
+    SSJAVA.arrayinit(new_slen, 0);
     CheckSumHuff = 0;
     // prevblck = new float[2][SBLIMIT * SSLIMIT];
     si = new III_side_info_t();
@@ -915,7 +917,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   // MDM: new_slen is fully initialized before use, no need
   // to reallocate array.
   @LOC("NS")
-  private final int[] new_slen = new int[4];
+  private int[] new_slen = new int[4];
 
   // ssjava
   @LATTICE("M<THIS,THIS<IN,THIS<C,C*,M*,THISLOC=THIS,GLOBALLOC=THIS")

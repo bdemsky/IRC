@@ -55,9 +55,9 @@ final class SynthesisFilter {
   public int actual_write_pos; // 0-15
   @LOC("SAMPLE")
   private float[] samples; // 32 new subband samples
-  @LOC("V")
+  @LOC("EQ")
   public final int channel;
-  @LOC("V")
+  @LOC("EQ")
   public final float scalefactor;
   @LOC("EQ")
   private float[] eq;
