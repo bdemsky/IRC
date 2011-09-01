@@ -1,5 +1,8 @@
 package Analysis.SSJava;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -9,6 +12,7 @@ import java.util.Stack;
 
 import Analysis.CallGraph.CallGraph;
 import Analysis.Loops.LoopFinder;
+import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
@@ -203,14 +207,36 @@ public class DefinitelyWrittenCheck {
 
   }
 
+  private void writeReadMapFile() {
+
+    String fileName = "SharedLocationReadMap";
+
+    try {
+      BufferedWriter bw = new BufferedWriter(new FileWriter(fileName + ".txt"));
+
+      Set<MethodDescriptor> keySet = mapMethodDescriptorToReadSummary.keySet();
+      for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+        MethodDescriptor mdKey = (MethodDescriptor) iterator.next();
+        ReadSummary summary = mapMethodDescriptorToReadSummary.get(mdKey);
+        bw.write("Method " + mdKey + "::\n");
+        bw.write(summary + "\n\n");
+      }
+      bw.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+  }
+
   private void sharedLocationAnalysis() {
     // verify that all concrete locations of shared location are cleared out at
     // the same time once per the out-most loop
 
     computeReadSharedDescriptorSet();
 
-    System.out.println("###");
-    System.out.println("READ MAP=" + mapMethodDescriptorToReadSummary);
+    if (state.SSJAVADEBUG) {
+      writeReadMapFile();
+    }
 
     // methodDescriptorsToVisitStack.clear();
     // methodDescriptorsToVisitStack.add(sortedDescriptors.peekFirst());
@@ -275,8 +301,7 @@ public class DefinitelyWrittenCheck {
       boolean onlyVisitSSJavaLoop) {
 
     if (state.SSJAVADEBUG) {
-      System.out.println("Definite clearance for shared locations Analyzing: " + md + " "
-          + onlyVisitSSJavaLoop);
+      System.out.println("SSJAVA: Definite clearance for shared locations Analyzing: " + md);
     }
 
     FlatMethod fm = state.getMethodFlat(md);
@@ -1179,9 +1204,9 @@ public class DefinitelyWrittenCheck {
 
       TypeExtension te = td.getType().getExtension();
       if (te != null) {
-        if (te instanceof CompositeLocation) {
-          CompositeLocation comp = (CompositeLocation) te;
-
+        if (te instanceof SSJavaType) {
+          SSJavaType ssType = (SSJavaType) te;
+          CompositeLocation comp = ssType.getCompLoc();
           return comp.get(comp.getSize() - 1);
         } else {
           return (Location) te;
@@ -1753,7 +1778,7 @@ public class DefinitelyWrittenCheck {
   private void methodReadOverWrite_analyzeMethod(FlatMethod fm, Set<NTuple<Descriptor>> readSet,
       Set<NTuple<Descriptor>> overWriteSet, Set<NTuple<Descriptor>> writeSet) {
     if (state.SSJAVADEBUG) {
-      System.out.println("Definitely written Analyzing: " + fm);
+      System.out.println("SSJAVA: Definitely written Analyzing: " + fm);
     }
 
     // intraprocedural analysis

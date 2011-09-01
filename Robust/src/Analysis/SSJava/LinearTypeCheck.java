@@ -13,6 +13,7 @@ import java.util.Vector;
 import Analysis.Liveness;
 import IR.AnnotationDescriptor;
 import IR.ClassDescriptor;
+import IR.FieldDescriptor;
 import IR.MethodDescriptor;
 import IR.Operation;
 import IR.State;
@@ -55,7 +56,7 @@ public class LinearTypeCheck {
   State state;
   SSJavaAnalysis ssjava;
   String needToNullify = null;
-  ExpressionNode prevAssignNode;
+  TreeNode prevAssignNode;
 
   Set<TreeNode> linearTypeCheckSet;
 
@@ -201,6 +202,9 @@ public class LinearTypeCheck {
   }
 
   private void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
+    if (state.SSJAVADEBUG) {
+      System.out.println("SSJAVA: Linear Type Checking: " + md);
+    }
     BlockNode bn = state.getMethodBody(md);
     checkBlockNode(md, md.getParameterTable(), bn);
   }
@@ -452,6 +456,9 @@ public class LinearTypeCheck {
                 + "::" + min.getNumLine());
           }
 
+          // delegated arg is no longer to be available from here
+          linearTypeCheckSet.add(argNode);
+          mapTreeNode2FlatMethod.put(argNode, state.getMethodFlat(md));
         }
 
       }
@@ -549,162 +556,9 @@ public class LinearTypeCheck {
       postinc = false;
 
     if (!postinc) {
-
       checkExpressionNode(md, nametable, an.getSrc());
-
       if (isReference(an.getSrc().getType()) && isReference(an.getDest().getType())) {
-
-        if (an.getSrc().kind() == Kind.NameNode) {
-
-          NameNode nn = (NameNode) an.getSrc();
-
-          if (nn.getField() != null) {
-            needToNullify = nn.getField().getSymbol();
-            prevAssignNode = an;
-          } else if (nn.getExpression() != null) {
-            if (nn.getExpression() instanceof FieldAccessNode) {
-              FieldAccessNode fan = (FieldAccessNode) nn.getExpression();
-              needToNullify = fan.printNode(0);
-              prevAssignNode = an;
-
-            }
-
-          } else {
-            // local variable case
-            linearTypeCheckSet.add(an.getSrc());
-            mapTreeNode2FlatMethod.put(an.getSrc(), state.getMethodFlat(md));
-          }
-        } else if (an.getSrc().kind() == Kind.FieldAccessNode) {
-          FieldAccessNode fan = (FieldAccessNode) an.getSrc();
-          needToNullify = fan.printNode(0);
-          if (needToNullify.startsWith("this.")) {
-            needToNullify = needToNullify.substring(5);
-          }
-          prevAssignNode = an;
-        } else if (an.getSrc().kind() == Kind.ArrayAccessNode) {
-          TypeDescriptor srcType = an.getSrc().getType();
-          if (srcType.isPtr() && !srcType.isString()) {
-            throw new Error(
-                "Not allowed to create an alias to the middle of the multidimensional array at "
-                    + md.getClassDesc().getSourceFileName() + "::" + an.getNumLine());
-          }
-        } else if (an.getSrc().kind() == Kind.CreateObjectNode
-            || an.getSrc().kind() == Kind.MethodInvokeNode
-            || an.getSrc().kind() == Kind.ArrayInitializerNode
-            || an.getSrc().kind() == Kind.LiteralNode) {
-
-        } else {
-          throw new Error("Not allowed this type of assignment at "
-              + md.getClassDesc().getSourceFileName() + "::" + an.getNumLine());
-        }
-
-        if (isCreatingAlias(an.getSrc())) {
-
-          TypeDescriptor srcType = getTypeDescriptor(an.getSrc());
-          boolean isSourceOwned = false;
-
-          if (srcType.getExtension() != null) {
-            SSJavaType srcLocationType = (SSJavaType) srcType.getExtension();
-            isSourceOwned = srcLocationType.isOwned();
-          } else if (md.isConstructor()
-              && isFieldOfClass(md.getClassDesc(), an.getSrc().printNode(0))) {
-            isSourceOwned = true;
-          }
-
-          if (!isField(an.getDest())) {
-            if (isSourceOwned) {
-              // here, transfer ownership from LHS to RHS when it creates alias
-              TypeDescriptor destType = getTypeDescriptor(an.getDest());
-              destType.setExtension(new SSJavaType(isSourceOwned));
-            }
-          } else {
-            // if instance is not owned by the method, not able to store
-            // instance into field
-            if (!isSourceOwned) {
-              throw new Error(
-                  "Method is not allowed to store an instance not owned by itself into a field at "
-                      + md.getClassDesc().getSourceFileName() + "::" + an.getNumLine());
-            }
-          }
-
-        }
-
-      }
-
-    }
-
-  }
-
-  private void checkSource(MethodDescriptor md, ExpressionNode src, ExpressionNode dst) {
-
-    if (src.kind() == Kind.NameNode) {
-
-      NameNode nn = (NameNode) src;
-
-      if (nn.getField() != null) {
-        needToNullify = nn.getField().getSymbol();
-        prevAssignNode = src;
-      } else if (nn.getExpression() != null) {
-        if (nn.getExpression() instanceof FieldAccessNode) {
-          FieldAccessNode fan = (FieldAccessNode) nn.getExpression();
-          needToNullify = fan.printNode(0);
-          prevAssignNode = src;
-
-        }
-
-      } else {
-        // local variable case
-        linearTypeCheckSet.add(src);
-        mapTreeNode2FlatMethod.put(src, state.getMethodFlat(md));
-      }
-    } else if (src.kind() == Kind.FieldAccessNode) {
-      FieldAccessNode fan = (FieldAccessNode) src;
-      needToNullify = fan.printNode(0);
-      if (needToNullify.startsWith("this.")) {
-        needToNullify = needToNullify.substring(5);
-      }
-      prevAssignNode = src;
-    } else if (src.kind() == Kind.ArrayAccessNode) {
-      TypeDescriptor srcType = src.getType();
-      if (srcType.isPtr() && !srcType.isString()) {
-        throw new Error(
-            "Not allowed to create an alias to the middle of the multidimensional array at "
-                + md.getClassDesc().getSourceFileName() + "::" + src.getNumLine());
-      }
-    } else if (src.kind() == Kind.CreateObjectNode || src.kind() == Kind.MethodInvokeNode
-        || src.kind() == Kind.ArrayInitializerNode || src.kind() == Kind.LiteralNode) {
-
-    } else {
-      throw new Error("Not allowed this type of assignment at "
-          + md.getClassDesc().getSourceFileName() + "::" + src.getNumLine());
-    }
-
-    if (isCreatingAlias(src)) {
-
-      TypeDescriptor srcType = getTypeDescriptor(src);
-      boolean isSourceOwned = false;
-
-      if (srcType.getExtension() != null) {
-        SSJavaType srcLocationType = (SSJavaType) srcType.getExtension();
-        isSourceOwned = srcLocationType.isOwned();
-      } else if (md.isConstructor() && isFieldOfClass(md.getClassDesc(), src.printNode(0))) {
-        isSourceOwned = true;
-      }
-
-      if (!isField(dst)) {
-        if (isSourceOwned) {
-          // here, transfer ownership from LHS to RHS when it creates alias
-          TypeDescriptor destType = getTypeDescriptor(dst);
-          destType.setExtension(new SSJavaType(isSourceOwned));
-        }
-      } else {
-        // if instance is not owned by the method, not able to store
-        // instance into field
-        if (!isSourceOwned) {
-          throw new Error(
-              "Method is not allowed to store an instance not owned by itself into a field at "
-                  + md.getClassDesc().getSourceFileName() + "::" + src.getNumLine());
-        }
+        checkAlias(md, an, an.getSrc());
       }
 
     }
@@ -749,6 +603,26 @@ public class LinearTypeCheck {
     return null;
   }
 
+  private FieldDescriptor getFieldDescriptorFromExpressionNode(ExpressionNode en) {
+
+    if (en.kind() == Kind.NameNode) {
+      NameNode nn = (NameNode) en;
+      if (nn.getField() != null) {
+        return nn.getField();
+      }
+
+      if (nn.getName() != null && nn.getName().getBase() != null) {
+        return getFieldDescriptorFromExpressionNode(nn.getExpression());
+      }
+
+    } else if (en.kind() == Kind.FieldAccessNode) {
+      FieldAccessNode fan = (FieldAccessNode) en;
+      return fan.getField();
+    }
+
+    return null;
+  }
+
   private boolean isField(ExpressionNode en) {
 
     if (en.kind() == Kind.NameNode) {
@@ -767,19 +641,101 @@ public class LinearTypeCheck {
     return false;
   }
 
-  private void checkDeclarationNode(MethodDescriptor md, SymbolTable nametable, DeclarationNode dn) {
-    if (dn.getExpression() != null) {
-      checkExpressionNode(md, nametable, dn.getExpression());
-      if (dn.getExpression().kind() == Kind.CreateObjectNode) {
-        dn.getVarDescriptor().getType().setExtension(new SSJavaType(true));
-      } else if (dn.getExpression().kind() == Kind.ArrayAccessNode
-          && dn.getExpression().getType().isPtr()) {
+  private void checkAlias(MethodDescriptor md, TreeNode node, ExpressionNode src) {
+
+    if (src.kind() == Kind.NameNode) {
+
+      NameNode nn = (NameNode) src;
+
+      if (nn.getField() != null) {
+        needToNullify = nn.getField().getSymbol();
+        prevAssignNode = node;
+      } else if (nn.getExpression() != null) {
+        if (nn.getExpression() instanceof FieldAccessNode) {
+          FieldAccessNode fan = (FieldAccessNode) nn.getExpression();
+          needToNullify = fan.printNode(0);
+          prevAssignNode = node;
+        }
+      } else {
+        // local variable case
+        linearTypeCheckSet.add(src);
+        mapTreeNode2FlatMethod.put(src, state.getMethodFlat(md));
+      }
+    } else if (src.kind() == Kind.FieldAccessNode) {
+      FieldAccessNode fan = (FieldAccessNode) src;
+      needToNullify = fan.printNode(0);
+      if (needToNullify.startsWith("this.")) {
+        needToNullify = needToNullify.substring(5);
+      }
+      prevAssignNode = node;
+    } else if (src.kind() == Kind.ArrayAccessNode) {
+      TypeDescriptor srcType = src.getType();
+      if (srcType.isPtr() && !srcType.isString()) {
         throw new Error(
             "Not allowed to create an alias to the middle of the multidimensional array at "
-                + md.getClassDesc().getSourceFileName() + "::" + dn.getNumLine());
+                + md.getClassDesc().getSourceFileName() + "::" + node.getNumLine());
       }
+    } else if (src.kind() == Kind.CreateObjectNode || src.kind() == Kind.MethodInvokeNode
+        || src.kind() == Kind.ArrayInitializerNode || src.kind() == Kind.LiteralNode) {
+      if (node.kind() == Kind.DeclarationNode) {
+        DeclarationNode dn = (DeclarationNode) node;
+        dn.getVarDescriptor().getType().setExtension(new SSJavaType(true));
+      }
+    } else {
+      throw new Error("Not allowed this type of assignment at "
+          + md.getClassDesc().getSourceFileName() + "::" + node.getNumLine());
     }
 
+    if (isCreatingAlias(src)) {
+
+      TypeDescriptor srcType = getTypeDescriptor(src);
+      boolean isSourceOwned = false;
+
+      if (srcType.getExtension() != null) {
+        SSJavaType srcLocationType = (SSJavaType) srcType.getExtension();
+        isSourceOwned = srcLocationType.isOwned();
+
+        if (isSourceOwned) {
+          if (isField(src)) {
+            ssjava.setFieldOnwership(md, getFieldDescriptorFromExpressionNode(src));
+          }
+        }
+
+      } else if (md.isConstructor() && isFieldOfClass(md.getClassDesc(), src.printNode(0))) {
+        isSourceOwned = true;
+        ssjava.setFieldOnwership(md, getFieldDescriptorFromExpressionNode(src));
+      }
+
+      if (node.kind() == Kind.AssignmentNode) {
+        AssignmentNode an = (AssignmentNode) node;
+        if (isField(an.getDest())) {
+          // if instance is not owned by the method, not able to store
+          // instance into field
+          if (!isSourceOwned) {
+            throw new Error(
+                "Method is not allowed to store an instance not owned by itself into a field at "
+                    + md.getClassDesc().getSourceFileName() + "::" + node.getNumLine());
+          }
+        } else {
+          if (isSourceOwned) {
+            // here, transfer ownership from LHS to RHS when it creates alias
+            TypeDescriptor destType = getTypeDescriptor(an.getDest());
+            destType.setExtension(new SSJavaType(isSourceOwned));
+          }
+        }
+      }
+
+    }
+
+  }
+
+  private void checkDeclarationNode(MethodDescriptor md, SymbolTable nametable, DeclarationNode dn) {
+    if (dn.getExpression() != null) {
+      ExpressionNode src = dn.getExpression();
+      if (isReference(src.getType())) {
+        checkAlias(md, dn, src);
+      }
+    }
   }
 
   private boolean isReference(TypeDescriptor td) {

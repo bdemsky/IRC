@@ -7,6 +7,11 @@ public class SSJavaType implements TypeExtension {
   private boolean isOwned;
   private CompositeLocation compLoc;
 
+  public SSJavaType(CompositeLocation compLoc) {
+    this.isOwned = false;
+    this.compLoc = compLoc;
+  }
+
   public SSJavaType(boolean isOwned) {
     this.isOwned = isOwned;
   }

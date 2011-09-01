@@ -21,6 +21,7 @@ import Analysis.Loops.LoopTerminate;
 import IR.AnnotationDescriptor;
 import IR.ClassDescriptor;
 import IR.Descriptor;
+import IR.FieldDescriptor;
 import IR.MethodDescriptor;
 import IR.State;
 import IR.SymbolTable;
@@ -80,6 +81,9 @@ public class SSJavaAnalysis {
   // points to method containing SSJAVA Loop
   private MethodDescriptor methodContainingSSJavaLoop;
 
+  // keep the field ownership from the linear type checking
+  Hashtable<MethodDescriptor, Set<FieldDescriptor>> mapMethodToOwnedFieldSet;
+
   CallGraph callgraph;
 
   LinearTypeCheck checker;
@@ -98,6 +102,7 @@ public class SSJavaAnalysis {
     this.linearTypeCheckMethodSet = new HashSet<MethodDescriptor>();
     this.bf = bf;
     this.trustWorthyMDSet = new HashSet<MethodDescriptor>();
+    this.mapMethodToOwnedFieldSet = new Hashtable<MethodDescriptor, Set<FieldDescriptor>>();
   }
 
   public void doCheck() {
@@ -110,7 +115,7 @@ public class SSJavaAnalysis {
     parseLocationAnnotation();
     doFlowDownCheck();
     doDefinitelyWrittenCheck();
-    // debugDoLoopCheck();
+    debugDoLoopCheck();
   }
 
   private void debugDoLoopCheck() {
@@ -513,4 +518,23 @@ public class SSJavaAnalysis {
     }
     return false;
   }
+
+  public void setFieldOnwership(MethodDescriptor md, FieldDescriptor field) {
+
+    Set<FieldDescriptor> fieldSet = mapMethodToOwnedFieldSet.get(md);
+    if (fieldSet == null) {
+      fieldSet = new HashSet<FieldDescriptor>();
+      mapMethodToOwnedFieldSet.put(md, fieldSet);
+    }
+    fieldSet.add(field);
+  }
+
+  public boolean isOwnedByMethod(MethodDescriptor md, FieldDescriptor field) {
+    Set<FieldDescriptor> fieldSet = mapMethodToOwnedFieldSet.get(md);
+    if (fieldSet != null) {
+      return fieldSet.contains(field);
+    }
+    return false;
+  }
+
 }
