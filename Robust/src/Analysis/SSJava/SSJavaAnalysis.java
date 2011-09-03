@@ -113,9 +113,15 @@ public class SSJavaAnalysis {
     // debugPrint();
     // }
     parseLocationAnnotation();
+    inference();
     doFlowDownCheck();
     doDefinitelyWrittenCheck();
     debugDoLoopCheck();
+  }
+  
+  private void inference(){
+    SSJavaInferenceEngine inferEngine = new SSJavaInferenceEngine(this, state);
+    inferEngine.inference();
   }
 
   private void debugDoLoopCheck() {
@@ -193,7 +199,6 @@ public class SSJavaAnalysis {
     }
 
   }
-
   private void doLinearTypeCheck() {
     LinearTypeCheck checker = new LinearTypeCheck(this, state);
     checker.linearTypeCheck();
