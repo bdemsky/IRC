@@ -245,15 +245,15 @@ public class SSJavaInferenceEngine {
     case Kind.IfStatementNode:
       inferRelationsFromIfStatementNode(md, nametable, (IfStatementNode) bsn);
       break;
-      /*
+
     case Kind.LoopNode:
-      inferRelationsFromLoopNode(md, nametable, (LoopNode) bsn, constraint);
+      inferRelationsFromLoopNode(md, nametable, (LoopNode) bsn);
       break;
 
     case Kind.ReturnNode:
-      inferRelationsFromReturnNode(md, nametable, (ReturnNode) bsn, constraint);
+      inferRelationsFromReturnNode(md, nametable, (ReturnNode) bsn);
       break;
-      */
+
     case Kind.SubBlockNode:
       inferRelationsFromSubBlockNode(md, nametable, (SubBlockNode) bsn);
       break;
@@ -288,9 +288,9 @@ public class SSJavaInferenceEngine {
     }
     return new CompositeLocation();
   }
-
-  private CompositeLocation inferRelationsFromSwitchBlockNode(MethodDescriptor md,
-      SymbolTable nametable, SwitchBlockNode sbn, CompositeLocation constraint) {
+    
+  private void inferRelationsFromSwitchBlockNode(MethodDescriptor md,
+      SymbolTable nametable, SwitchBlockNode sbn) {
 
     CompositeLocation blockLoc =
         inferRelationsFromBlockNode(md, nametable, sbn.getSwitchBlockStatement(), constraint);
@@ -298,92 +298,56 @@ public class SSJavaInferenceEngine {
     return blockLoc;
 
   }
-
-  private CompositeLocation inferRelationsFromReturnNode(MethodDescriptor md, SymbolTable nametable,
-      ReturnNode rn, CompositeLocation constraint) {
+    */
+  private void inferRelationsFromReturnNode(MethodDescriptor md, SymbolTable nametable,
+      ReturnNode rn) {
 
     ExpressionNode returnExp = rn.getReturnExpression();
 
-    CompositeLocation returnValueLoc;
+    VarID returnID = new VarID();
+    returnID.setReturn();
     if (returnExp != null) {
-      returnValueLoc =
-          inferRelationsFromExpressionNode(md, nametable, returnExp, new CompositeLocation(),
-              constraint, false);
-
-      // if this return statement is inside branch, return value has an implicit
-      // flow from conditional location
-      if (constraint != null) {
-        Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
-        inputGLB.add(returnValueLoc);
-        inputGLB.add(constraint);
-        returnValueLoc =
-            CompositeLattice.calculateGLB(inputGLB, generateErrorMessage(md.getClassDesc(), rn));
-      }
-
-      // check if return value is equal or higher than RETRUNLOC of method
-      // declaration annotation
-      CompositeLocation declaredReturnLoc = md2ReturnLoc.get(md);
-
-      int compareResult =
-          CompositeLattice.compare(returnValueLoc, declaredReturnLoc, false,
-              generateErrorMessage(md.getClassDesc(), rn));
-
-      if (compareResult == ComparisonResult.LESS || compareResult == ComparisonResult.INCOMPARABLE) {
-        throw new Error(
-            "Return value location is not equal or higher than the declaraed return location at "
-                + md.getClassDesc().getSourceFileName() + "::" + rn.getNumLine());
-      }
-    }
-
-    return new CompositeLocation();
-  }
-
-  private boolean hasOnlyLiteralValue(ExpressionNode en) {
-    if (en.kind() == Kind.LiteralNode) {
-      return true;
-    } else {
-      return false;
+	inferRelationsFromExpressionNode(md, nametable, returnExp, returnID, null, false);
     }
   }
 
-  private CompositeLocation inferRelationsFromLoopNode(MethodDescriptor md, SymbolTable nametable,
-      LoopNode ln, CompositeLocation constraint) {
+  private void inferRelationsFromLoopNode(MethodDescriptor md, SymbolTable nametable,
+      LoopNode ln) {
 
     ClassDescriptor cd = md.getClassDesc();
     if (ln.getType() == LoopNode.WHILELOOP || ln.getType() == LoopNode.DOWHILELOOP) {
 
-      CompositeLocation condLoc =
-          inferRelationsFromExpressionNode(md, nametable, ln.getCondition(),
-              new CompositeLocation(), constraint, false);
-      // addLocationType(ln.getCondition().getType(), (condLoc));
+      inferRelationsFromExpressionNode(md, nametable, ln.getCondition(), null, ln, false);
 
-      constraint = generateNewConstraint(constraint, condLoc);
-      inferRelationsFromBlockNode(md, nametable, ln.getBody(), constraint);
+      inferRelationsFromBlockNode(md, nametable, ln.getBody());
 
-      return new CompositeLocation();
+      for(ImplicitTuple tuple: implicitFlowSet){
+        if(tuple.isFromBranch(ln)){
+          implicitFlowSet.remove(tuple);
+        }
+      }  
 
     } else {
       // check 'for loop' case
       BlockNode bn = ln.getInitializer();
       bn.getVarTable().setParent(nametable);
 
-      // calculate glb location of condition and update statements
-      CompositeLocation condLoc =
-          inferRelationsFromExpressionNode(md, bn.getVarTable(), ln.getCondition(),
-              new CompositeLocation(), constraint, false);
-      // addLocationType(ln.getCondition().getType(), condLoc);
+      inferRelationsFromBlockNode(md, nametable, bn);
+      inferRelationsFromExpressionNode(md, bn.getVarTable(), ln.getCondition(), null, ln, false);
 
-      constraint = generateNewConstraint(constraint, condLoc);
+      inferRelationsFromBlockNode(md, bn.getVarTable(), ln.getUpdate());
+      inferRelationsFromBlockNode(md, bn.getVarTable(), ln.getBody());
 
-      inferRelationsFromBlockNode(md, bn.getVarTable(), ln.getUpdate(), constraint);
-      inferRelationsFromBlockNode(md, bn.getVarTable(), ln.getBody(), constraint);
-
-      return new CompositeLocation();
+      for(ImplicitTuple tuple: implicitFlowSet){
+        if(tuple.isFromBranch(ln)){
+          implicitFlowSet.remove(tuple);
+        }
+      }
 
     }
 
   }
-    */
+
   private void inferRelationsFromSubBlockNode(MethodDescriptor md,
       SymbolTable nametable, SubBlockNode sbn) {
      inferRelationsFromBlockNode(md, nametable, sbn.getBlockNode());
@@ -443,10 +407,10 @@ public class SSJavaInferenceEngine {
 	var = inferRelationsFromNameNode(md, nametable, (NameNode) en, flowTo, implicitTag);
       break;
 
-      /* case Kind.OpNode:
-	var = inferRelationsFromOpNode(md, nametable, (OpNode) en, flowTo);
+      case Kind.OpNode:
+	var = inferRelationsFromOpNode(md, nametable, (OpNode) en, flowTo, implicitTag);
       break;
-
+      /*
     case Kind.CreateObjectNode:
       var = inferRelationsFromCreateObjectNode(md, nametable, (CreateObjectNode) en);
       break;
@@ -843,27 +807,16 @@ public class SSJavaInferenceEngine {
     return compLoc;
 
   }
-
-  private CompositeLocation inferRelationsFromOpNode(MethodDescriptor md, SymbolTable nametable,
-      OpNode on, CompositeLocation constraint) {
+    */
+  private VarID inferRelationsFromOpNode(MethodDescriptor md, SymbolTable nametable,
+						     OpNode on, VarID flowTo, BlockStatementNode implicitTag) {
 
     ClassDescriptor cd = md.getClassDesc();
-    CompositeLocation leftLoc = new CompositeLocation();
-    leftLoc =
-        inferRelationsFromExpressionNode(md, nametable, on.getLeft(), leftLoc, constraint, false);
-    // addTypeLocation(on.getLeft().getType(), leftLoc);
+    VarID var = inferRelationsFromExpressionNode(md, nametable, on.getLeft(), flowTo, implicitTag, false);
 
     CompositeLocation rightLoc = new CompositeLocation();
     if (on.getRight() != null) {
-      rightLoc =
-          inferRelationsFromExpressionNode(md, nametable, on.getRight(), rightLoc, constraint, false);
-      // addTypeLocation(on.getRight().getType(), rightLoc);
-    }
-
-    System.out.println("\n# OP NODE=" + on.printNode(0));
-    System.out.println("# left loc=" + leftLoc + " from " + on.getLeft().getClass());
-    if (on.getRight() != null) {
-      System.out.println("# right loc=" + rightLoc + " from " + on.getRight().getClass());
+	inferRelationsFromExpressionNode(md, nametable, on.getRight(), flowTo, implicitTag, false);
     }
 
     Operation op = on.getOp();
@@ -874,7 +827,7 @@ public class SSJavaInferenceEngine {
     case Operation.UNARYMINUS:
     case Operation.LOGIC_NOT:
       // single operand
-      return leftLoc;
+      return var;
 
     case Operation.LOGIC_OR:
     case Operation.LOGIC_AND:
@@ -898,20 +851,14 @@ public class SSJavaInferenceEngine {
     case Operation.RIGHTSHIFT:
     case Operation.URIGHTSHIFT:
 
-      Set<CompositeLocation> inputSet = new HashSet<CompositeLocation>();
-      inputSet.add(leftLoc);
-      inputSet.add(rightLoc);
-      CompositeLocation glbCompLoc =
-          CompositeLattice.calculateGLB(inputSet, generateErrorMessage(cd, on));
-      System.out.println("# glbCompLoc=" + glbCompLoc);
-      return glbCompLoc;
+      return null;
 
     default:
       throw new Error(op.toString());
     }
 
   }
-    */
+
   private VarID inferRelationsFromLiteralNode(MethodDescriptor md,
   SymbolTable nametable, LiteralNode ln) {
       //literal data flow does not matter
