@@ -241,11 +241,11 @@ public class SSJavaInferenceEngine {
     case Kind.DeclarationNode:
       inferRelationsFromDeclarationNode(md, nametable, (DeclarationNode) bsn);
       break;
-      /*
+      
     case Kind.IfStatementNode:
       inferRelationsFromIfStatementNode(md, nametable, (IfStatementNode) bsn);
       break;
-      
+      /*
     case Kind.LoopNode:
       inferRelationsFromLoopNode(md, nametable, (LoopNode) bsn, constraint);
       break;
@@ -253,18 +253,22 @@ public class SSJavaInferenceEngine {
     case Kind.ReturnNode:
       inferRelationsFromReturnNode(md, nametable, (ReturnNode) bsn, constraint);
       break;
-
+      */
     case Kind.SubBlockNode:
-      inferRelationsFromSubBlockNode(md, nametable, (SubBlockNode) bsn, constraint);
+      inferRelationsFromSubBlockNode(md, nametable, (SubBlockNode) bsn);
       break;
-
+      /*
     case Kind.ContinueBreakNode:
       compLoc = new CompositeLocation();
       break;
 
     case Kind.SwitchStatementNode:
       inferRelationsFromSwitchStatementNode(md, nametable, (SwitchStatementNode) bsn, constraint);
-      */
+      break;
+*/
+    default:
+	System.out.println(bsn.kind() + " not handled...");
+      break;
     }
   }
 
@@ -379,42 +383,31 @@ public class SSJavaInferenceEngine {
     }
 
   }
-
-  private CompositeLocation inferRelationsFromSubBlockNode(MethodDescriptor md,
-      SymbolTable nametable, SubBlockNode sbn, CompositeLocation constraint) {
-    CompositeLocation compLoc =
-        inferRelationsFromBlockNode(md, nametable, sbn.getBlockNode(), constraint);
-    return compLoc;
+    */
+  private void inferRelationsFromSubBlockNode(MethodDescriptor md,
+      SymbolTable nametable, SubBlockNode sbn) {
+     inferRelationsFromBlockNode(md, nametable, sbn.getBlockNode());
   }
 
-  private CompositeLocation generateNewConstraint(CompositeLocation currentCon,
-      CompositeLocation newCon) {
-
-    if (currentCon == null) {
-      return newCon;
-    } else {
-      // compute GLB of current constraint and new constraint
-      Set<CompositeLocation> inputSet = new HashSet<CompositeLocation>();
-      inputSet.add(currentCon);
-      inputSet.add(newCon);
-      return CompositeLattice.calculateGLB(inputSet, "");
-    }
-
-  }
-    
+  
   private void inferRelationsFromIfStatementNode(MethodDescriptor md,
       SymbolTable nametable, IfStatementNode isn) {
 
-    inferRelationsFromExpressionNode(md, nametable, isn.getCondition(), null, false);
+      inferRelationsFromExpressionNode(md, nametable, isn.getCondition(), null, isn, false);
 
-    constraint = generateNewConstraint(constraint, condLoc);
-    inferRelationFromBlockNode(md, nametable, isn.getTrueBlock(), constraint);
+    inferRelationsFromBlockNode(md, nametable, isn.getTrueBlock());
 
     if (isn.getFalseBlock() != null) {
-      inferRelationsFromBlockNode(md, nametable, isn.getFalseBlock(), constraint);
+      inferRelationsFromBlockNode(md, nametable, isn.getFalseBlock());
+    }
+
+    for(ImplicitTuple tuple: implicitFlowSet){
+      if(tuple.isFromBranch(isn)){
+        implicitFlowSet.remove(tuple);
+      }
     }
   }
-    */
+
   private void inferRelationsFromDeclarationNode(MethodDescriptor md,
       SymbolTable nametable, DeclarationNode dn) {
   }
@@ -426,19 +419,19 @@ public class SSJavaInferenceEngine {
 
   private void inferRelationsFromBlockExpressionNode(MethodDescriptor md,
       SymbolTable nametable, BlockExpressionNode ben) {
-      inferRelationsFromExpressionNode(md, nametable, ben.getExpression(), null, false);
+      inferRelationsFromExpressionNode(md, nametable, ben.getExpression(), null, null, false);
     // addTypeLocation(ben.getExpression().getType(), compLoc);
   }
 
   private VarID inferRelationsFromExpressionNode(MethodDescriptor md,
-      SymbolTable nametable, ExpressionNode en, VarID flowTo, boolean isLHS) {
+     SymbolTable nametable, ExpressionNode en, VarID flowTo, BlockStatementNode implicitTag, boolean isLHS) {
 
     VarID var = null;
     switch (en.kind()) {
 
     case Kind.AssignmentNode:
       var =
-          inferRelationsFromAssignmentNode(md, nametable, (AssignmentNode) en, flowTo);
+          inferRelationsFromAssignmentNode(md, nametable, (AssignmentNode) en, flowTo, implicitTag);
       break;
 
       //   case Kind.FieldAccessNode:
@@ -447,7 +440,7 @@ public class SSJavaInferenceEngine {
       // break;
 
     case Kind.NameNode:
-	var = inferRelationsFromNameNode(md, nametable, (NameNode) en, flowTo);
+	var = inferRelationsFromNameNode(md, nametable, (NameNode) en, flowTo, implicitTag);
       break;
 
       /* case Kind.OpNode:
@@ -498,6 +491,7 @@ public class SSJavaInferenceEngine {
     // return null;
 
     default:
+	System.out.println("expressionnode not handled...");
       return null;
 
     }
@@ -926,18 +920,21 @@ public class SSJavaInferenceEngine {
   }
 
   private VarID inferRelationsFromNameNode(MethodDescriptor md, SymbolTable nametable,
-    NameNode nn, VarID flowTo) {
+					   NameNode nn, VarID flowTo, BlockStatementNode implicitTag) {
     VarID var = null;
     NameDescriptor nd = nn.getName();
     if (nd.getBase() != null) {
       var =
-          inferRelationsFromExpressionNode(md, nametable, nn.getExpression(), flowTo, false);
+          inferRelationsFromExpressionNode(md, nametable, nn.getExpression(), flowTo, implicitTag, false);
     } else {
       String varname = nd.toString();
       if (varname.equals("this")) {
 	var = new VarID(nd);
 	if(flowTo != null){
 	    rSet.addRelation(new BinaryRelation(var,flowTo));
+	}
+	if(implicitTag != null){
+	    implicitFlowSet.add(new ImplicitTuple(var,implicitTag));
 	}
 	var.setThis();
         return var;
@@ -950,6 +947,9 @@ public class SSJavaInferenceEngine {
 	if(flowTo != null){
 	  rSet.addRelation(new BinaryRelation(var,flowTo));
 	}		   
+	if(implicitTag != null){
+	    implicitFlowSet.add(new ImplicitTuple(var,implicitTag));
+	}
       } else if (d instanceof FieldDescriptor) {
         FieldDescriptor fd = (FieldDescriptor) d;
         if (fd.isStatic()) {
@@ -958,12 +958,18 @@ public class SSJavaInferenceEngine {
 	    if(flowTo != null){
 	      rSet.addRelation(new BinaryRelation(var,flowTo));
 	    }
+	    if(implicitTag != null){
+		implicitFlowSet.add(new ImplicitTuple(var,implicitTag));
+	    }
 	    var.setTop();
             return var;
           } else {
             var = new VarID(nd);
 	    if(flowTo != null){
 	      rSet.addRelation(new BinaryRelation(var,flowTo));
+	    }
+	    if(implicitTag != null){
+		implicitFlowSet.add(new ImplicitTuple(var,implicitTag));
 	    }
 	    var.setGlobal();
           }
@@ -972,13 +978,19 @@ public class SSJavaInferenceEngine {
 	    if(flowTo != null){
 	      rSet.addRelation(new BinaryRelation(var,flowTo));
 	    }
+	    if(implicitTag != null){
+		implicitFlowSet.add(new ImplicitTuple(var,implicitTag));
+	    }
 	    var.setThis();
         }
       } else if (d == null) {
         var = new VarID(nd);
-	  if(flowTo != null){
-	    rSet.addRelation(new BinaryRelation(var,flowTo));
-	  }
+	if(flowTo != null){
+	  rSet.addRelation(new BinaryRelation(var,flowTo));
+	}
+	if(implicitTag != null){
+	    implicitFlowSet.add(new ImplicitTuple(var,implicitTag));
+	}
 	var.setGlobal();
         return var;
       }
@@ -1038,7 +1050,7 @@ public class SSJavaInferenceEngine {
   }*/
 
   private VarID inferRelationsFromAssignmentNode(MethodDescriptor md,
-    SymbolTable nametable, AssignmentNode an, VarID flowTo) {
+	 SymbolTable nametable, AssignmentNode an, VarID flowTo, BlockStatementNode implicitTag) {
     ClassDescriptor cd = md.getClassDesc();
     boolean postinc = true;
     
@@ -1047,15 +1059,15 @@ public class SSJavaInferenceEngine {
             .getBaseOp().getOp() != Operation.POSTDEC))
       postinc = false;
     //get ID for leftside
-    VarID destID = inferRelationsFromExpressionNode(md, nametable, an.getDest(), flowTo, true);
+    VarID destID = inferRelationsFromExpressionNode(md, nametable, an.getDest(), flowTo, implicitTag, true);
 
     if (!postinc) {
       //recursively add relations from RHS to LHS
-      inferRelationsFromExpressionNode(md, nametable, an.getSrc(), destID, false);
+	inferRelationsFromExpressionNode(md, nametable, an.getSrc(), destID, null, false);
      
     } else {
 	//add relation to self
-      destID = inferRelationsFromExpressionNode(md, nametable, an.getDest(), destID, false);
+	destID = inferRelationsFromExpressionNode(md, nametable, an.getDest(), destID, null, false);
     }
     
     //checks if flow to anythin and adds relation
@@ -1067,6 +1079,7 @@ public class SSJavaInferenceEngine {
     for(ImplicitTuple it: implicitFlowSet){
 	rSet.addRelation(new BinaryRelation(it.getVar(),destID));
     }
+
     return destID;
   }
 }
