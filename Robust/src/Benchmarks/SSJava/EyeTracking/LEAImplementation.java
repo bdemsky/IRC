@@ -24,32 +24,37 @@
  */
 public class LEAImplementation {
 
-  // private ClassifierTree classifierTree = null;
+  private ClassifierTree classifierTree;
 
-  // private Rectangle2D lastRectangle;
+  private Rectangle2D lastRectangle;
 
   public LEAImplementation() {
     this.loadFaceData();
   }
 
-  // public FaceAndEyePosition getEyePosition(BufferedImage image) {
-  // if (image == null)
-  // return null;
-  //
-  // Rectangle2D faceRect = this.classifierTree.locateFaceRadial(image,
-  // lastRectangle);
-  // EyePosition eyePosition = null;
-  // if (faceRect != null) {
-  //
-  // lastRectangle = faceRect;
-  // Point point = readEyes(image, faceRect);
-  // if (point != null) {
-  // eyePosition = new EyePosition(point, faceRect);
-  // }
-  // }
-  //
-  // return new FaceAndEyePosition(faceRect, eyePosition);
-  // }
+  public FaceAndEyePosition getEyePosition(Image image) {
+    if (image == null)
+      return null;
+
+    Rectangle2D faceRect = classifierTree.locateFaceRadial(image, lastRectangle);
+    System.out.println("FACE RECT=" + faceRect);
+    EyePosition eyePosition = null;
+    if (faceRect != null) {
+
+      lastRectangle = faceRect;
+      Point point = readEyes(image, faceRect);
+      if (point != null) {
+        eyePosition = new EyePosition(point, faceRect);
+      }
+    }
+
+    return new FaceAndEyePosition(faceRect, eyePosition);
+  }
+
+  private Point readEyes(Image image, Rectangle2D rect) {
+    EyeDetector ed = new EyeDetector(image, rect);
+    return ed.detectEye();
+  }
 
   public boolean needsCalibration() {
     return false;
@@ -63,6 +68,8 @@ public class LEAImplementation {
 
     FileInputStream inputFile = new FileInputStream("facedata.dat");
 
+    classifierTree = new ClassifierTree();
+
     int numClassifier = Integer.parseInt(inputFile.readLine());
     System.out.println("numClassifier=" + numClassifier);
     for (int c = 0; c < numClassifier; c++) {
@@ -74,7 +81,7 @@ public class LEAImplementation {
         // 54,54,91,62,296.0
         Point fromPoint = new Point();
         Point toPoint = new Point();
-        fromPoint.x  = Integer.parseInt(inputFile.readLine());
+        fromPoint.x = Integer.parseInt(inputFile.readLine());
         fromPoint.y = Integer.parseInt(inputFile.readLine());
         toPoint.x = Integer.parseInt(inputFile.readLine());
         toPoint.y = Integer.parseInt(inputFile.readLine());
@@ -98,6 +105,7 @@ public class LEAImplementation {
       classifier.setPossibilityFaceYes(Integer.parseInt(inputFile.readLine()));
       classifier.setPossibilityFaceNo(Integer.parseInt(inputFile.readLine()));
 
+      classifierTree.addClassifier(classifier);
     }
   }
   // private Point readEyes(BufferedImage image, Rectangle2D rect) {

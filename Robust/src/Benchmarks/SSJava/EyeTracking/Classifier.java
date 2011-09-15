@@ -141,61 +141,54 @@ public class Classifier {
    * @param translationY
    * @return true if this region was classified as face, else false
    */
-  // public boolean classifyFace(IntegralImageData image, float scaleFactor, int
-  // translationX,
-  // int translationY, float borderline) {
-  //
-  // long values[] = new long[this.scanAreas.length];
-  //
-  // float avg = 0f;
-  // int avgItems = 0;
-  // for (int i = 0; i < this.scanAreas.length; ++i) {
-  // ScanArea scanArea = this.scanAreas[i];
-  // values[i] = 0l;
-  //
-  // values[i] +=
-  // image.getIntegralAt(translationX + scanArea.getToX(scaleFactor),
-  // translationY + scanArea.getToY(scaleFactor));
-  // values[i] +=
-  // image.getIntegralAt(translationX + scanArea.getFromX(scaleFactor),
-  // translationY
-  // + scanArea.getFromY(scaleFactor));
-  //
-  // values[i] -=
-  // image.getIntegralAt(translationX + scanArea.getToX(scaleFactor),
-  // translationY + scanArea.getFromY(scaleFactor));
-  // values[i] -=
-  // image.getIntegralAt(translationX + scanArea.getFromX(scaleFactor),
-  // translationY
-  // + scanArea.getToY(scaleFactor));
-  //
-  // values[i] = (long) (values[i] / ((float) scanArea.getSize(scaleFactor)));
-  // avg = ((avgItems * avg) + values[i]) / (++avgItems);
-  // }
-  //
-  // // int amountYesNo = this.possibilityFaceNo + this.possibilityFaceYes;
-  //
-  // // calculate the possibilites for face=yes and face=no with naive bayes
-  // // P(Yes | M1 and ... and Mn) = P(Yes) * P(M1 | Yes) * ... * P(Mn | Yes)
-  // /xx
-  // // P(No | M1 and ... and Mn) = P(No) * P(M1 | No) * ... * P(Mn | No) / xx
-  // // as we just maximize the args we don't actually calculate the accurate
-  // // possibility
-  //
-  // float isFaceYes = 1.0f;// this.possibilityFaceYes / (float)amountYesNo;
-  // float isFaceNo = 1.0f;// this.possibilityFaceNo / (float)amountYesNo;
-  //
-  // for (int i = 0; i < this.scanAreas.length; ++i) {
-  // boolean bright = (values[i] >= avg);
-  // isFaceYes *= (bright ? this.possibilities_FaceYes[i] : 1 -
-  // this.possibilities_FaceYes[i]);
-  // isFaceNo *= (bright ? this.possibilities_FaceNo[i] : 1 -
-  // this.possibilities_FaceNo[i]);
-  // }
-  //
-  // return (isFaceYes >= isFaceNo && (isFaceYes / (isFaceYes + isFaceNo)) >
-  // borderline);
-  // }
+  public boolean classifyFace(IntegralImageData image, float scaleFactor, int translationX,
+      int translationY, float borderline) {
+
+    long values[] = new long[this.scanAreas.length];
+
+    float avg = 0f;
+    int avgItems = 0;
+    for (int i = 0; i < this.scanAreas.length; ++i) {
+      ScanArea scanArea = this.scanAreas[i];
+      values[i] = 0l;
+
+      values[i] +=
+          image.getIntegralAt(translationX + scanArea.getToX(scaleFactor),
+              translationY + scanArea.getToY(scaleFactor));
+      values[i] +=
+          image.getIntegralAt(translationX + scanArea.getFromX(scaleFactor), translationY
+              + scanArea.getFromY(scaleFactor));
+
+      values[i] -=
+          image.getIntegralAt(translationX + scanArea.getToX(scaleFactor),
+              translationY + scanArea.getFromY(scaleFactor));
+      values[i] -=
+          image.getIntegralAt(translationX + scanArea.getFromX(scaleFactor), translationY
+              + scanArea.getToY(scaleFactor));
+
+      values[i] = (long) (values[i] / ((float) scanArea.getSize(scaleFactor)));
+      avg = ((avgItems * avg) + values[i]) / (++avgItems);
+    }
+
+    // int amountYesNo = this.possibilityFaceNo + this.possibilityFaceYes;
+
+    // calculate the possibilites for face=yes and face=no with naive bayes
+    // P(Yes | M1 and ... and Mn) = P(Yes) * P(M1 | Yes) * ... * P(Mn | Yes) /xx
+    // P(No | M1 and ... and Mn) = P(No) * P(M1 | No) * ... * P(Mn | No) / xx
+    // as we just maximize the args we don't actually calculate the accurate
+    // possibility
+
+    float isFaceYes = 1.0f;// this.possibilityFaceYes / (float)amountYesNo;
+    float isFaceNo = 1.0f;// this.possibilityFaceNo / (float)amountYesNo;
+
+    for (int i = 0; i < this.scanAreas.length; ++i) {
+      boolean bright = (values[i] >= avg);
+      isFaceYes *= (bright ? this.possibilities_FaceYes[i] : 1 - this.possibilities_FaceYes[i]);
+      isFaceNo *= (bright ? this.possibilities_FaceNo[i] : 1 - this.possibilities_FaceNo[i]);
+    }
+
+    return (isFaceYes >= isFaceNo && (isFaceYes / (isFaceYes + isFaceNo)) > borderline);
+  }
 
   public ScanArea[] getScanAreas() {
     return this.scanAreas;

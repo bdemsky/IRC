@@ -1,3 +1,5 @@
+import Analysis.SSJava.Location;
+
 /*
  * Copyright 2009 (c) Florian Frankenberger (darkblue.de)
  * 
@@ -17,41 +19,34 @@
  * along with LEA. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 /**
  * Representing an eyes deviation
  * 
  * @author Florian Frankenberger
  */
-public enum Deviation {
-        LEFT_UP(+1, -1),
-        UP(0, -1),
-        RIGHT_UP(-1, -1),
-        LEFT(+1, 0),
-        NONE(0, 0),
-        RIGHT(-1, 0),
-        LEFT_DOWN(+1, +1),
-        DOWN(0, +1),
-        RIGHT_DOWN(-1, +1);
+public class Deviation {
 
-        int directionX, directionY;
-        Deviation(int directionX, int directionY) {
-            this.directionX = directionX;
-            this.directionY = directionY;
-        }
+  int directionX, directionY;
+  String direction;
+  
 
-        private boolean concurs(int directionX, int directionY) {
-            return (directionX == this.directionX && directionY == this.directionY);
-        }
-
-
-        public static Deviation getDirectionFor(int directionX, int directionY) {
-            for (Deviation direction: Deviation.values()) {
-                if (direction.concurs(directionX, directionY)) {
-                    return direction;
-                }
-            }
-
-            return null;
-        }
+  public Deviation(String direction, int directionX, int directionY) {
+    this.directionX = directionX;
+    this.directionY = directionY;
+    this.direction = direction;
   }
+
+  public boolean equals(Object o) {
+    if (!(o instanceof Deviation)) {
+      return false;
+    }
+
+    Deviation dev = (Deviation) o;
+    if (dev.directionX == directionX && dev.directionY == directionY) {
+      return true;
+    }
+
+    return false;
+  }
+
+}

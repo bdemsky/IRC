@@ -17,10 +17,6 @@
  * along with LEA. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.darkblue.lea.model;
-
-import java.awt.geom.Rectangle2D;
-
 /**
  * No description given.
  * 
@@ -28,20 +24,20 @@ import java.awt.geom.Rectangle2D;
  */
 public class FaceAndEyePosition {
 
-    private Rectangle2D facePosition;
-    private EyePosition eyePosition;
+  private Rectangle2D facePosition;
+  private EyePosition eyePosition;
 
-    public FaceAndEyePosition(Rectangle2D facePosition, EyePosition eyePosition) {
-        this.facePosition = facePosition;
-        this.eyePosition = eyePosition;
-    }
+  public FaceAndEyePosition(Rectangle2D facePosition, EyePosition eyePosition) {
+    this.facePosition = facePosition;
+    this.eyePosition = eyePosition;
+  }
 
-    public Rectangle2D getFacePosition() {
-        return this.facePosition;
-    }
+  public Rectangle2D getFacePosition() {
+    return this.facePosition;
+  }
 
-    public EyePosition getEyePosition() {
-        return this.eyePosition;
-    }
+  public EyePosition getEyePosition() {
+    return this.eyePosition;
+  }
 
 }

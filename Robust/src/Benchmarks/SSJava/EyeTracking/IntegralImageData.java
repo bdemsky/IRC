@@ -17,8 +17,6 @@
  * along with LEA. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
 /**
  * No description given.
  * 
@@ -26,45 +24,78 @@
  */
 public class IntegralImageData {
 
-    private long[][] integral;
-    private Dimension dimension;
+  private long[][] integral;
+  private int width;
+  private int hegith;
 
-    public IntegralImageData(BufferedImage bufferedImage) {
-        this.integral = new long[bufferedImage.getWidth()][bufferedImage.getHeight()];
-        this.dimension =  new Dimension(bufferedImage.getWidth(), bufferedImage.getHeight());
+  // private Dimension dimension;
 
-        int[] pixelBuffer = new int[bufferedImage.getWidth()*bufferedImage.getHeight()];
-        PixelGrabber pg = new PixelGrabber(
-                bufferedImage, 0, 0, bufferedImage.getWidth(), bufferedImage.getHeight(), pixelBuffer, 0, bufferedImage.getWidth());
+  public IntegralImageData(Image bufferedImage) {
+    this.integral = new long[bufferedImage.getWidth()][bufferedImage.getHeight()];
+    this.width = bufferedImage.getWidth();
+    this.hegith = bufferedImage.getHeight();
+    // this.dimension = new Dimension(bufferedImage.getWidth(),
+    // bufferedImage.getHeight());
 
-        try {
-            pg.grabPixels();
-        } catch (InterruptedException ie) {}
+    // int[] pixelBuffer = new int[bufferedImage.getWidth() *
+    // bufferedImage.getHeight()];
+    // PixelGrabber pg =
+    // new PixelGrabber(bufferedImage, 0, 0, bufferedImage.getWidth(),
+    // bufferedImage.getHeight(),
+    // pixelBuffer, 0, bufferedImage.getWidth());
+    //
+    // try {
+    // pg.grabPixels();
+    // } catch (InterruptedException ie) {
+    // }
 
-        long[][] s = new long[bufferedImage.getWidth()][bufferedImage.getHeight()];
-        for (int y = 0; y < bufferedImage.getHeight(); ++y) {
-            for (int x = 0; x < bufferedImage.getWidth(); ++x) {
-                s[x][y] = (y-1 < 0 ? 0 : s[x][y-1]) + (pixelBuffer[y*bufferedImage.getWidth() + x] & 0xff);
-                this.integral[x][y] = (x-1 < 0 ? 0 : this.integral[x-1][y]) + s[x][y];
-            }
-        }
-        
+    long[][] s = new long[bufferedImage.getWidth()][bufferedImage.getHeight()];
+    for (int y = 0; y < bufferedImage.getHeight(); ++y) {
+      for (int x = 0; x < bufferedImage.getWidth(); ++x) {
+        s[x][y] = (y - 1 < 0 ? 0 : s[x][y - 1]) + (bufferedImage.getPixel(x, y) & 0xff);
+        this.integral[x][y] = (x - 1 < 0 ? 0 : this.integral[x - 1][y]) + s[x][y];
+      }
     }
 
-    public long getIntegralAt(int x, int y) {
-        return this.integral[x][y];
-    }
+  }
 
-    public Dimension getDimension() {
-        return this.dimension;
-    }
+  // public IntegralImageData(BufferedImage bufferedImage) {
+  // this.integral = new
+  // long[bufferedImage.getWidth()][bufferedImage.getHeight()];
+  // this.dimension = new Dimension(bufferedImage.getWidth(),
+  // bufferedImage.getHeight());
+  //
+  // int[] pixelBuffer = new
+  // int[bufferedImage.getWidth()*bufferedImage.getHeight()];
+  // PixelGrabber pg = new PixelGrabber(
+  // bufferedImage, 0, 0, bufferedImage.getWidth(), bufferedImage.getHeight(),
+  // pixelBuffer, 0, bufferedImage.getWidth());
+  //
+  // try {
+  // pg.grabPixels();
+  // } catch (InterruptedException ie) {}
+  //
+  // long[][] s = new long[bufferedImage.getWidth()][bufferedImage.getHeight()];
+  // for (int y = 0; y < bufferedImage.getHeight(); ++y) {
+  // for (int x = 0; x < bufferedImage.getWidth(); ++x) {
+  // s[x][y] = (y-1 < 0 ? 0 : s[x][y-1]) +
+  // (pixelBuffer[y*bufferedImage.getWidth() + x] & 0xff);
+  // this.integral[x][y] = (x-1 < 0 ? 0 : this.integral[x-1][y]) + s[x][y];
+  // }
+  // }
+  //
+  // }
 
-    public int getWidth() {
-        return this.dimension.width;
-    }
+  public long getIntegralAt(int x, int y) {
+    return this.integral[x][y];
+  }
 
-    public int getHeight() {
-        return this.dimension.height;
-    }
+  public int getWidth() {
+    return width;
+  }
+
+  public int getHeight() {
+    return hegith;
+  }
 
 }

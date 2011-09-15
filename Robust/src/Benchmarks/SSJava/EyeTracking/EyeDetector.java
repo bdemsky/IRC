@@ -17,12 +17,6 @@
  * along with LEA. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-import java.awt.Point;
-import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-import java.awt.image.PixelGrabber;
-
 /**
  * No description given.
  * 
@@ -30,60 +24,57 @@ import java.awt.image.PixelGrabber;
  */
 class EyeDetector {
 
-    private int width;
-    private int height;
-    private int[] pixelBuffer;
+  private int width;
+  private int height;
+  private int[] pixelBuffer;
 
-    double percent;
+  double percent;
 
-    public EyeDetector(BufferedImage image, Rectangle2D faceRect) {
+  public EyeDetector(Image image, Rectangle2D faceRect) {
 
-        percent = 0.15*faceRect.getWidth();
-        faceRect = new Rectangle2D.Double(
-                    faceRect.getX()+ percent,
-                    faceRect.getY()+ percent,
-                    faceRect.getWidth() - percent,
-                    faceRect.getHeight() - 2*percent
-                );
-        
-        width = (int)faceRect.getWidth() / 2;
-        height = (int)faceRect.getHeight() / 2;
-        pixelBuffer = new int[width*height];
-        PixelGrabber pg = new PixelGrabber(
-                image,
-                (int)faceRect.getX(), (int)faceRect.getY(),
-                width, height,
-                pixelBuffer, 0, width);
+    percent = 0.15 * faceRect.getWidth();
+    faceRect =
+        new Rectangle2D(faceRect.getX() + percent, faceRect.getY() + percent, faceRect.getWidth()
+            - percent, faceRect.getHeight() - 2 * percent);
 
-        try {
-            pg.grabPixels();
-        } catch (InterruptedException ie) {}
+    width = (int) faceRect.getWidth() / 2;
+    height = (int) faceRect.getHeight() / 2;
+    pixelBuffer = new int[width * height];
+
+    for (int y = (int) faceRect.getY(); y < faceRect.getY() + height; y++) {
+      for (int x = (int) faceRect.getX(); x < faceRect.getX() + width; x++) {
+        pixelBuffer[(y * width) + x] = (int) image.getPixel(x, y);
+      }
     }
 
-    public Point detectEye() {
-        Point eyePosition = null;
-        float brightness = 255f;
+  }
 
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                final int position = y*width + x;
-                final int[] color = new int[] { (pixelBuffer[position] & 0xFF0000) >> 16, (pixelBuffer[position] & 0x00FF00) >> 8, pixelBuffer[position] & 0x0000FF };
-                final float acBrightness = getBrightness(color);
+  public Point detectEye() {
+    Point eyePosition = null;
+    float brightness = 255f;
 
-                if (acBrightness < brightness) {
-                    eyePosition = new Point(x + (int)percent,  y + (int)percent);
-                    brightness = acBrightness;
-                }
-            }
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        final int position = y * width + x;
+        final int[] color =
+            new int[] { (pixelBuffer[position] & 0xFF0000) >> 16,
+                (pixelBuffer[position] & 0x00FF00) >> 8, pixelBuffer[position] & 0x0000FF };
+        final float acBrightness = getBrightness(color);
+
+        if (acBrightness < brightness) {
+          eyePosition = new Point(x + (int) percent, y + (int) percent);
+          brightness = acBrightness;
         }
-
-        return eyePosition;
+      }
     }
 
-    private static float getBrightness(int[] color) {
-        int min = Math.min(Math.min(color[0], color[1]), color[2]);
-        int max = Math.max(Math.max(color[0], color[1]), color[2]);
+    return eyePosition;
+  }
 
-        return 0.5f * (max + min);
-    }
+  private static float getBrightness(int[] color) {
+    int min = Math.min(Math.min(color[0], color[1]), color[2]);
+    int max = Math.max(Math.max(color[0], color[1]), color[2]);
+
+    return 0.5f * (max + min);
+  }
 }

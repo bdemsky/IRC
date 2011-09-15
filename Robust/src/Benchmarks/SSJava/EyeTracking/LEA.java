@@ -1,5 +1,3 @@
-import Benchmarks.oooJava.barneshut.FileInputStream;
-
 /*
  * Copyright 2009 (c) Florian Frankenberger (darkblue.de)
  * 
@@ -54,11 +52,12 @@ import Benchmarks.oooJava.barneshut.FileInputStream;
  */
 public class LEA {
 
-  private boolean showStatusWindow;
-
   private boolean shutdown = false;
+  private LEAImplementation implementation;
 
-  // private LEAImplementation implementation = new LEAImplementation();
+  private FaceAndEyePosition lastPositions = new FaceAndEyePosition(null, null);
+  private DeviationScanner deviationScanner = new DeviationScanner();
+  private int counter = 0;
 
   // private ImageProcessor imageProcessor;
   //
@@ -146,9 +145,7 @@ public class LEA {
   public LEA() {
     // this.imageProcessor = new
     // ImageProcessor(this.captureDevice.getFrameRate());
-    // this.imageProcessor.start();
-    LEAImplementation impl = new LEAImplementation();
-    System.out.println("Done.");
+    implementation = new LEAImplementation();
   }
 
   /**
@@ -170,7 +167,52 @@ public class LEA {
    */
   public static void main(String[] args) throws Exception {
     LEA lea = new LEA();
+    lea.doRun();
+  }
 
+  public void doRun() {
+
+    int maxCount = 1;
+    int i = 0;
+
+    ImageReader reader = new ImageReader();
+
+    while (i < maxCount) {
+      Image image = reader.readImage("data/e" + i + ".bmp");
+      i++;
+      if (image == null) {
+        break;
+      }
+      processImage(image);
+    }
+
+    System.out.println("Done.");
+
+  }
+
+  private void processImage(Image image) {
+
+    FaceAndEyePosition positions = implementation.getEyePosition(image);
+
+    if (positions.getEyePosition() != null) {
+      deviationScanner.addEyePosition(positions.getEyePosition());
+      Deviation deviation = deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
+      // if (deviation != Deviation.NONE) {
+      // notifyEyeMovementListenerEyeMoved(deviation);
+      // }
+    }
+    // else {
+    // if (statusWindow != null)
+    // statusWindow.getEyeInfoPanel().setDeviation(null);
+    // }
+    lastPositions = positions;
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // try {
+    // close();
+    // } catch (Exception e2) {
+    // }
+    // }
   }
 
 }

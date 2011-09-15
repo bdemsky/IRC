@@ -17,10 +17,6 @@
  * along with LEA. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.darkblue.lea.model;
-
-import java.awt.Point;
-import java.awt.geom.Rectangle2D;
 
 /**
  * No description given.
@@ -50,31 +46,31 @@ public class EyePosition {
         return this.y;
     }
     
-    public Deviation getDeviation(EyePosition oldEyePosition) {
-        if (oldEyePosition == null) return Deviation.NONE;
-
-        //first we check if the faceRects are corresponding
-        double widthChange = (this.faceRect.getWidth() - oldEyePosition.faceRect.getWidth()) / this.faceRect.getWidth();
-        if (widthChange > 0.1) return Deviation.NONE;
-
-        int maxDeviationX = (int)Math.round(this.faceRect.getWidth() / 4f);
-        int maxDeviationY = (int)Math.round(this.faceRect.getWidth() / 8f);
-        int minDeviation = (int)Math.round(this.faceRect.getWidth() / 16f);
-
-        int deviationX = Math.abs(x - oldEyePosition.x);
-        int directionX = sgn(x - oldEyePosition.x);
-        if (deviationX < minDeviation || deviationX > maxDeviationX) directionX = 0;
-
-        int deviationY = Math.abs(y - oldEyePosition.y);
-        int directionY = sgn(y - oldEyePosition.y);
-        if (deviationY < minDeviation || deviationY > maxDeviationY) directionY = 0;
-
-        double deviationXPercent = deviationX / this.faceRect.getWidth();
-        double deviationYPercent = deviationY / this.faceRect.getWidth();
-        
-        System.out.println(String.format("devX: %.2f | devY: %.2f", deviationXPercent*100f, deviationYPercent*100f));
-        return Deviation.getDirectionFor(directionX, directionY);
-    }
+//    public Deviation getDeviation(EyePosition oldEyePosition) {
+//        if (oldEyePosition == null) return Deviation.NONE;
+//
+//        //first we check if the faceRects are corresponding
+//        double widthChange = (this.faceRect.getWidth() - oldEyePosition.faceRect.getWidth()) / this.faceRect.getWidth();
+//        if (widthChange > 0.1) return Deviation.NONE;
+//
+//        int maxDeviationX = (int)Math.round(this.faceRect.getWidth() / 4f);
+//        int maxDeviationY = (int)Math.round(this.faceRect.getWidth() / 8f);
+//        int minDeviation = (int)Math.round(this.faceRect.getWidth() / 16f);
+//
+//        int deviationX = Math.abs(x - oldEyePosition.x);
+//        int directionX = sgn(x - oldEyePosition.x);
+//        if (deviationX < minDeviation || deviationX > maxDeviationX) directionX = 0;
+//
+//        int deviationY = Math.abs(y - oldEyePosition.y);
+//        int directionY = sgn(y - oldEyePosition.y);
+//        if (deviationY < minDeviation || deviationY > maxDeviationY) directionY = 0;
+//
+//        double deviationXPercent = deviationX / this.faceRect.getWidth();
+//        double deviationYPercent = deviationY / this.faceRect.getWidth();
+//        
+//        System.out.println(String.format("devX: %.2f | devY: %.2f", deviationXPercent*100f, deviationYPercent*100f));
+//        return Deviation.getDirectionFor(directionX, directionY);
+//    }
 
 
     private static int sgn(int i) {
