@@ -46,6 +46,10 @@ public class EyePosition {
         return this.y;
     }
     
+    public String toString(){
+      return "("+x+","+y+")";
+    }
+    
 //    public Deviation getDeviation(EyePosition oldEyePosition) {
 //        if (oldEyePosition == null) return Deviation.NONE;
 //

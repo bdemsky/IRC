@@ -3,7 +3,7 @@ BUILDSCRIPT=../../../buildscript
 PROGRAM=LEA
 SOURCE_FILES=LEA.java
 
-BSFLAGS= -32bit -ssjava -mainclass $(PROGRAM)  -heapsize-mb 1000   -debug -garbagestats -ssjavadebug -printlinenum -joptimize #-nooptimize
+BSFLAGS= -32bit -ssjava -mainclass $(PROGRAM)  -heapsize-mb 1000   -debug -garbagestats -ssjavadebug -printlinenum -joptimize -optimize
 
 default: $(PROGRAM)s.bin
 

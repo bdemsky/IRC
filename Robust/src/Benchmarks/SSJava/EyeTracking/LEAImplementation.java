@@ -47,7 +47,8 @@ public class LEAImplementation {
         eyePosition = new EyePosition(point, faceRect);
       }
     }
-
+    System.out.println("eyePosition="+eyePosition);
+    
     return new FaceAndEyePosition(faceRect, eyePosition);
   }
 
@@ -98,10 +99,12 @@ public class LEAImplementation {
       classifier.setPossibilitiesFaceYes(array);
 
       // parsing possibilities face no
+      array = new float[numArea];
       for (int idx = 0; idx < numArea; idx++) {
         array[idx] = Float.parseFloat(inputFile.readLine());
       }
       classifier.setPossibilitiesFaceNo(array);
+
       classifier.setPossibilityFaceYes(Integer.parseInt(inputFile.readLine()));
       classifier.setPossibilityFaceNo(Integer.parseInt(inputFile.readLine()));
 

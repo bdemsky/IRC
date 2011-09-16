@@ -28,12 +28,15 @@ public class Deviation {
 
   int directionX, directionY;
   String direction;
-  
 
   public Deviation(String direction, int directionX, int directionY) {
     this.directionX = directionX;
     this.directionY = directionY;
     this.direction = direction;
+  }
+
+  public boolean concurs(int directionX, int directionY) {
+    return (directionX == this.directionX && directionY == this.directionY);
   }
 
   public boolean equals(Object o) {

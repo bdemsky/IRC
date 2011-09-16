@@ -191,6 +191,7 @@ public class ClassifierTree {
           new Rectangle2D((smallImage.getWidth() - smallImageMaxDimension) / 2.0,
               (smallImage.getHeight() - smallImageMaxDimension) / 2.0, smallImageMaxDimension,
               smallImageMaxDimension);
+//      System.out.println("lastCoordinates=" + lastCoordinates);
     } else {
       // first we have to scale the last coodinates back relative to the resized
       // image
@@ -226,6 +227,7 @@ public class ClassifierTree {
     ) {
 
       float factor = startFactor + factorDiff;
+//      System.out.println("factor=" + factor);
       if (factor > maxScaleFactor || factor < minScaleFactor)
         continue;
 
@@ -257,14 +259,15 @@ public class ClassifierTree {
             Classifier classifier = (Classifier) classifiers.get(iterations);
 
             float borderline = 0.8f + (iterations / (classifiers.size() - 1)) * (maxBorder - 0.8f);
-
             if (!classifier.classifyFace(imageData, factor, xPos, yPos, borderline)) {
+//              System.out.println("continue yLines; ");
               backToYLines = true;
               break;
-              // continue yLines;
+              // continue yLines;              
             }
           }
 
+          
           // if we reach here we have a face recognized because our image went
           // through all
           // classifiers
@@ -272,7 +275,6 @@ public class ClassifierTree {
           if (backToYLines) {
             continue;
           }
-
           Rectangle2D faceRect =
               new Rectangle2D(xPos * originalImageFactor, yPos * originalImageFactor,
                   actualDimmension * originalImageFactor, actualDimmension * originalImageFactor);

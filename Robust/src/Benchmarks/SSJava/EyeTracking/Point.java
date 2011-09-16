@@ -10,5 +10,9 @@ public class Point {
 
   public Point() {
   }
+  
+  public String toString(){
+    return "("+x+","+y+")";
+  }
 
 }

@@ -150,6 +150,7 @@ public class Classifier {
     int avgItems = 0;
     for (int i = 0; i < this.scanAreas.length; ++i) {
       ScanArea scanArea = this.scanAreas[i];
+      // System.out.println("scanarea="+scanArea);
       values[i] = 0l;
 
       values[i] +=
@@ -169,6 +170,7 @@ public class Classifier {
       values[i] = (long) (values[i] / ((float) scanArea.getSize(scaleFactor)));
       avg = ((avgItems * avg) + values[i]) / (++avgItems);
     }
+//     System.out.println("avg=" + avg);
 
     // int amountYesNo = this.possibilityFaceNo + this.possibilityFaceYes;
 
@@ -186,6 +188,7 @@ public class Classifier {
       isFaceYes *= (bright ? this.possibilities_FaceYes[i] : 1 - this.possibilities_FaceYes[i]);
       isFaceNo *= (bright ? this.possibilities_FaceNo[i] : 1 - this.possibilities_FaceNo[i]);
     }
+//    System.out.println("avg=" + avg + " yes=" + isFaceYes + " no=" + isFaceNo);
 
     return (isFaceYes >= isFaceNo && (isFaceYes / (isFaceYes + isFaceNo)) > borderline);
   }

@@ -26,10 +26,25 @@ public class DeviationScanner {
 
   private EyePosition eyePositions[];
 
+  // LEFT_UP(+1, -1), UP(0, -1), RIGHT_UP(-1, -1), LEFT(+1, 0), NONE(0, 0),
+  // RIGHT(-1, 0), LEFT_DOWN(
+  // +1, +1), DOWN(0, +1), RIGHT_DOWN(-1, +1);
+
+  private static final Deviation LEFT_UP = new Deviation("NONE", +1, -1);
+  private static final Deviation UP = new Deviation("UP", 0, -1);
+  private static final Deviation RIGHT_UP = new Deviation("RIGHT_UP", -1, -1);
+  private static final Deviation LEFT = new Deviation("LEFT", +1, 0);
   private static final Deviation NONE = new Deviation("NONE", 0, 0);
+  private static final Deviation RIGHT = new Deviation("NONE", -1, 0);
+  private static final Deviation LEFT_DOWN = new Deviation("NONE", +1, +1);
+  private static final Deviation DOWN = new Deviation("NONE", 0, +1);
+  private static final Deviation RIGHT_DOWN = new Deviation("NONE", -1, +1);
+
+  private int size;
 
   public DeviationScanner() {
     eyePositions = new EyePosition[3];
+    size = 0;
   }
 
   public void addEyePosition(EyePosition eyePosition) {
@@ -38,17 +53,26 @@ public class DeviationScanner {
       eyePositions[i + 1] = eyePositions[i];
     }
     eyePositions[0] = eyePosition;
+
+    if (size < eyePositions.length) {
+      size++;
+    }
+  }
+
+  public int getEyePositionsSize() {
+    return size;
   }
 
   public Deviation scanForDeviation(Rectangle2D faceRect) {
     Deviation deviation = NONE;
-    if (eyePositions.length >= 3) {
+    if (getEyePositionsSize() >= 3) {
       double deviationX = 0;
       double deviationY = 0;
 
       EyePosition lastEyePosition = null;
       for (int i = 0; i < 3; ++i) {
         EyePosition eyePosition = this.eyePositions[i];
+        System.out.println("lastEyePosition=" + lastEyePosition);
         if (lastEyePosition != null) {
           deviationX += (eyePosition.getX() - lastEyePosition.getX());
           deviationY += (eyePosition.getY() - lastEyePosition.getY());
@@ -76,6 +100,7 @@ public class DeviationScanner {
       deviation = getDirectionFor(deviationAbsoluteX, deviationAbsoluteY);
       if (deviation != NONE) {
         eyePositions = new EyePosition[3];
+        size = 0;
       }
       // System.out.println(String.format("%.2f%% | %.2f%% => %d and %d >>> %s",
       // deviationX*100, deviationY*100, deviationAbsoluteX, deviationAbsoluteY,
@@ -88,22 +113,32 @@ public class DeviationScanner {
 
   public static Deviation getDirectionFor(int directionX, int directionY) {
 
-    // for (Deviation direction : Deviation.values()) {
-    // if (direction.concurs(directionX, directionY)) {
-    // return direction;
-    // }
-    // }
+    if (LEFT_UP.concurs(directionX, directionY)) {
+      return LEFT_UP;
+    } else if (UP.concurs(directionX, directionY)) {
+      return UP;
+    } else if (RIGHT_UP.concurs(directionX, directionY)) {
+      return RIGHT_UP;
+    } else if (LEFT.concurs(directionX, directionY)) {
+      return LEFT;
+    } else if (NONE.concurs(directionX, directionY)) {
+      return NONE;
+    } else if (RIGHT.concurs(directionX, directionY)) {
+      return RIGHT;
+    } else if (LEFT_DOWN.concurs(directionX, directionY)) {
+      return LEFT_DOWN;
+    } else if (DOWN.concurs(directionX, directionY)) {
+      return DOWN;
+    } else if (RIGHT_DOWN.concurs(directionX, directionY)) {
+      return RIGHT_DOWN;
+    }
     return null;
   }
 
   public void clear() {
     System.out.println("CLEAR");
-    // this.eyePositions.clear();
+    eyePositions = new EyePosition[3];
+    size = 0;
   }
-
-  // LEFT_UP(+1, -1), UP(0, -1), RIGHT_UP(-1, -1), LEFT(+1, 0), NONE(0, 0),
-  // RIGHT(-1, 0), LEFT_DOWN(
-  // +1, +1), DOWN(0, +1), RIGHT_DOWN(-1, +1);
-  //
 
 }

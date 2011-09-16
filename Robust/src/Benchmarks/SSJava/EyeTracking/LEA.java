@@ -197,9 +197,10 @@ public class LEA {
     if (positions.getEyePosition() != null) {
       deviationScanner.addEyePosition(positions.getEyePosition());
       Deviation deviation = deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
-      // if (deviation != Deviation.NONE) {
-      // notifyEyeMovementListenerEyeMoved(deviation);
-      // }
+      if (deviation != DeviationScanner.NONE) {
+        System.out.println("DEVICATION=" + deviation);
+        // notifyEyeMovementListenerEyeMoved(deviation);
+      }
     }
     // else {
     // if (statusWindow != null)

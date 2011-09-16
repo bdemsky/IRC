@@ -41,9 +41,19 @@ class EyeDetector {
     height = (int) faceRect.getHeight() / 2;
     pixelBuffer = new int[width * height];
 
-    for (int y = (int) faceRect.getY(); y < faceRect.getY() + height; y++) {
-      for (int x = (int) faceRect.getX(); x < faceRect.getX() + width; x++) {
-        pixelBuffer[(y * width) + x] = (int) image.getPixel(x, y);
+    // System.out.println("eye w=" + width + " h=" + height);
+    // System.out
+    // .println("faceRect.getX()=" + faceRect.getX() + " faceRect.getY()=" +
+    // faceRect.getY());
+    // System.out.println("image w=" + image.getWidth() + " h=" +
+    // image.getHeight());
+
+    int startX = (int) faceRect.getX();
+    int startY = (int) faceRect.getY();
+
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        pixelBuffer[(y * width) + x] = (int) image.getPixel(x + startX, y + startY);
       }
     }
 
@@ -52,7 +62,7 @@ class EyeDetector {
   public Point detectEye() {
     Point eyePosition = null;
     float brightness = 255f;
-
+    System.out.println("detectEye=" + percent);
     for (int y = 0; y < height; ++y) {
       for (int x = 0; x < width; ++x) {
         final int position = y * width + x;
@@ -60,6 +70,7 @@ class EyeDetector {
             new int[] { (pixelBuffer[position] & 0xFF0000) >> 16,
                 (pixelBuffer[position] & 0x00FF00) >> 8, pixelBuffer[position] & 0x0000FF };
         final float acBrightness = getBrightness(color);
+        System.out.println("p=" + pixelBuffer[position] + " acBrightness=" + acBrightness);
 
         if (acBrightness < brightness) {
           eyePosition = new Point(x + (int) percent, y + (int) percent);
@@ -67,6 +78,9 @@ class EyeDetector {
         }
       }
     }
+
+    System.out.println("eyePosition=" + eyePosition);
+    System.exit(0);
 
     return eyePosition;
   }

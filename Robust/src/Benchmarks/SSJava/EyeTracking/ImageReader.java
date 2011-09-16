@@ -26,11 +26,11 @@ public class ImageReader {
     int nwidth =
         (((int) bi[7] & 0xff) << 24) | (((int) bi[6] & 0xff) << 16) | (((int) bi[5] & 0xff) << 8)
             | (int) bi[4] & 0xff;
-//    System.out.println("Width is :" + nwidth);
+    // System.out.println("Width is :" + nwidth);
     int nheight =
         (((int) bi[11] & 0xff) << 24) | (((int) bi[10] & 0xff) << 16) | (((int) bi[9] & 0xff) << 8)
             | (int) bi[8] & 0xff;
-//    System.out.println("Height is :" + nheight);
+    // System.out.println("Height is :" + nheight);
     int nplanes = (((int) bi[13] & 0xff) << 8) | (int) bi[12] & 0xff;
     // System.out.println("Planes is :" + nplanes);
     int nbitcount = (((int) bi[15] & 0xff) << 8) | (int) bi[14] & 0xff;
@@ -38,11 +38,11 @@ public class ImageReader {
     // Look for non-zero values to indicate compression
     int ncompression =
         (((int) bi[19]) << 24) | (((int) bi[18]) << 16) | (((int) bi[17]) << 8) | (int) bi[16];
-//    System.out.println("Compression is :" + ncompression);
+    // System.out.println("Compression is :" + ncompression);
     int nsizeimage =
         (((int) bi[23] & 0xff) << 24) | (((int) bi[22] & 0xff) << 16)
             | (((int) bi[21] & 0xff) << 8) | (int) bi[20] & 0xff;
-//    System.out.println("SizeImage is :" + nsizeimage);
+    // System.out.println("SizeImage is :" + nsizeimage);
 
     int nxpm =
         (((int) bi[27] & 0xff) << 24) | (((int) bi[26] & 0xff) << 16)
@@ -61,35 +61,37 @@ public class ImageReader {
             | (((int) bi[37] & 0xff) << 8) | (int) bi[36] & 0xff;
     // System.out.println("Colors important are :" + nclrimp);
 
-    int ndata[];
-
     Image image = new Image(nwidth, nheight);
 
     if (nbitcount == 24) {
       // No Palatte data for 24-bit format but scan lines are
       // padded out to even 4-byte boundaries.
       int npad = (nsizeimage / nheight) - nwidth * 3;
-      ndata = new int[(nheight * nwidth) + 4];
+      // ndata = new int[(nheight * nwidth) + 4];
       byte brgb[] = new byte[(nwidth + npad) * 3 * nheight];
       // fs.read (brgb, 0, (nwidth + npad) * 3 * nheight);
       fs.read(brgb);
       int nindex = 0;
+      int yPos = 0;
       for (int j = 0; j < nheight; j++) {
         for (int i = 0; i < nwidth; i++) {
           // ndata[nwidth * (nheight - j - 1) + i] =
           // (255 & 0xff) << 24 | (((int) brgb[nindex + 2] & 0xff) << 16)
           // | (((int) brgb[nindex + 1] & 0xff) << 8) | (int) brgb[nindex] &
           // 0xff;
-          // System.out.println("Encoded Color at (" + i + "," + j + ")is:" +
-          // brgb + " (R,G,B)= ("
-          // + ((int) (brgb[nindex + 2]) & 0xff) + "," + ((int) brgb[nindex + 1]
-          // & 0xff) + ","
-          // + ((int) brgb[nindex] & 0xff) + ")");
+//           System.out.println("Encoded Color at (" + i + "," + j + ")is:" +
+//           brgb + " (R,G,B)= ("
+//           + ((int) (brgb[nindex + 2]) & 0xff) + "," + ((int) brgb[nindex + 1]
+//           & 0xff) + ","
+//           + ((int) brgb[nindex] & 0xff) + ")");
           int ta =
               ((3 * ((int) (brgb[nindex + 2]) & 0xff) + 6 * ((int) brgb[nindex + 1] & 0xff) + ((int) brgb[nindex] & 0xff))) / 10;
-          ndata[nwidth * (nheight - j - 1) + i + 4] = ta;
+          // ndata[nwidth * (nheight - j - 1) + i + 4] = ta;
           nindex += 3;
-          image.setPixel(i, j, ta);
+          // image.setPixel(i, j, ta);
+          yPos = nheight - j - 1;
+//          System.out.println("yPos=" + yPos + " nheight=" + nheight + " j=" + j);
+          image.setPixel(i, yPos, ta);
         }
         nindex += npad;
       }
@@ -139,14 +141,15 @@ public class ImageReader {
       int npad8 = (nsizeimage / nheight) - nwidth;
       // System.out.println("nPad is:" + npad8);
       // int ndata8[] = new int[nwidth * nheight];
-      ndata = new int[(nwidth * nheight) + 4];
+      // ndata = new int[(nwidth * nheight) + 4];
       byte bdata[] = new byte[(nwidth + npad8) * nheight];
       // fs.read (bdata, 0, (nwidth+npad8)*nheight);
       fs.read(bdata);
       nindex8 = 0;
       for (int j8 = 0; j8 < nheight; j8++) {
         for (int i8 = 0; i8 < nwidth; i8++) {
-          ndata[nwidth * (nheight - j8 - 1) + i8 + 4] = npalette[((int) bdata[nindex8] & 0xff)];
+          // ndata[nwidth * (nheight - j8 - 1) + i8 + 4] = npalette[((int)
+          // bdata[nindex8] & 0xff)];
           image.setPixel(i8, j8, npalette[((int) bdata[nindex8] & 0xff)]);
           // System.out.println("Encoded Color at (" + i8 + "," + j8 + ")is: "
           // + ndata[nwidth * (nheight - j8 - 1) + i8 + 4]);

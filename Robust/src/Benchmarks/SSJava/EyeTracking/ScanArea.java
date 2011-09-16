@@ -107,9 +107,8 @@ public class ScanArea {
   public String toString() {
     String str = "";
     str += "fromPoint=(" + fromPoint.x + "," + fromPoint.y + ")";
-    str += "\n";
     str += "toPoint=(" + toPoint.x + "," + toPoint.y + ")";
-    str += "\n";
+    str += "size=" + size;
     return str;
   }
 }
