@@ -62,15 +62,14 @@ class EyeDetector {
   public Point detectEye() {
     Point eyePosition = null;
     float brightness = 255f;
-    System.out.println("detectEye=" + percent);
     for (int y = 0; y < height; ++y) {
       for (int x = 0; x < width; ++x) {
         final int position = y * width + x;
         final int[] color =
             new int[] { (pixelBuffer[position] & 0xFF0000) >> 16,
                 (pixelBuffer[position] & 0x00FF00) >> 8, pixelBuffer[position] & 0x0000FF };
+        // System.out.println("("+x+","+y+")="+color[0]+" "+color[1]+" "+color[2]);
         final float acBrightness = getBrightness(color);
-        System.out.println("p=" + pixelBuffer[position] + " acBrightness=" + acBrightness);
 
         if (acBrightness < brightness) {
           eyePosition = new Point(x + (int) percent, y + (int) percent);
@@ -80,7 +79,6 @@ class EyeDetector {
     }
 
     System.out.println("eyePosition=" + eyePosition);
-    System.exit(0);
 
     return eyePosition;
   }

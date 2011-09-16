@@ -48,19 +48,20 @@ public class IntegralImageData {
     // pg.grabPixels();
     // } catch (InterruptedException ie) {
     // }
-    
-    // for (int y = 0; y < bufferedImage.getHeight(); ++y) {
-    // for (int x = 0; x < bufferedImage.getWidth(); ++x) {
-    // System.out.println(bufferedImage.getPixel(x, y) & 0xff);
-    // }
-    // }
-    // System.exit(0);
+
+//    for (int y = 0; y < bufferedImage.getHeight(); ++y) {
+//      for (int x = 0; x < bufferedImage.getWidth(); ++x) {
+//        System.out.println("(" + x + "," + y + ")=" + (bufferedImage.getPixel(x, y)));
+//      }
+//    }
+//    System.exit(0);
 
     long[][] s = new long[bufferedImage.getWidth()][bufferedImage.getHeight()];
     for (int y = 0; y < bufferedImage.getHeight(); ++y) {
       for (int x = 0; x < bufferedImage.getWidth(); ++x) {
-        s[x][y] = (y - 1 < 0 ? 0 : s[x][y - 1]) + (bufferedImage.getPixel(x, y) & 0xff);
+        s[x][y] = (y - 1 < 0 ? 0 : s[x][y - 1]) + (bufferedImage.getBlue(x, y) & 0xff);
         this.integral[x][y] = (x - 1 < 0 ? 0 : this.integral[x - 1][y]) + s[x][y];
+        // System.out.println("integral ("+x+","+y+")="+integral[x][y]);
       }
     }
 

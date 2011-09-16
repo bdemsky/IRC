@@ -79,19 +79,21 @@ public class ImageReader {
           // (255 & 0xff) << 24 | (((int) brgb[nindex + 2] & 0xff) << 16)
           // | (((int) brgb[nindex + 1] & 0xff) << 8) | (int) brgb[nindex] &
           // 0xff;
-//           System.out.println("Encoded Color at (" + i + "," + j + ")is:" +
-//           brgb + " (R,G,B)= ("
-//           + ((int) (brgb[nindex + 2]) & 0xff) + "," + ((int) brgb[nindex + 1]
-//           & 0xff) + ","
-//           + ((int) brgb[nindex] & 0xff) + ")");
           int ta =
               ((3 * ((int) (brgb[nindex + 2]) & 0xff) + 6 * ((int) brgb[nindex + 1] & 0xff) + ((int) brgb[nindex] & 0xff))) / 10;
+
           // ndata[nwidth * (nheight - j - 1) + i + 4] = ta;
-          nindex += 3;
-          // image.setPixel(i, j, ta);
           yPos = nheight - j - 1;
-//          System.out.println("yPos=" + yPos + " nheight=" + nheight + " j=" + j);
-          image.setPixel(i, yPos, ta);
+          // System.out.println("yPos=" + yPos + " nheight=" + nheight + " j=" +
+          // j);
+          // System.out.println("Encoded Color at (" + i + "," + yPos + ")is:" +
+          // brgb + " (R,G,B)= ("
+          // + ((int) (brgb[nindex + 2]) & 0xff) + "," + ((int) brgb[nindex + 1]
+          // & 0xff) + ","
+          // + ((int) brgb[nindex] & 0xff) + ")" + "cufoff=" + ta);
+          image.setPixel(i, yPos, ((int) brgb[nindex + 2] & 0xff), ((int) brgb[nindex + 1] & 0xff),
+              ((int) brgb[nindex] & 0xff));
+          nindex += 3;
         }
         nindex += npad;
       }
@@ -174,5 +176,4 @@ public class ImageReader {
     // return ndata;
 
   }
-
 }
