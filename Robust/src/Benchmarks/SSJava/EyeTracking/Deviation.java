@@ -52,4 +52,8 @@ public class Deviation {
     return false;
   }
 
+  public String toString() {
+    return direction;
+  }
+
 }

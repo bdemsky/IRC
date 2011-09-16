@@ -41,13 +41,6 @@ class EyeDetector {
     height = (int) faceRect.getHeight() / 2;
     pixelBuffer = new int[width * height];
 
-    // System.out.println("eye w=" + width + " h=" + height);
-    // System.out
-    // .println("faceRect.getX()=" + faceRect.getX() + " faceRect.getY()=" +
-    // faceRect.getY());
-    // System.out.println("image w=" + image.getWidth() + " h=" +
-    // image.getHeight());
-
     int startX = (int) faceRect.getX();
     int startY = (int) faceRect.getY();
 
@@ -77,8 +70,6 @@ class EyeDetector {
         }
       }
     }
-
-    System.out.println("eyePosition=" + eyePosition);
 
     return eyePosition;
   }

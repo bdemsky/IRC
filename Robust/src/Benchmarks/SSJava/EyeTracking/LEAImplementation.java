@@ -37,18 +37,16 @@ public class LEAImplementation {
       return null;
 
     Rectangle2D faceRect = classifierTree.locateFaceRadial(image, lastRectangle);
-    System.out.println("FACE RECT=" + faceRect);
     EyePosition eyePosition = null;
     if (faceRect != null) {
-
       lastRectangle = faceRect;
       Point point = readEyes(image, faceRect);
       if (point != null) {
         eyePosition = new EyePosition(point, faceRect);
       }
     }
-    System.out.println("eyePosition="+eyePosition);
-    
+    System.out.println("eyePosition=" + eyePosition);
+
     return new FaceAndEyePosition(faceRect, eyePosition);
   }
 
@@ -72,7 +70,6 @@ public class LEAImplementation {
     classifierTree = new ClassifierTree();
 
     int numClassifier = Integer.parseInt(inputFile.readLine());
-    System.out.println("numClassifier=" + numClassifier);
     for (int c = 0; c < numClassifier; c++) {
 
       int numArea = Integer.parseInt(inputFile.readLine());

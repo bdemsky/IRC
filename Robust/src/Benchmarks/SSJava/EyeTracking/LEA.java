@@ -172,13 +172,13 @@ public class LEA {
 
   public void doRun() {
 
-    int maxCount = 1;
+    int maxCount = 37;
     int i = 0;
 
     ImageReader reader = new ImageReader();
 
     while (i < maxCount) {
-      Image image = reader.readImage("data/e" + i + ".bmp");
+      Image image = reader.readImage("data/b" + i + ".bmp");
       i++;
       if (image == null) {
         break;
@@ -198,7 +198,7 @@ public class LEA {
       deviationScanner.addEyePosition(positions.getEyePosition());
       Deviation deviation = deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
       if (deviation != DeviationScanner.NONE) {
-        System.out.println("DEVICATION=" + deviation);
+        System.out.println("deviation=" + deviation);
         // notifyEyeMovementListenerEyeMoved(deviation);
       }
     }
