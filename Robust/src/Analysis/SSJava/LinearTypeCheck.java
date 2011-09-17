@@ -513,15 +513,19 @@ public class LinearTypeCheck {
       if (en.kind() == Kind.AssignmentNode) {
         AssignmentNode an = (AssignmentNode) en;
 
-        String destName = an.getDest().printNode(0);
-        if (destName.startsWith("this.")) {
-          destName = destName.substring(5);
+        boolean postinc = isPostIncAssignment(an);
+
+        if (!postinc) {
+          String destName = an.getDest().printNode(0);
+          if (destName.startsWith("this.")) {
+            destName = destName.substring(5);
+          }
+          if (an.getSrc().getType().isNull() && destName.equals(needToNullify)) {
+            needToNullify = null;
+            return true;
+          }
         }
 
-        if (an.getSrc().getType().isNull() && destName.equals(needToNullify)) {
-          needToNullify = null;
-          return true;
-        }
       }
     }
 
@@ -547,13 +551,19 @@ public class LinearTypeCheck {
     }
   }
 
-  private void checkAssignmentNode(MethodDescriptor md, SymbolTable nametable, AssignmentNode an) {
-
-    boolean postinc = true;
+  public boolean isPostIncAssignment(AssignmentNode an) {
     if (an.getOperation().getBaseOp() == null
         || (an.getOperation().getBaseOp().getOp() != Operation.POSTINC && an.getOperation()
-            .getBaseOp().getOp() != Operation.POSTDEC))
-      postinc = false;
+            .getBaseOp().getOp() != Operation.POSTDEC)) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  private void checkAssignmentNode(MethodDescriptor md, SymbolTable nametable, AssignmentNode an) {
+
+    boolean postinc = isPostIncAssignment(an);
 
     if (!postinc) {
       checkExpressionNode(md, nametable, an.getSrc());
@@ -669,11 +679,15 @@ public class LinearTypeCheck {
       }
       prevAssignNode = node;
     } else if (src.kind() == Kind.ArrayAccessNode) {
+      ArrayAccessNode aan = (ArrayAccessNode) src;
       TypeDescriptor srcType = src.getType();
-      if (srcType.isPtr() && !srcType.isString()) {
+      if (srcType.isPtr() && srcType.getArrayCount() > 0) {
         throw new Error(
             "Not allowed to create an alias to the middle of the multidimensional array at "
                 + md.getClassDesc().getSourceFileName() + "::" + node.getNumLine());
+      } else {
+        needToNullify = aan.printNode(0);
+        prevAssignNode = node;
       }
     } else if (src.kind() == Kind.CreateObjectNode || src.kind() == Kind.MethodInvokeNode
         || src.kind() == Kind.ArrayInitializerNode || src.kind() == Kind.LiteralNode) {
@@ -739,7 +753,7 @@ public class LinearTypeCheck {
   }
 
   private boolean isReference(TypeDescriptor td) {
-    if (td.isPtr()) {
+    if (td.isPtr() && (!td.isString())) {
       return true;
     }
     return false;

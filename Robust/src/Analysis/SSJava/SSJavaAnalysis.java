@@ -113,13 +113,13 @@ public class SSJavaAnalysis {
     // debugPrint();
     // }
     parseLocationAnnotation();
-    inference();
+    // inference();
     doFlowDownCheck();
     doDefinitelyWrittenCheck();
     debugDoLoopCheck();
   }
-  
-  private void inference(){
+
+  private void inference() {
     SSJavaInferenceEngine inferEngine = new SSJavaInferenceEngine(this, state);
     inferEngine.inference();
   }
@@ -199,6 +199,7 @@ public class SSJavaAnalysis {
     }
 
   }
+
   private void doLinearTypeCheck() {
     LinearTypeCheck checker = new LinearTypeCheck(this, state);
     checker.linearTypeCheck();
@@ -363,12 +364,12 @@ public class SSJavaAnalysis {
     // sanity checks
     if (locOrder.getThisLoc() != null && !locOrder.containsKey(locOrder.getThisLoc())) {
       throw new Error("Variable 'this' location '" + locOrder.getThisLoc()
-          + "' is not defined in the default local variable lattice at " + cd.getSourceFileName());
+          + "' is not defined in the local variable lattice at " + cd.getSourceFileName());
     }
 
     if (locOrder.getGlobalLoc() != null && !locOrder.containsKey(locOrder.getGlobalLoc())) {
       throw new Error("Variable global location '" + locOrder.getGlobalLoc()
-          + "' is not defined in the default local variable lattice at " + cd.getSourceFileName());
+          + "' is not defined in the local variable lattice at " + cd.getSourceFileName());
     }
   }
 
@@ -435,7 +436,13 @@ public class SSJavaAnalysis {
     if (md2lattice.containsKey(md)) {
       return md2lattice.get(md);
     } else {
-      return cd2methodDefault.get(md.getClassDesc());
+
+      if (cd2methodDefault.containsKey(md.getClassDesc())) {
+        return cd2methodDefault.get(md.getClassDesc());
+      } else {
+        throw new Error("Method Lattice of " + md + " is not defined.");
+      }
+
     }
   }
 

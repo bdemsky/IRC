@@ -40,14 +40,15 @@ public class LEAImplementation {
     EyePosition eyePosition = null;
     if (faceRect != null) {
       lastRectangle = faceRect;
-      Point point = readEyes(image, faceRect);
+      faceRect = null;
+      Point point = readEyes(image, lastRectangle);
       if (point != null) {
-        eyePosition = new EyePosition(point, faceRect);
+        eyePosition = new EyePosition(point, lastRectangle);
       }
     }
     System.out.println("eyePosition=" + eyePosition);
 
-    return new FaceAndEyePosition(faceRect, eyePosition);
+    return new FaceAndEyePosition(lastRectangle, eyePosition);
   }
 
   private Point readEyes(Image image, Rectangle2D rect) {
@@ -67,9 +68,8 @@ public class LEAImplementation {
 
     FileInputStream inputFile = new FileInputStream("facedata.dat");
 
-    classifierTree = new ClassifierTree();
-
     int numClassifier = Integer.parseInt(inputFile.readLine());
+    classifierTree = new ClassifierTree(numClassifier);
     for (int c = 0; c < numClassifier; c++) {
 
       int numArea = Integer.parseInt(inputFile.readLine());
@@ -105,21 +105,8 @@ public class LEAImplementation {
       classifier.setPossibilityFaceYes(Integer.parseInt(inputFile.readLine()));
       classifier.setPossibilityFaceNo(Integer.parseInt(inputFile.readLine()));
 
-      classifierTree.addClassifier(classifier);
+      classifierTree.addClassifier(c, classifier);
     }
   }
-  // private Point readEyes(BufferedImage image, Rectangle2D rect) {
-  //
-  // // now we cluster the black image points and try to find the inner eye
-  // /*
-  // * BlackHoleDetector bhd = new BlackHoleDetector(image, rect);
-  // * bhd.detect(20);
-  // *
-  // * return bhd.getPosition();
-  // */
-  //
-  // EyeDetector ed = new EyeDetector(image, rect);
-  // return ed.detectEye();
-  // }
 
 }

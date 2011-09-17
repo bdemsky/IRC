@@ -59,89 +59,6 @@ public class LEA {
   private DeviationScanner deviationScanner = new DeviationScanner();
   private int counter = 0;
 
-  // private ImageProcessor imageProcessor;
-  //
-  // private class ImageProcessor extends TimedThread {
-  //
-  // private FaceAndEyePosition lastPositions = new FaceAndEyePosition(null,
-  // null);
-  // private DeviationScanner deviationScanner = new DeviationScanner();
-  // private int counter = 0;
-  //
-  // private int fps;
-  //
-  // public ImageProcessor(int fps) {
-  // super(fps);
-  // this.fps = fps;
-  // }
-  //
-  // @Override
-  // public void doRun() {
-  //
-  // BufferedImage image = captureDevice.getImage();
-  // if (image == null)
-  // return;
-  //
-  // try {
-  // FaceAndEyePosition positions = implementation.getEyePosition(image);
-  //
-  // if (((lastPositions.getFacePosition() == null &&
-  // positions.getFacePosition() != null) || (lastPositions
-  // .getFacePosition() != null && positions.getFacePosition() == null)) ||
-  // counter++ > fps) {
-  //
-  // if ((lastPositions.getFacePosition() == null && positions.getFacePosition()
-  // != null)
-  // || (lastPositions.getFacePosition() != null && positions.getFacePosition()
-  // == null)) {
-  // if (positions.getFacePosition() != null) {
-  // notifyEyeMovementListenerFaceDetected();
-  // } else {
-  // notifyEyeMovementListenerFaceLost();
-  // }
-  // }
-  // counter = 0;
-  // if (statusWindow != null)
-  // statusWindow.getFaceInfoPanel().setFace(image,
-  // positions.getFacePosition());
-  // }
-  //
-  // if (positions.getEyePosition() != null) {
-  // if (statusWindow != null) {
-  // statusWindow.getEyeInfoPanel().setEyePosition(image,
-  // positions.getFacePosition(),
-  // positions.getEyePosition());
-  // }
-  // deviationScanner.addEyePosition(positions.getEyePosition());
-  // Deviation deviation =
-  // deviationScanner.scanForDeviation(positions.getFacePosition());//
-  // positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
-  //
-  // if (deviation != Deviation.NONE) {
-  // notifyEyeMovementListenerEyeMoved(deviation);
-  // }
-  //
-  // } else {
-  // if (statusWindow != null)
-  // statusWindow.getEyeInfoPanel().setDeviation(null);
-  // }
-  //
-  // lastPositions = positions;
-  // } catch (Exception e) {
-  // e.printStackTrace();
-  // try {
-  // close();
-  // } catch (Exception e2) {
-  // }
-  // }
-  // }
-  //
-  // public synchronized void clearDeviationScanner() {
-  // this.deviationScanner.clear();
-  // }
-  //
-  // }
-
   public LEA() {
     // this.imageProcessor = new
     // ImageProcessor(this.captureDevice.getFrameRate());
@@ -177,7 +94,7 @@ public class LEA {
 
     ImageReader reader = new ImageReader();
 
-    while (i < maxCount) {
+    SSJAVA: while (i < maxCount) {
       Image image = reader.readImage("data/b" + i + ".bmp");
       i++;
       if (image == null) {
@@ -196,24 +113,13 @@ public class LEA {
 
     if (positions.getEyePosition() != null) {
       deviationScanner.addEyePosition(positions.getEyePosition());
-      Deviation deviation = deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
+      int deviation = deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
       if (deviation != DeviationScanner.NONE) {
-        System.out.println("deviation=" + deviation);
+        System.out.println("deviation=" + deviationScanner.toStringDeviation(deviation));
         // notifyEyeMovementListenerEyeMoved(deviation);
       }
     }
-    // else {
-    // if (statusWindow != null)
-    // statusWindow.getEyeInfoPanel().setDeviation(null);
-    // }
     lastPositions = positions;
-    // } catch (Exception e) {
-    // e.printStackTrace();
-    // try {
-    // close();
-    // } catch (Exception e2) {
-    // }
-    // }
   }
 
 }

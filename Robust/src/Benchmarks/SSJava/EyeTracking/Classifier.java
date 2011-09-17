@@ -21,17 +21,21 @@
  * 
  * @author Florian
  */
+@LATTICE("V")
+@METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,V*,THISLOC=THIS,RETURNLOC=OUT")
 public class Classifier {
 
+  @LOC("V")
   private ScanArea[] scanAreas;
 
-  // private float possibilityFace = 0f;
+  @LOC("V")
   private float[] possibilities_FaceYes;
+  @LOC("V")
   private float[] possibilities_FaceNo;
+  @LOC("V")
   private int possibilityFaceYes = 0;
+  @LOC("V")
   private int possibilityFaceNo = 0;
-
-  public static final long serialVersionUID = 5168971806943656945l;
 
   public Classifier(int numScanAreas) {
     this.scanAreas = new ScanArea[numScanAreas];
@@ -43,7 +47,7 @@ public class Classifier {
     scanAreas[idx] = area;
   }
 
-  public void setPossibilitiesFaceYes(float[] arr) {
+  public void setPossibilitiesFaceYes(@DELEGATE float[] arr) {
     this.possibilities_FaceYes = arr;
   }
 
@@ -51,84 +55,13 @@ public class Classifier {
     this.possibilityFaceYes = v;
   }
 
-  public void setPossibilitiesFaceNo(float[] arr) {
+  public void setPossibilitiesFaceNo(@DELEGATE float[] arr) {
     this.possibilities_FaceNo = arr;
   }
 
   public void setPossibilityFaceNo(int v) {
     this.possibilityFaceNo = v;
   }
-
-  // public void learn(IntegralImageData image, boolean isFace) {
-  // long values[] = new long[this.scanAreas.length];
-  // //
-  // System.out.println("HERE:"+image.getIntegralAt(image.getDimension().width-1,
-  // // image.getDimension().height-1));
-  // // we assume the image is rectangular so we can simply use one side to
-  // // calculate
-  // // the scale factor
-  // float scaleFactor = image.getDimension().width / 100.0f;
-  //
-  // float avg = 0f;
-  // int avgItems = 0;
-  // for (int i = 0; i < this.scanAreas.length; ++i) {
-  // ScanArea scanArea = this.scanAreas[i];
-  // values[i] = 0l;
-  //
-  // values[i] += image.getIntegralAt(scanArea.getToX(scaleFactor),
-  // scanArea.getToY(scaleFactor));
-  // values[i] +=
-  // image.getIntegralAt(scanArea.getFromX(scaleFactor),
-  // scanArea.getFromY(scaleFactor));
-  //
-  // values[i] -=
-  // image.getIntegralAt(scanArea.getToX(scaleFactor),
-  // scanArea.getFromY(scaleFactor));
-  // values[i] -=
-  // image.getIntegralAt(scanArea.getFromX(scaleFactor),
-  // scanArea.getToY(scaleFactor));
-  //
-  // values[i] = (long) (values[i] / ((float) scanArea.getSize(scaleFactor)));
-  // avg = ((avgItems * avg) + values[i]) / (++avgItems);
-  // }
-  //
-  // if (isFace) {
-  // this.possibilityFaceYes++;
-  // } else {
-  // this.possibilityFaceNo++;
-  // }
-  // for (int i = 0; i < this.scanAreas.length; ++i) {
-  // boolean bright = (values[i] >= avg);
-  //
-  // if (isFace) {
-  // // here we change the possibility of P(Scanarea_N = (Bright | NotBright)
-  // // | Face=Yes)
-  // this.possibilities_FaceYes[i] =
-  // (((this.possibilityFaceYes - 1) * this.possibilities_FaceYes[i]) + (bright
-  // ? 0.999f
-  // : 0.001f)) / this.possibilityFaceYes;
-  // //
-  // System.out.println("P(Scannarea"+i+"=bright|Face=Yes) = "+this.possibilities_FaceYes[i]);
-  // //
-  // System.out.println("P(Scannarea"+i+"=dark|Face=Yes) = "+(1.0f-this.possibilities_FaceYes[i]));
-  // } else {
-  // // here we change the possibility of P(Scanarea_N = (Bright | NotBright)
-  // // | Face=No)
-  // this.possibilities_FaceNo[i] =
-  // (((this.possibilityFaceNo - 1) * this.possibilities_FaceNo[i]) + (bright ?
-  // 0.999f
-  // : 0.001f)) / this.possibilityFaceNo;
-  // //
-  // System.out.println("P(Scannarea"+i+"=bright|Face=No) = "+this.possibilities_FaceNo[i]);
-  // //
-  // System.out.println("P(Scannarea"+i+"=dark|Face=No) = "+(1.0f-this.possibilities_FaceNo[i]));
-  // }
-  //
-  // }
-  //
-  // // System.out.println("Average: "+avg);
-  // // System.out.println(this);
-  // }
 
   /**
    * Classifies an images region as face
@@ -141,36 +74,34 @@ public class Classifier {
    * @param translationY
    * @return true if this region was classified as face, else false
    */
-  public boolean classifyFace(IntegralImageData image, float scaleFactor, int translationX,
-      int translationY, float borderline) {
+  public boolean classifyFace(@LOC("IN") IntegralImageData image, @LOC("IN") float scaleFactor,
+      @LOC("IN") int translationX, @LOC("IN") int translationY, @LOC("IN") float borderline) {
 
-    long values[] = new long[this.scanAreas.length];
+    @LOC("V") long values[] = new long[this.scanAreas.length];
 
-    float avg = 0f;
-    int avgItems = 0;
-    for (int i = 0; i < this.scanAreas.length; ++i) {
-      ScanArea scanArea = this.scanAreas[i];
-      // System.out.println("scanarea="+scanArea);
+    @LOC("V") float avg = 0f;
+    @LOC("V") int avgItems = 0;
+    for (@LOC("C") int i = 0; i < this.scanAreas.length; ++i) {
       values[i] = 0l;
 
       values[i] +=
-          image.getIntegralAt(translationX + scanArea.getToX(scaleFactor),
-              translationY + scanArea.getToY(scaleFactor));
+          image.getIntegralAt(translationX + scanAreas[i].getToX(scaleFactor), translationY
+              + scanAreas[i].getToY(scaleFactor));
       values[i] +=
-          image.getIntegralAt(translationX + scanArea.getFromX(scaleFactor), translationY
-              + scanArea.getFromY(scaleFactor));
+          image.getIntegralAt(translationX + scanAreas[i].getFromX(scaleFactor), translationY
+              + scanAreas[i].getFromY(scaleFactor));
 
       values[i] -=
-          image.getIntegralAt(translationX + scanArea.getToX(scaleFactor),
-              translationY + scanArea.getFromY(scaleFactor));
+          image.getIntegralAt(translationX + scanAreas[i].getToX(scaleFactor), translationY
+              + scanAreas[i].getFromY(scaleFactor));
       values[i] -=
-          image.getIntegralAt(translationX + scanArea.getFromX(scaleFactor), translationY
-              + scanArea.getToY(scaleFactor));
+          image.getIntegralAt(translationX + scanAreas[i].getFromX(scaleFactor), translationY
+              + scanAreas[i].getToY(scaleFactor));
 
-      values[i] = (long) (values[i] / ((float) scanArea.getSize(scaleFactor)));
+      values[i] = (long) (values[i] / ((float) scanAreas[i].getSize(scaleFactor)));
       avg = ((avgItems * avg) + values[i]) / (++avgItems);
     }
-//     System.out.println("avg=" + avg);
+    // System.out.println("avg=" + avg);
 
     // int amountYesNo = this.possibilityFaceNo + this.possibilityFaceYes;
 
@@ -180,15 +111,18 @@ public class Classifier {
     // as we just maximize the args we don't actually calculate the accurate
     // possibility
 
-    float isFaceYes = 1.0f;// this.possibilityFaceYes / (float)amountYesNo;
-    float isFaceNo = 1.0f;// this.possibilityFaceNo / (float)amountYesNo;
+    @LOC("OUT") float isFaceYes = 1.0f;// this.possibilityFaceYes /
+                                       // (float)amountYesNo;
+    @LOC("OUT") float isFaceNo = 1.0f;// this.possibilityFaceNo /
+                                      // (float)amountYesNo;
 
-    for (int i = 0; i < this.scanAreas.length; ++i) {
-      boolean bright = (values[i] >= avg);
+    for (@LOC("C") int i = 0; i < this.scanAreas.length; ++i) {
+      @LOC("V") boolean bright = (values[i] >= avg);
       isFaceYes *= (bright ? this.possibilities_FaceYes[i] : 1 - this.possibilities_FaceYes[i]);
       isFaceNo *= (bright ? this.possibilities_FaceNo[i] : 1 - this.possibilities_FaceNo[i]);
     }
-//    System.out.println("avg=" + avg + " yes=" + isFaceYes + " no=" + isFaceNo);
+    // System.out.println("avg=" + avg + " yes=" + isFaceYes + " no=" +
+    // isFaceNo);
 
     return (isFaceYes >= isFaceNo && (isFaceYes / (isFaceYes + isFaceNo)) > borderline);
   }
@@ -226,129 +160,13 @@ public class Classifier {
 
   public String toString() {
 
-    String str = "";
-    for (int i = 0; i < scanAreas.length; i++) {
+    @LOC("OUT") String str = "";
+    for (@LOC("C") int i = 0; i < scanAreas.length; i++) {
       str += scanAreas[i].toString() + "\n";
     }
 
     return str;
 
   }
-  // @Override
-  // public String toString() {
-  // StringBuilder sb = new StringBuilder();
-  // sb.append("Classifier [ScanAreas: " + this.scanAreas.length);
-  // int yesNo = this.possibilityFaceYes + this.possibilityFaceNo;
-  // sb.append(String.format("|Yes: %3.2f| No:%3.2f] (",
-  // (this.possibilityFaceYes / (float) yesNo) * 100.0f,
-  // (this.possibilityFaceNo / (float) yesNo) * 100.0f));
-  // for (int i = 0; i < this.scanAreas.length; ++i) {
-  // sb.append(String.format("[%3d|Yes: %3.2f| No: %3.2f], ", i + 1,
-  // (this.possibilities_FaceYes[i] * 100.0f), (this.possibilities_FaceNo[i] *
-  // 100.0f)));
-  // }
-  // sb.append(")");
-  //
-  // return sb.toString();
-  // }
-
-  /**
-   * Generates a new set of classifiers each with more ScanAreas than the last
-   * classifier. You can specifiy the amount of classifiers you want to generate
-   * 
-   * @param amount
-   *          amount of classifiers to create
-   * @param startAmountScanAreas
-   *          the start amount of scanAreas - if your first classifiers should
-   *          contain 3 items you should give 3 here
-   * @param incAmountScanAreas
-   *          the amount of which the scanAreas should increase - a simple 2
-   *          will increase them by 2 every step
-   * @return a List of classifiers
-   */
-  // public static List<Classifier> generateNewClassifiers(int amount, int
-  // startAmountScanAreas,
-  // float incAmountScanAreas) {
-  // List<Classifier> classifiers = new ArrayList<Classifier>();
-  //
-  // int maxDim = 40;
-  // Random random = new Random(System.currentTimeMillis());
-  // double maxSpace = 2 * Math.PI * Math.pow(50, 2);
-  //
-  // for (int i = 0; i < amount; ++i) {
-  // // we create an odd amount of ScanAreas starting with 1 (3, 5, 7, ...)
-  // int scanAreaAmount = startAmountScanAreas + (int)
-  // Math.pow(incAmountScanAreas, i);// +
-  // // ((i)*incAmountScanAreas+1);
-  //
-  // int scanAreaSize =
-  // randomInt(random, scanAreaAmount * 20, (int) Math.min(maxDim * maxDim,
-  // maxSpace))
-  // / scanAreaAmount;
-  // // System.out.println("scanAreaSize = "+scanAreaSize);
-  //
-  // List<ScanArea> scanAreas = new ArrayList<ScanArea>();
-  //
-  // for (int j = 0; j < scanAreaAmount; ++j) {
-  //
-  // int counter = 0;
-  // ScanArea scanArea = null;
-  // do {
-  // // new the width has the first choice
-  // int minWidth = (int) Math.ceil(scanAreaSize / (float) maxDim);
-  //
-  // int scanAreaWidth = randomInt(random, minWidth, Math.min(maxDim,
-  // scanAreaSize / 2));
-  // int scanAreaHeight = (int) Math.ceil(scanAreaSize / (float) scanAreaWidth);
-  //
-  // int radius =
-  // randomInt(random, 5, Math.min(50 - scanAreaHeight / 2, 50 - scanAreaWidth /
-  // 2));
-  // double angle = random.nextFloat() * 2 * Math.PI;
-  //
-  // int posX = (int) (50 + Math.cos(angle) * radius) - (scanAreaWidth / 2);
-  // int posY = (int) (50 + Math.sin(angle) * radius) - (scanAreaHeight / 2);
-  //
-  // // System.out.println("[Angle: "+(angle /
-  // // (Math.PI*2)*180)+" | radius: "+radius+"]");
-  // //
-  // System.out.println("Area"+j+" is "+posX+", "+posY+" ("+scanAreaWidth+" x "+scanAreaHeight+" = "+((scanAreaWidth*scanAreaHeight))+")");
-  //
-  // // now we get random position for this area
-  // scanArea = new ScanArea(posX, posY, scanAreaWidth, scanAreaHeight);
-  //
-  // counter++;
-  // } while (scanAreas.contains(scanArea) && counter < 30);
-  //
-  // if (counter == 30) {
-  // j -= 1;
-  // continue;
-  // }
-  //
-  // scanAreas.add(scanArea);
-  // }
-  //
-  // Classifier classifier = new Classifier(scanAreas.toArray(new ScanArea[0]));
-  // classifiers.add(classifier);
-  // }
-  //
-  // return classifiers;
-  // }
-
-  // private static int randomInt(Random random, int from, int to) {
-  // if (to - from <= 0)
-  // to = from + 1;
-  // return from + random.nextInt(to - from);
-  // }
-  //
-  // public static List<Classifier> getDefaultClassifier() {
-  // List<Classifier> classifier = new ArrayList<Classifier>();
-  //
-  // classifier.add(new Classifier(new ScanArea(30, 30, 30, 30), new
-  // ScanArea(15, 8, 15, 82),
-  // new ScanArea(75, 8, 15, 82)));
-  //
-  // return classifier;
-  // }
 
 }

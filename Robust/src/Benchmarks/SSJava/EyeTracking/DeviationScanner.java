@@ -22,24 +22,28 @@
  * 
  * @author Florian Frankenberger
  */
+@LATTICE("SIZE<POS,SIZE*")
+@METHODDEFAULT("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
 public class DeviationScanner {
 
+  @LOC("POS")
   private EyePosition eyePositions[];
 
   // LEFT_UP(+1, -1), UP(0, -1), RIGHT_UP(-1, -1), LEFT(+1, 0), NONE(0, 0),
   // RIGHT(-1, 0), LEFT_DOWN(
   // +1, +1), DOWN(0, +1), RIGHT_DOWN(-1, +1);
 
-  private static final Deviation LEFT_UP = new Deviation("LEFT_UP", +1, -1);
-  private static final Deviation UP = new Deviation("UP", 0, -1);
-  private static final Deviation RIGHT_UP = new Deviation("RIGHT_UP", -1, -1);
-  private static final Deviation LEFT = new Deviation("LEFT", +1, 0);
-  private static final Deviation NONE = new Deviation("NONE", 0, 0);
-  private static final Deviation RIGHT = new Deviation("RIGHT", -1, 0);
-  private static final Deviation LEFT_DOWN = new Deviation("LEFT_DOWN", +1, +1);
-  private static final Deviation DOWN = new Deviation("DOWN", 0, +1);
-  private static final Deviation RIGHT_DOWN = new Deviation("RIGHT_DOWN", -1, +1);
+  public static final int LEFT_UP = 0;
+  public static final int UP = 1;
+  public static final int RIGHT_UP = 2;
+  public static final int LEFT = 3;
+  public static final int NONE = 4;
+  public static final int RIGHT = 5;
+  public static final int LEFT_DOWN = 6;
+  public static final int DOWN = 7;
+  public static final int RIGHT_DOWN = 8;
 
+  @LOC("SIZE")
   private int size;
 
   public DeviationScanner() {
@@ -47,10 +51,12 @@ public class DeviationScanner {
     size = 0;
   }
 
-  public void addEyePosition(EyePosition eyePosition) {
+  @LATTICE("THIS<C,C<IN,THISLOC=THIS")
+  public void addEyePosition(@LOC("IN") EyePosition eyePosition) {
 
-    for (int i = 1; i < eyePositions.length; i++) {
+    for (@LOC("C") int i = 1; i < eyePositions.length; i++) {
       eyePositions[i - 1] = eyePositions[i];
+      eyePositions[i] = null;
     }
     eyePositions[eyePositions.length - 1] = eyePosition;
 
@@ -63,30 +69,30 @@ public class DeviationScanner {
     return size;
   }
 
-  public Deviation scanForDeviation(Rectangle2D faceRect) {
-    Deviation deviation = NONE;
+  @LATTICE("OUT<DEV,DEV<THIS,THIS<C,C<IN,C*,DEV*,OUT*,THISLOC=THIS,RETURNLOC=OUT")
+  public int scanForDeviation(@LOC("IN") Rectangle2D faceRect) {
+    @LOC("OUT") int deviation = NONE;
     if (getEyePositionsSize() >= 3) {
-      double deviationX = 0;
-      double deviationY = 0;
+      @LOC("DEV") double deviationX = 0;
+      @LOC("DEV") double deviationY = 0;
 
-      EyePosition lastEyePosition = null;
-      for (int i = 0; i < 3; ++i) {
-        EyePosition eyePosition = this.eyePositions[i];
-        if (lastEyePosition != null) {
-          deviationX += (eyePosition.getX() - lastEyePosition.getX());
-          deviationY += (eyePosition.getY() - lastEyePosition.getY());
+      @LOC("DEV") int lastIdx = -1;
+      for (@LOC("C") int i = 0; i < 3; ++i) {
+        if (lastIdx != -1) {
+          deviationX += (eyePositions[i].getX() - eyePositions[lastIdx].getX());
+          deviationY += (eyePositions[i].getY() - eyePositions[lastIdx].getY());
         }
-        lastEyePosition = eyePosition;
+        lastIdx = i;
       }
 
-      final double deviationPercentX = 0.04;
-      final double deviationPercentY = 0.04;
+      @LOC("DEV") final double deviationPercentX = 0.04;
+      @LOC("DEV") final double deviationPercentY = 0.04;
 
       deviationX /= faceRect.getWidth();
       deviationY /= faceRect.getWidth();
 
-      int deviationAbsoluteX = 0;
-      int deviationAbsoluteY = 0;
+      @LOC("DEV") int deviationAbsoluteX = 0;
+      @LOC("DEV") int deviationAbsoluteY = 0;
       if (deviationX > deviationPercentX)
         deviationAbsoluteX = 1;
       if (deviationX < -deviationPercentX)
@@ -111,34 +117,58 @@ public class DeviationScanner {
     return deviation;
   }
 
-  public static Deviation getDirectionFor(int directionX, int directionY) {
+  public int getDirectionFor(@LOC("IN") int directionX, @LOC("IN") int directionY) {
 
-    if (LEFT_UP.concurs(directionX, directionY)) {
+    if (directionX == +1 && directionY == -1) {
       return LEFT_UP;
-    } else if (UP.concurs(directionX, directionY)) {
+    } else if (directionX == 0 && directionY == -1) {
       return UP;
-    } else if (RIGHT_UP.concurs(directionX, directionY)) {
+    } else if (directionX == -1 && directionY == -1) {
       return RIGHT_UP;
-    } else if (LEFT.concurs(directionX, directionY)) {
+    } else if (directionX == +1 && directionY == 0) {
       return LEFT;
-    } else if (NONE.concurs(directionX, directionY)) {
+    } else if (directionX == 0 && directionY == 0) {
       return NONE;
-    } else if (RIGHT.concurs(directionX, directionY)) {
+    } else if (directionX == -1 && directionY == 0) {
       return RIGHT;
-    } else if (LEFT_DOWN.concurs(directionX, directionY)) {
+    } else if (directionX == +1 && directionY == +1) {
       return LEFT_DOWN;
-    } else if (DOWN.concurs(directionX, directionY)) {
+    } else if (directionX == 0 && directionY == +1) {
       return DOWN;
-    } else if (RIGHT_DOWN.concurs(directionX, directionY)) {
+    } else if (directionX == -1 && directionY == +1) {
       return RIGHT_DOWN;
     }
-    return null;
+
+    return -1;
   }
 
   public void clear() {
     System.out.println("CLEAR");
     eyePositions = new EyePosition[3];
     size = 0;
+  }
+
+  public String toStringDeviation(@LOC("IN") int dev) {
+    if (dev == LEFT_UP) {
+      return "LEFT_UP";
+    } else if (dev == UP) {
+      return "UP";
+    } else if (dev == RIGHT_UP) {
+      return "RIGHT_UP";
+    } else if (dev == LEFT) {
+      return "LEFT";
+    } else if (dev == NONE) {
+      return "NONE";
+    } else if (dev == RIGHT) {
+      return "RIGHT";
+    } else if (dev == LEFT_DOWN) {
+      return "LEFT_DOWN";
+    } else if (dev == DOWN) {
+      return "DOWN";
+    } else if (dev == RIGHT_DOWN) {
+      return "RIGHT_DOWN";
+    }
+    return "ERROR";
   }
 
 }
