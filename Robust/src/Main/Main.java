@@ -512,9 +512,6 @@ public class Main {
           dc.optimize(fm);
           if (!state.NOLOOP){            
             lo.analyze(fm);
-            if(state.SSJAVA){
-              ssjava.doLoopTerminationCheck(lo,fm);
-            }
             lo.optimize(fm);
           }
             

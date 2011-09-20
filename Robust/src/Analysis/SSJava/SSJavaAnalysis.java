@@ -116,7 +116,7 @@ public class SSJavaAnalysis {
     // inference();
     doFlowDownCheck();
     doDefinitelyWrittenCheck();
-    debugDoLoopCheck();
+    doLoopCheck();
   }
 
   private void inference() {
@@ -124,7 +124,7 @@ public class SSJavaAnalysis {
     inferEngine.inference();
   }
 
-  private void debugDoLoopCheck() {
+  private void doLoopCheck() {
     GlobalFieldType gft = new GlobalFieldType(callgraph, state, tu.getMain());
     LoopOptimize lo = new LoopOptimize(gft, tu);
 
