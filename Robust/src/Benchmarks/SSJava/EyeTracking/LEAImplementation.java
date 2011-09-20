@@ -22,26 +22,31 @@
  * 
  * @author Florian Frankenberger
  */
+@LATTICE("R<CT")
+@METHODDEFAULT("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
 public class LEAImplementation {
 
+  @LOC("CT")
   private ClassifierTree classifierTree;
 
+  @LOC("R")
   private Rectangle2D lastRectangle;
 
   public LEAImplementation() {
     this.loadFaceData();
   }
 
-  public FaceAndEyePosition getEyePosition(Image image) {
+  @LATTICE("OUT<V,V<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
+  public FaceAndEyePosition getEyePosition(@LOC("IN") Image image) {
     if (image == null)
       return null;
 
-    Rectangle2D faceRect = classifierTree.locateFaceRadial(image, lastRectangle);
-    EyePosition eyePosition = null;
+    @LOC("V") Rectangle2D faceRect = classifierTree.locateFaceRadial(image, lastRectangle);
+    @LOC("V") EyePosition eyePosition = null;
     if (faceRect != null) {
       lastRectangle = faceRect;
       faceRect = null;
-      Point point = readEyes(image, lastRectangle);
+      @LOC("V") Point point = readEyes(image, lastRectangle);
       if (point != null) {
         eyePosition = new EyePosition(point, lastRectangle);
       }
@@ -51,8 +56,8 @@ public class LEAImplementation {
     return new FaceAndEyePosition(lastRectangle, eyePosition);
   }
 
-  private Point readEyes(Image image, Rectangle2D rect) {
-    EyeDetector ed = new EyeDetector(image, rect);
+  private Point readEyes(@LOC("IN") Image image, @LOC("IN") Rectangle2D rect) {
+    @LOC("THIS") EyeDetector ed = new EyeDetector(image, rect);
     return ed.detectEye();
   }
 

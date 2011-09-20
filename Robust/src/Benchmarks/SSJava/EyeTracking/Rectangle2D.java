@@ -1,9 +1,11 @@
+@LATTICE("POS")
+@METHODDEFAULT("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
 public class Rectangle2D {
 
-  double x;
-  double y;
-  double width;
-  double height;
+  @LOC("POS") double x;
+  @LOC("POS") double y;
+  @LOC("POS") double width;
+  @LOC("POS") double height;
 
   public Rectangle2D(double x, double y, double w, double h) {
     this.x = x;

@@ -50,14 +50,16 @@
  * 
  * @author Florian Frankenberger
  */
+@LATTICE("LAST<DEV,DEV<POS,POS<IMPL")
+@METHODDEFAULT("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
 public class LEA {
 
-  private boolean shutdown = false;
+  @LOC("IMPL")
   private LEAImplementation implementation;
-
+  @LOC("LAST")
   private FaceAndEyePosition lastPositions = new FaceAndEyePosition(null, null);
+  @LOC("DEV")
   private DeviationScanner deviationScanner = new DeviationScanner();
-  private int counter = 0;
 
   public LEA() {
     // this.imageProcessor = new
@@ -76,8 +78,8 @@ public class LEA {
   }
 
   /**
-   * To test LEA with the first capture device from the
-   * <code>Java Media Framework</code> just start from here.
+   * @METHOD To test LEA with the first capture device from the
+   *         <code>Java Media Framework</code> just start from here.
    * 
    * @param args
    * @throws Exception
@@ -87,15 +89,14 @@ public class LEA {
     lea.doRun();
   }
 
+  @LATTICE("THIS<IMG,IMG<C,C*,THISLOC=THIS")
   public void doRun() {
 
-    int maxCount = 37;
-    int i = 0;
-
-    ImageReader reader = new ImageReader();
+    @LOC("C") int maxCount = 37;
+    @LOC("C") int i = 0;
 
     SSJAVA: while (i < maxCount) {
-      Image image = reader.readImage("data/b" + i + ".bmp");
+      @LOC("IMG") Image image = ImageReader.readImage("data/b" + i + ".bmp");
       i++;
       if (image == null) {
         break;
@@ -107,13 +108,12 @@ public class LEA {
 
   }
 
-  private void processImage(Image image) {
-
-    FaceAndEyePosition positions = implementation.getEyePosition(image);
-
+  private void processImage(@LOC("IN") Image image) {
+    @LOC("THIS,LEA.POS") FaceAndEyePosition positions = implementation.getEyePosition(image);
     if (positions.getEyePosition() != null) {
       deviationScanner.addEyePosition(positions.getEyePosition());
-      int deviation = deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
+      @LOC("THIS,LEA.DEV") int deviation =
+          deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
       if (deviation != DeviationScanner.NONE) {
         System.out.println("deviation=" + deviationScanner.toStringDeviation(deviation));
         // notifyEyeMovementListenerEyeMoved(deviation);

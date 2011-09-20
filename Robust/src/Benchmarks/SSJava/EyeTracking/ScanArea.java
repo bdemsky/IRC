@@ -21,10 +21,15 @@
  * 
  * @author Florian
  */
+@LATTICE("POS")
+@METHODDEFAULT("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
 public class ScanArea {
 
+  @LOC("POS")
   private Point fromPoint;
+  @LOC("POS")
   private Point toPoint;
+  @LOC("POS")
   private float size;
 
   /**
@@ -52,23 +57,23 @@ public class ScanArea {
     this(new Point(fromX, fromY), new Point(fromX + width, fromY + height));
   }
 
-  public int getFromX(float scaleFactor) {
+  public int getFromX(@LOC("IN") float scaleFactor) {
     return (int) (this.fromPoint.x * scaleFactor);
   }
 
-  public int getFromY(float scaleFactor) {
+  public int getFromY(@LOC("IN") float scaleFactor) {
     return (int) (this.fromPoint.y * scaleFactor);
   }
 
-  public int getToX(float scaleFactor) {
+  public int getToX(@LOC("IN") float scaleFactor) {
     return (int) (this.toPoint.x * scaleFactor);
   }
 
-  public int getToY(float scaleFactor) {
+  public int getToY(@LOC("IN") float scaleFactor) {
     return (int) (this.toPoint.y * scaleFactor);
   }
 
-  public int getSize(float scaleFactor) {
+  public int getSize(@LOC("IN") float scaleFactor) {
     return (int) (this.size * Math.pow(scaleFactor, 2));
   }
 
@@ -105,7 +110,7 @@ public class ScanArea {
   // }
 
   public String toString() {
-    String str = "";
+    @LOC("OUT") String str = "";
     str += "fromPoint=(" + fromPoint.x + "," + fromPoint.y + ")";
     str += "toPoint=(" + toPoint.x + "," + toPoint.y + ")";
     str += "size=" + size;

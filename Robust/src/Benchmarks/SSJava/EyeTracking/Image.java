@@ -1,7 +1,12 @@
+@LATTICE("IMG")
+@METHODDEFAULT("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
 public class Image {
 
+  @LOC("IMG")
   int width;
+  @LOC("IMG")
   int height;
+  @LOC("IMG")
   int pixel[][];
 
   public Image(int width, int height) {

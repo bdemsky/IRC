@@ -21,20 +21,20 @@
  * 
  * @author Florian
  */
-@LATTICE("V")
+@LATTICE("FACE<V,V<C,C<SCAN,C*,V*")
 @METHODDEFAULT("OUT<V,V<THIS,THIS<C,C<IN,C*,V*,THISLOC=THIS,RETURNLOC=OUT")
 public class Classifier {
 
-  @LOC("V")
+  @LOC("SCAN")
   private ScanArea[] scanAreas;
 
-  @LOC("V")
+  @LOC("FACE")
   private float[] possibilities_FaceYes;
-  @LOC("V")
+  @LOC("FACE")
   private float[] possibilities_FaceNo;
-  @LOC("V")
+  @LOC("FACE")
   private int possibilityFaceYes = 0;
-  @LOC("V")
+  @LOC("FACE")
   private int possibilityFaceNo = 0;
 
   public Classifier(int numScanAreas) {
@@ -74,14 +74,16 @@ public class Classifier {
    * @param translationY
    * @return true if this region was classified as face, else false
    */
-  public boolean classifyFace(@LOC("IN") IntegralImageData image, @LOC("IN") float scaleFactor,
-      @LOC("IN") int translationX, @LOC("IN") int translationY, @LOC("IN") float borderline) {
+  @LATTICE("OUT<V,V<C,C<THIS,THIS<IN,C*,V*,THISLOC=THIS,RETURNLOC=OUT")
+  public boolean classifyFace(@LOC("THIS,Classifier.C") IntegralImageData image,
+      @LOC("IN") float scaleFactor, @LOC("IN") int translationX, @LOC("IN") int translationY,
+      @LOC("IN") float borderline) {
 
-    @LOC("V") long values[] = new long[this.scanAreas.length];
+    @LOC("THIS,Classifier.V") long values[] = new long[scanAreas.length];
 
-    @LOC("V") float avg = 0f;
-    @LOC("V") int avgItems = 0;
-    for (@LOC("C") int i = 0; i < this.scanAreas.length; ++i) {
+    @LOC("THIS,Classifier.V") float avg = 0f;
+    @LOC("THIS,Classifier.C") int avgItems = 0;
+    for (@LOC("THIS,Classifier.C") int i = 0; i < scanAreas.length; ++i) {
       values[i] = 0l;
 
       values[i] +=
@@ -116,8 +118,8 @@ public class Classifier {
     @LOC("OUT") float isFaceNo = 1.0f;// this.possibilityFaceNo /
                                       // (float)amountYesNo;
 
-    for (@LOC("C") int i = 0; i < this.scanAreas.length; ++i) {
-      @LOC("V") boolean bright = (values[i] >= avg);
+    for (@LOC("THIS,Classifier.C") int i = 0; i < this.scanAreas.length; ++i) {
+      @LOC("THIS,Classifier.V") boolean bright = (values[i] >= avg);
       isFaceYes *= (bright ? this.possibilities_FaceYes[i] : 1 - this.possibilities_FaceYes[i]);
       isFaceNo *= (bright ? this.possibilities_FaceNo[i] : 1 - this.possibilities_FaceNo[i]);
     }
@@ -161,7 +163,7 @@ public class Classifier {
   public String toString() {
 
     @LOC("OUT") String str = "";
-    for (@LOC("C") int i = 0; i < scanAreas.length; i++) {
+    for (@LOC("THIS,Classifier.C") int i = 0; i < scanAreas.length; i++) {
       str += scanAreas[i].toString() + "\n";
     }
 

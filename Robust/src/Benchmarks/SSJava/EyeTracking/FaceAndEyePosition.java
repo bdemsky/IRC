@@ -22,9 +22,13 @@
  * 
  * @author Florian Frankenberger
  */
+@LATTICE("POS")
+@METHODDEFAULT("OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
 public class FaceAndEyePosition {
 
+  @LOC("POS")
   private Rectangle2D facePosition;
+  @LOC("POS")
   private EyePosition eyePosition;
 
   public FaceAndEyePosition(Rectangle2D facePosition, EyePosition eyePosition) {

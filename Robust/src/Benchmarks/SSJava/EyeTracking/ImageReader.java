@@ -2,7 +2,8 @@ public class ImageReader {
   public ImageReader() {
   }
 
-  public Image readImage(String file) {
+  @TRUST
+  public static Image readImage(String file) {
 
     FileInputStream fs = new FileInputStream(file);
     int bflen = 14; // 14 byte BITMAPFILEHEADER

@@ -1,5 +1,5 @@
 @LATTICE("B<T")
-@METHODDEFAULT("OUT<IN,THISLOC=IN")
+@METHODDEFAULT("OUT<IN,THISLOC=IN,RETURNLOC=OUT")
 public class Math {
   @LOC("T")
   static final double PI = 3.14159265358979323846;
@@ -10,7 +10,7 @@ public class Math {
     return PI;
   }
 
-  public static int abs(int x) {
+  public static int abs(@LOC("IN") int x) {
     return (x < 0) ? -x : x;
   }
 
@@ -22,7 +22,7 @@ public class Math {
     return (x < 0) ? -x : x;
   }
 
-  public static float abs(float x) {
+  public static float abs(@LOC("IN") float x) {
     return (x < 0) ? -x : x;
   }
 
@@ -30,11 +30,11 @@ public class Math {
     return (a > b) ? a : b;
   }
 
-  public static float max(float a, float b) {
+  public static float max(@LOC("IN") float a, @LOC("IN") float b) {
     return (a > b) ? a : b;
   }
 
-  public static int max(int a, int b) {
+  public static int max(@LOC("IN") int a, @LOC("IN") int b) {
     return (a > b) ? a : b;
   }
 
@@ -77,7 +77,7 @@ public class Math {
     return r;
   }
 
-  public static int round(float a) {
+  public static int round(@LOC("IN") float a) {
     // this check for NaN, from JLS 15.21.1, saves a method call
     return (int) floor(a + 0.5f);
   }

@@ -295,7 +295,7 @@ public class String {
     return this;
   }
 
-  @LATTICE("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
+  @LATTICE("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT,GLOBALLOC=THIS")
   public static String valueOf(@LOC("THIS") Object o) {
     if (o == null)
       return "null";
@@ -303,7 +303,7 @@ public class String {
       return o.toString();
   }
 
-  public static String valueOf(boolean b) {
+  public static String valueOf(@LOC("IN") boolean b) {
     if (b)
       return new String("true");
     else
@@ -350,9 +350,9 @@ public class String {
     return new String(chararray);
   }
 
-  public static String valueOf(double val) {
-    char[] chararray = new char[20];
-    String s = new String();
+  public static String valueOf(@LOC("IN") double val) {
+    @LOC("C") char[] chararray = new char[20];
+    @LOC("V")  String s = new String();
     s.offset = 0;
     s.count = convertdoubletochar(val, chararray);
     s.value = chararray;

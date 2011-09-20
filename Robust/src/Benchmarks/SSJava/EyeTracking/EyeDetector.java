@@ -22,27 +22,32 @@
  * 
  * @author Florian Frankenberger
  */
+@LATTICE("IMG")
+@METHODDEFAULT("OUT<THIS,THIS<IN,OUT*,THISLOC=THIS,RETURNLOC=OUT")
 class EyeDetector {
 
+  @LOC("IMG")
   private int width;
+  @LOC("IMG")
   private int height;
+  @LOC("IMG")
   private int[] pixelBuffer;
-
+  @LOC("IMG")
   double percent;
 
   public EyeDetector(Image image, Rectangle2D faceRect) {
 
     percent = 0.15 * faceRect.getWidth();
-    faceRect =
+    Rectangle2D adjustedFaceRect =
         new Rectangle2D(faceRect.getX() + percent, faceRect.getY() + percent, faceRect.getWidth()
             - percent, faceRect.getHeight() - 2 * percent);
 
-    width = (int) faceRect.getWidth() / 2;
-    height = (int) faceRect.getHeight() / 2;
+    width = (int) adjustedFaceRect.getWidth() / 2;
+    height = (int) adjustedFaceRect.getHeight() / 2;
     pixelBuffer = new int[width * height];
 
-    int startX = (int) faceRect.getX();
-    int startY = (int) faceRect.getY();
+    int startX = (int) adjustedFaceRect.getX();
+    int startY = (int) adjustedFaceRect.getY();
 
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
@@ -52,17 +57,18 @@ class EyeDetector {
 
   }
 
+  @LATTICE("OUT,V<THIS,THIS<C,C*,THISLOC=THIS,RETURNLOC=OUT")
   public Point detectEye() {
-    Point eyePosition = null;
-    float brightness = 255f;
-    for (int y = 0; y < height; ++y) {
-      for (int x = 0; x < width; ++x) {
-        final int position = y * width + x;
-        final int[] color =
+    @LOC("OUT") Point eyePosition = null;
+    @LOC("V") float brightness = 255f;
+    for (@LOC("C") int y = 0; y < height; ++y) {
+      for (@LOC("C") int x = 0; x < width; ++x) {
+        @LOC("V") final int position = y * width + x;
+        @LOC("V") final int[] color =
             new int[] { (pixelBuffer[position] & 0xFF0000) >> 16,
                 (pixelBuffer[position] & 0x00FF00) >> 8, pixelBuffer[position] & 0x0000FF };
         // System.out.println("("+x+","+y+")="+color[0]+" "+color[1]+" "+color[2]);
-        final float acBrightness = getBrightness(color);
+        @LOC("V") final float acBrightness = getBrightness(color);
 
         if (acBrightness < brightness) {
           eyePosition = new Point(x + (int) percent, y + (int) percent);
@@ -74,9 +80,9 @@ class EyeDetector {
     return eyePosition;
   }
 
-  private static float getBrightness(int[] color) {
-    int min = Math.min(Math.min(color[0], color[1]), color[2]);
-    int max = Math.max(Math.max(color[0], color[1]), color[2]);
+  private static float getBrightness(@LOC("IN") int[] color) {
+    @LOC("IN") int min = Math.min(Math.min(color[0], color[1]), color[2]);
+    @LOC("IN") int max = Math.max(Math.max(color[0], color[1]), color[2]);
 
     return 0.5f * (max + min);
   }
