@@ -138,7 +138,6 @@ public class LoopTerminate {
     tovisit.add(loopEntrance);
 
     int numMustTerminateGuardCondtion = 0;
-    int numLoop = 0;
     while (!tovisit.isEmpty()) {
       FlatNode fnvisit = tovisit.iterator().next();
       tovisit.remove(fnvisit);
@@ -456,7 +455,7 @@ public class LoopTerminate {
   private boolean hasFieldAccessInLoopElements(FlatFieldNode guardNode, Set loopElements) {
     for (Iterator iterator = loopElements.iterator(); iterator.hasNext();) {
       FlatNode fn = (FlatNode) iterator.next();
-      if (fn.kind() == FKind.FlatFieldNode) {
+      if (fn.kind() == FKind.FlatSetFieldNode) {
         FlatFieldNode ffn = (FlatFieldNode) fn;
         if (!ffn.equals(guardNode) && ffn.getField().equals(guardNode.getField())) {
           return true;
