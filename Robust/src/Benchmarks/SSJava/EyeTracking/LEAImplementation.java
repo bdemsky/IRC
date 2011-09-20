@@ -22,7 +22,7 @@
  * 
  * @author Florian Frankenberger
  */
-@LATTICE("R<CT")
+@LATTICE("R<CT,R*")
 @METHODDEFAULT("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
 public class LEAImplementation {
 
@@ -36,12 +36,13 @@ public class LEAImplementation {
     this.loadFaceData();
   }
 
-  @LATTICE("OUT<V,V<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
+  @LATTICE("OUT<V,V<THIS,THIS<IN,V*,THISLOC=THIS,RETURNLOC=OUT")
   public FaceAndEyePosition getEyePosition(@LOC("IN") Image image) {
     if (image == null)
       return null;
 
-    @LOC("V") Rectangle2D faceRect = classifierTree.locateFaceRadial(image, lastRectangle);
+    @LOC("THIS,LEAImplementation.R") Rectangle2D faceRect =
+        classifierTree.locateFaceRadial(image, lastRectangle);
     @LOC("V") EyePosition eyePosition = null;
     if (faceRect != null) {
       lastRectangle = faceRect;
@@ -56,8 +57,9 @@ public class LEAImplementation {
     return new FaceAndEyePosition(lastRectangle, eyePosition);
   }
 
+  @LATTICE("OUT<IN,OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
   private Point readEyes(@LOC("IN") Image image, @LOC("IN") Rectangle2D rect) {
-    @LOC("THIS") EyeDetector ed = new EyeDetector(image, rect);
+    @LOC("OUT") EyeDetector ed = new EyeDetector(image, rect);
     return ed.detectEye();
   }
 

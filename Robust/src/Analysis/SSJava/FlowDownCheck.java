@@ -544,15 +544,20 @@ public class FlowDownCheck {
           checkLocationFromExpressionNode(md, nametable, returnExp, new CompositeLocation(),
               constraint, false);
 
+      // System.out.println("# RETURN VALUE LOC=" + returnValueLoc +
+      // " with constraint=" + constraint);
+
+      // TODO: do we need to check here?
       // if this return statement is inside branch, return value has an implicit
       // flow from conditional location
-      if (constraint != null) {
-        Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
-        inputGLB.add(returnValueLoc);
-        inputGLB.add(constraint);
-        returnValueLoc =
-            CompositeLattice.calculateGLB(inputGLB, generateErrorMessage(md.getClassDesc(), rn));
-      }
+      // if (constraint != null) {
+      // Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
+      // inputGLB.add(returnValueLoc);
+      // inputGLB.add(constraint);
+      // returnValueLoc =
+      // CompositeLattice.calculateGLB(inputGLB,
+      // generateErrorMessage(md.getClassDesc(), rn));
+      // }
 
       // check if return value is equal or higher than RETRUNLOC of method
       // declaration annotation
@@ -841,9 +846,12 @@ public class FlowDownCheck {
     // values
     // in this case, we don't need to check flow down rule!
 
-    System.out.println("\n#tertiary cond=" + tn.getCond().printNode(0) + " Loc=" + condLoc);
-    System.out.println("# true=" + tn.getTrueExpr().printNode(0) + " Loc=" + trueLoc);
-    System.out.println("# false=" + tn.getFalseExpr().printNode(0) + " Loc=" + falseLoc);
+    // System.out.println("\n#tertiary cond=" + tn.getCond().printNode(0) +
+    // " Loc=" + condLoc);
+    // System.out.println("# true=" + tn.getTrueExpr().printNode(0) + " Loc=" +
+    // trueLoc);
+    // System.out.println("# false=" + tn.getFalseExpr().printNode(0) + " Loc="
+    // + falseLoc);
 
     // check if condLoc is higher than trueLoc & falseLoc
     if (!trueLoc.get(0).isTop()
@@ -896,7 +904,6 @@ public class FlowDownCheck {
             checkLocationFromExpressionNode(md, nametable, min.getExpression(),
                 new CompositeLocation(), constraint, false);
       } else {
-        System.out.println("min=" + min.getMethod());
         if (min.getMethod().isStatic()) {
           String globalLocId = ssjava.getMethodLattice(md).getGlobalLoc();
           if (globalLocId == null) {
@@ -908,11 +915,11 @@ public class FlowDownCheck {
           String thisLocId = ssjava.getMethodLattice(md).getThisLoc();
           baseLocation = new CompositeLocation(new Location(md, thisLocId));
         }
-
       }
 
-      System.out.println("\n#checkLocationFromMethodInvokeNode=" + min.printNode(0)
-          + " baseLocation=" + baseLocation + " constraint=" + constraint);
+      // System.out.println("\n#checkLocationFromMethodInvokeNode=" +
+      // min.printNode(0)
+      // + " baseLocation=" + baseLocation + " constraint=" + constraint);
 
       if (constraint != null) {
         int compareResult =
@@ -1141,11 +1148,11 @@ public class FlowDownCheck {
             int callerResult =
                 CompositeLattice.compare(callerLoc1, callerLoc2, true,
                     generateErrorMessage(md.getClassDesc(), min));
-            System.out.println("callerResult=" + callerResult);
+            // System.out.println("callerResult=" + callerResult);
             int calleeResult =
                 CompositeLattice.compare(calleeLoc1, calleeLoc2, true,
                     generateErrorMessage(md.getClassDesc(), min));
-            System.out.println("calleeResult=" + calleeResult);
+            // System.out.println("calleeResult=" + calleeResult);
 
             if (callerResult == ComparisonResult.EQUAL) {
               if (ssjava.isSharedLocation(callerLoc1.get(callerLoc1.getSize() - 1))
@@ -1153,15 +1160,6 @@ public class FlowDownCheck {
                 // if both of them are shared locations, promote them to
                 // "GREATER relation"
                 callerResult = ComparisonResult.GREATER;
-              }
-            }
-
-            if (calleeResult == ComparisonResult.EQUAL) {
-              if (ssjava.isSharedLocation(calleeLoc1.get(calleeLoc1.getSize() - 1))
-                  && ssjava.isSharedLocation(calleeLoc2.get(calleeLoc2.getSize() - 1))) {
-                // if both of them are shared locations, promote them to
-                // "GREATER relation"
-                calleeResult = ComparisonResult.GREATER;
               }
             }
 
@@ -1821,7 +1819,7 @@ public class FlowDownCheck {
     public static int compare(CompositeLocation loc1, CompositeLocation loc2, boolean ignore,
         String msg) {
 
-      System.out.println("compare=" + loc1 + " " + loc2);
+      // System.out.println("compare=" + loc1 + " " + loc2);
       int baseCompareResult = compareBaseLocationSet(loc1, loc2, false, ignore, msg);
 
       if (baseCompareResult == ComparisonResult.EQUAL) {

@@ -112,7 +112,7 @@ public class LEA {
     @LOC("THIS,LEA.POS") FaceAndEyePosition positions = implementation.getEyePosition(image);
     if (positions.getEyePosition() != null) {
       deviationScanner.addEyePosition(positions.getEyePosition());
-      @LOC("THIS,LEA.DEV") int deviation =
+      @LOC("THIS,LEA.DEV,DeviationScanner.DEV") int deviation =
           deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
       if (deviation != DeviationScanner.NONE) {
         System.out.println("deviation=" + deviationScanner.toStringDeviation(deviation));

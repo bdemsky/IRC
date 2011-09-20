@@ -1,3 +1,5 @@
+import Benchmarks.SSJava.EyeTracking.LOC;
+
 public class SSJAVA {
 
   // Definitely written analysis assumes that the first parameter may have write
@@ -31,7 +33,7 @@ public class SSJAVA {
       }
     }
   }
-  
+
   static void arrayinit(float array[][], int size_1, int size_2, float value) {
 
     for (int idx1 = 0; idx1 < size_1; idx1++) {
@@ -43,7 +45,6 @@ public class SSJAVA {
       }
     }
   }
-  
 
   static void arraycopy(float array[][], float src[][], int size_1, int size_2) {
 
@@ -55,6 +56,14 @@ public class SSJAVA {
         array[idx1][idx2] = src[idx1][idx2];
       }
     }
+  }
+
+  static void append(Object array[], Object item) {
+    for (int i = 1; i < array.length; i++) {
+      array[i - 1] = array[i];
+      array[i]=null;
+    }
+    array[array.length - 1] = item;
   }
 
 }

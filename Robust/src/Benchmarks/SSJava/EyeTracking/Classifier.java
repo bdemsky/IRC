@@ -76,8 +76,8 @@ public class Classifier {
    */
   @LATTICE("OUT<V,V<C,C<THIS,THIS<IN,C*,V*,THISLOC=THIS,RETURNLOC=OUT")
   public boolean classifyFace(@LOC("THIS,Classifier.C") IntegralImageData image,
-      @LOC("IN") float scaleFactor, @LOC("IN") int translationX, @LOC("IN") int translationY,
-      @LOC("IN") float borderline) {
+      @LOC("THIS,Classifier.C") float scaleFactor, @LOC("THIS,Classifier.C") int translationX,
+      @LOC("THIS,Classifier.C") int translationY, @LOC("THIS,Classifier.C") float borderline) {
 
     @LOC("THIS,Classifier.V") long values[] = new long[scanAreas.length];
 
@@ -163,7 +163,7 @@ public class Classifier {
   public String toString() {
 
     @LOC("OUT") String str = "";
-    for (@LOC("THIS,Classifier.C") int i = 0; i < scanAreas.length; i++) {
+    for (@LOC("C") int i = 0; i < scanAreas.length; i++) {
       str += scanAreas[i].toString() + "\n";
     }
 

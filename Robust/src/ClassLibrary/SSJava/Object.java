@@ -17,6 +17,7 @@ public class Object {
     return false;
   }
 
+  @TRUST
   @RETURNLOC("TH")
   public String toString() {
     return "Object" + hashCode();

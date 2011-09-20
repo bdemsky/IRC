@@ -21,11 +21,11 @@
  * 
  * @author Florian
  */
-@LATTICE("C")
+@LATTICE("CS<C,C*")
 @METHODDEFAULT("OUT<THIS,THIS<IN,THISLOC=THIS,RETURNLOC=OUT")
 public class ClassifierTree {
 
-  @LOC("C")
+  @LOC("CS")
   private Classifier classifiers[];
 
   public ClassifierTree(int size) {
@@ -50,16 +50,16 @@ public class ClassifierTree {
    * @return an rectangle representing the actual face position on success or
    *         null if no face could be detected
    */
-  @LATTICE("OUT,THIS<CXY,CXY<V,V<IMG,IMG<C,C<IN,C*,FACTOR*,CXY*,THISLOC=THIS,RETURNLOC=OUT")
+  @LATTICE("OUT<CXY,CXY<THIS,THIS<V,V<IMG,IMG<C,C<IN,C*,V*,FACTOR*,CXY*,THISLOC=THIS,RETURNLOC=OUT,GLOBALLOC=IN")
   public Rectangle2D locateFaceRadial(@LOC("IN") Image smallImage,
-      @LOC("C") Rectangle2D lastCoordinates) {
+      @LOC("THIS,ClassifierTree.C") Rectangle2D lastCoordinates) {
 
     @LOC("IMG") IntegralImageData imageData = new IntegralImageData(smallImage);
     @LOC("IN") float originalImageFactor = 1;
 
     if (lastCoordinates == null) {
       // if we don't have a last coordinate we just begin in the center
-      @LOC("C") int smallImageMaxDimension =
+      @LOC("THIS,ClassifierTree.C") int smallImageMaxDimension =
           Math.min(smallImage.getWidth(), smallImage.getHeight());
       lastCoordinates =
           new Rectangle2D((smallImage.getWidth() - smallImageMaxDimension) / 2.0,
@@ -76,43 +76,43 @@ public class ClassifierTree {
               (lastCoordinates.getHeight() * (1 / originalImageFactor)));
     }
 
-    @LOC("V") float startFactor = (float) (lastCoordinates.getWidth() / 100.0f);
+    @LOC("THIS,ClassifierTree.C") float startFactor = (float) (lastCoordinates.getWidth() / 100.0f);
 
     // first we calculate the maximum scale factor for our 200x200 image
-    @LOC("V") float maxScaleFactor =
+    @LOC("THIS,ClassifierTree.C") float maxScaleFactor =
         Math.min(imageData.getWidth() / 100f, imageData.getHeight() / 100f);
     // maxScaleFactor = 1.0f;
 
     // we simply won't recognize faces that are smaller than 40x40 px
-    @LOC("V") float minScaleFactor = 0.5f;
+    @LOC("THIS,ClassifierTree.C") float minScaleFactor = 0.5f;
 
-    @LOC("V") float maxScaleDifference =
+    @LOC("THIS,ClassifierTree.C") float maxScaleDifference =
         Math.max(Math.abs(maxScaleFactor - startFactor), Math.abs(minScaleFactor - startFactor));
 
     // border for faceYes-possibility must be greater that that
-    @LOC("V") float maxBorder = 0.999f;
+    @LOC("THIS,ClassifierTree.C") float maxBorder = 0.999f;
 
-    @LOC("V") int startPosX = (int) lastCoordinates.getX();
-    @LOC("V") int startPosY = (int) lastCoordinates.getX();
+    @LOC("THIS,ClassifierTree.C") int startPosX = (int) lastCoordinates.getX();
+    @LOC("THIS,ClassifierTree.C") int startPosY = (int) lastCoordinates.getX();
 
-    for (@LOC("C") float factorDiff = 0.0f; Math.abs(factorDiff) <= maxScaleDifference; factorDiff =
+    for (@LOC("THIS,ClassifierTree.C") float factorDiff = 0.0f; Math.abs(factorDiff) <= maxScaleDifference; factorDiff =
         (factorDiff + sgn(factorDiff) * 0.1f) * -1 // we alternate between
                                                    // negative and positiv
                                                    // factors
     ) {
 
-      @LOC("V") float factor = startFactor + factorDiff;
+      @LOC("THIS,ClassifierTree.C") float factor = startFactor + factorDiff;
       // System.out.println("factor=" + factor);
       if (factor > maxScaleFactor || factor < minScaleFactor)
         continue;
 
       // now we calculate the actualDimmension
-      @LOC("V") int actualDimmension = (int) (100 * factor);
-      @LOC("V") int maxX = imageData.getWidth() - actualDimmension;
-      @LOC("V") int maxY = imageData.getHeight() - actualDimmension;
+      @LOC("THIS,ClassifierTree.C") int actualDimmension = (int) (100 * factor);
+      @LOC("THIS,ClassifierTree.C") int maxX = imageData.getWidth() - actualDimmension;
+      @LOC("THIS,ClassifierTree.C") int maxY = imageData.getHeight() - actualDimmension;
 
-      @LOC("V") int maxDiffX = Math.max(Math.abs(startPosX - maxX), startPosX);
-      @LOC("V") int maxDiffY = Math.max(Math.abs(startPosY - maxY), startPosY);
+      @LOC("THIS,ClassifierTree.C") int maxDiffX = Math.max(Math.abs(startPosX - maxX), startPosX);
+      @LOC("THIS,ClassifierTree.C") int maxDiffY = Math.max(Math.abs(startPosY - maxY), startPosY);
 
       for (@LOC("CXY") float xDiff = 0.1f; Math.abs(xDiff) <= maxDiffX; xDiff =
           (xDiff + sgn(xDiff) * 0.5f) * -1) {
@@ -164,6 +164,7 @@ public class ClassifierTree {
 
   }
 
+  @LATTICE("OUT<IN,OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
   private static int sgn(@LOC("IN") float value) {
     return (value < 0 ? -1 : (value > 0 ? +1 : 1));
   }

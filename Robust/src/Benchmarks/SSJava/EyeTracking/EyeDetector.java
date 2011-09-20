@@ -23,7 +23,7 @@
  * @author Florian Frankenberger
  */
 @LATTICE("IMG")
-@METHODDEFAULT("OUT<THIS,THIS<IN,OUT*,THISLOC=THIS,RETURNLOC=OUT")
+@METHODDEFAULT("OUT<THIS,THIS<IN,OUT*,THISLOC=THIS,RETURNLOC=OUT,GLOBALLOC=THIS")
 class EyeDetector {
 
   @LOC("IMG")
@@ -57,7 +57,7 @@ class EyeDetector {
 
   }
 
-  @LATTICE("OUT,V<THIS,THIS<C,C*,THISLOC=THIS,RETURNLOC=OUT")
+  @LATTICE("OUT<V,V<C,C<THIS,C*,V*,THISLOC=THIS,RETURNLOC=OUT,GLOBALLOC=THIS")
   public Point detectEye() {
     @LOC("OUT") Point eyePosition = null;
     @LOC("V") float brightness = 255f;
@@ -80,9 +80,10 @@ class EyeDetector {
     return eyePosition;
   }
 
+  @LATTICE("OUT<V,V<G,G<IN,G<THIS,THISLOC=THIS,GLOBALLOC=G,RETURNLOC=OUT")
   private static float getBrightness(@LOC("IN") int[] color) {
-    @LOC("IN") int min = Math.min(Math.min(color[0], color[1]), color[2]);
-    @LOC("IN") int max = Math.max(Math.max(color[0], color[1]), color[2]);
+    @LOC("V") int min = Math.min(Math.min(color[0], color[1]), color[2]);
+    @LOC("V") int max = Math.max(Math.max(color[0], color[1]), color[2]);
 
     return 0.5f * (max + min);
   }

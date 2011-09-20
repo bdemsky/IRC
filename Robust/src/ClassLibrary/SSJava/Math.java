@@ -1,5 +1,5 @@
 @LATTICE("B<T")
-@METHODDEFAULT("OUT<IN,THISLOC=IN,RETURNLOC=OUT")
+@METHODDEFAULT("OUT<IN,OUT<THIS,,IN*,THISLOC=THIS,RETURNLOC=OUT")
 public class Math {
   @LOC("T")
   static final double PI = 3.14159265358979323846;
@@ -52,7 +52,7 @@ public class Math {
     return (a < b) ? a : b;
   }
 
-  @RETURNLOC("IN")
+  @RETURNLOC("OUT")
   public static int min(@LOC("IN") int a, @LOC("IN") int b) {
     return (a < b) ? a : b;
   }
