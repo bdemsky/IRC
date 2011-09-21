@@ -92,10 +92,9 @@ public class LEA {
   @LATTICE("THIS<IMG,IMG<C,C*,THISLOC=THIS")
   public void doRun() {
 
-    @LOC("C") int maxCount = 37;
     @LOC("C") int i = 0;
 
-    SSJAVA: while (i < maxCount) {
+    SSJAVA: while (i < 37) {
       @LOC("IMG") Image image = ImageReader.readImage("data/b" + i + ".bmp");
       i++;
       if (image == null) {
@@ -110,7 +109,7 @@ public class LEA {
 
   private void processImage(@LOC("IN") Image image) {
     @LOC("THIS,LEA.POS") FaceAndEyePosition positions = implementation.getEyePosition(image);
-    if (positions.getEyePosition() != null) {
+//    if (positions.getEyePosition() != null) {
       deviationScanner.addEyePosition(positions.getEyePosition());
       @LOC("THIS,LEA.DEV,DeviationScanner.DEV") int deviation =
           deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
@@ -118,7 +117,7 @@ public class LEA {
         System.out.println("deviation=" + deviationScanner.toStringDeviation(deviation));
         // notifyEyeMovementListenerEyeMoved(deviation);
       }
-    }
+//    }
     lastPositions = positions;
   }
 

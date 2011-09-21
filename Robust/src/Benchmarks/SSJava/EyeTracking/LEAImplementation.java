@@ -51,6 +51,8 @@ public class LEAImplementation {
       if (point != null) {
         eyePosition = new EyePosition(point, lastRectangle);
       }
+    } else {
+      lastRectangle = null;
     }
     System.out.println("eyePosition=" + eyePosition);
 

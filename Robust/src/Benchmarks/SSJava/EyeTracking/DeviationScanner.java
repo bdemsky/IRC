@@ -64,6 +64,8 @@ public class DeviationScanner {
 
     if (size < eyePositions.length) {
       size++;
+    }else{
+      size= eyePositions.length;
     }
 
   }
