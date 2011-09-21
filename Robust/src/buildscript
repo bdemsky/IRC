@@ -50,6 +50,7 @@ echo -disjoint-dvisit-stack-callees-on-top alternate stack strat
 echo -disjoint-dvisit-pqueue use prio. q strat to visit descriptors
 echo -disjoint-desire-determinism set above interproc for determinism
 echo -disjoint-debug-scheduling debug when methods are scheduled for analysis
+echo -do-definite-reach-analysis enable improved precision for disjoint reachability analysis
 echo
 echo -pointsto-check-v-runtime check allocation site of pointer targets at runtime to help verify heap analysis results
 echo 
@@ -828,8 +829,11 @@ then
 JAVAOPTS="$JAVAOPTS -struct structfile"
 fi
 
+if $TILERAFLAG
+then
 # for tilera code, generate multicorememsize.h
 ./generate_memsize.sh ${TILERA_PAGE_SIZE} ${TILERA_PAGE_SIZE_BITS} ${TILERA_NUM_BLOCKS} ${TILERA_NUM_PAGES_PER_BLOCK} ${BUILDDIR}
+fi
 
 
 #########################
