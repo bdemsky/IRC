@@ -412,6 +412,9 @@ public class DisjointAnalysis implements HeapAnalysis {
   protected EffectsAnalysis effectsAnalysis;
   protected BuildStateMachines buildStateMachines;
 
+  protected boolean doDefiniteReachAnalysis = false;
+  protected DefiniteReachAnalysis definiteReachAnalysis;
+
 
   // data structure for public interface
   private Hashtable< Descriptor, HashSet<AllocSite> >
@@ -846,6 +849,10 @@ public class DisjointAnalysis implements HeapAnalysis {
     ReachGraph.debugCallSiteVisitCounter
       = 0; // count visits from 1, is incremented before first visit    
 
+    if( state.DO_DEFINITE_REACH_ANALYSIS ) {
+      doDefiniteReachAnalysis = true;
+      definiteReachAnalysis = new DefiniteReachAnalysis();
+    }
 
 
     if( suppressOutput ) {

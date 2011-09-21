@@ -291,6 +291,10 @@ public class Main {
         state.POINTSTO_CHECK_V_RUNTIME = true;
 
 
+      } else if( option.equals("-do-definite-reach-analysis") ) {
+        state.DO_DEFINITE_REACH_ANALYSIS = true;
+
+
       } else if (option.equals("-optional"))
         state.OPTIONAL=true;
       else if (option.equals("-optimize"))
