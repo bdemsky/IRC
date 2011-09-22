@@ -1,5 +1,6 @@
 package Analysis.Disjoint;
 
+import java.io.*;
 import java.util.*;
 
 import IR.*;
@@ -64,6 +65,18 @@ public class DefiniteReachAnalysis {
     DefiniteReachState state = makeIn( fn );
     state.methodCall( x );
     fn2state.put( fn, state ); 
+  }
+
+
+  public void writeState( FlatNode fn, String outputName ) {
+    DefiniteReachState state = makeIn( fn );
+    try {
+      BufferedWriter bw = new BufferedWriter( new FileWriter( outputName+".txt" ) );
+      bw.write( state.toString() );
+      bw.close();
+    } catch( IOException e ) {
+      System.out.println( "ERROR writing definite reachability state:\n  "+e );
+    }
   }
 
 

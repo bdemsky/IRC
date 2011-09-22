@@ -1608,6 +1608,11 @@ public class BuildFlat {
     return new NodePair(fgrn, fgrn);
   }
 
+  private NodePair flattenGenDefReachNode(GenDefReachNode gdrn) {
+    FlatGenDefReachNode fgdrn = new FlatGenDefReachNode(gdrn.getOutputName() );
+    return new NodePair(fgdrn, fgdrn);
+  }
+
   private NodePair flattenSESENode(SESENode sn) {
     if( sn.isStart() ) {
       FlatSESEEnterNode fsen=new FlatSESEEnterNode(sn);
@@ -1760,6 +1765,9 @@ public class BuildFlat {
 
     case Kind.GenReachNode:
       return flattenGenReachNode((GenReachNode)bsn);
+
+    case Kind.GenDefReachNode:
+      return flattenGenDefReachNode((GenDefReachNode)bsn);
 
     case Kind.ContinueBreakNode:
       return flattenContinueBreakNode((ContinueBreakNode)bsn);

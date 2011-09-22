@@ -389,6 +389,7 @@ public class SemanticCheck {
 
     case Kind.SESENode:
     case Kind.GenReachNode:
+    case Kind.GenDefReachNode:
       // do nothing, no semantic check for SESEs
       return;
     }

@@ -2378,7 +2378,8 @@ fldloop:
       break;
 
     case FKind.FlatGenReachNode:
-      // this node is just for generating a reach graph
+    case FKind.FlatGenDefReachNode:
+      // these nodes are just for generating analysis data
       // in disjointness analysis at a particular program point
       break;
 

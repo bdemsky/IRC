@@ -29,4 +29,5 @@ public class FKind {
   public static final int FlatInstanceOfNode=26;
   public static final int FlatExit=27;
   public static final int FlatGenReachNode=28;
+  public static final int FlatGenDefReachNode=29;
 }

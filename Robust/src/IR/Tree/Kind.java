@@ -34,4 +34,5 @@ public class Kind {
   public final static int SwitchLabelNode=31;
   public final static int SwitchBlockNode=32;
   public final static int ClassTypeNode=33;
+  public final static int GenDefReachNode=34;
 }

@@ -1330,6 +1330,14 @@ public class DisjointAnalysis implements HeapAnalysis {
     } break;
 
 
+    case FKind.FlatGenDefReachNode: {
+      FlatGenDefReachNode fgdrn = (FlatGenDefReachNode) fn;
+      if( doDefiniteReachAnalysis ) {
+        definiteReachAnalysis.writeState( fn, fgdrn.getOutputName() );
+      }
+    } break;
+
+
     case FKind.FlatMethod: {
       // construct this method's initial heap model (IHM)
       // since we're working on the FlatMethod, we know

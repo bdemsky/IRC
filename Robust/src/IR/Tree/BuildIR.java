@@ -1578,9 +1578,14 @@ public class BuildIR {
       ParseNode idopt_pn=pn.getChild("identifier_opt");
       ParseNode name_pn=idopt_pn.getChild("name");
       // name_pn.getTerminal() gives you the label
+
     } else if (isNode(pn,"genreach")) {
       String graphName = pn.getChild("graphName").getTerminal();
       blockstatements.add(new GenReachNode(graphName) );
+
+    } else if (isNode(pn,"gen_def_reach")) {
+      String outputName = pn.getChild("outputName").getTerminal();
+      blockstatements.add(new GenDefReachNode(outputName) );
 
     } else if(isNode(pn,"labeledstatement")) {
       String labeledstatement = pn.getChild("name").getTerminal();

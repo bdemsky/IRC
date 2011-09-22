@@ -99,6 +99,7 @@ public class PointerMethod {
     case FKind.FlatSESEEnterNode:
     case FKind.FlatSESEExitNode:
     case FKind.FlatGenReachNode:
+    case FKind.FlatGenDefReachNode:
     case FKind.FlatExit:
       return true;
 

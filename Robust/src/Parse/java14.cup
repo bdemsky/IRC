@@ -108,6 +108,7 @@ terminal ENUM;
 
 // added for disjoint reachability analysis
 terminal GENREACH;
+terminal GEN_DEF_REACH;
 
 
 // 19.2) The Syntactic Grammar
@@ -204,6 +205,7 @@ non terminal ParseNode catches, catch_clause;
 non terminal ParseNode finally;
 //non terminal ParseNode assert_statement;
 non terminal ParseNode genreach_statement;
+non terminal ParseNode gen_def_reach_statement;
 // 19.12) Expressions
 non terminal ParseNode primary, primary_no_new_array;
 non terminal ParseNode class_instance_creation_expression;
@@ -1575,6 +1577,7 @@ statement_without_trailing_substatement ::=
 	|	sese_statement:st {: RESULT=st; :}
 	|	synchronized_statement:st {: RESULT=st; :}
 	|       genreach_statement:st {: RESULT=st; :}
+	|       gen_def_reach_statement:st {: RESULT=st; :}
 	|	throw_statement:st {: RESULT=st; :}
 	|	try_statement:st {: RESULT=st; :}
 //	|	assert_statement
@@ -2539,5 +2542,12 @@ genreach_statement ::=
 		GENREACH IDENTIFIER:graphName SEMICOLON {: 
 		ParseNode pn=new ParseNode("genreach",parser.lexer.line_num);
 		pn.addChild("graphName").addChild(graphName);
+		RESULT=pn; :}
+	;
+
+gen_def_reach_statement ::=
+		GEN_DEF_REACH IDENTIFIER:outputName SEMICOLON {: 
+		ParseNode pn=new ParseNode("gen_def_reach",parser.lexer.line_num);
+		pn.addChild("outputName").addChild(outputName);
 		RESULT=pn; :}
 	;

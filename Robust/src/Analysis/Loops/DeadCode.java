@@ -38,6 +38,7 @@ nextfn:
         case FKind.FlatSESEEnterNode:
         case FKind.FlatSESEExitNode:
         case FKind.FlatGenReachNode:
+        case FKind.FlatGenDefReachNode:
           if (!useful.contains(fn)) {
             useful.add(fn);
             changed=true;

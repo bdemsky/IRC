@@ -18,6 +18,8 @@ public class Test {
 
     f = yodel( f, g );
 
+    gendefreach yo;
+
     System.out.println( f );
   }
 

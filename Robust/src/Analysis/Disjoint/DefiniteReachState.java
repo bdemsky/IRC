@@ -37,7 +37,7 @@ public class DefiniteReachState {
     rs = new HashMap<TempDescriptor, DefReachKnown>();
   }
 
-  // what are the transfer functions that are relevant for this analyis?
+
 
   public void methodEntry(Set<TempDescriptor> parameters) {
     // R' := {}
