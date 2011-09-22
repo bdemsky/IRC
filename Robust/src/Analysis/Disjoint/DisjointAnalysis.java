@@ -1360,6 +1360,14 @@ public class DisjointAnalysis implements HeapAnalysis {
       rg.merge(rgPrevContext);
       mapDescriptorToInitialContext.put(d, rg);
 
+      if( doDefiniteReachAnalysis ) {
+        FlatMethod fm = (FlatMethod) fn;
+        Set<TempDescriptor> params = new HashSet<TempDescriptor>();
+        for( int i = 0; i < fm.numParameters(); ++i ) {
+          params.add( fm.getParameter( i ) );
+        }
+        definiteReachAnalysis.methodEntry( fn, params );
+      }
     } break;
 
     case FKind.FlatOpNode:
@@ -1380,6 +1388,10 @@ public class DisjointAnalysis implements HeapAnalysis {
 
         // transfer func
         rg.assignTempXEqualToTempY(lhs, rhs);
+
+        if( doDefiniteReachAnalysis ) {
+          definiteReachAnalysis.copy( fn, lhs, rhs );
+        }
       }
       break;
 
@@ -1403,6 +1415,10 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       // transfer func
       rg.assignTempXEqualToCastedTempY(lhs, rhs, td);
+
+      if( doDefiniteReachAnalysis ) {
+        definiteReachAnalysis.copy( fn, lhs, rhs );
+      }
       break;
 
     case FKind.FlatFieldNode:
@@ -1432,6 +1448,10 @@ public class DisjointAnalysis implements HeapAnalysis {
       if( shouldAnalysisTrack(fld.getType() ) ) {
         // transfer func
         rg.assignTempXEqualToTempYFieldF(lhs, rhs, fld, fn);
+
+        if( doDefiniteReachAnalysis ) {
+          definiteReachAnalysis.load( fn, lhs, rhs, fld );
+        }
       }
 
       // after transfer, use updated graph to
@@ -1474,6 +1494,10 @@ public class DisjointAnalysis implements HeapAnalysis {
       if( shouldAnalysisTrack(fld.getType() ) ) {
         // transfer func
         strongUpdate = rg.assignTempXFieldFEqualToTempY(lhs, fld, rhs, fn);
+
+        if( doDefiniteReachAnalysis ) {
+          definiteReachAnalysis.store( fn, lhs, fld, rhs );
+        }
       }
 
       // use transformed graph to do effects analysis
@@ -1513,6 +1537,10 @@ public class DisjointAnalysis implements HeapAnalysis {
       if( shouldAnalysisTrack(lhs.getType() ) ) {
         // transfer func
         rg.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement, fn);
+
+        if( doDefiniteReachAnalysis ) {
+          definiteReachAnalysis.load( fn, lhs, rhs, fdElement );
+        }
       }
 
       // use transformed graph to do effects analysis
@@ -1560,6 +1588,10 @@ public class DisjointAnalysis implements HeapAnalysis {
         if( !arrayReferencees.doesNotCreateNewReaching(fsen) ) {
           rg.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs, fn);
         }
+
+        if( doDefiniteReachAnalysis ) {
+          definiteReachAnalysis.store( fn, lhs, fdElement, rhs );
+        }
       }
 
       // use transformed graph to do effects analysis
@@ -1585,6 +1617,10 @@ public class DisjointAnalysis implements HeapAnalysis {
 
         // transfer func
         rg.assignTempEqualToNewAlloc(lhs, as);
+
+        if( doDefiniteReachAnalysis ) {
+          definiteReachAnalysis.newObject( fn, lhs );
+        }
       }
       break;
 
@@ -1650,11 +1686,9 @@ public class DisjointAnalysis implements HeapAnalysis {
       FlatMethod fmCallee = state.getMethodFlat(mdCallee);
 
 
-
-
-
-
-
+      if( doDefiniteReachAnalysis ) {
+        definiteReachAnalysis.methodCall( fn, fc.getReturnTemp() );
+      }
 
       
       // the transformation for a call site should update the
