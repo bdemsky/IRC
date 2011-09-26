@@ -77,6 +77,40 @@ public class MultiViewMap<T> {
     return fullKey2value.size();
   }
 
+  public boolean equals( Object o ) {
+    if( this == o ) {
+      return true;
+    }
+    if( o == null ) {
+      return false;
+    }
+    if( !(o instanceof MultiViewMap) ) {
+      return false;
+    }
+    MultiViewMap that = (MultiViewMap) o;
+
+    // check whether key types and views match
+    if( !this.isHomogenous( that ) ) {
+      return false;
+    }
+    
+    // check contents
+    return fullKey2value.equals( that.fullKey2value ) &&
+      view2partialKey2fullKeys.equals( that.view2partialKey2fullKeys );
+  }
+
+  public int hashCode() {
+    int hash = 1;
+    hash = hash*31 + keyTypes.hashCode();
+    hash = hash*31 + joinOp.hashCode();
+    hash = hash*31 + fullView.hashCode();
+    hash = hash*31 + partialViews.hashCode();
+    hash = hash*31 + fullKey2value.hashCode();
+    hash = hash*31 + view2partialKey2fullKeys.hashCode();
+    return hash;
+  }
+
+
  
   public void put( MultiKey fullKey, T value ) {
     assert( typesMatch( fullKey ) );
@@ -233,7 +267,8 @@ public class MultiViewMap<T> {
     }
     return 
       this.partialViews.equals( in.partialViews ) &&
-      this.fullView.equals( in.fullView );
+      this.fullView.equals( in.fullView ) &&
+      this.joinOp.equals( in.joinOp );
   }
 
 

@@ -25,16 +25,50 @@ public class DefiniteReachState {
     UNKNOWN,
     KNOWN,
   }
-  private Map<TempDescriptor, DefReachKnown> rs;
+  private Map<TempDescriptor, DefReachKnown> Rs;
   
   
+  // Fu (upstream)
+  //
+  // Maps a variable that points to object o0 to the
+  // set of variables that point to objects o1...oN
+  // that have a reference to o0.
+  private static MultiViewMapBuilder<Object> FuBuilder;
+  private static BitSet viewFu0;
+  private static BitSet viewFu1;
+  private MultiViewMap<Object> Fu;
 
-  // Fu
 
-  // Fd
+  // Fd (downstream)
+
+
+
+
+  // for MultiViewMaps that don't need to use the value,
+  // always map to this dummy
+  private static Object dummy = new Integer( -1234 );
+
+
+  // call before instantiating this class
+  static public void initBuilders() {
+    FuBuilder =
+      new MultiViewMapBuilder<Object>( new Class[] {
+                                         TempDescriptor.class,
+                                         DefReachFuVal.class},
+                                       new JoinOpNop() );
+    viewFu0 = FuBuilder.addPartialView( 0 );
+    viewFu1 = FuBuilder.addPartialView( 1 );
+    FuBuilder.setCheckTypes( true );
+    FuBuilder.setCheckConsistency( true );
+  }
+
+
+
+
 
   public DefiniteReachState() {
-    rs = new HashMap<TempDescriptor, DefReachKnown>();
+    Rs = new HashMap<TempDescriptor, DefReachKnown>();
+    Fu = FuBuilder.build();
   }
 
 
@@ -43,12 +77,12 @@ public class DefiniteReachState {
     // R' := {}
     // R.clear();
 
-    rs.clear();
-
+    Rs.clear();
     for( TempDescriptor p : parameters ) {
-      rs.put( p, DefReachKnown.UNKNOWN );
+      Rs.put( p, DefReachKnown.UNKNOWN );
     }
 
+    Fu = FuBuilder.build();
   }
 
   public void copy(TempDescriptor x,
@@ -65,9 +99,32 @@ public class DefiniteReachState {
     // for each <z,y>->e: R'.put(<z,x>, e);
 
     // Rs' := (Rs - <x,*>) U {<x,v> | <y,v> in Rs}
-    DefReachKnown v = rs.get( y );
-    assert( v != null );
-    rs.put( x, v );
+    DefReachKnown valRs = Rs.get( y );
+    assert( valRs != null );
+    Rs.put( x, valRs );
+
+    // Fu' := (Fu - <x, *> - <*, x>) U
+    //        {<x,v> | <y,v> in Fu} U
+    //        {<v,x> | <v,y> in Fu} U
+    //        {<z, unknown> | <z,<x>> in Fu}
+    Fu.remove( viewFu0, MultiKey.factory( x ) );
+    Fu.remove( viewFu1, MultiKey.factory( x ) );
+    for( MultiKey key : Fu.get( viewFu0, MultiKey.factory( y ) ).keySet() ) {
+      DefReachFuVal val = (DefReachFuVal) key.get( 1 );
+      Fu.put( MultiKey.factory( x, val ), dummy );
+    }
+    for( MultiKey key : Fu.get( viewFu1, MultiKey.factory( y ) ).keySet() ) {
+      TempDescriptor v = (TempDescriptor) key.get( 0 );
+      Fu.put( MultiKey.factory( v, DefReachFuVal.factory( x ) ), dummy );
+    }
+    for( MultiKey key : 
+           Fu.get( viewFu1, 
+                   MultiKey.factory( DefReachFuVal.factory( DefReachFuVal.Val.UNKNOWN ) )
+                   ).keySet() 
+         ) {
+      TempDescriptor z = (TempDescriptor) key.get( 0 );
+      Fu.put( MultiKey.factory( z, DefReachFuVal.factory( x ) ), dummy );      
+    }
   }
 
   public void load(TempDescriptor x,
@@ -85,7 +142,7 @@ public class DefiniteReachState {
     // for each <y,z>->e: R'.put(<x,z>, eee!Ue);
 
     // Rs' := (Rs - <x,*>) U {<x, unknown>}
-    rs.put( x, DefReachKnown.UNKNOWN );
+    Rs.put( x, DefReachKnown.UNKNOWN );
   }
 
   public void store(TempDescriptor x,
@@ -108,7 +165,7 @@ public class DefiniteReachState {
     // R'.remove(view1, x);
 
     // Rs' := (Rs - <x,*>) U {<x, new>}
-    rs.put( x, DefReachKnown.KNOWN );
+    Rs.put( x, DefReachKnown.KNOWN );
     
   }
 
@@ -120,7 +177,7 @@ public class DefiniteReachState {
     // R'.remove(view1, x);
 
     // Rs' := (Rs - <x,*>) U {<x, unknown>}
-    rs.put( x, DefReachKnown.UNKNOWN );
+    Rs.put( x, DefReachKnown.UNKNOWN );
   }
 
   public void merge( DefiniteReachState that ) {
@@ -130,28 +187,64 @@ public class DefiniteReachState {
     mergeRs( that );
   }
 
+
+  ///////////////////////////////////////////////////////////
+  //
+  //  This is WRONG
+  //
+  //  It definitely tests the current R as well as Rs
+  //  
+  //  but also be careful what null means, is it actually
+  //  equivalent to UNKOWN?  I'd rather put nothing, meaning
+  //  we have to do an analysis pass over all the incoming edges
+  //  before there is a sensical answer.  I think...
   private void mergeRs( DefiniteReachState that ) {
     // merge "that" into "this" and leave "that" unchanged
     Set<TempDescriptor> allVars = new HashSet<TempDescriptor>();
-    allVars.addAll( this.rs.keySet() );
-    allVars.addAll( that.rs.keySet() );
+    allVars.addAll( this.Rs.keySet() );
+    allVars.addAll( that.Rs.keySet() );
     for( TempDescriptor x : allVars ) {
-      DefReachKnown vThis = this.rs.get( x );
-      DefReachKnown vThat = that.rs.get( x );
+      DefReachKnown vThis = this.Rs.get( x );
+      DefReachKnown vThat = that.Rs.get( x );
       if( vThis != null && vThis.equals( DefReachKnown.KNOWN ) &&
           vThat != null && vThat.equals( DefReachKnown.KNOWN ) ) {
-        this.rs.put( x, DefReachKnown.KNOWN );
+        this.Rs.put( x, DefReachKnown.KNOWN );
       } else {
-        this.rs.put( x, DefReachKnown.UNKNOWN );
+        this.Rs.put( x, DefReachKnown.UNKNOWN );
       }
     }
   }
 
 
+
+  public boolean equals( Object o ) {
+    if( this == o ) {
+      return true;
+    }
+    if( o == null ) {
+      return false;
+    }
+    if( !(o instanceof DefiniteReachState) ) {
+      return false;
+    }
+    DefiniteReachState that = (DefiniteReachState) o;
+    
+    assert( false );
+    return false;
+  }
+
+
+  public int hashCode() {
+    assert( false );
+    return 0;
+  }
+
+
+
   public String toString() {
     StringBuilder s = new StringBuilder( "R_s = {" );
-    for( TempDescriptor x : rs.keySet() ) {
-      s.append( "  "+x+"->"+rs.get( x ) );
+    for( TempDescriptor x : Rs.keySet() ) {
+      s.append( "  "+x+"->"+Rs.get( x ) );
     }
     s.append( "}" );
     return s.toString();

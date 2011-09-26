@@ -15,6 +15,9 @@ public class DefiniteReachAnalysis {
   private Map<FlatNode, DefiniteReachState> fn2state;
   
   public DefiniteReachAnalysis() {
+    // a class-wide initialization
+    DefiniteReachState.initBuilders();
+
     fn2state = new HashMap<FlatNode, DefiniteReachState>();
   }
 
