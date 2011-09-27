@@ -814,6 +814,7 @@ fi
 shift
 done
 
+
 BUILDDIR="$CURDIR/$tmpbuilddirectory"
 
 BAMBOORUNTIME=$ROBUSTROOT/Runtime/bamboo
@@ -928,10 +929,13 @@ else
   fi
 fi
 
+# after executing Main, if -justanalyze flag, just exit
 if $EXITAFTERANALYSIS
 then
 exit
 fi
+
+
 
 # Build all of the consistency specs
 
