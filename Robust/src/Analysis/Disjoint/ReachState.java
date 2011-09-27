@@ -43,11 +43,13 @@ public class ReachState extends Canonical {
     return out;
   }
 
-  public static ReachState factory(ReachTuple rt) {
-    assert rt != null;
-    assert rt.isCanonical();
+  public static ReachState factory(ReachTuple... rts) {
     ReachState out = new ReachState();
-    out.reachTuples.add(rt);
+    for( ReachTuple rt : rts ) {
+      assert rt != null;
+      assert rt.isCanonical();
+      out.reachTuples.add(rt);
+    }
     out = (ReachState) Canonical.makeCanonical(out);
     return out;
   }
