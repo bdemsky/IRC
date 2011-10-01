@@ -1,14 +1,17 @@
 public class TestSensorInput {
 
-  FileInputStream inputFile;
+  private static FileInputStream inputFile;
 
-  public void init() {
+  public static void init() {
     inputFile = new FileInputStream("input.dat");
   }
 
   public static byte getCommand() {
-    // return Byte.parseInt(inputFile.readLine());
-    return 0;
+    String in = inputFile.readLine();
+    if (in == null) {
+      return (byte) -1;
+    }
+    return (byte) Integer.parseInt(in);
   }
 
 }

@@ -33,7 +33,7 @@ public class StrategyMgr {
   // private boolean DEBUGL = false;
 
   // private boolean DEBUG = true;
-  private boolean DEBUG = false;
+  private boolean DEBUG = true;
 
   /**
    * Constructor - Invoke communication to remote application thread
@@ -42,8 +42,6 @@ public class StrategyMgr {
     this.pwmControl = pwmManager.getPWMControl();
     rand = new Random();
   }
-  
-  
 
   void processSonars(byte sonarSensors) {
 
@@ -149,10 +147,7 @@ public class StrategyMgr {
         } catch (InterruptedException ie) {
         }
       }
-
-      // TODO
-      // lineSensorsMask = sm.getLineSensorsState();
-
+      lineSensorsMask = TestSensorInput.getCommand();
     }// while loop
   }
 

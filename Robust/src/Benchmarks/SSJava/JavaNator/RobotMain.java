@@ -26,7 +26,7 @@
 public class RobotMain {
 
   private static boolean DEBUG1 = true;
-  private static boolean DEBUG = false;
+  private static boolean DEBUG = true;
   private static final int OFF_MODE = 1;
   private static final int ON_MODE = 2;
   private static final int MANUAL_MODE = 1;
@@ -116,9 +116,8 @@ public class RobotMain {
     // }
 
     if (DEBUG) {
-      // System.out.println("processIOCommand: Getting in opCode = "
-      // + Integer.toHexString((int) opCode) + " data = " +
-      // Integer.toHexString((int) data));
+      System.out.println("processIOCommand: Default: opCode = " + Integer.toString((int) opCode)
+          + " data = " + Integer.toString((int) data));
     }
     switch ((int) opCode) {
     case ON_OFF:
@@ -235,6 +234,7 @@ public class RobotMain {
    */
   public static void main(String args[]) {
 
+    TestSensorInput.init();
     boolean active = true;
     /**
      * RealTime management of the robot behaviour based on sensors and commands
@@ -273,17 +273,21 @@ public class RobotMain {
 
     int count = 0;
 
-    while (active && count < 10000) {
+    while (active && count < 100000) {
       try {
-        if (DEBUG) {
-          System.out.println("Main: Waiting for remote commands");
-        }
+        // if (DEBUG) {
+        // System.out.println("Main: Waiting for remote commands");
+        // }
         // try {
         // obj.wait();
         // } catch (IllegalMonitorStateException ie) {
         // System.out.println("IllegalMonitorStateException caught in main loop");
         // }
         currentCommand = TestSensorInput.getCommand();
+        if (currentCommand == -1) {
+          break;
+        }
+        System.out.println("currentCommand="+currentCommand);
         processIOCommand();
         // Nothing to do
       } catch (Exception e) {
