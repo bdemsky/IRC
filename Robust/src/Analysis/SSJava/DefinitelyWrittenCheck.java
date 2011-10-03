@@ -1422,6 +1422,7 @@ public class DefinitelyWrittenCheck {
       case FKind.FlatFieldNode:
       case FKind.FlatElementNode: {
 
+
         if (fn.kind() == FKind.FlatFieldNode) {
           FlatFieldNode ffn = (FlatFieldNode) fn;
           lhs = ffn.getDst();
@@ -1442,7 +1443,14 @@ public class DefinitelyWrittenCheck {
 
         // read field
         NTuple<Descriptor> srcHeapPath = mapHeapPath.get(rhs);
-        NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
+        System.out.println("rhs=" + rhs);
+        NTuple<Descriptor> fldHeapPath;
+        if (srcHeapPath != null) {
+          fldHeapPath = new NTuple<Descriptor>(srcHeapPath.getList());
+        } else {
+          // if srcHeapPath is null, it is static reference
+          fldHeapPath = new NTuple<Descriptor>();
+        }
         fldHeapPath.add(fld);
 
         if (fld.getType().isImmutable()) {

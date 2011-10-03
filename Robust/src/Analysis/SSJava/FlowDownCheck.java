@@ -1298,7 +1298,6 @@ public class FlowDownCheck {
       inputSet.add(rightLoc);
       CompositeLocation glbCompLoc =
           CompositeLattice.calculateGLB(inputSet, generateErrorMessage(cd, on));
-      // System.out.println("# glbCompLoc=" + glbCompLoc);
       return glbCompLoc;
 
     default:
@@ -1381,7 +1380,7 @@ public class FlowDownCheck {
         loc.addLocation(fieldLoc);
       } else if (d == null) {
         // access static field
-        ClassDescriptor cd = nn.getClassDesc();
+        FieldDescriptor fd = nn.getField();
 
         MethodLattice<String> localLattice = ssjava.getMethodLattice(md);
         String globalLocId = localLattice.getGlobalLoc();
@@ -1390,6 +1389,10 @@ public class FlowDownCheck {
               + generateErrorMessage(md.getClassDesc(), nn));
         }
         loc.addLocation(new Location(md, globalLocId));
+
+        Location fieldLoc = (Location) fd.getType().getExtension();
+        loc.addLocation(fieldLoc);
+
         return loc;
 
       }
