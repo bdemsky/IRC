@@ -67,7 +67,7 @@ package java.util;
  * @since 1.2
  * @status updated to 1.4
  */
-public interface Set//<E> extends Collection<E>
+public interface Set extends Collection
 {
   /**
    * Adds the specified element to the set if it is not already present
@@ -174,7 +174,7 @@ public interface Set//<E> extends Collection<E>
    *
    * @return a set iterator
    */
-  //Iterator<E> iterator();
+  Iterator/*<E>*/ iterator();
 
   /**
    * Removes the specified element from this set (optional operation). If

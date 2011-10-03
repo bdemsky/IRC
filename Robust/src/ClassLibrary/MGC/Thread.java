@@ -1,6 +1,7 @@
 public class Thread implements Runnable {
   private boolean finished;
   Runnable target;
+  private boolean daemon;
   
   public Thread(){
     finished = false;
@@ -42,6 +43,15 @@ public class Thread implements Runnable {
   
   public final boolean isAlive() {
     return !this.finished;
+  }
+  
+  public native ThreadLocalMap getThreadLocals();
+  
+  public final synchronized void setDaemon(boolean daemon) {
+    /*if (vmThread != null)
+      throw new IllegalThreadStateException();
+    checkAccess();*/
+    this.daemon = daemon;
   }
 
 }

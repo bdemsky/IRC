@@ -17,6 +17,8 @@ public class System {
 
   public static native long currentTimeMillis();
   
+  public static native long nanoTime();
+  
   public static native long microTimes();
 
   public static native long getticks();

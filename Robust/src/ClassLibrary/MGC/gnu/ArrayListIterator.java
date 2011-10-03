@@ -1,4 +1,4 @@
-public class ArrayListIterator extends Iterator {
+public class ArrayListIterator implements Iterator {
   private int pos;
   private int size;
   private int last;

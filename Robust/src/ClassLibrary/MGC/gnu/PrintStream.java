@@ -632,6 +632,12 @@ public class PrintStream extends FilterOutputStream //implements Appendable
     print(c);
     return this;
   }
+  
+  public PrintStream append(String s)
+  {
+    print(s==null?"null":s);
+    return this;
+  }
 
   /** @since 1.5 */
   /*public PrintStream append(CharSequence cs)

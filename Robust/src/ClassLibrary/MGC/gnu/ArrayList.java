@@ -83,7 +83,7 @@ import java.lang.reflect.Array;
  */
 //public class ArrayList<E> extends AbstractList<E>
 //  implements List<E>, RandomAccess, Cloneable, Serializable
-public class ArrayList
+public class ArrayList implements List, Cloneable, Serializable
 {
   protected transient int modCount;
   /**
@@ -138,11 +138,11 @@ public class ArrayList
    * @param c the collection whose elements will initialize this list
    * @throws NullPointerException if c is null
    */
-  /*public ArrayList(Collection<? extends E> c)
+  public ArrayList(Collection/*<? extends E>*/ c)
   {
     this((int) (c.size() * 1.1f));
     addAll(c);
-  }*/
+  }
 
   /**
    * Trims the capacity of this List to be equal to its size;
