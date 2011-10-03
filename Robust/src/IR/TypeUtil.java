@@ -407,6 +407,10 @@ NextMethod:
 
       return false;
     }
+    
+    // Object is superclass of interfaces
+    if(possiblesuper.getSymbol().equals(ObjectClass)&&cd2.isClass()&&cd2.getClassDesc().isInterface())
+      return true;
 
     if (possiblesuper.isClass()&&
         cd2.isClass())

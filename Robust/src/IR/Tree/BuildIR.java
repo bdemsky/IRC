@@ -979,6 +979,7 @@ public class BuildIR {
       return con;
     } else if (isNode(pn,"createobjectcls")) {
       //TODO:::  FIX BUG!!!  static fields in caller context need to become parameters
+      //TODO::: caller context need to be passed in here
       TypeDescriptor td=parseTypeDescriptor(pn);
       innerCount++;
       ClassDescriptor cnnew=new ClassDescriptor(packageName,td.getSymbol()+"$"+innerCount, false);
