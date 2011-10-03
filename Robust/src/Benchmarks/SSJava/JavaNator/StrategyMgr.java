@@ -24,26 +24,32 @@
  * @author Michael Gesundheit
  * @version 1.0
  */
+@LATTICE("C<V,V<T,V*")
+@METHODDEFAULT("THIS<IN,IN*,THISLOC=THIS,GLOBALLOC=THIS")
 public class StrategyMgr {
 
-  private PWMControl pwmControl;
-  private int zeroSpeed = 45;
+  @LOC("C")
+  private MotorControl mc;
+  private static final int zeroSpeed = 45;
+  @LOC("T")
   private Random rand;
+  @LOC("T")
   private boolean DEBUGL = true;
   // private boolean DEBUGL = false;
 
   // private boolean DEBUG = true;
+  @LOC("T")
   private boolean DEBUG = true;
 
   /**
    * Constructor - Invoke communication to remote application thread
    */
-  StrategyMgr(PWMManager pwmManager) {
-    this.pwmControl = pwmManager.getPWMControl();
+  public StrategyMgr(@DELEGATE MotorControl motorControl) {
+    mc = motorControl;
     rand = new Random();
   }
 
-  void processSonars(byte sonarSensors) {
+  void processSonars(@LOC("IN") byte sonarSensors) {
 
     // 5 sensors. 1,2 are fromnt left and right.
     // Sensor 3 is right side, 4 back and 5 is left side.
@@ -87,8 +93,20 @@ public class StrategyMgr {
     }
   }
 
-  void processLineSensors(byte lineSensorsMask) {
+  void processLineSensors(@LOC("IN") byte lineSensorsMask) {
+
+    @LOC("IN") int count = 0;
+
     while ((lineSensorsMask & RobotMain.LS_ALL) != 0) {
+
+      if (count > 100) {
+        // if the robot fail to get out of weird condition wihtin 100 steps,
+        // terminate while loop for stabilizing behavior.
+        stop();
+        break;
+      }
+      count++;
+
       if ((lineSensorsMask & RobotMain.LS_ALL) == RobotMain.LS_ALL) {
         if (DEBUGL)
           System.out.println("Line Sensors - ALL");
@@ -154,98 +172,98 @@ public class StrategyMgr {
   public void stop() {
     if (DEBUG)
       System.out.println("StrageyMgr: stop....");
-    pwmControl.setSpeedLeft(zeroSpeed);
-    pwmControl.setSpeedRight(zeroSpeed);
+    mc.setSpeedLeft(zeroSpeed);
+    mc.setSpeedRight(zeroSpeed);
   }
 
   public void search() {
     if (DEBUG)
       System.out.println("StrategyMgr: search....");
-    pwmControl.setSpeedLeft(70);
-    pwmControl.setSpeedRight(50);
+    mc.setSpeedLeft(70);
+    mc.setSpeedRight(50);
   }
 
   public void straight() {
     if (DEBUG)
       System.out.println("StrategyMgr: strait....");
-    pwmControl.setSpeedLeft(100);
-    pwmControl.setSpeedRight(100);
+    mc.setSpeedLeft(100);
+    mc.setSpeedRight(100);
   }
 
   public void spinRight() {
     if (DEBUG)
       System.out.println("StrategyMgr: spinRight....");
-    pwmControl.setSpeedSpinLeft(100);
-    pwmControl.setSpeedSpinRight(0);
+    mc.setSpeedSpinLeft(100);
+    mc.setSpeedSpinRight(0);
   }
 
   public void spinLeft() {
     if (DEBUG)
       System.out.println("StrategyMgr: spinLeft....");
-    pwmControl.setSpeedSpinLeft(0);
-    pwmControl.setSpeedSpinRight(100);
+    mc.setSpeedSpinLeft(0);
+    mc.setSpeedSpinRight(100);
   }
 
   public void spin180() {
-    int mod = (rand.nextInt() % 2);
+    @LOC("THIS,StrategyMgr.V") int mod = (rand.nextInt() % 2);
 
     if (DEBUG)
       System.out.println("StrategyMgr: spin180....");
     if (mod == 1) {
-      pwmControl.setSpeedSpinLeft(0);
-      pwmControl.setSpeedSpinRight(100);
+      mc.setSpeedSpinLeft(0);
+      mc.setSpeedSpinRight(100);
     } else {
-      pwmControl.setSpeedSpinLeft(100);
-      pwmControl.setSpeedSpinRight(0);
+      mc.setSpeedSpinLeft(100);
+      mc.setSpeedSpinRight(0);
     }
   }
 
   public void right() {
     if (DEBUG)
       System.out.println("StrategyMgr: right....");
-    pwmControl.setSpeedTurnLeft(100);
-    pwmControl.setSpeedRight(zeroSpeed);
+    mc.setSpeedTurnLeft(100);
+    mc.setSpeedRight(zeroSpeed);
   }
 
   public void left() {
     if (DEBUG)
       System.out.println("StrategyMgr: left....");
-    pwmControl.setSpeedLeft(zeroSpeed);
-    pwmControl.setSpeedTurnRight(100);
+    mc.setSpeedLeft(zeroSpeed);
+    mc.setSpeedTurnRight(100);
   }
 
   public void bearRight() {
     if (DEBUG)
       System.out.println("StrategyMgr: bearRight....");
-    pwmControl.setSpeedTurnLeft(100);
-    pwmControl.setSpeedTurnRight(60);
+    mc.setSpeedTurnLeft(100);
+    mc.setSpeedTurnRight(60);
   }
 
   public void bearLeft() {
     if (DEBUG)
       System.out.println("StrategyMgr: bearLeft....");
-    pwmControl.setSpeedTurnLeft(60);
-    pwmControl.setSpeedTurnRight(100);
+    mc.setSpeedTurnLeft(60);
+    mc.setSpeedTurnRight(100);
   }
 
   public void back() {
     if (DEBUG)
       System.out.println("StrategyMgr: back....");
-    pwmControl.setSpeedLeft(0);
-    pwmControl.setSpeedRight(0);
+    mc.setSpeedLeft(0);
+    mc.setSpeedRight(0);
   }
 
   public void backBearLeft() {
     if (DEBUG)
       System.out.println("StrategyMgr: backBearLeft....");
-    pwmControl.setSpeedLeft(30);
-    pwmControl.setSpeedRight(0);
+    mc.setSpeedLeft(30);
+    mc.setSpeedRight(0);
   }
 
   public void backBearRight() {
     if (DEBUG)
       System.out.println("StrategyMgr: backBearRight....");
-    pwmControl.setSpeedLeft(0);
-    pwmControl.setSpeedRight(30);
+    mc.setSpeedLeft(0);
+    mc.setSpeedRight(30);
   }
 }

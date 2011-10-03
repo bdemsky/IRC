@@ -28,25 +28,28 @@
  * @version 1.0
  */
 
+@LATTICE("V")
+@METHODDEFAULT("OUT<THIS,THIS<V,V<IN,V*,THISLOC=THIS,RETURNLOC=OUT")
 public class PWMManager {
 
-  private int GPIO_A_OER = 0x09002000;
-  private int GPIO_A_OUT = GPIO_A_OER + 4;
-  private int GPIO_E_OER = 0x09002400;
-  private int GPIO_E_OUT = 0x09002404;
-  private byte MOTOR_PORTID_6 = 6; // Bit 2 (...3,2,1,0)
-  private byte MOTOR_PORTID_7 = 7; // Bit 3 (...3,2,1,0)
+  // private int GPIO_A_OER = 0x09002000;
+  // private int GPIO_A_OUT = GPIO_A_OER + 4;
+  // private int GPIO_E_OER = 0x09002400;
+  // private int GPIO_E_OUT = 0x09002404;
+  // private byte MOTOR_PORTID_6 = 6; // Bit 2 (...3,2,1,0)
+  // private byte MOTOR_PORTID_7 = 7; // Bit 3 (...3,2,1,0)
+  @LOC("V")
   private int currentRegMask;
+  @LOC("V")
   private boolean DEBUG = false;
-  private int currentSpeedL;
-  private int currentSpeedR;
-  private int currentSpeed;
-  private PWMControl pwmControl;
-  private PWMNative pwmNative;
-  private PWMRtsj pwmRtsj;
+  // private PWMControl pwmControl;
+  @LOC("V")
   private RCBridge rcb;
+  @LOC("V")
   private int speedFactor;
+  @LOC("V")
   private int agilityFactor;
+  @LOC("V")
   private int zeroSpeed = 45;
 
   /**
@@ -57,13 +60,13 @@ public class PWMManager {
      * Instantiate PWM Makers one for each motor. motorPortId is 1 to 8 and is
      * corresponding to 8 bits in a byte.
      */
-    if (pwmSelection.equals("rtsj"))
-      pwmControl = new PWMRtsj(this, MOTOR_PORTID_6, MOTOR_PORTID_7);
-    else {
-      System.out.println("Selection PWMNative is activated");
-      pwmControl = new PWMNative(this, MOTOR_PORTID_6, MOTOR_PORTID_7);
-      System.out.println("Selection PWMNative is activated.... Return");
-    }
+    // if (pwmSelection.equals("rtsj"))
+    // pwmControl = new PWMRtsj(this, MOTOR_PORTID_6, MOTOR_PORTID_7);
+    // else {
+    // System.out.println("Selection PWMNative is activated");
+    // pwmControl = new PWMNative(this, MOTOR_PORTID_6, MOTOR_PORTID_7);
+    // System.out.println("Selection PWMNative is activated.... Return");
+    // }
 
     // rcb = new RCBridge(this);
     rcb = new RCBridge();
@@ -75,22 +78,22 @@ public class PWMManager {
   public void setManualMode() {
     if (DEBUG)
       System.out.println("PWMManager: setManualMode....");
-    pwmControl.setManualMode();
+    // pwmControl.setManualMode();
     rcb.setManualMode();
   }
 
   public void setAutomatedMode() {
     if (DEBUG)
       System.out.println("PWMManager: setAutomatedMode....");
-    pwmControl.setAutomatedMode();
+    // pwmControl.setAutomatedMode();
     rcb.setAutomatedMode();
   }
 
-  public PWMControl getPWMControl() {
-    if (DEBUG)
-      System.out.println("PWMManager: getPWMControl....");
-    return pwmControl;
-  }
+  // public PWMControl getPWMControl() {
+  // if (DEBUG)
+  // System.out.println("PWMManager: getPWMControl....");
+  // return pwmControl;
+  // }
 
   public synchronized void writeToPort(int myBit, int myValue) {
     currentRegMask &= ~myBit; // e.g. 0x11110111
@@ -171,7 +174,7 @@ public class PWMManager {
     if (DEBUG)
       System.out.println("PWMManager: setSpeedFactor....");
     this.speedFactor = speedFactor;
-    pwmControl.setSpeedAgilityFactors(speedFactor, agilityFactor);
+    // pwmControl.setSpeedAgilityFactors(speedFactor, agilityFactor);
   }
 
   /**
@@ -184,7 +187,7 @@ public class PWMManager {
     if (DEBUG)
       System.out.println("PWMManager: setAgilityFactor....");
     this.agilityFactor = agilityFactor;
-    pwmControl.setSpeedAgilityFactors(speedFactor, agilityFactor);
+    // pwmControl.setSpeedAgilityFactors(speedFactor, agilityFactor);
   }
 
   /**
@@ -193,12 +196,12 @@ public class PWMManager {
    * @param speed
    * @param agility
    */
-  public synchronized void setSpeedAgilityFactors(int speed, int agility) {
+  public synchronized void setSpeedAgilityFactors(@LOC("IN") int speed, @LOC("IN") int agility) {
     if (DEBUG)
       System.out.println("PWMManager: setSpeedAgilityFactors....");
     speedFactor = speed;
     agilityFactor = agility;
-    pwmControl.setSpeedAgilityFactors(speedFactor, agilityFactor);
+    // pwmControl.setSpeedAgilityFactors(speedFactor, agilityFactor);
   }
 
   /**

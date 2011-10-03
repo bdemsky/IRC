@@ -23,10 +23,15 @@
  * @author Michael Gesundheit
  * @version 1.0
  */
+@LATTICE("MGR<MASK,PREV<CMD,MASK<CMD,CMD<CCMD,CCMD<T,PREV*,MASK*")
+@METHODDEFAULT("THIS,THISLOC=THIS,GLOBALLOC=THIS")
 public class RobotMain {
 
+  @LOC("T")
   private static boolean DEBUG1 = true;
+  @LOC("T")
   private static boolean DEBUG = true;
+
   private static final int OFF_MODE = 1;
   private static final int ON_MODE = 2;
   private static final int MANUAL_MODE = 1;
@@ -37,37 +42,44 @@ public class RobotMain {
   private static final int SONAR_SENSORS = 96; // 0x60
   public static final int ALL_COMMANDS = 0xe0;
 
-  public static byte LF_FRONT = 0x1;
-  public static byte RT_FRONT = 0x2;
-  public static byte RT_SIDE = 0x4;
-  public static byte BK_SIDE = 0x8;
-  public static byte LF_SIDE = 0x10;
-  public static byte ALL_SONARS = 0x1f;
-  public static byte LF_RT_FRONT = 0x3; // LF_FRONT | RT_FRONT;
-  public static byte LS_LEFT = 0x1;
-  public static byte LS_RIGHT = 0x2;
-  public static byte LS_REAR = 0x4;
-  public static byte LS_LEFT_RIGHT = 0x3;
-  public static byte LS_LEFT_REAR = 0x5;
-  public static byte LS_RIGHT_REAR = 0x6;
-  public static byte LS_ALL = 0x7;
-  private static int ALL_DATA = 0x1f;
+  public static final byte LF_FRONT = 0x1;
+  public static final byte RT_FRONT = 0x2;
+  public static final byte RT_SIDE = 0x4;
+  public static final byte BK_SIDE = 0x8;
+  public static final byte LF_SIDE = 0x10;
+  public static final byte ALL_SONARS = 0x1f;
+  public static final byte LF_RT_FRONT = 0x3; // LF_FRONT | RT_FRONT;
+  public static final byte LS_LEFT = 0x1;
+  public static final byte LS_RIGHT = 0x2;
+  public static final byte LS_REAR = 0x4;
+  public static final byte LS_LEFT_RIGHT = 0x3;
+  public static final byte LS_LEFT_REAR = 0x5;
+  public static final byte LS_RIGHT_REAR = 0x6;
+  public static final byte LS_ALL = 0x7;
+  private static final int ALL_DATA = 0x1f;
 
+  @LOC("MGR")
   private static PWMManager pwmm;
+  @LOC("MGR")
   private static StrategyMgr strategyMgr;
 
+  @LOC("MASK")
   private static int onOffMode = ON_MODE;
+  @LOC("MASK")
   private static int manualAutonomusMode = AUTONOMUS_MODE;
+  @LOC("MASK")
   private static byte lineSensorsMask;
+  @LOC("MASK")
   private static byte sonarSensors;
-  private static byte[] command;
+  @LOC("CCMD")
   private static byte currentCommand;
-  private static Object obj;
-  private static Object obj1;
+  @LOC("MASK")
   private static byte privSonars;
+  @LOC("PREV")
   private static byte privLineSensors;
+  @LOC("MASK")
   private static byte currentSonars;
-  private static byte currentLineSensors;
+  @LOC("MASK")
   public static String pwmSelection;
 
   /**
@@ -106,13 +118,14 @@ public class RobotMain {
    * Extracts sonar sensor data from the adjunct sensor controller and from line
    * sensor data from the JStamp line sensor pins.
    */
+  @LATTICE("THIS,THISLOC=THIS,GLOBALLOC=THIS")
   private static void processIOCommand() {
 
-    int data = 0;
-    int opCode = 0;
+    // int data = 0;
+    // int opCode = 0;
     // synchronized (obj1) {
-    data = (int) (currentCommand & ALL_DATA);
-    opCode = (int) (currentCommand & 0xe0); // ALL_COMMANDS);
+    @LOC("THIS,RobotMain.CMD") int data = (int) (currentCommand & ALL_DATA);
+    @LOC("THIS,RobotMain.CMD") int opCode = (int) (currentCommand & 0xe0); // ALL_COMMANDS);
     // }
 
     if (DEBUG) {
@@ -232,10 +245,11 @@ public class RobotMain {
   /**
    * Runs the robot's main thread.
    */
-  public static void main(String args[]) {
+  @LATTICE("THIS<C,THIS<MC,MC<IN,C<IN,IN<T,C*,THISLOC=THIS,GLOBALLOC=THIS")
+  public static void main(@LOC("IN") String args[]) {
 
     TestSensorInput.init();
-    boolean active = true;
+    @LOC("T") boolean active = true;
     /**
      * RealTime management of the robot behaviour based on sensors and commands
      * input.
@@ -254,7 +268,8 @@ public class RobotMain {
     // Pass in the PWMManager for callbacks.
     // sm = new IOManager(pwmm);
     // ram = new RemoteApplicationManager(pwmm);
-    strategyMgr = new StrategyMgr(pwmm);
+    @LOC("MC") MotorControl mc = new MotorControl(100, 100);
+    strategyMgr = new StrategyMgr(mc);
 
     /*
      * Sets initial values for the speed and agility parameters. Speed and
@@ -271,27 +286,27 @@ public class RobotMain {
      */
     // issueCommand("OFF");
 
-    int count = 0;
+    @LOC("C") int count = 0;
+    SSJAVA: while (active) {
 
-    while (active && count < 100000) {
-      try {
-        // if (DEBUG) {
-        // System.out.println("Main: Waiting for remote commands");
-        // }
-        // try {
-        // obj.wait();
-        // } catch (IllegalMonitorStateException ie) {
-        // System.out.println("IllegalMonitorStateException caught in main loop");
-        // }
-        currentCommand = TestSensorInput.getCommand();
-        if (currentCommand == -1) {
-          break;
-        }
-        System.out.println("currentCommand="+currentCommand);
-        processIOCommand();
-        // Nothing to do
-      } catch (Exception e) {
+      if (count > 100000) {
+        break;
       }
+
+      // if (DEBUG) {
+      // System.out.println("Main: Waiting for remote commands");
+      // }
+      // try {
+      // obj.wait();
+      // } catch (IllegalMonitorStateException ie) {
+      // System.out.println("IllegalMonitorStateException caught in main loop");
+      // }
+      currentCommand = TestSensorInput.getCommand();
+      if (currentCommand == -1) {
+        break;
+      }
+      System.out.println("currentCommand=" + currentCommand);
+      processIOCommand();
       count++;
     }
     System.exit(0);

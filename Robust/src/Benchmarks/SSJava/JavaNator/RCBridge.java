@@ -26,15 +26,16 @@
  * @author Michael Gesundheit
  * @version 1.0
  */
+@METHODDEFAULT("IN")
 public class RCBridge {
 
-  public void setManualMode(){
-//    rcLleft.activate();
-//    rcLright.activate();
-}
+  public void setManualMode() {
+    // rcLleft.activate();
+    // rcLright.activate();
+  }
 
-public void setAutomatedMode(){
+  public void setAutomatedMode() {
     // rcLleft.deActivate();
     // rcLright.deActivate();
-}
+  }
 }
