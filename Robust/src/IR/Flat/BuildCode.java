@@ -538,6 +538,9 @@ public class BuildCode {
     if (state.main!=null) {
       outmethod.println("#include <string.h>");
     }
+    if (state.SSJAVA){
+      outmethod.println("#include <stdio.h>");
+    }
     if (state.CONSCHECK) {
       outmethod.println("#include \"checkers.h\"");
     }
@@ -2767,14 +2770,43 @@ fldloop:
         }
       }
       // redirect to the global_defs_p structure
-      if (ffn.getField().getType().isPtr())
-        output.println(generateTemp(fm, ffn.getDst())+"=global_defs_p->"+ffn.getField().getSafeSymbol()+";");
-      else
-        output.println(generateTemp(fm, ffn.getDst())+"=global_defsprim_p->"+ffn.getField().getSafeSymbol()+";");
+      if(state.SSJAVA){
+        if (ffn.getField().getType().isPtr()){
+          output.println("if ( global_defs_p == NULL) {");
+          output.println("printf(\"SSJAVA: Dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
+          output.println(generateTemp(fm, ffn.getDst())+"= NULL;");
+        }else{
+          output.println("if ( global_defsprim_p == NULL) {");
+          output.println("printf(\"SSJAVA: Dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
+          output.println(generateTemp(fm, ffn.getDst())+"= 0;");
+        }
+        output.println("}else{");
+        if (ffn.getField().getType().isPtr())
+          output.println(generateTemp(fm, ffn.getDst())+"=global_defs_p->"+ffn.getField().getSafeSymbol()+";");
+        else
+          output.println(generateTemp(fm, ffn.getDst())+"=global_defsprim_p->"+ffn.getField().getSafeSymbol()+";");
+        output.println("}");
+      }else{
+        if (ffn.getField().getType().isPtr())
+          output.println(generateTemp(fm, ffn.getDst())+"=global_defs_p->"+ffn.getField().getSafeSymbol()+";");
+        else
+          output.println(generateTemp(fm, ffn.getDst())+"=global_defsprim_p->"+ffn.getField().getSafeSymbol()+";");        
+      }
     } else if (ffn.getField().isEnum()) {
       // an Enum value, directly replace the field access as int
       output.println(generateTemp(fm, ffn.getDst()) + "=" + ffn.getField().enumValue() + ";");
-    } else {
+    } else if(state.SSJAVA){
+      output.println("if (" + generateTemp(fm,ffn.getSrc()) + " == NULL) {");
+      output.println("printf(\"SSJAVA: Dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
+      if(ffn.getDst().getType().isPrimitive()){
+        output.println(generateTemp(fm, ffn.getDst())+"= 0;");
+      }else{
+        output.println(generateTemp(fm, ffn.getDst())+"= NULL;");
+      }
+      output.println("}else{");
+      output.println(generateTemp(fm, ffn.getDst())+"="+ generateTemp(fm,ffn.getSrc())+"->"+ ffn.getField().getSafeSymbol()+";");
+      output.println("}");
+    }else {
       if( state.CAPTURE_NULL_DEREFERENCES ) {
         output.println("#ifdef CAPTURE_NULL_DEREFERENCES");
         output.println("if (" + generateTemp(fm,ffn.getSrc()) + " == NULL) {");
@@ -2837,18 +2869,51 @@ fldloop:
         }
       }
       // redirect to the global_defs_p structure
-      if (fsfn.getField().getType().isPtr()) {
-        if (fsfn.getField().getType()!=fsfn.getSrc().getType())
-          output.println("global_defs_p->" +
-                         fsfn.getField().getSafeSymbol()+"=(struct "+ fsfn.getField().getType().getSafeSymbol()+" *)"+generateTemp(fm,fsfn.getSrc())+";");
-        else
-          output.println("global_defs_p->" +
+      if(state.SSJAVA){
+        if (fsfn.getField().getType().isPtr()) {
+          output.println("if ( global_defs_p == NULL) {");
+          output.println("printf(\"SSJAVA: Discard a write due to dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
+          output.println("}else{");
+          if (fsfn.getField().getType()!=fsfn.getSrc().getType()){
+            output.println("global_defs_p->" +
+                           fsfn.getField().getSafeSymbol()+"=(struct "+ fsfn.getField().getType().getSafeSymbol()+" *)"+generateTemp(fm,fsfn.getSrc())+";");
+          }else{
+            output.println("global_defs_p->" +
+                           fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+          }
+          output.println("}");
+        } else{
+          output.println("if ( global_defsprim_p == NULL) {");
+          output.println("printf(\"SSJAVA: Discard a write due to dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
+          output.println("}else{");
+          output.println("global_defsprim_p->" +
                          fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
-      } else
-        output.println("global_defsprim_p->" +
+          output.println("}");
+        }
+      }else{
+        if (fsfn.getField().getType().isPtr()) {
+          if (fsfn.getField().getType()!=fsfn.getSrc().getType())
+            output.println("global_defs_p->" +
+                           fsfn.getField().getSafeSymbol()+"=(struct "+ fsfn.getField().getType().getSafeSymbol()+" *)"+generateTemp(fm,fsfn.getSrc())+";");
+          else
+            output.println("global_defs_p->" +
+                           fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+        } else
+          output.println("global_defsprim_p->" +
+                         fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+      }
+    } else if(state.SSJAVA){
+      output.println("if (" + generateTemp(fm,fsfn.getDst()) + " == NULL) {");
+      output.println("printf(\"SSJAVA: Dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
+      output.println("}else{");
+      if (fsfn.getSrc().getType().isPtr()&&fsfn.getSrc().getType()!=fsfn.getField().getType())
+        output.println(generateTemp(fm, fsfn.getDst())+"->"+
+                       fsfn.getField().getSafeSymbol()+"=(struct "+ fsfn.getField().getType().getSafeSymbol()+"*)"+generateTemp(fm,fsfn.getSrc())+";");
+      else
+        output.println(generateTemp(fm, fsfn.getDst())+"->"+
                        fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+      output.println("}");
     } else {
-
       if( state.CAPTURE_NULL_DEREFERENCES ) {
         output.println("#ifdef CAPTURE_NULL_DEREFERENCES");
         output.println("if (" + generateTemp(fm,fsfn.getDst()) + " == NULL) {");
@@ -2882,14 +2947,31 @@ fldloop:
       type="void *";
     else
       type=elementtype.getSafeSymbol()+" ";
-
-    if (this.state.ARRAYBOUNDARYCHECK && fen.needsBoundsCheck()) {
-      output.println("if (unlikely(((unsigned int)"+generateTemp(fm, fen.getIndex())+") >= "+generateTemp(fm,fen.getSrc()) + "->___length___))");
-      output.println("failedboundschk(__LINE__, " +generateTemp(fm, fen.getIndex()) +", "+ generateTemp(fm, fen.getSrc()) + ");");
+    
+    if(state.SSJAVA){
+      output.println("if (" + generateTemp(fm,fen.getSrc())  + " == NULL) {");
+      output.println("printf(\"SSJAVA: Dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
+      output.println("}else{");
+      output.println("if (unlikely( ((unsigned int)"+generateTemp(fm, fen.getIndex())+") >= "+generateTemp(fm,fen.getSrc()) + "->___length___)){");
+      output.println("printf(\"SSJAVA: Array out of bounds at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
+      if(fen.getDst().getType().isPrimitive()){
+        output.println(generateTemp(fm, fen.getDst())+"= 0;");  
+      }else{
+        output.println(generateTemp(fm, fen.getDst())+"= NULL;");
+      }
+      output.println("}else{");
+      output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
+      output.println("}");
+      output.println("}");
+    }else{
+      if (this.state.ARRAYBOUNDARYCHECK && fen.needsBoundsCheck()) {
+        output.println("if (unlikely(((unsigned int)"+generateTemp(fm, fen.getIndex())+") >= "+generateTemp(fm,fen.getSrc()) + "->___length___))");
+        output.println("failedboundschk(__LINE__, " +generateTemp(fm, fen.getIndex()) +", "+ generateTemp(fm, fen.getSrc()) + ");");
+      }
+      output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
     }
-    output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
-    if (fen.getDst().getType().isPtr())
-      ;
+
+
   }
 
   protected void generateFlatSetElementNode(FlatMethod fm, FlatSetElementNode fsen, PrintWriter output) {
@@ -2905,24 +2987,37 @@ fldloop:
       type="void *";
     else
       type=elementtype.getSafeSymbol()+" ";
-
-    if (this.state.ARRAYBOUNDARYCHECK && fsen.needsBoundsCheck()) {
-      output.println("if (unlikely(((unsigned int)"+generateTemp(fm, fsen.getIndex())+") >= "+generateTemp(fm,fsen.getDst()) + "->___length___))");
-      output.println("failedboundschk(__LINE__, " +generateTemp(fm, fsen.getIndex()) +", "+ generateTemp(fm, fsen.getDst()) + ");");
-    }
-    if (state.FASTCHECK) {
-      String dst=generateTemp(fm, fsen.getDst());
-      output.println("if(!"+dst+"->"+localcopystr+") {");
-      /* Link object into list */
-      if (GENERATEPRECISEGC || state.MULTICOREGC||state.PMC)
-        output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
-      else
-        output.println("COPY_OBJ("+dst+");");
-      output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
-      output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
+    
+    if(state.SSJAVA){
+      output.println("if ("+generateTemp(fm,fsen.getDst())+"==NULL){");
+      output.println("printf(\"SSJAVA: Dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
+      output.println("}else{");
+      output.println("if (unlikely(((unsigned int)"+generateTemp(fm, fsen.getIndex())+") >= "+generateTemp(fm,fsen.getDst()) + "->___length___)){");
+      output.println("printf(\"SSJAVA: Discard a write due to array out of bounds at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
+      output.println("}else{");
+      output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
       output.println("}");
+      output.println("}");
+    }else{
+      if (this.state.ARRAYBOUNDARYCHECK && fsen.needsBoundsCheck()) {
+        output.println("if (unlikely(((unsigned int)"+generateTemp(fm, fsen.getIndex())+") >= "+generateTemp(fm,fsen.getDst()) + "->___length___))");
+        output.println("failedboundschk(__LINE__, " +generateTemp(fm, fsen.getIndex()) +", "+ generateTemp(fm, fsen.getDst()) + ");");
+      }
+      if (state.FASTCHECK) {
+        String dst=generateTemp(fm, fsen.getDst());
+        output.println("if(!"+dst+"->"+localcopystr+") {");
+        /* Link object into list */
+        if (GENERATEPRECISEGC || state.MULTICOREGC||state.PMC)
+          output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
+        else
+          output.println("COPY_OBJ("+dst+");");
+        output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
+        output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
+        output.println("}");
+      }
+      output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
     }
-    output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
+
   }
 
 
@@ -2970,10 +3065,19 @@ fldloop:
           output.println(generateTemp(fm, fon.getDest())+" = ((unsigned int)"+generateTemp(fm, fon.getLeft())+")>>"+generateTemp(fm,fon.getRight())+";");
 
       } else {
-        if (fon.getLeft().getType().isPtr()&&fon.getLeft().getType()!=fon.getRight().getType()&&!fon.getRight().getType().isNull())
-          output.println(generateTemp(fm, fon.getDest())+" = (struct "+fon.getRight().getType().getSafeSymbol()+"*)"+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
-        else
+        if(state.SSJAVA && fon.getOp().getOp()==Operation.DIV){
+          output.println("if (unlikely("+generateTemp(fm,fon.getRight())+"==0)){");
+          output.println("printf(\"SSJAVA: Divided by zero at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
+          output.println(generateTemp(fm, fon.getDest())+" = 0;");
+          output.println("}else{");
           output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
+          output.println("}");          
+        }else{
+          if (fon.getLeft().getType().isPtr()&&fon.getLeft().getType()!=fon.getRight().getType()&&!fon.getRight().getType().isNull())
+            output.println(generateTemp(fm, fon.getDest())+" = (struct "+fon.getRight().getType().getSafeSymbol()+"*)"+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
+          else
+            output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
+        }
       }
     } else if (fon.getOp().getOp()==Operation.ASSIGN)
       if (fon.getDest().getType().isPtr()&&fon.getDest().getType()!=fon.getLeft().getType())
