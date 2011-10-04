@@ -73,7 +73,7 @@ public class ReachState extends Canonical {
   }
 
 
-  public Iterator iterator() {
+  public Iterator<ReachTuple> iterator() {
     return reachTuples.iterator();
   }
 

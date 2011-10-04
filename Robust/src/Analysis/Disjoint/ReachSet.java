@@ -36,11 +36,13 @@ public class ReachSet extends Canonical {
     return out;
   }
 
-  public static ReachSet factory(ReachState state) {
-    assert state != null;
-    assert state.isCanonical();
+  public static ReachSet factory(ReachState... states) {
     ReachSet out = new ReachSet();
-    out.reachStates.add(state);
+    for( ReachState state : states ) {
+      assert state != null;
+      assert state.isCanonical();
+      out.reachStates.add(state);
+    }
     out = (ReachSet) Canonical.makeCanonical(out);
     return out;
   }
