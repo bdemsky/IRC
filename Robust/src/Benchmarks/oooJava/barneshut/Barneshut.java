@@ -243,20 +243,35 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
     long start_time = System.currentTimeMillis();
     for (int step = 0; step < local_ntimesteps; step++) { // time-step the system
       ComputeCenterAndDiameter();
-      ArrayIndexedGraph octree = new ArrayIndexedGraph(8);
+      ArrayIndexedGraph octree = disjoint AIG new ArrayIndexedGraph(8);
       ArrayIndexedNode root = octree.createNode(new OctTreeNodeData(centerx, centery, centerz)); // create the tree's root
       octree.addNode(root);
       double radius = diameter * 0.5;
     
+
+      genreach b0;
+
       for (int i = 0; i < local_nbodies; i++) {
         Insert(octree, root, body[i], radius); // grow the tree by inserting each body
         body[i].root=root;
       }
       curr = 0;
+
+
+      genreach b1;
+
+
       // summarize subtree info in each internal node (plus restructure tree and sort bodies for performance reasons)
       ComputeCenterOfMass(octree, root);
 
+
+      genreach b2;
+
+
       sese force {
+
+        genreach b3;
+
 	for(int i=0; i < local_nbodies; i++){
 	  // compute the acceleration of each body (consumes most of the total runtime)
 	  // n.ComputeForce(octree, root, diameter, itolsq, step, dthf, epssq);
@@ -266,6 +281,7 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
 	  double dt=dthf;
 	  double ep=epssq;   
 	  sese parallel{
+            genreach intoPar;
 	    eachbody.ComputeForce(octree, di, it, step, dt, ep);
 	  }
 	}
@@ -276,6 +292,7 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
       }
 
     } // end of time step
+
 
     long end_time=System.currentTimeMillis();
     

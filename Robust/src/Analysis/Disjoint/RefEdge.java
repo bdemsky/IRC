@@ -2,6 +2,8 @@ package Analysis.Disjoint;
 
 import IR.*;
 import IR.Flat.*;
+import java.util.*;
+
 
 public class RefEdge {
 
@@ -104,10 +106,19 @@ public class RefEdge {
       return false;
     }
 
-    // Equality of edges is only valid within a graph, so
-    // compare src and dst by reference
-    if( !(src == edge.src) ||
-        !(dst == edge.dst)   ) {
+    if( src instanceof VariableNode ) {
+      VariableNode vsrc = (VariableNode) src;
+      if( !vsrc.equals( (VariableNode) edge.src ) ) {
+        return false;
+      }
+    } else {
+      HeapRegionNode hsrc = (HeapRegionNode) src;
+      if( !hsrc.equalsIncludingAlphaAndPreds( (HeapRegionNode) edge.src ) ) {
+        return false;
+      }
+    }
+    
+    if( !dst.equalsIncludingAlphaAndPreds( edge.dst ) ) {
       return false;
     }
 

@@ -137,6 +137,11 @@ public class ReachState extends Canonical {
   }
 
 
+  public int hashCodeNoPreds() {
+    return reachTuples.hashCode();
+  }
+
+
   public boolean equalsIgnorePreds(Object o) {
     if( o == null ) {
       return false;

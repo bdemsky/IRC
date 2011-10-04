@@ -3950,7 +3950,7 @@ public class ReachGraph {
 
 
 
-  static boolean dbgEquals = false;
+  static public boolean dbgEquals = false;
 
 
   // it is necessary in the equals() member functions
@@ -4176,9 +4176,7 @@ public class ReachGraph {
 
           // there is an edge in the right place with the right field,
           // but do they have the same attributes?
-          if( edgeA.getBeta().equals(edgeB.getBeta() ) &&
-              edgeA.equalsPreds(edgeB)
-              ) {
+          if( edgeA.equalsIncludingBetaPredsTaints( edgeB ) ) {
             edgeFound = true;
           }
         }

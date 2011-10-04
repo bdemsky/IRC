@@ -48,6 +48,10 @@ public class ExistPred extends Canonical {
   // The reach state may be null--if not the predicate is
   // satisfied when the edge exists AND it has the state.
   protected Integer n_hrnID;
+
+  // the preds on this state are irrelevant, so always strip them off
+  // when we store it in this ExistPred to make sure it equals other
+  // ExistPred objects with the same ne_state, preds ignored.
   protected ReachState ne_state;
 
   // An edge existence predicate is satisfied if the elements
@@ -121,7 +125,7 @@ public class ExistPred extends Canonical {
                       ReachState state) {
     assert hrnID != null;
     this.n_hrnID  = hrnID;
-    this.ne_state = state;
+    this.ne_state = removePreds( state );
     this.predType = TYPE_NODE;
     e_tdSrc    = null;
     e_hrnSrcID = null;
@@ -186,7 +190,7 @@ public class ExistPred extends Canonical {
     this.e_hrnDstID = hrnDstID;
     this.e_type     = type;
     this.e_field    = field;
-    this.ne_state   = state;
+    this.ne_state   = removePreds( state );
     this.e_taint    = taint;
     this.predType   = TYPE_EDGE;
     n_hrnID = null;
@@ -224,6 +228,11 @@ public class ExistPred extends Canonical {
     return out;
   }
 
+
+
+  private ReachState removePreds( ReachState state ) {
+    return state == null ? null : Canonical.attach( state, ExistPredSet.factory() );
+  }
 
 
 
@@ -435,7 +444,7 @@ public class ExistPred extends Canonical {
       if( pred.ne_state != null ) {
         return false;
       }
-    } else if( !ne_state.equals(pred.ne_state) ) {
+    } else if( !ne_state.equalsIgnorePreds(pred.ne_state) ) {
       return false;
     }
 
@@ -508,6 +517,7 @@ public class ExistPred extends Canonical {
 
 
   public int hashCodeSpecific() {
+
     if( predType == TYPE_TRUE ) {
       return 1;
     }
@@ -516,7 +526,7 @@ public class ExistPred extends Canonical {
       int hash = n_hrnID.intValue()*17;
 
       if( ne_state != null ) {
-        hash ^= ne_state.hashCode();
+        hash ^= ne_state.hashCodeNoPreds();
       }
 
       return hash;
@@ -536,17 +546,17 @@ public class ExistPred extends Canonical {
       } else {
         hash ^= e_hrnSrcID.hashCode()*11;
         if( e_srcOutCalleeContext ) {
-          hash ^= 0xf1aeb;
+          hash ^= 0x01;
         }
         if( e_srcOutCallerContext ) {
-          hash ^= 0x875d;
+          hash ^= 0x80;
         }
       }
 
       hash += e_hrnDstID.hashCode();
 
       if( ne_state != null ) {
-        hash ^= ne_state.hashCode();
+        hash ^= ne_state.hashCodeNoPreds();
       }
 
       if( e_taint != null ) {
