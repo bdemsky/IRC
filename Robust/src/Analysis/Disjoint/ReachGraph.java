@@ -1584,7 +1584,7 @@ public class ReachGraph {
                                           predNodeOrEdge.e_hrnDstID,
                                           predNodeOrEdge.e_type,
                                           predNodeOrEdge.e_field,
-                                          stateCallee,
+                                          stateCaller,
                                           null,
                                           predNodeOrEdge.e_srcOutCalleeContext,
                                           predNodeOrEdge.e_srcOutCallerContext
@@ -2256,7 +2256,6 @@ public class ReachGraph {
     new Hashtable<String, Integer>();
 
 
-  // useful since many graphs writes in the method call debug code
   private static boolean resolveMethodDebugDOTwriteLabels     = true;
   private static boolean resolveMethodDebugDOTselectTemps     = true;
   private static boolean resolveMethodDebugDOTpruneGarbage    = true;
