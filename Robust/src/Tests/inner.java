@@ -1,6 +1,10 @@
-public class inner {
+public class inner extends innerp {
   int outer;
   int f2;
+
+  public inner() {
+    super.outer=31;
+  }
 
   public static void main(String x[]) {
     inner i=new inner();
@@ -29,6 +33,7 @@ public class inner {
       System.out.println(outer);
       System.out.println(super.outer);
       System.out.println(inner.this.outer);
+      System.out.println(inner.super.outer);
       System.out.println(f1);
       System.out.println(f2);
       System.out.println(f3);
