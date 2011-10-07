@@ -100,7 +100,7 @@ public class Taint extends Canonical {
                   ExistPredSet eps) {
     assert
       (sese == null && stallSite != null) ||
-    (sese != null && stallSite == null);
+      (sese != null && stallSite == null);
 
     assert v   != null;
     assert as  != null;
@@ -205,6 +205,10 @@ public class Taint extends Canonical {
   }
 
   public int hashCodeSpecific() {
+    return hashCodeNoPreds() ^ preds.hashCode();
+  }
+
+  public int hashCodeNoPreds() {
     int hash = allocSite.hashCode();
     hash = hash ^ var.hashCode();
 

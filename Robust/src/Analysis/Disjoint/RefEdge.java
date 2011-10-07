@@ -67,11 +67,7 @@ public class RefEdge {
     // is changing beta info, betaNew is always empty
     betaNew = ReachSet.factory();
 
-    if( taints != null ) {
-      this.taints = taints;
-    } else {
-      this.taints = TaintSet.factory();
-    }
+    setTaints( taints != null ? taints : TaintSet.factory() );
   }
 
 

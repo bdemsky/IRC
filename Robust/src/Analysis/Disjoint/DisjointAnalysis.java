@@ -1778,7 +1778,7 @@ public class DisjointAnalysis implements HeapAnalysis {
           fc2enclosing.put(fc, mdCaller);
 
           if( state.DISJOINTDEBUGSCHEDULING ) {
-            System.out.println("  context changed, scheduling callee: "+mdPossible);
+            System.out.println("  context changed at callsite: "+fc+", scheduling callee: "+mdPossible);
           }
 
           if( state.DISJOINTDVISITSTACKEESONTOP ) {
@@ -2419,7 +2419,13 @@ public class DisjointAnalysis implements HeapAnalysis {
     Hashtable<FlatCall, ReachGraph> heapsFromCallers =
       getIHMcontributions(d);
 
-    heapsFromCallers.put(fc, rg);
+    // ensure inputs to initial contexts increase monotonically
+    ReachGraph merged = new ReachGraph();
+    merged.merge( rg );
+    merged.merge( heapsFromCallers.get( fc ) );
+
+    heapsFromCallers.put( fc, merged );
+    
   }
 
 

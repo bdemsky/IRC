@@ -80,7 +80,9 @@ public class ExistPred extends Canonical {
   // if the taint is non-null then the predicate
   // is true only if the edge exists AND has the
   // taint--ONLY ONE of the ne_state or e_taint
-  // may be non-null for an edge predicate
+  // may be non-null for an edge predicate, AND
+  // like the ne_state above, strip preds off this
+  // taint within a pred itself
   protected Taint e_taint;
 
 
@@ -191,7 +193,7 @@ public class ExistPred extends Canonical {
     this.e_type     = type;
     this.e_field    = field;
     this.ne_state   = removePreds( state );
-    this.e_taint    = taint;
+    this.e_taint    = removePreds( taint );
     this.predType   = TYPE_EDGE;
     n_hrnID = null;
   }
@@ -232,6 +234,10 @@ public class ExistPred extends Canonical {
 
   private ReachState removePreds( ReachState state ) {
     return state == null ? null : Canonical.attach( state, ExistPredSet.factory() );
+  }
+
+  private Taint removePreds( Taint taint ) {
+    return taint == null ? null : Canonical.attach( taint, ExistPredSet.factory() );
   }
 
 
@@ -508,7 +514,7 @@ public class ExistPred extends Canonical {
       if( pred.e_taint != null ) {
         return false;
       }
-    } else if( !e_taint.equals(pred.e_taint) ) {
+    } else if( !e_taint.equalsIgnorePreds(pred.e_taint) ) {
       return false;
     }
 
@@ -560,7 +566,7 @@ public class ExistPred extends Canonical {
       }
 
       if( e_taint != null ) {
-        hash ^= e_taint.hashCode();
+        hash ^= e_taint.hashCodeNoPreds();
       }
 
       return hash;
