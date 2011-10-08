@@ -3,6 +3,7 @@ public class HashMap implements Map {
   float loadFactor;
   int numItems;
   int threshold;
+  Collection values;
 
   public HashMap() {
     init(16, 0.75f);
@@ -142,5 +143,37 @@ public class HashMap implements Map {
     he.next=table[bin];
     table[bin]=he;
     return null;
+  }
+  
+  public Collection values()
+  {
+    if (values == null)
+      // We don't bother overriding many of the optional methods, as doing so
+      // wouldn't provide any significant performance advantage.
+      values = new AbstractCollection()
+      {
+        HashMap map;
+        
+        public AbstractCollection(HashMap m) {
+          this.map = map;
+        }
+        
+        public int size()
+        {
+          return size;
+        }
+
+        public Iterator iterator()
+        {
+          // Cannot create the iterator directly, because of LinkedHashMap.
+          return HashMapIterator(map, 1);
+        }
+
+        public void clear()
+        {
+          map.clear();
+        }
+      };
+    return values;
   }
 }

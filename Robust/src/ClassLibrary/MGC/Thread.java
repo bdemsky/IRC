@@ -53,5 +53,11 @@ public class Thread implements Runnable {
     checkAccess();*/
     this.daemon = daemon;
   }
+  
+  public static Thread currentThread()
+  {
+    System.out.println("Unimplemented Thread.currentThread()!");
+    return null;
+  }
 
 }

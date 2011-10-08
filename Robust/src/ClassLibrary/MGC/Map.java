@@ -246,4 +246,6 @@ public interface Map//<K, V>
    * @return the number of mappings
    */
   int size();
+  
+  Collection values();
 }

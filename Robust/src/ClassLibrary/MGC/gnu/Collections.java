@@ -96,4 +96,79 @@ public class Collections
       }*/
     //TODO System.println("Collections.sort() invoked");
   }
+  
+  static final /*<T>*/ int compare(Object/*T*/ o1, Object/*T*/ o2, Comparator/*<? super T>*/ c)
+  {
+    return c == null ? ((Comparable) o1).compareTo(o2) : c.compare(o1, o2);
+  }
+  
+  public static /*<T extends Object & Comparable<? super T>>*/
+  Object/*T*/ min(Collection/*<? extends T>*/ c)
+  {
+    return min(c, null);
+  }
+
+  /**
+   * Find the minimum element in a Collection, according to a specified
+   * Comparator. This implementation iterates over the Collection, so it
+   * works in linear time.
+   *
+   * @param c the Collection to find the minimum element of
+   * @param order the Comparator to order the elements by, or null for natural
+   *        ordering
+   * @return the minimum element of c
+   * @throws NoSuchElementException if c is empty
+   * @throws ClassCastException if elements in c are not mutually comparable
+   * @throws NullPointerException if null is compared by natural ordering
+   *        (only possible when order is null)
+   */
+  public static /*<T> T*/Object min(Collection/*<? extends T>*/ c,
+        Comparator/*<? super T>*/ order)
+  {
+    Iterator/*<? extends T>*/ itr = c.iterator();
+    Object/*T*/ min = itr.next(); // throws NoSuchElementExcception
+    int csize = c.size();
+    for (int i = 1; i < csize; i++)
+      {
+  Object/*T*/ o = itr.next();
+  if (compare(min, o, order) > 0)
+    min = o;
+      }
+    return min;
+  }
+  
+  public static /*<T extends Object & Comparable<? super T>>
+  T*/Object max(Collection/*<? extends T>*/ c)
+  {
+    return max(c, null);
+  }
+
+  /**
+   * Find the maximum element in a Collection, according to a specified
+   * Comparator. This implementation iterates over the Collection, so it
+   * works in linear time.
+   *
+   * @param c the Collection to find the maximum element of
+   * @param order the Comparator to order the elements by, or null for natural
+   *        ordering
+   * @return the maximum element of c
+   * @throws NoSuchElementException if c is empty
+   * @throws ClassCastException if elements in c are not mutually comparable
+   * @throws NullPointerException if null is compared by natural ordering
+   *        (only possible when order is null)
+   */
+  public static /*<T> T*/Object max(Collection/*<? extends T>*/ c,
+        Comparator/*<? super T>*/ order)
+  {
+    Iterator/*<? extends T>*/ itr = c.iterator();
+    Object/*T*/ max = itr.next(); // throws NoSuchElementException
+    int csize = c.size();
+    for (int i = 1; i < csize; i++)
+      {
+  Object/*T*/ o = itr.next();
+  if (compare(max, o, order) < 0)
+    max = o;
+      }
+    return max;
+  }
 } // class Collections
