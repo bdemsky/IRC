@@ -598,6 +598,8 @@ public class BuildIR {
     return cn;
   }
 
+
+
   private void parseClassBody(ClassDescriptor cn, ParseNode pn) {
     ParseNode decls=pn.getChild("class_body_declaration_list");
     if (decls!=null) {
@@ -657,6 +659,8 @@ public class BuildIR {
     throw new Error();
   }
 
+//10/9/2011 changed this function to enable creation of default constructor for inner classes.
+//the change was refactoring this function with the corresponding version for normal classes. sganapat
   private ClassDescriptor parseInnerClassDecl(ClassDescriptor cn, ParseNode pn) {
     String basename=pn.getChild("name").getTerminal();
     String classname=cn.getClassName()+"$"+basename;
@@ -673,7 +677,8 @@ public class BuildIR {
     icn.setSurroundingClass(cn.getSymbol());
     icn.setSurrounding(cn);
     cn.addInnerClass(icn);
-    if (!isEmpty(pn.getChild("super").getTerminal())) {
+
+     if (!isEmpty(pn.getChild("super").getTerminal())) {
       /* parse superclass name */
       ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
       NameDescriptor nd=parseClassName(snn);
@@ -699,8 +704,25 @@ public class BuildIR {
     icn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
 
     parseClassBody(icn, pn.getChild("classbody"));
+
+    boolean hasConstructor = false;
+    for(Iterator method_it=icn.getMethods(); method_it.hasNext(); ) {
+      MethodDescriptor md=(MethodDescriptor)method_it.next();
+      hasConstructor |= md.isConstructor();
+    }
+//sganapat adding change to allow proper construction of inner class objects
+    if((!hasConstructor) && (!icn.isEnum())) {
+      // add a default constructor for this class
+      MethodDescriptor md = new MethodDescriptor(new Modifiers(Modifiers.PUBLIC),
+                                                 icn.getSymbol(), false);
+      BlockNode bn=new BlockNode();
+      state.addTreeCode(md,bn);
+      md.setDefaultConstructor();
+      icn.addMethod(md);
+   }
     popChainMaps();
-    if (analyzeset != null)
+
+     if (analyzeset != null)
       analyzeset.add(icn);
     icn.setSourceFileName(currsourcefile);
     state.addClass(icn);
