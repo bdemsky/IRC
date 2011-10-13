@@ -5,4 +5,6 @@ SOURCE_FILES=Coordinate.java CoordPathWrapper.java Grid.java Labyrinth.java List
 NUM_OOO_WORKERS=24
 NUM_RCR_WORKERS=23
 
+BMFLAGS= -heapsize-mb 5000
+
 include ../master-makefile
