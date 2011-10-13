@@ -104,11 +104,21 @@ public class RefEdge {
 
     if( src instanceof VariableNode ) {
       VariableNode vsrc = (VariableNode) src;
+      
+      if( !(edge.src instanceof VariableNode) ) {
+        return false;
+      }
+      
       if( !vsrc.equals( (VariableNode) edge.src ) ) {
         return false;
       }
     } else {
       HeapRegionNode hsrc = (HeapRegionNode) src;
+
+      if( !(edge.src instanceof HeapRegionNode) ) {
+        return false;
+      }
+
       if( !hsrc.equalsIncludingAlphaAndPreds( (HeapRegionNode) edge.src ) ) {
         return false;
       }
