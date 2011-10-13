@@ -35,7 +35,7 @@ package java.util;
  */
 public abstract class AbstractQueue/*<E>*/
     extends AbstractCollection/*<E>*/
-    implements Queue/*<E>*/ {
+    /*implements Queue<E>*/ {
 
     /**
      * Constructor for use by subclasses.

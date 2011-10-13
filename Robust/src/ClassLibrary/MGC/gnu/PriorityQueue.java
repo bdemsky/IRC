@@ -326,7 +326,7 @@ public class PriorityQueueIterator implements Iterator {
 
   public boolean hasNext()
   {
-    return count < used;
+    return count < queue.used;
   }
 
   public Object/*E*/ next()

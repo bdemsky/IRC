@@ -155,7 +155,7 @@ public class ArrayDeque extends AbstractCollection
      * sufficient to hold 16 elements.
      */
     public ArrayDeque() {
-        elements = (Objecxt/*E*/[]) new Object[16];
+        elements = /*(E[])*/ new Object[16];
     }
 
     /**

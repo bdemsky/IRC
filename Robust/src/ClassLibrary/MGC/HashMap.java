@@ -4,6 +4,7 @@ public class HashMap implements Map {
   int numItems;
   int threshold;
   Collection values;
+  Set keys;
 
   public HashMap() {
     init(16, 0.75f);
@@ -155,7 +156,7 @@ public class HashMap implements Map {
         HashMap map;
         
         public AbstractCollection(HashMap m) {
-          this.map = map;
+          this.map = m;
         }
         
         public int size()
@@ -166,7 +167,7 @@ public class HashMap implements Map {
         public Iterator iterator()
         {
           // Cannot create the iterator directly, because of LinkedHashMap.
-          return HashMapIterator(map, 1);
+          return HashMapIterator(this.map, 1);
         }
 
         public void clear()
@@ -175,5 +176,53 @@ public class HashMap implements Map {
         }
       };
     return values;
+  }
+  
+  public Set keySet()
+  {
+    if (keys == null)
+      // Create an AbstractSet with custom implementations of those methods
+      // that can be overridden easily and efficiently.
+      keys = new AbstractSet()
+      {
+      HashMap map;
+      
+      public AbstractSet(HashMap m) {
+        this.map = m;
+      }
+        public int size()
+        {
+          return size;
+        }
+
+        public Iterator iterator()
+        {
+          // Cannot create the iterator directly, because of LinkedHashMap.
+          //return HashMap.this.iterator(KEYS);
+          return HashMapIterator(this.map, 0);
+        }
+
+        public void clear()
+        {
+          HashMap.this.clear();
+        }
+
+        public boolean contains(Object o)
+        {
+          return containsKey(o);
+        }
+
+        public boolean remove(Object o)
+        {
+          // Test against the size of the HashMap to determine if anything
+          // really got removed. This is necessary because the return value
+          // of HashMap.remove() is ambiguous in the null case.
+          int oldsize = size;
+          //HashMap.this.remove(o);
+          this.map.remove(o);
+          return oldsize != size;
+        }
+      };
+    return keys;
   }
 }

@@ -115,7 +115,7 @@ final class ThreadLocalMap
         //for(Entry e: oldEntries)
         for(int j = 0; j < oldEntries.length; j++)
           {
-            e = oldEntries[j];
+          Entry e = oldEntries[j];
             if (e != null)
               {
                 ThreadLocal/*<?>*/ key = e.get();

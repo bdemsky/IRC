@@ -1,11 +1,20 @@
 public class Thread implements Runnable {
+  static long id = 0;
   private boolean finished;
   Runnable target;
   private boolean daemon;
+  private long threadId;
   
   public Thread(){
     finished = false;
     target = null;
+    daemon = false;
+    threadId = Thread.id++;
+  }
+  
+  public long getId()
+  {
+    return threadId;
   }
   
   public Thread(Runnable r) {

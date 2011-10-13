@@ -127,7 +127,7 @@ public interface Map//<K, V>
    * @return the set view of all mapping entries
    * @see Map.Entry
    */
-  //Set<Map.Entry<K, V>> entrySet();
+  Set entrySet();
 
   /**
    * Compares the specified object with this map for equality. Returns
