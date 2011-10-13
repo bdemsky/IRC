@@ -37,7 +37,7 @@ USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -squeue -ooodebug
 OOODEBUG= -ooodebug -printlinenum
 RCRDEBUG= -rcr_debug -printlinenum
 RCRDEBUGV= -rcr_debug_verbose -printlinenum
-BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 5000 -garbagestats -joptimize -noloop -optimize -nolock -debug #-nooptimize #src-after-pp
+BSFLAGS= -compiler-heapsize-mb 12000   -64bit -mainclass $(PROGRAM) -garbagestats -joptimize -noloop -optimize -nolock -debug #-nooptimize #src-after-pp
 
 
 CHECKPOINTSTO= -printlinenum -pointsto-check-v-runtime -debug
@@ -77,7 +77,7 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # -disjoint-debug-snap-method Remove 10 3 true
 
 DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE)
-#	-disjoint-write-dots all
+#	-disjoint-write-dots final
 #	-disjoint-debug-scheduling
 #	-disjoint-debug-callsite Barneshut.Insert Barneshut.run 50 500 true
 #	-disjoint-debug-snap-method ArrayIndexedGraph.createNode 1 100 true \

@@ -142,7 +142,8 @@ echo -tagstate do tag state analysis
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
-echo -heapsize-mb NUM  set initial heap size in MB, default is 256
+echo -heapsize-mb NUM  set output program initial heap size in MB, default is 256
+echo -compiler-heapsize-mb NUM  set heap size in MB for the JVM running the compiler, default is 1500
 echo -garbagestats Print garbage collection statistics
 echo -webinterface enable web interface
 echo -runtimedebug printout runtime debug messages
@@ -193,6 +194,7 @@ NOJAVA=false
 CHECKFLAG=false
 RECOVERFLAG=false
 MLP_ON=false
+OOOJAVA=false
 RCR=false
 RCR_DEBUG=false
 RCR_DEBUG_VERBOSE=false
@@ -263,6 +265,8 @@ TILERA_PAGE_SIZE_BITS="16"
 TILERA_NUM_BLOCKS="20"
 TILERA_NUM_PAGES_PER_BLOCK="16"
 GCCACHECOHERENTFLAG=false
+COMPILER_HEAP_SIZE="1500"
+
 
 if [[ -z $1 ]]
 then
@@ -648,6 +652,7 @@ JAVAOPTS="$JAVAOPTS -minimize"
 elif [[ $1 = '-ooojava' ]]
 then
 MLP_ON=true
+OOOJAVA=true
 JAVAOPTS="$JAVAOPTS -ooojava $2 $3"
 EXTRAOPTIONS="$EXTRAOPTIONS -DPRECISE_GC -lpthread -DMLP"
 shift
@@ -673,6 +678,11 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DMEMPOOL_DETECT_MISUSE"
 elif [[ $1 = '-heapsize-mb' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DINITIALHEAPSIZE_MB=($2)"
+shift
+
+elif [[ $1 = '-compiler-heapsize-mb' ]]
+then
+COMPILER_HEAP_SIZE="$2"
 shift
 
 elif [[ $1 = '-nostalltr' ]]
@@ -840,6 +850,12 @@ fi
 #########################
 # Setup class path
 #########################
+if $OOOJAVA
+  then
+  # stuff for OoOJava to mask parts of the base
+  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/OoOJava"  
+fi
+
 if $JNI
   then
   JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/classpath/ -classlibrary $ROBUSTROOT/classpath/vm/reference"
@@ -899,12 +915,14 @@ fi
 #########################
 
 
+echo "compiler running in JVM with heap size: ${COMPILER_HEAP_SIZE}MB"
+
 
 # Build bristlecone/java sources
 
 if $MULTICOREFLAG
   then
-  if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main \
+  if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx${COMPILER_HEAP_SIZE}m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main \
        -dir $BUILDDIR $JAVAOPTS $SRCFILES
     then exit $?
   fi
@@ -913,7 +931,7 @@ else
 
   if $MGCINTELFLAG
     then
-    if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main $JAVAOPTS \
+    if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx${COMPILER_HEAP_SIZE}m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main $JAVAOPTS \
          -dir $BUILDDIR -precise $SRCFILES
       then exit $?
     fi
@@ -921,7 +939,7 @@ else
   else
     if ! $NOJAVA
       then
-      if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main \
+      if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx${COMPILER_HEAP_SIZE}m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main \
 	   -dir $BUILDDIR -precise $JAVAOPTS $SRCFILES
         then exit $?
       fi
