@@ -8,12 +8,13 @@ import java.util.*;
 
 public class BuildIR {
   State state;
-
+  private boolean isRunningRecursiveInnerClass;
   private int m_taskexitnum;
 
   public BuildIR(State state) {
     this.state=state;
     this.m_taskexitnum = 0;
+    this.isRunningRecursiveInnerClass = false;
   }
 
   public void buildtree(ParseNode pn, Set toanalyze, String sourcefile) {
@@ -588,17 +589,82 @@ public class BuildIR {
       md.setDefaultConstructor();
       cn.addMethod(md);
     }
+
+
     popChainMaps();
 
     cn.setSourceFileName(currsourcefile);
+
+
+    
     if (analyzeset != null)
       analyzeset.add(cn);
     state.addClass(cn);
-
+//create this$n representing a final reference to the next surrounding class. each inner class should have whatever inner class
+//pointers the surrounding class has + a pointer to the surrounding class.
+   if( false )
+   {
+   	this.isRunningRecursiveInnerClass = true; //fOR dEBUGGING PURPOSES IN ORDER TO DUMP STRINGS WHILE IN THIS CODE PATH
+    	addOuterClassReferences( cn, new Vector< String >() );
+    	this.isRunningRecursiveInnerClass = false;
+    }
     return cn;
   }
 
+private void addOuterClassReferences( ClassDescriptor cn, Vector< String > runningClassNames )
+{
+	//SYMBOLTABLE does not have a length or empty method, hence could not define a hasInnerClasses method in classDescriptor
+	Iterator nullCheckItr = cn.getInnerClasses();
+	if( false == nullCheckItr.hasNext() )
+		return;
+      //logic: for each inner class present in current cn add this$runningIndex and recursively invoke this method on that inner class
+      
+      //JAVA might be passing it by reference , so creating a copy for myself. 
+	
+	Vector tempCopy = new Vector< String >( runningClassNames );
+	tempCopy.add( cn.getClassName() );
 
+	Vector< ParseNode > vecParses = new Vector< ParseNode >();
+	//MESSY HACK FOLLOWS
+	int i = 0;
+	for( Iterator itr = tempCopy.listIterator(); itr.hasNext() ; ++i ) {
+		ParseNode theNode = new ParseNode( "field_declaration" );
+		theNode.addChild("modifier").addChild( new ParseNode( "modifier_list" ) ).addChild("final");
+		ParseNode theTypeNode = new ParseNode("type");
+		ParseNode tempChildNode = theTypeNode.addChild("class").addChild( "name" );
+		//tempChildNode.addChild("base").addChild( new ParseNode("empty") );
+		tempChildNode.addChild("identifier").addChild ( ( String ) itr.next() );
+		theNode.addChild("type").addChild( theTypeNode );
+		ParseNode variableDeclaratorID = new ParseNode("single");
+		String theStr = "this$" + String.valueOf( i );
+		variableDeclaratorID.addChild( theStr );
+		ParseNode variableDeclarator = new ParseNode( "variable_declarator" );
+		variableDeclarator.addChild( variableDeclaratorID );
+		ParseNode variableDeclaratorList = new ParseNode("variable_declarators_list");
+		variableDeclaratorList.addChild( variableDeclarator );
+		theNode.addChild("variables").addChild( variableDeclaratorList );
+		//finally
+		
+		vecParses.add( theNode );
+		
+		
+	}
+	
+	for(Iterator it=cn.getInnerClasses(); it.hasNext(); ) {
+      		ClassDescriptor icd=(ClassDescriptor)it.next();
+		for( Iterator vecParsesItr = vecParses.listIterator(); vecParsesItr.hasNext(); ) {
+			ParseNode theDummy = ( ParseNode ) vecParsesItr.next();
+			//System.out.println( ( theDummy ).PPrint( 0, true ) );
+			parseFieldDecl( icd, theDummy );		
+		}
+		if( true ) {
+			SymbolTable fieldTable = icd.getFieldTable();
+			System.out.println( fieldTable.toString() );
+		}
+		addOuterClassReferences( icd, tempCopy );
+		
+    	}
+}
 
   private void parseClassBody(ClassDescriptor cn, ParseNode pn) {
     ParseNode decls=pn.getChild("class_body_declaration_list");
@@ -621,6 +687,7 @@ public class BuildIR {
   private void parseClassMember(ClassDescriptor cn, ParseNode pn) {
     ParseNode fieldnode=pn.getChild("field");
     if (fieldnode!=null) {
+      //System.out.println( pn.PPrint( 0, true ) );
       parseFieldDecl(cn,fieldnode.getChild("field_declaration"));
       return;
     }
@@ -856,6 +923,11 @@ public class BuildIR {
       ParseNode vardecl=pnv.elementAt(i);
       ParseNode tmp=vardecl;
       TypeDescriptor arrayt=t;
+       if( this.isRunningRecursiveInnerClass && false )
+	{	
+		System.out.println( "the length of the list is " + String.valueOf( pnv.size() ) );
+		System.out.println( "\n the parse node is \n" + tmp.PPrint( 0, true ) );
+	}
       while (tmp.getChild("single")==null) {
         arrayt=arrayt.makeArray(state);
         tmp=tmp.getChild("array");
