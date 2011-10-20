@@ -1,5 +1,6 @@
 public class Foo {
-  public Foo next;
+  public Foo f;
+  public Foo g;
 }
 
 public class Test {
@@ -8,22 +9,42 @@ public class Test {
 
   static public void main( String args[] ) {
     
-    Foo f = new Foo();
-    Foo g = f;
+    Foo x = getFlagged();
+    Foo y = getUnflagged();
+    x.f = y;
 
-    while( false ) {
-      f.next = new Foo();
-      f = f.next;
-    }
+    // x is flagged and y is reachable from
+    // at most one object from that site
+    genreach y0;
 
-    f = yodel( f, g );
+    Foo t = getFlagged();
+    t = getFlagged();
 
-    gendefreach yo;
+    // x is flagged and y is reachable from
+    // at most one object from that site, even
+    // though x is summarized now
+    genreach y1;
 
-    System.out.println( f );
+    x.g = y;
+
+    // if we had definite reachability analysis
+    // we would realize y is already reachable
+    // from x, but we don't and x is summarized
+    // so we conservatively increase the arity
+    // of objects y is reachable from.
+    genreach y2;
+
+
+    //gendefreach yo;
+    System.out.println( x+","+y );
   }
 
-  static public Foo yodel( Foo a, Foo b ) {
-    return a.next;
+  static public Foo getFlagged() {
+    return disjoint jupiter new Foo();
   }
+
+  static public Foo getUnflagged() {
+    return new Foo();
+  }
+
 }
