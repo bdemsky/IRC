@@ -32,6 +32,12 @@ public class MultiViewMap<T> {
   private boolean checkTypes;
   private boolean checkConsistency;
 
+
+  // for MultiViewMaps that don't need to use the value,
+  // template on type Object and map every key to this dummy
+  public static Object dummy = new Integer( -12345 );
+
+
   //  If the entire contents of this map are fullKey -> value:
   //    <a,b> -> 1
   //    <c,b> -> 2
@@ -73,10 +79,6 @@ public class MultiViewMap<T> {
   }
 
 
-  public int size() {
-    return fullKey2value.size();
-  }
-
   public boolean equals( Object o ) {
     if( this == o ) {
       return true;
@@ -110,6 +112,16 @@ public class MultiViewMap<T> {
     return hash;
   }
 
+
+  public int size() {
+    return fullKey2value.size();
+  }
+
+
+  public void clear() {
+    fullKey2value.clear();
+    view2partialKey2fullKeys.clear();
+  }
 
  
   public void put( MultiKey fullKey, T value ) {
