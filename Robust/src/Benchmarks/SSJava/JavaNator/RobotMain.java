@@ -199,6 +199,7 @@ public class RobotMain {
       }
       break;
     default:
+      strategyMgr.stop();
       System.out.println("processIOCommand: Default: opCode = " + Integer.toString((int) opCode)
           + " data = " + Integer.toString((int) data));
     }
