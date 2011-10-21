@@ -28,6 +28,8 @@ import IR.Tree.BlockStatementNode;
 import IR.Tree.DeclarationNode;
 import IR.Tree.ExpressionNode;
 import IR.Tree.IfStatementNode;
+import IR.Tree.SwitchStatementNode;
+import IR.Tree.SwitchBlockNode;
 import IR.Tree.Kind;
 import IR.Tree.LiteralNode;
 import IR.Tree.LoopNode;
@@ -243,44 +245,45 @@ public class SSJavaInferenceEngine {
     case Kind.SubBlockNode:
       inferRelationsFromSubBlockNode(md, nametable, (SubBlockNode) bsn);
       break;
-    /*
-     * case Kind.ContinueBreakNode: compLoc = new CompositeLocation(); break;
-     * 
-     * case Kind.SwitchStatementNode: inferRelationsFromSwitchStatementNode(md,
-     * nametable, (SwitchStatementNode) bsn, constraint); break;
-     */
+      /*
+    case Kind.ContinueBreakNode:
+      compLoc = new CompositeLocation();
+      break;
+      */
+    case Kind.SwitchStatementNode:
+      inferRelationsFromSwitchStatementNode(md, nametable, (SwitchStatementNode) bsn);
+      break;
+
     default:
       System.out.println(bsn.kind() + " not handled...");
       break;
     }
   }
 
-  /*
-   * private CompositeLocation
-   * inferRelationsFromSwitchStatementNode(MethodDescriptor md, SymbolTable
-   * nametable, SwitchStatementNode ssn, CompositeLocation constraint) {
-   * 
-   * ClassDescriptor cd = md.getClassDesc(); CompositeLocation condLoc =
-   * inferRelationsFromExpressionNode(md, nametable, ssn.getCondition(), new
-   * CompositeLocation(), constraint, false); BlockNode sbn =
-   * ssn.getSwitchBody();
-   * 
-   * constraint = generateNewConstraint(constraint, condLoc);
-   * 
-   * for (int i = 0; i < sbn.size(); i++) {
-   * inferRelationsFromSwitchBlockNode(md, nametable, (SwitchBlockNode)
-   * sbn.get(i), constraint); } return new CompositeLocation(); }
-   * 
-   * private void inferRelationsFromSwitchBlockNode(MethodDescriptor md,
-   * SymbolTable nametable, SwitchBlockNode sbn) {
-   * 
-   * CompositeLocation blockLoc = inferRelationsFromBlockNode(md, nametable,
-   * sbn.getSwitchBlockStatement(), constraint);
-   * 
-   * return blockLoc;
-   * 
-   * }
-   */
+  private void inferRelationsFromSwitchStatementNode(MethodDescriptor md,
+      SymbolTable nametable, SwitchStatementNode ssn) {
+
+    ClassDescriptor cd = md.getClassDesc();
+    VarID condID =
+        inferRelationsFromExpressionNode(md, nametable, ssn.getCondition(), null, (BlockStatementNode) ssn, false);
+    BlockNode sbn = ssn.getSwitchBody();
+
+    for (int i = 0; i < sbn.size(); i++) {
+	inferRelationsFromSwitchBlockNode(md, nametable, (SwitchBlockNode) sbn.get(i));
+    }
+
+    for(ImplicitTuple tuple: implicitFlowSet){
+      if(tuple.isFromBranch((BlockStatementNode) ssn)){
+        implicitFlowSet.remove(tuple);
+      }
+    }
+  }
+
+  private void inferRelationsFromSwitchBlockNode(MethodDescriptor md,
+      SymbolTable nametable, SwitchBlockNode sbn) {
+    inferRelationsFromBlockNode(md, nametable, sbn.getSwitchBlockStatement());
+  }
+
   private void inferRelationsFromReturnNode(MethodDescriptor md, SymbolTable nametable,
       ReturnNode rn) {
 
@@ -330,9 +333,9 @@ public class SSJavaInferenceEngine {
 
   }
 
-  private void inferRelationsFromSubBlockNode(MethodDescriptor md, SymbolTable nametable,
-      SubBlockNode sbn) {
-    inferRelationsFromBlockNode(md, nametable, sbn.getBlockNode());
+  private void inferRelationsFromSubBlockNode(MethodDescriptor md,
+      SymbolTable nametable, SubBlockNode sbn) {
+      inferRelationsFromBlockNode(md, nametable.getParent(), sbn.getBlockNode());
   }
 
   private void inferRelationsFromIfStatementNode(MethodDescriptor md, SymbolTable nametable,
@@ -357,16 +360,9 @@ public class SSJavaInferenceEngine {
       DeclarationNode dn) {
   }
 
-  /*
-   * private void inferRelationsFromSubBlockNode(MethodDescriptor md,
-   * SymbolTable nametable, SubBlockNode sbn) { inferRelationsFromBlockNode(md,
-   * nametable.getParent(), sbn.getBlockNode()); }
-   */
-
-  private void inferRelationsFromBlockExpressionNode(MethodDescriptor md, SymbolTable nametable,
-      BlockExpressionNode ben) {
-    inferRelationsFromExpressionNode(md, nametable, ben.getExpression(), null, null, false);
-    // addTypeLocation(ben.getExpression().getType(), compLoc);
+  private void inferRelationsFromBlockExpressionNode(MethodDescriptor md,
+      SymbolTable nametable, BlockExpressionNode ben) {
+      inferRelationsFromExpressionNode(md, nametable, ben.getExpression(), null, null, false);
   }
 
   private VarID inferRelationsFromExpressionNode(MethodDescriptor md, SymbolTable nametable,
@@ -735,11 +731,9 @@ public class SSJavaInferenceEngine {
   private VarID inferRelationsFromOpNode(MethodDescriptor md, SymbolTable nametable, OpNode on,
       VarID flowTo, BlockStatementNode implicitTag) {
 
-    ClassDescriptor cd = md.getClassDesc();
     VarID var =
         inferRelationsFromExpressionNode(md, nametable, on.getLeft(), flowTo, implicitTag, false);
 
-    CompositeLocation rightLoc = new CompositeLocation();
     if (on.getRight() != null) {
       inferRelationsFromExpressionNode(md, nametable, on.getRight(), flowTo, implicitTag, false);
     }
@@ -776,7 +770,7 @@ public class SSJavaInferenceEngine {
     case Operation.RIGHTSHIFT:
     case Operation.URIGHTSHIFT:
 
-      return null;
+      return var;
 
     default:
       throw new Error(op.toString());
