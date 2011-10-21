@@ -1029,7 +1029,7 @@ private void AddSurroundingClassParamToCtor( ClassDescriptor icn, ParseNode pn )
   private ExpressionNode parseExpression(ParseNode pn) {
     if (isNode(pn,"assignment"))
 	{
-	System.out.println( "parsing a field decl in my class that has assignment in initialization " + pn.PPrint( 0, true ) + "\n");
+          //System.out.println( "parsing a field decl in my class that has assignment in initialization " + pn.PPrint( 0, true ) + "\n");
       return parseAssignmentExpression(pn);
 	}
     else if (isNode(pn,"logical_or")||isNode(pn,"logical_and")||
