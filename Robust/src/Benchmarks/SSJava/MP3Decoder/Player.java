@@ -71,6 +71,10 @@ public class Player {
   @LOC("B")
   private int lastPosition = 0;
 
+
+  private long sampleNumber;
+
+
   /**
    * Creates a new <code>Player</code> instance.
    */
@@ -116,6 +120,9 @@ public class Player {
     @LOC("THIS,Player.FR") boolean init = true;
     @LOC("THIS,Player.ST") Header h = BitstreamWrapper.readFrame();
     decoder.init(h);
+
+    sampleNumber = 1;
+    System.out.println( "Gobble sentinel: +++" );
 
     @LOC("IN") int count = 0;
     SSJAVA: while (count++ < 2147483646) {
@@ -178,6 +185,7 @@ public class Player {
     return 0;
   }
 
+
   /**
    * Decodes a single frame.
    * 
@@ -208,8 +216,16 @@ public class Player {
         // System.out.println(outbuf[i]);
         sum += outbuf[i];
       }
-      System.out.println(sum);
+      //System.out.println(sum);
       //
+
+      int stride = outbuf.length / 100;
+      for( int i = 0; i < 100; ++i ) {
+        System.out.println( sampleNumber+" "+outbuf[i*stride] );
+        sampleNumber++;
+      }
+
+
 
       // synchronized (this)
       // {

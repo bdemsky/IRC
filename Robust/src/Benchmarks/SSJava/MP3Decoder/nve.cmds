@@ -1,0 +1,1 @@
+plot "normal.txt" with lines, "error.txt" with lines, "nve-diff-ranges.tmp" with steps axes x1y2
