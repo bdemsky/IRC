@@ -21,15 +21,15 @@ import IR.Operation;
 import IR.State;
 import IR.SymbolTable;
 import IR.VarDescriptor;
+import IR.Tree.ArrayAccessNode;
 import IR.Tree.AssignmentNode;
 import IR.Tree.BlockExpressionNode;
 import IR.Tree.BlockNode;
 import IR.Tree.BlockStatementNode;
+import IR.Tree.CastNode;
 import IR.Tree.DeclarationNode;
 import IR.Tree.ExpressionNode;
 import IR.Tree.IfStatementNode;
-import IR.Tree.SwitchStatementNode;
-import IR.Tree.SwitchBlockNode;
 import IR.Tree.Kind;
 import IR.Tree.LiteralNode;
 import IR.Tree.LoopNode;
@@ -37,6 +37,8 @@ import IR.Tree.NameNode;
 import IR.Tree.OpNode;
 import IR.Tree.ReturnNode;
 import IR.Tree.SubBlockNode;
+import IR.Tree.SwitchStatementNode;
+import IR.Tree.SwitchBlockNode;
 
 public class SSJavaInferenceEngine {
 
@@ -245,11 +247,7 @@ public class SSJavaInferenceEngine {
     case Kind.SubBlockNode:
       inferRelationsFromSubBlockNode(md, nametable, (SubBlockNode) bsn);
       break;
-      /*
-    case Kind.ContinueBreakNode:
-      compLoc = new CompositeLocation();
-      break;
-      */
+  
     case Kind.SwitchStatementNode:
       inferRelationsFromSwitchStatementNode(md, nametable, (SwitchStatementNode) bsn);
       break;
@@ -392,10 +390,11 @@ public class SSJavaInferenceEngine {
     /*
      * case Kind.CreateObjectNode: var = inferRelationsFromCreateObjectNode(md,
      * nametable, (CreateObjectNode) en); break;
-     * 
-     * case Kind.ArrayAccessNode: var = inferRelationsFromArrayAccessNode(md,
-     * nametable, (ArrayAccessNode) en, flowTo, isLHS); break;
-     */
+     */ 
+    case Kind.ArrayAccessNode: 
+      var = inferRelationsFromArrayAccessNode(md, nametable, (ArrayAccessNode) en, flowTo, implicitTag, isLHS); 
+      break;
+    
     case Kind.LiteralNode:
       var = inferRelationsFromLiteralNode(md, nametable, (LiteralNode) en);
       break;
@@ -405,26 +404,10 @@ public class SSJavaInferenceEngine {
      * 
      * case Kind.TertiaryNode: var = inferRelationsFromTertiaryNode(md,
      * nametable, (TertiaryNode) en); break;
-     * 
-     * case Kind.CastNode: var = inferRelationsFromCastNode(md, nametable,
-     * (CastNode) en); break;
-     */
-    // case Kind.InstanceOfNode:
-    // checkInstanceOfNode(md, nametable, (InstanceOfNode) en, td);
-    // return null;
-
-    // case Kind.ArrayInitializerNode:
-    // checkArrayInitializerNode(md, nametable, (ArrayInitializerNode) en,
-    // td);
-    // return null;
-
-    // case Kind.ClassTypeNode:
-    // checkClassTypeNode(md, nametable, (ClassTypeNode) en, td);
-    // return null;
-
-    // case Kind.OffsetNode:
-    // checkOffsetNode(md, nametable, (OffsetNode)en, td);
-    // return null;
+     */ 
+      case Kind.CastNode: 
+	var = inferRelationsFromCastNode(md, nametable, (CastNode) en, flowTo, implicitTag); 
+	break;
 
     default:
       System.out.println("expressionnode not handled...");
@@ -436,16 +419,15 @@ public class SSJavaInferenceEngine {
 
   }
 
-  /*
-   * private CompositeLocation inferRelationsFromCastNode(MethodDescriptor md,
-   * SymbolTable nametable, CastNode cn, CompositeLocation constraint) {
-   * 
-   * ExpressionNode en = cn.getExpression(); return
-   * inferRelationsFromExpressionNode(md, nametable, en, new
-   * CompositeLocation(), constraint, false);
-   * 
-   * }
-   * 
+  
+   private VarID inferRelationsFromCastNode(MethodDescriptor md,
+      SymbolTable nametable, CastNode cn, VarID flowTo, BlockStatementNode implicitTag) {
+    
+    ExpressionNode en = cn.getExpression();
+    return inferRelationsFromExpressionNode(md, nametable, en, flowTo, implicitTag, false);
+    
+   }
+  /* 
    * private CompositeLocation inferRelationsFromTertiaryNode(MethodDescriptor
    * md, SymbolTable nametable, TertiaryNode tn, CompositeLocation constraint) {
    * ClassDescriptor cd = md.getClassDesc();
@@ -692,42 +674,34 @@ public class SSJavaInferenceEngine {
    * }
    * 
    * }
-   * 
-   * private CompositeLocation
-   * inferRelationsFromArrayAccessNode(MethodDescriptor md, SymbolTable
-   * nametable, ArrayAccessNode aan, CompositeLocation constraint, boolean
-   * isLHS) {
-   * 
-   * ClassDescriptor cd = md.getClassDesc();
-   * 
-   * CompositeLocation arrayLoc = inferRelationsFromExpressionNode(md,
-   * nametable, aan.getExpression(), new CompositeLocation(), constraint,
-   * isLHS); // addTypeLocation(aan.getExpression().getType(), arrayLoc);
-   * CompositeLocation indexLoc = inferRelationsFromExpressionNode(md,
-   * nametable, aan.getIndex(), new CompositeLocation(), constraint, isLHS); //
-   * addTypeLocation(aan.getIndex().getType(), indexLoc);
-   * 
-   * if (isLHS) { if (!CompositeLattice.isGreaterThan(indexLoc, arrayLoc,
-   * generateErrorMessage(cd, aan))) { throw new
-   * Error("Array index value is not higher than array location at " +
-   * generateErrorMessage(cd, aan)); } return arrayLoc; } else {
-   * Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
-   * inputGLB.add(arrayLoc); inputGLB.add(indexLoc); return
-   * CompositeLattice.calculateGLB(inputGLB, generateErrorMessage(cd, aan)); }
-   * 
-   * }
-   * 
-   * private CompositeLocation
-   * inferRelationsFromCreateObjectNode(MethodDescriptor md, SymbolTable
-   * nametable, CreateObjectNode con) {
-   * 
-   * ClassDescriptor cd = md.getClassDesc();
-   * 
-   * CompositeLocation compLoc = new CompositeLocation();
-   * compLoc.addLocation(Location.createTopLocation(md)); return compLoc;
-   * 
-   * }
-   */
+   */ 
+    private VarID inferRelationsFromArrayAccessNode(MethodDescriptor md, SymbolTable
+      nametable, ArrayAccessNode aan, VarID flowTo, BlockStatementNode implicitTag, boolean isLHS) {
+    
+    
+      VarID arrayID = inferRelationsFromExpressionNode(md, nametable, aan.getExpression(), flowTo, implicitTag, isLHS);
+    
+      if (isLHS) { 
+	VarID indexID = inferRelationsFromExpressionNode(md, nametable, aan.getIndex(), arrayID, implicitTag, isLHS);
+      }
+      else{
+	VarID indexID = inferRelationsFromExpressionNode(md, nametable, aan.getIndex(), flowTo, implicitTag, isLHS);
+      }
+      return arrayID;
+    }
+
+    /*
+    private CompositeLocation
+    inferRelationsFromCreateObjectNode(MethodDescriptor md, SymbolTable
+    nametable, CreateObjectNode con) {
+    
+    ClassDescriptor cd = md.getClassDesc();
+    
+    CompositeLocation compLoc = new CompositeLocation();
+    compLoc.addLocation(Location.createTopLocation(md)); return compLoc;
+    
+    }
+    */
   private VarID inferRelationsFromOpNode(MethodDescriptor md, SymbolTable nametable, OpNode on,
       VarID flowTo, BlockStatementNode implicitTag) {
 
