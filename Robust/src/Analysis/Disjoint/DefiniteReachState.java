@@ -49,9 +49,6 @@ public class DefiniteReachState {
 
 
 
-  // for MultiViewMaps that don't need to use the value,
-  // always map to this dummy
-  private static Object dummy = new Integer( -12345 );
 
 
   // call before instantiating this class
@@ -84,15 +81,14 @@ public class DefiniteReachState {
 
 
   public DefiniteReachState() {
+    R = RBuilder.build();
     //Rs = new HashMap<TempDescriptor, DefReachKnown>();
     //Fu = FuBuilder.build();
   }
 
 
-
-  public void methodEntry(Set<TempDescriptor> parameters) {
-    // R' := {}
-    // R.clear();
+  public void methodEntry( Set<TempDescriptor> parameters ) {
+    methodEntryR( parameters );
 
     //Rs.clear();
     //for( TempDescriptor p : parameters ) {
@@ -102,18 +98,9 @@ public class DefiniteReachState {
     //Fu = FuBuilder.build();
   }
 
-  public void copy(TempDescriptor x,
-                   TempDescriptor y) {
-    // R' := (R - <x,*> - <*,x>)        U
-    //       {<x,z>->e | <y,z>->e in R} U
-    //       {<z,x>->e | <z,y>->e in R}
-    // R' = new Map(R)
-    // R'.remove(view0, x);
-    // R'.remove(view1, x);
-    // setYs = R.get(view0, y);
-    // for each <y,z>->e: R'.put(<x,z>, e);
-    // setYs = R.get(view1, y);
-    // for each <z,y>->e: R'.put(<z,x>, e);
+  public void copy( TempDescriptor x,
+                    TempDescriptor y ) {
+    copyR( x, y );
 
     // Rs' := (Rs - <x,*>) U {<x,v> | <y,v> in Rs}
     //DefReachKnown valRs = Rs.get( y );
@@ -144,9 +131,70 @@ public class DefiniteReachState {
     //}
   }
 
-  public void load(TempDescriptor x,
-                   TempDescriptor y,
-                   FieldDescriptor f) {
+  public void load( TempDescriptor x,
+                    TempDescriptor y,
+                    FieldDescriptor f ) {
+    loadR( x, y, f );
+    // Rs' := (Rs - <x,*>) U {<x, unknown>}
+    //Rs.put( x, DefReachKnown.UNKNOWN );
+  }
+
+  public void store( TempDescriptor x,
+                     FieldDescriptor f,
+                     TempDescriptor y,
+                     Set<EdgeKey> edgeKeysRemoved ) {
+    storeR( x, f, y, edgeKeysRemoved );
+    // Rs' := Rs
+  }
+
+  public void newObject( TempDescriptor x ) {
+    newObjectR( x );
+
+    // Rs' := (Rs - <x,*>) U {<x, new>}
+    //Rs.put( x, DefReachKnown.KNOWN );
+    
+  }
+
+  public void methodCall( TempDescriptor retVal ) {
+    methodCallR( retVal );
+
+    // Rs' := (Rs - <x,*>) U {<x, unknown>}
+    //Rs.put( x, DefReachKnown.UNKNOWN );
+  }
+
+  public void merge( DefiniteReachState that ) {
+    mergeR( that );
+
+    // Rs' := <x, new> iff in all incoming edges, otherwie <x, unknown>
+    //mergeRs( that );
+  }
+
+
+
+
+
+
+  public void methodEntryR( Set<TempDescriptor> parameters ) {
+    R.clear();
+  }
+
+  public void copyR( TempDescriptor x,
+                     TempDescriptor y ) {
+    // R' := (R - <x,*> - <*,x>)        U
+    //       {<x,z>->e | <y,z>->e in R} U
+    //       {<z,x>->e | <z,y>->e in R}
+    // R' = new Map(R)
+    // R'.remove(view0, x);
+    // R'.remove(view1, x);
+    // setYs = R.get(view0, y);
+    // for each <y,z>->e: R'.put(<x,z>, e);
+    // setYs = R.get(view1, y);
+    // for each <z,y>->e: R'.put(<z,x>, e);
+  }
+  
+  public void loadR( TempDescriptor x,
+                     TempDescriptor y,
+                     FieldDescriptor f ) {
     // R' := (R - <x,*> - <*,x>) U
     //       ({<x,y>} x Eo(y,f)) U
     //       U        {<x,z>} x (Eo(y,f)U{e})
@@ -157,53 +205,39 @@ public class DefiniteReachState {
     // R'.put(<x,y>, eee!);
     // setYs = R.get(view0, y);
     // for each <y,z>->e: R'.put(<x,z>, eee!Ue);
-
-    // Rs' := (Rs - <x,*>) U {<x, unknown>}
-    //Rs.put( x, DefReachKnown.UNKNOWN );
   }
 
-  public void store(TempDescriptor x,
-                   FieldDescriptor f,
-                   TempDescriptor y,
-                   Set<EdgeKey> edgeKeysRemoved) {
+  public void storeR( TempDescriptor x,
+                      FieldDescriptor f,
+                      TempDescriptor y,
+                      Set<EdgeKey> edgeKeysRemoved ) {
     // I think this should be if there is ANY <w,z>->e' IN Eremove, then kill all <w,z>
     // R' := (R - {<w,z>->e | <w,z>->e in R, A<w,z>->e' in R, e' notin Eremove}) U
     //       {<y,x>->e | e in E(x) x {f} x E(y)}
     // R' = new Map(R)
     // R'.remove(?); some e's...
     // R'.put(<y,x>, E(x) x {f} x E(y));
-
-    // Rs' := Rs
   }
-
-  public void newObject(TempDescriptor x) {
+  
+  public void newObjectR( TempDescriptor x ) {
     // R' := (R - <x,*> - <*,x>)
     // R' = new Map(R)
     // R'.remove(view0, x);
     // R'.remove(view1, x);
-
-    // Rs' := (Rs - <x,*>) U {<x, new>}
-    //Rs.put( x, DefReachKnown.KNOWN );
-    
   }
 
-  // x is the return value, x = foo(...);
-  public void methodCall(TempDescriptor x) {
+  public void methodCallR( TempDescriptor retVal ) {
     // R' := (R - <x,*> - <*,x>)
     // R' = new Map(R)
     // R'.remove(view0, x);
     // R'.remove(view1, x);
-
-    // Rs' := (Rs - <x,*>) U {<x, unknown>}
-    //Rs.put( x, DefReachKnown.UNKNOWN );
   }
 
-  public void merge( DefiniteReachState that ) {
+  public void mergeR( DefiniteReachState that ) {
     // R' := <x,y>->e iff its in all incoming edges
-
-    // Rs' := <x, new> iff in all incoming edges, otherwie <x, unknown>
-    //mergeRs( that );
   }
+
+
 
 
   ///////////////////////////////////////////////////////////
