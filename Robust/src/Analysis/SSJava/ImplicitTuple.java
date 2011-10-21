@@ -1,25 +1,22 @@
 package Analysis.SSJava;
 
-import IR.Tree.TreeNode;
+import IR.Tree.BlockStatementNode;
 
 //contains a varID and what branch that var has implicit flow on
-public class ImplicitTuple {
-  private VarID var;
-  private TreeNode branchID;  // interim fixes
+public class ImplicitTuple{
+    private VarID var;
+    private BlockStatementNode branchID;
 
-  // interim fixes
-  public ImplicitTuple(VarID var, TreeNode branchID) {
-    this.var = var;
-    this.branchID = branchID;
-  }
+    public ImplicitTuple(VarID var, BlockStatementNode branchID){
+	this.var = var;
+	this.branchID = branchID;
+    }
 
-  public VarID getVar() {
-    return var;
-  }
+    public VarID getVar(){
+	return var;
+    }
 
-  public boolean isFromBranch(TreeNode ln) {
-    // interim fixes
-    return true;
-  }
-
+    public boolean isFromBranch(BlockStatementNode branchID){
+	return this.branchID.equals(branchID);
+    }
 }
