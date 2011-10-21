@@ -1,3 +1,8 @@
+package Analysis.Disjoint;
+
+import IR.*;
+
+
 public class EdgeKey {
   private Integer srcId;
   private Integer dstId;

@@ -1302,6 +1302,8 @@ public class DisjointAnalysis implements HeapAnalysis {
     FlatSESEEnterNode sese;
     FlatSESEExitNode fsexn;
 
+    Set<EdgeKey> edgeKeysRemoved;
+
     //Stores the flatnode's reach graph at enter
     ReachGraph rgOnEnter = new ReachGraph();
     rgOnEnter.merge(rg);
@@ -1478,6 +1480,11 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       boolean strongUpdate = false;
 
+      edgeKeysRemoved = null;
+      if( doDefiniteReachAnalysis ) {
+        edgeKeysRemoved = new HashSet<EdgeKey>();
+      }
+
       // before transfer func, possibly inject
       // stall-site taints
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
@@ -1501,10 +1508,10 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       if( shouldAnalysisTrack(fld.getType() ) ) {
         // transfer func
-        strongUpdate = rg.assignTempXFieldFEqualToTempY(lhs, fld, rhs, fn);
+        strongUpdate = rg.assignTempXFieldFEqualToTempY(lhs, fld, rhs, fn, edgeKeysRemoved);
 
         if( doDefiniteReachAnalysis ) {
-          definiteReachAnalysis.store( fn, lhs, fld, rhs );
+          definiteReachAnalysis.store( fn, lhs, fld, rhs, edgeKeysRemoved );
         }
       }
 
@@ -1562,12 +1569,17 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       lhs = fsen.getDst();
       rhs = fsen.getSrc();
-
+      
       assert lhs.getType() != null;
       assert lhs.getType().isArray();
 
       tdElement = lhs.getType().dereference();
       fdElement = getArrayField(tdElement);
+
+      edgeKeysRemoved = null;
+      if( doDefiniteReachAnalysis ) {
+        edgeKeysRemoved = new HashSet<EdgeKey>();
+      }
 
       // before transfer func, possibly inject
       // stall-site taints
@@ -1594,11 +1606,11 @@ public class DisjointAnalysis implements HeapAnalysis {
         // transfer func, BUT
         // skip this node if it cannot create new reachability paths
         if( !arrayReferencees.doesNotCreateNewReaching(fsen) ) {
-          rg.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs, fn);
+          rg.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs, fn, edgeKeysRemoved);
         }
 
         if( doDefiniteReachAnalysis ) {
-          definiteReachAnalysis.store( fn, lhs, fdElement, rhs );
+          definiteReachAnalysis.store( fn, lhs, fdElement, rhs, edgeKeysRemoved );
         }
       }
 

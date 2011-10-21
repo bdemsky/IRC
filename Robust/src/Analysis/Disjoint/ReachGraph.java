@@ -257,11 +257,21 @@ public class ReachGraph {
     referencee.removeReferencer(edge);
   }
 
-  // return whether at least one edge was removed
+
   protected boolean clearRefEdgesFrom(RefSrcNode referencer,
                                       TypeDescriptor type,
                                       String field,
                                       boolean removeAll) {
+    return clearRefEdgesFrom( referencer, type, field, removeAll, null, null );
+  }
+
+  // return whether at least one edge was removed
+  protected boolean clearRefEdgesFrom(RefSrcNode referencer,
+                                      TypeDescriptor type,
+                                      String field,
+                                      boolean removeAll,
+                                      Set<EdgeKey> edgeKeysRemoved,
+                                      FieldDescriptor fd) {
     assert referencer != null;
 
     boolean atLeastOneEdgeRemoved = false;
@@ -278,6 +288,15 @@ public class ReachGraph {
           ) {
 
         HeapRegionNode referencee = edge.getDst();
+
+        if( edgeKeysRemoved != null ) {
+          assert fd != null;
+          assert referencer instanceof HeapRegionNode;
+          edgeKeysRemoved.add( new EdgeKey( ((HeapRegionNode)referencer).getID(), 
+                                            referencee.getID(),
+                                            fd )
+                                );
+        }
 
         removeRefEdge(referencer,
                       referencee,
@@ -406,7 +425,8 @@ public class ReachGraph {
     assignTempXFieldFEqualToTempY( x,
                                    fdStringBytesField,
                                    tdStrLiteralBytes,
-                                   null );
+                                   null,
+                                   null);
   }
 
 
@@ -561,7 +581,8 @@ public class ReachGraph {
   public boolean assignTempXFieldFEqualToTempY(TempDescriptor x,
                                                FieldDescriptor f,
                                                TempDescriptor y,
-                                               FlatNode currentProgramPoint
+                                               FlatNode currentProgramPoint,
+                                               Set<EdgeKey> edgeKeysRemoved
                                                ) {
 
     VariableNode lnX = getVariableNodeFromTemp(x);
@@ -594,11 +615,12 @@ public class ReachGraph {
         if( !DISABLE_STRONG_UPDATES ) {
           strongUpdateCond = true;
 
-          boolean atLeastOne =
-            clearRefEdgesFrom(hrnX,
-                              f.getType(),
-                              f.getSymbol(),
-                              false);
+          boolean atLeastOne = clearRefEdgesFrom(hrnX,
+                                                 f.getType(),
+                                                 f.getSymbol(),
+                                                 false,
+                                                 edgeKeysRemoved,
+                                                 f);          
           if( atLeastOne ) {
             edgeRemovedByStrongUpdate = true;
           }

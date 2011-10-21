@@ -49,9 +49,10 @@ public class DefiniteReachAnalysis {
   public void store( FlatNode fn, 
                      TempDescriptor  x,
                      FieldDescriptor f,
-                     TempDescriptor  y ) {
+                     TempDescriptor  y,
+                    Set<EdgeKey> edgeKeysRemoved ) {
     DefiniteReachState state = makeIn( fn );
-    state.store( x, f, y );
+    state.store( x, f, y, edgeKeysRemoved );
     fn2state.put( fn, state ); 
   }
 
@@ -62,13 +63,14 @@ public class DefiniteReachAnalysis {
     fn2state.put( fn, state ); 
   }
 
-  // x is the return value, x = foo(...);
   public void methodCall( FlatNode fn, 
-                          TempDescriptor x ) {
+                          TempDescriptor retVal ) {
     DefiniteReachState state = makeIn( fn );
-    state.methodCall( x );
+    state.methodCall( retVal );
     fn2state.put( fn, state ); 
   }
+
+
 
 
   public void writeState( FlatNode fn, String outputName ) {
