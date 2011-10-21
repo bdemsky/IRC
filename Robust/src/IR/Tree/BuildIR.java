@@ -5,7 +5,8 @@ import Util.Pair;
 
 import java.io.File;
 import java.util.*;
-
+import java.io.*;
+import java.lang.Throwable;
 public class BuildIR {
   State state;
   private boolean isRunningRecursiveInnerClass;
@@ -611,6 +612,31 @@ public class BuildIR {
     return cn;
   }
 
+//called recursively with the parent class whose reference is to be passed
+private void addOuterClassParam( ClassDescriptor cn, int depth )
+{
+	Iterator nullCheckItr = cn.getInnerClasses();
+	if( false == nullCheckItr.hasNext() )
+		return;
+
+	//create a typedescriptor of type cn
+	TypeDescriptor theTypeDesc = new TypeDescriptor( cn );
+	
+	for(Iterator it=cn.getInnerClasses(); it.hasNext(); ) {
+      		ClassDescriptor icd=(ClassDescriptor)it.next();
+		
+		//iterate over all ctors of I.Cs and add a new param
+		for(Iterator method_it=icd.getMethods(); method_it.hasNext(); ) {
+     			 MethodDescriptor md=(MethodDescriptor)method_it.next();
+      			 if( md.isConstructor() ){
+				md.addParameter( theTypeDesc, "surrounding$" + String.valueOf(depth) );			
+			}
+   		}
+		addOuterClassParam( icd, depth + 1 );
+		
+    	}
+	
+}
 private void addOuterClassReferences( ClassDescriptor cn, Vector< String > runningClassNames )
 {
 	//SYMBOLTABLE does not have a length or empty method, hence could not define a hasInnerClasses method in classDescriptor
@@ -797,6 +823,10 @@ private void addOuterClassReferences( ClassDescriptor cn, Vector< String > runni
     return icn;
   }
 
+private void AddSurroundingClassParamToCtor( ClassDescriptor icn, ParseNode pn )
+{
+	
+}
   private TypeDescriptor parseTypeDescriptor(ParseNode pn) {
     ParseNode tn=pn.getChild("type");
     String type_st=tn.getTerminal();
@@ -836,6 +866,8 @@ private void addOuterClassReferences( ClassDescriptor cn, Vector< String > runni
   //we do not want to apply our resolveName function (i.e. deal with imports)
   //otherwise, if base == null, we do just want to resolve name.
   private NameDescriptor parseClassName(ParseNode nn) {
+    
+
     ParseNode base=nn.getChild("base");
     ParseNode id=nn.getChild("identifier");
     String classname = id.getTerminal();
@@ -936,6 +968,7 @@ private void addOuterClassReferences( ClassDescriptor cn, Vector< String > runni
       ParseNode epn=vardecl.getChild("initializer");
 
       ExpressionNode en=null;
+      
       if (epn!=null) {
         en=parseExpression(epn.getFirstChild());
         en.setNumLine(epn.getFirstChild().getLine());
@@ -995,7 +1028,10 @@ private void addOuterClassReferences( ClassDescriptor cn, Vector< String > runni
 
   private ExpressionNode parseExpression(ParseNode pn) {
     if (isNode(pn,"assignment"))
+	{
+	System.out.println( "parsing a field decl in my class that has assignment in initialization " + pn.PPrint( 0, true ) + "\n");
       return parseAssignmentExpression(pn);
+	}
     else if (isNode(pn,"logical_or")||isNode(pn,"logical_and")||
              isNode(pn,"bitwise_or")||isNode(pn,"bitwise_xor")||
              isNode(pn,"bitwise_and")||isNode(pn,"equal")||
