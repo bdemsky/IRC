@@ -368,6 +368,12 @@ public class Main {
         state.SSJAVA = true;
       } else if (option.equals("-ssjavadebug")) {
         state.SSJAVADEBUG = true;
+
+      } else if( option.equals( "-ssjava-inject-error" ) ) {
+        state.SSJAVA_INJECT_ERROR   = true;
+        state.SSJAVA_INV_ERROR_PROB = Integer.parseInt( args[++i] );
+        state.SSJAVA_ERROR_SEED     = Integer.parseInt( args[++i] );
+
       }else if (option.equals("-printlinenum")) {
         state.LINENUM=true;
       } else if (option.equals("-help")) {
@@ -696,6 +702,11 @@ public class Main {
       if( state.POINTSTO_CHECK_V_RUNTIME &&
           heapAnalysis != null ) {
         BCXPointsToCheckVRuntime bcx = new BCXPointsToCheckVRuntime( state, bc, tu, heapAnalysis );
+        bc.registerExtension( bcx );
+      }
+
+      if( state.SSJAVA_INJECT_ERROR ) {
+        BCXSSJavaInjectError bcx = new BCXSSJavaInjectError( state, bc );
         bc.registerExtension( bcx );
       }
 

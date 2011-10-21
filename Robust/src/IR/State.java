@@ -143,7 +143,9 @@ public class State {
   //SSJava
   public boolean SSJAVA=false;
   public boolean SSJAVADEBUG=false;
-
+  public boolean SSJAVA_INJECT_ERROR=false;
+  public int     SSJAVA_INV_ERROR_PROB=0;
+  public int     SSJAVA_ERROR_SEED=0;
 
   public boolean OPTIONAL=false;
   public boolean NOLOOP=false;

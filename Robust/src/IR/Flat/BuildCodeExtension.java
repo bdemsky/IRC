@@ -17,8 +17,8 @@ public interface BuildCodeExtension {
   public void postCodeGenCleanUp();
 
   public void additionalCodeGen(PrintWriter outmethodheader,
-                         PrintWriter outstructs,
-                         PrintWriter outmethod);
+                                PrintWriter outstructs,
+                                PrintWriter outmethod);
 
   public void additionalIncludesMethodsHeader(PrintWriter outmethodheader);
   public void additionalIncludesMethodsImplementation(PrintWriter outmethod);

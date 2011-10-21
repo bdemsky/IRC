@@ -217,7 +217,6 @@ public class BuildCode {
       bcx.additionalCodeGen(outmethodheader, outstructs, outmethod);
     }
 
-
     if (state.TASK) {
       /* Output code for tasks */
       outputTaskCode(outtaskdefs, outmethod);

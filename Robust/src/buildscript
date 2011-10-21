@@ -117,6 +117,7 @@ echo
 echo SSJava options
 echo -ssjava enables SSJava
 echo -ssjavadebug reports interim results
+echo -ssjava-induce-error N S where 1/N is the probability to error at any deref or divide and S is a random seed
 echo
 echo Other options
 echo -jni enable jni
@@ -670,6 +671,12 @@ JAVAOPTS="$JAVAOPTS -ssjava"
 elif [[ $1 = '-ssjavadebug' ]]
 then
 JAVAOPTS="$JAVAOPTS -ssjavadebug"
+
+elif [[ $1 = '-ssjava-inject-error' ]]
+then
+JAVAOPTS="$JAVAOPTS -ssjava-inject-error $2 $3"
+shift
+shift
 
 elif [[ $1 = '-mempool-detect-misuse' ]]
 then
