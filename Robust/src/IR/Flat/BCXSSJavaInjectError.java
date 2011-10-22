@@ -20,6 +20,10 @@ public class BCXSSJavaInjectError implements BuildCodeExtension {
     this.buildCode = buildCode;
   }
 
+  public void additionalIncludesMethodsImplementation( PrintWriter outmethod ) { 
+    outmethod.println("#include <stdlib.h>");
+    outmethod.println("#include <stdio.h>");
+  }
 
   // the reason for errorInjectionInit is that some code (like static initializers
   // in the compiled program) actually run before the GENERATED MAIN runs!  Not the
@@ -80,7 +84,6 @@ public class BCXSSJavaInjectError implements BuildCodeExtension {
 
 
 
-  public void additionalIncludesMethodsImplementation( PrintWriter outmethod ){}
   public void printExtraArrayFields(PrintWriter outclassdefs){}
   public void outputTransCode(PrintWriter output){}
   public void buildCodeSetup(){}

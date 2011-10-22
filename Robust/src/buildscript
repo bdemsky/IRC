@@ -172,6 +172,7 @@ echo -help help
 tmpbuilddirectory="tmpbuilddirectory"
 JNI=false
 SSJAVA=false
+USE_SSJAVA_CLASSPATH=false
 SRCAFTERPP=false;
 COREPROF=false;
 NUMA=false;
@@ -666,6 +667,7 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DOOO_DISABLE_TASKMEMPOOL"
 elif [[ $1 = '-ssjava' ]]
 then
 SSJAVA=true
+USE_SSJAVA_CLASSPATH=true
 JAVAOPTS="$JAVAOPTS -ssjava"
 
 elif [[ $1 = '-ssjavadebug' ]]
@@ -674,6 +676,7 @@ JAVAOPTS="$JAVAOPTS -ssjavadebug"
 
 elif [[ $1 = '-ssjava-inject-error' ]]
 then
+USE_SSJAVA_CLASSPATH=true
 JAVAOPTS="$JAVAOPTS -ssjava-inject-error $2 $3"
 shift
 shift
@@ -876,7 +879,7 @@ elif $MGCFLAG
   #base multicore gc files
   JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
 
-elif $SSJAVA
+elif $USE_SSJAVA_CLASSPATH
   then
   JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/SSJava"  
 
@@ -913,7 +916,7 @@ else
 fi
 
 # everyone gets this except ssjava!
-if ! $SSJAVA
+if ! $USE_SSJAVA_CLASSPATH
   then
   JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/"
 fi

@@ -537,7 +537,7 @@ public class BuildCode {
     if (state.main!=null) {
       outmethod.println("#include <string.h>");
     }
-    if (state.SSJAVA){
+    if (state.SSJAVA_GENCODE_PREVENT_CRASHES){
       outmethod.println("#include <stdio.h>");
     }
     if (state.CONSCHECK) {
@@ -2769,7 +2769,7 @@ fldloop:
         }
       }
       // redirect to the global_defs_p structure
-      if(state.SSJAVA){
+      if(state.SSJAVA_GENCODE_PREVENT_CRASHES){
         if (ffn.getField().getType().isPtr()){
           output.println("if ( global_defs_p == NULL) {");
           output.println("printf(\"SSJAVA: Dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
@@ -2794,7 +2794,7 @@ fldloop:
     } else if (ffn.getField().isEnum()) {
       // an Enum value, directly replace the field access as int
       output.println(generateTemp(fm, ffn.getDst()) + "=" + ffn.getField().enumValue() + ";");
-    } else if(state.SSJAVA){
+    } else if(state.SSJAVA_GENCODE_PREVENT_CRASHES){
       output.println("if (" + generateTemp(fm,ffn.getSrc()) + " == NULL) {");
       output.println("printf(\"SSJAVA: Dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
       if(ffn.getDst().getType().isPrimitive()){
@@ -2868,7 +2868,7 @@ fldloop:
         }
       }
       // redirect to the global_defs_p structure
-      if(state.SSJAVA){
+      if(state.SSJAVA_GENCODE_PREVENT_CRASHES){
         if (fsfn.getField().getType().isPtr()) {
           output.println("if ( global_defs_p == NULL) {");
           output.println("printf(\"SSJAVA: Discard a write due to dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
@@ -2901,7 +2901,7 @@ fldloop:
           output.println("global_defsprim_p->" +
                          fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
       }
-    } else if(state.SSJAVA){
+    } else if(state.SSJAVA_GENCODE_PREVENT_CRASHES){
       output.println("if (" + generateTemp(fm,fsfn.getDst()) + " == NULL) {");
       output.println("printf(\"SSJAVA: Dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
       output.println("}else{");
@@ -2947,7 +2947,7 @@ fldloop:
     else
       type=elementtype.getSafeSymbol()+" ";
     
-    if(state.SSJAVA){
+    if(state.SSJAVA_GENCODE_PREVENT_CRASHES){
       output.println("if (" + generateTemp(fm,fen.getSrc())  + " == NULL) {");
       output.println("printf(\"SSJAVA: Dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
       output.println("}else{");
@@ -2987,7 +2987,7 @@ fldloop:
     else
       type=elementtype.getSafeSymbol()+" ";
     
-    if(state.SSJAVA){
+    if(state.SSJAVA_GENCODE_PREVENT_CRASHES){
       output.println("if ("+generateTemp(fm,fsen.getDst())+"==NULL){");
       output.println("printf(\"SSJAVA: Dereferencing NULL Pointer at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
       output.println("}else{");
@@ -3064,7 +3064,7 @@ fldloop:
           output.println(generateTemp(fm, fon.getDest())+" = ((unsigned int)"+generateTemp(fm, fon.getLeft())+")>>"+generateTemp(fm,fon.getRight())+";");
 
       } else {
-        if(state.SSJAVA && fon.getOp().getOp()==Operation.DIV){
+        if(state.SSJAVA_GENCODE_PREVENT_CRASHES && fon.getOp().getOp()==Operation.DIV){
           output.println("if (unlikely("+generateTemp(fm,fon.getRight())+"==0)){");
           output.println("printf(\"SSJAVA: Divided by zero at file:%s, func:%s, line:%d \\n\", __FILE__, __func__, __LINE__);");
           output.println(generateTemp(fm, fon.getDest())+" = 0;");

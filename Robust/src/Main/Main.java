@@ -364,15 +364,25 @@ public class Main {
         state.KEEP_RG_FOR_ALL_PROGRAM_POINTS=true;
       } else if (option.equals("-nostalltr")) {
         state.NOSTALLTR = true;
+
       } else if (option.equals("-ssjava")) {
         state.SSJAVA = true;
+        state.SSJAVA_GENCODE_PREVENT_CRASHES = true;
+
       } else if (option.equals("-ssjavadebug")) {
         state.SSJAVADEBUG = true;
 
       } else if( option.equals( "-ssjava-inject-error" ) ) {
+        state.SSJAVA_GENCODE_PREVENT_CRASHES = true;
         state.SSJAVA_INJECT_ERROR   = true;
         state.SSJAVA_INV_ERROR_PROB = Integer.parseInt( args[++i] );
         state.SSJAVA_ERROR_SEED     = Integer.parseInt( args[++i] );
+
+        // special case, if the inverse prob is 0, turn off errors
+        if( state.SSJAVA_INV_ERROR_PROB == 0 ) {
+          state.SSJAVA_INJECT_ERROR = false;
+        }
+
 
       }else if (option.equals("-printlinenum")) {
         state.LINENUM=true;
