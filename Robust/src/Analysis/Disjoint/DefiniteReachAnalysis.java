@@ -51,9 +51,10 @@ public class DefiniteReachAnalysis {
                      TempDescriptor  x,
                      FieldDescriptor f,
                      TempDescriptor  y,
-                    Set<EdgeKey> edgeKeysRemoved ) {
+                     Set<EdgeKey> edgeKeysRemoved,
+                     Set<EdgeKey> edgeKeysAdded ) {
     DefiniteReachState state = makeIn( fn );
-    state.store( x, f, y, edgeKeysRemoved );
+    state.store( x, f, y, edgeKeysRemoved, edgeKeysAdded );
     fn2state.put( fn, state ); 
   }
 

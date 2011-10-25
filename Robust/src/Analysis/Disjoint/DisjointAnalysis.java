@@ -1304,6 +1304,7 @@ public class DisjointAnalysis implements HeapAnalysis {
 
     Set<EdgeKey> edgeKeysForLoad;
     Set<EdgeKey> edgeKeysRemoved;
+    Set<EdgeKey> edgeKeysAdded;
 
     //Stores the flatnode's reach graph at enter
     ReachGraph rgOnEnter = new ReachGraph();
@@ -1487,8 +1488,10 @@ public class DisjointAnalysis implements HeapAnalysis {
       boolean strongUpdate = false;
 
       edgeKeysRemoved = null;
+      edgeKeysAdded   = null;
       if( doDefiniteReachAnalysis ) {
         edgeKeysRemoved = new HashSet<EdgeKey>();
+        edgeKeysAdded   = new HashSet<EdgeKey>();
       }
 
       // before transfer func, possibly inject
@@ -1514,10 +1517,19 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       if( shouldAnalysisTrack(fld.getType() ) ) {
         // transfer func
-        strongUpdate = rg.assignTempXFieldFEqualToTempY(lhs, fld, rhs, fn, edgeKeysRemoved);
-
+        strongUpdate = rg.assignTempXFieldFEqualToTempY( lhs, 
+                                                         fld, 
+                                                         rhs, 
+                                                         fn, 
+                                                         edgeKeysRemoved,
+                                                         edgeKeysAdded );
         if( doDefiniteReachAnalysis ) {
-          definiteReachAnalysis.store( fn, lhs, fld, rhs, edgeKeysRemoved );
+          definiteReachAnalysis.store( fn, 
+                                       lhs,
+                                       fld,
+                                       rhs,
+                                       edgeKeysRemoved,
+                                       edgeKeysAdded );
         }
       }
 
@@ -1588,8 +1600,10 @@ public class DisjointAnalysis implements HeapAnalysis {
       fdElement = getArrayField(tdElement);
 
       edgeKeysRemoved = null;
+      edgeKeysAdded   = null;
       if( doDefiniteReachAnalysis ) {
         edgeKeysRemoved = new HashSet<EdgeKey>();
+        edgeKeysAdded   = new HashSet<EdgeKey>();
       }
 
       // before transfer func, possibly inject
@@ -1617,11 +1631,21 @@ public class DisjointAnalysis implements HeapAnalysis {
         // transfer func, BUT
         // skip this node if it cannot create new reachability paths
         if( !arrayReferencees.doesNotCreateNewReaching(fsen) ) {
-          rg.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs, fn, edgeKeysRemoved);
+          rg.assignTempXFieldFEqualToTempY( lhs, 
+                                            fdElement, 
+                                            rhs, 
+                                            fn, 
+                                            edgeKeysRemoved,
+                                            edgeKeysAdded );
         }
 
         if( doDefiniteReachAnalysis ) {
-          definiteReachAnalysis.store( fn, lhs, fdElement, rhs, edgeKeysRemoved );
+          definiteReachAnalysis.store( fn,
+                                       lhs,
+                                       fdElement, 
+                                       rhs, 
+                                       edgeKeysRemoved,
+                                       edgeKeysAdded );
         }
       }
 

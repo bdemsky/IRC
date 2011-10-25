@@ -426,7 +426,8 @@ public class ReachGraph {
                                    fdStringBytesField,
                                    tdStrLiteralBytes,
                                    null,
-                                   null);
+                                   null,
+                                   null );
   }
 
 
@@ -593,7 +594,8 @@ public class ReachGraph {
                                                FieldDescriptor f,
                                                TempDescriptor y,
                                                FlatNode currentProgramPoint,
-                                               Set<EdgeKey> edgeKeysRemoved
+                                               Set<EdgeKey> edgeKeysRemoved,
+                                               Set<EdgeKey> edgeKeysAdded
                                                ) {
 
     VariableNode lnX = getVariableNodeFromTemp(x);
@@ -714,6 +716,15 @@ public class ReachGraph {
         // when computing reachability propagations above
         if( !isSuperiorType(f.getType(), edgeY.getType() ) ) {
           continue;
+        }
+
+        // for definite reach analysis only
+        if( edgeKeysAdded != null ) {
+          assert f != null;
+          edgeKeysAdded.add( new EdgeKey( hrnX.getID(),
+                                          hrnY.getID(),
+                                          f )
+                             );
         }
 
         // prepare the new reference edge hrnX.f -> hrnY

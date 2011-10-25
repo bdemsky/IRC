@@ -135,6 +135,7 @@ public class DefiniteReachState {
                     TempDescriptor y,
                     FieldDescriptor f,
                     Set<EdgeKey> edgeKeysForLoad ) {
+
     loadR( x, y, f, edgeKeysForLoad );
     // Rs' := (Rs - <x,*>) U {<x, unknown>}
     //Rs.put( x, DefReachKnown.UNKNOWN );
@@ -143,8 +144,10 @@ public class DefiniteReachState {
   public void store( TempDescriptor x,
                      FieldDescriptor f,
                      TempDescriptor y,
-                     Set<EdgeKey> edgeKeysRemoved ) {
-    storeR( x, f, y, edgeKeysRemoved );
+                     Set<EdgeKey> edgeKeysRemoved,
+                     Set<EdgeKey> edgeKeysAdded ) {
+
+    storeR( x, f, y, edgeKeysRemoved, edgeKeysAdded );
     // Rs' := Rs
   }
 
@@ -246,7 +249,8 @@ public class DefiniteReachState {
   public void storeR( TempDescriptor x,
                       FieldDescriptor f,
                       TempDescriptor y,
-                      Set<EdgeKey> edgeKeysRemoved ) {
+                      Set<EdgeKey> edgeKeysRemoved,
+                      Set<EdgeKey> edgeKeysAdded ) {
     // I think this should be if there is ANY <w,z>->e' IN Eremove, then kill all <w,z>
     // R' := (R - {<w,z>->e | <w,z>->e in R, A<w,z>->e' in R, e' notin Eremove}) U
     //       {<y,x>->e | e in E(x) x {f} x E(y)}
