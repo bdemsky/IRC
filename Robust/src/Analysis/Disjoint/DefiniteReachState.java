@@ -133,8 +133,9 @@ public class DefiniteReachState {
 
   public void load( TempDescriptor x,
                     TempDescriptor y,
-                    FieldDescriptor f ) {
-    loadR( x, y, f );
+                    FieldDescriptor f,
+                    Set<EdgeKey> edgeKeysForLoad ) {
+    loadR( x, y, f, edgeKeysForLoad );
     // Rs' := (Rs - <x,*>) U {<x, unknown>}
     //Rs.put( x, DefReachKnown.UNKNOWN );
   }
@@ -180,31 +181,66 @@ public class DefiniteReachState {
 
   public void copyR( TempDescriptor x,
                      TempDescriptor y ) {
-    // R' := (R - <x,*> - <*,x>)        U
-    //       {<x,z>->e | <y,z>->e in R} U
-    //       {<z,x>->e | <z,y>->e in R}
-    // R' = new Map(R)
-    // R'.remove(view0, x);
-    // R'.remove(view1, x);
-    // setYs = R.get(view0, y);
-    // for each <y,z>->e: R'.put(<x,z>, e);
-    // setYs = R.get(view1, y);
-    // for each <z,y>->e: R'.put(<z,x>, e);
+    // consider that x and y can be the same, so do the
+    // parts of the update in the right order:
+
+    // first get all info for update
+    MultiKey keyY = MultiKey.factory( y );
+    Map<MultiKey, Object> mapY0 = R.get( viewR0, keyY );
+    Map<MultiKey, Object> mapY1 = R.get( viewR1, keyY );
+
+    // then remove anything
+    MultiKey keyX = MultiKey.factory( x );
+    R.remove( viewR0, keyX );
+    R.remove( viewR1, keyX );
+
+    // then insert new stuff
+    for( MultiKey fullKeyY : mapY0.keySet() ) {
+      MultiKey fullKeyX = MultiKey.factory( x, 
+                                            fullKeyY.get( 1 ), 
+                                            fullKeyY.get( 2 ) );
+      R.put( fullKeyX, MultiViewMap.dummyValue );
+    }
+    for( MultiKey fullKeyY : mapY1.keySet() ) {
+      MultiKey fullKeyX = MultiKey.factory( fullKeyY.get( 0 ), 
+                                            x,
+                                            fullKeyY.get( 2 ) );
+      R.put( fullKeyX, MultiViewMap.dummyValue );
+    }
   }
   
   public void loadR( TempDescriptor x,
                      TempDescriptor y,
-                     FieldDescriptor f ) {
-    // R' := (R - <x,*> - <*,x>) U
-    //       ({<x,y>} x Eo(y,f)) U
-    //       U        {<x,z>} x (Eo(y,f)U{e})
-    //   <y,z>->e in R
-    // R' = new Map(R)
-    // R'.remove(view0, x);
-    // R'.remove(view1, x);
-    // R'.put(<x,y>, eee!);
-    // setYs = R.get(view0, y);
-    // for each <y,z>->e: R'.put(<x,z>, eee!Ue);
+                     FieldDescriptor f,
+                     Set<EdgeKey> edgeKeysForLoad ) {
+    // consider that x and y can be the same, so do the
+    // parts of the update in the right order:
+
+    // first get all info for update
+    MultiKey keyY = MultiKey.factory( y );
+    Map<MultiKey, Object> mapY0 = R.get( viewR0, keyY );
+
+    // then remove anything
+    MultiKey keyX = MultiKey.factory( x );
+    R.remove( viewR0, keyX );
+    R.remove( viewR1, keyX );
+
+    // then insert new stuff
+    for( EdgeKey e : edgeKeysForLoad ) {
+      R.put( MultiKey.factory( x, y, e ), MultiViewMap.dummyValue );
+
+      for( MultiKey fullKeyY : mapY0.keySet() ) {
+        R.put( MultiKey.factory( x,
+                                 fullKeyY.get( 1 ), 
+                                 e ), 
+               MultiViewMap.dummyValue );
+
+        R.put( MultiKey.factory( x, 
+                                 fullKeyY.get( 1 ), 
+                                 fullKeyY.get( 2 ) ), 
+               MultiViewMap.dummyValue );
+      }
+    }
   }
 
   public void storeR( TempDescriptor x,

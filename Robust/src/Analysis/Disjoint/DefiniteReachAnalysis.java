@@ -40,9 +40,10 @@ public class DefiniteReachAnalysis {
   public void load( FlatNode fn, 
                     TempDescriptor  x,
                     TempDescriptor  y,
-                    FieldDescriptor f ) {
+                    FieldDescriptor f,
+                    Set<EdgeKey> edgeKeysForLoad ) {
     DefiniteReachState state = makeIn( fn );
-    state.load( x, y, f );
+    state.load( x, y, f, edgeKeysForLoad );
     fn2state.put( fn, state ); 
   }
 

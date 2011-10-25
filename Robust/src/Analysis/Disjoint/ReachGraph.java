@@ -494,7 +494,8 @@ public class ReachGraph {
   public void assignTempXEqualToTempYFieldF(TempDescriptor x,
                                             TempDescriptor y,
                                             FieldDescriptor f,
-                                            FlatNode currentProgramPoint
+                                            FlatNode currentProgramPoint,
+                                            Set<EdgeKey> edgeKeysForLoad
                                             ) {
 
     VariableNode lnX = getVariableNodeFromTemp(x);
@@ -532,6 +533,16 @@ public class ReachGraph {
           impossibleEdges.add(edgeHrn);
           continue;
         }
+
+        // for definite reach analysis only
+        if( edgeKeysForLoad != null ) {
+          assert f != null;
+          edgeKeysForLoad.add( new EdgeKey( hrnY.getID(), 
+                                            hrnHrn.getID(),
+                                            f )
+                               );
+        }
+
 
         TypeDescriptor tdNewEdge =
           mostSpecificType(edgeHrn.getType(),

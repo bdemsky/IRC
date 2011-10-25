@@ -35,7 +35,7 @@ public class MultiViewMap<T> {
 
   // for MultiViewMaps that don't need to use the value,
   // template on type Object and map every key to this dummy
-  public static Object dummy = new Integer( -12345 );
+  public static Object dummyValue = new Integer( -12345 );
 
 
   //  If the entire contents of this map are fullKey -> value:

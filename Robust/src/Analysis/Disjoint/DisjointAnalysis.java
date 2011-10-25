@@ -1302,6 +1302,7 @@ public class DisjointAnalysis implements HeapAnalysis {
     FlatSESEEnterNode sese;
     FlatSESEExitNode fsexn;
 
+    Set<EdgeKey> edgeKeysForLoad;
     Set<EdgeKey> edgeKeysRemoved;
 
     //Stores the flatnode's reach graph at enter
@@ -1455,12 +1456,17 @@ public class DisjointAnalysis implements HeapAnalysis {
         }
       }
 
+      edgeKeysForLoad = null;
+      if( doDefiniteReachAnalysis ) {
+        edgeKeysForLoad = new HashSet<EdgeKey>();
+      }
+
       if( shouldAnalysisTrack(fld.getType() ) ) {
         // transfer func
-        rg.assignTempXEqualToTempYFieldF(lhs, rhs, fld, fn);
+        rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld, fn, edgeKeysForLoad );
 
         if( doDefiniteReachAnalysis ) {
-          definiteReachAnalysis.load( fn, lhs, rhs, fld );
+          definiteReachAnalysis.load( fn, lhs, rhs, fld, edgeKeysForLoad );
         }
       }
 
@@ -1549,12 +1555,17 @@ public class DisjointAnalysis implements HeapAnalysis {
         }
       }
 
+      edgeKeysForLoad = null;
+      if( doDefiniteReachAnalysis ) {
+        edgeKeysForLoad = new HashSet<EdgeKey>();
+      }
+
       if( shouldAnalysisTrack(lhs.getType() ) ) {
         // transfer func
-        rg.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement, fn);
+        rg.assignTempXEqualToTempYFieldF( lhs, rhs, fdElement, fn, edgeKeysForLoad );
 
         if( doDefiniteReachAnalysis ) {
-          definiteReachAnalysis.load( fn, lhs, rhs, fdElement );
+          definiteReachAnalysis.load( fn, lhs, rhs, fdElement, edgeKeysForLoad );
         }
       }
 
