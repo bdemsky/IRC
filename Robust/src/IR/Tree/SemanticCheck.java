@@ -1049,7 +1049,33 @@ public class SemanticCheck {
     loopstack.pop();
   }
 
-
+  void InnerClassAddParamToCtor( MethodDescriptor md, ClassDescriptor cd, SymbolTable nametable, 
+				 CreateObjectNode con, TypeDescriptor td ) {
+	
+	TypeDescriptor cdsType = new TypeDescriptor( cd );
+	ExpressionNode conExp = con.getSurroundingClassExpression();
+	//System.out.println( "The surrounding class expression si " + con );
+	if( null == conExp ) {
+		if( md.isStatic() ) {
+			throw new Error("trying to instantiate inner class: " +  con.getType() + " in a static scope" );
+		}
+		VarDescriptor thisVD = md.getThis();
+		if( null == thisVD ) {
+			throw new Error( "this pointer is not defined in a non static scope" );	
+		}			
+		if( cdsType.equals( thisVD.getType() ) == false ) {
+			throw new Error( "the type of this pointer is different than the type expected for inner class constructor. Initializing the inner class: " 				+  con.getType() + " in the wrong scope" );		
+		}	
+		//make this into an expression node.
+		NameNode nThis=new NameNode( new NameDescriptor( "this" ) );
+		con.addArgument( nThis );
+	}
+	else {
+		//REVISIT : here i am storing the expression as an expressionNode which does not implement type, there is no way for me to semantic check this argument.
+		con.addArgument( conExp );
+	}
+	//System.out.println( " the modified createObjectNode is " + con.printNode( 0 ) + "\n" );
+}
   void checkCreateObjectNode(Descriptor md, SymbolTable nametable, CreateObjectNode con,
                              TypeDescriptor td) {
     TypeDescriptor[] tdarray = new TypeDescriptor[con.numArgs()];
@@ -1106,7 +1132,15 @@ public class SemanticCheck {
       // Array's don't need constructor calls
       ClassDescriptor classtolookin = typetolookin.getClassDesc();
       checkClass(classtolookin, INIT);
-
+      if( classtolookin.isInnerClass() ) {
+      	InnerClassAddParamToCtor( (MethodDescriptor)md, ((MethodDescriptor)md).getClassDesc() , nametable, con, td );
+	tdarray = new TypeDescriptor[con.numArgs()];
+    	for (int i = 0; i < con.numArgs(); i++) {
+      		ExpressionNode en = con.getArg(i);
+     		checkExpressionNode(md, nametable, en, null);
+     		tdarray[i] = en.getType();
+   	 }
+      }
       Set methoddescriptorset = classtolookin.getMethodTable().getSet(classtolookin.getSymbol());
       MethodDescriptor bestmd = null;
 NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.hasNext(); ) {

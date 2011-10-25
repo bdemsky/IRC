@@ -2,6 +2,7 @@ package IR.Tree;
 import java.util.Vector;
 import IR.TypeDescriptor;
 import IR.MethodDescriptor;
+import IR.Tree.ExpressionNode;
 
 public class CreateObjectNode extends ExpressionNode {
   TypeDescriptor td;
@@ -11,13 +12,21 @@ public class CreateObjectNode extends ExpressionNode {
   boolean isglobal;
   String disjointId;
   ArrayInitializerNode ain;
+//The next 2 are unused but i will delete them once i am fully done with inner classes.
+  TypeDescriptor surroundingClass;
+  boolean isCreatedFromSurroundingClassName;
+  
+  ExpressionNode surroundingClassObject;
+  boolean isSurroundingClassExpSet;
 
   public CreateObjectNode(TypeDescriptor type, boolean isglobal, String disjointId) {
     td=type;
+   // surroundingClass = new TypeDescriptor("becauseTDdoesnthavedefaultconstructor");
     argumentlist=new Vector();
     this.isglobal=isglobal;
     this.disjointId=disjointId;
     this.ain = null;
+    isSurroundingClassExpSet = false;
   }
 
   public boolean isGlobal() {
@@ -104,5 +113,19 @@ public class CreateObjectNode extends ExpressionNode {
   public Long evaluate() {
     eval = null;
     return eval; //null;
+  }
+
+  public void setSurroundingExpression( ExpressionNode en ) {
+	
+	//System.out.println( "The expression node is : " + en );
+  	surroundingClassObject = en ;
+	//System.out.println( "The expression node is : " + surroundingClassObject );
+	isSurroundingClassExpSet = true;
+  }
+  
+  public ExpressionNode getSurroundingClassExpression() {
+  	if( false == isSurroundingClassExpSet )
+		return null;
+	return surroundingClassObject;
   }
 }

@@ -2020,35 +2020,39 @@ class_instance_creation_expression ::=
 		pn.addChild("decl").addChild("classbody").addChild(body);
 		RESULT=pn;
 	:}
-	|	primary DOT NEW class_or_interface_type:type
+	|	primary: base DOT NEW class_or_interface_type:type
 			LPAREN argument_list_opt:args RPAREN {: 
 		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
+		pn.addChild( "base" ).addChild( base );
 		RESULT=pn;
 		
 	:}
-	|	primary DOT NEW class_or_interface_type:type
+	|	primary: base DOT NEW class_or_interface_type:type
 			LPAREN argument_list_opt:args RPAREN class_body:body {:
 		ParseNode pn=new ParseNode("createobjectcls",parser.lexer.line_num);	      
 		pn.addChild(type);
 		pn.addChild(args);
+		pn.addChild( "base" ).addChild( base );
 		pn.addChild("decl").addChild("classbody").addChild(body);
 		RESULT=pn;
 	:}
-	|	name DOT NEW class_or_interface_type:type
+	|	name:id DOT NEW class_or_interface_type:type
 			LPAREN argument_list_opt:args RPAREN {:
 		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
+		pn.addChild( "id" ).addChild( id );
 		RESULT=pn;
 	:}
-	|	name DOT NEW class_or_interface_type:type
+	|	name:id DOT NEW class_or_interface_type:type
 			LPAREN argument_list_opt:args RPAREN class_body:body {:
 		ParseNode pn=new ParseNode("createobjectcls",parser.lexer.line_num);	      
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild("decl").addChild("classbody").addChild(body);
+		pn.addChild( "id" ).addChild( id );
 		RESULT=pn;
 	:}
 	;

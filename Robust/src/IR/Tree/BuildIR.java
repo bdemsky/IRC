@@ -603,16 +603,28 @@ public class BuildIR {
     state.addClass(cn);
 //create this$n representing a final reference to the next surrounding class. each inner class should have whatever inner class
 //pointers the surrounding class has + a pointer to the surrounding class.
-   if( false )
+   if( true )
    {
    	this.isRunningRecursiveInnerClass = true; //fOR dEBUGGING PURPOSES IN ORDER TO DUMP STRINGS WHILE IN THIS CODE PATH
-    	addOuterClassReferences( cn, new Vector< String >() );
+    	addOuterClassReferences( cn, 0 );
+	addOuterClassParam( cn, 0 );
     	this.isRunningRecursiveInnerClass = false;
     }
     return cn;
   }
 
-//called recursively with the parent class whose reference is to be passed
+private void initializeOuterMember( MethodDescriptor md, String fieldName, String formalParameter ) {
+	 BlockNode obn = state.getMethodBody(md);
+         NameNode nn=new NameNode( new NameDescriptor( fieldName ) );
+	 NameNode fn = new NameNode ( new NameDescriptor( formalParameter ) );
+          //nn.setNumLine(en.getNumLine())
+         AssignmentNode an=new AssignmentNode(nn,fn,new AssignOperation(1));
+         //an.setNumLine(pn.getLine());
+         obn.addFirstBlockStatement(new BlockExpressionNode(an));
+	// System.out.print( "The code inserted is : " + obn.printNode( 0 ) + "\n" );
+         state.addTreeCode(md, obn);
+}
+
 private void addOuterClassParam( ClassDescriptor cn, int depth )
 {
 	Iterator nullCheckItr = cn.getInnerClasses();
@@ -629,7 +641,9 @@ private void addOuterClassParam( ClassDescriptor cn, int depth )
 		for(Iterator method_it=icd.getMethods(); method_it.hasNext(); ) {
      			 MethodDescriptor md=(MethodDescriptor)method_it.next();
       			 if( md.isConstructor() ){
-				md.addParameter( theTypeDesc, "surrounding$" + String.valueOf(depth) );			
+				md.addParameter( theTypeDesc, "surrounding$" + String.valueOf(depth) );	
+				initializeOuterMember( md, "this$" + String.valueOf( depth ), "surrounding$" + String.valueOf(depth) );
+				//System.out.println( "The added param is " + md.toString() + "\n" );		
 			}
    		}
 		addOuterClassParam( icd, depth + 1 );
@@ -637,58 +651,41 @@ private void addOuterClassParam( ClassDescriptor cn, int depth )
     	}
 	
 }
-private void addOuterClassReferences( ClassDescriptor cn, Vector< String > runningClassNames )
+private void addOuterClassReferences( ClassDescriptor cn, int depth )
 {
 	//SYMBOLTABLE does not have a length or empty method, hence could not define a hasInnerClasses method in classDescriptor
 	Iterator nullCheckItr = cn.getInnerClasses();
 	if( false == nullCheckItr.hasNext() )
 		return;
-      //logic: for each inner class present in current cn add this$runningIndex and recursively invoke this method on that inner class
-      
-      //JAVA might be passing it by reference , so creating a copy for myself. 
-	
-	Vector tempCopy = new Vector< String >( runningClassNames );
-	tempCopy.add( cn.getClassName() );
 
-	Vector< ParseNode > vecParses = new Vector< ParseNode >();
+	String tempCopy = cn.getClassName();
 	//MESSY HACK FOLLOWS
 	int i = 0;
-	for( Iterator itr = tempCopy.listIterator(); itr.hasNext() ; ++i ) {
-		ParseNode theNode = new ParseNode( "field_declaration" );
-		theNode.addChild("modifier").addChild( new ParseNode( "modifier_list" ) ).addChild("final");
-		ParseNode theTypeNode = new ParseNode("type");
-		ParseNode tempChildNode = theTypeNode.addChild("class").addChild( "name" );
+
+	ParseNode theNode = new ParseNode( "field_declaration" );
+	theNode.addChild("modifier").addChild( new ParseNode( "modifier_list" ) ).addChild("final");
+	ParseNode theTypeNode = new ParseNode("type");
+	ParseNode tempChildNode = theTypeNode.addChild("class").addChild( "name" );
 		//tempChildNode.addChild("base").addChild( new ParseNode("empty") );
-		tempChildNode.addChild("identifier").addChild ( ( String ) itr.next() );
-		theNode.addChild("type").addChild( theTypeNode );
-		ParseNode variableDeclaratorID = new ParseNode("single");
-		String theStr = "this$" + String.valueOf( i );
-		variableDeclaratorID.addChild( theStr );
-		ParseNode variableDeclarator = new ParseNode( "variable_declarator" );
-		variableDeclarator.addChild( variableDeclaratorID );
-		ParseNode variableDeclaratorList = new ParseNode("variable_declarators_list");
-		variableDeclaratorList.addChild( variableDeclarator );
-		theNode.addChild("variables").addChild( variableDeclaratorList );
-		//finally
-		
-		vecParses.add( theNode );
-		
-		
-	}
-	
+	tempChildNode.addChild("identifier").addChild ( tempCopy );
+	theNode.addChild("type").addChild( theTypeNode );
+	ParseNode variableDeclaratorID = new ParseNode("single");
+	String theStr = "this$" + String.valueOf( depth );
+	variableDeclaratorID.addChild( theStr );
+	ParseNode variableDeclarator = new ParseNode( "variable_declarator" );
+	variableDeclarator.addChild( variableDeclaratorID );
+	ParseNode variableDeclaratorList = new ParseNode("variable_declarators_list");
+	variableDeclaratorList.addChild( variableDeclarator );
+	theNode.addChild("variables").addChild( variableDeclaratorList );
+
 	for(Iterator it=cn.getInnerClasses(); it.hasNext(); ) {
       		ClassDescriptor icd=(ClassDescriptor)it.next();
-		for( Iterator vecParsesItr = vecParses.listIterator(); vecParsesItr.hasNext(); ) {
-			ParseNode theDummy = ( ParseNode ) vecParsesItr.next();
-			//System.out.println( ( theDummy ).PPrint( 0, true ) );
-			parseFieldDecl( icd, theDummy );		
-		}
-		if( true ) {
+		parseFieldDecl( icd, theNode );		
+		/*if( true ) {
 			SymbolTable fieldTable = icd.getFieldTable();
-			System.out.println( fieldTable.toString() );
-		}
-		addOuterClassReferences( icd, tempCopy );
-		
+			//System.out.println( fieldTable.toString() );
+		}*/
+		addOuterClassReferences( icd, depth + 1 );	
     	}
 }
 
@@ -823,10 +820,6 @@ private void addOuterClassReferences( ClassDescriptor cn, Vector< String > runni
     return icn;
   }
 
-private void AddSurroundingClassParamToCtor( ClassDescriptor icn, ParseNode pn )
-{
-	
-}
   private TypeDescriptor parseTypeDescriptor(ParseNode pn) {
     ParseNode tn=pn.getChild("type");
     String type_st=tn.getTerminal();
@@ -1090,7 +1083,24 @@ private void AddSurroundingClassParamToCtor( ClassDescriptor icn, ParseNode pn )
       if (pn.getChild("disjoint") != null) {
         disjointId = pn.getChild("disjoint").getTerminal();
       }
+      ParseNode idChild = (pn.getChild( "id" ));
+      ParseNode baseChild = (pn.getChild( "base" ));
+      
       CreateObjectNode con = new CreateObjectNode(td, isglobal, disjointId);
+      if( null != idChild && null != idChild.getFirstChild() ) {
+	idChild = idChild.getFirstChild();
+	//System.out.println( "\nThe object passed has this expression " + idChild.PPrint( 0, true ) );
+	ExpressionNode en = parseExpression( idChild ); 
+	//System.out.println( "\nThe object passed has this expression " + en.printNode( 0 ) );
+	con.setSurroundingExpression( en );
+      }
+      else if( null != baseChild  && null != baseChild.getFirstChild()  ) {
+	baseChild = baseChild.getFirstChild();
+	//System.out.println( "\nThe object passed has this expression " + baseChild.PPrint( 0, true ) );
+	ExpressionNode en = parseExpression( baseChild ); 
+	//System.out.println( "\nThe object passed has this expression " + en.printNode( 0 ) );
+	con.setSurroundingExpression( en );     
+      }
       con.setNumLine(pn.getLine());
       for (int i = 0; i < args.size(); i++) {
         con.addArgument((ExpressionNode) args.get(i));
@@ -1121,7 +1131,13 @@ private void AddSurroundingClassParamToCtor( ClassDescriptor icn, ParseNode pn )
       TypeDescriptor tdnew=state.getTypeDescriptor(cnnew.getSymbol());
 
       Vector args=parseArgumentList(pn);
-
+      ParseNode idChild = pn.getChild( "id" );
+      ParseNode baseChild = pn.getChild( "base" );
+      //System.out.println("\n to print idchild and basechild for ");
+      /*if( null != idChild )
+	System.out.println( "\n trying to create an inner class and the id child passed is "  + idChild.PPrint( 0, true ) );
+      if( null != baseChild )
+	System.out.println( "\n trying to create an inner class and the base child passed is "  + baseChild.PPrint( 0, true ) );*/
       CreateObjectNode con=new CreateObjectNode(tdnew, false, null);
       con.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
