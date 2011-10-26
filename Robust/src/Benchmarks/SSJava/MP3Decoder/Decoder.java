@@ -232,6 +232,11 @@ public class Decoder implements DecoderErrors {
   protected DecoderException newDecoderException(int errorcode, Throwable throwable) {
     return new DecoderException(errorcode, throwable);
   }
+}
+
+
+
+
 
   /**
    * The <code>Params</code> class presents the customizable aspects of the
@@ -239,7 +244,7 @@ public class Decoder implements DecoderErrors {
    * <p>
    * Instances of this class are not thread safe.
    */
-  public static class Params implements Cloneable {
+  public class Params implements Cloneable {
 
     // private OutputChannels outputChannels = OutputChannels.BOTH;
     private OutputChannels outputChannels = new OutputChannels(0);
@@ -292,5 +297,4 @@ public class Decoder implements DecoderErrors {
       return equalizer;
     }
 
-  };
-}
+  }

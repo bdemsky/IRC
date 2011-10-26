@@ -219,11 +219,13 @@ public class Player {
       //System.out.println(sum);
       //
 
-      int stride = outbuf.length / 100;
-      for( int i = 0; i < 100; ++i ) {
-        System.out.println( sampleNumber+" "+outbuf[i*stride] );
-        sampleNumber++;
-      }
+      //int stride = outbuf.length / 100;
+      //for( int i = 0; i < 100; ++i ) {
+      //  System.out.println( sampleNumber+" "+outbuf[i*stride] );
+      //  sampleNumber++;
+      //}
+      System.out.println( sampleNumber+" "+sum );
+      sampleNumber++;
 
 
 
