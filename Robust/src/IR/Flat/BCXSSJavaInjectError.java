@@ -48,7 +48,7 @@ public class BCXSSJavaInjectError implements BuildCodeExtension {
   }
   
   public void additionalCodePostNode( FlatMethod fm, FlatNode fn, PrintWriter output ) {
-    
+
     TempDescriptor injectTarget = null;
     
     switch( fn.kind() ) {
@@ -58,7 +58,7 @@ public class BCXSSJavaInjectError implements BuildCodeExtension {
           injectTarget = fon.getDest();
         }
         break;
-      
+        
       case FKind.FlatFieldNode:
         injectTarget = ((FlatFieldNode) fn).getDst();
         break;
@@ -68,15 +68,21 @@ public class BCXSSJavaInjectError implements BuildCodeExtension {
         break;
     }
 
-    if( injectTarget != null ) {
+    if(  injectTarget != null                 && 
+         injectTarget.getType().isPrimitive() &&
+        !injectTarget.getType().isArray() 
+        ) {
       output.println("if( errorInjectionInit ) {");
       output.println("  int roll = rand() % "+nStr+";");
       output.println("  if( !"+errorInjectedStr+" && roll == 0 ) {" );
       output.println("    "+errorInjectedStr+" = 1;" );
-      output.println("    "+buildCode.generateTemp( fm, injectTarget )+" = 0;" );
-      output.println("    printf(\"SSJAVA: Injecting error ["+injectTarget+
-                     "=%d] at file:%s, func:%s, line:%d \\n\"" + 
-                     ", 0, __FILE__, __func__, __LINE__);");
+
+      // inject a random value
+      output.println("    "+buildCode.generateTemp( fm, injectTarget )+
+                     " = ("+injectTarget.getType().getSafeSymbol()+") rand();" );
+
+      output.println("    printf(\"SSJAVA: Injecting error at file:%s, func:%s, line:%d \\n\"" + 
+                     ", __FILE__, __func__, __LINE__);");
       output.println("  }" );
       output.println("}");
     }
