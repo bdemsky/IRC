@@ -1,9 +1,0 @@
-set terminal epslatex input size 2in 1in
-
-set output injectErrorFigA.tex
-plot "normal.txt" with lines, "error.txt" with lines, "nve-diff-ranges.tmp" with steps axes x1y2
-
-set output injectErrorFigB.tex
-plot [10:15] "normal.txt" with lines, "error.txt" with lines, "nve-diff-ranges.tmp" with steps axes x1y2
-
-unset output
