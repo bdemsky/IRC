@@ -40,6 +40,7 @@ cleanerror:
 clean:
 	rm -f  $(PROGRAM)s.bin $(PROGRAM)n.bin $(PROGRAM)e.bin
 	rm -fr ssj norm injerr
+	rm -f nve-diff.tmp nve-diff-ranges.tmp
 	rm -f  *~
 	rm -f  *.dot
 	rm -f  *.png
