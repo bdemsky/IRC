@@ -1,7 +1,7 @@
 BUILDSCRIPT=../../../buildscript
 
 PROGRAM=MP3Player
-SOURCE_FILES=MP3Player.java
+SOURCE_FILES=MP3Player.java Player.java
 
 ifndef INV_ERROR_PROB
 INV_ERROR_PROB=1000

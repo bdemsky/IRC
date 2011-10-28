@@ -208,24 +208,13 @@ public class Player {
       // @LOC("O") SampleBuffer output = (SampleBuffer) decoder.decodeFrame(h);
       decoder.decodeFrame(h);
 
-      // eom debug
-      @LOC("C") int sum = 0;
-      @LOC("C") short[] outbuf = SampleBufferWrapper.getBuffer();
-      // short[] outbuf = output.getBuffer();
-      TERMINATE: for (@LOC("C") int i = 0; i < SampleBufferWrapper.getBufferLength(); i++) {
-        // System.out.println(outbuf[i]);
-        sum += outbuf[i];
+      // it looks like there is left and right channel interleaved into the
+      // output buffer, so only sample one channel (stride=2)
+      short[] outbuf = SampleBufferWrapper.getBuffer();
+      TERMINATE: for (@LOC("C") int i = 0; i < SampleBufferWrapper.getBufferLength(); i = i + 2) {
+        System.out.println( sampleNumber+" "+outbuf[i] );
+        sampleNumber++;
       }
-      //System.out.println(sum);
-      //
-
-      //int stride = outbuf.length / 100;
-      //for( int i = 0; i < 100; ++i ) {
-      //  System.out.println( sampleNumber+" "+outbuf[i*stride] );
-      //  sampleNumber++;
-      //}
-      System.out.println( sampleNumber+" "+sum );
-      sampleNumber++;
 
 
 
