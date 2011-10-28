@@ -784,7 +784,7 @@ public class SemanticCheck {
 		return null;
 
 	ClassDescriptor cd = fd.getClassDescriptor();
-	int depth = 0;
+	int depth = 1;
 	int startingDepth = icd.getInnerDepth();
 
 	if( true == cd.isInnerClass() ) 
@@ -793,11 +793,12 @@ public class SemanticCheck {
 	String composed = "this";
 	NameDescriptor runningDesc = new NameDescriptor( "this" );;
 	
-	for ( int index = startingDepth; index >= depth; --index ) {
-		composed = "this$" + String.valueOf( index );	
+	for ( int index = startingDepth; index > depth; --index ) {
+		composed = "this$" + String.valueOf( index - 1  );	
 		runningDesc = new NameDescriptor( runningDesc, composed );
 	}
-	
+	if( false == cd.isInnerClass() )
+		runningDesc = new NameDescriptor( runningDesc, "this$" + String.valueOf(0) ); //all the way up.
 	NameDescriptor idDesc = new NameDescriptor( runningDesc, varname );
 	
 	

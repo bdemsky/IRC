@@ -685,7 +685,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
 			SymbolTable fieldTable = icd.getFieldTable();
 			//System.out.println( fieldTable.toString() );
 		}*/
-		icd.setInnerDepth( depth );
+		icd.setInnerDepth( depth + 1 );
 		addOuterClassReferences( icd, depth + 1 );	
     	}
 }
