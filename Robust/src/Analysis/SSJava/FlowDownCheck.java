@@ -1205,6 +1205,7 @@ public class FlowDownCheck {
     CompositeLocation arrayLoc =
         checkLocationFromExpressionNode(md, nametable, aan.getExpression(),
             new CompositeLocation(), constraint, isLHS);
+
     // addTypeLocation(aan.getExpression().getType(), arrayLoc);
     CompositeLocation indexLoc =
         checkLocationFromExpressionNode(md, nametable, aan.getIndex(), new CompositeLocation(),
@@ -1433,14 +1434,16 @@ public class FlowDownCheck {
     // fan.printNode(0));
     // System.out.println("### left=" + left.printNode(0));
 
-    if (left.getType().isArray()) {
-      // array.length case: return the location of the array
-      return loc;
-    } else if (!left.getType().isPrimitive()) {
+    if (!left.getType().isPrimitive()) {
+
+      if (fd.getSymbol().equals("length")) {
+        // array.length access, return the location of the array
+        return loc;
+      }
+
       Location fieldLoc = getFieldLocation(fd);
       loc.addLocation(fieldLoc);
     }
-    // System.out.println("### field loc=" + loc);
     return loc;
   }
 
@@ -1524,10 +1527,10 @@ public class FlowDownCheck {
       }
       // }
 
-      // System.out.println("dstLocation=" + destLocation);
-      // System.out.println("rhsLocation=" + rhsLocation);
-      // System.out.println("srcLocation=" + srcLocation);
-      // System.out.println("constraint=" + constraint);
+//      System.out.println("dstLocation=" + destLocation);
+//      System.out.println("rhsLocation=" + rhsLocation);
+//      System.out.println("srcLocation=" + srcLocation);
+//      System.out.println("constraint=" + constraint);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
 
