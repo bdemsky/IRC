@@ -71,9 +71,8 @@ public class Player {
   @LOC("B")
   private int lastPosition = 0;
 
-
+  @LOC("B")
   private long sampleNumber;
-
 
   /**
    * Creates a new <code>Player</code> instance.
@@ -122,7 +121,7 @@ public class Player {
     decoder.init(h);
 
     sampleNumber = 1;
-    System.out.println( "Gobble sentinel: +++" );
+    System.out.println("Gobble sentinel: +++");
 
     @LOC("IN") int count = 0;
     SSJAVA: while (count++ < 2147483646) {
@@ -185,7 +184,6 @@ public class Player {
     return 0;
   }
 
-
   /**
    * Decodes a single frame.
    * 
@@ -208,16 +206,7 @@ public class Player {
       // @LOC("O") SampleBuffer output = (SampleBuffer) decoder.decodeFrame(h);
       decoder.decodeFrame(h);
 
-      // it looks like there is left and right channel interleaved into the
-      // output buffer, so only sample one channel (stride=2)
-      short[] outbuf = SampleBufferWrapper.getBuffer();
-      TERMINATE: for (@LOC("C") int i = 0; i < SampleBufferWrapper.getBufferLength(); i = i + 2) {
-        System.out.println( sampleNumber+" "+outbuf[i] );
-        sampleNumber++;
-      }
-
-
-
+      DEBUG_OUTPUT();
       // synchronized (this)
       // {
       // out = audio;
@@ -241,6 +230,17 @@ public class Player {
      * false; }
      */
     return true;
+  }
+
+  @TRUST
+  public void DEBUG_OUTPUT() {
+    // it looks like there is left and right channel interleaved into the
+    // output buffer, so only sample one channel (stride=2)
+    short[] outbuf = SampleBufferWrapper.getBuffer();
+    for (int i = 0; i < SampleBufferWrapper.getBufferLength(); i = i + 2) {
+      System.out.println(sampleNumber + " " + outbuf[i]);
+      sampleNumber++;
+    }
   }
 
 }

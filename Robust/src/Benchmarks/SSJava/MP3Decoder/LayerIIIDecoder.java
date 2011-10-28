@@ -667,7 +667,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   @LATTICE("OUT<THIS,THIS<C,C<IN,C*,THISLOC=THIS,RETURNLOC=OUT")
   private boolean get_side_info(@LOC("THIS,LayerIIIDecoder.HD1") Header header) {
 
-    @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.TEMP") SideInfoBuffer sib =
+    @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.TEMP") SideInfoBuffer sib =
         header.getSideInfoBuffer();
     @LOC("THIS,LayerIIIDecoder.SF1") int version = header.version();
 
@@ -699,7 +699,7 @@ final class LayerIIIDecoder implements FrameDecoder {
           si.ch[ch].gr[gr].big_values = sib.get_bits(9);
           si.ch[ch].gr[gr].global_gain = sib.get_bits(8);
           si.ch[ch].gr[gr].scalefac_compress = sib.get_bits(4);
-          @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.TEMP") int cond =
+          @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.TEMP") int cond =
               sib.get_bits(1);
           // si.ch[ch].gr[gr].window_switching_flag = sib.get_bits(1);
           // if ((si.ch[ch].gr[gr].window_switching_flag) != 0) {
@@ -758,7 +758,7 @@ final class LayerIIIDecoder implements FrameDecoder {
         si.ch[ch].gr[0].global_gain = sib.get_bits(8);
         si.ch[ch].gr[0].scalefac_compress = sib.get_bits(9);
 
-        @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.TEMP") int cond =
+        @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.TEMP") int cond =
             sib.get_bits(1);
         // si.ch[ch].gr[0].window_switching_flag = sib.get_bits(1);
         // if ((si.ch[ch].gr[0].window_switching_flag) != 0) {
@@ -930,13 +930,13 @@ final class LayerIIIDecoder implements FrameDecoder {
     // @LOC("THIS,LayerIIIDecoder.GLSFD1") gr_info_s gr_info =
     // (si.ch[ch].gr[gr]); // remove alias
 
-    @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.CH,LayerIIIDecoder$temporaire.GR,LayerIIIDecoder$gr_info_s.V") int scalefac_comp =
+    @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.CH,temporaire.GR,gr_info_s.V") int scalefac_comp =
         si.ch[ch].gr[gr].scalefac_compress;
     @LOC("THIS,LayerIIIDecoder.NS") int blocktypenumber;
 
-    @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.CH,LayerIIIDecoder$temporaire.GR,LayerIIIDecoder$gr_info_s.V") int int_scalefac_comp;
+    @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.CH,temporaire.GR,gr_info_s.V") int int_scalefac_comp;
     @LOC("THIS,LayerIIIDecoder.SFB_SH") int m;
-    @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.CH,LayerIIIDecoder$temporaire.GR,LayerIIIDecoder$gr_info_s.V") int blocknumber =
+    @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.CH,temporaire.GR,gr_info_s.V") int blocknumber =
         0;
 
     if (si.ch[ch].gr[gr].block_type == 2) {
@@ -1803,11 +1803,11 @@ final class LayerIIIDecoder implements FrameDecoder {
   private void antialias(@LOC("THIS,LayerIIIDecoder.SI") int ch,
       @LOC("THIS,LayerIIIDecoder.SI") int gr) {
 
-    @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.CH,LayerIIIDecoder$temporaire.GR2") int sb18;
+    @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.CH,temporaire.GR2") int sb18;
     @LOC("THIS,LayerIIIDecoder.SI1") int ss;
-    @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.CH,LayerIIIDecoder$temporaire.GR2") int sb18lim;
+    @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.CH,temporaire.GR2") int sb18lim;
 
-    // @LOC("THIS,LayerIIIDecoder.SI,LayerIIIDecoder$III_side_info_t.CH,LayerIIIDecoder$temporaire.GR1")
+    // @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.CH,temporaire.GR1")
     // gr_info_s gr_info =
     // (si.ch[ch].gr[gr]);
     // 31 alias-reduction operations between each pair of sub-bands
@@ -1817,6 +1817,7 @@ final class LayerIIIDecoder implements FrameDecoder {
         && !(si.ch[ch].gr[gr].mixed_block_flag != 0))
       return;
 
+     
     if ((si.ch[ch].gr[gr].window_switching_flag != 0) && (si.ch[ch].gr[gr].mixed_block_flag != 0)
         && (si.ch[ch].gr[gr].block_type == 2)) {
       sb18lim = 18;
