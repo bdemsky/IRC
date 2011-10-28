@@ -37,6 +37,8 @@ public class ClassDescriptor extends Descriptor {
 
   // inner classes/enum can have these
   String surroundingclass=null;
+  //adding another variable to indicate depth of this inner class 
+  int innerDepth = 0;
   ClassDescriptor surroudingdesc=null;
   SymbolTable innerdescs;
 
@@ -337,6 +339,14 @@ public class ClassDescriptor extends Descriptor {
 
   public void setAsInnerClass() {
     this.isInnerClass = true;
+  }
+  //Will have to call this whenever we are adding the this$ member, ideally should have used a single entrance to add the field. so that entrance could be used to set this flag.
+  public void setInnerDepth( int theDepth ) {
+	innerDepth = theDepth;
+  }
+
+  public int getInnerDepth() {
+  	return innerDepth;
   }
 
   public boolean isInnerClass() {

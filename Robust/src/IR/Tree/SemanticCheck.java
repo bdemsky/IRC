@@ -656,7 +656,6 @@ public class SemanticCheck {
       fd=FieldDescriptor.arrayLength;
     else
       fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
-
     if(ltd.isClassNameRef()) {
       // the field access is using a class name directly
       if(ltd.getClassDesc().isEnum()) {
@@ -764,6 +763,48 @@ public class SemanticCheck {
       }
   }
 
+  FieldDescriptor recurseSurroundingClasses( ClassDescriptor icd, String varname ) {
+	if( null == icd || false == icd.isInnerClass() )
+		return null;
+	
+	ClassDescriptor surroundingDesc = icd.getSurroundingDesc();
+	if( null == surroundingDesc )
+		return null;
+	
+	SymbolTable fieldTable = surroundingDesc.getFieldTable();
+	FieldDescriptor fd = ( FieldDescriptor ) fieldTable.get( varname );
+	if( null != fd )
+		return fd;
+	return recurseSurroundingClasses( surroundingDesc, varname );
+  }
+
+  FieldAccessNode fieldAccessExpression( ClassDescriptor icd, String varname, NameNode nn ) {
+	FieldDescriptor fd = recurseSurroundingClasses( icd, varname );
+	if( null == fd )
+		return null;
+
+	ClassDescriptor cd = fd.getClassDescriptor();
+	int depth = 0;
+	int startingDepth = icd.getInnerDepth();
+
+	if( true == cd.isInnerClass() ) 
+		depth = cd.getInnerDepth();
+
+	String composed = "this";
+	NameDescriptor runningDesc = new NameDescriptor( "this" );;
+	
+	for ( int index = startingDepth; index >= depth; --index ) {
+		composed = "this$" + String.valueOf( index );	
+		runningDesc = new NameDescriptor( runningDesc, composed );
+	}
+	
+	NameDescriptor idDesc = new NameDescriptor( runningDesc, varname );
+	
+	
+	FieldAccessNode theFieldNode = ( FieldAccessNode )translateNameDescriptorintoExpression( idDesc, nn.getNumLine() );
+	return theFieldNode;
+  }
+
   void checkNameNode(Descriptor md, SymbolTable nametable, NameNode nn, TypeDescriptor td) {
     NameDescriptor nd=nn.getName();
     if (nd.getBase()!=null) {
@@ -782,6 +823,16 @@ public class SemanticCheck {
       Descriptor d=(Descriptor)nametable.get(varname);
       if (d==null) {
         ClassDescriptor cd = null;
+	//check the inner class case first.
+	if((md instanceof MethodDescriptor) && false == ((MethodDescriptor)md).isStaticBlock()) {
+		cd = ((MethodDescriptor)md).getClassDesc();
+		FieldAccessNode theFieldNode = 	fieldAccessExpression( cd, varname, nn );
+		if( null != theFieldNode ) {
+			nn.setExpression(( ExpressionNode )theFieldNode);
+      			checkExpressionNode(md,nametable,( ExpressionNode )theFieldNode,td);
+			return;		
+		}		
+	}
         if((md instanceof MethodDescriptor) && ((MethodDescriptor)md).isStaticBlock()) {
           // this is a static block, all the accessed fields should be static field
           cd = ((MethodDescriptor)md).getClassDesc();
@@ -828,7 +879,7 @@ public class SemanticCheck {
             nn.setClassDesc(cd);
             return;
           } else {
-            throw new Error("Name "+varname+" undefined in: "+md);
+            throw new Error("Name "+varname+" undefined in: "+md);	    
           }
         }
       }

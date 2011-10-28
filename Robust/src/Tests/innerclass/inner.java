@@ -24,10 +24,10 @@ public class inner{
 	}
 
   public class t {
-    int outer;
+   // int outer;
     int f3 = 23;
     public t() {
-	this.outer=4;
+	//this.outer=4;
 	//f2=3;
       f3=4;
 
@@ -36,7 +36,7 @@ public class inner{
     public void print() {
       //should print 4 0 3
       System.out.println(outer);
-      System.out.println(this$0.outer);
+     // System.out.println(this$0.outer);
 
     }
   }
