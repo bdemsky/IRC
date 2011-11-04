@@ -15,6 +15,7 @@ import IR.Flat.FlatFieldNode;
 import IR.Flat.FlatMethod;
 import IR.Flat.FlatNode;
 import IR.Flat.FlatOpNode;
+import IR.Flat.FlatSetFieldNode;
 import IR.Flat.TempDescriptor;
 
 public class LoopTerminate {
@@ -456,7 +457,7 @@ public class LoopTerminate {
     for (Iterator iterator = loopElements.iterator(); iterator.hasNext();) {
       FlatNode fn = (FlatNode) iterator.next();
       if (fn.kind() == FKind.FlatSetFieldNode) {
-        FlatFieldNode ffn = (FlatFieldNode) fn;
+        FlatSetFieldNode ffn = (FlatSetFieldNode) fn;
         if (!ffn.equals(guardNode) && ffn.getField().equals(guardNode.getField())) {
           return true;
         }
