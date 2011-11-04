@@ -1,0 +1,61 @@
+PWM Selction is: rtsj
+currentCommand=99
+processIOCommand: Default: opCode = 96 data = 3
+sonar: straight
+StrategyMgr: strait....
+currentCommand=99
+processIOCommand: Default: opCode = 96 data = 3
+sonar: straight
+StrategyMgr: strait....
+currentCommand=99
+processIOCommand: Default: opCode = 96 data = 3
+sonar: straight
+StrategyMgr: strait....
+currentCommand=99
+processIOCommand: Default: opCode = 96 data = 3
+sonar: straight
+StrategyMgr: strait....
+currentCommand=97
+processIOCommand: Default: opCode = 96 data = 1
+sonar: bearLeft
+StrategyMgr: bearLeft....
+currentCommand=97
+processIOCommand: Default: opCode = 96 data = 1
+sonar: bearLeft
+StrategyMgr: bearLeft....
+currentCommand=97
+processIOCommand: Default: opCode = 96 data = 1
+sonar: bearLeft
+StrategyMgr: bearLeft....
+currentCommand=97
+processIOCommand: Default: opCode = 96 data = 1
+sonar: bearLeft
+StrategyMgr: bearLeft....
+currentCommand=97
+processIOCommand: Default: opCode = 96 data = 1
+sonar: bearLeft
+StrategyMgr: bearLeft....
+currentCommand=68
+processIOCommand: Default: opCode = 64 data = 4
+processIO: Line Sensors..Process...!!!
+Line Sensors - Rear
+StrategyMgr: strait....
+Line Sensors - Rear
+StrategyMgr: strait....
+sonar: bearLeft
+StrategyMgr: bearLeft....
+currentCommand=99
+processIOCommand: Default: opCode = 96 data = 3
+sonar: straight
+StrategyMgr: strait....
+currentCommand=99
+processIOCommand: Default: opCode = 96 data = 3
+sonar: straight
+StrategyMgr: strait....
+currentCommand=96
+processIOCommand: Default: opCode = 96 data = 0
+sonar: NO SONARS!!!!!!!!
+currentCommand=99
+processIOCommand: Default: opCode = 96 data = 3
+sonar: straight
+StrategyMgr: strait....

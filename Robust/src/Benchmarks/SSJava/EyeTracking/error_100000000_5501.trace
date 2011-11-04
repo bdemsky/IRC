@@ -1,0 +1,48 @@
+SSJAVA: Divided by zero at file:injerr/methods.c, func:___Float______staticblocks____, line:1605 
+SSJAVA: Divided by zero at file:injerr/methods.c, func:___Float______staticblocks____, line:1627 
+SSJAVA: Divided by zero at file:injerr/methods.c, func:___Float______staticblocks____, line:1649 
+eyePosition=(89,72)
+eyePosition=(91,75)
+eyePosition=(91,70)
+eyePosition=(91,70)
+eyePosition=(98,79)
+eyePosition=(100,79)
+eyePosition=(98,77)
+eyePosition=(98,77)
+eyePosition=(117,84)
+deviation=LEFT
+eyePosition=(120,78)
+eyePosition=(121,79)
+eyePosition=(121,77)
+eyePosition=(119,78)
+SSJAVA: Injecting error at file:injerr/methods.c, func:___ImageReader______readImage____L___String___, line:4927 
+eyePosition=(120,79)
+eyePosition=(119,77)
+eyePosition=(119,77)
+eyePosition=(121,79)
+eyePosition=(72,80)
+deviation=RIGHT
+eyePosition=(105,84)
+eyePosition=(73,82)
+eyePosition=(121,81)
+deviation=LEFT
+eyePosition=(120,79)
+eyePosition=(120,78)
+eyePosition=(120,78)
+eyePosition=(121,81)
+eyePosition=(121,81)
+eyePosition=(71,81)
+deviation=RIGHT
+eyePosition=(71,81)
+eyePosition=(121,81)
+eyePosition=(121,81)
+deviation=LEFT
+eyePosition=(119,80)
+eyePosition=(119,81)
+eyePosition=(97,81)
+deviation=RIGHT
+eyePosition=(92,80)
+eyePosition=(92,81)
+eyePosition=(92,80)
+eyePosition=(92,80)
+Done.
