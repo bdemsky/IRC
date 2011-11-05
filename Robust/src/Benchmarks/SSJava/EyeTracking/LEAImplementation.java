@@ -56,7 +56,7 @@ public class LEAImplementation {
     }
     System.out.println("eyePosition=" + eyePosition);
 
-    return new FaceAndEyePosition(lastRectangle, eyePosition);
+    return new FaceAndEyePosition(faceRect, eyePosition);
   }
 
   @LATTICE("OUT<IN,OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
