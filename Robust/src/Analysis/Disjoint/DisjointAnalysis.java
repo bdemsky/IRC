@@ -1313,6 +1313,12 @@ public class DisjointAnalysis implements HeapAnalysis {
 
 
 
+    
+    boolean didDefReachTransfer = false;    
+
+
+
+
     // use node type to decide what transfer function
     // to apply to the reachability graph
     switch( fn.kind() ) {
@@ -1379,6 +1385,7 @@ public class DisjointAnalysis implements HeapAnalysis {
           params.add( fm.getParameter( i ) );
         }
         definiteReachAnalysis.methodEntry( fn, params );
+        didDefReachTransfer = true;
       }
     } break;
 
@@ -1403,6 +1410,7 @@ public class DisjointAnalysis implements HeapAnalysis {
 
         if( doDefiniteReachAnalysis ) {
           definiteReachAnalysis.copy( fn, lhs, rhs );
+          didDefReachTransfer = true;
         }
       }
       break;
@@ -1430,6 +1438,7 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       if( doDefiniteReachAnalysis ) {
         definiteReachAnalysis.copy( fn, lhs, rhs );
+        didDefReachTransfer = true;
       }
       break;
 
@@ -1468,6 +1477,7 @@ public class DisjointAnalysis implements HeapAnalysis {
 
         if( doDefiniteReachAnalysis ) {
           definiteReachAnalysis.load( fn, lhs, rhs, fld, edgeKeysForLoad );
+          didDefReachTransfer = true;
         }
       }
 
@@ -1530,6 +1540,7 @@ public class DisjointAnalysis implements HeapAnalysis {
                                        rhs,
                                        edgeKeysRemoved,
                                        edgeKeysAdded );
+          didDefReachTransfer = true;
         }
       }
 
@@ -1578,6 +1589,7 @@ public class DisjointAnalysis implements HeapAnalysis {
 
         if( doDefiniteReachAnalysis ) {
           definiteReachAnalysis.load( fn, lhs, rhs, fdElement, edgeKeysForLoad );
+          didDefReachTransfer = true;
         }
       }
 
@@ -1646,6 +1658,7 @@ public class DisjointAnalysis implements HeapAnalysis {
                                        rhs, 
                                        edgeKeysRemoved,
                                        edgeKeysAdded );
+          didDefReachTransfer = true;
         }
       }
 
@@ -1675,6 +1688,7 @@ public class DisjointAnalysis implements HeapAnalysis {
 
         if( doDefiniteReachAnalysis ) {
           definiteReachAnalysis.newObject( fn, lhs );
+          didDefReachTransfer = true;
         }
       }
       break;
@@ -1743,6 +1757,7 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       if( doDefiniteReachAnalysis ) {
         definiteReachAnalysis.methodCall( fn, fc.getReturnTemp() );
+        didDefReachTransfer = true;
       }
 
       
@@ -1929,6 +1944,14 @@ public class DisjointAnalysis implements HeapAnalysis {
       break;
 
     } // end switch
+
+
+
+    if( doDefiniteReachAnalysis && !didDefReachTransfer ) {
+      definiteReachAnalysis.otherStatement( fn );
+    }
+
+
 
 
     // dead variables were removed before the above transfer function

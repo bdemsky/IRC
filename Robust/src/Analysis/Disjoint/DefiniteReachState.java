@@ -17,8 +17,10 @@ public class DefiniteReachState {
   // NOTE: Use EdgeKey instead of edges because this analysis's
   // scope is beyond the scope of a single reach graph.
   private static MultiViewMapBuilder<Object> RBuilder;
+  private static BitSet viewRfull;
   private static BitSet viewR0;
   private static BitSet viewR1;
+  private static BitSet viewR2;
   private static BitSet viewR01;
   private MultiViewMap<Object> R;
 
@@ -59,9 +61,11 @@ public class DefiniteReachState {
                                          TempDescriptor.class,
                                          EdgeKey.class },
                                        new JoinOpNop() );
-    viewR0  = RBuilder.addPartialView( 0 );
-    viewR1  = RBuilder.addPartialView( 1 );
-    viewR01 = RBuilder.addPartialView( 0, 1 );
+    viewRfull = RBuilder.getFullView();
+    viewR0    = RBuilder.addPartialView( 0 );
+    viewR1    = RBuilder.addPartialView( 1 );
+    viewR2    = RBuilder.addPartialView( 2 );
+    viewR01   = RBuilder.addPartialView( 0, 1 );
     RBuilder.setCheckTypes( true );
     RBuilder.setCheckConsistency( true );
 
@@ -251,30 +255,34 @@ public class DefiniteReachState {
                       TempDescriptor y,
                       Set<EdgeKey> edgeKeysRemoved,
                       Set<EdgeKey> edgeKeysAdded ) {
-    // I think this should be if there is ANY <w,z>->e' IN Eremove, then kill all <w,z>
-    // R' := (R - {<w,z>->e | <w,z>->e in R, A<w,z>->e' in R, e' notin Eremove}) U
-    //       {<y,x>->e | e in E(x) x {f} x E(y)}
-    // R' = new Map(R)
-    // R'.remove(?); some e's...
-    // R'.put(<y,x>, E(x) x {f} x E(y));
+
+    for( EdgeKey edgeKeyWZ : edgeKeysRemoved ) {
+      R.remove( viewR2, MultiKey.factory( edgeKeyWZ ) );
+    }
+
+    for( EdgeKey edgeKeyXY : edgeKeysAdded ) {
+      R.put( MultiKey.factory( y, x, edgeKeyXY ), MultiViewMap.dummyValue );
+    }
   }
   
   public void newObjectR( TempDescriptor x ) {
-    // R' := (R - <x,*> - <*,x>)
-    // R' = new Map(R)
-    // R'.remove(view0, x);
-    // R'.remove(view1, x);
+    MultiKey keyX = MultiKey.factory( x );
+    R.remove( viewR0, keyX );
+    R.remove( viewR1, keyX );
   }
 
   public void methodCallR( TempDescriptor retVal ) {
-    // R' := (R - <x,*> - <*,x>)
-    // R' = new Map(R)
-    // R'.remove(view0, x);
-    // R'.remove(view1, x);
+    MultiKey keyRetVal = MultiKey.factory( retVal );
+    R.remove( viewR0, keyRetVal );
+    R.remove( viewR1, keyRetVal );
   }
 
   public void mergeR( DefiniteReachState that ) {
-    // R' := <x,y>->e iff its in all incoming edges
+    for( MultiKey key : this.R.get().keySet() ) {
+      if( that.R.get( viewRfull, key ).isEmpty() ) {
+        this.R.remove( viewRfull, key );
+      }
+    }
   }
 
 
@@ -334,7 +342,13 @@ public class DefiniteReachState {
 
 
   public String toString() {
-    StringBuilder s = new StringBuilder( "R_s = {" );
+    StringBuilder s = new StringBuilder();
+
+    s.append( "R = {\n" );
+    s.append( R.toString( 2 ) );
+    s.append( "}\n" );
+
+    //s.append( "R_s = {" );
     //for( TempDescriptor x : Rs.keySet() ) {
     //  s.append( "  "+x+"->"+Rs.get( x ) );
     //}

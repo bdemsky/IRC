@@ -138,6 +138,13 @@ public class MultiViewMap<T> {
   }
 
 
+  public Map<MultiKey, T> get() {
+    Map<MultiKey, T> fullKey2valueALL = new HashMap<MultiKey, T>();
+    fullKey2valueALL.putAll( fullKey2value );
+    return fullKey2valueALL;
+  }
+
+
   public Map<MultiKey, T> get( final BitSet view, MultiKey partialKey ) {
     checkView( view );
 
@@ -331,5 +338,21 @@ public class MultiViewMap<T> {
     }
 
     return true;
+  }
+
+  public String toString() {
+    return toString( 0 );
+  }
+
+  public String toString( int indent ) {
+    StringBuilder s = new StringBuilder();
+    
+    for( MultiKey key : fullKey2value.keySet() ) {
+      for( int i = 0; i < indent; ++i ) {
+        s.append( ' ' );
+      }
+      s.append( key+" -> "+fullKey2value.get( key )+"\n" );
+    }
+    return s.toString();
   }
 }

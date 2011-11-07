@@ -33,9 +33,8 @@ public class Test {
     // so we conservatively increase the arity
     // of objects y is reachable from.
     genreach y2;
+    gendefreach y2;
 
-
-    //gendefreach yo;
     System.out.println( x+","+y );
   }
 

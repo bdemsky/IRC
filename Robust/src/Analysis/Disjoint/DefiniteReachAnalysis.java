@@ -68,11 +68,15 @@ public class DefiniteReachAnalysis {
   public void methodCall( FlatNode fn, 
                           TempDescriptor retVal ) {
     DefiniteReachState state = makeIn( fn );
-    state.methodCall( retVal );
+    if( retVal != null ) {
+      state.methodCall( retVal );
+    }
     fn2state.put( fn, state ); 
   }
 
-
+  public void otherStatement( FlatNode fn ) {
+    fn2state.put( fn, makeIn( fn ) ); 
+  }
 
 
   public void writeState( FlatNode fn, String outputName ) {
