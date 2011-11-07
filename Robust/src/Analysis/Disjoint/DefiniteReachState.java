@@ -1,5 +1,6 @@
 package Analysis.Disjoint;
 
+import java.io.*;
 import java.util.*;
 
 import IR.*;
@@ -82,11 +83,15 @@ public class DefiniteReachState {
 
 
 
+  public DefiniteReachState( DefiniteReachState toCopy ) {
+    this.R = toCopy.R.clone( RBuilder );
+  }
 
 
   public DefiniteReachState() {
     R = RBuilder.build();
     //Rs = new HashMap<TempDescriptor, DefReachKnown>();
+
     //Fu = FuBuilder.build();
   }
 
@@ -337,6 +342,17 @@ public class DefiniteReachState {
   public int hashCode() {
     assert( false );
     return 0;
+  }
+
+
+  public void writeState( String outputName ) {
+    try {
+      BufferedWriter bw = new BufferedWriter( new FileWriter( "defReach-"+outputName+".txt" ) );
+      bw.write( this.toString() );
+      bw.close();
+    } catch( IOException e ) {
+      System.out.println( "ERROR writing definite reachability state:\n  "+e );
+    }
   }
 
 

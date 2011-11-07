@@ -79,6 +79,15 @@ public class MultiViewMap<T> {
   }
 
 
+  public MultiViewMap<T> clone( MultiViewMapBuilder<T> builder ) {
+    MultiViewMap<T> out = builder.build();
+    for( Map.Entry<MultiKey, T> entry : this.get().entrySet() ) {
+      out.put( entry.getKey(), entry.getValue() );
+    }
+    return out;
+  }
+
+
   public boolean equals( Object o ) {
     if( this == o ) {
       return true;

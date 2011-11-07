@@ -14,6 +14,10 @@ public class EdgeKey {
     this.f     = f;
   }
 
+  public String toString() {
+    return "<"+srcId+", "+f+", "+dstId+">";
+  }
+
   public Integer getSrcId() {
     return srcId;
   }

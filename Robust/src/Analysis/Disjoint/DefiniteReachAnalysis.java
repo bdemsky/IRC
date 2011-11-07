@@ -1,6 +1,5 @@
 package Analysis.Disjoint;
 
-import java.io.*;
 import java.util.*;
 
 import IR.*;
@@ -44,6 +43,7 @@ public class DefiniteReachAnalysis {
                     Set<EdgeKey> edgeKeysForLoad ) {
     DefiniteReachState state = makeIn( fn );
     state.load( x, y, f, edgeKeysForLoad );
+    state.writeState( "YO" );
     fn2state.put( fn, state ); 
   }
 
@@ -80,14 +80,7 @@ public class DefiniteReachAnalysis {
 
 
   public void writeState( FlatNode fn, String outputName ) {
-    DefiniteReachState state = makeIn( fn );
-    try {
-      BufferedWriter bw = new BufferedWriter( new FileWriter( outputName+".txt" ) );
-      bw.write( state.toString() );
-      bw.close();
-    } catch( IOException e ) {
-      System.out.println( "ERROR writing definite reachability state:\n  "+e );
-    }
+    makeIn( fn ).writeState( outputName );
   }
 
 
@@ -106,8 +99,14 @@ public class DefiniteReachAnalysis {
   // before the given program point by merging the out
   // states of the predecessor statements
   private DefiniteReachState makeIn( FlatNode fn ) {
-    DefiniteReachState stateIn = new DefiniteReachState();
-    for( int i = 0; i < fn.numPrev(); ++i ) {
+    if( fn.numPrev() <= 1 ) {
+      return new DefiniteReachState();
+    }
+
+    DefiniteReachState stateIn = 
+      new DefiniteReachState( get( fn.getPrev( 0 ) ) );
+
+    for( int i = 1; i < fn.numPrev(); ++i ) {
       stateIn.merge( get( fn.getPrev( i ) ) );
     }
     return stateIn;
