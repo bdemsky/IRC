@@ -868,8 +868,7 @@ fi
 
 if $JNI
   then
-  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/classpath/ -classlibrary $ROBUSTROOT/classpath/vm/reference"
-
+  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/classpath/ -classlibrary $ROBUSTROOT/classpath/vm/reference/"
 elif $MGCINTELFLAG
   then
   JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
@@ -884,6 +883,8 @@ elif $USE_SSJAVA_CLASSPATH
   JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/SSJava"  
 
 else
+  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/"
+
   if $RECOVERFLAG
     then
     if $FASTCHECK

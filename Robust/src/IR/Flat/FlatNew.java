@@ -9,6 +9,8 @@ public class FlatNew extends FlatNode {
   String disjointId;
 
   public FlatNew(TypeDescriptor type, TempDescriptor dst, boolean isglobal) {
+    if (type==null)
+      throw new Error();
     this.type=type;
     this.dst=dst;
     this.size=null;
@@ -28,6 +30,8 @@ public class FlatNew extends FlatNode {
   }
 
   public FlatNew(TypeDescriptor type, TempDescriptor dst, boolean isglobal, String disjointId) {
+    if (type==null)
+      throw new Error();
     this.type=type;
     this.dst=dst;
     this.size=null;
@@ -36,6 +40,8 @@ public class FlatNew extends FlatNode {
   }
 
   public FlatNew(TypeDescriptor type, TempDescriptor dst, TempDescriptor size, boolean isglobal) {
+    if (type==null)
+      throw new Error();
     this.type=type;
     this.dst=dst;
     this.size=size;
@@ -44,6 +50,8 @@ public class FlatNew extends FlatNode {
   }
 
   public FlatNew(TypeDescriptor type, TempDescriptor dst, TempDescriptor size, boolean isglobal, String disjointId) {
+    if (type==null)
+      throw new Error();
     this.type=type;
     this.dst=dst;
     this.size=size;

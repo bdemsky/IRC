@@ -19,7 +19,6 @@ public class ClassDescriptor extends Descriptor {
   SymbolTable flags;
   SymbolTable methods;
   boolean inline=false;
-  
 
   ChainHashMap mandatoryImports;
   ChainHashMap multiImports;
@@ -39,7 +38,8 @@ public class ClassDescriptor extends Descriptor {
   String surroundingclass=null;
   //adding another variable to indicate depth of this inner class 
   int innerDepth = 0;
-  ClassDescriptor surroudingdesc=null;
+  ClassDescriptor surroundingdesc=null;
+
   SymbolTable innerdescs;
 
   // for enum type
@@ -362,11 +362,11 @@ public class ClassDescriptor extends Descriptor {
   }
 
   public ClassDescriptor getSurroundingDesc() {
-    return this.surroudingdesc;
+    return this.surroundingdesc;
   }
 
   public void setSurrounding(ClassDescriptor scd) {
-    this.surroudingdesc=scd;
+    this.surroundingdesc=scd;
   }
 
   public void addInnerClass(ClassDescriptor icd) {

@@ -56,6 +56,9 @@ public class SemanticCheck {
         //Set superclass link up
         if (cd.getSuper()!=null) {
 	  ClassDescriptor superdesc=getClass(cd, cd.getSuper(), fullcheck);
+	  if (superdesc.isInnerClass()) {
+	    cd.setAsInnerClass();
+	  }
 	  if (superdesc.isInterface()) {
 	    if (cd.getInline()) {
 	      cd.setSuper(null);
@@ -91,6 +94,12 @@ public class SemanticCheck {
         }
       }
       if (oldstatus<INIT&&fullcheck>=INIT) {
+       if (cd.isInnerClass()) {
+          Modifiers fdmodifiers=new Modifiers();
+         FieldDescriptor enclosingfd=new FieldDescriptor(fdmodifiers,new TypeDescriptor(cd.getSurroundingDesc()),"this___enclosing",null,false);
+         cd.addField(enclosingfd);
+       }
+
         /* Check to see that fields are well typed */
         for(Iterator field_it=cd.getFields(); field_it.hasNext(); ) {
           FieldDescriptor fd=(FieldDescriptor)field_it.next();
@@ -654,10 +663,24 @@ public class SemanticCheck {
     FieldDescriptor fd=null;
     if (ltd.isArray()&&fieldname.equals("length"))
       fd=FieldDescriptor.arrayLength;
-    else
+    else {
       fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
+    }
     if(ltd.isClassNameRef()) {
       // the field access is using a class name directly
+      if (fd==null) {
+       ClassDescriptor surroundingCls=ltd.getClassDesc().getSurroundingDesc();
+       
+       while(surroundingCls!=null) {
+         fd=(FieldDescriptor) surroundingCls.getFieldTable().get(fieldname);
+         if (fd!=null) {
+           fan.left=new ClassTypeNode(new TypeDescriptor(surroundingCls));
+           break;
+         }
+         surroundingCls=surroundingCls.getSurroundingDesc();
+       }
+      }
+
       if(ltd.getClassDesc().isEnum()) {
         int value = ltd.getClassDesc().getEnumConstant(fieldname);
         if(-1 == value) {
@@ -679,8 +702,30 @@ public class SemanticCheck {
       }
     }
 
-    if (fd==null)
-      throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0)+" in "+md);
+    if (fd==null) {
+      ClassDescriptor surroundingCls=ltd.getClassDesc().getSurroundingDesc();
+      int numencloses=1;
+      while(surroundingCls!=null) {
+       fd=(FieldDescriptor)surroundingCls.getFieldTable().get(fieldname);
+       if (fd!=null) {
+         surroundingCls=ltd.getClassDesc().getSurroundingDesc();
+         FieldAccessNode ftmp=fan;
+         for(;numencloses>0;numencloses--) {
+           FieldAccessNode fnew=new FieldAccessNode(ftmp.left, "this___enclosing");
+           fnew.setField((FieldDescriptor)surroundingCls.getFieldTable().get("this___enclosing"));
+           ftmp.left=fnew;
+           ftmp=fnew;
+           surroundingCls=surroundingCls.getSurroundingDesc();
+         }
+         break;
+       }
+       surroundingCls=surroundingCls.getSurroundingDesc();
+       numencloses++;
+      }
+
+      if (fd==null)
+       throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0)+" in "+md);
+    }
 
     if (fd.getType().iswrapper()) {
       FieldAccessNode fan2=new FieldAccessNode(left, fieldname);
@@ -956,47 +1001,13 @@ public class SemanticCheck {
   void checkArrayInitializerNode(Descriptor md, SymbolTable nametable, ArrayInitializerNode ain, TypeDescriptor td) {
     Vector<TypeDescriptor> vec_type = new Vector<TypeDescriptor>();
     for( int i = 0; i < ain.numVarInitializers(); ++i ) {
-      checkExpressionNode(md, nametable, ain.getVarInitializer(i), td==null?td:td.dereference());
+      checkExpressionNode(md, nametable, ain.getVarInitializer(i), td.dereference());
       vec_type.add(ain.getVarInitializer(i).getType());
     }
-    // descide the type of this variableInitializerNode
-    TypeDescriptor out_type = null;
-    for(int i = 0; i < vec_type.size(); i++) {
-      TypeDescriptor tmp_type = vec_type.elementAt(i);
-      if(out_type == null) {
-        if(tmp_type != null) {
-          out_type = tmp_type;
-        }
-      } else if(out_type.isNull()) {
-        if(!tmp_type.isNull() ) {
-          if(!tmp_type.isArray()) {
-            throw new Error("Error: mixed type in var initializer list");
-          } else {
-            out_type = tmp_type;
-          }
-        }
-      } else if(out_type.isArray()) {
-        if(tmp_type.isArray()) {
-          if(tmp_type.getArrayCount() > out_type.getArrayCount()) {
-            out_type = tmp_type;
-          }
-        } else if((tmp_type != null) && (!tmp_type.isNull())) {
-          throw new Error("Error: mixed type in var initializer list");
-        }
-      } else if(out_type.isInt()) {
-        if(!tmp_type.isInt()) {
-          throw new Error("Error: mixed type in var initializer list");
-        }
-      } else if(out_type.isString()) {
-        if(!tmp_type.isString()) {
-          throw new Error("Error: mixed type in var initializer list");
-        }
-      }
-    }
-    if(out_type != null) {
-      out_type = out_type.makeArray(state);
-    }
-    ain.setType(out_type);
+    if (td==null)
+      throw new Error();
+
+    ain.setType(td);
   }
 
   void checkAssignmentNode(Descriptor md, SymbolTable nametable, AssignmentNode an, TypeDescriptor td) {
@@ -1145,7 +1156,7 @@ public class SemanticCheck {
 
     /* Check Array Initializers */
     if ((con.getArrayInitializer() != null)) {
-      checkArrayInitializerNode(md, nametable, con.getArrayInitializer(), td);
+      checkArrayInitializerNode(md, nametable, con.getArrayInitializer(), typetolookin);
     }
 
     /* Check flag effects */

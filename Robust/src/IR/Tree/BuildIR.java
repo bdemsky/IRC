@@ -764,7 +764,6 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
     ClassDescriptor icn=new ClassDescriptor(cn.getPackage(), classname, false);
     pushChainMaps();
     icn.setImports(mandatoryImports, multiimports);
-    icn.setAsInnerClass();
     icn.setSurroundingClass(cn.getSymbol());
     icn.setSurrounding(cn);
     cn.addInnerClass(icn);
@@ -793,6 +792,9 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       }
     }
     icn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
+
+   if (!icn.isStatic())
+     icn.setAsInnerClass();
 
     parseClassBody(icn, pn.getChild("classbody"));
 

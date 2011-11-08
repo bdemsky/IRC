@@ -10,11 +10,12 @@ public class SymbolTable {
 
   private Vector<SymbolTable> parentIFs;
 
+
   public SymbolTable() {
     table = new Hashtable();
     valueset = new HashSet();
-    this.parent = null;
-    this.parentIFs = null;
+    parent = null;
+    parentIFs = null;
   }
 
   public SymbolTable(SymbolTable parent) {
@@ -39,11 +40,8 @@ public class SymbolTable {
   }
 
   private HashSet getPSet(String name) {
-    HashSet hs=null;
-    if (parent!=null)
-      hs=parent.getPSet(name);
-    else
-      hs=new HashSet();
+    HashSet hs=(parent!=null)?parent.getPSet(name):new HashSet();
+
     if(this.parentIFs != null) {
       for(int i = 0; i < parentIFs.size(); i++) {
 	hs.addAll(parentIFs.elementAt(i).getPSet(name));
@@ -69,20 +67,25 @@ public class SymbolTable {
 
   public Descriptor get(String name) {
     Descriptor d = getFromSameScope(name);
-    if (d == null) {
-      if(parent != null) {
-        d = parent.get(name);
-      }
-      if((d == null) && (this.parentIFs != null)) {
-        for(int i = 0; i < this.parentIFs.size(); i++) {
-          d = this.parentIFs.elementAt(i).get(name);
-          if(d != null) {
-            return d;
-          }
-        }
+    if (d != null)
+      return d;
+
+    if(parent != null) {
+      d = parent.get(name);
+      if (d!=null)
+	return d;
+    }
+    
+    if(parentIFs != null) {
+      for(int i = 0; i < parentIFs.size(); i++) {
+	d = parentIFs.elementAt(i).get(name);
+	if(d != null) {
+	  return d;
+	}
       }
     }
-    return d;
+    
+    return null;
   }
 
   public Descriptor getFromSameScope(String name) {
@@ -116,11 +119,12 @@ public class SymbolTable {
       hs=(HashSet) parent.getAllValueSet();
     else
       hs=new HashSet();
-    if (this.parentIFs != null) {
-      for(int i = 0; i < this.parentIFs.size(); i++) {
-        hs.addAll(this.parentIFs.elementAt(i).getAllValueSet());
+    if (parentIFs != null) {
+      for(int i = 0; i < parentIFs.size(); i++) {
+        hs.addAll(parentIFs.elementAt(i).getAllValueSet());
       }
     }
+
     hs.addAll(valueset);
     return hs;
   }
@@ -142,16 +146,15 @@ public class SymbolTable {
   }
 
   public Vector<SymbolTable> getParentIFs() {
-    return this.parentIFs;
+    return parentIFs;
   }
 
   public void addParentIF(SymbolTable parentif) {
-    if(this.parentIFs == null) {
-      this.parentIFs = new Vector<SymbolTable>();
+    if(parentIFs == null) {
+      parentIFs = new Vector<SymbolTable>();
     }
-    this.parentIFs.addElement(parentif);
+    parentIFs.addElement(parentif);
   }
-
 
   public String toString() {
     return "ST: " + table.toString();

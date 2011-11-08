@@ -1939,17 +1939,21 @@ primary_no_new_array ::=
 		pn.addChild(id);
 		RESULT=pn;
 	:}
-//	|	primitive_type:pt DOT CLASS {:
-//	    ParseNode pn=new ParseNode("class_type",parser.lexer.line_num);
-//	    pn.addChild(pt);
-//	    RESULT=pn;
-//	:}
-//	|	VOID DOT CLASS
-//	|	array_type:at DOT CLASS {:
-//	    ParseNode pn=new ParseNode("class_type",parser.lexer.line_num);
-//	    pn.addChild(at);
-//	    RESULT=pn;
-//	:}
+	|	primitive_type:pt DOT CLASS {:
+	    ParseNode pn=new ParseNode("class_type",parser.lexer.line_num);
+	    pn.addChild(pt);
+	    RESULT=pn;
+	:}
+	|	VOID DOT CLASS {: 
+           ParseNode pn=new ParseNode("class_type",parser.lexer.line_num);
+           pn.addChild("type").addChild("void");
+           RESULT=pn;
+        :}
+	|	array_type:at DOT CLASS {:
+	    ParseNode pn=new ParseNode("class_type",parser.lexer.line_num);
+	    pn.addChild(at);
+	    RESULT=pn;
+	:}
 	|	name:name DOT CLASS {:
 	    ParseNode pn=new ParseNode("class_type",parser.lexer.line_num);
 	    pn.addChild("type").addChild("class").addChild(name);
