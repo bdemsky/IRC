@@ -41,9 +41,9 @@ public class DefiniteReachAnalysis {
                     TempDescriptor  y,
                     FieldDescriptor f,
                     Set<EdgeKey> edgeKeysForLoad ) {
+
     DefiniteReachState state = makeIn( fn );
     state.load( x, y, f, edgeKeysForLoad );
-    state.writeState( "YO" );
     fn2state.put( fn, state ); 
   }
 
@@ -53,6 +53,7 @@ public class DefiniteReachAnalysis {
                      TempDescriptor  y,
                      Set<EdgeKey> edgeKeysRemoved,
                      Set<EdgeKey> edgeKeysAdded ) {
+
     DefiniteReachState state = makeIn( fn );
     state.store( x, f, y, edgeKeysRemoved, edgeKeysAdded );
     fn2state.put( fn, state ); 
@@ -86,7 +87,7 @@ public class DefiniteReachAnalysis {
 
   // get the current state for just after the given
   // program point
-  private DefiniteReachState get( FlatNode fn ) {
+  public DefiniteReachState get( FlatNode fn ) {
     DefiniteReachState state = fn2state.get( fn );
     if( state == null ) {
       state = new DefiniteReachState();
@@ -98,8 +99,8 @@ public class DefiniteReachAnalysis {
   // get the current state for the program point just
   // before the given program point by merging the out
   // states of the predecessor statements
-  private DefiniteReachState makeIn( FlatNode fn ) {
-    if( fn.numPrev() <= 1 ) {
+  public DefiniteReachState makeIn( FlatNode fn ) {
+    if( fn.numPrev() == 0 ) {
       return new DefiniteReachState();
     }
 
@@ -109,6 +110,7 @@ public class DefiniteReachAnalysis {
     for( int i = 1; i < fn.numPrev(); ++i ) {
       stateIn.merge( get( fn.getPrev( i ) ) );
     }
+
     return stateIn;
   }
 }

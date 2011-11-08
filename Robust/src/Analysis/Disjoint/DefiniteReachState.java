@@ -356,7 +356,6 @@ public class DefiniteReachState {
   }
 
 
-
   public String toString() {
     StringBuilder s = new StringBuilder();
 

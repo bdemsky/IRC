@@ -718,6 +718,7 @@ public class ReachGraph {
           continue;
         }
 
+
         // for definite reach analysis only
         if( edgeKeysAdded != null ) {
           assert f != null;
@@ -725,6 +726,8 @@ public class ReachGraph {
                                           hrnY.getID(),
                                           f )
                              );
+
+          
         }
 
         // prepare the new reference edge hrnX.f -> hrnY

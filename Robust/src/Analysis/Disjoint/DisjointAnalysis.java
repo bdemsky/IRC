@@ -1312,10 +1312,8 @@ public class DisjointAnalysis implements HeapAnalysis {
     fn2rgAtEnter.put(fn, rgOnEnter);
 
 
-
     
     boolean didDefReachTransfer = false;    
-
 
 
 
@@ -1950,7 +1948,6 @@ public class DisjointAnalysis implements HeapAnalysis {
     if( doDefiniteReachAnalysis && !didDefReachTransfer ) {
       definiteReachAnalysis.otherStatement( fn );
     }
-
 
 
 
