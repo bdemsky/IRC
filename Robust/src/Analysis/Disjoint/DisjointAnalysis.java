@@ -726,8 +726,6 @@ public class DisjointAnalysis implements HeapAnalysis {
     mapDescriptorToReachGraph =
       new Hashtable<Descriptor, ReachGraph>();
 
-    pm = new PointerMethod();
-
     fc2enclosing = new Hashtable<FlatCall, Descriptor>();
   }
 
@@ -849,8 +847,11 @@ public class DisjointAnalysis implements HeapAnalysis {
     ReachGraph.debugCallSiteVisitCounter
       = 0; // count visits from 1, is incremented before first visit    
 
+    pm = new PointerMethod();
+
     if( state.DO_DEFINITE_REACH_ANALYSIS ) {
       doDefiniteReachAnalysis = true;
+      DefiniteReachAnalysis.setPointerMethod( pm );
       definiteReachAnalysis = new DefiniteReachAnalysis();
     }
 

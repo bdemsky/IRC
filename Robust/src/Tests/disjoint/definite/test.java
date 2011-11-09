@@ -18,10 +18,11 @@ public class Test {
 
     Foo z = x;
     while( false ) {
+      gendefreach QWQ2; 
       z = z.f;
     }
 
-    gendefreach QWQ2;
+    gendefreach QWQ3;
 
     /*
     gendefreach yn1;    

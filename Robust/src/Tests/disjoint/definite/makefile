@@ -6,7 +6,7 @@ BUILDSCRIPT=../../../buildscript
 
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions -do-definite-reach-analysis
 
-BSFLAGS= -justanalyze -mainclass $(PROGRAM) -heapsize-mb 1024 -noloop -joptimize -debug
+BSFLAGS= -justanalyze -mainclass $(PROGRAM) -heapsize-mb 1024 -noloop -joptimize -debug #-flatirusermethods
 
 
 all:

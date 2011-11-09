@@ -12,6 +12,13 @@ public class DefiniteReachAnalysis {
   // keep a state of definite reachability analysis for
   // every program point
   private Map<FlatNode, DefiniteReachState> fn2state;
+
+  private static PointerMethod pm;
+
+  public static void setPointerMethod( PointerMethod pm ) {
+    DefiniteReachAnalysis.pm = pm;
+  }
+
   
   public DefiniteReachAnalysis() {
     // a class-wide initialization
@@ -23,7 +30,7 @@ public class DefiniteReachAnalysis {
 
   public void methodEntry( FlatNode fn, 
                            Set<TempDescriptor> parameters ) {
-    DefiniteReachState state = get( fn );
+    DefiniteReachState state = makeIn( fn );
     state.methodEntry( parameters );
     fn2state.put( fn, state );
   }
@@ -100,17 +107,27 @@ public class DefiniteReachAnalysis {
   // before the given program point by merging the out
   // states of the predecessor statements
   public DefiniteReachState makeIn( FlatNode fn ) {
-    if( fn.numPrev() == 0 ) {
+    if( pm.numPrev( fn ) == 0 ) {
       return new DefiniteReachState();
     }
 
-    DefiniteReachState stateIn = 
-      new DefiniteReachState( get( fn.getPrev( 0 ) ) );
+    DefiniteReachState stateIn = null;
 
-    for( int i = 1; i < fn.numPrev(); ++i ) {
-      stateIn.merge( get( fn.getPrev( i ) ) );
+    for( int i = 0; i < pm.numPrev( fn ); ++i ) {
+
+      if( fn2state.containsKey( pm.getPrev( fn, i ) ) ) {
+        if( stateIn == null ) {
+          // duplicate the first partial result we find
+          stateIn = new DefiniteReachState( get( pm.getPrev( fn, i ) ) );
+        } else {
+          // merge other partial results into the rest
+          stateIn.merge( get( pm.getPrev( fn, i ) ) );
+        }
+      }
     }
-
+      
+    // at least one predecessor was analyzed before this
+    assert( stateIn != null );
     return stateIn;
   }
 }
