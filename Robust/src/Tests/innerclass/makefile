@@ -1,6 +1,6 @@
 PROGRAM=inner
 
-SOURCE_FILES=inner.java
+SOURCE_FILES=innerp.java innerpt.java inner.java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
 BSFLAGS= -64bit -joptimize -mainclass inner

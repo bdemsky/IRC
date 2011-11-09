@@ -1,9 +1,9 @@
-public class inner{
+public class inner extends innerp {
   int outer;
   int f2;
 
   public inner() {
-    outer=31;
+    //super.outer=31;
   }
 
   public static void main(String x[]) {
@@ -13,30 +13,30 @@ public class inner{
 
   public void dotest() {
     outer=35;
-    inner ij = new inner();
-    t tmp=ij. new t();
-    //t.f2 = 3;
+    t tmp=new t();
     tmp.print();
   }
 
-  public inner createOne() {
-	return new inner();	
-	}
-
-  public class t {
-   // int outer;
-    int f3 = 23;
+  public class t extends innerpt {
+    int outer;
+    int f3;
     public t() {
-	//this.outer=4;
-	//f2=3;
+      this.outer = 4;
+      f1=2;
+      f2=3;
       f3=4;
 
     }
 
     public void print() {
-      //should print 4 0 3
+      //should print 4 0 35
       System.out.println(outer);
-     // System.out.println(this$0.outer);
+      //System.out.println(super.outer);
+      System.out.println(inner.this.outer);
+      //System.out.println(inner.super.outer);
+      System.out.println(f1);
+      System.out.println(f2);
+      System.out.println(f3);
 
     }
   }
