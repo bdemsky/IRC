@@ -28,6 +28,9 @@ public class FieldAccessNode extends ExpressionNode {
     return left;
   }
 
+  public void setExpression( ExpressionNode en ) {
+	left = en;  
+  }
   public String printNode(int indent) {
     return left.printNode(indent)+"."+fieldname;
   }
