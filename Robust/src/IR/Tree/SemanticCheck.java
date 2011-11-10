@@ -75,6 +75,13 @@ public class SemanticCheck {
 	      cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
 	      cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
 	      cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
+	      // if this is an inner class, link together Field, Method and Flag
+	      // tables from its surrounding class
+	      if(cd.isInnerClass()) {
+		  cd.getFieldTable().setSurrounding(cd.getSurroundingDesc().getFieldTable());
+		  cd.getMethodTable().setSurrounding(cd.getSurroundingDesc().getMethodTable());
+		  cd.getFlagTable().setSurrounding(cd.getSurroundingDesc().getFlagTable());
+	      }
 	    }
 	  }
         }
@@ -826,23 +833,9 @@ public class SemanticCheck {
       }
   }
 
-  FieldDescriptor recurseSurroundingClasses( ClassDescriptor icd, String varname ) {
-	if( null == icd || false == icd.isInnerClass() )
-		return null;
-	
-	ClassDescriptor surroundingDesc = icd.getSurroundingDesc();
-	if( null == surroundingDesc )
-		return null;
-	
-	SymbolTable fieldTable = surroundingDesc.getFieldTable();
-	FieldDescriptor fd = ( FieldDescriptor ) fieldTable.get( varname );
-	if( null != fd )
-		return fd;
-	return recurseSurroundingClasses( surroundingDesc, varname );
-  }
-
   FieldAccessNode fieldAccessExpression( ClassDescriptor icd, String varname, int linenum ) {
-	FieldDescriptor fd = recurseSurroundingClasses( icd, varname );
+        // first check if the field is belong to the icd or its parent class
+	FieldDescriptor fd = (FieldDescriptor)icd.getFieldTable().get(varname);
 	if( null == fd )
 		return null;
 

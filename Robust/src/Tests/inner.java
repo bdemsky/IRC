@@ -3,7 +3,7 @@ public class inner extends innerp {
   int f2;
 
   public inner() {
-    super.outer=31;
+    /*super.*/outer=31;
   }
 
   public static void main(String x[]) {
@@ -13,8 +13,13 @@ public class inner extends innerp {
 
   public void dotest() {
     outer=35;
+    outerprint();
     t tmp=new t();
     tmp.print();
+  }
+  
+  public void outerprint() {
+      System.out.println("Outer class print: " + this.outer + "; " + this.f2);
   }
 
   public class t extends innerpt {
@@ -30,14 +35,15 @@ public class inner extends innerp {
 
     public void print() {
       //should print 4 0 35
+      System.out.println("Inner class print: ");
       System.out.println(outer);
-      System.out.println(super.outer);
+      //System.out.println(super.outer);
       System.out.println(inner.this.outer);
-      System.out.println(inner.super.outer);
+      //System.out.println(inner.super.outer);
       System.out.println(f1);
       System.out.println(f2);
       System.out.println(f3);
-
+      outerprint();
     }
   }
 
