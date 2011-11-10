@@ -1302,6 +1302,7 @@ public class DisjointAnalysis implements HeapAnalysis {
     FlatSESEEnterNode sese;
     FlatSESEExitNode fsexn;
 
+    boolean alreadyReachable;
     Set<EdgeKey> edgeKeysForLoad;
     Set<EdgeKey> edgeKeysRemoved;
     Set<EdgeKey> edgeKeysAdded;
@@ -1495,11 +1496,13 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       boolean strongUpdate = false;
 
-      edgeKeysRemoved = null;
-      edgeKeysAdded   = null;
+      alreadyReachable = false;
+      edgeKeysRemoved  = null;
+      edgeKeysAdded    = null;
       if( doDefiniteReachAnalysis ) {
-        edgeKeysRemoved = new HashSet<EdgeKey>();
-        edgeKeysAdded   = new HashSet<EdgeKey>();
+        alreadyReachable = definiteReachAnalysis.isAlreadyReachable( rhs, lhs, fn );
+        edgeKeysRemoved  = new HashSet<EdgeKey>();
+        edgeKeysAdded    = new HashSet<EdgeKey>();
       }
 
       // before transfer func, possibly inject
@@ -1529,6 +1532,7 @@ public class DisjointAnalysis implements HeapAnalysis {
                                                          fld, 
                                                          rhs, 
                                                          fn, 
+                                                         alreadyReachable,
                                                          edgeKeysRemoved,
                                                          edgeKeysAdded );
         if( doDefiniteReachAnalysis ) {
@@ -1609,9 +1613,11 @@ public class DisjointAnalysis implements HeapAnalysis {
       tdElement = lhs.getType().dereference();
       fdElement = getArrayField(tdElement);
 
-      edgeKeysRemoved = null;
-      edgeKeysAdded   = null;
+      alreadyReachable = false;
+      edgeKeysRemoved  = null;
+      edgeKeysAdded    = null;
       if( doDefiniteReachAnalysis ) {
+        alreadyReachable = definiteReachAnalysis.isAlreadyReachable( rhs, lhs, fn );
         edgeKeysRemoved = new HashSet<EdgeKey>();
         edgeKeysAdded   = new HashSet<EdgeKey>();
       }
@@ -1645,6 +1651,7 @@ public class DisjointAnalysis implements HeapAnalysis {
                                             fdElement, 
                                             rhs, 
                                             fn, 
+                                            alreadyReachable,
                                             edgeKeysRemoved,
                                             edgeKeysAdded );
         }

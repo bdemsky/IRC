@@ -52,8 +52,6 @@ public class DefiniteReachState {
 
 
 
-
-
   // call before instantiating this class
   static public void initBuilders() {
     RBuilder =
@@ -94,6 +92,15 @@ public class DefiniteReachState {
 
     //Fu = FuBuilder.build();
   }
+
+
+
+  public boolean isAlreadyReachable( TempDescriptor a,
+                                     TempDescriptor b ) {
+    return !R.get( viewR01, MultiKey.factory( a, b ) ).isEmpty();
+  }
+
+
 
 
   public void methodEntry( Set<TempDescriptor> parameters ) {
@@ -188,14 +195,14 @@ public class DefiniteReachState {
 
 
   public void methodEntryR( Set<TempDescriptor> parameters ) {
-    //R.clear();
+    R.clear();
   }
 
   public void copyR( TempDescriptor x,
                      TempDescriptor y ) {
     // consider that x and y can be the same, so do the
     // parts of the update in the right order:
-    /*
+
     // first get all info for update
     MultiKey keyY = MultiKey.factory( y );
     Map<MultiKey, Object> mapY0 = R.get( viewR0, keyY );
@@ -219,14 +226,12 @@ public class DefiniteReachState {
                                             fullKeyY.get( 2 ) );
       R.put( fullKeyX, MultiViewMap.dummyValue );
     }
-    */
   }
   
   public void loadR( TempDescriptor x,
                      TempDescriptor y,
                      FieldDescriptor f,
                      Set<EdgeKey> edgeKeysForLoad ) {
-    /*
     // consider that x and y can be the same, so do the
     // parts of the update in the right order:
 
@@ -255,7 +260,6 @@ public class DefiniteReachState {
                MultiViewMap.dummyValue );
       }
     }
-    */
   }
 
   public void storeR( TempDescriptor x,
@@ -274,19 +278,15 @@ public class DefiniteReachState {
   }
   
   public void newObjectR( TempDescriptor x ) {
-    /*
     MultiKey keyX = MultiKey.factory( x );
     R.remove( viewR0, keyX );
     R.remove( viewR1, keyX );
-    */
   }
 
   public void methodCallR( TempDescriptor retVal ) {
-    /*
     MultiKey keyRetVal = MultiKey.factory( retVal );
     R.remove( viewR0, keyRetVal );
     R.remove( viewR1, keyRetVal );
-    */
   }
 
   public void mergeR( DefiniteReachState that ) {

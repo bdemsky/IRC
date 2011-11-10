@@ -9,22 +9,6 @@ public class Test {
 
   static public void main( String args[] ) {
 
-    Foo x = getFlagged();
-    Foo y = getUnflagged();
-
-    x.f = y;
-
-    gendefreach QWQ1; 
-
-    Foo z = x;
-    while( false ) {
-      gendefreach QWQ2; 
-      z = z.f;
-    }
-
-    gendefreach QWQ3;
-
-    /*
     gendefreach yn1;    
 
     Foo x = getFlagged();
@@ -54,9 +38,8 @@ public class Test {
     // of objects y is reachable from.
     gendefreach y2;
     genreach y2;
-    */
 
-    System.out.println( " "+x+y+z );
+    System.out.println( " "+x+y );
   }
 
   static public Foo getFlagged() {

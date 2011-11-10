@@ -426,6 +426,7 @@ public class ReachGraph {
                                    fdStringBytesField,
                                    tdStrLiteralBytes,
                                    null,
+                                   false,
                                    null,
                                    null );
   }
@@ -594,6 +595,7 @@ public class ReachGraph {
                                                FieldDescriptor f,
                                                TempDescriptor y,
                                                FlatNode currentProgramPoint,
+                                               boolean alreadyReachable,
                                                Set<EdgeKey> edgeKeysRemoved,
                                                Set<EdgeKey> edgeKeysAdded
                                                ) {
@@ -641,53 +643,58 @@ public class ReachGraph {
       }
     }
 
-    // then do all token propagation
-    itrXhrn = lnX.iteratorToReferencees();
-    while( itrXhrn.hasNext() ) {
-      RefEdge edgeX = itrXhrn.next();
-      HeapRegionNode hrnX  = edgeX.getDst();
-      ReachSet betaX = edgeX.getBeta();
-      ReachSet R     = Canonical.intersection(hrnX.getAlpha(),
-                                              edgeX.getBeta()
-                                              );
 
-      Iterator<RefEdge> itrYhrn = lnY.iteratorToReferencees();
-      while( itrYhrn.hasNext() ) {
-        RefEdge edgeY = itrYhrn.next();
-        HeapRegionNode hrnY  = edgeY.getDst();
-        ReachSet O     = edgeY.getBeta();
+    // definite reachability analysis can elide reachability propagation
+    if( !alreadyReachable ) {
 
-        // check for impossible edges
-        if( !isSuperiorType(f.getType(), edgeY.getType() ) ) {
-          impossibleEdges.add(edgeY);
-          continue;
+      // then do all token propagation
+      itrXhrn = lnX.iteratorToReferencees();
+      while( itrXhrn.hasNext() ) {
+        RefEdge edgeX = itrXhrn.next();
+        HeapRegionNode hrnX  = edgeX.getDst();
+        ReachSet betaX = edgeX.getBeta();
+        ReachSet R     = Canonical.intersection(hrnX.getAlpha(),
+                                                edgeX.getBeta()
+                                                );
+
+        Iterator<RefEdge> itrYhrn = lnY.iteratorToReferencees();
+        while( itrYhrn.hasNext() ) {
+          RefEdge edgeY = itrYhrn.next();
+          HeapRegionNode hrnY  = edgeY.getDst();
+          ReachSet O     = edgeY.getBeta();
+
+          // check for impossible edges
+          if( !isSuperiorType(f.getType(), edgeY.getType() ) ) {
+            impossibleEdges.add(edgeY);
+            continue;
+          }
+
+          // propagate tokens over nodes starting from hrnSrc, and it will
+          // take care of propagating back up edges from any touched nodes
+          ChangeSet Cy = Canonical.unionUpArityToChangeSet(O, R);
+          propagateTokensOverNodes(hrnY, Cy, nodesWithNewAlpha, edgesWithNewBeta);
+
+          // then propagate back just up the edges from hrn
+          ChangeSet Cx = Canonical.unionUpArityToChangeSet(R, O);
+          HashSet<RefEdge> todoEdges = new HashSet<RefEdge>();
+
+          Hashtable<RefEdge, ChangeSet> edgePlannedChanges =
+            new Hashtable<RefEdge, ChangeSet>();
+
+          Iterator<RefEdge> referItr = hrnX.iteratorToReferencers();
+          while( referItr.hasNext() ) {
+            RefEdge edgeUpstream = referItr.next();
+            todoEdges.add(edgeUpstream);
+            edgePlannedChanges.put(edgeUpstream, Cx);
+          }
+
+          propagateTokensOverEdges(todoEdges,
+                                   edgePlannedChanges,
+                                   edgesWithNewBeta);
         }
-
-        // propagate tokens over nodes starting from hrnSrc, and it will
-        // take care of propagating back up edges from any touched nodes
-        ChangeSet Cy = Canonical.unionUpArityToChangeSet(O, R);
-        propagateTokensOverNodes(hrnY, Cy, nodesWithNewAlpha, edgesWithNewBeta);
-
-        // then propagate back just up the edges from hrn
-        ChangeSet Cx = Canonical.unionUpArityToChangeSet(R, O);
-        HashSet<RefEdge> todoEdges = new HashSet<RefEdge>();
-
-        Hashtable<RefEdge, ChangeSet> edgePlannedChanges =
-          new Hashtable<RefEdge, ChangeSet>();
-
-        Iterator<RefEdge> referItr = hrnX.iteratorToReferencers();
-        while( referItr.hasNext() ) {
-          RefEdge edgeUpstream = referItr.next();
-          todoEdges.add(edgeUpstream);
-          edgePlannedChanges.put(edgeUpstream, Cx);
-        }
-
-        propagateTokensOverEdges(todoEdges,
-                                 edgePlannedChanges,
-                                 edgesWithNewBeta);
       }
     }
-
+      
 
     // apply the updates to reachability
     Iterator<HeapRegionNode> nodeItr = nodesWithNewAlpha.iterator();
@@ -745,17 +752,23 @@ public class ReachGraph {
                                                 currentProgramPoint);
         }
 
+
+        ReachSet betaNew;
+        if( alreadyReachable ) {
+          betaNew = edgeY.getBeta();
+        } else {
+          betaNew = Canonical.pruneBy( edgeY.getBeta(),
+                                       hrnX.getAlpha() );
+        }
+
+
         RefEdge edgeNew =
           new RefEdge(hrnX,
                       hrnY,
                       tdNewEdge,
                       f.getSymbol(),
-                      Canonical.changePredsTo(
-                        Canonical.pruneBy(edgeY.getBeta(),
-                                          hrnX.getAlpha()
-                                          ),
-                        predsTrue
-                        ),
+                      Canonical.changePredsTo( betaNew,
+                                               predsTrue ),
                       predsTrue,
                       taints
                       );

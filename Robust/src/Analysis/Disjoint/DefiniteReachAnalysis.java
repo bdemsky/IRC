@@ -34,6 +34,13 @@ public class DefiniteReachAnalysis {
   }
 
 
+  public boolean isAlreadyReachable( TempDescriptor a,
+                                     TempDescriptor b,
+                                     FlatNode fn ) {
+    return makeIn( fn ).isAlreadyReachable( a, b );
+  }
+
+
   private void addPartialResult( FlatNode fn, DefiniteReachState state ) {
     fn2state.put( fn, state );
     fnHasPartial.add( fn );
