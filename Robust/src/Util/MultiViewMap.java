@@ -221,6 +221,14 @@ public class MultiViewMap<T> {
     Set<MultiKey> getFullKeys( BitSet   view,
                                MultiKey partialKey ) {
 
+    if( view.equals( fullView ) ) {
+      Set<MultiKey> fullKeys = new HashSet<MultiKey>();
+      if( fullKey2value.containsKey( partialKey ) ) {
+        fullKeys.add( partialKey );
+      }
+      return fullKeys;
+    }
+
     Map<MultiKey, Set<MultiKey>> partialKey2fullKeys =
       getPartialKey2fullKeys( view );
     return getFullKeys( partialKey2fullKeys, partialKey );

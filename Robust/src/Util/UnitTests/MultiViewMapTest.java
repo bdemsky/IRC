@@ -17,9 +17,11 @@ public class MultiViewMapTest {
 
   private static Random random;
 
+  private static int numTests  = 0;
+  private static int numPassed = 0;
 
-  private static void p() { System.out.println( "  passed" ); }
-  private static void f() { System.out.println( "  !!!FAILED!!!" ); }
+  private static void p() { numTests++; numPassed++; System.out.print( "." ); }
+  private static void f() { numTests++; System.out.println( "!!!FAILED!!!" ); }
 
   private static void verify( Map<MultiKey, Integer> expected, 
                               Map<MultiKey, Integer> actual ) {
@@ -43,12 +45,14 @@ public class MultiViewMapTest {
 
     joinOp = new JoinOpInteger();
     
+    System.out.println("");
     testBuilder();
     System.out.println("");
     testMap();
     System.out.println("");
     stressTest();
     System.out.println("");
+    System.out.println(numPassed+"/"+numTests+" passed.");
   }
 
 
@@ -208,7 +212,7 @@ public class MultiViewMapTest {
     expected = new HashMap<MultiKey, Integer>();
     verify( expected, mapA.get( view0, partialKey4 ) );
 
-    
+
     // Try across a merge
     mapA.put( vader, 1001 );
     expected = new HashMap<MultiKey, Integer>();
@@ -238,6 +242,14 @@ public class MultiViewMapTest {
     expected.put( han,   1003 );
     expected.put( r2,    1004 );
     verify( expected, mapA.get( view0, partialKey4 ) );
+
+
+    // Get for full keys didn't work in production,
+    // so test it explicitly
+    expected = new HashMap<MultiKey, Integer>();
+    expected.put( luke, 1002 );
+    verify( expected, mapA.get( view012, luke ) );
+
 
     // removes vader and han
     MultiKey partialKey4true = MultiKey.factory( 4, true );
@@ -301,16 +313,16 @@ public class MultiViewMapTest {
     }
 
 
-    System.out.println( "    Number of full keys in each table per op cycle:" );
+    //System.out.println( "    Number of full keys in each table per op cycle:" );
     
     for( int reps = 0; reps < 100; ++reps ) {
       int nextOp = random.nextInt( 100 );
 
-      System.out.print( "    Op: " );
+      //System.out.print( "    Op: " );
 
       if( nextOp < 15 ) {
         // put some new values in
-        System.out.print( "PT  " );
+        //System.out.print( "PT  " );
         int numNewValues = 1 + random.nextInt( 8 );
         for( int i = 0; i < numNewValues; ++i ) {
           MultiKey newKey = MultiKey.factory( getInt( ints ),
@@ -321,7 +333,7 @@ public class MultiViewMapTest {
 
       } else if( nextOp < 70 ) {
         // remove values by a random view
-        System.out.print( "RM  " );
+        //System.out.print( "RM  " );
         MultiViewMap<Integer> map = getMap( maps );
 
         switch( random.nextInt( 6 ) ) {
@@ -335,16 +347,16 @@ public class MultiViewMapTest {
 
       } else {
         // merge two tables
-        System.out.print( "MG  " );
+        //System.out.print( "MG  " );
         getMap( maps ).merge( getMap( maps ) );
       }   
 
       for( int i = 0; i < maps.length - 1; ++i ) {
         if( i < maps.length - 1 ) {
-          System.out.print( maps[i].size() + ", " );
+          //System.out.print( maps[i].size() + ", " );
         }
       }
-      System.out.println( maps[maps.length-1].size() );
+      //System.out.println( maps[maps.length-1].size() );
     }
 
     System.out.println( "DONE" );
