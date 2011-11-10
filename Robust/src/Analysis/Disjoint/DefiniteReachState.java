@@ -29,14 +29,14 @@ public class DefiniteReachState {
   //
   // Tracks whether the analysis must know the definite reachability
   // information of a given variable.
-  //private enum DefReachKnown {
-  //  UNKNOWN,
-  //  KNOWN,
-  //}
-  //private Map<TempDescriptor, DefReachKnown> Rs;
+  private enum DefReachKnown {
+    UNKNOWN,
+    KNOWN,
+  }
+  private Map<TempDescriptor, DefReachKnown> Rs;
   
   
-  // Fu (upstream)
+  // Fu (field upstream)
   //
   // Maps a variable that points to object o0 to the
   // set of variables that point to objects o1...oN
@@ -47,7 +47,15 @@ public class DefiniteReachState {
   //private MultiViewMap<Object> Fu;
 
 
-  // Fd (downstream)
+  // Fd (field downstream)
+  //
+  // Entries <x, f, y> mean x.f points directly at what
+  // y points at.
+  private static MultiViewMapBuilder<Object> FdBuilder;
+  private static BitSet viewFd0;
+  private static BitSet viewFd2;
+  private MultiViewMap<Object> Fd;
+
 
 
 
@@ -77,20 +85,33 @@ public class DefiniteReachState {
     //viewFu1 = FuBuilder.addPartialView( 1 );
     //FuBuilder.setCheckTypes( true );
     //FuBuilder.setCheckConsistency( true );
+
+    FdBuilder =
+      new MultiViewMapBuilder<Object>( new Class[] {
+                                         TempDescriptor.class,
+                                         FieldDescriptor.class,
+                                         TempDescriptor.class},
+                                       new JoinOpNop() );
+    viewFd0 = FdBuilder.addPartialView( 0 );
+    viewFd2 = FdBuilder.addPartialView( 2 );
+    FdBuilder.setCheckTypes( true );
+    FdBuilder.setCheckConsistency( true );
   }
 
 
 
   public DefiniteReachState( DefiniteReachState toCopy ) {
-    this.R = toCopy.R.clone( RBuilder );
+    this.R  = toCopy.R.clone( RBuilder );
+    this.Rs = new HashMap<TempDescriptor, DefReachKnown>( toCopy.Rs );
+    this.Fd = toCopy.Fd.clone( FdBuilder );
   }
 
 
   public DefiniteReachState() {
     R = RBuilder.build();
-    //Rs = new HashMap<TempDescriptor, DefReachKnown>();
-
+    Rs = new HashMap<TempDescriptor, DefReachKnown>();
     //Fu = FuBuilder.build();
+    Fd = FdBuilder.build();
   }
 
 
@@ -104,24 +125,16 @@ public class DefiniteReachState {
 
 
   public void methodEntry( Set<TempDescriptor> parameters ) {
-    methodEntryR( parameters );
-
-    //Rs.clear();
-    //for( TempDescriptor p : parameters ) {
-    //  Rs.put( p, DefReachKnown.UNKNOWN );
-    //}
-    //
-    //Fu = FuBuilder.build();
+    methodEntryR ( parameters );
+    methodEntryRs( parameters );
+    methodEntryFd( parameters );
   }
 
   public void copy( TempDescriptor x,
                     TempDescriptor y ) {
-    copyR( x, y );
-
-    // Rs' := (Rs - <x,*>) U {<x,v> | <y,v> in Rs}
-    //DefReachKnown valRs = Rs.get( y );
-    //assert( valRs != null );
-    //Rs.put( x, valRs );
+    copyR ( x, y );
+    copyRs( x, y );
+    copyFd( x, y );
 
     // Fu' := (Fu - <x, *> - <*, x>) U
     //        {<x,v> | <y,v> in Fu} U
@@ -152,9 +165,9 @@ public class DefiniteReachState {
                     FieldDescriptor f,
                     Set<EdgeKey> edgeKeysForLoad ) {
 
-    loadR( x, y, f, edgeKeysForLoad );
-    // Rs' := (Rs - <x,*>) U {<x, unknown>}
-    //Rs.put( x, DefReachKnown.UNKNOWN );
+    loadR ( x, y, f, edgeKeysForLoad );
+    loadRs( x, y, f, edgeKeysForLoad );
+    loadFd( x, y, f, edgeKeysForLoad );
   }
 
   public void store( TempDescriptor x,
@@ -163,30 +176,27 @@ public class DefiniteReachState {
                      Set<EdgeKey> edgeKeysRemoved,
                      Set<EdgeKey> edgeKeysAdded ) {
 
-    storeR( x, f, y, edgeKeysRemoved, edgeKeysAdded );
-    // Rs' := Rs
+    storeR ( x, f, y, edgeKeysRemoved, edgeKeysAdded );
+    storeRs( x, f, y, edgeKeysRemoved, edgeKeysAdded );
+    storeFd( x, f, y, edgeKeysRemoved, edgeKeysAdded );
   }
 
   public void newObject( TempDescriptor x ) {
-    newObjectR( x );
-
-    // Rs' := (Rs - <x,*>) U {<x, new>}
-    //Rs.put( x, DefReachKnown.KNOWN );
-    
+    newObjectR ( x );
+    newObjectRs( x );
+    newObjectFd( x );
   }
 
   public void methodCall( TempDescriptor retVal ) {
-    methodCallR( retVal );
-
-    // Rs' := (Rs - <x,*>) U {<x, unknown>}
-    //Rs.put( x, DefReachKnown.UNKNOWN );
+    methodCallR ( retVal );
+    methodCallRs( retVal );
+    methodCallFd( retVal );
   }
 
   public void merge( DefiniteReachState that ) {
-    mergeR( that );
-
-    // Rs' := <x, new> iff in all incoming edges, otherwie <x, unknown>
-    //mergeRs( that );
+    mergeR ( that );
+    mergeRs( that );
+    mergeFd( that );
   }
 
 
@@ -293,16 +303,52 @@ public class DefiniteReachState {
     for( MultiKey key : this.R.get().keySet() ) {
       if( that.R.get( viewRfull, key ).isEmpty() ) {
         this.R.remove( viewRfull, key );
-      } else {
-        // if the key is in this and that, we should join the
-        // values using the R.joinOp which is currently has no
-        // public interface
       }
     }
   }
 
 
 
+
+
+
+
+
+  public void methodEntryRs( Set<TempDescriptor> parameters ) {
+    Rs.clear();
+    for( TempDescriptor p : parameters ) {
+      Rs.put( p, DefReachKnown.UNKNOWN );
+    }    
+  }
+
+  public void copyRs( TempDescriptor x,
+                      TempDescriptor y ) {
+    DefReachKnown valRs = Rs.get( y );
+    assert( valRs != null );
+    Rs.put( x, valRs );
+  }
+  
+  public void loadRs( TempDescriptor x,
+                      TempDescriptor y,
+                      FieldDescriptor f,
+                      Set<EdgeKey> edgeKeysForLoad ) {
+    Rs.put( x, DefReachKnown.UNKNOWN );
+  }
+
+  public void storeRs( TempDescriptor x,
+                       FieldDescriptor f,
+                       TempDescriptor y,
+                       Set<EdgeKey> edgeKeysRemoved,
+                       Set<EdgeKey> edgeKeysAdded ) {
+  }
+  
+  public void newObjectRs( TempDescriptor x ) {
+    Rs.put( x, DefReachKnown.KNOWN );
+  }
+
+  public void methodCallRs( TempDescriptor retVal ) {
+    Rs.put( retVal, DefReachKnown.UNKNOWN );
+  }
 
   ///////////////////////////////////////////////////////////
   //
@@ -315,21 +361,104 @@ public class DefiniteReachState {
   //  we have to do an analysis pass over all the incoming edges
   //  before there is a sensical answer.  I think...
   private void mergeRs( DefiniteReachState that ) {
-    // merge "that" into "this" and leave "that" unchanged
-    //Set<TempDescriptor> allVars = new HashSet<TempDescriptor>();
-    //allVars.addAll( this.Rs.keySet() );
-    //allVars.addAll( that.Rs.keySet() );
-    //for( TempDescriptor x : allVars ) {
-    //  DefReachKnown vThis = this.Rs.get( x );
-    //  DefReachKnown vThat = that.Rs.get( x );
-    //  if( vThis != null && vThis.equals( DefReachKnown.KNOWN ) &&
-    //      vThat != null && vThat.equals( DefReachKnown.KNOWN ) ) {
-    //    this.Rs.put( x, DefReachKnown.KNOWN );
-    //  } else {
-    //    this.Rs.put( x, DefReachKnown.UNKNOWN );
-    //  }
-    //}
+    Set<TempDescriptor> allVars = new HashSet<TempDescriptor>();
+    allVars.addAll( this.Rs.keySet() );
+    allVars.addAll( that.Rs.keySet() );
+    for( TempDescriptor x : allVars ) {
+      DefReachKnown vThis = this.Rs.get( x );
+      DefReachKnown vThat = that.Rs.get( x );
+      if( vThis != null && vThis.equals( DefReachKnown.KNOWN ) &&
+          vThat != null && vThat.equals( DefReachKnown.KNOWN ) ) {
+        this.Rs.put( x, DefReachKnown.KNOWN );
+      } else {
+        this.Rs.put( x, DefReachKnown.UNKNOWN );
+      }
+    }
   }
+
+
+
+
+
+
+
+  public void methodEntryFd( Set<TempDescriptor> parameters ) {
+    Fd.clear();
+  }
+
+  public void copyFd( TempDescriptor x,
+                     TempDescriptor y ) {
+    // consider that x and y can be the same, so do the
+    // parts of the update in the right order:
+
+    // first get all info for update
+    MultiKey keyY = MultiKey.factory( y );
+    Map<MultiKey, Object> mapY0 = Fd.get( viewFd0, keyY );
+    Map<MultiKey, Object> mapY2 = Fd.get( viewFd2, keyY );
+
+    // then remove anything
+    MultiKey keyX = MultiKey.factory( x );
+    Fd.remove( viewFd0, keyX );
+    Fd.remove( viewFd2, keyX );
+
+    // then insert new stuff
+    for( MultiKey fullKeyY : mapY0.keySet() ) {
+      MultiKey fullKeyX = MultiKey.factory( x, 
+                                            fullKeyY.get( 1 ), 
+                                            fullKeyY.get( 2 ) );
+      Fd.put( fullKeyX, MultiViewMap.dummyValue );
+    }
+    for( MultiKey fullKeyY : mapY2.keySet() ) {
+      MultiKey fullKeyX = MultiKey.factory( fullKeyY.get( 0 ), 
+                                            fullKeyY.get( 1 ),
+                                            x );
+      Fd.put( fullKeyX, MultiViewMap.dummyValue );
+    }
+  }
+  
+  public void loadFd( TempDescriptor x,
+                     TempDescriptor y,
+                     FieldDescriptor f,
+                     Set<EdgeKey> edgeKeysForLoad ) {
+
+    MultiKey keyX = MultiKey.factory( x );
+    Fd.remove( viewFd0, keyX );
+    Fd.remove( viewFd2, keyX );
+  }
+
+  public void storeFd( TempDescriptor x,
+                      FieldDescriptor f,
+                      TempDescriptor y,
+                      Set<EdgeKey> edgeKeysFdemoved,
+                      Set<EdgeKey> edgeKeysAdded ) {
+    Fd.put( MultiKey.factory( x, f, y ), 
+            MultiViewMap.dummyValue );
+  }
+  
+  public void newObjectFd( TempDescriptor x ) {
+    MultiKey keyX = MultiKey.factory( x );
+    Fd.remove( viewFd0, keyX );
+    Fd.remove( viewFd2, keyX );
+  }
+
+  public void methodCallFd( TempDescriptor retVal ) {
+    MultiKey keyRetVal = MultiKey.factory( retVal );
+    Fd.remove( viewFd0, keyRetVal );
+    Fd.remove( viewFd2, keyRetVal );
+  }
+
+  public void mergeFd( DefiniteReachState that ) {
+    this.Fd.merge( that.Fd );
+  }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -374,11 +503,16 @@ public class DefiniteReachState {
     s.append( R.toString( 2 ) );
     s.append( "}\n" );
 
-    //s.append( "R_s = {" );
-    //for( TempDescriptor x : Rs.keySet() ) {
-    //  s.append( "  "+x+"->"+Rs.get( x ) );
-    //}
-    //s.append( "}" );
+    s.append( "Rs = {\n" );
+    for( TempDescriptor x : Rs.keySet() ) {
+      s.append( "  "+x+"->"+Rs.get( x )+"\n" );
+    }
+    s.append( "}\n" );
+
+    s.append( "Fd = {\n" );
+    s.append( Fd.toString( 2 ) );
+    s.append( "}\n" );
+
     return s.toString();
   }
 }
