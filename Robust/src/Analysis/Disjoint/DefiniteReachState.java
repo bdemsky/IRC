@@ -188,14 +188,14 @@ public class DefiniteReachState {
 
 
   public void methodEntryR( Set<TempDescriptor> parameters ) {
-    R.clear();
+    //R.clear();
   }
 
   public void copyR( TempDescriptor x,
                      TempDescriptor y ) {
     // consider that x and y can be the same, so do the
     // parts of the update in the right order:
-
+    /*
     // first get all info for update
     MultiKey keyY = MultiKey.factory( y );
     Map<MultiKey, Object> mapY0 = R.get( viewR0, keyY );
@@ -219,12 +219,14 @@ public class DefiniteReachState {
                                             fullKeyY.get( 2 ) );
       R.put( fullKeyX, MultiViewMap.dummyValue );
     }
+    */
   }
   
   public void loadR( TempDescriptor x,
                      TempDescriptor y,
                      FieldDescriptor f,
                      Set<EdgeKey> edgeKeysForLoad ) {
+    /*
     // consider that x and y can be the same, so do the
     // parts of the update in the right order:
 
@@ -253,6 +255,7 @@ public class DefiniteReachState {
                MultiViewMap.dummyValue );
       }
     }
+    */
   }
 
   public void storeR( TempDescriptor x,
@@ -271,21 +274,29 @@ public class DefiniteReachState {
   }
   
   public void newObjectR( TempDescriptor x ) {
+    /*
     MultiKey keyX = MultiKey.factory( x );
     R.remove( viewR0, keyX );
     R.remove( viewR1, keyX );
+    */
   }
 
   public void methodCallR( TempDescriptor retVal ) {
+    /*
     MultiKey keyRetVal = MultiKey.factory( retVal );
     R.remove( viewR0, keyRetVal );
     R.remove( viewR1, keyRetVal );
+    */
   }
 
   public void mergeR( DefiniteReachState that ) {
     for( MultiKey key : this.R.get().keySet() ) {
       if( that.R.get( viewRfull, key ).isEmpty() ) {
         this.R.remove( viewRfull, key );
+      } else {
+        // if the key is in this and that, we should join the
+        // values using the R.joinOp which is currently has no
+        // public interface
       }
     }
   }

@@ -851,8 +851,7 @@ public class DisjointAnalysis implements HeapAnalysis {
 
     if( state.DO_DEFINITE_REACH_ANALYSIS ) {
       doDefiniteReachAnalysis = true;
-      DefiniteReachAnalysis.setPointerMethod( pm );
-      definiteReachAnalysis = new DefiniteReachAnalysis();
+      definiteReachAnalysis = new DefiniteReachAnalysis( pm );
     }
 
 
