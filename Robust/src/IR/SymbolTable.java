@@ -9,15 +9,12 @@ public class SymbolTable {
   private HashSet valueset;
 
   private Vector<SymbolTable> parentIFs;
-  private SymbolTable surrounding;
-
 
   public SymbolTable() {
     table = new Hashtable();
     valueset = new HashSet();
     parent = null;
     parentIFs = null;
-    this.surrounding = null;
   }
 
   public SymbolTable(SymbolTable parent) {
@@ -48,9 +45,6 @@ public class SymbolTable {
       for(int i = 0; i < parentIFs.size(); i++) {
 	hs.addAll(parentIFs.elementAt(i).getPSet(name));
       }
-    }
-    if(this.surrounding != null) {
-	hs.addAll(this.surrounding.getPSet(name));
     }
     if (table.containsKey(name)) {
       hs.addAll((HashSet)table.get(name));
@@ -88,13 +82,6 @@ public class SymbolTable {
 	  return d;
 	}
       }
-    }
-    
-    if(this.surrounding != null) {
-	d = this.surrounding.get(name);
-	if(d != null) {
-	    return d;
-	}
     }
     
     return null;
@@ -136,9 +123,6 @@ public class SymbolTable {
         hs.addAll(parentIFs.elementAt(i).getAllValueSet());
       }
     }
-    if(this.surrounding != null) {
-	hs.addAll(this.surrounding.getAllValueSet());
-    }
 
     hs.addAll(valueset);
     return hs;
@@ -160,14 +144,6 @@ public class SymbolTable {
     this.parent = parent;
   }
   
-  public SymbolTable getSurrounding() {
-      return this.surrounding;
-  }
-  
-  public void setSurrounding(SymbolTable surrounding) {
-      this.surrounding = surrounding;
-  }
-
   public Vector<SymbolTable> getParentIFs() {
     return parentIFs;
   }

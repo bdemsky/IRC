@@ -1202,13 +1202,13 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       nn.setNumLine(pn.getLine());
       return nn;
     } else if (isNode(pn,"parentclass")) {
-      NameDescriptor nd=new NameDescriptor("this");
+      NameDescriptor nd=new NameDescriptor(pn.getChild("name").getFirstChild().getFirstChild().getTerminal());
       NameNode nn=new NameNode(nd);
       nn.setNumLine(pn.getLine());
 	//because inner classes pass right thru......
-    /*  FieldAccessNode fan=new FieldAccessNode(nn,"this$0");
-      fan.setNumLine(pn.getLine());*/
-      return nn;
+      FieldAccessNode fan=new FieldAccessNode(nn,"this");
+      fan.setNumLine(pn.getLine());
+      return fan;
     } else if (isNode(pn,"isavailable")) {
       NameDescriptor nd=new NameDescriptor(pn.getTerminal());
       NameNode nn=new NameNode(nd);

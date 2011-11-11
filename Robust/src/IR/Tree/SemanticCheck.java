@@ -75,13 +75,6 @@ public class SemanticCheck {
 	      cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
 	      cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
 	      cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
-	      // if this is an inner class, link together Field, Method and Flag
-	      // tables from its surrounding class
-	      if(cd.isInnerClass()) {
-		  cd.getFieldTable().setSurrounding(cd.getSurroundingDesc().getFieldTable());
-		  cd.getMethodTable().setSurrounding(cd.getSurroundingDesc().getMethodTable());
-		  cd.getFlagTable().setSurrounding(cd.getSurroundingDesc().getFlagTable());
-	      }
 	    }
 	  }
         }
@@ -677,6 +670,26 @@ public class SemanticCheck {
     if(ltd.isClassNameRef()) {
       // the field access is using a class name directly
       if (fd==null) {
+       // check if it is to access a surrounding class in an inner class
+       if(fieldname.equals("this")) {
+	   ClassDescriptor icd = ((VarDescriptor)nametable.get("this")).getType().getClassDesc();
+	   if(icd.isInnerClass()) {
+	       NameNode nn = new NameNode(new NameDescriptor("this"));
+	       nn.setVar((VarDescriptor)nametable.get("this"));
+	       fan.setExpression(nn);
+	       if(icd.getSurroundingDesc()==ltd.getClassDesc()) {
+		   // this is a surrounding class access inside an inner class
+		   fan.setExpression(nn);
+		   fan.setFieldName("this$0");
+		   fd = (FieldDescriptor)icd.getFieldTable().get("this$0");
+	       } else if(icd==ltd.getClassDesc()) {
+		   // this is an inner class this operation 
+		   fd = new FieldDescriptor(new Modifiers(),new TypeDescriptor(icd),"this",null,false);
+	       }
+	       fan.setField(fd);
+	       return;
+	   }
+       }
        ClassDescriptor surroundingCls=ltd.getClassDesc().getSurroundingDesc();
        
        while(surroundingCls!=null) {
@@ -833,9 +846,23 @@ public class SemanticCheck {
       }
   }
 
+  FieldDescriptor recurseSurroundingClasses( ClassDescriptor icd, String varname ) {
+        if( null == icd || false == icd.isInnerClass() )
+	    return null;
+      
+        ClassDescriptor surroundingDesc = icd.getSurroundingDesc();
+        if( null == surroundingDesc )
+	    return null;
+      
+        SymbolTable fieldTable = surroundingDesc.getFieldTable();
+        FieldDescriptor fd = ( FieldDescriptor ) fieldTable.get( varname );
+        if( null != fd )
+	    return fd;
+        return recurseSurroundingClasses( surroundingDesc, varname );
+  }
+  
   FieldAccessNode fieldAccessExpression( ClassDescriptor icd, String varname, int linenum ) {
-        // first check if the field is belong to the icd or its parent class
-	FieldDescriptor fd = (FieldDescriptor)icd.getFieldTable().get(varname);
+        FieldDescriptor fd = recurseSurroundingClasses( icd, varname );
 	if( null == fd )
 		return null;
 
@@ -1291,6 +1318,41 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
     }
   }
 
+  MethodDescriptor recurseSurroundingClassesM( ClassDescriptor icd, String varname ) {
+      if( null == icd || false == icd.isInnerClass() )
+	    return null;
+    
+      ClassDescriptor surroundingDesc = icd.getSurroundingDesc();
+      if( null == surroundingDesc )
+	    return null;
+    
+      SymbolTable methodTable = surroundingDesc.getMethodTable();
+      MethodDescriptor md = ( MethodDescriptor ) methodTable.get( varname );
+      if( null != md )
+	    return md;
+      return recurseSurroundingClassesM( surroundingDesc, varname );
+  }
+
+  ExpressionNode methodInvocationExpression( ClassDescriptor icd, MethodDescriptor md, int linenum ) {
+	ClassDescriptor cd = md.getClassDesc();
+	int depth = 1;
+	int startingDepth = icd.getInnerDepth();
+
+	if( true == cd.isInnerClass() ) 
+		depth = cd.getInnerDepth();
+
+	String composed = "this";
+	NameDescriptor runningDesc = new NameDescriptor( "this" );;
+	
+	for ( int index = startingDepth; index > depth; --index ) {
+		composed = "this$" + String.valueOf( index - 1  );	
+		runningDesc = new NameDescriptor( runningDesc, composed );
+	}
+	if( false == cd.isInnerClass() )
+		runningDesc = new NameDescriptor( runningDesc, "this$" + String.valueOf(0) ); //all the way up.
+
+	return new NameNode(runningDesc);
+}
 
   void checkMethodInvokeNode(Descriptor md, SymbolTable nametable, MethodInvokeNode min, TypeDescriptor td) {
     /*Typecheck subexpressions
@@ -1393,8 +1455,18 @@ NextMethod:
         /* Is this more specific than bestmd */
       }
     }
-    if (bestmd==null)
-      throw new Error("No method found for :"+min.printNode(0)+" in class: " + classtolookin+" in "+md);
+    if (bestmd==null) {
+      // if this is an inner class, need to check the method table for the surrounding class
+      bestmd = recurseSurroundingClassesM(classtolookin, min.getMethodName());
+      if(bestmd == null)
+	  throw new Error("No method found for :"+min.printNode(0)+" in class: " + classtolookin+" in "+md);
+      else {
+	  // set the correct "this" expression here
+	  ExpressionNode en=methodInvocationExpression(classtolookin, bestmd, min.getNumLine());
+	  min.setExpression(en);
+	  checkExpressionNode(md, nametable, min.getExpression(), null);
+      }
+    }
     min.setMethod(bestmd);
 
     if ((td!=null)&&(min.getType()!=null)&&!typeutil.isSuperorType(td,  min.getType()))

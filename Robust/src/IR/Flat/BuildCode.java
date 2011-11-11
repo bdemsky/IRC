@@ -2805,7 +2805,22 @@ fldloop:
       output.println("}else{");
       output.println(generateTemp(fm, ffn.getDst())+"="+ generateTemp(fm,ffn.getSrc())+"->"+ ffn.getField().getSafeSymbol()+";");
       output.println("}");
-    }else {
+    }else if (ffn.getField().getSymbol().equals("this")) {
+	// an inner class refers to itself
+	if( state.CAPTURE_NULL_DEREFERENCES ) {
+	    output.println("#ifdef CAPTURE_NULL_DEREFERENCES");
+	    output.println("if (" + generateTemp(fm,ffn.getSrc()) + " == NULL) {");
+	    output.println("printf(\" NULL ptr error: %s, %s, %d \\n\", __FILE__, __func__, __LINE__);");
+	    if(state.MULTICOREGC||state.PMC) {
+		output.println("failednullptr(&___locals___);");
+	    } else {
+		output.println("failednullptr(NULL);");
+	    }
+	    output.println("}");
+	    output.println("#endif //CAPTURE_NULL_DEREFERENCES");
+	}
+	output.println(generateTemp(fm, ffn.getDst())+"="+ generateTemp(fm,ffn.getSrc())+";");
+    } else {
       if( state.CAPTURE_NULL_DEREFERENCES ) {
         output.println("#ifdef CAPTURE_NULL_DEREFERENCES");
         output.println("if (" + generateTemp(fm,ffn.getSrc()) + " == NULL) {");

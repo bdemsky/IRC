@@ -19,6 +19,10 @@ public class FieldAccessNode extends ExpressionNode {
   public String getFieldName() {
     return fieldname;
   }
+  
+  public void setFieldName(String fieldname) {
+      this.fieldname = fieldname;
+  }
 
   public FieldDescriptor getField() {
     return field;
