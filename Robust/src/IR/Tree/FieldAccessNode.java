@@ -6,10 +6,12 @@ public class FieldAccessNode extends ExpressionNode {
   ExpressionNode left;
   String fieldname;
   FieldDescriptor field;
+  boolean issuper;
 
   public FieldAccessNode(ExpressionNode l, String field) {
     fieldname=field;
     left=l;
+    this.issuper = false;
   }
 
   public void setField(FieldDescriptor fd) {
@@ -43,6 +45,14 @@ public class FieldAccessNode extends ExpressionNode {
   }
   public TypeDescriptor getType() {
     return getField().getType();
+  }
+  
+  public void setIsSuper() {
+      this.issuper = true;
+  }
+  
+  public boolean isSuper() {
+      return issuper;
   }
 
   public Long evaluate() {

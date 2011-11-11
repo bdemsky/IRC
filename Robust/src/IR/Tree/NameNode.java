@@ -13,12 +13,22 @@ public class NameNode extends ExpressionNode {
   FieldDescriptor fd;
   ExpressionNode en;
   ClassDescriptor cd;
+  boolean issuper;
 
   public NameNode(NameDescriptor nd) {
     this.name=nd;
     this.vd=null;
     this.fd=null;
     this.cd = null;
+    this.issuper= false;
+  }
+  
+  public boolean isSuper() {
+      return this.issuper;
+  }
+  
+  public void setIsSuper() {
+      this.issuper = true;
   }
 
   public ExpressionNode getExpression() {

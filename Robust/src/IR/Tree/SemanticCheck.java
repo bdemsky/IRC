@@ -664,14 +664,17 @@ public class SemanticCheck {
     FieldDescriptor fd=null;
     if (ltd.isArray()&&fieldname.equals("length"))
       fd=FieldDescriptor.arrayLength;
-    else {
+    else if(((left instanceof NameNode) && ((NameNode)left).isSuper())
+	    ||((left instanceof FieldAccessNode) && ((FieldAccessNode)left).isSuper())){
+      fd = (FieldDescriptor) ltd.getClassDesc().getSuperDesc().getFieldTable().get(fieldname);
+    } else {
       fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
     }
     if(ltd.isClassNameRef()) {
       // the field access is using a class name directly
       if (fd==null) {
        // check if it is to access a surrounding class in an inner class
-       if(fieldname.equals("this")) {
+       if(fieldname.equals("this") || fieldname.equals("super")) {
 	   ClassDescriptor icd = ((VarDescriptor)nametable.get("this")).getType().getClassDesc();
 	   if(icd.isInnerClass()) {
 	       NameNode nn = new NameNode(new NameDescriptor("this"));
@@ -686,10 +689,13 @@ public class SemanticCheck {
 		   // this is an inner class this operation 
 		   fd = new FieldDescriptor(new Modifiers(),new TypeDescriptor(icd),"this",null,false);
 	       }
+	       if(fieldname.equals("super")) {
+		   fan.setIsSuper();
+	       }
 	       fan.setField(fd);
 	       return;
 	   }
-       }
+       } 
        ClassDescriptor surroundingCls=ltd.getClassDesc().getSurroundingDesc();
        
        while(surroundingCls!=null) {
@@ -899,9 +905,12 @@ public class SemanticCheck {
       checkExpressionNode(md,nametable,en,td);
     } else {
       String varname=nd.toString();
-      if(varname.equals("this")) {
+      if(varname.equals("this") || varname.equals("super")) {
         // "this"
         nn.setVar((VarDescriptor)nametable.get("this"));
+        if(varname.equals("super")) {
+            nn.setIsSuper();
+        }
         return;
       }
       Descriptor d=(Descriptor)nametable.get(varname);

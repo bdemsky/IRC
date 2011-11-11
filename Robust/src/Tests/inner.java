@@ -38,6 +38,9 @@ public class inner extends innerp {
       System.out.println("\t Inner class print: ");
       System.out.println(outer);
       System.out.println(super.outer);
+      t.super.outer = 1;
+      System.out.println(outer);
+      System.out.println(t.super.outer);
       System.out.println(inner.this.outer);
       System.out.println(inner.super.outer);
       System.out.println(f1);

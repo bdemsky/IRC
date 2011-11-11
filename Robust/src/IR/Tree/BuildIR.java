@@ -636,6 +636,9 @@ private void addOuterClassParam( ClassDescriptor cn, int depth )
 	
 	for(Iterator it=cn.getInnerClasses(); it.hasNext(); ) {
       		ClassDescriptor icd=(ClassDescriptor)it.next();
+      		if(icd.isStatic()) {
+      		    continue;
+      		}
 		
 		//iterate over all ctors of I.Cs and add a new param
 		for(Iterator method_it=icd.getMethods(); method_it.hasNext(); ) {
@@ -1240,6 +1243,22 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       FieldAccessNode fan=new FieldAccessNode(en,fieldname);
       fan.setNumLine(pn.getLine());
       return fan;
+    } else if (isNode(pn,"superfieldaccess")) {
+	ExpressionNode en=new NameNode(new NameDescriptor("super"));
+	String fieldname=pn.getChild("field").getTerminal();
+
+	FieldAccessNode fan=new FieldAccessNode(en,fieldname);
+	fan.setNumLine(pn.getLine());
+	return fan;
+    } else if (isNode(pn,"supernamefieldaccess")) {
+	ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());
+	ExpressionNode exp = new FieldAccessNode(en, "super");
+	exp.setNumLine(pn.getLine());
+	String fieldname=pn.getChild("field").getTerminal();
+
+	FieldAccessNode fan=new FieldAccessNode(exp,fieldname);
+	fan.setNumLine(pn.getLine());
+	return fan;
     } else if (isNode(pn,"arrayaccess")) {
       ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());
       ExpressionNode index=parseExpression(pn.getChild("index").getFirstChild());

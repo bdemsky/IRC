@@ -2204,8 +2204,17 @@ field_access ::=
 		pn.addChild("field").addChild(id);
 		RESULT=pn;
     :}
-//	|	SUPER DOT IDENTIFIER
-//	|	name DOT SUPER DOT IDENTIFIER
+	|	SUPER DOT IDENTIFIER:id {: 
+		ParseNode pn=new ParseNode("superfieldaccess",parser.lexer.line_num);
+		pn.addChild("field").addChild(id);
+		RESULT=pn;
+    :}
+	|	name:name DOT SUPER DOT IDENTIFIER:id {: 
+		ParseNode pn=new ParseNode("supernamefieldaccess",parser.lexer.line_num);
+		pn.addChild("base").addChild(name);
+		pn.addChild("field").addChild(id);
+		RESULT=pn;
+    :}
 	;
 method_invocation ::=
 		name:name LPAREN argument_list_opt:args RPAREN {: 
