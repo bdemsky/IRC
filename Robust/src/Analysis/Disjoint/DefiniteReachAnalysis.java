@@ -41,6 +41,14 @@ public class DefiniteReachAnalysis {
   }
 
 
+  public Set<DefiniteReachState.FdEntry> edgesToElidePropagation( TempDescriptor x, 
+                                                                  TempDescriptor y,
+                                                                  FlatNode fn ) {
+    return makeIn( fn ).edgesToElidePropagation( x, y );
+  }
+
+
+
   private void addPartialResult( FlatNode fn, DefiniteReachState state ) {
     fn2state.put( fn, state );
     fnHasPartial.add( fn );

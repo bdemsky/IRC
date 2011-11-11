@@ -51,6 +51,18 @@ public class DefiniteReachState {
   //
   // Entries <x, f, y> mean x.f points directly at what
   // y points at.
+  public class FdEntry {
+    TempDescriptor  y;
+    FieldDescriptor f0;
+    TempDescriptor  z;
+    public FdEntry( TempDescriptor  y,
+                    FieldDescriptor f0,
+                    TempDescriptor  z ) {
+      this.y  = y;
+      this.f0 = f0;
+      this.z  = z;
+    }
+  }
   private static MultiViewMapBuilder<Object> FdBuilder;
   private static BitSet viewFd0;
   private static BitSet viewFd2;
@@ -119,6 +131,39 @@ public class DefiniteReachState {
   public boolean isAlreadyReachable( TempDescriptor a,
                                      TempDescriptor b ) {
     return !R.get( viewR01, MultiKey.factory( a, b ) ).isEmpty();
+  }
+
+
+  public Set<FdEntry> edgesToElidePropagation( TempDescriptor x, 
+                                               TempDescriptor y ) {
+    // return the set of edges that definite reach analysis tells
+    // us we can elide propagating reach info across during the
+    // store: x.f = y 
+
+    Set<FdEntry> out = new HashSet<FdEntry>();
+
+    // we have to know something about y
+    DefReachKnown known = Rs.get( y );
+    if( known == null || known == DefReachKnown.UNKNOWN ) {
+      return out;
+    }
+
+    // find all 'y points at' entries in Fd
+    MultiKey keyY = MultiKey.factory( y );
+    Map<MultiKey, Object> mapY0 = Fd.get( viewFd0, keyY );
+
+    for( MultiKey fullKeyY : mapY0.keySet() ) {
+      // if y.f0 points at z, and z is already reachable from x,
+      // include the edge y.f0->z
+      FieldDescriptor f0 = (FieldDescriptor) fullKeyY.get( 1 );
+      TempDescriptor  z  = (TempDescriptor)  fullKeyY.get( 2 );
+
+      if( isAlreadyReachable( z, x ) ) {
+        out.add( new FdEntry( y, f0, z ) );
+      }
+    }
+    
+    return out;
   }
 
 

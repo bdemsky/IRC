@@ -428,6 +428,7 @@ public class ReachGraph {
                                    null,
                                    false,
                                    null,
+                                   null,
                                    null );
   }
 
@@ -597,7 +598,8 @@ public class ReachGraph {
                                                FlatNode currentProgramPoint,
                                                boolean alreadyReachable,
                                                Set<EdgeKey> edgeKeysRemoved,
-                                               Set<EdgeKey> edgeKeysAdded
+                                               Set<EdgeKey> edgeKeysAdded,
+                                               Set<DefiniteReachState.FdEntry> edgesToElideFromPropFd
                                                ) {
 
     VariableNode lnX = getVariableNodeFromTemp(x);
@@ -644,6 +646,51 @@ public class ReachGraph {
     }
 
 
+    // definite reachability analysis can elide some edges from
+    // propagating reach information
+    Set<RefEdge> edgesToElideFromProp = null;
+    if( edgesToElideFromPropFd != null ) {
+      edgesToElideFromProp = new HashSet<RefEdge>();
+      Iterator<RefEdge> itrY = lnY.iteratorToReferencees();
+      while( itrY.hasNext() ) {
+        HeapRegionNode hrnSrc = itrY.next().getDst();
+
+        Iterator<RefEdge> itrhrn = hrnSrc.iteratorToReferencees();
+        while( itrhrn.hasNext() ) {
+          RefEdge        edgeToElide = itrhrn.next();
+          String         f0          = edgeToElide.getField();
+          HeapRegionNode hrnDst      = edgeToElide.getDst();
+
+          // does this graph edge match a statically-named edge
+          // that def reach says we don't have to prop over?
+          for( DefiniteReachState.FdEntry entry : edgesToElideFromPropFd ) {
+            if( !entry.f0.getSymbol().equals( f0 ) ) {
+              continue;
+            }
+            boolean refByZ = false;
+            Iterator<RefEdge> itrRef = hrnDst.iteratorToReferencers();
+            while( itrRef.hasNext() ) {
+              RefEdge edgeZ = itrRef.next();
+              if( edgeZ.getSrc() instanceof VariableNode ) {
+                VariableNode vnZ = (VariableNode) edgeZ.getSrc();
+                if( vnZ.getTempDescriptor().equals( entry.z ) ) {
+                  refByZ = true;
+                  break;
+                }
+              }
+            }
+            if( refByZ ) {
+              // this graph edge matches the def reach edge, mark it for
+              // no propagation
+              edgesToElideFromProp.add( edgeToElide );
+            }
+          }
+        }
+      }
+    }
+
+
+
     // definite reachability analysis can elide reachability propagation
     if( !alreadyReachable ) {
 
@@ -672,7 +719,11 @@ public class ReachGraph {
           // propagate tokens over nodes starting from hrnSrc, and it will
           // take care of propagating back up edges from any touched nodes
           ChangeSet Cy = Canonical.unionUpArityToChangeSet(O, R);
-          propagateTokensOverNodes(hrnY, Cy, nodesWithNewAlpha, edgesWithNewBeta);
+          propagateTokensOverNodes( hrnY, 
+                                    Cy, 
+                                    nodesWithNewAlpha, 
+                                    edgesWithNewBeta,
+                                    edgesToElideFromProp );
 
           // then propagate back just up the edges from hrn
           ChangeSet Cx = Canonical.unionUpArityToChangeSet(R, O);
@@ -688,9 +739,10 @@ public class ReachGraph {
             edgePlannedChanges.put(edgeUpstream, Cx);
           }
 
-          propagateTokensOverEdges(todoEdges,
-                                   edgePlannedChanges,
-                                   edgesWithNewBeta);
+          propagateTokensOverEdges( todoEdges,
+                                    edgePlannedChanges,
+                                    edgesWithNewBeta,
+                                    edgesToElideFromProp );
         }
       }
     }
@@ -1187,7 +1239,8 @@ public class ReachGraph {
   protected void propagateTokensOverNodes(HeapRegionNode nPrime,
                                           ChangeSet c0,
                                           HashSet<HeapRegionNode> nodesWithNewAlpha,
-                                          HashSet<RefEdge>        edgesWithNewBeta) {
+                                          HashSet<RefEdge>        edgesWithNewBeta,
+                                          Set<RefEdge>            edgesToElideProp ) {
 
     HashSet<HeapRegionNode> todoNodes
       = new HashSet<HeapRegionNode>();
@@ -1211,6 +1264,10 @@ public class ReachGraph {
       Iterator<RefEdge> referItr = n.iteratorToReferencers();
       while( referItr.hasNext() ) {
         RefEdge edge = referItr.next();
+
+        if( edgesToElideProp != null && edgesToElideProp.contains( edge ) ) {
+          continue;
+        }
         todoEdges.add(edge);
 
         if( !edgePlannedChanges.containsKey(edge) ) {
@@ -1229,6 +1286,11 @@ public class ReachGraph {
       Iterator<RefEdge> refeeItr = n.iteratorToReferencees();
       while( refeeItr.hasNext() ) {
         RefEdge edgeF = refeeItr.next();
+
+        if( edgesToElideProp != null && edgesToElideProp.contains( edgeF ) ) {
+          continue;
+        }
+
         HeapRegionNode m     = edgeF.getDst();
 
         ChangeSet changesToPass = ChangeSet.factory();
@@ -1291,14 +1353,15 @@ public class ReachGraph {
 
     propagateTokensOverEdges(todoEdges,
                              edgePlannedChanges,
-                             edgesWithNewBeta
-                             );
+                             edgesWithNewBeta,
+                             edgesToElideProp);
   }
 
 
   protected void propagateTokensOverEdges(HashSet  <RefEdge>            todoEdges,
                                           Hashtable<RefEdge, ChangeSet> edgePlannedChanges,
-                                          HashSet  <RefEdge>            edgesWithNewBeta) {
+                                          HashSet  <RefEdge>            edgesWithNewBeta,
+                                          Set<RefEdge>                  edgesToElideProp ) {
 
     // first propagate all change tuples everywhere they can go
     while( !todoEdges.isEmpty() ) {
@@ -1333,6 +1396,10 @@ public class ReachGraph {
         Iterator<RefEdge> referItr = n.iteratorToReferencers();
         while( referItr.hasNext() ) {
           RefEdge edgeF = referItr.next();
+
+          if( edgesToElideProp != null && edgesToElideProp.contains( edgeF ) ) {
+            continue;
+          }
 
           if( !edgePlannedChanges.containsKey(edgeF) ) {
             edgePlannedChanges.put(edgeF,
@@ -2920,9 +2987,10 @@ public class ReachGraph {
     // of the caller graph edges
     HashSet<RefEdge> edgesUpdated = new HashSet<RefEdge>();
 
-    propagateTokensOverEdges(edgesForPropagation,  // source edges
-                             edgePlannedChanges,   // map src edge to change set
-                             edgesUpdated);        // list of updated edges
+    propagateTokensOverEdges( edgesForPropagation,  // source edges
+                              edgePlannedChanges,   // map src edge to change set
+                              edgesUpdated,         // list of updated edges
+                              null );        
 
     // commit beta' (beta<-betaNew)
     Iterator<RefEdge> edgeItr = edgesUpdated.iterator();
@@ -3555,7 +3623,8 @@ public class ReachGraph {
 
     propagateTokensOverEdges(edgesForPropagation,
                              edgePlannedChanges,
-                             edgesUpdated);
+                             edgesUpdated,
+                             null);
 
     // at the end of the 1st phase reference edges have
     // beta, betaNew that correspond to beta and betaR

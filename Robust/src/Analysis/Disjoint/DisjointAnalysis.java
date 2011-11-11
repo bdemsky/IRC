@@ -1306,6 +1306,7 @@ public class DisjointAnalysis implements HeapAnalysis {
     Set<EdgeKey> edgeKeysForLoad;
     Set<EdgeKey> edgeKeysRemoved;
     Set<EdgeKey> edgeKeysAdded;
+    Set<DefiniteReachState.FdEntry> edgesToElideFromProp;
 
     //Stores the flatnode's reach graph at enter
     ReachGraph rgOnEnter = new ReachGraph();
@@ -1496,13 +1497,15 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       boolean strongUpdate = false;
 
-      alreadyReachable = false;
-      edgeKeysRemoved  = null;
-      edgeKeysAdded    = null;
+      alreadyReachable     = false;
+      edgeKeysRemoved      = null;
+      edgeKeysAdded        = null;
+      edgesToElideFromProp = null;
       if( doDefiniteReachAnalysis ) {
-        alreadyReachable = definiteReachAnalysis.isAlreadyReachable( rhs, lhs, fn );
-        edgeKeysRemoved  = new HashSet<EdgeKey>();
-        edgeKeysAdded    = new HashSet<EdgeKey>();
+        alreadyReachable     = definiteReachAnalysis.isAlreadyReachable( rhs, lhs, fn );
+        edgeKeysRemoved      = new HashSet<EdgeKey>();
+        edgeKeysAdded        = new HashSet<EdgeKey>();
+        edgesToElideFromProp = definiteReachAnalysis.edgesToElidePropagation( lhs, rhs, fn );
       }
 
       // before transfer func, possibly inject
@@ -1534,7 +1537,8 @@ public class DisjointAnalysis implements HeapAnalysis {
                                                          fn, 
                                                          alreadyReachable,
                                                          edgeKeysRemoved,
-                                                         edgeKeysAdded );
+                                                         edgeKeysAdded,
+                                                         edgesToElideFromProp );
         if( doDefiniteReachAnalysis ) {
           definiteReachAnalysis.store( fn, 
                                        lhs,
@@ -1613,13 +1617,15 @@ public class DisjointAnalysis implements HeapAnalysis {
       tdElement = lhs.getType().dereference();
       fdElement = getArrayField(tdElement);
 
-      alreadyReachable = false;
-      edgeKeysRemoved  = null;
-      edgeKeysAdded    = null;
+      alreadyReachable     = false;
+      edgeKeysRemoved      = null;
+      edgeKeysAdded        = null;
+      edgesToElideFromProp = null;
       if( doDefiniteReachAnalysis ) {
-        alreadyReachable = definiteReachAnalysis.isAlreadyReachable( rhs, lhs, fn );
-        edgeKeysRemoved = new HashSet<EdgeKey>();
-        edgeKeysAdded   = new HashSet<EdgeKey>();
+        alreadyReachable     = definiteReachAnalysis.isAlreadyReachable( rhs, lhs, fn );
+        edgeKeysRemoved      = new HashSet<EdgeKey>();
+        edgeKeysAdded        = new HashSet<EdgeKey>();
+        edgesToElideFromProp = definiteReachAnalysis.edgesToElidePropagation( lhs, rhs, fn );
       }
 
       // before transfer func, possibly inject
@@ -1653,7 +1659,8 @@ public class DisjointAnalysis implements HeapAnalysis {
                                             fn, 
                                             alreadyReachable,
                                             edgeKeysRemoved,
-                                            edgeKeysAdded );
+                                            edgeKeysAdded,
+                                            edgesToElideFromProp );
         }
 
         if( doDefiniteReachAnalysis ) {
