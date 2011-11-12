@@ -94,11 +94,11 @@ public class SemanticCheck {
         }
       }
       if (oldstatus<INIT&&fullcheck>=INIT) {
-       if (cd.isInnerClass()) {
+       /*if (cd.isInnerClass()) {
           Modifiers fdmodifiers=new Modifiers();
          FieldDescriptor enclosingfd=new FieldDescriptor(fdmodifiers,new TypeDescriptor(cd.getSurroundingDesc()),"this___enclosing",null,false);
          cd.addField(enclosingfd);
-       }
+       }*/
 
         /* Check to see that fields are well typed */
         for(Iterator field_it=cd.getFields(); field_it.hasNext(); ) {
@@ -731,21 +731,21 @@ public class SemanticCheck {
 
     if (fd==null){
 	if((md instanceof MethodDescriptor) && false == ((MethodDescriptor)md).isStaticBlock()) {
-		ClassDescriptor cd = ((MethodDescriptor)md).getClassDesc();
-		FieldAccessNode theFieldNode = 	fieldAccessExpression( cd, fieldname, fan.getNumLine() );
-		if( null != theFieldNode ) {
-			//fan = theFieldNode;
-      			checkFieldAccessNode( md, nametable, theFieldNode, td );
-			fan.setField( theFieldNode.getField() );
-			fan.setExpression( theFieldNode.getExpression() );
-			//TypeDescriptor td1 = fan.getType();
-			//td1.toString();
-			return;		
-		}	
-		}
+	    ClassDescriptor cd = ((MethodDescriptor)md).getClassDesc();
+	    FieldAccessNode theFieldNode = 	fieldAccessExpression( cd, fieldname, fan.getNumLine() );
+	    if( null != theFieldNode ) {
+		//fan = theFieldNode;
+		checkFieldAccessNode( md, nametable, theFieldNode, td );
+		fan.setField( theFieldNode.getField() );
+		fan.setExpression( theFieldNode.getExpression() );
+		//TypeDescriptor td1 = fan.getType();
+		//td1.toString();
+		return;		
+	    }	
+	}
 	throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0)+" in "+md);
-      }
-    if (fd==null) {
+    }
+    /*if (fd==null) {
       ClassDescriptor surroundingCls=ltd.getClassDesc().getSurroundingDesc();
       int numencloses=1;
       while(surroundingCls!=null) {
@@ -768,7 +768,7 @@ public class SemanticCheck {
 
       if (fd==null)
        throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0)+" in "+md);
-    }
+    }*/
 
 
     if (fd.getType().iswrapper()) {

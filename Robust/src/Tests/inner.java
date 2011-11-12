@@ -16,10 +16,23 @@ public class inner extends innerp {
     outerprint();
     t tmp=new t();
     tmp.print();
+    outerAnonymousInner(100);
   }
   
   public void outerprint() {
       System.out.println("Outer class print: " + this.outer + "; " + this.f2);
+  }
+  
+  public void outerprintInnerp(innerCallback c) {
+      c.call();
+  }
+  
+  public void outerAnonymousInner(final int value) {
+      this.outerprintInnerp(new innerCallback() {
+	  public void call() {
+	      System.out.println("innerCallback: " + value);
+	  }
+      });
   }
 
   public class t extends innerpt {

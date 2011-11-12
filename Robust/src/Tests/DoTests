@@ -24,4 +24,4 @@ dotest StaticInnerClassTest StaticInnerClassTest.java
 dotest StaticTest StaticTest.java
 dotest SwitchCaseTest SwitchCaseTest.java
 dotest TryCatchTest TryCatchTest.java
-dotest inner inner.java innerp.java innerpt.java
+#dotest inner inner.java innerp.java innerpt.java innerCallback.java

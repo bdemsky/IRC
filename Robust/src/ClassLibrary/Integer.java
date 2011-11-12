@@ -134,4 +134,20 @@ public class Integer {
     value |= value >>> 16;
     return bitCount(~value);
   }
+
+  /**
+   * Returns an <code>Integer</code> object wrapping the value.
+   * In contrast to the <code>Integer</code> constructor, this method
+   * will cache some values.  It is used by boxing conversion.
+   *
+   * @param val the value to wrap
+   * @return the <code>Integer</code>
+   */
+  public static Integer valueOf(int val)
+  {
+    //if (val < MIN_CACHE || val > MAX_CACHE)
+      return new Integer(val);
+    /*else
+      return intCache[val - MIN_CACHE];*/
+  }
 }
