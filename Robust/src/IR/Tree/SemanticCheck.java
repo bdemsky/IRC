@@ -10,6 +10,8 @@ public class SemanticCheck {
   Stack loopstack;
   HashSet toanalyze;
   HashMap<ClassDescriptor, Integer> completed;
+  HashMap<ClassDescriptor, Vector<VarDescriptor>> inlineClass2LiveVars;
+  boolean trialcheck = false;
 
   public static final int NOCHECK=0;
   public static final int REFERENCE=1;
@@ -32,6 +34,7 @@ public class SemanticCheck {
     this.toanalyze=new HashSet();
     this.completed=new HashMap<ClassDescriptor, Integer>();
     this.checkAll=checkAll;
+    this.inlineClass2LiveVars = new HashMap<ClassDescriptor, Vector<VarDescriptor>>();
   }
 
   public ClassDescriptor getClass(ClassDescriptor context, String classname) {
@@ -116,6 +119,32 @@ public class SemanticCheck {
       }
     }
   }
+  
+  public void semanticCheckClass(ClassDescriptor cd) {
+    // need to initialize typeutil object here...only place we can
+    // get class descriptors without first calling getclass
+    getClass(cd, cd.getSymbol());
+    if(cd.getInline()) {
+      
+      // for inline defined anonymous classes, we need to check its 
+      // surrounding class first to get its surrounding context
+      ClassDescriptor surroundingcd = cd.getSurroundingDesc();
+      if(toanalyze.contains(surroundingcd)) {
+	  toanalyze.remove(surroundingcd);
+	  semanticCheckClass(surroundingcd);
+      }
+    }
+
+    for (Iterator method_it = cd.getMethods(); method_it.hasNext(); ) {
+      MethodDescriptor md = (MethodDescriptor) method_it.next();
+      try {
+	checkMethodBody(cd, md);
+      } catch (Error e) {
+        System.out.println("Error in " + md);
+        throw e;
+      }
+    }
+  }
 
   public void semanticCheck() {
     SymbolTable classtable = state.getClassSymbolTable();
@@ -137,39 +166,7 @@ public class SemanticCheck {
       } else {
         ClassDescriptor cd = (ClassDescriptor) obj;
         toanalyze.remove(cd);
-        if(cd.getInline()) {
-          getClass(cd, cd.getSymbol());
-          // for inline defined anonymous classes, we need to check its 
-          // surrounding class first to get its surrounding context
-          ClassDescriptor surroundingcd = cd.getSurroundingDesc();
-          if(toanalyze.contains(surroundingcd)) {
-            toanalyze.remove(surroundingcd);
-            getClass(surroundingcd, surroundingcd.getSymbol());
-            for (Iterator method_it = surroundingcd.getMethods(); method_it.hasNext(); ) {
-              MethodDescriptor md = (MethodDescriptor) method_it.next();
-              try {
-                checkMethodBody(surroundingcd, md);
-              } catch (Error e) {
-                System.out.println("Error in " + md);
-                throw e;
-              }
-            }
-          }
-        } else {
-          // need to initialize typeutil object here...only place we can
-          // get class descriptors without first calling getclass
-          getClass(cd, cd.getSymbol());
-        }
-        
-        for (Iterator method_it = cd.getMethods(); method_it.hasNext(); ) {
-          MethodDescriptor md = (MethodDescriptor) method_it.next();
-          try {
-            checkMethodBody(cd, md);
-          } catch (Error e) {
-            System.out.println("Error in " + md);
-            throw e;
-          }
-        }
+        semanticCheckClass(cd);
       }
     }
   }
@@ -324,8 +321,9 @@ public class SemanticCheck {
       VarDescriptor thisvd=new VarDescriptor(new TypeDescriptor(cd),"this");
       md.setThis(thisvd);
     }
-    if(md.isDefaultConstructor() && (cd.getSuperDesc() != null)) {
+    if(md.isDefaultConstructor() && (cd.getSuperDesc() != null) && !cd.getInline()) {
       // add the construction of it super class, can only be super()
+      // NOTE: inline class should be treated differently
       NameDescriptor nd=new NameDescriptor("super");
       MethodInvokeNode min=new MethodInvokeNode(nd);
       BlockExpressionNode ben=new BlockExpressionNode(min);
@@ -913,8 +911,19 @@ public class SemanticCheck {
 			nn.setExpression(( ExpressionNode )theFieldNode);
       			checkExpressionNode(md,nametable,( ExpressionNode )theFieldNode,td);
 			return;		
+		} else if(cd.getInline() && this.trialcheck) {
+		    // for the trial check of an inline class, cache the unknown var
+		    d = cd.getSurroundingNameTable().get(varname);
+		    if(!this.inlineClass2LiveVars.containsKey(cd)) {
+			this.inlineClass2LiveVars.put(cd, new Vector<VarDescriptor>());
+		    }
+		    Vector<VarDescriptor> vars = this.inlineClass2LiveVars.get(cd);
+		    if(!vars.contains((VarDescriptor)d)) {
+		      vars.add((VarDescriptor)d);
+		    }
 		}
 	}
+	if(null==d) {
         if((md instanceof MethodDescriptor) && ((MethodDescriptor)md).isStaticBlock()) {
           // this is a static block, all the accessed fields should be static field
           cd = ((MethodDescriptor)md).getClassDesc();
@@ -964,6 +973,7 @@ public class SemanticCheck {
             throw new Error("Name "+varname+" undefined in: "+md);	    
           }
         }
+	}
       }
 
       if (d instanceof VarDescriptor) {
@@ -1177,34 +1187,76 @@ public class SemanticCheck {
 	//System.out.println( " the modified createObjectNode is " + con.printNode( 0 ) + "\n" );
 }
   
-  // add all the vars in the surrounding context of the inline class into the inline 
-  // classes field table and pass them to the inline class' constructors
-  // TODO: BUGFIX. There need not add all the local vars of the surrounding context 
-  // into the inline class. Should only add those that are referred to inside the inline
-  // class. Also these local vars should be final. But currently we've lost those 
-  // information, so we cannot have that checked.
-  void InlineClassAddParamToCtor(MethodDescriptor md, ClassDescriptor cd , SymbolTable nametable, CreateObjectNode con, TypeDescriptor td ) {
-      Iterator it_values = nametable.getAllValueSet().iterator();
-      while(it_values.hasNext()) {
-	  Descriptor d = (Descriptor)it_values.next();
-	  if(d instanceof VarDescriptor && !d.getSymbol().equals("this")) {
-	      con.addArgument(new NameNode(new NameDescriptor(d.getSymbol())));
-	      cd.addField(new FieldDescriptor(new Modifiers(Modifiers.PUBLIC), ((VarDescriptor)d).getType(), d.getSymbol(), null, false));
-	      for(Iterator it_methods = cd.getMethods(); it_methods.hasNext();) {
-		  MethodDescriptor imd = (MethodDescriptor)it_methods.next();
-		  if(imd.isConstructor()) {
-		      imd.addParameter(((VarDescriptor)d).getType(), d.getSymbol()+"_p");
-		      // add the initialize statement into this constructor
-		      BlockNode obn = state.getMethodBody(imd);
-		      NameNode nn=new NameNode(new NameDescriptor(d.getSymbol()));
-		      NameNode fn = new NameNode (new NameDescriptor(d.getSymbol()+"_p"));
-		      AssignmentNode an=new AssignmentNode(nn,fn,new AssignOperation(1));
-		      obn.addFirstBlockStatement(new BlockExpressionNode(an));
-		      state.addTreeCode(imd, obn);
-		  }
-	      }
-	  }
+  void trialSemanticCheck(ClassDescriptor cd) {
+    if(!cd.getInline()) {
+      throw new Error("Error! Try to do a trial check on a non-inline class " + cd.getSymbol());
+    }
+    trialcheck = true;
+      
+    for (Iterator method_it = cd.getMethods(); method_it.hasNext(); ) {
+      MethodDescriptor md = (MethodDescriptor) method_it.next();
+      try {
+	checkMethodBody(cd, md);
+      } catch (Error e) {
+	System.out.println("Error in " + md);
+	throw e;
       }
+    }
+    trialcheck = false;
+  }
+  
+  // add all the live vars that are referred by the inline class in the surrounding 
+  // context of the inline class into the inline class' field table and pass them to 
+  // the inline class' constructors
+  // TODO: BUGFIX. These local vars should be final. But currently we've lost those 
+  // information, so we cannot have that checked.
+  void InlineClassAddParamToCtor(MethodDescriptor md, ClassDescriptor cd , SymbolTable nametable, CreateObjectNode con, TypeDescriptor td, TypeDescriptor[] tdarray ) {
+    // for an inline class, need to first add the original parameters of the CreatObjectNode
+    // into its anonymous constructor and insert a super(...) into the anonymous constructor
+    // if its super class is not null
+    MethodDescriptor cd_construtor = null;
+    for(Iterator it_methods = cd.getMethods(); it_methods.hasNext();) {
+      MethodDescriptor imd = (MethodDescriptor)it_methods.next();
+      if(imd.isConstructor()) {
+	cd_construtor = imd; // an inline class should only have one anonymous constructor
+      }
+    }
+    MethodInvokeNode min = null;
+    if(cd.getSuper()!= null) {
+      // add a super(...) into the anonymous constructor
+      NameDescriptor nd=new NameDescriptor("super");
+      min=new MethodInvokeNode(nd);
+      BlockExpressionNode ben=new BlockExpressionNode(min);
+      BlockNode bn = state.getMethodBody(cd_construtor);
+      bn.addFirstBlockStatement(ben);
+    }
+    for(int i = 0 ; i < tdarray.length; i++) {
+      assert(null!=min);
+      TypeDescriptor itd = tdarray[i];
+      cd_construtor.addParameter(itd, itd.getSymbol()+"_from_con_node_"+i);
+      min.addArgument(new NameNode(new NameDescriptor(itd.getSymbol()+"_from_con_node_"+i)));
+    }
+    
+    // Next add the live vars into the inline class' fields
+    cd.setSurroundingNameTable(nametable);
+    // do a round of semantic check trial to get all the live vars required by the inline class
+    trialSemanticCheck(cd);
+    Vector<VarDescriptor> vars = this.inlineClass2LiveVars.remove(cd);
+    for(int i = 0; i < vars.size(); i++) {
+      Descriptor d = vars.elementAt(i);
+      if(d instanceof VarDescriptor && !d.getSymbol().equals("this")) {
+	con.addArgument(new NameNode(new NameDescriptor(d.getSymbol())));
+	cd.addField(new FieldDescriptor(new Modifiers(Modifiers.PUBLIC), ((VarDescriptor)d).getType(), d.getSymbol(), null, false));
+	cd_construtor.addParameter(((VarDescriptor)d).getType(), d.getSymbol()+"_p");
+	// add the initialize statement into this constructor
+	BlockNode obn = state.getMethodBody(cd_construtor);
+	NameNode nn=new NameNode(new NameDescriptor(d.getSymbol()));
+	NameNode fn = new NameNode (new NameDescriptor(d.getSymbol()+"_p"));
+	AssignmentNode an=new AssignmentNode(nn,fn,new AssignOperation(1));
+	obn.addFirstBlockStatement(new BlockExpressionNode(an));
+	state.addTreeCode(cd_construtor, obn);
+      }
+    }
   }
   
   void checkCreateObjectNode(Descriptor md, SymbolTable nametable, CreateObjectNode con,
@@ -1225,6 +1277,11 @@ public class SemanticCheck {
     /* Check Array Initializers */
     if ((con.getArrayInitializer() != null)) {
       checkArrayInitializerNode(md, nametable, con.getArrayInitializer(), typetolookin);
+    }
+    
+    if(this.trialcheck) {
+      // for a trialcheck of an inline class, skip the rest process
+      return;
     }
 
     /* Check flag effects */
@@ -1266,9 +1323,10 @@ public class SemanticCheck {
       if( classtolookin.isInnerClass() ) {
       	InnerClassAddParamToCtor( (MethodDescriptor)md, ((MethodDescriptor)md).getClassDesc() , nametable, con, td );
       	if(classtolookin.getInline()) {
-    	  // for an inline anonymous inner class, all the local variables are passed as
-      	  // parameters of the constructors of the inline class
-      	  InlineClassAddParamToCtor( (MethodDescriptor)md, classtolookin, nametable, con, td );
+    	  // for an inline anonymous inner class, the live local variables that are 
+      	  // referred to by the inline class are passed as parameters of the constructors
+      	  // of the inline class
+      	  InlineClassAddParamToCtor( (MethodDescriptor)md, classtolookin, nametable, con, td, tdarray );
       	}
 	tdarray = new TypeDescriptor[con.numArgs()];
     	for (int i = 0; i < con.numArgs(); i++) {

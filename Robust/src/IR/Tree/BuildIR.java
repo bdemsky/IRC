@@ -1132,8 +1132,8 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       cnnew.setSuper(td.getSymbol());
       cnnew.setInline();
       // the inline anonymous class does not have modifiers, it cannot be static 
-      // TODO: need to check the Java specification
-      cnnew.setModifiers(new Modifiers(Modifiers.PUBLIC));
+      // it is always implicit final
+      cnnew.setModifiers(new Modifiers(Modifiers.FINAL));
       cnnew.setAsInnerClass();
       cnnew.setSurroundingClass(cn.getSymbol());
       cnnew.setSurrounding(cn);
@@ -1144,13 +1144,16 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
 	  MethodDescriptor md=(MethodDescriptor)method_it.next();
 	  hasConstructor |= md.isConstructor();
       }
-      if((!hasConstructor) && (!cnnew.isEnum())) {
+      if(hasConstructor) {
+	  // anonymous class should not have explicit constructors
+	  throw new Error("Error! Anonymous class " + cnnew.getSymbol() + " in " + cn.getSymbol() + " has explicit constructors!");
+      } else if(!cnnew.isEnum()) {
 	  // add a default constructor for this class
-	  MethodDescriptor md = new MethodDescriptor(new Modifiers(Modifiers.PUBLIC),cnnew.getSymbol(), false);
+	  MethodDescriptor cmd = new MethodDescriptor(new Modifiers(Modifiers.PUBLIC|Modifiers.FINAL),cnnew.getSymbol(), false);
 	  BlockNode bn=new BlockNode();
-	  state.addTreeCode(md,bn);
-	  md.setDefaultConstructor();
-	  cnnew.addMethod(md);
+	  state.addTreeCode(cmd,bn);
+	  cmd.setDefaultConstructor();
+	  cnnew.addMethod(cmd);
       }
       TypeDescriptor tdnew=state.getTypeDescriptor(cnnew.getSymbol());
 

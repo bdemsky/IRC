@@ -28,6 +28,7 @@ public class inner extends innerp {
   }
   
   public void outerAnonymousInner(final int value) {
+      int j = 0; // this should not be included into the following anonymous inner class
       this.outerprintInnerp(new innerCallback() {
 	  public void call() {
 	      System.out.println("innerCallback: " + value);

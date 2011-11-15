@@ -39,6 +39,7 @@ public class ClassDescriptor extends Descriptor {
   //adding another variable to indicate depth of this inner class 
   int innerDepth = 0;
   ClassDescriptor surroundingdesc=null;
+  SymbolTable surroundingNameTable = null;
 
   SymbolTable innerdescs;
 
@@ -468,5 +469,13 @@ public class ClassDescriptor extends Descriptor {
     } else {
       return otherClassname;
     }
+  }
+  
+  public void setSurroundingNameTable(SymbolTable nametable) {
+    this.surroundingNameTable = nametable;
+  }
+  
+  public SymbolTable getSurroundingNameTable() {
+    return this.surroundingNameTable;
   }
 }
