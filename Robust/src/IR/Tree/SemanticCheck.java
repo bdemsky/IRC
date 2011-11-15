@@ -1196,10 +1196,10 @@ public class SemanticCheck {
     for (Iterator method_it = cd.getMethods(); method_it.hasNext(); ) {
       MethodDescriptor md = (MethodDescriptor) method_it.next();
       try {
-	checkMethodBody(cd, md);
+        checkMethodBody(cd, md);
       } catch (Error e) {
-	System.out.println("Error in " + md);
-	throw e;
+        System.out.println("Error in " + md);
+        throw e;
       }
     }
     trialcheck = false;
@@ -1218,7 +1218,7 @@ public class SemanticCheck {
     for(Iterator it_methods = cd.getMethods(); it_methods.hasNext();) {
       MethodDescriptor imd = (MethodDescriptor)it_methods.next();
       if(imd.isConstructor()) {
-	cd_construtor = imd; // an inline class should only have one anonymous constructor
+        cd_construtor = imd; // an inline class should only have one anonymous constructor
       }
     }
     MethodInvokeNode min = null;
@@ -1242,19 +1242,22 @@ public class SemanticCheck {
     // do a round of semantic check trial to get all the live vars required by the inline class
     trialSemanticCheck(cd);
     Vector<VarDescriptor> vars = this.inlineClass2LiveVars.remove(cd);
+    if(vars == null) {
+      return;
+    }
     for(int i = 0; i < vars.size(); i++) {
       Descriptor d = vars.elementAt(i);
       if(d instanceof VarDescriptor && !d.getSymbol().equals("this")) {
-	con.addArgument(new NameNode(new NameDescriptor(d.getSymbol())));
-	cd.addField(new FieldDescriptor(new Modifiers(Modifiers.PUBLIC), ((VarDescriptor)d).getType(), d.getSymbol(), null, false));
-	cd_construtor.addParameter(((VarDescriptor)d).getType(), d.getSymbol()+"_p");
-	// add the initialize statement into this constructor
-	BlockNode obn = state.getMethodBody(cd_construtor);
-	NameNode nn=new NameNode(new NameDescriptor(d.getSymbol()));
-	NameNode fn = new NameNode (new NameDescriptor(d.getSymbol()+"_p"));
-	AssignmentNode an=new AssignmentNode(nn,fn,new AssignOperation(1));
-	obn.addFirstBlockStatement(new BlockExpressionNode(an));
-	state.addTreeCode(cd_construtor, obn);
+        con.addArgument(new NameNode(new NameDescriptor(d.getSymbol())));
+        cd.addField(new FieldDescriptor(new Modifiers(Modifiers.PUBLIC), ((VarDescriptor)d).getType(), d.getSymbol(), null, false));
+        cd_construtor.addParameter(((VarDescriptor)d).getType(), d.getSymbol()+"_p");
+        // add the initialize statement into this constructor
+        BlockNode obn = state.getMethodBody(cd_construtor);
+        NameNode nn=new NameNode(new NameDescriptor(d.getSymbol()));
+        NameNode fn = new NameNode (new NameDescriptor(d.getSymbol()+"_p"));
+        AssignmentNode an=new AssignmentNode(nn,fn,new AssignOperation(1));
+        obn.addFirstBlockStatement(new BlockExpressionNode(an));
+        state.addTreeCode(cd_construtor, obn);
       }
     }
   }
@@ -1328,12 +1331,12 @@ public class SemanticCheck {
       	  // of the inline class
       	  InlineClassAddParamToCtor( (MethodDescriptor)md, classtolookin, nametable, con, td, tdarray );
       	}
-	tdarray = new TypeDescriptor[con.numArgs()];
-    	for (int i = 0; i < con.numArgs(); i++) {
-      		ExpressionNode en = con.getArg(i);
-     		checkExpressionNode(md, nametable, en, null);
-     		tdarray[i] = en.getType();
-   	 }
+        tdarray = new TypeDescriptor[con.numArgs()];
+        for (int i = 0; i < con.numArgs(); i++) {
+          ExpressionNode en = con.getArg(i);
+          checkExpressionNode(md, nametable, en, null);
+          tdarray[i] = en.getType();
+        }
       }
       Set methoddescriptorset = classtolookin.getMethodTable().getSet(classtolookin.getSymbol());
       MethodDescriptor bestmd = null;
