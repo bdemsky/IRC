@@ -25,6 +25,7 @@ public class DefiniteReachState {
   private static BitSet viewR01;
   private MultiViewMap<Object> R;
 
+
   // Rs
   //
   // Tracks whether the analysis must know the definite reachability
@@ -41,10 +42,43 @@ public class DefiniteReachState {
   // Maps a variable that points to object o0 to the
   // set of variables that point to objects o1...oN
   // that have a reference to o0.
-  //private static MultiViewMapBuilder<Object> FuBuilder;
-  //private static BitSet viewFu0;
-  //private static BitSet viewFu1;
-  //private MultiViewMap<Object> Fu;
+  private class FuSource {
+    DefReachKnown  isKnown;
+    TempDescriptor knownSrc;
+    public FuSource() {
+      this.isKnown  = DefReachKnown.UNKNOWN;
+      this.knownSrc = null;
+    }
+    public FuSource( TempDescriptor src ) {
+      assert( src != null );
+      this.isKnown  = DefReachKnown.KNOWN;
+      this.knownSrc = src;
+    }
+    public boolean equals( Object o ) {
+      if( !(o instanceof FuSource) ) {
+        return false;
+      }
+      FuSource fus = (FuSource)o;
+      return 
+        this.isKnown  == fus.isKnown  &&
+        this.knownSrc == fus.knownSrc;
+    }
+    public int hashCode() {
+      int hash = 0;
+      if( isKnown == DefReachKnown.KNOWN ) {
+        hash = 123451;
+      }
+      if( knownSrc != null ) {
+        hash ^= knownSrc.hashCode();
+      }
+      return hash;
+    }
+  }
+  private static MultiViewMapBuilder<Object> FuBuilder;
+  private static BitSet viewFufull;
+  private static BitSet viewFu0;
+  private static BitSet viewFu1;
+  private MultiViewMap<Object> Fu;
 
 
   // Fd (field downstream)
@@ -74,6 +108,7 @@ public class DefiniteReachState {
 
   // call before instantiating this class
   static public void initBuilders() {
+
     RBuilder =
       new MultiViewMapBuilder<Object>( new Class[] {
                                          TempDescriptor.class,
@@ -87,16 +122,19 @@ public class DefiniteReachState {
     viewR01   = RBuilder.addPartialView( 0, 1 );
     RBuilder.setCheckTypes( true );
     RBuilder.setCheckConsistency( true );
+    
 
-    //FuBuilder =
-    //  new MultiViewMapBuilder<Object>( new Class[] {
-    //                                     TempDescriptor.class,
-    //                                     DefReachFuVal.class},
-    //                                   new JoinOpNop() );
-    //viewFu0 = FuBuilder.addPartialView( 0 );
-    //viewFu1 = FuBuilder.addPartialView( 1 );
-    //FuBuilder.setCheckTypes( true );
-    //FuBuilder.setCheckConsistency( true );
+    FuBuilder =
+      new MultiViewMapBuilder<Object>( new Class[] {
+                                         TempDescriptor.class,
+                                         FuSource.class},
+                                       new JoinOpNop() );
+    viewFufull = FuBuilder.getFullView();
+    viewFu0    = FuBuilder.addPartialView( 0 );
+    viewFu1    = FuBuilder.addPartialView( 1 );
+    FuBuilder.setCheckTypes( true );
+    FuBuilder.setCheckConsistency( true );
+
 
     FdBuilder =
       new MultiViewMapBuilder<Object>( new Class[] {
@@ -115,23 +153,50 @@ public class DefiniteReachState {
   public DefiniteReachState( DefiniteReachState toCopy ) {
     this.R  = toCopy.R.clone( RBuilder );
     this.Rs = new HashMap<TempDescriptor, DefReachKnown>( toCopy.Rs );
+    this.Fu = toCopy.Fu.clone( FuBuilder );
     this.Fd = toCopy.Fd.clone( FdBuilder );
   }
 
 
   public DefiniteReachState() {
-    R = RBuilder.build();
+    R  = RBuilder.build();
     Rs = new HashMap<TempDescriptor, DefReachKnown>();
-    //Fu = FuBuilder.build();
+    Fu = FuBuilder.build();
     Fd = FdBuilder.build();
   }
 
 
 
+
   public boolean isAlreadyReachable( TempDescriptor a,
                                      TempDescriptor b ) {
-    return !R.get( viewR01, MultiKey.factory( a, b ) ).isEmpty();
+
+    boolean case1 = !R.get( viewR01, MultiKey.factory( a, b ) ).isEmpty();
+
+    boolean case3 = false;
+    if( Rs.get( b ) != null && 
+        Rs.get( b ) == DefReachKnown.KNOWN &&
+        Fu.get( viewFufull, MultiKey.factory( b, new FuSource() ) ).isEmpty()
+        ) {
+      boolean allEntriesOk = true;
+      for( MultiKey fullKeyB : Fu.get( viewFu0, 
+                                       MultiKey.factory( b ) ).keySet() 
+           ) {
+        if( !R.get( viewR01, 
+                    MultiKey.factory( a, 
+                                      ((FuSource)fullKeyB.get( 1 )).knownSrc
+                                      ) ).isEmpty()
+            ) {
+          allEntriesOk = false;
+          break;
+        }
+      }
+      case3 = allEntriesOk;
+    }
+
+    return case1 || case3;
   }
+
 
 
   public Set<FdEntry> edgesToElidePropagation( TempDescriptor x, 
@@ -172,6 +237,7 @@ public class DefiniteReachState {
   public void methodEntry( Set<TempDescriptor> parameters ) {
     methodEntryR ( parameters );
     methodEntryRs( parameters );
+    methodEntryFu( parameters );
     methodEntryFd( parameters );
   }
 
@@ -179,30 +245,8 @@ public class DefiniteReachState {
                     TempDescriptor y ) {
     copyR ( x, y );
     copyRs( x, y );
+    copyFu( x, y );
     copyFd( x, y );
-
-    // Fu' := (Fu - <x, *> - <*, x>) U
-    //        {<x,v> | <y,v> in Fu} U
-    //        {<v,x> | <v,y> in Fu} U
-    //        {<z, unknown> | <z,<x>> in Fu}
-    //Fu.remove( viewFu0, MultiKey.factory( x ) );
-    //Fu.remove( viewFu1, MultiKey.factory( x ) );
-    //for( MultiKey key : Fu.get( viewFu0, MultiKey.factory( y ) ).keySet() ) {
-    //  DefReachFuVal val = (DefReachFuVal) key.get( 1 );
-    //  Fu.put( MultiKey.factory( x, val ), dummy );
-    //}
-    //for( MultiKey key : Fu.get( viewFu1, MultiKey.factory( y ) ).keySet() ) {
-    //  TempDescriptor v = (TempDescriptor) key.get( 0 );
-    //  Fu.put( MultiKey.factory( v, DefReachFuVal.factory( x ) ), dummy );
-    //}
-    //for( MultiKey key : 
-    //       Fu.get( viewFu1, 
-    //               MultiKey.factory( DefReachFuVal.factory( DefReachFuVal.Val.UNKNOWN ) )
-    //               ).keySet() 
-    //     ) {
-    //  TempDescriptor z = (TempDescriptor) key.get( 0 );
-    //  Fu.put( MultiKey.factory( z, DefReachFuVal.factory( x ) ), dummy );      
-    //}
   }
 
   public void load( TempDescriptor x,
@@ -212,6 +256,7 @@ public class DefiniteReachState {
 
     loadR ( x, y, f, edgeKeysForLoad );
     loadRs( x, y, f, edgeKeysForLoad );
+    loadFu( x, y, f, edgeKeysForLoad );
     loadFd( x, y, f, edgeKeysForLoad );
   }
 
@@ -223,24 +268,28 @@ public class DefiniteReachState {
 
     storeR ( x, f, y, edgeKeysRemoved, edgeKeysAdded );
     storeRs( x, f, y, edgeKeysRemoved, edgeKeysAdded );
+    storeFu( x, f, y, edgeKeysRemoved, edgeKeysAdded );
     storeFd( x, f, y, edgeKeysRemoved, edgeKeysAdded );
   }
 
   public void newObject( TempDescriptor x ) {
     newObjectR ( x );
     newObjectRs( x );
+    newObjectFu( x );
     newObjectFd( x );
   }
 
   public void methodCall( TempDescriptor retVal ) {
     methodCallR ( retVal );
     methodCallRs( retVal );
+    methodCallFu( retVal );
     methodCallFd( retVal );
   }
 
   public void merge( DefiniteReachState that ) {
     mergeR ( that );
     mergeRs( that );
+    mergeFu( that );
     mergeFd( that );
   }
 
@@ -395,16 +444,6 @@ public class DefiniteReachState {
     Rs.put( retVal, DefReachKnown.UNKNOWN );
   }
 
-  ///////////////////////////////////////////////////////////
-  //
-  //  This is WRONG
-  //
-  //  It definitely tests the current R as well as Rs
-  //  
-  //  but also be careful what null means, is it actually
-  //  equivalent to UNKOWN?  I'd rather put nothing, meaning
-  //  we have to do an analysis pass over all the incoming edges
-  //  before there is a sensical answer.  I think...
   private void mergeRs( DefiniteReachState that ) {
     Set<TempDescriptor> allVars = new HashSet<TempDescriptor>();
     allVars.addAll( this.Rs.keySet() );
@@ -421,6 +460,119 @@ public class DefiniteReachState {
     }
   }
 
+
+
+
+
+
+
+
+  public void methodEntryFu( Set<TempDescriptor> parameters ) {
+    Fu.clear();
+  }
+
+  public void copyFu( TempDescriptor x,
+                      TempDescriptor y ) {
+    // consider that x and y can be the same, so do the
+    // parts of the update in the right order:
+
+    // first get all info for update
+    MultiKey keyY    = MultiKey.factory( y );
+    MultiKey keyYsrc = MultiKey.factory( new FuSource( y ) );
+    Map<MultiKey, Object> mapY0 = Fu.get( viewFu0, keyY );
+    Map<MultiKey, Object> mapY1 = Fu.get( viewFu1, keyYsrc );
+
+    MultiKey keyXsrc = MultiKey.factory( new FuSource( x ) );
+    Map<MultiKey, Object> mapX1 = Fu.get( viewFu1, keyXsrc );
+
+    // then remove anything
+    MultiKey keyX = MultiKey.factory( x );
+    Fu.remove( viewFu0, keyX );
+    Fu.remove( viewFu1, keyXsrc );
+
+    // then insert new stuff
+    for( MultiKey fullKeyY : mapY0.keySet() ) {
+      MultiKey fullKeyX = MultiKey.factory( x, 
+                                            fullKeyY.get( 1 ) );
+      Fu.put( fullKeyX, MultiViewMap.dummyValue );
+    }
+    for( MultiKey fullKeyY : mapY1.keySet() ) {
+      MultiKey fullKeyX = MultiKey.factory( fullKeyY.get( 0 ), 
+                                            new FuSource( x ) );
+      Fu.put( fullKeyX, MultiViewMap.dummyValue );
+    }
+    for( MultiKey fullKeyXsrc : mapX1.keySet() ) {
+      Fu.put( MultiKey.factory( fullKeyXsrc.get( 0 ),
+                                new FuSource() ), 
+              MultiViewMap.dummyValue );
+    }
+  }
+
+  public void loadFu( TempDescriptor x,
+                      TempDescriptor y,
+                      FieldDescriptor f,
+                      Set<EdgeKey> edgeKeysForLoad ) {
+
+    // first get all info for update
+    MultiKey keyXsrc = MultiKey.factory( new FuSource( x ) );
+    Map<MultiKey, Object> mapX1 = Fu.get( viewFu1, keyXsrc );
+
+    MultiKey keyX = MultiKey.factory( x );
+    // then remove anything
+    Fu.remove( viewFu0, keyX );
+    Fu.remove( viewFu1, keyXsrc );
+
+    // then insert new stuff
+    for( MultiKey fullKeyXsrc : mapX1.keySet() ) {
+      Fu.put( MultiKey.factory( fullKeyXsrc.get( 0 ),
+                                new FuSource() ), 
+              MultiViewMap.dummyValue );
+    }
+  }
+
+  public void storeFu( TempDescriptor x,
+                       FieldDescriptor f,
+                       TempDescriptor y,
+                       Set<EdgeKey> edgeKeysRemoved,
+                       Set<EdgeKey> edgeKeysAdded ) {
+
+    Fu.put( MultiKey.factory( y, new FuSource( x ) ), 
+            MultiViewMap.dummyValue );
+  }
+
+  public void newObjectFu( TempDescriptor x ) {
+    MultiKey keyXsrc = MultiKey.factory( new FuSource( x ) );
+    Map<MultiKey, Object> mapX1 = Fu.get( viewFu1, keyXsrc );
+
+    MultiKey keyX = MultiKey.factory( x );
+    Fu.remove( viewFu0, keyX );
+    Fu.remove( viewFu1, keyXsrc );
+
+    for( MultiKey fullKeyXsrc : mapX1.keySet() ) {
+      Fu.put( MultiKey.factory( fullKeyXsrc.get( 0 ),
+                                new FuSource() ), 
+              MultiViewMap.dummyValue );
+    }    
+  }
+
+  public void methodCallFu( TempDescriptor retVal ) {
+    MultiKey keyRetValsrc = MultiKey.factory( new FuSource( retVal ) );
+    Map<MultiKey, Object> mapRetVal1 = Fu.get( viewFu1, keyRetValsrc );
+
+    MultiKey keyRetVal = MultiKey.factory( retVal );
+    Fu.remove( viewFu0, keyRetVal );
+    Fu.remove( viewFu1, keyRetValsrc );
+
+    for( MultiKey fullKeyRetValsrc : mapRetVal1.keySet() ) {
+      Fu.put( MultiKey.factory( fullKeyRetValsrc.get( 0 ),
+                                new FuSource() ), 
+              MultiViewMap.dummyValue );
+    }    
+  }
+
+  public void mergeFu( DefiniteReachState that ) {
+    this.Fu.merge( that.Fu );    
+  }
 
 
 
