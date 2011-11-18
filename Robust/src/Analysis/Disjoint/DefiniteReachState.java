@@ -73,6 +73,12 @@ public class DefiniteReachState {
       }
       return hash;
     }
+    public String toString() {
+      if( isKnown == DefReachKnown.UNKNOWN ) {
+        return "unknown";
+      }
+      return knownSrc.toString();
+    }
   }
   private static MultiViewMapBuilder<Object> FuBuilder;
   private static BitSet viewFufull;
@@ -182,10 +188,10 @@ public class DefiniteReachState {
       for( MultiKey fullKeyB : Fu.get( viewFu0, 
                                        MultiKey.factory( b ) ).keySet() 
            ) {
-        if( !R.get( viewR01, 
-                    MultiKey.factory( a, 
-                                      ((FuSource)fullKeyB.get( 1 )).knownSrc
-                                      ) ).isEmpty()
+        if( R.get( viewR01, 
+                   MultiKey.factory( a, 
+                                     ((FuSource)fullKeyB.get( 1 )).knownSrc
+                                     ) ).isEmpty()
             ) {
           allEntriesOk = false;
           break;
@@ -704,6 +710,10 @@ public class DefiniteReachState {
     for( TempDescriptor x : Rs.keySet() ) {
       s.append( "  "+x+"->"+Rs.get( x )+"\n" );
     }
+    s.append( "}\n" );
+
+    s.append( "Fu = {\n" );
+    s.append( Fu.toString( 2 ) );
     s.append( "}\n" );
 
     s.append( "Fd = {\n" );
