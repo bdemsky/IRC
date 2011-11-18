@@ -248,4 +248,81 @@ public interface Map//<K, V>
   int size();
   
   Collection values();
+  
+  /**
+   * A map entry (key-value pair). The Map.entrySet() method returns a set
+   * view of these objects; there is no other valid way to come across them.
+   * These objects are only valid for the duration of an iteration; in other
+   * words, if you mess with one after modifying the map, you are asking
+   * for undefined behavior.
+   *
+   * @author Original author unknown
+   * @author Eric Blake (ebb9@email.byu.edu)
+   * @see Map
+   * @see Map#entrySet()
+   * @since 1.2
+   * @status updated to 1.4
+   */
+  interface Entry
+  {
+    /**
+     * Get the key corresponding to this entry.
+     *
+     * @return the key
+     */
+    Object getKey();
+ 
+    /**
+     * Get the value corresponding to this entry. If you already called
+     * Iterator.remove(), this is undefined.
+     *
+     * @return the value
+     */
+    Object getValue();
+    
+    /**
+     * Replaces the value with the specified object (optional operation).
+     * This writes through to the map, and is undefined if you already
+     * called Iterator.remove().
+     *
+     * @param value the new value to store
+     * @return the old value
+     * @throws UnsupportedOperationException if the operation is not supported
+     * @throws ClassCastException if the value is of the wrong type
+     * @throws IllegalArgumentException if something about the value
+     *         prevents it from existing in this map
+     * @throws NullPointerException if the map forbids null values
+     */
+    Object setValue(Object value);
+ 
+    /**
+     * Returns the hash code of the entry.  This is defined as the
+     * exclusive-or of the hashcodes of the key and value (using 0 for
+     * <code>null</code>). In other words, this must be:
+     * 
+<p><pre>(getKey() == null ? 0 : getKey().hashCode())
+^ (getValue() == null ? 0 : getValue().hashCode())</pre>
+     *
+     * @return the hash code
+     */
+    int hashCode();
+
+    /**
+     * Compares the specified object with this entry. Returns true only if
+     * the object is a mapping of identical key and value. In other words,
+     * this must be:
+     * 
+<p><pre>(o instanceof Map.Entry)
+&& (getKey() == null ? ((Map.Entry) o).getKey() == null
+                     : getKey().equals(((Map.Entry) o).getKey()))
+&& (getValue() == null ? ((Map.Entry) o).getValue() == null
+                       : getValue().equals(((Map.Entry) o).getValue()))</pre>
+     *
+     * @param o the object to compare
+     *
+     * @return <code>true</code> if it is equal
+     */
+    boolean equals(Object o);
+  }
+
 }

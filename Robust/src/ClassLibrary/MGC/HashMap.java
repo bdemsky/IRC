@@ -153,11 +153,6 @@ public class HashMap implements Map {
       // wouldn't provide any significant performance advantage.
       values = new AbstractCollection()
       {
-        HashMap map;
-        
-        public AbstractCollection(HashMap m) {
-          this.map = m;
-        }
         
         public int size()
         {
@@ -167,12 +162,12 @@ public class HashMap implements Map {
         public Iterator iterator()
         {
           // Cannot create the iterator directly, because of LinkedHashMap.
-          return HashMapIterator(this.map, 1);
+          return HashMapIterator(HashMap.this, 1);
         }
 
         public void clear()
         {
-          map.clear();
+          HashMap.this.clear();
         }
       };
     return values;
@@ -185,11 +180,6 @@ public class HashMap implements Map {
       // that can be overridden easily and efficiently.
       keys = new AbstractSet()
       {
-      HashMap map;
-      
-      public AbstractSet(HashMap m) {
-        this.map = m;
-      }
         public int size()
         {
           return size;
@@ -199,7 +189,7 @@ public class HashMap implements Map {
         {
           // Cannot create the iterator directly, because of LinkedHashMap.
           //return HashMap.this.iterator(KEYS);
-          return HashMapIterator(this.map, 0);
+          return HashMapIterator(HashMap.this, 0);
         }
 
         public void clear()
@@ -218,8 +208,7 @@ public class HashMap implements Map {
           // really got removed. This is necessary because the return value
           // of HashMap.remove() is ambiguous in the null case.
           int oldsize = size;
-          //HashMap.this.remove(o);
-          this.map.remove(o);
+          HashMap.this.remove(o);
           return oldsize != size;
         }
       };
