@@ -21,7 +21,7 @@ public class LinkedList implements Queue {
     clear();
   }
 
-  public void add(Object o) {
+  public boolean add(Object o) {
     if( tail == null ) {
       head = new LinkedListElement(o, null, null);
       tail = head;

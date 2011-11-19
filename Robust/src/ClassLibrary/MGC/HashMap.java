@@ -156,13 +156,13 @@ public class HashMap implements Map {
         
         public int size()
         {
-          return size;
+          return numItems;
         }
 
         public Iterator iterator()
         {
           // Cannot create the iterator directly, because of LinkedHashMap.
-          return HashMapIterator(HashMap.this, 1);
+          return new HashMapIterator(HashMap.this, 1);
         }
 
         public void clear()
@@ -182,14 +182,14 @@ public class HashMap implements Map {
       {
         public int size()
         {
-          return size;
+          return numItems;
         }
 
         public Iterator iterator()
         {
           // Cannot create the iterator directly, because of LinkedHashMap.
           //return HashMap.this.iterator(KEYS);
-          return HashMapIterator(HashMap.this, 0);
+          return new HashMapIterator(HashMap.this, 0);
         }
 
         public void clear()
@@ -207,9 +207,9 @@ public class HashMap implements Map {
           // Test against the size of the HashMap to determine if anything
           // really got removed. This is necessary because the return value
           // of HashMap.remove() is ambiguous in the null case.
-          int oldsize = size;
+          int oldsize = numItems;
           HashMap.this.remove(o);
-          return oldsize != size;
+          return oldsize != numItems;
         }
       };
     return keys;
