@@ -84,7 +84,17 @@ public class NTuple<T> {
     return true;
 
   }
-  
-  
+
+  public NTuple<T> subList(int startIdx, int endIdx) {
+
+    NTuple<T> subList = new NTuple<T>();
+
+    for (int i = startIdx; i < endIdx; i++) {
+      subList.add(elements.get(i));
+    }
+
+    return subList;
+
+  }
 
 }
