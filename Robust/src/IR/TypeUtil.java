@@ -221,7 +221,7 @@ public class TypeUtil {
       if md2 could always be called given the arguments passed into
       md1 */
 
-  public boolean isMoreSpecific(MethodDescriptor md1, MethodDescriptor md2) {
+  public boolean isMoreSpecific(MethodDescriptor md1, MethodDescriptor md2, boolean checkReturnType) {
     /* Checks if md1 is more specific than md2 */
     if (md1.numParameters()!=md2.numParameters())
       throw new Error();
@@ -236,12 +236,14 @@ public class TypeUtil {
         }
       }
     }
+    if(checkReturnType) {
     if (md1.getReturnType()==null||md2.getReturnType()==null) {
       if (md1.getReturnType()!=md2.getReturnType())
         return false;
     } else
     if (!this.isSuperorType(md2.getReturnType(), md1.getReturnType()))
       return false;
+    }
 
     if (!this.isSuperorType(md2.getClassDesc(), md1.getClassDesc()))
       return false;
@@ -266,9 +268,9 @@ NextMethod:
       if (bestmd==null)
         bestmd=currmd;
       else {
-        if (isMoreSpecific(currmd,bestmd)) {
+        if (isMoreSpecific(currmd,bestmd, true)) {
           bestmd=currmd;
-        } else if (!isMoreSpecific(bestmd, currmd))
+        } else if (!isMoreSpecific(bestmd, currmd, true))
           throw new Error("No method is most specific");
 
         /* Is this more specific than bestmd */

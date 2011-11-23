@@ -11,3 +11,4 @@ Outer class print: 35; 0
 4
 Outer class print: 35; 3
 innerCallback: 100
+innerCallbackStatic: 20, 30

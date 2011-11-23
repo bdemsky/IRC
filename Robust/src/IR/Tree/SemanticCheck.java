@@ -1166,7 +1166,7 @@ public class SemanticCheck {
 	ExpressionNode conExp = con.getSurroundingClassExpression();
 	//System.out.println( "The surrounding class expression si " + con );
 	if( null == conExp ) {
-		if( md.isStatic() ) {
+		if( md.isStatic()) {
 			throw new Error("trying to instantiate inner class: " +  con.getType() + " in a static scope" );
 		}
 		VarDescriptor thisVD = md.getThis();
@@ -1324,7 +1324,11 @@ public class SemanticCheck {
       ClassDescriptor classtolookin = typetolookin.getClassDesc();
       checkClass(classtolookin, INIT);
       if( classtolookin.isInnerClass() ) {
-      	InnerClassAddParamToCtor( (MethodDescriptor)md, ((MethodDescriptor)md).getClassDesc() , nametable, con, td );
+	// for inner class that is declared in a static context, it does not have 
+	// lexically enclosing instances
+	if(!classtolookin.getInStaticContext()) {
+	    InnerClassAddParamToCtor( (MethodDescriptor)md, ((MethodDescriptor)md).getClassDesc() , nametable, con, td );
+	}
       	if(classtolookin.getInline()) {
     	  // for an inline anonymous inner class, the live local variables that are 
       	  // referred to by the inline class are passed as parameters of the constructors
@@ -1357,14 +1361,14 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
         if (bestmd == null)
           bestmd = currmd;
         else {
-          if (typeutil.isMoreSpecific(currmd, bestmd)) {
+          if (typeutil.isMoreSpecific(currmd, bestmd, true)) {
             bestmd = currmd;
           } else if (con.isGlobal() && match(currmd, bestmd)) {
             if (currmd.isGlobal() && !bestmd.isGlobal())
               bestmd = currmd;
             else if (currmd.isGlobal() && bestmd.isGlobal())
               throw new Error();
-          } else if (!typeutil.isMoreSpecific(bestmd, currmd)) {
+          } else if (!typeutil.isMoreSpecific(bestmd, currmd, true)) {
             throw new Error("No method is most specific:" + bestmd + " and " + currmd);
           }
 
@@ -1543,9 +1547,9 @@ NextMethod:
       if (bestmd==null)
         bestmd=currmd;
       else {
-        if (typeutil.isMoreSpecific(currmd,bestmd)) {
+        if (typeutil.isMoreSpecific(currmd,bestmd, false)) {
           bestmd=currmd;
-        } else if (!typeutil.isMoreSpecific(bestmd, currmd))
+        } else if (!typeutil.isMoreSpecific(bestmd, currmd, false))
           throw new Error("No method is most specific:"+bestmd+" and "+currmd);
 
         /* Is this more specific than bestmd */

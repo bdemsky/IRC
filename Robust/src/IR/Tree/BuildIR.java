@@ -375,7 +375,7 @@ public class BuildIR {
     md.getModifiers().addModifier(Modifiers.PUBLIC);
     md.getModifiers().addModifier(Modifiers.ABSTRACT);
     try {
-      BlockNode bn=parseBlock(cn, bodyn);
+      BlockNode bn=parseBlock(cn, md, md.isStatic()||md.isStaticBlock(), bodyn);
       cn.addMethod(md);
       state.addTreeCode(md,bn);
     } catch (Exception e) {
@@ -392,7 +392,7 @@ public class BuildIR {
   public TaskDescriptor parseTaskDecl(ParseNode pn) {
     TaskDescriptor td=new TaskDescriptor(pn.getChild("name").getTerminal());
     ParseNode bodyn=pn.getChild("body");
-    BlockNode bn=parseBlock(null, bodyn);
+    BlockNode bn=parseBlock(null, null, false, bodyn);
     parseParameterList(td, pn);
     state.addTreeCode(td,bn);
     if (pn.getChild("flag_effects_list")!=null)
@@ -636,7 +636,7 @@ private void addOuterClassParam( ClassDescriptor cn, int depth )
 	
 	for(Iterator it=cn.getInnerClasses(); it.hasNext(); ) {
       		ClassDescriptor icd=(ClassDescriptor)it.next();
-      		if(icd.isStatic()) {
+      		if(icd.isStatic()||icd.getInStaticContext()) {
       		    continue;
       		}
 		
@@ -683,6 +683,9 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
 
 	for(Iterator it=cn.getInnerClasses(); it.hasNext(); ) {
       		ClassDescriptor icd=(ClassDescriptor)it.next();
+      		if(icd.isStatic() || icd.getInStaticContext()) {
+      		  continue;
+      		}
 		parseFieldDecl( icd, theNode );		
 		/*if( true ) {
 			SymbolTable fieldTable = icd.getFieldTable();
@@ -969,7 +972,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       ExpressionNode en=null;
       
       if (epn!=null) {
-        en=parseExpression(cn, epn.getFirstChild());
+        en=parseExpression(cn, null, m.isStatic(), epn.getFirstChild());
         en.setNumLine(epn.getFirstChild().getLine());
         if(m.isStatic()) {
           // for static field, the initializer should be considered as a
@@ -1025,11 +1028,11 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
 
   int innerCount=0;
 
-  private ExpressionNode parseExpression(ClassDescriptor cn, ParseNode pn) {
+  private ExpressionNode parseExpression(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, ParseNode pn) {
     if (isNode(pn,"assignment"))
 	{
           //System.out.println( "parsing a field decl in my class that has assignment in initialization " + pn.PPrint( 0, true ) + "\n");
-      return parseAssignmentExpression(cn, pn);
+      return parseAssignmentExpression(cn, md, isStaticContext, pn);
 	}
     else if (isNode(pn,"logical_or")||isNode(pn,"logical_and")||
              isNode(pn,"bitwise_or")||isNode(pn,"bitwise_xor")||
@@ -1045,7 +1048,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       ParseNode left=pnv.elementAt(0);
       ParseNode right=pnv.elementAt(1);
       Operation op=new Operation(pn.getLabel());
-      OpNode on=new OpNode(parseExpression(cn, left),parseExpression(cn, right),op);
+      OpNode on=new OpNode(parseExpression(cn, md, isStaticContext, left),parseExpression(cn, md, isStaticContext,  right),op);
       on.setNumLine(pn.getLine());
       return on;
     } else if (isNode(pn,"unaryplus")||
@@ -1054,14 +1057,14 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
                isNode(pn,"comp")) {
       ParseNode left=pn.getFirstChild();
       Operation op=new Operation(pn.getLabel());
-      OpNode on=new OpNode(parseExpression(cn, left),op);
+      OpNode on=new OpNode(parseExpression(cn, md, isStaticContext, left),op);
       on.setNumLine(pn.getLine());
       return on;
     } else if (isNode(pn,"postinc")||
                isNode(pn,"postdec")) {
       ParseNode left=pn.getFirstChild();
       AssignOperation op=new AssignOperation(pn.getLabel());
-      AssignmentNode an=new AssignmentNode(parseExpression(cn, left),null,op);
+      AssignmentNode an=new AssignmentNode(parseExpression(cn, md, isStaticContext, left),null,op);
       an.setNumLine(pn.getLine());
       return an;
 
@@ -1069,7 +1072,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
                isNode(pn,"predec")) {
       ParseNode left=pn.getFirstChild();
       AssignOperation op=isNode(pn,"preinc")?new AssignOperation(AssignOperation.PLUSEQ):new AssignOperation(AssignOperation.MINUSEQ);
-      AssignmentNode an=new AssignmentNode(parseExpression(cn, left),
+      AssignmentNode an=new AssignmentNode(parseExpression(cn, md, isStaticContext, left),
                                            new LiteralNode("integer",new Integer(1)),op);
       an.setNumLine(pn.getLine());
       return an;
@@ -1083,7 +1086,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
     } else if (isNode(pn, "createobject")) {
       TypeDescriptor td = parseTypeDescriptor(pn);
 
-      Vector args = parseArgumentList(cn, pn);
+      Vector args = parseArgumentList(cn, md, isStaticContext, pn);
       boolean isglobal = pn.getChild("global") != null || pn.getChild("scratch") != null;
       String disjointId = null;
       if (pn.getChild("disjoint") != null) {
@@ -1096,14 +1099,14 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       if( null != idChild && null != idChild.getFirstChild() ) {
 	idChild = idChild.getFirstChild();
 	//System.out.println( "\nThe object passed has this expression " + idChild.PPrint( 0, true ) );
-	ExpressionNode en = parseExpression(cn, idChild ); 
+	ExpressionNode en = parseExpression(cn, md, isStaticContext, idChild ); 
 	//System.out.println( "\nThe object passed has this expression " + en.printNode( 0 ) );
 	con.setSurroundingExpression( en );
       }
       else if( null != baseChild  && null != baseChild.getFirstChild()  ) {
 	baseChild = baseChild.getFirstChild();
 	//System.out.println( "\nThe object passed has this expression " + baseChild.PPrint( 0, true ) );
-	ExpressionNode en = parseExpression(cn, baseChild ); 
+	ExpressionNode en = parseExpression(cn, md, isStaticContext, baseChild ); 
 	//System.out.println( "\nThe object passed has this expression " + en.printNode( 0 ) );
 	con.setSurroundingExpression( en );     
       }
@@ -1138,11 +1141,19 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       cnnew.setSurroundingClass(cn.getSymbol());
       cnnew.setSurrounding(cn);
       cn.addInnerClass(cnnew);
+      // Note that if the inner class is declared in a static context, it does NOT 
+      // have lexically enclosing instances.
+      if((null!=md)&&(md.isStatic()||md.isStaticBlock())) {
+	cnnew.setSurroundingBlock(md);
+	cnnew.setInStaticContext();
+      } else if (isStaticContext) {
+	cnnew.setInStaticContext();
+      }
       parseClassBody(cnnew, pn.getChild("decl").getChild("classbody"));
       boolean hasConstructor = false;
       for(Iterator method_it=cnnew.getMethods(); method_it.hasNext(); ) {
-	  MethodDescriptor md=(MethodDescriptor)method_it.next();
-	  hasConstructor |= md.isConstructor();
+	  MethodDescriptor cmd=(MethodDescriptor)method_it.next();
+	  hasConstructor |= cmd.isConstructor();
       }
       if(hasConstructor) {
 	  // anonymous class should not have explicit constructors
@@ -1157,7 +1168,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       }
       TypeDescriptor tdnew=state.getTypeDescriptor(cnnew.getSymbol());
 
-      Vector args=parseArgumentList(cn, pn);
+      Vector args=parseArgumentList(cn, md, isStaticContext, pn);
       ParseNode idChild = pn.getChild( "id" );
       ParseNode baseChild = pn.getChild( "base" );
       //System.out.println("\n to print idchild and basechild for ");
@@ -1187,7 +1198,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
         disjointId = pn.getChild("disjoint").getTerminal();
       }
       TypeDescriptor td=parseTypeDescriptor(pn);
-      Vector args=parseDimExprs(cn, pn);
+      Vector args=parseDimExprs(cn, md, isStaticContext, pn);
       int num=0;
       if (pn.getChild("dims_opt").getLiteral()!=null)
         num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
@@ -1210,7 +1221,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       CreateObjectNode con=new CreateObjectNode(td, false, null);
       con.setNumLine(pn.getLine());
       ParseNode ipn = pn.getChild("initializer");
-      Vector initializers=parseVariableInitializerList(cn, ipn);
+      Vector initializers=parseVariableInitializerList(cn, md, isStaticContext, ipn);
       ArrayInitializerNode ain = new ArrayInitializerNode(initializers);
       ain.setNumLine(pn.getLine());
       con.addArrayInitializer(ain);
@@ -1240,7 +1251,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       return new OpNode(nn,null,new Operation(Operation.ISAVAILABLE));
     } else if (isNode(pn,"methodinvoke1")) {
       NameDescriptor nd=parseName(pn.getChild("name"));
-      Vector args=parseArgumentList(cn, pn);
+      Vector args=parseArgumentList(cn, md, isStaticContext, pn);
       MethodInvokeNode min=new MethodInvokeNode(nd);
       min.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
@@ -1249,8 +1260,8 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       return min;
     } else if (isNode(pn,"methodinvoke2")) {
       String methodid=pn.getChild("id").getTerminal();
-      ExpressionNode exp=parseExpression(cn, pn.getChild("base").getFirstChild());
-      Vector args=parseArgumentList(cn, pn);
+      ExpressionNode exp=parseExpression(cn, md, isStaticContext, pn.getChild("base").getFirstChild());
+      Vector args=parseArgumentList(cn, md, isStaticContext, pn);
       MethodInvokeNode min=new MethodInvokeNode(methodid,exp);
       min.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
@@ -1258,7 +1269,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       }
       return min;
     } else if (isNode(pn,"fieldaccess")) {
-      ExpressionNode en=parseExpression(cn, pn.getChild("base").getFirstChild());
+      ExpressionNode en=parseExpression(cn, md, isStaticContext, pn.getChild("base").getFirstChild());
       String fieldname=pn.getChild("field").getTerminal();
 
       FieldAccessNode fan=new FieldAccessNode(en,fieldname);
@@ -1272,7 +1283,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
 	fan.setNumLine(pn.getLine());
 	return fan;
     } else if (isNode(pn,"supernamefieldaccess")) {
-	ExpressionNode en=parseExpression(cn, pn.getChild("base").getFirstChild());
+	ExpressionNode en=parseExpression(cn, md, isStaticContext, pn.getChild("base").getFirstChild());
 	ExpressionNode exp = new FieldAccessNode(en, "super");
 	exp.setNumLine(pn.getLine());
 	String fieldname=pn.getChild("field").getTerminal();
@@ -1281,14 +1292,14 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
 	fan.setNumLine(pn.getLine());
 	return fan;
     } else if (isNode(pn,"arrayaccess")) {
-      ExpressionNode en=parseExpression(cn, pn.getChild("base").getFirstChild());
-      ExpressionNode index=parseExpression(cn, pn.getChild("index").getFirstChild());
+      ExpressionNode en=parseExpression(cn, md, isStaticContext, pn.getChild("base").getFirstChild());
+      ExpressionNode index=parseExpression(cn, md, isStaticContext, pn.getChild("index").getFirstChild());
       ArrayAccessNode aan=new ArrayAccessNode(en,index);
       aan.setNumLine(pn.getLine());
       return aan;
     } else if (isNode(pn,"cast1")) {
       try {
-        CastNode castn=new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(cn, pn.getChild("exp").getFirstChild()));
+        CastNode castn=new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(cn, md, isStaticContext, pn.getChild("exp").getFirstChild()));
         castn.setNumLine(pn.getLine());
         return castn;
       } catch (Exception e) {
@@ -1297,7 +1308,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
         throw new Error();
       }
     } else if (isNode(pn,"cast2")) {
-      CastNode castn=new CastNode(parseExpression(cn, pn.getChild("type").getFirstChild()),parseExpression(cn, pn.getChild("exp").getFirstChild()));
+      CastNode castn=new CastNode(parseExpression(cn, md, isStaticContext, pn.getChild("type").getFirstChild()),parseExpression(cn, md, isStaticContext, pn.getChild("exp").getFirstChild()));
       castn.setNumLine(pn.getLine());
       return castn;
     } else if (isNode(pn, "getoffset")) {
@@ -1307,20 +1318,20 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       return new OffsetNode(td, fieldname);
     } else if (isNode(pn, "tert")) {
 
-      TertiaryNode tn=new TertiaryNode(parseExpression(cn, pn.getChild("cond").getFirstChild()),
-                                       parseExpression(cn, pn.getChild("trueexpr").getFirstChild()),
-                                       parseExpression(cn, pn.getChild("falseexpr").getFirstChild()) );
+      TertiaryNode tn=new TertiaryNode(parseExpression(cn, md, isStaticContext, pn.getChild("cond").getFirstChild()),
+                                       parseExpression(cn, md, isStaticContext, pn.getChild("trueexpr").getFirstChild()),
+                                       parseExpression(cn, md, isStaticContext, pn.getChild("falseexpr").getFirstChild()) );
       tn.setNumLine(pn.getLine());
 
       return tn;
     } else if (isNode(pn, "instanceof")) {
-      ExpressionNode exp=parseExpression(cn, pn.getChild("exp").getFirstChild());
+      ExpressionNode exp=parseExpression(cn, md, isStaticContext, pn.getChild("exp").getFirstChild());
       TypeDescriptor t=parseTypeDescriptor(pn);
       InstanceOfNode ion=new InstanceOfNode(exp,t);
       ion.setNumLine(pn.getLine());
       return ion;
     } else if (isNode(pn, "array_initializer")) {
-      Vector initializers=parseVariableInitializerList(cn, pn);
+      Vector initializers=parseVariableInitializerList(cn, md, isStaticContext, pn);
       return new ArrayInitializerNode(initializers);
     } else if (isNode(pn, "class_type")) {
       TypeDescriptor td=parseTypeDescriptor(pn);
@@ -1336,26 +1347,26 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
     }
   }
 
-  private Vector parseDimExprs(ClassDescriptor cn, ParseNode pn) {
+  private Vector parseDimExprs(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, ParseNode pn) {
     Vector arglist=new Vector();
     ParseNode an=pn.getChild("dim_exprs");
     if (an==null)       /* No argument list */
       return arglist;
     ParseNodeVector anv=an.getChildren();
     for(int i=0; i<anv.size(); i++) {
-      arglist.add(parseExpression(cn, anv.elementAt(i)));
+      arglist.add(parseExpression(cn, md, isStaticContext, anv.elementAt(i)));
     }
     return arglist;
   }
 
-  private Vector parseArgumentList(ClassDescriptor cn, ParseNode pn) {
+  private Vector parseArgumentList(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, ParseNode pn) {
     Vector arglist=new Vector();
     ParseNode an=pn.getChild("argument_list");
     if (an==null)       /* No argument list */
       return arglist;
     ParseNodeVector anv=an.getChildren();
     for(int i=0; i<anv.size(); i++) {
-      arglist.add(parseExpression(cn, anv.elementAt(i)));
+      arglist.add(parseExpression(cn, md, isStaticContext, anv.elementAt(i)));
     }
     return arglist;
   }
@@ -1372,28 +1383,28 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       ParseNode var=cpn.getChild("var");
       ParseNode exp=cpn.getChild("exp").getFirstChild();
       varlist.add(var.getTerminal());
-      arglist.add(parseExpression(null, exp));
+      arglist.add(parseExpression(null, null, false, exp));
     }
     return new Vector[] {varlist, arglist};
   }
 
-  private Vector parseVariableInitializerList(ClassDescriptor cn, ParseNode pn) {
+  private Vector parseVariableInitializerList(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, ParseNode pn) {
     Vector varInitList=new Vector();
     ParseNode vin=pn.getChild("var_init_list");
     if (vin==null)       /* No argument list */
       return varInitList;
     ParseNodeVector vinv=vin.getChildren();
     for(int i=0; i<vinv.size(); i++) {
-      varInitList.add(parseExpression(cn, vinv.elementAt(i)));
+      varInitList.add(parseExpression(cn, md, isStaticContext, vinv.elementAt(i)));
     }
     return varInitList;
   }
 
-  private ExpressionNode parseAssignmentExpression(ClassDescriptor cn, ParseNode pn) {
+  private ExpressionNode parseAssignmentExpression(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, ParseNode pn) {
     AssignOperation ao=new AssignOperation(pn.getChild("op").getTerminal());
     ParseNodeVector pnv=pn.getChild("args").getChildren();
 
-    AssignmentNode an=new AssignmentNode(parseExpression(cn, pnv.elementAt(0)),parseExpression(cn, pnv.elementAt(1)),ao);
+    AssignmentNode an=new AssignmentNode(parseExpression(cn, md, isStaticContext, pnv.elementAt(0)),parseExpression(cn, md, isStaticContext, pnv.elementAt(1)),ao);
     an.setNumLine(pn.getLine());
     return an;
   }
@@ -1404,7 +1415,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
     ParseNode bodyn=pn.getChild("body");
     MethodDescriptor md=parseMethodHeader(headern);
     try {
-      BlockNode bn=parseBlock(cn, bodyn);
+      BlockNode bn=parseBlock(cn, md, md.isStatic()||md.isStaticBlock(), bodyn);
       bn.setNumLine(pn.getLine()); // assume that method header is located at the beginning of method body
       cn.addMethod(md);
       state.addTreeCode(md,bn);
@@ -1444,13 +1455,13 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
     cn.addMethod(md);
     BlockNode bn=null;
     if (bodyn!=null&&bodyn.getChild("block_statement_list")!=null)
-      bn=parseBlock(cn, bodyn);
+      bn=parseBlock(cn, md, md.isStatic()||md.isStaticBlock(), bodyn);
     else
       bn=new BlockNode();
     if (bodyn!=null&&bodyn.getChild("superinvoke")!=null) {
       ParseNode sin=bodyn.getChild("superinvoke");
       NameDescriptor nd=new NameDescriptor("super");
-      Vector args=parseArgumentList(cn, sin);
+      Vector args=parseArgumentList(cn, md, true, sin);
       MethodInvokeNode min=new MethodInvokeNode(nd);
       min.setNumLine(sin.getLine());
       for(int i=0; i<args.size(); i++) {
@@ -1462,7 +1473,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
     } else if (bodyn!=null&&bodyn.getChild("explconstrinv")!=null) {
       ParseNode eci=bodyn.getChild("explconstrinv");
       NameDescriptor nd=new NameDescriptor(cn.getSymbol());
-      Vector args=parseArgumentList(cn, eci);
+      Vector args=parseArgumentList(cn, md, true, eci);
       MethodInvokeNode min=new MethodInvokeNode(nd);
       min.setNumLine(eci.getLine());
       for(int i=0; i<args.size(); i++) {
@@ -1495,7 +1506,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
     cn.incStaticBlocks();
     BlockNode bn=null;
     if (bodyn!=null&&bodyn.getChild("block_statement_list")!=null)
-      bn=parseBlock(cn, bodyn);
+      bn=parseBlock(cn, md, true, bodyn);
     else
       bn=new BlockNode();
     if(isfirst) {
@@ -1511,19 +1522,19 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
     }
   }
 
-  public BlockNode parseBlock(ClassDescriptor cn, ParseNode pn) {
+  public BlockNode parseBlock(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, ParseNode pn) {
     this.m_taskexitnum = 0;
     if (pn==null||isEmpty(pn.getTerminal()))
       return new BlockNode();
     ParseNode bsn=pn.getChild("block_statement_list");
-    return parseBlockHelper(cn, bsn);
+    return parseBlockHelper(cn, md, isStaticContext, bsn);
   }
 
-  private BlockNode parseBlockHelper(ClassDescriptor cn, ParseNode pn) {
+  private BlockNode parseBlockHelper(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, ParseNode pn) {
     ParseNodeVector pnv=pn.getChildren();
     BlockNode bn=new BlockNode();
     for(int i=0; i<pnv.size(); i++) {
-      Vector bsv=parseBlockStatement(cn, pnv.elementAt(i));
+      Vector bsv=parseBlockStatement(cn, md, isStaticContext, pnv.elementAt(i));
       for(int j=0; j<bsv.size(); j++) {
         bn.addBlockStatement((BlockStatementNode)bsv.get(j));
       }
@@ -1531,9 +1542,9 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
     return bn;
   }
 
-  public BlockNode parseSingleBlock(ClassDescriptor cn, ParseNode pn, String label){
+  public BlockNode parseSingleBlock(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, ParseNode pn, String label){
     BlockNode bn=new BlockNode();
-    Vector bsv=parseBlockStatement(cn, pn,label);
+    Vector bsv=parseBlockStatement(cn, md, isStaticContext, pn,label);
     for(int j=0; j<bsv.size(); j++) {
       bn.addBlockStatement((BlockStatementNode)bsv.get(j));
     }
@@ -1541,24 +1552,24 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
     return bn;
   }
   
-  public BlockNode parseSingleBlock(ClassDescriptor cn, ParseNode pn) {
-    return parseSingleBlock(cn, pn,null);
+  public BlockNode parseSingleBlock(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, ParseNode pn) {
+    return parseSingleBlock(cn, md, isStaticContext, pn, null);
   }
 
-  public Vector parseSESEBlock(ClassDescriptor cn, Vector parentbs, ParseNode pn) {
+  public Vector parseSESEBlock(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, Vector parentbs, ParseNode pn) {
     ParseNodeVector pnv=pn.getChildren();
     Vector bv=new Vector();
     for(int i=0; i<pnv.size(); i++) {
-      bv.addAll(parseBlockStatement(cn, pnv.elementAt(i)));
+      bv.addAll(parseBlockStatement(cn, md, isStaticContext, pnv.elementAt(i)));
     }
     return bv;
   }
   
-  public Vector parseBlockStatement(ClassDescriptor cn, ParseNode pn){
-    return parseBlockStatement(cn, pn,null);
+  public Vector parseBlockStatement(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, ParseNode pn){
+    return parseBlockStatement(cn, md, isStaticContext, pn,null);
   }
 
-  public Vector parseBlockStatement(ClassDescriptor cn, ParseNode pn, String label) {
+  public Vector parseBlockStatement(ClassDescriptor cn, MethodDescriptor md, boolean isStaticContext, ParseNode pn, String label) {
     Vector blockstatements=new Vector();
     if (isNode(pn,"tag_declaration")) {
       String name=pn.getChild("single").getTerminal();
@@ -1591,7 +1602,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
 
         ExpressionNode en=null;
         if (epn!=null)
-          en=parseExpression(cn, epn.getFirstChild());
+          en=parseExpression(cn, md, isStaticContext, epn.getFirstChild());
 
         DeclarationNode dn=new DeclarationNode(new VarDescriptor(arrayt, identifier),en);
         dn.setNumLine(tmp.getLine());
@@ -1608,20 +1619,20 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
     } else if (isNode(pn,"nop")) {
       /* Do Nothing */
     } else if (isNode(pn,"expression")) {
-      BlockExpressionNode ben=new BlockExpressionNode(parseExpression(cn, pn.getFirstChild()));
+      BlockExpressionNode ben=new BlockExpressionNode(parseExpression(cn, md, isStaticContext, pn.getFirstChild()));
       ben.setNumLine(pn.getLine());
       blockstatements.add(ben);
     } else if (isNode(pn,"ifstatement")) {
-      IfStatementNode isn=new IfStatementNode(parseExpression(cn, pn.getChild("condition").getFirstChild()),
-                                              parseSingleBlock(cn, pn.getChild("statement").getFirstChild()),
-                                              pn.getChild("else_statement")!=null?parseSingleBlock(cn, pn.getChild("else_statement").getFirstChild()):null);
+      IfStatementNode isn=new IfStatementNode(parseExpression(cn, md, isStaticContext, pn.getChild("condition").getFirstChild()),
+                                              parseSingleBlock(cn, md, isStaticContext, pn.getChild("statement").getFirstChild()),
+                                              pn.getChild("else_statement")!=null?parseSingleBlock(cn, md, isStaticContext, pn.getChild("else_statement").getFirstChild()):null);
       isn.setNumLine(pn.getLine());
 
       blockstatements.add(isn);
     } else if (isNode(pn,"switch_statement")) {
       // TODO add version for normal Java later
-      SwitchStatementNode ssn=new SwitchStatementNode(parseExpression(cn, pn.getChild("condition").getFirstChild()),
-                                                      parseSingleBlock(cn, pn.getChild("statement").getFirstChild()));
+      SwitchStatementNode ssn=new SwitchStatementNode(parseExpression(cn, md, isStaticContext, pn.getChild("condition").getFirstChild()),
+                                                      parseSingleBlock(cn, md, isStaticContext, pn.getChild("statement").getFirstChild()));
       ssn.setNumLine(pn.getLine());
       blockstatements.add(ssn);
     } else if (isNode(pn,"switch_block_list")) {
@@ -1637,7 +1648,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
           for(int j=0; j<labelv.size(); j++) {
             ParseNode labeldecl=labelv.elementAt(j);
             if(isNode(labeldecl, "switch_label")) {
-              SwitchLabelNode sln=new SwitchLabelNode(parseExpression(cn, labeldecl.getChild("constant_expression").getFirstChild()), false);
+              SwitchLabelNode sln=new SwitchLabelNode(parseExpression(cn, md, isStaticContext, labeldecl.getChild("constant_expression").getFirstChild()), false);
               sln.setNumLine(labeldecl.getLine());
               slv.addElement(sln);
             } else if(isNode(labeldecl, "default_switch_label")) {
@@ -1648,7 +1659,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
           }
 
           SwitchBlockNode sbn=new SwitchBlockNode(slv,
-                                                  parseSingleBlock(cn, sblockdecl.getChild("switch_statements").getFirstChild()));
+                                                  parseSingleBlock(cn, md, isStaticContext, sblockdecl.getChild("switch_statements").getFirstChild()));
           sbn.setNumLine(sblockdecl.getLine());
 
           blockstatements.add(sbn);
@@ -1660,13 +1671,13 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       // Do not fully support exceptions now. Only make sure that if there are no
       // exceptions thrown, the execution is right
       ParseNode tpn = pn.getChild("tryblock").getFirstChild();
-      BlockNode bn=parseBlockHelper(cn, tpn);
+      BlockNode bn=parseBlockHelper(cn, md, isStaticContext, tpn);
       blockstatements.add(new SubBlockNode(bn));
 
       ParseNode fbk = pn.getChild("finallyblock");
       if(fbk != null) {
         ParseNode fpn = fbk.getFirstChild();
-        BlockNode fbn=parseBlockHelper(cn, fpn);
+        BlockNode fbn=parseBlockHelper(cn, md, isStaticContext, fpn);
         blockstatements.add(new SubBlockNode(fbn));
       }
     } else if (isNode(pn, "throwstatement")) {
@@ -1683,13 +1694,13 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       ten.setNumLine(pn.getLine());
       blockstatements.add(ten);
     } else if (isNode(pn,"atomic")) {
-      BlockNode bn=parseBlockHelper(cn, pn);
+      BlockNode bn=parseBlockHelper(cn, md, isStaticContext, pn);
       AtomicNode an=new AtomicNode(bn);
       an.setNumLine(pn.getLine());
       blockstatements.add(an);
     } else if (isNode(pn,"synchronized")) {
-      BlockNode bn=parseBlockHelper(cn, pn.getChild("block"));
-      ExpressionNode en=parseExpression(cn, pn.getChild("expr").getFirstChild());
+      BlockNode bn=parseBlockHelper(cn, md, isStaticContext, pn.getChild("block"));
+      ExpressionNode en=parseExpression(cn, md, isStaticContext, pn.getChild("expr").getFirstChild());
       SynchronizedNode sn=new SynchronizedNode(en, bn);
       sn.setNumLine(pn.getLine());
       blockstatements.add(sn);
@@ -1697,13 +1708,13 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       if (isEmpty(pn.getTerminal()))
         blockstatements.add(new ReturnNode());
       else {
-        ExpressionNode en=parseExpression(cn, pn.getFirstChild());
+        ExpressionNode en=parseExpression(cn, md, isStaticContext, pn.getFirstChild());
         ReturnNode rn=new ReturnNode(en);
         rn.setNumLine(pn.getLine());
         blockstatements.add(rn);
       }
     } else if (isNode(pn,"block_statement_list")) {
-      BlockNode bn=parseBlockHelper(cn, pn);
+      BlockNode bn=parseBlockHelper(cn, md, isStaticContext, pn);
       blockstatements.add(new SubBlockNode(bn));
     } else if (isNode(pn,"empty")) {
       /* nop */
@@ -1711,15 +1722,15 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       ParseNodeVector pnv=pn.getChildren();
       BlockNode bn=new BlockNode();
       for(int i=0; i<pnv.size(); i++) {
-        ExpressionNode en=parseExpression(cn, pnv.elementAt(i));
+        ExpressionNode en=parseExpression(cn, md, isStaticContext, pnv.elementAt(i));
         blockstatements.add(new BlockExpressionNode(en));
       }
       bn.setStyle(BlockNode.EXPRLIST);
     } else if (isNode(pn,"forstatement")) {
-      BlockNode init=parseSingleBlock(cn, pn.getChild("initializer").getFirstChild());
-      BlockNode update=parseSingleBlock(cn, pn.getChild("update").getFirstChild());
-      ExpressionNode condition=parseExpression(cn, pn.getChild("condition").getFirstChild());
-      BlockNode body=parseSingleBlock(cn, pn.getChild("statement").getFirstChild());
+      BlockNode init=parseSingleBlock(cn, md, isStaticContext, pn.getChild("initializer").getFirstChild());
+      BlockNode update=parseSingleBlock(cn, md, isStaticContext, pn.getChild("update").getFirstChild());
+      ExpressionNode condition=parseExpression(cn, md, isStaticContext, pn.getChild("condition").getFirstChild());
+      BlockNode body=parseSingleBlock(cn, md, isStaticContext, pn.getChild("statement").getFirstChild());
       if(condition == null) {
         // no condition clause, make a 'true' expression as the condition
         condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
@@ -1728,16 +1739,16 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       ln.setNumLine(pn.getLine());
       blockstatements.add(ln);
     } else if (isNode(pn,"whilestatement")) {
-      ExpressionNode condition=parseExpression(cn, pn.getChild("condition").getFirstChild());
-      BlockNode body=parseSingleBlock(cn, pn.getChild("statement").getFirstChild());
+      ExpressionNode condition=parseExpression(cn, md, isStaticContext, pn.getChild("condition").getFirstChild());
+      BlockNode body=parseSingleBlock(cn, md, isStaticContext, pn.getChild("statement").getFirstChild());
       if(condition == null) {
         // no condition clause, make a 'true' expression as the condition
         condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
       }
       blockstatements.add(new LoopNode(condition,body,LoopNode.WHILELOOP,label));
     } else if (isNode(pn,"dowhilestatement")) {
-      ExpressionNode condition=parseExpression(cn, pn.getChild("condition").getFirstChild());
-      BlockNode body=parseSingleBlock(cn, pn.getChild("statement").getFirstChild());
+      ExpressionNode condition=parseExpression(cn, md, isStaticContext, pn.getChild("condition").getFirstChild());
+      BlockNode body=parseSingleBlock(cn, md, isStaticContext, pn.getChild("statement").getFirstChild());
       if(condition == null) {
         // no condition clause, make a 'true' expression as the condition
         condition = (ExpressionNode) new LiteralNode("boolean", new Boolean(true));
@@ -1755,7 +1766,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       start.setEnd(end);
       end.setStart(start);
       blockstatements.add(start);
-      blockstatements.addAll(parseSESEBlock(cn, blockstatements,pn.getChild("body").getFirstChild()));
+      blockstatements.addAll(parseSESEBlock(cn, md, isStaticContext, blockstatements,pn.getChild("body").getFirstChild()));
       blockstatements.add(end);
     } else if (isNode(pn,"continue")) {
       ContinueBreakNode cbn=new ContinueBreakNode(false);
@@ -1779,7 +1790,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
 
     } else if(isNode(pn,"labeledstatement")) {
       String labeledstatement = pn.getChild("name").getTerminal();
-      BlockNode bn=parseSingleBlock(cn, pn.getChild("statement").getFirstChild(),labeledstatement);
+      BlockNode bn=parseSingleBlock(cn, md, isStaticContext, pn.getChild("statement").getFirstChild(),labeledstatement);
       blockstatements.add(new SubBlockNode(bn));
     } else {
       System.out.println("---------------");

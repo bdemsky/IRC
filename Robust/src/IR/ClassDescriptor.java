@@ -40,6 +40,8 @@ public class ClassDescriptor extends Descriptor {
   int innerDepth = 0;
   ClassDescriptor surroundingdesc=null;
   SymbolTable surroundingNameTable = null;
+  MethodDescriptor surroundingBlock=null;
+  boolean inStaticContext=false;
 
   SymbolTable innerdescs;
 
@@ -477,5 +479,21 @@ public class ClassDescriptor extends Descriptor {
   
   public SymbolTable getSurroundingNameTable() {
     return this.surroundingNameTable;
+  }
+  
+  public void setSurroundingBlock(MethodDescriptor md) {
+    this.surroundingBlock = md;
+  }
+  
+  public MethodDescriptor getSurroundingBlock() {
+    return this.surroundingBlock;
+  }
+  
+  public void setInStaticContext() {
+    this.inStaticContext = true;
+  }
+  
+  public boolean getInStaticContext() {
+    return this.inStaticContext;
   }
 }

@@ -9,6 +9,7 @@ public class inner extends innerp {
   public static void main(String x[]) {
     inner i=new inner();
     i.dotest();
+    outerAnonymousInnerStatic(20, 30);
   }
 
   public void dotest() {
@@ -32,6 +33,18 @@ public class inner extends innerp {
       this.outerprintInnerp(new innerCallback() {
 	  public void call() {
 	      System.out.println("innerCallback: " + value);
+	  }
+      });
+  }
+  
+  public static void outerprintInnerpStatic(innerCallback c) {
+      c.call();
+  }
+  
+  public static void outerAnonymousInnerStatic(final int value, final int value1) {
+      outerprintInnerpStatic(new innerCallback() {
+	  public void call() {
+	      System.out.println("innerCallbackStatic: " + value + ", " + value1);
 	  }
       });
   }
