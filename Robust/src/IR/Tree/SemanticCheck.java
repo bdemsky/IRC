@@ -334,7 +334,8 @@ public class SemanticCheck {
 
   public void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
     ClassDescriptor superdesc=cd.getSuperDesc();
-    if (superdesc!=null) {
+    // for inline classes, it has done this during trial check
+    if ((!cd.getInline() || this.trialcheck) && (superdesc!=null)) {
       Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
       for(Iterator methodit=possiblematches.iterator(); methodit.hasNext(); ) {
         MethodDescriptor matchmd=(MethodDescriptor)methodit.next();
@@ -429,6 +430,8 @@ public class SemanticCheck {
     if ((d==null)||
         (d instanceof FieldDescriptor)) {
       nametable.add(vd);
+    } else if((md instanceof MethodDescriptor) && (((MethodDescriptor)md).getClassDesc().getInline()) && !this.trialcheck) {
+      // for inline classes, the var has been checked during trial check and added into the nametable
     } else
       throw new Error(vd.getSymbol()+" in "+md+" defined a second time");
     if (dn.getExpression()!=null)
@@ -441,6 +444,8 @@ public class SemanticCheck {
     if ((d==null)||
         (d instanceof FieldDescriptor)) {
       nametable.add(vd);
+    } else if((md instanceof MethodDescriptor) && (((MethodDescriptor)md).getClassDesc().getInline()) && !this.trialcheck) {
+      // for inline classes, the var has been checked during trial check and added into the nametable
     } else
       throw new Error(vd.getSymbol()+" defined a second time");
   }
@@ -911,15 +916,17 @@ public class SemanticCheck {
 			nn.setExpression(( ExpressionNode )theFieldNode);
       			checkExpressionNode(md,nametable,( ExpressionNode )theFieldNode,td);
 			return;		
-		} else if(cd.getInline() && this.trialcheck) {
+		} else if(cd.getInline() && (this.trialcheck)) {
 		    // for the trial check of an inline class, cache the unknown var
 		    d = cd.getSurroundingNameTable().get(varname);
-		    if(!this.inlineClass2LiveVars.containsKey(cd)) {
+		    if(null!=d) {
+		      if(!this.inlineClass2LiveVars.containsKey(cd)) {
 			this.inlineClass2LiveVars.put(cd, new Vector<VarDescriptor>());
-		    }
-		    Vector<VarDescriptor> vars = this.inlineClass2LiveVars.get(cd);
-		    if(!vars.contains((VarDescriptor)d)) {
-		      vars.add((VarDescriptor)d);
+		      }
+		      Vector<VarDescriptor> vars = this.inlineClass2LiveVars.get(cd);
+		      if(!vars.contains((VarDescriptor)d)) {
+		        vars.add((VarDescriptor)d);
+		      }
 		    }
 		}
 	}
