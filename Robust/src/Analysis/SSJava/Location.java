@@ -81,6 +81,10 @@ public class Location implements TypeExtension {
     return "Loc[" + d.getSymbol() + "." + loc + "]";
   }
 
+  public String getSymbol() {
+    return d.getSymbol() + "." + loc;
+  }
+
   public static Location createTopLocation(Descriptor d) {
     Location topLoc = new Location(d, TOP);
     return topLoc;

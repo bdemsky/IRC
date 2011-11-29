@@ -51,7 +51,7 @@ public class NTuple<T> {
     if (o == null || o.getClass() != this.getClass()) {
       return false;
     }
-    return (((NTuple) o).elements).equals(elements);
+    return (((NTuple<T>) o).elements).equals(elements);
   }
 
   public int hashCode() {
