@@ -6,7 +6,7 @@ public class EnumTest {
   
   public Spiciness1 howHot;
   
-  public enum Spiciness1 {
+  public static enum Spiciness1 {
     NOT, FLAMING, MILD, MEDIUM, HOT
   } ///:~
   
@@ -17,7 +17,7 @@ public class EnumTest {
     System.out.println(howHot);
     
     EnumTest et = new EnumTest();
-    et.howHot = Spiciness1.MEDIUM; // EnumTest.Spiciness1.MEDIUM;
+    et.howHot = EnumTest.Spiciness1.MEDIUM;
     System.out.println(et.howHot);
   }
 } /* Output:

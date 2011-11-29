@@ -723,6 +723,23 @@ public class SemanticCheck {
          }
          surroundingCls=surroundingCls.getSurroundingDesc();
        }
+       
+       // check if it is to access an enum field
+       Iterator it_enum = ltd.getClassDesc().getEnum();
+       while(it_enum.hasNext()) {
+	 ClassDescriptor ecd = (ClassDescriptor)it_enum.next();
+	 if(ecd.getSymbol().equals(ltd.getClassDesc().getSymbol()+"$"+fieldname)) {
+	   // this is an enum field access
+	   if(!ecd.isStatic() && !ecd.getModifier().isStatic() && !ecd.getModifier().isPublic()) {
+	     throw new Error(fieldname + " is not a public/static enum field in "+fan.printNode(0)+" in "+md);
+	   }
+	   TypeDescriptor tp = new TypeDescriptor(ecd);
+	   tp.setClassNameRef();
+	   fd=new FieldDescriptor(ecd.getModifier(), tp, ltd.getClassDesc().getSymbol()+"$"+fieldname, null, false);;
+	   fd.setIsEnumClass();
+	   break;
+	 }
+       }
       }
 
       if(ltd.getClassDesc().isEnum()) {

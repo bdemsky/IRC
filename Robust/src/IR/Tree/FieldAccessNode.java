@@ -54,7 +54,7 @@ public class FieldAccessNode extends ExpressionNode {
   public boolean isSuper() {
       return issuper;
   }
-
+  
   public Long evaluate() {
     // if the field is a constant value then OK
     eval = null;

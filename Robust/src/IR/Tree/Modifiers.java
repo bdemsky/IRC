@@ -61,6 +61,10 @@ public class Modifiers {
   public boolean isStatic() {
     return ((value&STATIC)!=0);
   }
+  
+  public boolean isPublic() {
+    return ((value&PUBLIC)!=0);
+  }
 
   public boolean isNative() {
     return ((value&NATIVE)!=0);

@@ -19,6 +19,7 @@ public class FieldDescriptor extends Descriptor {
   private boolean isglobal;
   private boolean isenum;
   private int enumvalue;
+  private boolean isEnumClass;
 
   private ClassDescriptor cn;
 
@@ -32,6 +33,7 @@ public class FieldDescriptor extends Descriptor {
     this.isglobal=isglobal;
     this.isenum = false;
     this.enumvalue = -1;
+    this.isEnumClass = false;
   }
 
   public ClassDescriptor getClassDescriptor() {
@@ -107,4 +109,13 @@ public class FieldDescriptor extends Descriptor {
   public String toPrettyStringBrief() {
     return td.toPrettyString()+" "+getSymbol();
   }
+  
+  public void setIsEnumClass() {
+    this.isEnumClass = true;
+  }
+
+  public boolean isEnumClass() {
+    return this.isEnumClass;
+  }
+
 }
