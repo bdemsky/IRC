@@ -19,6 +19,7 @@ dotest IntegerTest IntegerTest.java
 dotest AbstractTest AbstractTest.java
 dotest EnumTest EnumTest.java
 dotest InitializerTest InitializerTest.java
+dotest ArrayInitializerTest ArrayInitializerTest.java
 dotest InterfaceTest InterfaceTest.java
 dotest StaticInnerClassTest StaticInnerClassTest.java
 dotest StaticTest StaticTest.java
