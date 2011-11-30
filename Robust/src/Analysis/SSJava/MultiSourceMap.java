@@ -13,6 +13,10 @@ public class MultiSourceMap<T, V> {
     map = new Hashtable<NTuple<T>, Set<V>>();
   }
 
+  public void put(NTuple<T> key, Set<V> set) {
+    map.put(key, set);
+  }
+
   public void put(NTuple<T> key, NTuple<T> setKey, Set<V> set) {
 
     if (!map.containsKey(setKey)) {
@@ -63,5 +67,9 @@ public class MultiSourceMap<T, V> {
 
     return rtrMapping;
 
+  }
+
+  public Set<NTuple<T>> keySet() {
+    return map.keySet();
   }
 }
