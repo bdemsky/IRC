@@ -882,6 +882,21 @@ public class SemanticCheck {
 		return null;
 
 	ClassDescriptor cd = fd.getClassDescriptor();
+	if(icd.getInStaticContext()) {
+	  // if the inner class is in a static context, it does not have the this$0 
+	  // pointer to its surrounding class. Instead, it might have reference to 
+	  // its static surrounding method/block is there is any and it can refer 
+	  // to static fields in its surrounding class too.
+	  if(fd.isStatic()) {
+	    NameNode nn = new NameNode(new NameDescriptor(cd.getSymbol()));
+	    nn.setNumLine(linenum);
+	    FieldAccessNode theFieldNode = new FieldAccessNode(nn,varname);
+	    theFieldNode.setNumLine(linenum);
+	    return theFieldNode;
+	  } else {
+	    throw new Error("Error: access non-static field " + cd.getSymbol() + "." + fd.getSymbol() + " in an inner class " + icd.getSymbol() + " that is declared in a static context");
+	  }
+	}
 	int depth = 1;
 	int startingDepth = icd.getInnerDepth();
 
@@ -1070,65 +1085,35 @@ public class SemanticCheck {
   }
 
   void checkArrayInitializerNode(Descriptor md, SymbolTable nametable, ArrayInitializerNode ain, TypeDescriptor td) {
-    Vector<TypeDescriptor> vec_type = new Vector<TypeDescriptor>();
     for( int i = 0; i < ain.numVarInitializers(); ++i ) {
-      checkExpressionNode(md, nametable, ain.getVarInitializer(i), td==null?td:td.dereference());
-      vec_type.add(ain.getVarInitializer(i).getType());
+      checkExpressionNode(md, nametable, ain.getVarInitializer(i), td.dereference());
     }
-    // descide the type of this variableInitializerNode
-    TypeDescriptor out_type = null;
-    for(int i = 0; i < vec_type.size(); i++) {
-      TypeDescriptor tmp_type = vec_type.elementAt(i);
-      if(out_type == null) {
-        if(tmp_type != null) {
-          out_type = tmp_type;
-        }
-      } else if(out_type.isNull()) {
-        if(!tmp_type.isNull() ) {
-          if(!tmp_type.isArray()) {
-            throw new Error("Error: mixed type in var initializer list");
-          } else {
-            out_type = tmp_type;
-          }
-        }
-      } else if(out_type.isArray()) {
-        if(tmp_type.isArray()) {
-          if(tmp_type.getArrayCount() > out_type.getArrayCount()) {
-            out_type = tmp_type;
-          }
-        } else if((tmp_type != null) && (!tmp_type.isNull())) {
-          throw new Error("Error: mixed type in var initializer list");
-        }
-      } else if(out_type.isInt()) {
-        if(!tmp_type.isInt()) {
-          throw new Error("Error: mixed type in var initializer list");
-        }
-      } else if(out_type.isString()) {
-        if(!tmp_type.isString()) {
-          throw new Error("Error: mixed type in var initializer list");
-        }
-      }
-    }
-    if(out_type != null) {
-      out_type = out_type.makeArray(state);
-    }
-    ain.setType(out_type);
+    if (td==null)
+	throw new Error();
+    
+    ain.setType(td);
   }
 
   void checkAssignmentNode(Descriptor md, SymbolTable nametable, AssignmentNode an, TypeDescriptor td) {
-    boolean postinc=true;
-    if (an.getOperation().getBaseOp()==null||
-        (an.getOperation().getBaseOp().getOp()!=Operation.POSTINC&&
-         an.getOperation().getBaseOp().getOp()!=Operation.POSTDEC))
-      postinc=false;
-    if (!postinc)
-      checkExpressionNode(md, nametable, an.getSrc(),td);
-    //TODO: Need check on validity of operation here
+    // Need to first check the lside to decide the correct type of the rside
+    // TODO: Need check on validity of operation here
     if (!((an.getDest() instanceof FieldAccessNode)||
           (an.getDest() instanceof ArrayAccessNode)||
           (an.getDest() instanceof NameNode)))
       throw new Error("Bad lside in "+an.printNode(0));
     checkExpressionNode(md, nametable, an.getDest(), null);
+    boolean postinc=true;
+    if (an.getOperation().getBaseOp()==null||
+        (an.getOperation().getBaseOp().getOp()!=Operation.POSTINC&&
+         an.getOperation().getBaseOp().getOp()!=Operation.POSTDEC))
+      postinc=false;
+    if (!postinc) {
+      if(an.getSrc() instanceof ArrayInitializerNode) {
+	checkExpressionNode(md, nametable, an.getSrc(), an.getDest().getType());
+      } else {
+        checkExpressionNode(md, nametable, an.getSrc(),td);
+      }
+    }
 
     /* We want parameter variables to tasks to be immutable */
     if (md instanceof TaskDescriptor) {
