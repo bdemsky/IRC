@@ -57,7 +57,7 @@ public class DefinitelyWrittenCheck {
   private Hashtable<Descriptor, NTuple<Descriptor>> mapHeapPath;
 
   // maps a temp descriptor to its composite location
-  private Hashtable<Descriptor, NTuple<Location>> mapDescriptorToLocationPath;
+  private Hashtable<TempDescriptor, NTuple<Location>> mapDescriptorToLocationPath;
 
   // maps a flat method to the READ that is the set of heap path that is
   // expected to be written before method invocation
@@ -146,8 +146,8 @@ public class DefinitelyWrittenCheck {
   private Set<NTuple<Descriptor>> calleeUnionBoundReadSet;
   private Set<NTuple<Descriptor>> calleeIntersectBoundMustWriteSet;
   private Set<NTuple<Descriptor>> calleeUnionBoundMayWriteSet;
-  private Set<NTuple<Descriptor>> calleeUnionBoundDeleteSet;
-  private Hashtable<NTuple<Location>, Set<Descriptor>> calleeIntersectBoundSharedSet;
+  private SharedLocMap calleeUnionBoundDeleteSet;
+  private SharedLocMap calleeIntersectBoundSharedSet;
 
   private Hashtable<Descriptor, Location> mapDescToLocation;
 
@@ -162,7 +162,7 @@ public class DefinitelyWrittenCheck {
     this.mapFlatNodeToMustWriteSet = new Hashtable<FlatNode, Set<NTuple<Descriptor>>>();
     this.mapDescriptorToSetDependents = new Hashtable<Descriptor, Set<MethodDescriptor>>();
     this.mapHeapPath = new Hashtable<Descriptor, NTuple<Descriptor>>();
-    this.mapDescriptorToLocationPath = new Hashtable<Descriptor, NTuple<Location>>();
+    this.mapDescriptorToLocationPath = new Hashtable<TempDescriptor, NTuple<Location>>();
     this.mapFlatMethodToReadSet = new Hashtable<FlatMethod, Set<NTuple<Descriptor>>>();
     this.mapFlatMethodToMustWriteSet = new Hashtable<FlatMethod, Set<NTuple<Descriptor>>>();
     this.mapFlatMethodToMayWriteSet = new Hashtable<FlatMethod, Set<NTuple<Descriptor>>>();
@@ -190,8 +190,8 @@ public class DefinitelyWrittenCheck {
     this.mapSharedLocationToCoverSet = new Hashtable<Location, Set<Descriptor>>();
     this.mapFlatNodeToSharedLocMapping = new Hashtable<FlatNode, SharedLocMap>();
     this.mapFlatMethodToDeleteSet = new Hashtable<FlatMethod, SharedLocMap>();
-    this.calleeUnionBoundDeleteSet = new HashSet<NTuple<Descriptor>>();
-    this.calleeIntersectBoundSharedSet = new Hashtable<NTuple<Location>, Set<Descriptor>>();
+    this.calleeUnionBoundDeleteSet = new SharedLocMap();
+    this.calleeIntersectBoundSharedSet = new SharedLocMap();
     this.mapFlatMethodToSharedLocMap = new Hashtable<FlatMethod, SharedLocMap>();
     this.mapLocationPathToMayWrittenSet = new MultiSourceMap<Location, Descriptor>();
     this.mapMethodToSharedWriteMapping =
@@ -204,21 +204,14 @@ public class DefinitelyWrittenCheck {
       initialize();
       computeSharedCoverSet();
 
-      System.out.println("#");
-      System.out.println(mapLocationPathToMayWrittenSet);
+      // System.out.println("#");
+      // System.out.println(mapLocationPathToMayWrittenSet);
 
       methodReadWriteSetAnalysis();
       sharedLocAnalysis();
 
-      // eventLoopAnalysis();
+      eventLoopAnalysis();
 
-      // XXXXXXX
-      // methodReadWriteSetAnalysis();
-      // methodReadWriteSetAnalysisToEventLoopBody();
-      // eventLoopAnalysis();
-      // XXXXXXX
-      // sharedLocationAnalysis();
-      // checkSharedLocationResult();
     }
   }
 
@@ -376,32 +369,31 @@ public class DefinitelyWrittenCheck {
 
             Location dstLoc = getLocation(lhs);
             if (dstLoc != null && ssjava.isSharedLocation(dstLoc)) {
-              System.out.println("FlatOpNode=" + fon);
+              NTuple<Descriptor> lhsHeapPath = computePath(lhs);
+              NTuple<Location> lhsLocTuple = mapDescriptorToLocationPath.get(lhs);
+
+              Location srcLoc = getLocation(lhs);
+
+              // computing gen/kill set
+              computeKILLSetForWrite(curr, killSet, lhsLocTuple, lhsHeapPath);
+              if (!dstLoc.equals(srcLoc)) {
+                computeGENSetForHigherWrite(curr, killSet, lhsLocTuple, lhsHeapPath);
+                updateDeleteSetForHigherWrite(currDeleteSet, lhsLocTuple, lhsHeapPath);
+              } else {
+                computeGENSetForSameHeightWrite(curr, killSet, lhsLocTuple, lhsHeapPath);
+                updateDeleteSetForSameHeightWrite(currDeleteSet, lhsLocTuple, lhsHeapPath);
+              }
+
+              // System.out.println("VAR WRITE:" + fn);
+              // System.out.println("lhsLocTuple=" + lhsLocTuple +
+              // " lhsHeapPath="
+              // + lhsHeapPath);
+              // System.out.println("dstLoc=" + dstLoc + " srcLoc=" + srcLoc);
+              // System.out.println("KILLSET=" + killSet);
+              // System.out.println("GENSet=" + genSet);
+              // System.out.println("DELETESET=" + currDeleteSet);
+
             }
-
-            NTuple<Descriptor> lhsHeapPath = computePath(lhs);
-            NTuple<Location> lhsLocTuple = mapDescriptorToLocationPath.get(lhs);
-
-            Location srcLoc = getLocation(lhs);
-
-            System.out.println("VAR WRITE:" + fn);
-            System.out.println("lhsLocTuple=" + lhsLocTuple + " lhsHeapPath=" + lhsHeapPath);
-            System.out.println("dstLoc=" + dstLoc + " srcLoc=" + srcLoc);
-
-            // computing gen/kill set
-            computeKILLSetForWrite(curr, killSet, lhsLocTuple, lhsHeapPath);
-            if (!dstLoc.equals(srcLoc)) {
-              System.out.println("LOC IS DIFFERENT");
-              computeGENSetForHigherWrite(curr, killSet, lhsLocTuple, lhsHeapPath);
-              updateDeleteSetForHigherWrite(currDeleteSet, lhsLocTuple, lhsHeapPath);
-            } else {
-              computeGENSetForSameHeightWrite(curr, killSet, lhsLocTuple, lhsHeapPath);
-              updateDeleteSetForSameHeightWrite(currDeleteSet, lhsLocTuple, lhsHeapPath);
-            }
-
-            System.out.println("KILLSET=" + killSet);
-            System.out.println("GENSet=" + genSet);
-            System.out.println("DELETESET=" + currDeleteSet);
 
           }
         }
@@ -434,27 +426,30 @@ public class DefinitelyWrittenCheck {
         // only care the case that loc(f) is shared location
         // write(field)
 
-        NTuple<Location> fieldLocTuple = mapDescriptorToLocationPath.get(fld);
+        NTuple<Location> fieldLocTuple = new NTuple<Location>();
+        fieldLocTuple.addAll(mapDescriptorToLocationPath.get(lhs));
+        fieldLocTuple.add(fieldLoc);
+
         NTuple<Descriptor> fldHeapPath = computePath(fld);
 
         // computing gen/kill set
         computeKILLSetForWrite(curr, killSet, fieldLocTuple, fldHeapPath);
         if (!fieldLoc.equals(srcLoc)) {
-          System.out.println("LOC IS DIFFERENT");
-          computeGENSetForHigherWrite(curr, killSet, fieldLocTuple, fldHeapPath);
+          computeGENSetForHigherWrite(curr, genSet, fieldLocTuple, fldHeapPath);
           updateDeleteSetForHigherWrite(currDeleteSet, fieldLocTuple, fldHeapPath);
         } else {
-          computeGENSetForSameHeightWrite(curr, killSet, fieldLocTuple, fldHeapPath);
+          computeGENSetForSameHeightWrite(curr, genSet, fieldLocTuple, fldHeapPath);
           updateDeleteSetForSameHeightWrite(currDeleteSet, fieldLocTuple, fldHeapPath);
         }
 
-        System.out.println("################");
-        System.out.println("FIELD WRITE:" + fn);
-        System.out.println("FldHeapPath=" + fldHeapPath);
-        System.out.println("fieldLocTuple=" + fieldLocTuple + " srcLoc=" + srcLoc);
-        System.out.println("KILLSET=" + killSet);
-        System.out.println("GENSet=" + genSet);
-        System.out.println("DELETESET=" + currDeleteSet);
+        // System.out.println("################");
+        // System.out.println("FIELD WRITE:" + fn);
+        // System.out.println("FldHeapPath=" + fldHeapPath);
+        // System.out.println("fieldLocTuple=" + fieldLocTuple + " srcLoc=" +
+        // srcLoc);
+        // System.out.println("KILLSET=" + killSet);
+        // System.out.println("GENSet=" + genSet);
+        // System.out.println("DELETESET=" + currDeleteSet);
       }
 
     }
@@ -463,34 +458,17 @@ public class DefinitelyWrittenCheck {
     case FKind.FlatCall: {
       FlatCall fc = (FlatCall) fn;
 
-      bindHeapPathCallerArgWithCaleeParamForSharedLoc(fc);
+      bindHeapPathCallerArgWithCaleeParamForSharedLoc(fm.getMethod(), fc);
 
-      // generateKILLSetForFlatCall(fc, curr, readWriteKillSet);
-      // generateGENSetForFlatCall(fc, readWriteGenSet);
+      // computing gen/kill set
+      generateKILLSetForFlatCall(curr, killSet);
+      generateGENSetForFlatCall(curr, genSet);
 
-      // System.out.println
-      // // only care the case that loc(f) is shared location
-      // // write(field)
-      // NTuple<Descriptor> lhsHeapPath = computePath(lhs);
-      // NTuple<Descriptor> fldHeapPath = new
-      // NTuple<Descriptor>(lhsHeapPath.getList());
-      // fldHeapPath.add(fld);
-      //
-      // // computing gen/kill set
-      // computeKILLSetForWrite(curr, lhsHeapPath, fieldLoc, killSet);
-      // if (!fieldLoc.equals(srcLoc)) {
-      // System.out.println("LOC IS DIFFERENT");
-      // computeGENSetForHigherWrite(curr, lhsHeapPath, fieldLoc, fld, genSet);
-      // deleteSet.remove(fldHeapPath);
-      // } else {
-      // computeGENSetForSharedWrite(curr, lhsHeapPath, fieldLoc, fld, genSet);
-      // deleteSet.add(fldHeapPath);
-      // }
-      // ("FLATCALL:" + fn);
+      // System.out.println("#FLATCALL=" + fc);
+      // System.out.println("KILLSET=" + killSet);
+      // System.out.println("GENSet=" + genSet);
       // System.out.println("bound DELETE Set=" + calleeUnionBoundDeleteSet);
-      // // System.out.println("KILLSET=" + KILLSet);
-      // // System.out.println("GENSet=" + GENSet);
-      //
+
     }
       break;
 
@@ -499,12 +477,37 @@ public class DefinitelyWrittenCheck {
       mergeSharedLocMap(sharedLocMap, curr);
       mergeDeleteSet(deleteSet, currDeleteSet);
 
+      // System.out.println("#FLATEXIT sharedLocMap=" + sharedLocMap);
     }
+      break;
 
     }
 
     computeNewMapping(curr, killSet, genSet);
-    System.out.println("#######" + curr);
+    // System.out.println("#######" + curr);
+
+  }
+
+  private void generateGENSetForFlatCall(SharedLocMap curr, SharedLocMap genSet) {
+
+    Set<NTuple<Location>> locTupleSet = calleeIntersectBoundSharedSet.keySet();
+    for (Iterator iterator = locTupleSet.iterator(); iterator.hasNext();) {
+      NTuple<Location> locTupleKey = (NTuple<Location>) iterator.next();
+      genSet.addWrite(locTupleKey, curr.get(locTupleKey));
+      genSet.addWrite(locTupleKey, calleeIntersectBoundSharedSet.get(locTupleKey));
+
+      genSet.removeWriteAll(locTupleKey, calleeUnionBoundDeleteSet.get(locTupleKey));
+    }
+
+  }
+
+  private void generateKILLSetForFlatCall(SharedLocMap curr, SharedLocMap killSet) {
+
+    Set<NTuple<Location>> locTupleSet = calleeIntersectBoundSharedSet.keySet();
+    for (Iterator iterator = locTupleSet.iterator(); iterator.hasNext();) {
+      NTuple<Location> locTupleKey = (NTuple<Location>) iterator.next();
+      killSet.addWrite(locTupleKey, curr.get(locTupleKey));
+    }
 
   }
 
@@ -1242,9 +1245,11 @@ public class DefinitelyWrittenCheck {
             && !lhs.getSymbol().startsWith("srctmp") && !lhs.getSymbol().startsWith("leftop")
             && !lhs.getSymbol().startsWith("rightop")) {
 
-          NTuple<Location> locTuple = deriveLocationTuple(md, rhs);
-          mapLocationPathToMayWrittenSet.put(locTuple, null, lhs);
-          addMayWrittenSet(md, locTuple, lhs);
+          NTuple<Location> lhsLocTuple = new NTuple<Location>();
+          lhsLocTuple.addAll(deriveLocationTuple(md, rhs));
+
+          mapLocationPathToMayWrittenSet.put(lhsLocTuple, null, lhs);
+          addMayWrittenSet(md, lhsLocTuple, lhs);
 
         }
 
@@ -1252,9 +1257,15 @@ public class DefinitelyWrittenCheck {
           mapDescriptorToLocationPath.put(lhs, mapDescriptorToLocationPath.get(rhs));
         } else {
           if (rhs.getType().getExtension() instanceof SSJavaType) {
-            NTuple<Location> locTuple =
+            NTuple<Location> rhsLocTuple =
                 ((SSJavaType) rhs.getType().getExtension()).getCompLoc().getTuple();
-            mapDescriptorToLocationPath.put(lhs, locTuple);
+
+            NTuple<Location> lhsLocTuple = new NTuple<Location>();
+            lhsLocTuple.addAll(rhsLocTuple);
+
+            mapDescriptorToLocationPath.put(rhs, rhsLocTuple);
+            mapDescriptorToLocationPath.put(lhs, lhsLocTuple);
+
           }
         }
 
@@ -1284,15 +1295,13 @@ public class DefinitelyWrittenCheck {
       if (ssjava.isSharedLocation(fieldLocation)) {
         addSharedLocDescriptor(fieldLocation, fld);
 
-        // System.out.println("FIELD WRITE FN=" + fn);
-        NTuple<Location> locTuple = deriveLocationTuple(md, lhs);
-        locTuple.addAll(deriveLocationTuple(md, fld));
-        // System.out.println("LOC TUPLE=" + locTuple);
+        NTuple<Location> locTuple = new NTuple<Location>();
+        locTuple.addAll(deriveLocationTuple(md, lhs));
+        locTuple.add(fieldLocation);
 
         // mapLocationPathToMayWrittenSet.put(locTuple, null, fld);
         addMayWrittenSet(md, locTuple, fld);
 
-        mapDescriptorToLocationPath.put(fld, locTuple);
       }
 
     }
@@ -1321,8 +1330,10 @@ public class DefinitelyWrittenCheck {
         break;
       }
 
-      NTuple<Location> locTuple = deriveLocationTuple(md, rhs);
-      locTuple.addAll(deriveLocationTuple(md, fld));
+      NTuple<Location> locTuple = new NTuple<Location>();
+      locTuple.addAll(deriveLocationTuple(md, rhs));
+      locTuple.add((Location) fld.getType().getExtension());
+
       mapDescriptorToLocationPath.put(lhs, locTuple);
 
     }
@@ -1330,7 +1341,6 @@ public class DefinitelyWrittenCheck {
 
     case FKind.FlatCall: {
 
-      // System.out.println("###FLATCALL=" + fn);
       FlatCall fc = (FlatCall) fn;
       bindLocationPathCallerArgWithCalleeParam(md, fc);
 
@@ -1479,8 +1489,6 @@ public class DefinitelyWrittenCheck {
           newKey.add(calleeKey.get(i));
         }
 
-        System.out.println("calleeParamPath=" + calleeParamPath + " newKey=" + newKey
-            + " maywriteSet=" + writeSet);
         mapLocationPathToMayWrittenSet.put(calleeKey, newKey, writeSet);
       }
 
@@ -1519,8 +1527,6 @@ public class DefinitelyWrittenCheck {
   }
 
   private Location getLocation(Descriptor d) {
-
-    System.out.println("GETLOCATION d=" + d + " d=" + d.getClass());
 
     if (d instanceof FieldDescriptor) {
       TypeExtension te = ((FieldDescriptor) d).getType().getExtension();
@@ -2049,107 +2055,160 @@ public class DefinitelyWrittenCheck {
 
   }
 
-  private void bindHeapPathCallerArgWithCaleeParamForSharedLoc(FlatCall fc) {
-    // // compute all possible callee set
-    // // transform all DELETE set from the any possible
-    // // callees to the caller
-    // calleeUnionBoundDeleteSet.clear();
-    // calleeIntersectBoundSharedSet.clear();
-    //
-    // MethodDescriptor mdCallee = fc.getMethod();
-    // Set<MethodDescriptor> setPossibleCallees = new
-    // HashSet<MethodDescriptor>();
-    // setPossibleCallees.addAll(callGraph.getMethods(mdCallee));
-    //
-    // // create mapping from arg idx to its heap paths
-    // Hashtable<Integer, NTuple<Descriptor>> mapArgIdx2CallerArgHeapPath =
-    // new Hashtable<Integer, NTuple<Descriptor>>();
-    //
-    // // arg idx is starting from 'this' arg
-    // if (fc.getThis() != null) {
-    // NTuple<Descriptor> thisHeapPath = mapHeapPath.get(fc.getThis());
-    // if (thisHeapPath == null) {
-    // // method is called without creating new flat node representing 'this'
-    // thisHeapPath = new NTuple<Descriptor>();
-    // thisHeapPath.add(fc.getThis());
-    // }
-    //
-    // mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
-    // }
-    //
-    // for (int i = 0; i < fc.numArgs(); i++) {
-    // TempDescriptor arg = fc.getArg(i);
-    // NTuple<Descriptor> argHeapPath = computePath(arg);
-    // mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(i + 1), argHeapPath);
-    // }
-    //
-    // for (Iterator iterator = setPossibleCallees.iterator();
-    // iterator.hasNext();) {
-    // MethodDescriptor callee = (MethodDescriptor) iterator.next();
-    // FlatMethod calleeFlatMethod = state.getMethodFlat(callee);
-    //
-    // // binding caller's args and callee's params
-    //
-    // Set<NTuple<Descriptor>> calleeReadSet =
-    // mapFlatMethodToDeleteSet.get(calleeFlatMethod);
-    // if (calleeReadSet == null) {
-    // calleeReadSet = new HashSet<NTuple<Descriptor>>();
-    // mapFlatMethodToDeleteSet.put(calleeFlatMethod, calleeReadSet);
-    // }
-    //
-    // Hashtable<Integer, TempDescriptor> mapParamIdx2ParamTempDesc =
-    // new Hashtable<Integer, TempDescriptor>();
-    // int offset = 0;
-    // if (calleeFlatMethod.getMethod().isStatic()) {
-    // // static method does not have implicit 'this' arg
-    // offset = 1;
-    // }
-    // for (int i = 0; i < calleeFlatMethod.numParameters(); i++) {
-    // TempDescriptor param = calleeFlatMethod.getParameter(i);
-    // mapParamIdx2ParamTempDesc.put(Integer.valueOf(i + offset), param);
-    // }
-    //
-    // Set<NTuple<Descriptor>> calleeBoundDeleteSet =
-    // bindSet(calleeReadSet, mapParamIdx2ParamTempDesc,
-    // mapArgIdx2CallerArgHeapPath);
-    // // union of the current read set and the current callee's
-    // // read set
-    // calleeUnionBoundDeleteSet.addAll(calleeBoundDeleteSet);
-    //
-    // SharedLocMappingSet calleeSharedLocMap =
-    // mapFlatMethodToSharedLocMappingSet.get(calleeFlatMethod);
-    //
-    // Set<NTuple<Descriptor>> calleeHeapPathKeySet =
-    // calleeSharedLocMap.getHeapPathKeySet();
-    //
-    // for (Iterator iterator2 = calleeHeapPathKeySet.iterator();
-    // iterator2.hasNext();) {
-    // NTuple<Descriptor> calleeHeapPathKey = (NTuple<Descriptor>)
-    // iterator2.next();
-    //
-    // NTuple<Descriptor> calleeBoundHeapPathKey =
-    // bind(calleeHeapPathKey, mapParamIdx2ParamTempDesc,
-    // mapArgIdx2CallerArgHeapPath);
-    //
-    // Set<Location> calleeLocSet =
-    // calleeSharedLocMap.getLocationKeySet(calleeHeapPathKey);
-    //
-    // for (Iterator iterator3 = calleeLocSet.iterator(); iterator3.hasNext();)
-    // {
-    // Location calleeLocKey = (Location) iterator3.next();
-    // Set<Descriptor> calleeWriteSet =
-    // calleeSharedLocMap.getWriteSet(calleeHeapPathKey, calleeLocKey);
-    //
-    // calleeIntersectBoundSharedSet.intersectWriteSet(calleeBoundHeapPathKey,
-    // calleeLocKey,
-    // calleeWriteSet);
-    //
-    // }
-    //
-    // }
-    //
-    // }
-    //
+  private void bindHeapPathCallerArgWithCaleeParamForSharedLoc(MethodDescriptor mdCaller,
+      FlatCall fc) {
+
+    calleeIntersectBoundSharedSet.clear();
+    calleeUnionBoundDeleteSet.clear();
+
+    // if arg is not primitive type, we need to propagate maywritten set to
+    // the caller's location path
+
+    MethodDescriptor mdCallee = fc.getMethod();
+    Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
+    setPossibleCallees.addAll(callGraph.getMethods(mdCallee));
+
+    // create mapping from arg idx to its heap paths
+    Hashtable<Integer, NTuple<Descriptor>> mapArgIdx2CallerArgHeapPath =
+        new Hashtable<Integer, NTuple<Descriptor>>();
+
+    // arg idx is starting from 'this' arg
+    if (fc.getThis() != null) {
+      NTuple<Descriptor> thisHeapPath = mapHeapPath.get(fc.getThis());
+      if (thisHeapPath == null) {
+        // method is called without creating new flat node representing 'this'
+        thisHeapPath = new NTuple<Descriptor>();
+        thisHeapPath.add(fc.getThis());
+      }
+
+      mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
+    }
+
+    for (int i = 0; i < fc.numArgs(); i++) {
+      TempDescriptor arg = fc.getArg(i);
+      NTuple<Descriptor> argHeapPath = computePath(arg);
+      mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(i + 1), argHeapPath);
+    }
+
+    // create mapping from arg idx to its location paths
+    Hashtable<Integer, NTuple<Location>> mapArgIdx2CallerAgLocationPath =
+        new Hashtable<Integer, NTuple<Location>>();
+
+    // arg idx is starting from 'this' arg
+    if (fc.getThis() != null) {
+      NTuple<Location> thisLocationPath = deriveLocationTuple(mdCaller, fc.getThis());
+      mapArgIdx2CallerAgLocationPath.put(Integer.valueOf(0), thisLocationPath);
+    }
+
+    for (int i = 0; i < fc.numArgs(); i++) {
+      TempDescriptor arg = fc.getArg(i);
+      NTuple<Location> argLocationPath = deriveLocationTuple(mdCaller, arg);
+      mapArgIdx2CallerAgLocationPath.put(Integer.valueOf(i + 1), argLocationPath);
+    }
+
+    for (Iterator iterator = setPossibleCallees.iterator(); iterator.hasNext();) {
+      MethodDescriptor callee = (MethodDescriptor) iterator.next();
+      FlatMethod calleeFlatMethod = state.getMethodFlat(callee);
+
+      // binding caller's args and callee's params
+
+      Hashtable<Integer, TempDescriptor> mapParamIdx2ParamTempDesc =
+          new Hashtable<Integer, TempDescriptor>();
+      int offset = 0;
+      if (calleeFlatMethod.getMethod().isStatic()) {
+        // static method does not have implicit 'this' arg
+        offset = 1;
+      }
+      for (int i = 0; i < calleeFlatMethod.numParameters(); i++) {
+        TempDescriptor param = calleeFlatMethod.getParameter(i);
+        mapParamIdx2ParamTempDesc.put(Integer.valueOf(i + offset), param);
+      }
+
+      Set<Integer> keySet = mapArgIdx2CallerAgLocationPath.keySet();
+      for (Iterator iterator2 = keySet.iterator(); iterator2.hasNext();) {
+        Integer idx = (Integer) iterator2.next();
+        NTuple<Location> callerArgLocationPath = mapArgIdx2CallerAgLocationPath.get(idx);
+        NTuple<Descriptor> callerArgHeapPath = mapArgIdx2CallerArgHeapPath.get(idx);
+
+        TempDescriptor calleeParam = mapParamIdx2ParamTempDesc.get(idx);
+        NTuple<Location> calleeLocationPath = deriveLocationTuple(mdCallee, calleeParam);
+        SharedLocMap calleeDeleteSet = mapFlatMethodToDeleteSet.get(calleeFlatMethod);
+        SharedLocMap calleeSharedLocMap = mapFlatMethodToSharedLocMap.get(calleeFlatMethod);
+
+        if (calleeDeleteSet != null) {
+          createNewMappingOfDeleteSet(callerArgLocationPath, callerArgHeapPath, calleeLocationPath,
+              calleeDeleteSet);
+        }
+
+        if (calleeSharedLocMap != null) {
+          createNewMappingOfSharedSet(callerArgLocationPath, callerArgHeapPath, calleeLocationPath,
+              calleeSharedLocMap);
+        }
+
+      }
+
+    }
+
+  }
+
+  private void createNewMappingOfDeleteSet(NTuple<Location> callerArgLocationPath,
+      NTuple<Descriptor> callerArgHeapPath, NTuple<Location> calleeLocationPath,
+      SharedLocMap calleeDeleteSet) {
+
+    SharedLocMap calleeParamDeleteSet = calleeDeleteSet.getHeapPathStartedWith(calleeLocationPath);
+
+    Set<NTuple<Location>> keySet = calleeParamDeleteSet.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      NTuple<Location> calleeLocTupleKey = (NTuple<Location>) iterator.next();
+      Set<NTuple<Descriptor>> heapPathSet = calleeParamDeleteSet.get(calleeLocTupleKey);
+      for (Iterator iterator2 = heapPathSet.iterator(); iterator2.hasNext();) {
+        NTuple<Descriptor> calleeHeapPath = (NTuple<Descriptor>) iterator2.next();
+        calleeUnionBoundDeleteSet.addWrite(
+            bindLocationPath(callerArgLocationPath, calleeLocTupleKey),
+            bindHeapPath(callerArgHeapPath, calleeHeapPath));
+      }
+    }
+
+  }
+
+  private void createNewMappingOfSharedSet(NTuple<Location> callerArgLocationPath,
+      NTuple<Descriptor> callerArgHeapPath, NTuple<Location> calleeLocationPath,
+      SharedLocMap calleeSharedLocMap) {
+
+    SharedLocMap calleeParamSharedSet =
+        calleeSharedLocMap.getHeapPathStartedWith(calleeLocationPath);
+
+    Set<NTuple<Location>> keySet = calleeParamSharedSet.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      NTuple<Location> calleeLocTupleKey = (NTuple<Location>) iterator.next();
+      Set<NTuple<Descriptor>> heapPathSet = calleeParamSharedSet.get(calleeLocTupleKey);
+      Set<NTuple<Descriptor>> boundHeapPathSet = new HashSet<NTuple<Descriptor>>();
+      for (Iterator iterator2 = heapPathSet.iterator(); iterator2.hasNext();) {
+        NTuple<Descriptor> calleeHeapPath = (NTuple<Descriptor>) iterator2.next();
+        boundHeapPathSet.add(bindHeapPath(callerArgHeapPath, calleeHeapPath));
+      }
+      calleeIntersectBoundSharedSet.intersect(
+          bindLocationPath(callerArgLocationPath, calleeLocTupleKey), boundHeapPathSet);
+    }
+
+  }
+
+  private NTuple<Location> bindLocationPath(NTuple<Location> start, NTuple<Location> end) {
+    NTuple<Location> locPath = new NTuple<Location>();
+    locPath.addAll(start);
+    for (int i = 1; i < end.size(); i++) {
+      locPath.add(end.get(i));
+    }
+    return locPath;
+  }
+
+  private NTuple<Descriptor> bindHeapPath(NTuple<Descriptor> start, NTuple<Descriptor> end) {
+    NTuple<Descriptor> heapPath = new NTuple<Descriptor>();
+    heapPath.addAll(start);
+    for (int i = 1; i < end.size(); i++) {
+      heapPath.add(end.get(i));
+    }
+    return heapPath;
   }
 
   private NTuple<Descriptor> bind(NTuple<Descriptor> calleeHeapPathKey,
@@ -2612,19 +2671,6 @@ public class DefinitelyWrittenCheck {
     return in.subList(in.size() - 1, in.size());
   }
 
-  private Set<Descriptor> computeRemoveSet(NTuple<Descriptor> hpKey, Location locKey) {
-    Set<Descriptor> removeSet = new HashSet<Descriptor>();
-
-    for (Iterator iterator = calleeUnionBoundDeleteSet.iterator(); iterator.hasNext();) {
-      NTuple<Descriptor> removeHeapPath = (NTuple<Descriptor>) iterator.next();
-      if (getPrefix(removeHeapPath).equals(hpKey)) {
-        removeSet.add(getSuffix(removeHeapPath).get(0));
-      }
-    }
-
-    return removeSet;
-  }
-
   static public FieldDescriptor getArrayField(TypeDescriptor td) {
     FieldDescriptor fd = mapTypeToArrayField.get(td);
     if (fd == null) {
@@ -2867,16 +2913,6 @@ public class DefinitelyWrittenCheck {
       }
     }
 
-  }
-
-  private NTuple<Location> deriveLocationTuple(MethodDescriptor md, FieldDescriptor fld) {
-
-    assert fld.getType() != null;
-
-    Location fieldLoc = (Location) fld.getType().getExtension();
-    NTuple<Location> locTuple = new NTuple<Location>();
-    locTuple.add(fieldLoc);
-    return locTuple;
   }
 
 }
