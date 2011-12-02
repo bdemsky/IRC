@@ -128,9 +128,7 @@ public class DefinitelyWrittenCheck {
   // it is for setting clearance flag when all read set is overwritten
   private Hashtable<MethodDescriptor, ReadSummary> mapMethodDescriptorToReadSummary;
 
-  private MultiSourceMap<Location, Descriptor> mapLocationPathToMayWrittenSet;
-
-  private Hashtable<MethodDescriptor, MultiSourceMap<Location, Descriptor>> mapMethodToSharedWriteMapping;
+  private Hashtable<MethodDescriptor, MultiSourceMap<NTuple<Location>, NTuple<Descriptor>>> mapMethodToSharedLocCoverSet;
 
   private Hashtable<FlatNode, SharedLocMap> mapFlatNodeToSharedLocMapping;
   private Hashtable<FlatNode, SharedLocMap> mapFlatNodeToDeleteSet;
@@ -193,21 +191,18 @@ public class DefinitelyWrittenCheck {
     this.calleeUnionBoundDeleteSet = new SharedLocMap();
     this.calleeIntersectBoundSharedSet = new SharedLocMap();
     this.mapFlatMethodToSharedLocMap = new Hashtable<FlatMethod, SharedLocMap>();
-    this.mapLocationPathToMayWrittenSet = new MultiSourceMap<Location, Descriptor>();
-    this.mapMethodToSharedWriteMapping =
-        new Hashtable<MethodDescriptor, MultiSourceMap<Location, Descriptor>>();
+    this.mapMethodToSharedLocCoverSet =
+        new Hashtable<MethodDescriptor, MultiSourceMap<NTuple<Location>, NTuple<Descriptor>>>();
     this.mapFlatNodeToDeleteSet = new Hashtable<FlatNode, SharedLocMap>();
   }
 
   public void definitelyWrittenCheck() {
     if (!ssjava.getAnnotationRequireSet().isEmpty()) {
       initialize();
-      computeSharedCoverSet();
-
-      // System.out.println("#");
-      // System.out.println(mapLocationPathToMayWrittenSet);
 
       methodReadWriteSetAnalysis();
+      computeSharedCoverSet();
+
       sharedLocAnalysis();
 
       eventLoopAnalysis();
@@ -282,6 +277,7 @@ public class DefinitelyWrittenCheck {
     SharedLocMap deleteSet = new SharedLocMap();
     sharedLoc_analyzeBody(state.getMethodFlat(methodContainingSSJavaLoop), ssjavaLoopEntrance,
         sharedLocMap, deleteSet, true);
+
   }
 
   private void sharedLoc_analyzeMethod(FlatMethod fm, SharedLocMap sharedLocMap,
@@ -1173,6 +1169,8 @@ public class DefinitelyWrittenCheck {
 
   private void computeSharedCoverSet_analyzeMethod(FlatMethod fm, boolean onlyVisitSSJavaLoop) {
 
+    System.out.println("computeSharedCoverSet_analyzeMethod=" + fm);
+
     MethodDescriptor md = fm.getMethod();
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
 
@@ -1248,8 +1246,11 @@ public class DefinitelyWrittenCheck {
           NTuple<Location> lhsLocTuple = new NTuple<Location>();
           lhsLocTuple.addAll(deriveLocationTuple(md, rhs));
 
-          mapLocationPathToMayWrittenSet.put(lhsLocTuple, null, lhs);
-          addMayWrittenSet(md, lhsLocTuple, lhs);
+          NTuple<Descriptor> lhsHeapPath = computePath(lhs);
+          System.out.println("flatopnode=" + fn);
+          System.out.println("lhs heap path=" + computePath(lhs));
+          System.out.println("rhs heap path=" + computePath(rhs));
+          addMayWrittenSet(md, lhsLocTuple, lhsHeapPath);
 
         }
 
@@ -1299,8 +1300,12 @@ public class DefinitelyWrittenCheck {
         locTuple.addAll(deriveLocationTuple(md, lhs));
         locTuple.add(fieldLocation);
 
+        NTuple<Descriptor> fieldHeapPath = new NTuple<Descriptor>();
+        fieldHeapPath.addAll(computePath(lhs));
+        fieldHeapPath.add(fld);
+
         // mapLocationPathToMayWrittenSet.put(locTuple, null, fld);
-        addMayWrittenSet(md, locTuple, fld);
+        addMayWrittenSet(md, locTuple, fieldHeapPath);
 
       }
 
@@ -1344,28 +1349,32 @@ public class DefinitelyWrittenCheck {
       FlatCall fc = (FlatCall) fn;
       bindLocationPathCallerArgWithCalleeParam(md, fc);
 
+      System.out.println("###FLATCALL=" + fc);
+      System.out.println("###CALLER MAPPING=" + mapMethodToSharedLocCoverSet.get(md));
+
     }
       break;
 
     }
   }
 
-  private void addMayWrittenSet(MethodDescriptor md, NTuple<Location> locTuple, Descriptor d) {
+  private void addMayWrittenSet(MethodDescriptor md, NTuple<Location> locTuple,
+      NTuple<Descriptor> heapPath) {
 
-    MultiSourceMap<Location, Descriptor> map = mapMethodToSharedWriteMapping.get(md);
+    MultiSourceMap<NTuple<Location>, NTuple<Descriptor>> map = mapMethodToSharedLocCoverSet.get(md);
     if (map == null) {
-      map = new MultiSourceMap<Location, Descriptor>();
-      mapMethodToSharedWriteMapping.put(md, map);
+      map = new MultiSourceMap<NTuple<Location>, NTuple<Descriptor>>();
+      mapMethodToSharedLocCoverSet.put(md, map);
     }
 
-    Set<Descriptor> writeSet = map.get(locTuple);
+    Set<NTuple<Descriptor>> writeSet = map.get(locTuple);
     if (writeSet == null) {
-      writeSet = new HashSet<Descriptor>();
+      writeSet = new HashSet<NTuple<Descriptor>>();
       map.put(locTuple, writeSet);
     }
-    writeSet.add(d);
+    writeSet.add(heapPath);
 
-    // System.out.println("ADD WRITE DESC=" + d + " TO locTuple=" + locTuple);
+    System.out.println("ADD WRITE heapPath=" + heapPath + " TO locTuple=" + locTuple);
   }
 
   private void bindLocationPathCallerArgWithCalleeParam(MethodDescriptor mdCaller, FlatCall fc) {
@@ -1376,9 +1385,7 @@ public class DefinitelyWrittenCheck {
       TempDescriptor arg = fc.getArg(0);
       NTuple<Location> argLocationPath = deriveLocationTuple(mdCaller, arg);
       NTuple<Descriptor> argHeapPath = computePath(arg);
-      mapLocationPathToMayWrittenSet.put(argLocationPath, null,
-          argHeapPath.get(argHeapPath.size() - 1));
-
+      addMayWrittenSet(mdCaller, argLocationPath, argHeapPath);
     } else {
 
       // if arg is not primitive type, we need to propagate maywritten set to
@@ -1389,26 +1396,45 @@ public class DefinitelyWrittenCheck {
       setPossibleCallees.addAll(callGraph.getMethods(mdCallee));
 
       // create mapping from arg idx to its heap paths
-      Hashtable<Integer, NTuple<Location>> mapArgIdx2CallerAgLocationStrPath =
+      Hashtable<Integer, NTuple<Descriptor>> mapArgIdx2CallerArgHeapPath =
+          new Hashtable<Integer, NTuple<Descriptor>>();
+
+      // create mapping from arg idx to its location paths
+      Hashtable<Integer, NTuple<Location>> mapArgIdx2CallerArgLocationPath =
           new Hashtable<Integer, NTuple<Location>>();
 
       // arg idx is starting from 'this' arg
       if (fc.getThis() != null) {
+        // loc path for 'this'
         NTuple<Location> thisLocationPath = deriveLocationTuple(mdCaller, fc.getThis());
-        mapArgIdx2CallerAgLocationStrPath.put(Integer.valueOf(0), thisLocationPath);
-      }
+        mapArgIdx2CallerArgLocationPath.put(Integer.valueOf(0), thisLocationPath);
 
-      Hashtable<Integer, Set<Descriptor>> mapParamIdx2WriteSet =
-          new Hashtable<Integer, Set<Descriptor>>();
-
-      for (int i = 0; i < fc.numArgs() + 1; i++) {
-        mapParamIdx2WriteSet.put(Integer.valueOf(i), new HashSet<Descriptor>());
+        // heap path for 'this'
+        NTuple<Descriptor> thisHeapPath = mapHeapPath.get(fc.getThis());
+        if (thisHeapPath == null) {
+          // method is called without creating new flat node representing 'this'
+          thisHeapPath = new NTuple<Descriptor>();
+          thisHeapPath.add(fc.getThis());
+        }
+        mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
       }
 
       for (int i = 0; i < fc.numArgs(); i++) {
         TempDescriptor arg = fc.getArg(i);
+        // create mapping arg to loc path
         NTuple<Location> argLocationPath = deriveLocationTuple(mdCaller, arg);
-        mapArgIdx2CallerAgLocationStrPath.put(Integer.valueOf(i + 1), argLocationPath);
+        mapArgIdx2CallerArgLocationPath.put(Integer.valueOf(i + 1), argLocationPath);
+
+        // create mapping arg to heap path
+        NTuple<Descriptor> argHeapPath = computePath(arg);
+        mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(i + 1), argHeapPath);
+      }
+
+      Hashtable<Integer, Set<NTuple<Descriptor>>> mapParamIdx2WriteSet =
+          new Hashtable<Integer, Set<NTuple<Descriptor>>>();
+
+      for (int i = 0; i < fc.numArgs() + 1; i++) {
+        mapParamIdx2WriteSet.put(Integer.valueOf(i), new HashSet<NTuple<Descriptor>>());
       }
 
       for (Iterator iterator = setPossibleCallees.iterator(); iterator.hasNext();) {
@@ -1429,21 +1455,19 @@ public class DefinitelyWrittenCheck {
           mapParamIdx2ParamTempDesc.put(Integer.valueOf(i + offset), param);
         }
 
-        Set<Integer> keySet = mapArgIdx2CallerAgLocationStrPath.keySet();
+        Set<Integer> keySet = mapArgIdx2CallerArgLocationPath.keySet();
         for (Iterator iterator2 = keySet.iterator(); iterator2.hasNext();) {
           Integer idx = (Integer) iterator2.next();
-          NTuple<Location> callerArgLocationStrPath = mapArgIdx2CallerAgLocationStrPath.get(idx);
+          NTuple<Location> callerArgLocationPath = mapArgIdx2CallerArgLocationPath.get(idx);
 
           TempDescriptor calleeParam = mapParamIdx2ParamTempDesc.get(idx);
-          NTuple<Location> calleeLocationPath = deriveLocationTuple(mdCallee, calleeParam);
 
-          // System.out.println("#createNewMappingOfMayWrittenSet callee=" +
-          // callee
-          // + " callerArgLocationStrPath=" + callerArgLocationStrPath +
-          // "calleeLocationPath="
-          // + calleeLocationPath + " idx=" + idx + " writeset=" +
-          // mapParamIdx2WriteSet.get(idx));
-          createNewMappingOfMayWrittenSet(callee, callerArgLocationStrPath, calleeLocationPath,
+          NTuple<Descriptor> callerArgHeapPath = mapArgIdx2CallerArgHeapPath.get(idx);
+          NTuple<Location> calleeLocationPath = deriveLocationTuple(mdCallee, calleeParam);
+          NTuple<Descriptor> calleeHeapPath = computePath(calleeParam);
+
+          createNewMappingOfMayWrittenSet(mdCaller, callee, callerArgHeapPath,
+              callerArgLocationPath, calleeHeapPath, calleeLocationPath,
               mapParamIdx2WriteSet.get(idx));
 
         }
@@ -1454,8 +1478,29 @@ public class DefinitelyWrittenCheck {
 
   }
 
-  private void createNewMappingOfMayWrittenSet(MethodDescriptor callee,
-      NTuple<Location> callerPath, NTuple<Location> calleeParamPath, Set<Descriptor> writeSet) {
+  public Hashtable<NTuple<Location>, Set<NTuple<Descriptor>>> getMappingByStartedWith(
+      MultiSourceMap<NTuple<Location>, NTuple<Descriptor>> map, NTuple<Location> in) {
+
+    Hashtable<NTuple<Location>, Set<NTuple<Descriptor>>> matchedMapping =
+        new Hashtable<NTuple<Location>, Set<NTuple<Descriptor>>>();
+
+    Set<NTuple<Location>> keySet = map.keySet();
+
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      NTuple<Location> key = (NTuple<Location>) iterator.next();
+      if (key.startsWith(in)) {
+        matchedMapping.put(key, map.get(key));
+      }
+    }
+
+    return matchedMapping;
+
+  }
+
+  private void createNewMappingOfMayWrittenSet(MethodDescriptor caller, MethodDescriptor callee,
+      NTuple<Descriptor> callerArgHeapPath, NTuple<Location> callerArgLocPath,
+      NTuple<Descriptor> calleeParamHeapPath, NTuple<Location> calleeParamLocPath,
+      Set<NTuple<Descriptor>> writeSet) {
 
     // propagate may-written-set associated with the key that is started with
     // calleepath to the caller
@@ -1464,36 +1509,70 @@ public class DefinitelyWrittenCheck {
     // 2) create new mapping of may-written-set of callee path to caller path
 
     // extract all may written effect accessed through callee param path
-    MultiSourceMap<Location, Descriptor> mapping = mapMethodToSharedWriteMapping.get(callee);
+    MultiSourceMap<NTuple<Location>, NTuple<Descriptor>> calleeMapping =
+        mapMethodToSharedLocCoverSet.get(callee);
 
-    if (mapping == null) {
+    MultiSourceMap<NTuple<Location>, NTuple<Descriptor>> callerMapping =
+        mapMethodToSharedLocCoverSet.get(caller);
+
+    if (calleeMapping == null) {
       return;
     }
 
-    Hashtable<NTuple<Location>, Set<Descriptor>> paramMapping =
-        mapping.getMappingByStartedWith(calleeParamPath);
+    Hashtable<NTuple<Location>, Set<NTuple<Descriptor>>> paramMapping =
+        getMappingByStartedWith(calleeMapping, calleeParamLocPath);
 
-    Set<NTuple<Location>> calleeKeySet = mapping.keySet();
+    Set<NTuple<Location>> calleeKeySet = calleeMapping.keySet();
     for (Iterator iterator = calleeKeySet.iterator(); iterator.hasNext();) {
       NTuple<Location> calleeKey = (NTuple<Location>) iterator.next();
-      Set<Descriptor> calleeMayWriteSet = paramMapping.get(calleeKey);
+      Set<NTuple<Descriptor>> calleeMayWriteSet = paramMapping.get(calleeKey);
 
       if (calleeMayWriteSet != null) {
-        writeSet.addAll(calleeMayWriteSet);
+
+        Set<NTuple<Descriptor>> boundWriteSet =
+            convertCallerMayWriteSet(callerArgHeapPath, calleeParamHeapPath, calleeMayWriteSet);
+
+        writeSet.addAll(boundWriteSet);
 
         NTuple<Location> newKey = new NTuple<Location>();
-        newKey.addAll(callerPath);
+        newKey.addAll(callerArgLocPath);
         // need to replace the local location with the caller's path so skip the
         // local location of the parameter
         for (int i = 1; i < calleeKey.size(); i++) {
           newKey.add(calleeKey.get(i));
         }
 
-        mapLocationPathToMayWrittenSet.put(calleeKey, newKey, writeSet);
+        callerMapping.union(newKey, writeSet);
+        // mapLocationPathToMayWrittenSet.put(calleeKey, newKey, writeSet);
       }
 
     }
 
+  }
+
+  private Set<NTuple<Descriptor>> convertCallerMayWriteSet(NTuple<Descriptor> callerArgHeapPath,
+      NTuple<Descriptor> calleeParamHeapPath, Set<NTuple<Descriptor>> calleeMayWriteSet) {
+
+    Set<NTuple<Descriptor>> boundSet = new HashSet<NTuple<Descriptor>>();
+
+    // replace callee's param path with caller's arg path
+    for (Iterator iterator = calleeMayWriteSet.iterator(); iterator.hasNext();) {
+      NTuple<Descriptor> calleeWriteHeapPath = (NTuple<Descriptor>) iterator.next();
+
+      NTuple<Descriptor> boundHeapPath = new NTuple<Descriptor>();
+      boundHeapPath.addAll(callerArgHeapPath);
+
+      int startIdx = calleeParamHeapPath.size();
+
+      for (int i = startIdx; i < calleeWriteHeapPath.size(); i++) {
+        boundHeapPath.add(calleeWriteHeapPath.get(i));
+      }
+
+      boundSet.add(boundHeapPath);
+
+    }
+
+    return boundSet;
   }
 
   private void addSharedLocDescriptor(Location sharedLoc, Descriptor desc) {
@@ -1707,25 +1786,46 @@ public class DefinitelyWrittenCheck {
         lhs = fon.getDest();
         rhs = fon.getLeft();
 
-        if (!lhs.getSymbol().startsWith("neverused")) {
-          NTuple<Descriptor> rhsHeapPath = computePath(rhs);
-          if (!rhs.getType().isImmutable()) {
-            mapHeapPath.put(lhs, rhsHeapPath);
-          } else {
-            // write(lhs)
-            // NTuple<Descriptor> lhsHeapPath = computePath(lhs);
-            NTuple<Descriptor> path = new NTuple<Descriptor>();
-            path.add(lhs);
+        if (fon.getOp().getOp() == Operation.ASSIGN) {
 
-            // System.out.println("WRITE VARIABLE=" + path + " from=" + lhs);
+          if (!lhs.getSymbol().startsWith("neverused")) {
+            NTuple<Descriptor> rhsHeapPath = computePath(rhs);
+            if (!rhs.getType().isImmutable()) {
+              mapHeapPath.put(lhs, rhsHeapPath);
+            } else {
+              // write(lhs)
+              // NTuple<Descriptor> lhsHeapPath = computePath(lhs);
+              NTuple<Descriptor> path = new NTuple<Descriptor>();
+              path.add(lhs);
 
-            computeKILLSetForWrite(curr, path, readWriteKillSet);
-            computeGENSetForWrite(path, readWriteGenSet);
+              System.out.println("#VARIABLE WRITE:" + fn);
 
-            // System.out.println("#VARIABLE WRITE:" + fn);
-            // System.out.println("#KILLSET=" + KILLSet);
-            // System.out.println("#GENSet=" + GENSet);
+              Location lhsLoc = getLocation(lhs);
+              if (ssjava.isSharedLocation(lhsLoc)) {
 
+                NTuple<Descriptor> varHeapPath = computePath(lhs);
+                NTuple<Location> varLocTuple = mapDescriptorToLocationPath.get(lhs);
+
+                Set<NTuple<Descriptor>> writtenSet =
+                    mapFlatNodeToSharedLocMapping.get(fn).get(varLocTuple);
+
+                if (isCovered(varLocTuple, writtenSet)) {
+                  System.out.println("writttenSet is fully covered");
+                  computeKILLSetForSharedWrite(curr, writtenSet, readWriteKillSet);
+                  computeGENSetForSharedAllCoverWrite(curr, writtenSet, readWriteGenSet);
+                } else {
+                  computeGENSetForSharedNonCoverWrite(curr, varHeapPath, readWriteGenSet);
+                }
+              } else {
+
+                computeKILLSetForWrite(curr, path, readWriteKillSet);
+                computeGENSetForWrite(path, readWriteGenSet);
+              }
+
+              System.out.println("#KILLSET=" + readWriteKillSet);
+              System.out.println("#GENSet=" + readWriteGenSet);
+
+            }
           }
         }
 
@@ -1781,17 +1881,39 @@ public class DefinitelyWrittenCheck {
           fld = getArrayField(td);
         }
 
+        System.out.println("FIELD WRITE:" + fn);
+
         // write(field)
         NTuple<Descriptor> lhsHeapPath = computePath(lhs);
         NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>(lhsHeapPath.getList());
         fldHeapPath.add(fld);
 
-        computeKILLSetForWrite(curr, fldHeapPath, readWriteKillSet);
-        computeGENSetForWrite(fldHeapPath, readWriteGenSet);
+        // shared loc extension
+        Location fieldLoc = (Location) fld.getType().getExtension();
+        if (ssjava.isSharedLocation(fieldLoc)) {
 
-        // System.out.println("FIELD WRITE:" + fn);
-        // System.out.println("KILLSET=" + KILLSet);
-        // System.out.println("GENSet=" + GENSet);
+          NTuple<Location> fieldLocTuple = new NTuple<Location>();
+          fieldLocTuple.addAll(mapDescriptorToLocationPath.get(lhs));
+          fieldLocTuple.add(fieldLoc);
+
+          Set<NTuple<Descriptor>> writtenSet =
+              mapFlatNodeToSharedLocMapping.get(fn).get(fieldLocTuple);
+
+          if (isCovered(fieldLocTuple, writtenSet)) {
+            System.out.println("writttenSet is fully covered");
+            computeKILLSetForSharedWrite(curr, writtenSet, readWriteKillSet);
+            computeGENSetForSharedAllCoverWrite(curr, writtenSet, readWriteGenSet);
+          } else {
+            computeGENSetForSharedNonCoverWrite(curr, fldHeapPath, readWriteGenSet);
+          }
+
+        } else {
+          computeKILLSetForWrite(curr, fldHeapPath, readWriteKillSet);
+          computeGENSetForWrite(fldHeapPath, readWriteGenSet);
+        }
+
+        System.out.println("KILLSET=" + readWriteKillSet);
+        System.out.println("GENSet=" + readWriteGenSet);
 
       }
         break;
@@ -1819,6 +1941,64 @@ public class DefinitelyWrittenCheck {
 
     }
 
+  }
+
+  private void computeGENSetForSharedNonCoverWrite(
+      Hashtable<NTuple<Descriptor>, Set<WriteAge>> curr, NTuple<Descriptor> heapPath,
+      Hashtable<NTuple<Descriptor>, Set<WriteAge>> genSet) {
+
+    Set<WriteAge> writeAgeSet = genSet.get(heapPath);
+    if (writeAgeSet == null) {
+      writeAgeSet = new HashSet<WriteAge>();
+      genSet.put(heapPath, writeAgeSet);
+    }
+
+    writeAgeSet.add(new WriteAge(1));
+
+  }
+
+  private void computeGENSetForSharedAllCoverWrite(
+      Hashtable<NTuple<Descriptor>, Set<WriteAge>> curr, Set<NTuple<Descriptor>> writtenSet,
+      Hashtable<NTuple<Descriptor>, Set<WriteAge>> genSet) {
+
+    for (Iterator iterator = writtenSet.iterator(); iterator.hasNext();) {
+      NTuple<Descriptor> writeHeapPath = (NTuple<Descriptor>) iterator.next();
+
+      Set<WriteAge> writeAgeSet = new HashSet<WriteAge>();
+      writeAgeSet.add(new WriteAge(0));
+
+      genSet.put(writeHeapPath, writeAgeSet);
+    }
+
+  }
+
+  private void computeKILLSetForSharedWrite(Hashtable<NTuple<Descriptor>, Set<WriteAge>> curr,
+      Set<NTuple<Descriptor>> writtenSet, Hashtable<NTuple<Descriptor>, Set<WriteAge>> killSet) {
+
+    for (Iterator iterator = writtenSet.iterator(); iterator.hasNext();) {
+      NTuple<Descriptor> writeHeapPath = (NTuple<Descriptor>) iterator.next();
+      Set<WriteAge> writeSet = curr.get(writeHeapPath);
+      if (writeSet != null) {
+        killSet.put(writeHeapPath, writeSet);
+      }
+    }
+
+  }
+
+  private boolean isCovered(NTuple<Location> locTuple, Set<NTuple<Descriptor>> inSet) {
+
+    if (inSet == null) {
+      return false;
+    }
+
+    Set<NTuple<Descriptor>> coverSet =
+        mapMethodToSharedLocCoverSet.get(methodContainingSSJavaLoop).get(locTuple);
+
+    System.out.println("# locTuple=" + locTuple);
+    System.out.print("Current may write Set=" + inSet);
+    System.out.println("Cover Set=" + coverSet);
+
+    return inSet.containsAll(coverSet);
   }
 
   private void checkManyRead(FlatCall fc, Hashtable<NTuple<Descriptor>, Set<WriteAge>> curr) {
@@ -2468,12 +2648,18 @@ public class DefinitelyWrittenCheck {
       FlatOpNode fon = (FlatOpNode) fn;
       // for a normal assign node, need to propagate lhs's heap path to
       // rhs
+
       if (fon.getOp().getOp() == Operation.ASSIGN) {
         rhs = fon.getLeft();
         lhs = fon.getDest();
 
         NTuple<Descriptor> rhsHeapPath = mapHeapPath.get(rhs);
-        if (rhsHeapPath != null) {
+
+        if (lhs.getType().isPrimitive()) {
+          NTuple<Descriptor> lhsHeapPath = new NTuple<Descriptor>();
+          lhsHeapPath.add(lhs);
+          mapHeapPath.put(lhs, lhsHeapPath);
+        } else if (rhsHeapPath != null) {
           mapHeapPath.put(lhs, mapHeapPath.get(rhs));
         } else {
           NTuple<Descriptor> heapPath = new NTuple<Descriptor>();
@@ -2507,7 +2693,6 @@ public class DefinitelyWrittenCheck {
               System.out.println("RHS TYPE EXTENSION=" + rhs.getType().getExtension()
                   + " HEAPPATH=" + rhsHeapPath);
 
-              // TODO
               // computing gen/kill set
               // computeKILLSetForWrite(currSharedLocMapping, heapPath, dstLoc,
               // killSetSharedLoc);

@@ -2,22 +2,21 @@ package Analysis.SSJava;
 
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.Set;
 
 public class MultiSourceMap<T, V> {
 
-  Hashtable<NTuple<T>, Set<V>> map;
+  Hashtable<T, Set<V>> map;
 
   public MultiSourceMap() {
-    map = new Hashtable<NTuple<T>, Set<V>>();
+    map = new Hashtable<T, Set<V>>();
   }
 
-  public void put(NTuple<T> key, Set<V> set) {
+  public void put(T key, Set<V> set) {
     map.put(key, set);
   }
 
-  public void put(NTuple<T> key, NTuple<T> setKey, Set<V> set) {
+  public void put(T key, T setKey, Set<V> set) {
 
     if (!map.containsKey(setKey)) {
       map.put(setKey, set);
@@ -25,7 +24,7 @@ public class MultiSourceMap<T, V> {
     map.put(key, set);
   }
 
-  public void put(NTuple<T> key, NTuple<T> setKey, V value) {
+  public void put(T key, T setKey, V value) {
 
     if (setKey == null) {
       if (map.containsKey(key)) {
@@ -45,7 +44,7 @@ public class MultiSourceMap<T, V> {
     }
   }
 
-  public Set<V> get(NTuple<T> key) {
+  public Set<V> get(T key) {
     return map.get(key);
   }
 
@@ -53,23 +52,18 @@ public class MultiSourceMap<T, V> {
     return map.toString();
   }
 
-  public Hashtable<NTuple<T>, Set<V>> getMappingByStartedWith(NTuple<T> in) {
 
-    Hashtable<NTuple<T>, Set<V>> rtrMapping = new Hashtable<NTuple<T>, Set<V>>();
-
-    Set<NTuple<T>> keySet = map.keySet();
-    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-      NTuple<T> key = (NTuple<T>) iterator.next();
-      if (key.startsWith(in)) {
-        rtrMapping.put(key, map.get(key));
-      }
-    }
-
-    return rtrMapping;
-
+  public Set<T> keySet() {
+    return map.keySet();
   }
 
-  public Set<NTuple<T>> keySet() {
-    return map.keySet();
+  public void union(T newKey, Set<V> writeSet) {
+
+    if (map.containsKey(newKey)) {
+      map.get(newKey).addAll(writeSet);
+    } else {
+      put(newKey, writeSet);
+    }
+
   }
 }
