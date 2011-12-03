@@ -84,8 +84,8 @@ public class SharedLocMap {
   }
 
   public void removeWriteAll(NTuple<Location> locTuple, Set<NTuple<Descriptor>> hpSet) {
-    
-    if(hpSet!=null){
+
+    if (hpSet != null) {
       Set<NTuple<Descriptor>> writeSet = map.get(locTuple);
       if (writeSet != null) {
         writeSet.removeAll(hpSet);
@@ -135,6 +135,18 @@ public class SharedLocMap {
     }
     return rtrSet;
 
+  }
+
+  public boolean containsElement(NTuple<Descriptor> heapPath) {
+
+    Set<NTuple<Location>> locTupleSet = map.keySet();
+    for (Iterator iterator = locTupleSet.iterator(); iterator.hasNext();) {
+      NTuple<Location> locTuple = (NTuple<Location>) iterator.next();
+      if (map.get(locTuple).contains(heapPath)) {
+        return true;
+      }
+    }
+    return false;
   }
 
 }
