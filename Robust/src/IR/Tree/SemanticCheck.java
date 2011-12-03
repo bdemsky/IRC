@@ -1257,11 +1257,11 @@ public class SemanticCheck {
     // for an inline class, need to first add the original parameters of the CreatObjectNode
     // into its anonymous constructor and insert a super(...) into the anonymous constructor
     // if its super class is not null
-    MethodDescriptor cd_construtor = null;
+    MethodDescriptor cd_constructor = null;
     for(Iterator it_methods = cd.getMethods(); it_methods.hasNext();) {
       MethodDescriptor imd = (MethodDescriptor)it_methods.next();
       if(imd.isConstructor()) {
-        cd_construtor = imd; // an inline class should only have one anonymous constructor
+	  cd_constructor = imd; // an inline class should only have one anonymous constructor
       }
     }
     MethodInvokeNode min = null;
@@ -1270,13 +1270,18 @@ public class SemanticCheck {
       NameDescriptor nd=new NameDescriptor("super");
       min=new MethodInvokeNode(nd);
       BlockExpressionNode ben=new BlockExpressionNode(min);
-      BlockNode bn = state.getMethodBody(cd_construtor);
+      BlockNode bn = state.getMethodBody(cd_constructor);
       bn.addFirstBlockStatement(ben);
+      if(cd.getSuperDesc().isInnerClass()&&!cd.getSuperDesc().isStatic()&&!cd.getSuperDesc().getInStaticContext()) {
+	// for a super class that is also an inner class with surrounding reference, add the surrounding 
+	// instance of the child instance as the parent instance's surrounding instance
+	min.addArgument(new NameNode(new NameDescriptor("surrounding$0")));
+      }
     }
     for(int i = 0 ; i < tdarray.length; i++) {
       assert(null!=min);
       TypeDescriptor itd = tdarray[i];
-      cd_construtor.addParameter(itd, itd.getSymbol()+"_from_con_node_"+i);
+      cd_constructor.addParameter(itd, itd.getSymbol()+"_from_con_node_"+i);
       min.addArgument(new NameNode(new NameDescriptor(itd.getSymbol()+"_from_con_node_"+i)));
     }
     
@@ -1293,14 +1298,14 @@ public class SemanticCheck {
       if(d instanceof VarDescriptor && !d.getSymbol().equals("this")) {
         con.addArgument(new NameNode(new NameDescriptor(d.getSymbol())));
         cd.addField(new FieldDescriptor(new Modifiers(Modifiers.PUBLIC), ((VarDescriptor)d).getType(), d.getSymbol(), null, false));
-        cd_construtor.addParameter(((VarDescriptor)d).getType(), d.getSymbol()+"_p");
+        cd_constructor.addParameter(((VarDescriptor)d).getType(), d.getSymbol()+"_p");
         // add the initialize statement into this constructor
-        BlockNode obn = state.getMethodBody(cd_construtor);
+        BlockNode obn = state.getMethodBody(cd_constructor);
         NameNode nn=new NameNode(new NameDescriptor(d.getSymbol()));
         NameNode fn = new NameNode (new NameDescriptor(d.getSymbol()+"_p"));
         AssignmentNode an=new AssignmentNode(nn,fn,new AssignOperation(1));
         obn.addFirstBlockStatement(new BlockExpressionNode(an));
-        state.addTreeCode(cd_construtor, obn);
+        state.addTreeCode(cd_constructor, obn);
       }
     }
   }
@@ -1559,6 +1564,25 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
       ClassDescriptor supercd=((MethodDescriptor)md).getClassDesc().getSuperDesc();
       min.methodid=supercd.getSymbol();
       typetolookin=new TypeDescriptor(supercd);
+      if(supercd.isInnerClass()&&!supercd.isStatic()&&!supercd.getInStaticContext()) {
+	// for a super class that is also an inner class with surrounding reference, add the surrounding 
+	// instance of the child instance as the parent instance's surrounding instance
+	if(((MethodDescriptor)md).isConstructor()) {
+	  min.addArgument(new NameNode(new NameDescriptor("surrounding$0")));
+	} else if(((MethodDescriptor)md).getClassDesc().isInnerClass()&&!((MethodDescriptor)md).getClassDesc().isStatic()&&!((MethodDescriptor)md).getClassDesc().getInStaticContext()) {
+	  min.addArgument(new NameNode(new NameDescriptor("this$0")));
+	}
+      }
+      tdarray=new TypeDescriptor[min.numArgs()];
+      for(int i=0; i<min.numArgs(); i++) {
+        ExpressionNode en=min.getArg(i);
+        checkExpressionNode(md,nametable,en,null);
+        tdarray[i]=en.getType();
+
+        if(en.getType().isClass() && en.getType().getClassDesc().isEnum()) {
+          tdarray[i] = new TypeDescriptor(TypeDescriptor.INT);
+        }
+      }
     } else if (md instanceof MethodDescriptor) {
       typetolookin=new TypeDescriptor(((MethodDescriptor)md).getClassDesc());
     } else {
@@ -1592,8 +1616,14 @@ NextMethod:
       else {
         if (typeutil.isMoreSpecific(currmd,bestmd, false)) {
           bestmd=currmd;
-        } else if (!typeutil.isMoreSpecific(bestmd, currmd, false))
-          throw new Error("No method is most specific:"+bestmd+" and "+currmd);
+        } else if (!typeutil.isMoreSpecific(bestmd, currmd, false)) {
+          // if the two methods are inherited from super class/interface, use the super class' as first priority
+          if(bestmd.getClassDesc().isInterface()&&!currmd.getClassDesc().isInterface()) {
+            bestmd = currmd;
+          } else {
+            throw new Error("No method is most specific:"+bestmd+" and "+currmd);
+          }
+        }
 
         /* Is this more specific than bestmd */
       }

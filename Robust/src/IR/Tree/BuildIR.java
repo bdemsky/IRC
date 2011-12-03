@@ -184,18 +184,41 @@ public class BuildIR {
 
   public void parseInitializers(ClassDescriptor cn) {
     Vector fv=cn.getFieldVec();
+    Iterator methodit = cn.getMethods();
+    HashMap<MethodDescriptor, Integer> md2pos = new HashMap<MethodDescriptor, Integer>();
+    while(methodit.hasNext()) {
+      MethodDescriptor currmd=(MethodDescriptor)methodit.next();
+      if(currmd.isConstructor()) {
+        BlockNode bn=state.getMethodBody(currmd);
+        // if there are super(...) invokation, the initializers should be invoked after that
+        int i = 0;
+        for(; i < bn.size(); i++) {
+          if(Kind.BlockExpressionNode==bn.get(i).kind()
+        	  &&(((BlockExpressionNode)bn.get(i)).getExpression() instanceof MethodInvokeNode)
+        	  &&((MethodInvokeNode)(((BlockExpressionNode)bn.get(i)).getExpression())).getMethodName().equals("super")) {
+            break;
+          }
+        }
+        if(i==bn.size()) {
+          md2pos.put(currmd, 0);
+        } else {
+          md2pos.put(currmd, i+1);
+        }
+      }
+    }
     int pos = 0;
     for(int i=0; i<fv.size(); i++) {
       FieldDescriptor fd=(FieldDescriptor)fv.get(i);
       if(fd.getExpressionNode()!=null) {
-        Iterator methodit = cn.getMethods();
+        methodit = cn.getMethods();
         while(methodit.hasNext()) {
           MethodDescriptor currmd=(MethodDescriptor)methodit.next();
           if(currmd.isConstructor()) {
+            int offset = md2pos.get(currmd);
             BlockNode bn=state.getMethodBody(currmd);
             NameNode nn=new NameNode(new NameDescriptor(fd.getSymbol()));
             AssignmentNode an=new AssignmentNode(nn,fd.getExpressionNode(),new AssignOperation(1));
-            bn.addBlockStatementAt(new BlockExpressionNode(an), pos);
+            bn.addBlockStatementAt(new BlockExpressionNode(an), pos+offset);
           }
         }
         pos++;
@@ -646,7 +669,7 @@ private void addOuterClassParam( ClassDescriptor cn, int depth )
       			 if( md.isConstructor() ){
 				md.addParameter( theTypeDesc, "surrounding$" + String.valueOf(depth) );	
 				initializeOuterMember( md, "this$" + String.valueOf( depth ), "surrounding$" + String.valueOf(depth) );
-				//System.out.println( "The added param is " + md.toString() + "\n" );		
+				//System.out.println( "The added param is " + md.toString() + "\n" );
 			}
    		}
 		addOuterClassParam( icd, depth + 1 );

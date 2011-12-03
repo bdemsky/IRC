@@ -10,6 +10,8 @@ public class inner extends innerp {
     inner i=new inner();
     i.dotest();
     outerAnonymousInnerStatic(20, 30);
+    innerEgg2 e2 = new innerBigEgg2();
+    e2.g();
   }
 
   public void dotest() {
