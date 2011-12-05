@@ -28,6 +28,7 @@ import IR.SymbolTable;
 import IR.TypeUtil;
 import IR.Flat.BuildFlat;
 import IR.Flat.FlatMethod;
+import IR.Flat.FlatNode;
 import Util.Pair;
 
 public class SSJavaAnalysis {
@@ -80,6 +81,8 @@ public class SSJavaAnalysis {
 
   // points to method containing SSJAVA Loop
   private MethodDescriptor methodContainingSSJavaLoop;
+
+  private FlatNode ssjavaLoopEntrance;
 
   // keep the field ownership from the linear type checking
   Hashtable<MethodDescriptor, Set<FieldDescriptor>> mapMethodToOwnedFieldSet;
@@ -547,6 +550,14 @@ public class SSJavaAnalysis {
       return fieldSet.contains(field);
     }
     return false;
+  }
+
+  public FlatNode getSSJavaLoopEntrance() {
+    return ssjavaLoopEntrance;
+  }
+
+  public void setSSJavaLoopEntrance(FlatNode ssjavaLoopEntrance) {
+    this.ssjavaLoopEntrance = ssjavaLoopEntrance;
   }
 
 }

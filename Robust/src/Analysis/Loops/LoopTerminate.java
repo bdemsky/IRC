@@ -115,7 +115,11 @@ public class LoopTerminate {
       init();
       detectBasicInductionVar(loopElements);
       detectDerivedInductionVar(loopElements);
-      checkConditionBranch(loopEntrance, loopElements);
+
+      if (!ssjava.getSSJavaLoopEntrance().equals(loopEntrance)) {
+        checkConditionBranch(loopEntrance, loopElements);
+      }
+
     }
 
   }
