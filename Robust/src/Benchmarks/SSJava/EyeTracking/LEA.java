@@ -94,9 +94,10 @@ public class LEA {
 
     @LOC("C") int i = 0;
 
-    SSJAVA: while (i < 37) {
-      @LOC("IMG") Image image = ImageReader.readImage("data/b" + i + ".bmp");
-      i++;
+    SSJAVA: while (Counter.idx() < 37) {
+      @LOC("IMG") Image image = ImageReader.readImage("data/b" + Counter.idx() + ".bmp");
+      Counter.inc();
+      // i++;
       if (image == null) {
         break;
       }
@@ -109,15 +110,15 @@ public class LEA {
 
   private void processImage(@LOC("IN") Image image) {
     @LOC("THIS,LEA.POS") FaceAndEyePosition positions = implementation.getEyePosition(image);
-//    if (positions.getEyePosition() != null) {
-      deviationScanner.addEyePosition(positions.getEyePosition());
-      @LOC("THIS,LEA.DEV,DeviationScanner.DEV") int deviation =
-          deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
-      if (deviation != DeviationScanner.NONE) {
-        System.out.println("deviation=" + deviationScanner.toStringDeviation(deviation));
-        // notifyEyeMovementListenerEyeMoved(deviation);
-      }
-//    }
+    // if (positions.getEyePosition() != null) {
+    deviationScanner.addEyePosition(positions.getEyePosition());
+    @LOC("THIS,LEA.DEV,DeviationScanner.DEV") int deviation =
+        deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
+    if (deviation != DeviationScanner.NONE) {
+      System.out.println("deviation=" + deviationScanner.toStringDeviation(deviation));
+      // notifyEyeMovementListenerEyeMoved(deviation);
+    }
+    // }
     lastPositions = positions;
   }
 

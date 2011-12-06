@@ -43,12 +43,8 @@ public class DeviationScanner {
   public static final int DOWN = 7;
   public static final int RIGHT_DOWN = 8;
 
-  @LOC("DEV")
-  private int size;
-
   public DeviationScanner() {
     eyePositions = new EyePosition[3];
-    size = 0;
   }
 
   @LATTICE("THIS<C,C<IN,THISLOC=THIS")
@@ -62,65 +58,57 @@ public class DeviationScanner {
 
     SSJAVA.append(eyePositions, eyePosition);
 
-    if (size < eyePositions.length) {
-      size++;
-    }else{
-      size= eyePositions.length;
-    }
-
-  }
-
-  @RETURNLOC("THIS,DeviationScanner.DEV")
-  public int getEyePositionsSize() {
-    return size;
   }
 
   // @LATTICE("OUT<DEV,DEV<C,C<THIS,THIS<IN,C*,DEV*,OUT*,THISLOC=THIS,RETURNLOC=OUT")
-  @LATTICE("THIS<IN,THISLOC=THIS")
+  @LATTICE("THIS<C,THIS<IN,THISLOC=THIS,C*")
   @RETURNLOC("THIS,DeviationScanner.DEV")
   public int scanForDeviation(@LOC("IN") Rectangle2D faceRect) {
     @LOC("THIS,DeviationScanner.DEV") int deviation = NONE;
-    if (getEyePositionsSize() >= 3) {
-      @LOC("THIS,DeviationScanner.DEV") double deviationX = 0;
-      @LOC("THIS,DeviationScanner.DEV") double deviationY = 0;
 
-      @LOC("THIS,DeviationScanner.DEV") int lastIdx = -1;
-      for (@LOC("THIS,DeviationScanner.DEV") int i = 0; i < 3; ++i) {
-        if (lastIdx != -1) {
-          deviationX += (eyePositions[i].getX() - eyePositions[lastIdx].getX());
-          deviationY += (eyePositions[i].getY() - eyePositions[lastIdx].getY());
-        }
-        lastIdx = i;
+    for (@LOC("C") int i = 0; i < 3; i++) {
+      if (eyePositions[i] == null) {
+        return deviation;
       }
-
-      @LOC("THIS,DeviationScanner.DEV") final double deviationPercentX = 0.04;
-      @LOC("THIS,DeviationScanner.DEV") final double deviationPercentY = 0.04;
-
-      deviationX /= faceRect.getWidth();
-      deviationY /= faceRect.getWidth();
-
-      @LOC("THIS,DeviationScanner.DEV") int deviationAbsoluteX = 0;
-      @LOC("THIS,DeviationScanner.DEV") int deviationAbsoluteY = 0;
-      if (deviationX > deviationPercentX)
-        deviationAbsoluteX = 1;
-      if (deviationX < -deviationPercentX)
-        deviationAbsoluteX = -1;
-      if (deviationY > deviationPercentY)
-        deviationAbsoluteY = 1;
-      if (deviationY < -deviationPercentY)
-        deviationAbsoluteY = -1;
-
-      deviation = getDirectionFor(deviationAbsoluteX, deviationAbsoluteY);
-
-      if (deviation != NONE) {
-        eyePositions = new EyePosition[3];
-        size = 0;
-      }
-      // System.out.println(String.format("%.2f%% | %.2f%% => %d and %d >>> %s",
-      // deviationX*100, deviationY*100, deviationAbsoluteX, deviationAbsoluteY,
-      // deviation.toString()));
-
     }
+
+    @LOC("THIS,DeviationScanner.DEV") double deviationX = 0;
+    @LOC("THIS,DeviationScanner.DEV") double deviationY = 0;
+
+    @LOC("THIS,DeviationScanner.DEV") int lastIdx = -1;
+    for (@LOC("THIS,DeviationScanner.DEV") int i = 0; i < 3; ++i) {
+      if (lastIdx != -1) {
+        deviationX += (eyePositions[i].getX() - eyePositions[lastIdx].getX());
+        deviationY += (eyePositions[i].getY() - eyePositions[lastIdx].getY());
+      }
+      lastIdx = i;
+    }
+
+    @LOC("THIS,DeviationScanner.DEV") final double deviationPercentX = 0.04;
+    @LOC("THIS,DeviationScanner.DEV") final double deviationPercentY = 0.04;
+
+    deviationX /= faceRect.getWidth();
+    deviationY /= faceRect.getWidth();
+
+    @LOC("THIS,DeviationScanner.DEV") int deviationAbsoluteX = 0;
+    @LOC("THIS,DeviationScanner.DEV") int deviationAbsoluteY = 0;
+    if (deviationX > deviationPercentX)
+      deviationAbsoluteX = 1;
+    if (deviationX < -deviationPercentX)
+      deviationAbsoluteX = -1;
+    if (deviationY > deviationPercentY)
+      deviationAbsoluteY = 1;
+    if (deviationY < -deviationPercentY)
+      deviationAbsoluteY = -1;
+
+    deviation = getDirectionFor(deviationAbsoluteX, deviationAbsoluteY);
+
+    if (deviation != NONE) {
+      eyePositions = new EyePosition[3];
+    }
+    // System.out.println(String.format("%.2f%% | %.2f%% => %d and %d >>> %s",
+    // deviationX*100, deviationY*100, deviationAbsoluteX, deviationAbsoluteY,
+    // deviation.toString()));
 
     return deviation;
   }
@@ -154,7 +142,6 @@ public class DeviationScanner {
   public void clear() {
     System.out.println("CLEAR");
     eyePositions = new EyePosition[3];
-    size = 0;
   }
 
   public String toStringDeviation(@LOC("IN") int dev) {
