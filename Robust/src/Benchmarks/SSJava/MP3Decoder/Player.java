@@ -123,8 +123,9 @@ public class Player {
     sampleNumber = 1;
     System.out.println("Gobble sentinel: +++");
 
-    @LOC("IN") int count = 0;
-    SSJAVA: while (count++ < 2147483646) {
+    // @LOC("IN") int count = 0;
+    SSJAVA: while (Counter.idx() < 2147483646) {
+      Counter.inc();
       if (h == null) {
         break;
       }

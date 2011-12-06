@@ -344,7 +344,8 @@ public class DefinitelyWrittenCheck {
           lhs = fon.getDest();
           rhs = fon.getLeft();
 
-          if (!lhs.getSymbol().startsWith("neverused") && rhs.getType().isImmutable()) {
+          if (!lhs.getSymbol().startsWith("neverused") && !lhs.getSymbol().startsWith("leftop")
+              && !lhs.getSymbol().startsWith("rightop") && rhs.getType().isImmutable()) {
 
             Location dstLoc = getLocation(lhs);
             if (dstLoc != null && ssjava.isSharedLocation(dstLoc)) {
@@ -626,6 +627,7 @@ public class DefinitelyWrittenCheck {
 
   private void computeSharedCoverSet_analyzeMethod(FlatMethod fm, boolean onlyVisitSSJavaLoop) {
 
+    System.out.println("computeSharedCoverSet_analyzeMethod=" + fm);
     MethodDescriptor md = fm.getMethod();
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
 
@@ -698,53 +700,56 @@ public class DefinitelyWrittenCheck {
         rhs = fon.getLeft();
         lhs = fon.getDest();
 
-        NTuple<Location> rhsLocTuple = new NTuple<Location>();
-        NTuple<Location> lhsLocTuple = new NTuple<Location>();
-        if (mapDescriptorToLocationPath.containsKey(rhs)) {
-          mapDescriptorToLocationPath.put(lhs, mapDescriptorToLocationPath.get(rhs));
-        } else {
-          // rhs side
-          if (rhs.getType().getExtension() != null
-              && rhs.getType().getExtension() instanceof SSJavaType) {
-
-            if (((SSJavaType) rhs.getType().getExtension()).getCompLoc() != null) {
-              rhsLocTuple.addAll(((SSJavaType) rhs.getType().getExtension()).getCompLoc()
-                  .getTuple());
-            }
-
-          } else {
-            NTuple<Location> locTuple = deriveLocationTuple(md, rhs);
-            if (locTuple != null) {
-              rhsLocTuple.addAll(locTuple);
-            }
-          }
-          if (rhsLocTuple.size() > 0) {
-            mapDescriptorToLocationPath.put(rhs, rhsLocTuple);
-          }
-
-          // lhs side
-          if (lhs.getType().getExtension() != null
-              && lhs.getType().getExtension() instanceof SSJavaType) {
-            lhsLocTuple.addAll(((SSJavaType) lhs.getType().getExtension()).getCompLoc().getTuple());
-            mapDescriptorToLocationPath.put(lhs, lhsLocTuple);
-          } else if (mapDescriptorToLocationPath.get(rhs) != null) {
-            // propagate rhs's location to lhs
-            lhsLocTuple.addAll(mapDescriptorToLocationPath.get(rhs));
-            mapDescriptorToLocationPath.put(lhs, lhsLocTuple);
-          }
-
-        }
-
-        if (lhs.getType().isPrimitive() && !lhs.getSymbol().startsWith("neverused")
-            && !lhs.getSymbol().startsWith("srctmp") && !lhs.getSymbol().startsWith("leftop")
+        if (!lhs.getSymbol().startsWith("neverused") && !lhs.getSymbol().startsWith("leftop")
             && !lhs.getSymbol().startsWith("rightop")) {
 
-          NTuple<Descriptor> lhsHeapPath = computePath(lhs);
+          NTuple<Location> rhsLocTuple = new NTuple<Location>();
+          NTuple<Location> lhsLocTuple = new NTuple<Location>();
+          if (mapDescriptorToLocationPath.containsKey(rhs)) {
+            mapDescriptorToLocationPath.put(lhs, mapDescriptorToLocationPath.get(rhs));
+          } else {
+            // rhs side
+            if (rhs.getType().getExtension() != null
+                && rhs.getType().getExtension() instanceof SSJavaType) {
 
-          if (lhsLocTuple != null) {
-            addMayWrittenSet(md, lhsLocTuple, lhsHeapPath);
+              if (((SSJavaType) rhs.getType().getExtension()).getCompLoc() != null) {
+                rhsLocTuple.addAll(((SSJavaType) rhs.getType().getExtension()).getCompLoc()
+                    .getTuple());
+              }
+
+            } else {
+              NTuple<Location> locTuple = deriveLocationTuple(md, rhs);
+              if (locTuple != null) {
+                rhsLocTuple.addAll(locTuple);
+              }
+            }
+            if (rhsLocTuple.size() > 0) {
+              mapDescriptorToLocationPath.put(rhs, rhsLocTuple);
+            }
+
+            // lhs side
+            if (lhs.getType().getExtension() != null
+                && lhs.getType().getExtension() instanceof SSJavaType) {
+              lhsLocTuple.addAll(((SSJavaType) lhs.getType().getExtension()).getCompLoc()
+                  .getTuple());
+              mapDescriptorToLocationPath.put(lhs, lhsLocTuple);
+            } else if (mapDescriptorToLocationPath.get(rhs) != null) {
+              // propagate rhs's location to lhs
+              lhsLocTuple.addAll(mapDescriptorToLocationPath.get(rhs));
+              mapDescriptorToLocationPath.put(lhs, lhsLocTuple);
+            }
+
           }
 
+          if (lhs.getType().isPrimitive() && !lhs.getSymbol().startsWith("srctmp")) {
+
+            NTuple<Descriptor> lhsHeapPath = computePath(lhs);
+
+            if (lhsLocTuple != null) {
+              addMayWrittenSet(md, lhsLocTuple, lhsHeapPath);
+            }
+
+          }
         }
 
       }
@@ -756,22 +761,17 @@ public class DefinitelyWrittenCheck {
 
       // x.f=y;
 
-      Location fieldLocation;
       if (fn.kind() == FKind.FlatSetFieldNode) {
         FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
         lhs = fsfn.getDst();
         fld = fsfn.getField();
         rhs = fsfn.getSrc();
-        fieldLocation = (Location) fld.getType().getExtension();
       } else {
         FlatSetElementNode fsen = (FlatSetElementNode) fn;
         lhs = fsen.getDst();
         rhs = fsen.getSrc();
         TypeDescriptor td = lhs.getType().dereference();
         fld = getArrayField(td);
-
-        NTuple<Location> locTuple = mapDescriptorToLocationPath.get(lhs);
-        fieldLocation = locTuple.get(locTuple.size() - 1);
       }
 
       NTuple<Location> fieldLocTuple = new NTuple<Location>();
@@ -782,12 +782,24 @@ public class DefinitelyWrittenCheck {
           fieldLocTuple.add(topLocation);
         } else {
           fieldLocTuple.addAll(deriveGlobalLocationTuple(md));
-          fieldLocTuple.add((Location) fld.getType().getExtension());
+          if (fn.kind() == FKind.FlatSetFieldNode) {
+            fieldLocTuple.add((Location) fld.getType().getExtension());
+          }
         }
 
       } else {
         fieldLocTuple.addAll(deriveLocationTuple(md, lhs));
-        fieldLocTuple.add((Location) fld.getType().getExtension());
+        if (fn.kind() == FKind.FlatSetFieldNode) {
+          fieldLocTuple.add((Location) fld.getType().getExtension());
+        }
+      }
+
+      Location fieldLocation;
+      if (fn.kind() == FKind.FlatSetFieldNode) {
+        fieldLocation = (Location) fld.getType().getExtension();
+      } else {
+        NTuple<Location> locTuple = mapDescriptorToLocationPath.get(lhs);
+        fieldLocation = locTuple.get(locTuple.size() - 1);
       }
 
       NTuple<Location> lTuple = deriveLocationTuple(md, lhs);
@@ -840,12 +852,16 @@ public class DefinitelyWrittenCheck {
           locTuple.add(topLocation);
         } else {
           locTuple.addAll(deriveGlobalLocationTuple(md));
-          locTuple.add((Location) fld.getType().getExtension());
+          if (fn.kind() == FKind.FlatFieldNode) {
+            locTuple.add((Location) fld.getType().getExtension());
+          }
         }
 
       } else {
         locTuple.addAll(deriveLocationTuple(md, rhs));
-        locTuple.add((Location) fld.getType().getExtension());
+        if (fn.kind() == FKind.FlatFieldNode) {
+          locTuple.add((Location) fld.getType().getExtension());
+        }
       }
 
       mapDescriptorToLocationPath.put(lhs, locTuple);
@@ -1252,7 +1268,8 @@ public class DefinitelyWrittenCheck {
 
         if (fon.getOp().getOp() == Operation.ASSIGN) {
 
-          if (!lhs.getSymbol().startsWith("neverused")) {
+          if (!lhs.getSymbol().startsWith("neverused") && !lhs.getSymbol().startsWith("leftop")
+              && !lhs.getSymbol().startsWith("rightop")) {
             NTuple<Descriptor> rhsHeapPath = computePath(rhs);
             if (!rhs.getType().isImmutable()) {
               mapHeapPath.put(lhs, rhsHeapPath);
@@ -1389,7 +1406,7 @@ public class DefinitelyWrittenCheck {
         FlatCall fc = (FlatCall) fn;
 
         SharedLocMap sharedLocMap = mapFlatNodeToSharedLocMapping.get(fc);
-        // System.out.println("FLATCALL:" + fn);
+        System.out.println("FLATCALL:" + fn);
         generateKILLSetForFlatCall(fc, curr, sharedLocMap, readWriteKillSet);
         generateGENSetForFlatCall(fc, sharedLocMap, readWriteGenSet);
 
@@ -1460,6 +1477,8 @@ public class DefinitelyWrittenCheck {
     Set<NTuple<Descriptor>> coverSet =
         mapMethodToSharedLocCoverSet.get(methodContainingSSJavaLoop).get(locTuple);
 
+    System.out.println("coverSet=" + coverSet + " by locTuple=" + locTuple);
+
     return inSet.containsAll(coverSet);
   }
 
@@ -1509,6 +1528,7 @@ public class DefinitelyWrittenCheck {
         // if the current heap path is shared location
 
         NTuple<Location> locTuple = getLocationTuple(heapPath, sharedLocMap);
+        System.out.println("heapPath=" + heapPath + " locTuple=" + locTuple);
 
         Set<NTuple<Descriptor>> sharedWriteHeapPathSet = sharedLocMap.get(locTuple);
 
@@ -1571,8 +1591,30 @@ public class DefinitelyWrittenCheck {
 
   }
 
+  private int getArrayBaseDescriptorIdx(NTuple<Descriptor> heapPath) {
+
+    for (int i = heapPath.size() - 1; i > 1; i--) {
+      if (!heapPath.get(i).getSymbol().equals(arrayElementFieldName)) {
+        return i;
+      }
+    }
+
+    return -1;
+
+  }
+
   private boolean isSharedLocation(NTuple<Descriptor> heapPath) {
-    return ssjava.isSharedLocation(getLocation(heapPath.get(heapPath.size() - 1)));
+
+    Descriptor d = heapPath.get(heapPath.size() - 1);
+
+    if (d instanceof FieldDescriptor) {
+
+      return ssjava
+          .isSharedLocation(getLocation(heapPath.get(getArrayBaseDescriptorIdx(heapPath))));
+
+    } else {
+      return ssjava.isSharedLocation(getLocation(heapPath.get(heapPath.size() - 1)));
+    }
   }
 
   private NTuple<Location> getLocationTuple(NTuple<Descriptor> heapPath, SharedLocMap sharedLocMap) {
@@ -1580,7 +1622,8 @@ public class DefinitelyWrittenCheck {
     NTuple<Location> locTuple = new NTuple<Location>();
 
     locTuple.addAll(mapDescriptorToLocationPath.get(heapPath.get(0)));
-    for (int i = 1; i < heapPath.size(); i++) {
+
+    for (int i = 1; i <= getArrayBaseDescriptorIdx(heapPath); i++) {
       locTuple.add(getLocation(heapPath.get(i)));
     }
 
@@ -2492,6 +2535,7 @@ public class DefinitelyWrittenCheck {
       } else {
 
         if (td.getType().getExtension() != null) {
+          System.out.println("td.getType().getExtension() =" + td.getType().getExtension());
           SSJavaType ssJavaType = (SSJavaType) td.getType().getExtension();
           if (ssJavaType.getCompLoc() != null) {
             NTuple<Location> locTuple = new NTuple<Location>();
