@@ -324,6 +324,8 @@ public class DefinitelyWrittenCheck {
       SharedLocMap currDeleteSet, SharedLocMap sharedLocMap, SharedLocMap deleteSet,
       boolean isEventLoopBody) {
 
+    MethodDescriptor md = fm.getMethod();
+
     SharedLocMap killSet = new SharedLocMap();
     SharedLocMap genSet = new SharedLocMap();
 
@@ -401,16 +403,31 @@ public class DefinitelyWrittenCheck {
         fieldLoc = locTuple.get(locTuple.size() - 1);
       }
 
+      NTuple<Location> fieldLocTuple = new NTuple<Location>();
+      if (fld.isStatic()) {
+        if (fld.isFinal()) {
+          // in this case, fld has TOP location
+          Location topLocation = Location.createTopLocation(md);
+          fieldLocTuple.add(topLocation);
+        } else {
+          fieldLocTuple.addAll(deriveGlobalLocationTuple(md));
+          fieldLocTuple.add((Location) fld.getType().getExtension());
+        }
+
+      } else {
+        fieldLocTuple.addAll(deriveLocationTuple(md, lhs));
+        fieldLocTuple.add((Location) fld.getType().getExtension());
+      }
+
       // shared loc extension
       Location srcLoc = getLocation(rhs);
       if (ssjava.isSharedLocation(fieldLoc)) {
         // only care the case that loc(f) is shared location
         // write(field)
 
-        NTuple<Location> fieldLocTuple = new NTuple<Location>();
-
-        fieldLocTuple.addAll(mapDescriptorToLocationPath.get(lhs));
-        fieldLocTuple.add(fieldLoc);
+        // NTuple<Location> fieldLocTuple = new NTuple<Location>();
+        // fieldLocTuple.addAll(mapDescriptorToLocationPath.get(lhs));
+        // fieldLocTuple.add(fieldLoc);
 
         NTuple<Descriptor> fldHeapPath = computePath(fld);
 
@@ -647,7 +664,6 @@ public class DefinitelyWrittenCheck {
     TempDescriptor rhs;
     FieldDescriptor fld;
 
-
     switch (fn.kind()) {
 
     case FKind.FlatLiteralNode: {
@@ -719,11 +735,9 @@ public class DefinitelyWrittenCheck {
 
         }
 
-
         if (lhs.getType().isPrimitive() && !lhs.getSymbol().startsWith("neverused")
             && !lhs.getSymbol().startsWith("srctmp") && !lhs.getSymbol().startsWith("leftop")
             && !lhs.getSymbol().startsWith("rightop")) {
-
 
           NTuple<Descriptor> lhsHeapPath = computePath(lhs);
 
@@ -760,6 +774,22 @@ public class DefinitelyWrittenCheck {
         fieldLocation = locTuple.get(locTuple.size() - 1);
       }
 
+      NTuple<Location> fieldLocTuple = new NTuple<Location>();
+      if (fld.isStatic()) {
+        if (fld.isFinal()) {
+          // in this case, fld has TOP location
+          Location topLocation = Location.createTopLocation(md);
+          fieldLocTuple.add(topLocation);
+        } else {
+          fieldLocTuple.addAll(deriveGlobalLocationTuple(md));
+          fieldLocTuple.add((Location) fld.getType().getExtension());
+        }
+
+      } else {
+        fieldLocTuple.addAll(deriveLocationTuple(md, lhs));
+        fieldLocTuple.add((Location) fld.getType().getExtension());
+      }
+
       NTuple<Location> lTuple = deriveLocationTuple(md, lhs);
       if (lTuple != null) {
         NTuple<Location> lhsLocTuple = new NTuple<Location>();
@@ -770,16 +800,12 @@ public class DefinitelyWrittenCheck {
       if (ssjava.isSharedLocation(fieldLocation)) {
         addSharedLocDescriptor(fieldLocation, fld);
 
-        NTuple<Location> locTuple = new NTuple<Location>();
-        locTuple.addAll(deriveLocationTuple(md, lhs));
-        locTuple.add(fieldLocation);
-
         NTuple<Descriptor> fieldHeapPath = new NTuple<Descriptor>();
         fieldHeapPath.addAll(computePath(lhs));
         fieldHeapPath.add(fld);
 
         // mapLocationPathToMayWrittenSet.put(locTuple, null, fld);
-        addMayWrittenSet(md, locTuple, fieldHeapPath);
+        addMayWrittenSet(md, fieldLocTuple, fieldHeapPath);
 
       }
 
@@ -804,14 +830,23 @@ public class DefinitelyWrittenCheck {
         fld = getArrayField(td);
       }
 
-      if (fld.isFinal()) {
-        // if field is final no need to check
-        break;
-      }
-
       NTuple<Location> locTuple = new NTuple<Location>();
-      locTuple.addAll(deriveLocationTuple(md, rhs));
-      locTuple.add((Location) fld.getType().getExtension());
+
+      if (fld.isStatic()) {
+
+        if (fld.isFinal()) {
+          // in this case, fld has TOP location
+          Location topLocation = Location.createTopLocation(md);
+          locTuple.add(topLocation);
+        } else {
+          locTuple.addAll(deriveGlobalLocationTuple(md));
+          locTuple.add((Location) fld.getType().getExtension());
+        }
+
+      } else {
+        locTuple.addAll(deriveLocationTuple(md, rhs));
+        locTuple.add((Location) fld.getType().getExtension());
+      }
 
       mapDescriptorToLocationPath.put(lhs, locTuple);
 
@@ -1226,7 +1261,6 @@ public class DefinitelyWrittenCheck {
               // NTuple<Descriptor> lhsHeapPath = computePath(lhs);
               NTuple<Descriptor> path = new NTuple<Descriptor>();
               path.add(lhs);
-
 
               Location lhsLoc = getLocation(lhs);
               if (ssjava.isSharedLocation(lhsLoc)) {
@@ -2129,7 +2163,6 @@ public class DefinitelyWrittenCheck {
               writeHeapPath.addAll(heapPath);
               writeHeapPath.add(lhs);
 
-
             }
           }
         }
@@ -2436,6 +2469,14 @@ public class DefinitelyWrittenCheck {
     Location thisLoc = new Location(md, thisLocIdentifier);
     NTuple<Location> locTuple = new NTuple<Location>();
     locTuple.add(thisLoc);
+    return locTuple;
+  }
+
+  private NTuple<Location> deriveGlobalLocationTuple(MethodDescriptor md) {
+    String globalLocIdentifier = ssjava.getMethodLattice(md).getGlobalLoc();
+    Location globalLoc = new Location(md, globalLocIdentifier);
+    NTuple<Location> locTuple = new NTuple<Location>();
+    locTuple.add(globalLoc);
     return locTuple;
   }
 
