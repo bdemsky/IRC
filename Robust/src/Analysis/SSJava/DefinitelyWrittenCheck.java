@@ -366,8 +366,7 @@ public class DefinitelyWrittenCheck {
 
               // System.out.println("VAR WRITE:" + fn);
               // System.out.println("lhsLocTuple=" + lhsLocTuple +
-              // " lhsHeapPath="
-              // + lhsHeapPath);
+              // " lhsHeapPath=" + lhsHeapPath);
               // System.out.println("dstLoc=" + dstLoc + " srcLoc=" + srcLoc);
               // System.out.println("KILLSET=" + killSet);
               // System.out.println("GENSet=" + genSet);
@@ -376,6 +375,7 @@ public class DefinitelyWrittenCheck {
             }
 
           }
+
         }
 
       }
@@ -430,7 +430,9 @@ public class DefinitelyWrittenCheck {
         // fieldLocTuple.addAll(mapDescriptorToLocationPath.get(lhs));
         // fieldLocTuple.add(fieldLoc);
 
-        NTuple<Descriptor> fldHeapPath = computePath(fld);
+        NTuple<Descriptor> fldHeapPath = new NTuple<Descriptor>();
+        fldHeapPath.addAll(computePath(lhs));
+        fldHeapPath.add(fld);
 
         // computing gen/kill set
         computeKILLSetForWrite(curr, killSet, fieldLocTuple, fldHeapPath);
@@ -1270,15 +1272,32 @@ public class DefinitelyWrittenCheck {
 
           if (!lhs.getSymbol().startsWith("neverused") && !lhs.getSymbol().startsWith("leftop")
               && !lhs.getSymbol().startsWith("rightop")) {
-            NTuple<Descriptor> rhsHeapPath = computePath(rhs);
-            if (!rhs.getType().isImmutable()) {
-              mapHeapPath.put(lhs, rhsHeapPath);
-            } else {
-              // write(lhs)
-              // NTuple<Descriptor> lhsHeapPath = computePath(lhs);
-              NTuple<Descriptor> path = new NTuple<Descriptor>();
-              path.add(lhs);
 
+            boolean hasWriteEffect = false;
+            NTuple<Descriptor> rhsHeapPath = computePath(rhs);
+
+            if (rhs.getType().getExtension() instanceof SSJavaType
+                && lhs.getType().getExtension() instanceof SSJavaType) {
+
+              CompositeLocation rhsCompLoc =
+                  ((SSJavaType) rhs.getType().getExtension()).getCompLoc();
+
+              CompositeLocation lhsCompLoc =
+                  ((SSJavaType) lhs.getType().getExtension()).getCompLoc();
+
+              if (lhsCompLoc != rhsCompLoc) {
+                // have a write effect!
+                hasWriteEffect = true;
+              }
+
+            } else if (lhs.getType().isImmutable()) {
+              hasWriteEffect = true;
+            }
+
+            if (hasWriteEffect) {
+              // write(lhs)
+              NTuple<Descriptor> lhsPath = new NTuple<Descriptor>();
+              lhsPath.add(lhs);
               Location lhsLoc = getLocation(lhs);
               if (ssjava.isSharedLocation(lhsLoc)) {
 
@@ -1297,16 +1316,15 @@ public class DefinitelyWrittenCheck {
 
               } else {
 
-                computeKILLSetForWrite(curr, path, readWriteKillSet);
-                computeGENSetForWrite(path, readWriteGenSet);
+                computeKILLSetForWrite(curr, lhsPath, readWriteKillSet);
+                computeGENSetForWrite(lhsPath, readWriteGenSet);
               }
 
               // System.out.println("#KILLSET=" + readWriteKillSet);
-              // System.out.println("#GENSet=" + readWriteGenSet);
+              // System.out.println("#GENSet=" + readWriteGenSet + "\n");
 
-              Set<WriteAge> writeAgeSet = curr.get(path);
-              checkWriteAgeSet(writeAgeSet, path, fn);
-
+              Set<WriteAge> writeAgeSet = curr.get(lhsPath);
+              checkWriteAgeSet(writeAgeSet, lhsPath, fn);
             }
 
           }
@@ -1406,7 +1424,7 @@ public class DefinitelyWrittenCheck {
         FlatCall fc = (FlatCall) fn;
 
         SharedLocMap sharedLocMap = mapFlatNodeToSharedLocMapping.get(fc);
-        System.out.println("FLATCALL:" + fn);
+        // System.out.println("FLATCALL:" + fn);
         generateKILLSetForFlatCall(fc, curr, sharedLocMap, readWriteKillSet);
         generateGENSetForFlatCall(fc, sharedLocMap, readWriteGenSet);
 
@@ -1477,8 +1495,6 @@ public class DefinitelyWrittenCheck {
     Set<NTuple<Descriptor>> coverSet =
         mapMethodToSharedLocCoverSet.get(methodContainingSSJavaLoop).get(locTuple);
 
-    System.out.println("coverSet=" + coverSet + " by locTuple=" + locTuple);
-
     return inSet.containsAll(coverSet);
   }
 
@@ -1503,15 +1519,34 @@ public class DefinitelyWrittenCheck {
       for (Iterator iterator = writeAgeSet.iterator(); iterator.hasNext();) {
         WriteAge writeAge = (WriteAge) iterator.next();
         if (writeAge.getAge() > MAXAGE) {
-          throw new Error(
-              "Memory location, which is reachable through references "
-                  + path
-                  + ", who comes back to the same read statement without being overwritten at the out-most iteration at "
-                  + methodContainingSSJavaLoop.getClassDesc().getSourceFileName() + "::"
-                  + fn.getNumLine());
+          generateErrorMessage(path, fn);
         }
       }
     }
+  }
+
+  private void generateErrorMessage(NTuple<Descriptor> path, FlatNode fn) {
+
+    Descriptor lastDesc = path.get(path.size() - 1);
+    if (ssjava.isSharedLocation(getLocation(lastDesc))) {
+
+      NTuple<Location> locPathTuple = getLocationTuple(path);
+      Set<NTuple<Descriptor>> coverSet =
+          mapMethodToSharedLocCoverSet.get(methodContainingSSJavaLoop).get(locPathTuple);
+      throw new Error("Shared memory locations, which is reachable through references " + path
+          + ", are not completely overwritten by the higher values at "
+          + methodContainingSSJavaLoop.getClassDesc().getSourceFileName() + "::" + fn.getNumLine()
+          + ".\nThe following memory locations belong to the same shared locations:" + coverSet);
+
+    } else {
+      throw new Error(
+          "Memory location, which is reachable through references "
+              + path
+              + ", who comes back to the same read statement without being overwritten at the out-most iteration at "
+              + methodContainingSSJavaLoop.getClassDesc().getSourceFileName() + "::"
+              + fn.getNumLine());
+    }
+
   }
 
   private void generateGENSetForFlatCall(FlatCall fc, SharedLocMap sharedLocMap,
@@ -1527,8 +1562,7 @@ public class DefinitelyWrittenCheck {
       } else {
         // if the current heap path is shared location
 
-        NTuple<Location> locTuple = getLocationTuple(heapPath, sharedLocMap);
-        System.out.println("heapPath=" + heapPath + " locTuple=" + locTuple);
+        NTuple<Location> locTuple = getLocationTuple(heapPath);
 
         Set<NTuple<Descriptor>> sharedWriteHeapPathSet = sharedLocMap.get(locTuple);
 
@@ -1575,7 +1609,7 @@ public class DefinitelyWrittenCheck {
       NTuple<Descriptor> heapPath = (NTuple<Descriptor>) iterator.next();
 
       if (isSharedLocation(heapPath)) {
-        NTuple<Location> locTuple = getLocationTuple(heapPath, sharedLocMap);
+        NTuple<Location> locTuple = getLocationTuple(heapPath);
 
         if (isCovered(locTuple, sharedLocMap.get(locTuple))) {
           // if it is shared loc and corresponding shared loc has been covered
@@ -1617,7 +1651,7 @@ public class DefinitelyWrittenCheck {
     }
   }
 
-  private NTuple<Location> getLocationTuple(NTuple<Descriptor> heapPath, SharedLocMap sharedLocMap) {
+  private NTuple<Location> getLocationTuple(NTuple<Descriptor> heapPath) {
 
     NTuple<Location> locTuple = new NTuple<Location>();
 
