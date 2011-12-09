@@ -1,8 +1,5 @@
 package Analysis.SSJava;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -33,7 +30,6 @@ import IR.Flat.FlatSetElementNode;
 import IR.Flat.FlatSetFieldNode;
 import IR.Flat.TempDescriptor;
 import IR.Tree.Modifiers;
-import Util.Pair;
 
 public class DefinitelyWrittenCheck {
 
@@ -400,8 +396,14 @@ public class DefinitelyWrittenCheck {
         TypeDescriptor td = lhs.getType().dereference();
         fld = getArrayField(td);
 
-        NTuple<Location> locTuple = mapDescriptorToLocationPath.get(lhs);
+        NTuple<Location> locTuple = deriveLocationTuple(md, lhs);
         fieldLoc = locTuple.get(locTuple.size() - 1);
+      }
+
+      if (!isEventLoopBody && fieldLoc.getDescriptor().equals(md)) {
+        // if the field belongs to the local lattice, no reason to calculate
+        // shared location
+        break;
       }
 
       NTuple<Location> fieldLocTuple = new NTuple<Location>();
@@ -412,12 +414,16 @@ public class DefinitelyWrittenCheck {
           fieldLocTuple.add(topLocation);
         } else {
           fieldLocTuple.addAll(deriveGlobalLocationTuple(md));
-          fieldLocTuple.add((Location) fld.getType().getExtension());
+          if (fn.kind() == FKind.FlatSetFieldNode) {
+            fieldLocTuple.add((Location) fld.getType().getExtension());
+          }
         }
 
       } else {
         fieldLocTuple.addAll(deriveLocationTuple(md, lhs));
-        fieldLocTuple.add((Location) fld.getType().getExtension());
+        if (fn.kind() == FKind.FlatSetFieldNode) {
+          fieldLocTuple.add((Location) fld.getType().getExtension());
+        }
       }
 
       // shared loc extension
@@ -469,10 +475,10 @@ public class DefinitelyWrittenCheck {
         generateGENSetForFlatCall(curr, genSet);
 
       }
-      // System.out.println("#FLATCALL=" + fc);
-      // System.out.println("KILLSET=" + killSet);
-      // System.out.println("GENSet=" + genSet);
-      // System.out.println("bound DELETE Set=" + calleeUnionBoundDeleteSet);
+//      System.out.println("#FLATCALL=" + fc);
+//      System.out.println("KILLSET=" + killSet);
+//      System.out.println("GENSet=" + genSet);
+//      System.out.println("bound DELETE Set=" + calleeUnionBoundDeleteSet);
 
     }
       break;
@@ -489,7 +495,9 @@ public class DefinitelyWrittenCheck {
     }
 
     computeNewMapping(curr, killSet, genSet);
-    // System.out.println("#######" + curr);
+    if (!curr.map.isEmpty()) {
+//      System.out.println(fn + "#######" + curr);
+    }
 
   }
 
@@ -646,7 +654,7 @@ public class DefinitelyWrittenCheck {
       flatNodesToVisit.remove(fn);
       visited.add(fn);
 
-      computeSharedCoverSet_nodeActions(md, fn);
+      computeSharedCoverSet_nodeActions(md, fn, onlyVisitSSJavaLoop);
 
       for (int i = 0; i < fn.numNext(); i++) {
         FlatNode nn = fn.getNext(i);
@@ -663,7 +671,8 @@ public class DefinitelyWrittenCheck {
 
   }
 
-  private void computeSharedCoverSet_nodeActions(MethodDescriptor md, FlatNode fn) {
+  private void computeSharedCoverSet_nodeActions(MethodDescriptor md, FlatNode fn,
+      boolean isEventLoopBody) {
     TempDescriptor lhs;
     TempDescriptor rhs;
     FieldDescriptor fld;
@@ -776,6 +785,20 @@ public class DefinitelyWrittenCheck {
         fld = getArrayField(td);
       }
 
+      Location fieldLocation;
+      if (fn.kind() == FKind.FlatSetFieldNode) {
+        fieldLocation = (Location) fld.getType().getExtension();
+      } else {
+        NTuple<Location> locTuple = mapDescriptorToLocationPath.get(lhs);
+        fieldLocation = locTuple.get(locTuple.size() - 1);
+      }
+
+      if (!isEventLoopBody && fieldLocation.getDescriptor().equals(md)) {
+        // if the field belongs to the local lattice, no reason to calculate
+        // shared location
+        break;
+      }
+
       NTuple<Location> fieldLocTuple = new NTuple<Location>();
       if (fld.isStatic()) {
         if (fld.isFinal()) {
@@ -794,14 +817,6 @@ public class DefinitelyWrittenCheck {
         if (fn.kind() == FKind.FlatSetFieldNode) {
           fieldLocTuple.add((Location) fld.getType().getExtension());
         }
-      }
-
-      Location fieldLocation;
-      if (fn.kind() == FKind.FlatSetFieldNode) {
-        fieldLocation = (Location) fld.getType().getExtension();
-      } else {
-        NTuple<Location> locTuple = mapDescriptorToLocationPath.get(lhs);
-        fieldLocation = locTuple.get(locTuple.size() - 1);
       }
 
       NTuple<Location> lTuple = deriveLocationTuple(md, lhs);
@@ -1428,8 +1443,8 @@ public class DefinitelyWrittenCheck {
         generateKILLSetForFlatCall(fc, curr, sharedLocMap, readWriteKillSet);
         generateGENSetForFlatCall(fc, sharedLocMap, readWriteGenSet);
 
-        // System.out.println("KILLSET=" + readWriteKillSet);
-        // System.out.println("GENSet=" + readWriteGenSet);
+//        System.out.println("KILLSET=" + readWriteKillSet);
+//        System.out.println("GENSet=" + readWriteGenSet);
 
         checkManyRead(fc, curr);
       }
@@ -1438,7 +1453,7 @@ public class DefinitelyWrittenCheck {
       }
 
       computeNewMapping(curr, readWriteKillSet, readWriteGenSet);
-      // System.out.println("#######" + curr);
+//      System.out.println("#######" + curr);
 
     }
 
@@ -1553,6 +1568,7 @@ public class DefinitelyWrittenCheck {
       Hashtable<NTuple<Descriptor>, Set<WriteAge>> GENSet) {
 
     Set<NTuple<Descriptor>> boundMayWriteSet = mapFlatNodeToBoundMayWriteSet.get(fc);
+//    System.out.println("boundMayWriteSet=" + boundMayWriteSet);
 
     for (Iterator iterator = boundMayWriteSet.iterator(); iterator.hasNext();) {
       NTuple<Descriptor> heapPath = (NTuple<Descriptor>) iterator.next();
@@ -1604,6 +1620,7 @@ public class DefinitelyWrittenCheck {
       Hashtable<NTuple<Descriptor>, Set<WriteAge>> KILLSet) {
 
     Set<NTuple<Descriptor>> boundMustWriteSet = mapFlatNodeToBoundMustWriteSet.get(fc);
+//    System.out.println("boundMustWriteSet=" + boundMustWriteSet);
 
     for (Iterator iterator = boundMustWriteSet.iterator(); iterator.hasNext();) {
       NTuple<Descriptor> heapPath = (NTuple<Descriptor>) iterator.next();
@@ -2533,11 +2550,13 @@ public class DefinitelyWrittenCheck {
     // generate proper path fot input td
     // if td is local variable, it just generate one element tuple path
     if (mapHeapPath.containsKey(td)) {
-      return mapHeapPath.get(td);
+      NTuple<Descriptor> rtrHeapPath = new NTuple<Descriptor>();
+      rtrHeapPath.addAll(mapHeapPath.get(td));
+      return rtrHeapPath;
     } else {
-      NTuple<Descriptor> path = new NTuple<Descriptor>();
-      path.add(td);
-      return path;
+      NTuple<Descriptor> rtrHeapPath = new NTuple<Descriptor>();
+      rtrHeapPath.add(td);
+      return rtrHeapPath;
     }
   }
 
@@ -2562,19 +2581,26 @@ public class DefinitelyWrittenCheck {
     assert td.getType() != null;
 
     if (mapDescriptorToLocationPath.containsKey(td)) {
-      return mapDescriptorToLocationPath.get(td);
+      NTuple<Location> locPath = mapDescriptorToLocationPath.get(td);
+      NTuple<Location> rtrPath = new NTuple<Location>();
+      rtrPath.addAll(locPath);
+      return rtrPath;
     } else {
       if (td.getSymbol().startsWith("this")) {
-        return deriveThisLocationTuple(md);
+        NTuple<Location> thisPath = deriveThisLocationTuple(md);
+
+        NTuple<Location> rtrPath = new NTuple<Location>();
+        rtrPath.addAll(thisPath);
+
+        return rtrPath;
       } else {
 
         if (td.getType().getExtension() != null) {
-          System.out.println("td.getType().getExtension() =" + td.getType().getExtension());
           SSJavaType ssJavaType = (SSJavaType) td.getType().getExtension();
           if (ssJavaType.getCompLoc() != null) {
-            NTuple<Location> locTuple = new NTuple<Location>();
-            locTuple.addAll(ssJavaType.getCompLoc().getTuple());
-            return locTuple;
+            NTuple<Location> rtrPath = new NTuple<Location>();
+            rtrPath.addAll(ssJavaType.getCompLoc().getTuple());
+            return rtrPath;
           }
         }
 
