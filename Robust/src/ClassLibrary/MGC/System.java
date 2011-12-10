@@ -112,6 +112,10 @@ public class System {
     return props;
   }
   
+  public static void setProperties(Properties p) {
+      props = p;
+  }
+  
   public static String getProperty(String key) {
     if(props != null) {
       return (String)props.getProperty(key);

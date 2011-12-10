@@ -102,7 +102,7 @@ public class ArrayBlockingQueue/*<E>*/ extends AbstractQueue/*<E>*/
      */
     private Object/*E*/ extract() {
         final Object/*E*/[] items = this.items;
-        /*E*/ x = items[takeIndex];
+        Object/*E*/ x = items[takeIndex];
         items[takeIndex] = null;
         takeIndex = inc(takeIndex);
         --count;

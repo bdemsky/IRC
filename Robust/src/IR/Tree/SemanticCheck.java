@@ -12,6 +12,7 @@ public class SemanticCheck {
   HashMap<ClassDescriptor, Integer> completed;
   HashMap<ClassDescriptor, Vector<VarDescriptor>> inlineClass2LiveVars;
   boolean trialcheck = false;
+  Vector<ClassDescriptor> inlineClassWithTrialCheck;
 
   public static final int NOCHECK=0;
   public static final int REFERENCE=1;
@@ -35,6 +36,7 @@ public class SemanticCheck {
     this.completed=new HashMap<ClassDescriptor, Integer>();
     this.checkAll=checkAll;
     this.inlineClass2LiveVars = new HashMap<ClassDescriptor, Vector<VarDescriptor>>();
+    this.inlineClassWithTrialCheck = new Vector<ClassDescriptor>();
   }
 
   public ClassDescriptor getClass(ClassDescriptor context, String classname) {
@@ -335,7 +337,7 @@ public class SemanticCheck {
   public void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
     ClassDescriptor superdesc=cd.getSuperDesc();
     // for inline classes, it has done this during trial check
-    if ((!cd.getInline() || this.trialcheck) && (superdesc!=null)) {
+    if ((!cd.getInline() || !this.inlineClassWithTrialCheck.contains(cd)) && (superdesc!=null)) {
       Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
       for(Iterator methodit=possiblematches.iterator(); methodit.hasNext(); ) {
         MethodDescriptor matchmd=(MethodDescriptor)methodit.next();
@@ -430,7 +432,7 @@ public class SemanticCheck {
     if ((d==null)||
         (d instanceof FieldDescriptor)) {
       nametable.add(vd);
-    } else if((md instanceof MethodDescriptor) && (((MethodDescriptor)md).getClassDesc().getInline()) && !this.trialcheck) {
+    } else if((md instanceof MethodDescriptor) && (((MethodDescriptor)md).getClassDesc().getInline()) && this.inlineClassWithTrialCheck.contains(((MethodDescriptor)md).getClassDesc())) {
       // for inline classes, the var has been checked during trial check and added into the nametable
     } else
       throw new Error(vd.getSymbol()+" in "+md+" defined a second time");
@@ -444,7 +446,7 @@ public class SemanticCheck {
     if ((d==null)||
         (d instanceof FieldDescriptor)) {
       nametable.add(vd);
-    } else if((md instanceof MethodDescriptor) && (((MethodDescriptor)md).getClassDesc().getInline()) && !this.trialcheck) {
+    } else if((md instanceof MethodDescriptor) && (((MethodDescriptor)md).getClassDesc().getInline()) && this.inlineClassWithTrialCheck.contains(((MethodDescriptor)md).getClassDesc())) {
       // for inline classes, the var has been checked during trial check and added into the nametable
     } else
       throw new Error(vd.getSymbol()+" defined a second time");
@@ -918,6 +920,28 @@ public class SemanticCheck {
 	FieldAccessNode theFieldNode = ( FieldAccessNode )translateNameDescriptorintoExpression( idDesc, linenum );
 	return theFieldNode;
   }
+  
+  Descriptor searchSurroundingNameTable(ClassDescriptor cd, String varname) {
+    Descriptor d = null;
+    if(cd.getInline()&&this.trialcheck) {
+      d = cd.getSurroundingNameTable().get(varname);
+    } else {
+      return d;
+    }
+    if(null == d) {
+      d = searchSurroundingNameTable(cd.getSurroundingDesc(), varname);
+    }
+    if(null != d) {
+      if(!this.inlineClass2LiveVars.containsKey(cd)) {
+        this.inlineClass2LiveVars.put(cd, new Vector<VarDescriptor>());
+      }
+      Vector<VarDescriptor> vars = this.inlineClass2LiveVars.get(cd);
+      if(!vars.contains((VarDescriptor)d)) {
+        vars.add((VarDescriptor)d);
+      }
+    }
+    return d;
+  }
 
   void checkNameNode(Descriptor md, SymbolTable nametable, NameNode nn, TypeDescriptor td) {
     NameDescriptor nd=nn.getName();
@@ -948,18 +972,9 @@ public class SemanticCheck {
 			nn.setExpression(( ExpressionNode )theFieldNode);
       			checkExpressionNode(md,nametable,( ExpressionNode )theFieldNode,td);
 			return;		
-		} else if(cd.getInline() && (this.trialcheck)) {
+		} else {
 		    // for the trial check of an inline class, cache the unknown var
-		    d = cd.getSurroundingNameTable().get(varname);
-		    if(null!=d) {
-		      if(!this.inlineClass2LiveVars.containsKey(cd)) {
-			this.inlineClass2LiveVars.put(cd, new Vector<VarDescriptor>());
-		      }
-		      Vector<VarDescriptor> vars = this.inlineClass2LiveVars.get(cd);
-		      if(!vars.contains((VarDescriptor)d)) {
-		        vars.add((VarDescriptor)d);
-		      }
-		    }
+		    d = searchSurroundingNameTable(cd, varname);
 		}
 	}
 	if(null==d) {
@@ -1204,7 +1219,10 @@ public class SemanticCheck {
 
   void InnerClassAddParamToCtor( MethodDescriptor md, ClassDescriptor cd, SymbolTable nametable, 
 				 CreateObjectNode con, TypeDescriptor td ) {
-	
+    if(this.inlineClassWithTrialCheck.contains(cd)) {
+      // this class has done this with its first trial check
+      return;
+    }
 	TypeDescriptor cdsType = new TypeDescriptor( cd );
 	ExpressionNode conExp = con.getSurroundingClassExpression();
 	//System.out.println( "The surrounding class expression si " + con );
@@ -1231,10 +1249,18 @@ public class SemanticCheck {
 }
   
   void trialSemanticCheck(ClassDescriptor cd) {
+    if(this.inlineClassWithTrialCheck.contains(cd)) {
+      // this inline class has done trial check
+      return;
+    }
     if(!cd.getInline()) {
       throw new Error("Error! Try to do a trial check on a non-inline class " + cd.getSymbol());
     }
-    trialcheck = true;
+    boolean settrial = false;
+    if(!trialcheck) {
+      trialcheck = true;
+      settrial = true;
+    }
       
     for (Iterator method_it = cd.getMethods(); method_it.hasNext(); ) {
       MethodDescriptor md = (MethodDescriptor) method_it.next();
@@ -1245,7 +1271,10 @@ public class SemanticCheck {
         throw e;
       }
     }
-    trialcheck = false;
+    this.inlineClassWithTrialCheck.add(cd);
+    if(settrial) {
+      trialcheck = false;
+    }
   }
   
   // add all the live vars that are referred by the inline class in the surrounding 
@@ -1254,6 +1283,10 @@ public class SemanticCheck {
   // TODO: BUGFIX. These local vars should be final. But currently we've lost those 
   // information, so we cannot have that checked.
   void InlineClassAddParamToCtor(MethodDescriptor md, ClassDescriptor cd , SymbolTable nametable, CreateObjectNode con, TypeDescriptor td, TypeDescriptor[] tdarray ) {
+    if(this.inlineClassWithTrialCheck.contains(cd)) {
+      // this class has done this with its first trial check
+      return;
+    }
     // for an inline class, need to first add the original parameters of the CreatObjectNode
     // into its anonymous constructor and insert a super(...) into the anonymous constructor
     // if its super class is not null
@@ -1282,7 +1315,9 @@ public class SemanticCheck {
       assert(null!=min);
       TypeDescriptor itd = tdarray[i];
       cd_constructor.addParameter(itd, itd.getSymbol()+"_from_con_node_"+i);
-      min.addArgument(new NameNode(new NameDescriptor(itd.getSymbol()+"_from_con_node_"+i)));
+      if(null != min) {
+	min.addArgument(new NameNode(new NameDescriptor(itd.getSymbol()+"_from_con_node_"+i)));
+      }
     }
     
     // Next add the live vars into the inline class' fields
@@ -1328,11 +1363,6 @@ public class SemanticCheck {
     /* Check Array Initializers */
     if ((con.getArrayInitializer() != null)) {
       checkArrayInitializerNode(md, nametable, con.getArrayInitializer(), typetolookin);
-    }
-    
-    if(this.trialcheck) {
-      // for a trialcheck of an inline class, skip the rest process
-      return;
     }
 
     /* Check flag effects */
@@ -1620,6 +1650,8 @@ NextMethod:
           // if the two methods are inherited from super class/interface, use the super class' as first priority
           if(bestmd.getClassDesc().isInterface()&&!currmd.getClassDesc().isInterface()) {
             bestmd = currmd;
+          } else if(!bestmd.getClassDesc().isInterface()&&currmd.getClassDesc().isInterface()) {
+            // maintain the non-interface one
           } else {
             throw new Error("No method is most specific:"+bestmd+" and "+currmd);
           }

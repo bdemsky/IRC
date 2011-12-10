@@ -10,7 +10,7 @@ Outer class print: 35; 0
 3
 4
 Outer class print: 35; 3
-innerCallback: 100
+innerCallback.innerCallback: 100
 innerCallbackStatic: 20, 30
 innerEgg2.Yolk() : getValue() = 0 value = -1
 New innerEgg2()

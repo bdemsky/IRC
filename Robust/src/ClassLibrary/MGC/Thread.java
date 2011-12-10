@@ -4,6 +4,7 @@ public class Thread implements Runnable {
   Runnable target;
   private boolean daemon;
   private long threadId;
+  String name;
   
   public Thread(){
     finished = false;
@@ -20,6 +21,13 @@ public class Thread implements Runnable {
   public Thread(Runnable r) {
     finished = false;
     target = r;
+  }
+  
+  public Thread(Runnable r, String n)
+  {
+    finished = false;
+    target = r;
+    name = n;
   }
 
   public void start() {
