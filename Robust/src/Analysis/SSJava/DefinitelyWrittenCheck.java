@@ -933,35 +933,33 @@ public class DefinitelyWrittenCheck {
       Hashtable<Integer, NTuple<Location>> mapArgIdx2CallerArgLocationPath =
           new Hashtable<Integer, NTuple<Location>>();
 
-      // arg idx is starting from 'this' arg
       if (fc.getThis() != null) {
-        // loc path for 'this'
-        NTuple<Location> thisLocationPath = deriveLocationTuple(mdCaller, fc.getThis());
-        if (thisLocationPath != null) {
+
+        if (mapHeapPath.containsKey(fc.getThis())) {
+
+          // setup heap path for 'this'
+          NTuple<Descriptor> thisHeapPath = new NTuple<Descriptor>();
+          thisHeapPath.addAll(mapHeapPath.get(fc.getThis()));
+          mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
+
+          // setup location path for 'this'
+          NTuple<Location> thisLocationPath = deriveLocationTuple(mdCaller, fc.getThis());
           mapArgIdx2CallerArgLocationPath.put(Integer.valueOf(0), thisLocationPath);
 
-          // heap path for 'this'
-          NTuple<Descriptor> thisHeapPath = new NTuple<Descriptor>();
-          if (mapHeapPath.containsKey(fc.getThis())) {
-            thisHeapPath.addAll(mapHeapPath.get(fc.getThis()));
-          } else {
-            // method is called without creating new flat node representing
-            // 'this'
-            thisHeapPath.add(fc.getThis());
-          }
-          mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
         }
       }
 
       for (int i = 0; i < fc.numArgs(); i++) {
         TempDescriptor arg = fc.getArg(i);
         // create mapping arg to loc path
-        NTuple<Location> argLocationPath = deriveLocationTuple(mdCaller, arg);
-        if (argLocationPath != null) {
-          mapArgIdx2CallerArgLocationPath.put(Integer.valueOf(i + 1), argLocationPath);
-          // create mapping arg to heap path
-          NTuple<Descriptor> argHeapPath = computePath(arg);
+
+        if (mapHeapPath.containsKey(arg)) {
+          // setup heap path
+          NTuple<Descriptor> argHeapPath = mapHeapPath.get(arg);
           mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(i + 1), argHeapPath);
+          // setup loc path
+          NTuple<Location> argLocationPath = deriveLocationTuple(mdCaller, arg);
+          mapArgIdx2CallerArgLocationPath.put(Integer.valueOf(i + 1), argLocationPath);
         }
 
       }
@@ -1755,13 +1753,10 @@ public class DefinitelyWrittenCheck {
       // arg idx is starting from 'this' arg
       if (fc.getThis() != null) {
         NTuple<Descriptor> thisHeapPath = mapHeapPath.get(fc.getThis());
-        if (thisHeapPath == null) {
-          // method is called without creating new flat node representing 'this'
-          thisHeapPath = new NTuple<Descriptor>();
-          thisHeapPath.add(fc.getThis());
+        if (thisHeapPath != null) {
+          // if 'this' does not have heap path, it is local reference
+          mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
         }
-
-        mapArgIdx2CallerArgHeapPath.put(Integer.valueOf(0), thisHeapPath);
       }
 
       for (int i = 0; i < fc.numArgs(); i++) {
