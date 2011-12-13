@@ -32,8 +32,6 @@
  *----------------------------------------------------------------------
  */
 
-
-
 /**
  * Class Implementing Layer 3 Decoder.
  * 
@@ -646,7 +644,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     // System.out.println("Counter = ................................."+counter);
     // if (counter < 609)
     // {
-    counter++; // count should be loc*
+    // counter++; // count should be loc*
     // buffer.write_buffer(1); // buffer!!!
     // }
     // else if (counter == 609)
@@ -699,8 +697,7 @@ final class LayerIIIDecoder implements FrameDecoder {
           si.ch[ch].gr[gr].big_values = sib.get_bits(9);
           si.ch[ch].gr[gr].global_gain = sib.get_bits(8);
           si.ch[ch].gr[gr].scalefac_compress = sib.get_bits(4);
-          @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.TEMP") int cond =
-              sib.get_bits(1);
+          @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.TEMP") int cond = sib.get_bits(1);
           // si.ch[ch].gr[gr].window_switching_flag = sib.get_bits(1);
           // if ((si.ch[ch].gr[gr].window_switching_flag) != 0) {
           if (cond != 0) {
@@ -758,8 +755,7 @@ final class LayerIIIDecoder implements FrameDecoder {
         si.ch[ch].gr[0].global_gain = sib.get_bits(8);
         si.ch[ch].gr[0].scalefac_compress = sib.get_bits(9);
 
-        @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.TEMP") int cond =
-            sib.get_bits(1);
+        @LOC("THIS,LayerIIIDecoder.SI,III_side_info_t.TEMP") int cond = sib.get_bits(1);
         // si.ch[ch].gr[0].window_switching_flag = sib.get_bits(1);
         // if ((si.ch[ch].gr[0].window_switching_flag) != 0) {
         if (cond != 0) {
@@ -1817,7 +1813,6 @@ final class LayerIIIDecoder implements FrameDecoder {
         && !(si.ch[ch].gr[gr].mixed_block_flag != 0))
       return;
 
-     
     if ((si.ch[ch].gr[gr].window_switching_flag != 0) && (si.ch[ch].gr[gr].mixed_block_flag != 0)
         && (si.ch[ch].gr[gr].block_type == 2)) {
       sb18lim = 18;
@@ -2391,7 +2386,6 @@ final class LayerIIIDecoder implements FrameDecoder {
   // This may be adjusted for performance without any problems.
   // public static final int POW_TABLE_LIMIT=512;
 
-
   private static final int slen[][] = { { 0, 0, 0, 0, 3, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4 },
       { 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 2, 3 } };
 
@@ -2842,134 +2836,131 @@ final class LayerIIIDecoder implements FrameDecoder {
 
 }
 
+/************************************************************/
+/* L3TABLE */
+/************************************************************/
 
+@LATTICE("N<VAR")
+class SBI {
+  @LOC("VAR")
+  public int[] l;
+  @LOC("VAR")
+  public int[] s;
 
-
-  /************************************************************/
-  /* L3TABLE */
-  /************************************************************/
-
-  @LATTICE("N<VAR")
-   class SBI {
-    @LOC("VAR")
-    public int[] l;
-    @LOC("VAR")
-    public int[] s;
-
-    public SBI() {
-      l = new int[23];
-      s = new int[14];
-    }
-
-    @LATTICE("THIS<IN,THISLOC=THIS")
-    public SBI(@DELEGATE @LOC("IN") int[] thel, @DELEGATE @LOC("IN") int[] thes) {
-      l = thel;
-      s = thes;
-    }
+  public SBI() {
+    l = new int[23];
+    s = new int[14];
   }
 
-  @LATTICE("V,V*")
-   class gr_info_s {
-    @LOC("V")
-    public int part2_3_length = 0;
-    @LOC("V")
-    public int big_values = 0;
-    @LOC("V")
-    public int global_gain = 0;
-    @LOC("V")
-    public int scalefac_compress = 0;
-    @LOC("V")
-    public int window_switching_flag = 0;
-    @LOC("V")
-    public int block_type = 0;
-    @LOC("V")
-    public int mixed_block_flag = 0;
-    @LOC("V")
-    public int[] table_select;
-    @LOC("V")
-    public int[] subblock_gain;
-    @LOC("V")
-    public int region0_count = 0;
-    @LOC("V")
-    public int region1_count = 0;
-    @LOC("V")
-    public int preflag = 0;
-    @LOC("V")
-    public int scalefac_scale = 0;
-    @LOC("V")
-    public int count1table_select = 0;
-
-    /**
-     * Dummy Constructor
-     */
-    public gr_info_s() {
-      table_select = new int[3];
-      subblock_gain = new int[3];
-    }
+  @LATTICE("THIS<IN,THISLOC=THIS")
+  public SBI(@DELEGATE @LOC("IN") int[] thel, @DELEGATE @LOC("IN") int[] thes) {
+    l = thel;
+    s = thes;
   }
+}
 
-  @LATTICE("GR2<GR1,GR1<GR,GR2*")
-   class temporaire {
-    @LOC("GR")
-    public int[] scfsi;
-    @LOC("GR")
-    public gr_info_s[] gr;
+@LATTICE("V,V*")
+class gr_info_s {
+  @LOC("V")
+  public int part2_3_length = 0;
+  @LOC("V")
+  public int big_values = 0;
+  @LOC("V")
+  public int global_gain = 0;
+  @LOC("V")
+  public int scalefac_compress = 0;
+  @LOC("V")
+  public int window_switching_flag = 0;
+  @LOC("V")
+  public int block_type = 0;
+  @LOC("V")
+  public int mixed_block_flag = 0;
+  @LOC("V")
+  public int[] table_select;
+  @LOC("V")
+  public int[] subblock_gain;
+  @LOC("V")
+  public int region0_count = 0;
+  @LOC("V")
+  public int region1_count = 0;
+  @LOC("V")
+  public int preflag = 0;
+  @LOC("V")
+  public int scalefac_scale = 0;
+  @LOC("V")
+  public int count1table_select = 0;
 
-    /**
-     * Dummy Constructor
-     */
-    public temporaire() {
-      scfsi = new int[4];
-      gr = new gr_info_s[2];
-      gr[0] = new gr_info_s();
-      gr[1] = new gr_info_s();
-    }
+  /**
+   * Dummy Constructor
+   */
+  public gr_info_s() {
+    table_select = new int[3];
+    subblock_gain = new int[3];
   }
+}
 
-  @LATTICE("CH<TEMP,TEMP*")
-   class III_side_info_t {
+@LATTICE("GR2<GR1,GR1<GR,GR2*")
+class temporaire {
+  @LOC("GR")
+  public int[] scfsi;
+  @LOC("GR")
+  public gr_info_s[] gr;
 
-    @LOC("CH")
-    public int main_data_begin = 0;
-    @LOC("CH")
-    public int private_bits = 0;
-    @LOC("CH")
-    public temporaire[] ch;
-
-    /**
-     * Dummy Constructor
-     */
-    public III_side_info_t() {
-      ch = new temporaire[2];
-      ch[0] = new temporaire();
-      ch[1] = new temporaire();
-    }
+  /**
+   * Dummy Constructor
+   */
+  public temporaire() {
+    scfsi = new int[4];
+    gr = new gr_info_s[2];
+    gr[0] = new gr_info_s();
+    gr[1] = new gr_info_s();
   }
+}
 
-  @LATTICE("N<VAR")
-   class temporaire2 {
-    @LOC("VAR")
-    public int[] l; /* [cb] */
-    @LOC("VAR")
-    public int[][] s; /* [window][cb] */
+@LATTICE("CH<TEMP,TEMP*")
+class III_side_info_t {
 
-    /**
-     * Dummy Constructor
-     */
-    public temporaire2() {
-      l = new int[23];
-      s = new int[3][13];
-    }
+  @LOC("CH")
+  public int main_data_begin = 0;
+  @LOC("CH")
+  public int private_bits = 0;
+  @LOC("CH")
+  public temporaire[] ch;
+
+  /**
+   * Dummy Constructor
+   */
+  public III_side_info_t() {
+    ch = new temporaire[2];
+    ch[0] = new temporaire();
+    ch[1] = new temporaire();
   }
+}
 
-  // class III_scalefac_t
-  // {
-  // public temporaire2[] tab;
-  // /**
-  // * Dummy Constructor
-  // */
-  // public III_scalefac_t()
-  // {
-  // tab = new temporaire2[2];
-  // }
-  // }
+@LATTICE("N<VAR")
+class temporaire2 {
+  @LOC("VAR")
+  public int[] l; /* [cb] */
+  @LOC("VAR")
+  public int[][] s; /* [window][cb] */
+
+  /**
+   * Dummy Constructor
+   */
+  public temporaire2() {
+    l = new int[23];
+    s = new int[3][13];
+  }
+}
+
+// class III_scalefac_t
+// {
+// public temporaire2[] tab;
+// /**
+// * Dummy Constructor
+// */
+// public III_scalefac_t()
+// {
+// tab = new temporaire2[2];
+// }
+// }

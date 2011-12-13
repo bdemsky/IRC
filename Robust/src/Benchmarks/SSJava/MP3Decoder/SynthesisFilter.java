@@ -2030,8 +2030,10 @@ final class SynthesisFilter {
 
     // MDM: this may not be necessary. The Layer III decoder always
     // outputs 32 subband samples, but I haven't checked layer I & II.
-    for (@LOC("C") int p = 0; p < 32; p++)
-      samples[p] = 0.0f;
+    // for (@LOC("C") int p = 0; p < 32; p++){
+    // samples[p] = 0.0f;
+    // }
+    SSJAVA.arrayinit(samples, 0);
   }
 
   private static final double MY_PI = 3.14159265358979323846;
