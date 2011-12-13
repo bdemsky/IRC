@@ -4,8 +4,8 @@
  * http://creativecommons.org/licenses/publicdomain
  */
 
-package java.util.concurrent.atomic;
-import sun.misc.Unsafe;
+//package java.util.concurrent.atomic;
+//import sun.misc.Unsafe;
 
 /**
  * A <tt>boolean</tt> value that may be updated atomically. See the
@@ -21,7 +21,7 @@ import sun.misc.Unsafe;
 public class AtomicBoolean implements java.io.Serializable {
     private static final long serialVersionUID = 4654671469794556979L;
     // setup to use Unsafe.compareAndSwapInt for updates
-    private static final Unsafe unsafe = Unsafe.getUnsafe();
+    /*private static final Unsafe unsafe = Unsafe.getUnsafe();
     private static final long valueOffset;
 
     static {
@@ -29,7 +29,7 @@ public class AtomicBoolean implements java.io.Serializable {
         valueOffset = unsafe.objectFieldOffset
             (AtomicBoolean.class.getDeclaredField("value"));
       } catch (Exception ex) { throw new Error(ex); }
-    }
+    }*/
 
     private volatile int value;
 
@@ -67,9 +67,11 @@ public class AtomicBoolean implements java.io.Serializable {
      * the actual value was not equal to the expected value.
      */
     public final boolean compareAndSet(boolean expect, boolean update) {
-        int e = expect ? 1 : 0;
+        /*int e = expect ? 1 : 0;
         int u = update ? 1 : 0;
-        return unsafe.compareAndSwapInt(this, valueOffset, e, u);
+        return unsafe.compareAndSwapInt(this, valueOffset, e, u);*/
+	System.out.println("Unimplemented AtomicBoolean.compareAndSet()");
+	return false;
     }
 
     /**
@@ -83,9 +85,11 @@ public class AtomicBoolean implements java.io.Serializable {
      * @return true if successful.
      */
     public boolean weakCompareAndSet(boolean expect, boolean update) {
-        int e = expect ? 1 : 0;
+        /*int e = expect ? 1 : 0;
         int u = update ? 1 : 0;
-        return unsafe.compareAndSwapInt(this, valueOffset, e, u);
+        return unsafe.compareAndSwapInt(this, valueOffset, e, u);*/
+	System.out.println("Unimplemented AtomicBoolean.weakCompareAndSet()");
+	return false;
     }
 
     /**
@@ -105,7 +109,8 @@ public class AtomicBoolean implements java.io.Serializable {
      */
     public final void lazySet(boolean newValue) {
         int v = newValue ? 1 : 0;
-        unsafe.putOrderedInt(this, valueOffset, v);
+        //unsafe.putOrderedInt(this, valueOffset, v);
+        System.out.println("Unimplemented AtomicBoolean.lazySet()");
     }
 
     /**
@@ -126,8 +131,8 @@ public class AtomicBoolean implements java.io.Serializable {
      * Returns the String representation of the current value.
      * @return the String representation of the current value.
      */
-    public String toString() {
+    /*public String toString() {
         return Boolean.toString(get());
-    }
+    }*/
 
 }
