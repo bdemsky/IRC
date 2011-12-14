@@ -76,5 +76,10 @@ public class Thread implements Runnable {
     System.out.println("Unimplemented Thread.currentThread()!");
     return null;
   }
+  
+  public static Map getAllStackTraces() {
+    System.out.println("Unimplemented Thread.getAllStackTraces()");
+    return new Map();
+  }
 
 }
