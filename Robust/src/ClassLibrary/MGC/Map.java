@@ -207,7 +207,7 @@ public interface Map//<K, V>
    *
    * @return the set view of all keys
    */
-  //Set<K> keySet();
+  Set keySet();
 
   /**
    * Copies all entries of the given map to this one (optional operation). If

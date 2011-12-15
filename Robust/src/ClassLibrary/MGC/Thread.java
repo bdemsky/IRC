@@ -79,7 +79,7 @@ public class Thread implements Runnable {
   
   public static Map getAllStackTraces() {
     System.out.println("Unimplemented Thread.getAllStackTraces()");
-    return new Map();
+    return new HashMap();
   }
 
 }
