@@ -449,7 +449,8 @@ public class DefinitelyWrittenCheck {
 
         // computing gen/kill set
         computeKILLSetForWrite(curr, killSet, fieldLocTuple, fldHeapPath);
-        if (!fieldLoc.equals(srcLoc)) {
+
+        if (!ssjava.isSameHeightWrite(fn)) {
           computeGENSetForHigherWrite(curr, genSet, fieldLocTuple, fldHeapPath);
           updateDeleteSetForHigherWrite(currDeleteSet, fieldLocTuple, fldHeapPath);
         } else {
@@ -793,8 +794,13 @@ public class DefinitelyWrittenCheck {
         fld = getArrayField(td);
       }
 
+      NTuple<Location> lhsLocTuple = new NTuple<Location>();
+      lhsLocTuple.addAll(deriveLocationTuple(md, lhs));
+      mapDescriptorToLocationPath.put(lhs, lhsLocTuple);
+
       NTuple<Location> fieldLocTuple = new NTuple<Location>();
-      fieldLocTuple.addAll(deriveLocationTuple(md, lhs));
+      fieldLocTuple.addAll(lhsLocTuple);
+
       if (fn.kind() == FKind.FlatSetFieldNode) {
         fieldLocTuple.add((Location) fld.getType().getExtension());
       }

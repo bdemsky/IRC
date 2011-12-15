@@ -25,6 +25,7 @@ import IR.SymbolTable;
 import IR.TypeDescriptor;
 import IR.TypeExtension;
 import IR.VarDescriptor;
+import IR.Flat.FlatNode;
 import IR.Tree.ArrayAccessNode;
 import IR.Tree.AssignmentNode;
 import IR.Tree.BlockExpressionNode;
@@ -1527,10 +1528,10 @@ public class FlowDownCheck {
       }
       // }
 
-//      System.out.println("dstLocation=" + destLocation);
-//      System.out.println("rhsLocation=" + rhsLocation);
-//      System.out.println("srcLocation=" + srcLocation);
-//      System.out.println("constraint=" + constraint);
+      // System.out.println("dstLocation=" + destLocation);
+      // System.out.println("rhsLocation=" + rhsLocation);
+      // System.out.println("srcLocation=" + srcLocation);
+      // System.out.println("constraint=" + constraint);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
 
@@ -1542,6 +1543,16 @@ public class FlowDownCheck {
         throw new Error("The value flow from " + srcLocation + " to " + destLocation
             + " does not respect location hierarchy on the assignment " + an.printNode(0) + context
             + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
+      }
+
+      if (srcLocation.equals(destLocation)) {
+        // keep it for definitely written analysis
+        Set<FlatNode> flatNodeSet = ssjava.getBuildFlat().getFlatNodeSet(an);
+        for (Iterator iterator = flatNodeSet.iterator(); iterator.hasNext();) {
+          FlatNode fn = (FlatNode) iterator.next();
+          ssjava.addSameHeightWriteFlatNode(fn);
+        }
+
       }
 
     } else {
@@ -1574,6 +1585,15 @@ public class FlowDownCheck {
               + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
         }
 
+      }
+
+      if (srcLocation.equals(destLocation)) {
+        // keep it for definitely written analysis
+        Set<FlatNode> flatNodeSet = ssjava.getBuildFlat().getFlatNodeSet(an);
+        for (Iterator iterator = flatNodeSet.iterator(); iterator.hasNext();) {
+          FlatNode fn = (FlatNode) iterator.next();
+          ssjava.addSameHeightWriteFlatNode(fn);
+        }
       }
 
     }

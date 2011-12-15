@@ -87,6 +87,8 @@ public class SSJavaAnalysis {
   // keep the field ownership from the linear type checking
   Hashtable<MethodDescriptor, Set<FieldDescriptor>> mapMethodToOwnedFieldSet;
 
+  Set<FlatNode> sameHeightWriteFlatNodeSet;
+
   CallGraph callgraph;
 
   LinearTypeCheck checker;
@@ -106,6 +108,7 @@ public class SSJavaAnalysis {
     this.bf = bf;
     this.trustWorthyMDSet = new HashSet<MethodDescriptor>();
     this.mapMethodToOwnedFieldSet = new Hashtable<MethodDescriptor, Set<FieldDescriptor>>();
+    this.sameHeightWriteFlatNodeSet = new HashSet<FlatNode>();
   }
 
   public void doCheck() {
@@ -558,6 +561,14 @@ public class SSJavaAnalysis {
 
   public void setSSJavaLoopEntrance(FlatNode ssjavaLoopEntrance) {
     this.ssjavaLoopEntrance = ssjavaLoopEntrance;
+  }
+
+  public void addSameHeightWriteFlatNode(FlatNode fn) {
+    this.sameHeightWriteFlatNodeSet.add(fn);
+  }
+
+  public boolean isSameHeightWrite(FlatNode fn) {
+    return this.sameHeightWriteFlatNodeSet.contains(fn);
   }
 
 }

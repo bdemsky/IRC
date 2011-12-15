@@ -688,6 +688,7 @@ public class BuildFlat {
 
       FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
       fsfn.setNumLine(en.getNumLine());
+      addMapNode2FlatNodeSet(an,fsfn);
       last.addNext(fsfn);
       last=fsfn;
       if (pre) {
@@ -783,6 +784,7 @@ public class BuildFlat {
         last.addNext(fon2);
         last=fon2;
       }
+      addMapNode2FlatNodeSet(an,last);
       return new NodePair(first, last);
     } else if (an.getDest().kind()==Kind.NameNode) {
       //We could be assigning a field or variable
@@ -849,6 +851,7 @@ public class BuildFlat {
 
         FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
         fsfn.setNumLine(en.getNumLine());
+        addMapNode2FlatNodeSet(an,fsfn);
         last.addNext(fsfn);
         last=fsfn;
         if (pre) {
@@ -921,6 +924,7 @@ public class BuildFlat {
             fsfn=new FlatSetFieldNode(getTempforVar(nn.getVar()), nn.getField(), src_tmp);
             fsfn.setNumLine(nn.getNumLine());
           }
+          addMapNode2FlatNodeSet(an,fsfn);
           if (first==null) {
             first=fsfn;
           } else {
@@ -987,6 +991,7 @@ public class BuildFlat {
 
           FlatOpNode fon=new FlatOpNode(getTempforVar(nn.getVar()), src_tmp, null, new Operation(Operation.ASSIGN));
           fon.setNumLine(an.getNumLine());
+          addMapNode2FlatNodeSet(an,fon);
 
           last.addNext(fon);
           last=fon;
