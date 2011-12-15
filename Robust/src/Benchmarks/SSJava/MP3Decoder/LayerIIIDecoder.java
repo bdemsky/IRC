@@ -485,6 +485,9 @@ final class LayerIIIDecoder implements FrameDecoder {
     SSJAVA.arrayinit(scalefac_buffer, 0);
     SSJAVA.arrayinit(nonzero, 576);
     SSJAVA.arrayinit(new_slen, 0);
+
+    SSJAVA.arrayinit(raw_full, 2, SBLIMIT * SSLIMIT, 0);
+    SSJAVA.arrayinit(rawout, 0);
     CheckSumHuff = 0;
     // prevblck = new float[2][SBLIMIT * SSLIMIT];
     si = new III_side_info_t();
@@ -519,8 +522,10 @@ final class LayerIIIDecoder implements FrameDecoder {
     filter2.actual_write_pos = filter_pos;
     //
 
-    // System.out.println("filter1="+filter1.vidx+" "+filter1.actual_write_pos);
-    // System.out.println("filter1="+filter2.vidx+" "+filter2.actual_write_pos);
+    // System.out.println("filter1=" + filter1.vidx + " " +
+    // filter1.actual_write_pos);
+    // System.out.println("filter1=" + filter2.vidx + " " +
+    // filter2.actual_write_pos);
 
     // here 'gr' and 'max_gr' should be higher than 'ch','channels', and more
     for (gr = 0; gr < max_gr; gr++) { // two granules per channel
@@ -622,10 +627,12 @@ final class LayerIIIDecoder implements FrameDecoder {
       } // channels
 
       // TODO
-      // init prev
-      SSJAVA.arrayinit(prevblck, 2, SBLIMIT * SSLIMIT, 0);
-      // copy from raw_full to prev
-      SSJAVA.arraycopy(prevblck, raw_full, 2, SBLIMIT * SSLIMIT);
+      if (gr < max_gr - 1) {
+        // init prev
+        SSJAVA.arrayinit(prevblck, 2, SBLIMIT * SSLIMIT, 0);
+        // copy from raw_full to prev
+        SSJAVA.arraycopy(prevblck, raw_full, 2, SBLIMIT * SSLIMIT);
+      }
       // for (int chidx = 0; chidx < 2; chidx++) {
       // for (int sidx = 0; sidx < SBLIMIT * SSLIMIT; sidx++) {
       // prevblck[chidx][sidx] = raw_full[chidx][sidx];
@@ -634,6 +641,12 @@ final class LayerIIIDecoder implements FrameDecoder {
       // System.out.println("#END GR=" + gr + " actual_write_pos=" +
       // filter1.actual_write_pos);
     } // granule
+
+    // TODO
+    // init prev
+    SSJAVA.arrayinit(prevblck, 2, SBLIMIT * SSLIMIT, 0);
+    // copy from raw_full to prev
+    SSJAVA.arraycopy(prevblck, raw_full, 2, SBLIMIT * SSLIMIT);
 
     // System.out.println("#END FRAME actual_write_pos=" +
     // filter1.actual_write_pos);

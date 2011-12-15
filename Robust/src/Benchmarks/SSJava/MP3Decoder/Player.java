@@ -207,7 +207,8 @@ public class Player {
       // @LOC("O") SampleBuffer output = (SampleBuffer) decoder.decodeFrame(h);
       decoder.decodeFrame(h);
 
-      DEBUG_OUTPUT();
+      DEBUG_OUTPUT_CHECKSUM();
+      // DEBUG_OUTPUT();
       // synchronized (this)
       // {
       // out = audio;
@@ -242,6 +243,20 @@ public class Player {
       System.out.println(sampleNumber + " " + outbuf[i]);
       sampleNumber++;
     }
+  }
+
+  @TRUST
+  public void DEBUG_OUTPUT_CHECKSUM() {
+    // eom debug
+    @LOC("C") int sum = 0;
+    @LOC("C") short[] outbuf = SampleBufferWrapper.getBuffer();
+    // short[] outbuf = output.getBuffer();
+    TERMINATE: for (@LOC("C") int i = 0; i < SampleBufferWrapper.getBufferLength(); i++) {
+      // System.out.println(outbuf[i]);
+      sum += outbuf[i];
+    }
+    System.out.println(sum);
+    //
   }
 
 }

@@ -1985,6 +1985,7 @@ final class SynthesisFilter {
     SSJAVA.arrayinit(v1, 0);
     SSJAVA.arrayinit(v2, 0);
     // copy previous v1,v2
+
     for (@LOC("THIS,SynthesisFilter.V") int i = 0; i < prev1.length; i++) {
       v1[i] = prev1[i];
     }
@@ -1994,6 +1995,8 @@ final class SynthesisFilter {
     // clear out previous buffer
     SSJAVA.arrayinit(prev1, 0);
     SSJAVA.arrayinit(prev2, 0);
+    SSJAVA.arrayinit(samples, 0);
+    SSJAVA.arrayinit(_tmpOut, 0);
   }
 
   /**
@@ -2001,6 +2004,8 @@ final class SynthesisFilter {
    */
 
   public void calculate_pcm_samples() {
+
+//    System.out.println("#calculate_pcm_samples::actual_write_pos=" + actual_write_pos);
 
     if (vidx == 1) {
       compute_new_v1_v2();
@@ -2015,7 +2020,7 @@ final class SynthesisFilter {
     // System.out.println("3.actual_v=" + (actual_v == v1) + " vidx=" + vidx);
 
     actual_write_pos = (actual_write_pos + 1) & 0xf;
-    // System.out.println("actual_write_pos="+actual_write_pos);
+//     System.out.println("actual_write_pos="+actual_write_pos);
     // actual_v = (actual_v == v1) ? v2 : v1;
 
     if (vidx == 1) {
