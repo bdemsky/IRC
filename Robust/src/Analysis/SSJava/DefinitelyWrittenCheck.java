@@ -366,14 +366,6 @@ public class DefinitelyWrittenCheck {
                   updateDeleteSetForSameHeightWrite(currDeleteSet, lhsLocTuple, lhsHeapPath);
                 }
 
-                // System.out.println("VAR WRITE:" + fn);
-                // System.out.println("lhsLocTuple=" + lhsLocTuple +
-                // " lhsHeapPath=" + lhsHeapPath);
-                // System.out.println("dstLoc=" + dstLoc + " srcLoc=" + srcLoc);
-                // System.out.println("KILLSET=" + killSet);
-                // System.out.println("GENSet=" + genSet);
-                // System.out.println("DELETESET=" + currDeleteSet);
-
               }
             } else {
               break;
@@ -455,14 +447,6 @@ public class DefinitelyWrittenCheck {
           updateDeleteSetForSameHeightWrite(currDeleteSet, fieldLocTuple, fldHeapPath);
         }
 
-        // System.out.println("################");
-        // System.out.println("FIELD WRITE:" + fn);
-        // System.out.println("FldHeapPath=" + fldHeapPath);
-        // System.out.println("fieldLocTuple=" + fieldLocTuple + " srcLoc=" +
-        // srcLoc);
-        // System.out.println("KILLSET=" + killSet);
-        // System.out.println("GENSet=" + genSet);
-        // System.out.println("DELETESET=" + currDeleteSet);
       }
 
     }
@@ -477,11 +461,6 @@ public class DefinitelyWrittenCheck {
       generateKILLSetForFlatCall(curr, killSet);
       generateGENSetForFlatCall(curr, genSet);
 
-      // System.out.println("#FLATCALL=" + fc);
-      // System.out.println("KILLSET=" + killSet);
-      // System.out.println("GENSet=" + genSet);
-      // System.out.println("bound DELETE Set=" + calleeUnionBoundDeleteSet);
-
     }
       break;
 
@@ -490,16 +469,12 @@ public class DefinitelyWrittenCheck {
       mergeSharedLocMap(sharedLocMap, curr);
       mergeDeleteSet(deleteSet, currDeleteSet);
 
-      // System.out.println("#FLATEXIT sharedLocMap=" + sharedLocMap);
     }
       break;
 
     }
 
     computeNewMapping(curr, killSet, genSet);
-    if (!curr.map.isEmpty()) {
-      // System.out.println(fn + "#######" + curr);
-    }
 
   }
 
@@ -639,8 +614,7 @@ public class DefinitelyWrittenCheck {
 
   private void computeSharedCoverSet_analyzeMethod(FlatMethod fm, boolean onlyVisitSSJavaLoop) {
 
-    System.out.println("\n###");
-    System.out.println("computeSharedCoverSet_analyzeMethod=" + fm);
+    // System.out.println("computeSharedCoverSet_analyzeMethod=" + fm);
     MethodDescriptor md = fm.getMethod();
 
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
@@ -792,7 +766,18 @@ public class DefinitelyWrittenCheck {
       }
 
       NTuple<Location> lhsLocTuple = new NTuple<Location>();
-      lhsLocTuple.addAll(deriveLocationTuple(md, lhs));
+      if (fld.isStatic()) {
+        if (fld.isFinal()) {
+          // in this case, fld has TOP location
+          Location topLocation = Location.createTopLocation(md);
+          lhsLocTuple.add(topLocation);
+        } else {
+          lhsLocTuple.addAll(deriveGlobalLocationTuple(md));
+        }
+      } else {
+        lhsLocTuple.addAll(deriveLocationTuple(md, lhs));
+      }
+
       mapDescriptorToLocationPath.put(lhs, lhsLocTuple);
 
       NTuple<Location> fieldLocTuple = new NTuple<Location>();
@@ -1334,10 +1319,6 @@ public class DefinitelyWrittenCheck {
                 computeGENSetForWrite(lhsHeapPath, readWriteGenSet);
               }
 
-              // System.out.println("write effect on =" + lhsHeapPath);
-              // System.out.println("#KILLSET=" + readWriteKillSet);
-              // System.out.println("#GENSet=" + readWriteGenSet + "\n");
-
               Set<WriteAge> writeAgeSet = curr.get(lhsHeapPath);
               checkWriteAgeSet(writeAgeSet, lhsHeapPath, fn);
             }
@@ -1440,9 +1421,6 @@ public class DefinitelyWrittenCheck {
             computeGENSetForWrite(fldHeapPath, readWriteGenSet);
           }
 
-          // System.out.println("KILLSET=" + readWriteKillSet);
-          // System.out.println("GENSet=" + readWriteGenSet);
-
         }
 
       }
@@ -1452,12 +1430,8 @@ public class DefinitelyWrittenCheck {
         FlatCall fc = (FlatCall) fn;
 
         SharedLocMap sharedLocMap = mapFlatNodeToSharedLocMapping.get(fc);
-        // System.out.println("FLATCALL:" + fn);
         generateKILLSetForFlatCall(fc, curr, sharedLocMap, readWriteKillSet);
         generateGENSetForFlatCall(fc, sharedLocMap, readWriteGenSet);
-
-        // System.out.println("KILLSET=" + readWriteKillSet);
-        // System.out.println("GENSet=" + readWriteGenSet);
 
       }
         break;
@@ -1468,8 +1442,6 @@ public class DefinitelyWrittenCheck {
       if (fn instanceof FlatCall) {
         checkManyRead((FlatCall) fn, curr);
       }
-
-      // System.out.println("#######" + curr);
 
     }
 
@@ -1526,9 +1498,6 @@ public class DefinitelyWrittenCheck {
     Set<NTuple<Descriptor>> coverSet =
         mapMethodToSharedLocCoverSet.get(methodContainingSSJavaLoop).get(locTuple);
 
-    // System.out.println("locTuple=" + locTuple + " coverSet=" + coverSet +
-    // "  currSet=" + inSet);
-
     return inSet.containsAll(coverSet);
   }
 
@@ -1545,9 +1514,6 @@ public class DefinitelyWrittenCheck {
   }
 
   private void checkWriteAgeSet(Set<WriteAge> writeAgeSet, NTuple<Descriptor> path, FlatNode fn) {
-
-    // System.out.println("# CHECK WRITE AGE of " + path + " from set=" +
-    // writeAgeSet);
 
     if (writeAgeSet != null) {
       for (Iterator iterator = writeAgeSet.iterator(); iterator.hasNext();) {
@@ -1587,7 +1553,6 @@ public class DefinitelyWrittenCheck {
       Hashtable<NTuple<Descriptor>, Set<WriteAge>> GENSet) {
 
     Set<NTuple<Descriptor>> boundMayWriteSet = mapFlatNodeToBoundMayWriteSet.get(fc);
-    // System.out.println("boundMayWriteSet=" + boundMayWriteSet);
 
     for (Iterator iterator = boundMayWriteSet.iterator(); iterator.hasNext();) {
       NTuple<Descriptor> heapPath = (NTuple<Descriptor>) iterator.next();
