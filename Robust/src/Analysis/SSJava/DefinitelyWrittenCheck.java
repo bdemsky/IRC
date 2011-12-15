@@ -184,10 +184,6 @@ public class DefinitelyWrittenCheck {
       methodReadWriteSetAnalysis();
       computeSharedCoverSet();
 
-      // System.out.println("$$$=" +
-      // mapMethodToSharedLocCoverSet.get(methodContainingSSJavaLoop));
-      // System.exit(0);
-
       sharedLocAnalysis();
 
       eventLoopAnalysis();
@@ -361,7 +357,8 @@ public class DefinitelyWrittenCheck {
 
                 // computing gen/kill set
                 computeKILLSetForWrite(curr, killSet, lhsLocTuple, lhsHeapPath);
-                if (!dstLoc.equals(srcLoc)) {
+
+                if (!ssjava.isSameHeightWrite(fn)) {
                   computeGENSetForHigherWrite(curr, killSet, lhsLocTuple, lhsHeapPath);
                   updateDeleteSetForHigherWrite(currDeleteSet, lhsLocTuple, lhsHeapPath);
                 } else {
@@ -1642,7 +1639,6 @@ public class DefinitelyWrittenCheck {
       Hashtable<NTuple<Descriptor>, Set<WriteAge>> KILLSet) {
 
     Set<NTuple<Descriptor>> boundMustWriteSet = mapFlatNodeToBoundMustWriteSet.get(fc);
-    System.out.println("#boundMustWriteSet=" + boundMustWriteSet);
 
     for (Iterator iterator = boundMustWriteSet.iterator(); iterator.hasNext();) {
       NTuple<Descriptor> heapPath = (NTuple<Descriptor>) iterator.next();

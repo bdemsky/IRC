@@ -1,6 +1,7 @@
 public class BitstreamWrapper {
 
   private static Bitstream stream;
+  private static int idx=0;
 
   @TRUST
   public static void init(String filename) {
@@ -11,7 +12,9 @@ public class BitstreamWrapper {
 
   @TRUST
   public static Header readFrame() {
-    return stream.readFrame();
+    Header h=stream.readFrame();
+    h.idx=idx++;
+    return h;
   }
 
 }

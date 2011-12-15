@@ -117,9 +117,12 @@ public final class Header {
   @LOC("T")
   private BitReserve br;
 
+  @LOC("T")
+  private int idx;
+
   Header() {
   }
-  
+
   @LATTICE("OUT<BUF,BUF<THIS,THISLOC=THIS,RETURNLOC=OUT")
   public String toString() {
     @LOC("BUF") StringBuffer buffer = new StringBuffer(200);
@@ -696,7 +699,7 @@ public final class Header {
    * 
    * @return bitrate in bps
    */
-  
+
   @RETURNLOC("THIS,Header.FS")
   public String bitrate_string() {
     @LOC("THIS,Header.T") String kbs = " kb/s";
@@ -839,5 +842,14 @@ public final class Header {
   public BitReserve getBitReserve() {
     return br;
   }
+  
+  @RETURNLOC("THIS,Header.T")
+  public int getIdx() {
+    return idx;
+  }
 
+  public int setIdx(int idx) {
+    return this.idx = idx;
+  }
+  
 }

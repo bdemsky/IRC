@@ -515,17 +515,11 @@ final class LayerIIIDecoder implements FrameDecoder {
     @LOC("THIS,LayerIIIDecoder.HD1") int version = header.version();
 
     // additional codes for the definitely written property
-    filter_pos = (filter_pos + 4) & 0xf;
+    filter_pos = (header.getIdx() * 4) & 0xf;
     filter1.vidx = 1;
     filter2.vidx = 1;
     filter1.actual_write_pos = filter_pos;
     filter2.actual_write_pos = filter_pos;
-    //
-
-    // System.out.println("filter1=" + filter1.vidx + " " +
-    // filter1.actual_write_pos);
-    // System.out.println("filter1=" + filter2.vidx + " " +
-    // filter2.actual_write_pos);
 
     // here 'gr' and 'max_gr' should be higher than 'ch','channels', and more
     for (gr = 0; gr < max_gr; gr++) { // two granules per channel
