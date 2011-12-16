@@ -94,8 +94,24 @@ public class Collections
 	i.next();
 	i.set(a[pos]);
       }*/
-    //TODO System.println("Collections.sort() invoked");
+    //TODO 
+    System.println("Collections.sort() invoked");
   }
+  
+  public static  void sort(List l, Comparator c)
+  {
+    /*Object[] a =  l.toArray();
+    Arrays.sort(a, c);
+    ListIterator i = l.listIterator();
+    for (int pos = 0, alen = a.length;  pos < alen;  pos++)
+      {
+	i.next();
+	i.set(a[pos]);
+      }*/
+//    TODO 
+      System.println("Collections.sort(l, c) invoked");
+  }
+
   
   static final /*<T>*/ int compare(Object/*T*/ o1, Object/*T*/ o2, Comparator/*<? super T>*/ c)
   {

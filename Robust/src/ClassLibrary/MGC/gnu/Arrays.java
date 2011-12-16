@@ -3320,7 +3320,7 @@ public class Arrays
      * @return The array containing the objects in this list,
      *         which may or may not be == to array.
      */
-    public /*<T> T*/Object[] toArray(Objkect/*T*/[] array)
+    public /*<T> T*/Object[] toArray(Object/*T*/[] array)
     {
       int size = a.length;
       if (array.length < size)
