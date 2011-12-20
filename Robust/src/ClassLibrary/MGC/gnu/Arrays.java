@@ -3249,7 +3249,8 @@ public class Arrays
      */
     public Object/*E*/ set(int index, Object/*E*/ element)
     {
-      E old = a[index];
+      
+      Object/*E*/ old = a[index];
       a[index] = element;
       return old;
     }
@@ -3307,7 +3308,10 @@ public class Arrays
      */
     public Object[] toArray()
     {
-      return (Object[]) a.clone();
+      //return (Object[]) a.clone();
+      Object[] ta = new Object[a.length];
+      System.arraycopy(a, 0, ta, 0, a.length);
+      return ta;
     }
 
     /**

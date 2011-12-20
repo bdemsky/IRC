@@ -253,10 +253,7 @@ public class BuildIR {
     ecd.setModifiers(parseModifiersList(pn.getChild("modifiers")));
     parseEnumBody(ecd, pn.getChild("enumbody"));
 
-    if (analyzeset != null)
-      analyzeset.add(ecd);
-    ecd.setSourceFileName(currsourcefile);
-    state.addClass(ecd);
+    addClass2State(ecd);
 
     popChainMaps();
     return ecd;
@@ -290,10 +287,7 @@ public class BuildIR {
     parseAnnotationTypeBody(cn,pn.getChild("body"));
     popChainMaps();
 
-    if (analyzeset != null)
-      analyzeset.add(cn);
-    cn.setSourceFileName(currsourcefile);
-    state.addClass(cn);
+    addClass2State(cn);
 
     return cn;
   }
@@ -355,10 +349,7 @@ public class BuildIR {
     }
     cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
     parseInterfaceBody(cn, pn.getChild("interfacebody"));
-    if (analyzeset != null)
-      analyzeset.add(cn);
-    cn.setSourceFileName(currsourcefile);
-    state.addClass(cn);
+    addClass2State(cn);
     popChainMaps();
     return cn;
   }
@@ -569,6 +560,22 @@ public class BuildIR {
     return tel;
   }
 
+  private void addClass2State(ClassDescriptor cn) {
+    if (analyzeset != null)
+      analyzeset.add(cn);
+    cn.setSourceFileName(currsourcefile);
+    state.addClass(cn);
+    // create this$n representing a final reference to the next surrounding class. each inner class should have whatever inner class
+    // pointers the surrounding class has + a pointer to the surrounding class.
+    if( true )
+    {
+      this.isRunningRecursiveInnerClass = true; //fOR dEBUGGING PURPOSES IN ORDER TO DUMP STRINGS WHILE IN THIS CODE PATH
+      addOuterClassReferences( cn, cn, 0 );
+      addOuterClassParam( cn, cn, 0 );
+      this.isRunningRecursiveInnerClass = false;
+    }
+  }
+  
   public ClassDescriptor parseTypeDecl(ParseNode pn) {
     ClassDescriptor cn=new ClassDescriptor(packageName, pn.getChild("name").getTerminal(), false);
     pushChainMaps();
@@ -618,21 +625,9 @@ public class BuildIR {
     popChainMaps();
 
     cn.setSourceFileName(currsourcefile);
-
-
     
-    if (analyzeset != null)
-      analyzeset.add(cn);
-    state.addClass(cn);
-//create this$n representing a final reference to the next surrounding class. each inner class should have whatever inner class
-//pointers the surrounding class has + a pointer to the surrounding class.
-   if( true )
-   {
-   	this.isRunningRecursiveInnerClass = true; //fOR dEBUGGING PURPOSES IN ORDER TO DUMP STRINGS WHILE IN THIS CODE PATH
-    	addOuterClassReferences( cn, 0 );
-	addOuterClassParam( cn, 0 );
-    	this.isRunningRecursiveInnerClass = false;
-    }
+    addClass2State(cn);
+
     return cn;
   }
 
@@ -648,14 +643,14 @@ private void initializeOuterMember( MethodDescriptor md, String fieldName, Strin
          state.addTreeCode(md, obn);
 }
 
-private void addOuterClassParam( ClassDescriptor cn, int depth )
+private void addOuterClassParam( ClassDescriptor cn, ClassDescriptor ocn, int depth )
 {
 	Iterator nullCheckItr = cn.getInnerClasses();
 	if( false == nullCheckItr.hasNext() )
 		return;
 
 	//create a typedescriptor of type cn
-	TypeDescriptor theTypeDesc = new TypeDescriptor( cn );
+	TypeDescriptor theTypeDesc = new TypeDescriptor( ocn );
 	
 	for(Iterator it=cn.getInnerClasses(); it.hasNext(); ) {
       		ClassDescriptor icd=(ClassDescriptor)it.next();
@@ -672,19 +667,19 @@ private void addOuterClassParam( ClassDescriptor cn, int depth )
 				//System.out.println( "The added param is " + md.toString() + "\n" );
 			}
    		}
-		addOuterClassParam( icd, depth + 1 );
+		addOuterClassParam( icd, ocn, depth + 1 );
 		
     	}
 	
 }
-private void addOuterClassReferences( ClassDescriptor cn, int depth )
+private void addOuterClassReferences( ClassDescriptor cn, ClassDescriptor ocn, int depth )
 {
 	//SYMBOLTABLE does not have a length or empty method, hence could not define a hasInnerClasses method in classDescriptor
 	Iterator nullCheckItr = cn.getInnerClasses();
 	if( false == nullCheckItr.hasNext() )
 		return;
 
-	String tempCopy = cn.getClassName();
+	String tempCopy = ocn.getClassName();
 	//MESSY HACK FOLLOWS
 	int i = 0;
 
@@ -715,7 +710,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
 			//System.out.println( fieldTable.toString() );
 		}*/
 		icd.setInnerDepth( depth + 1 );
-		addOuterClassReferences( icd, depth + 1 );	
+		addOuterClassReferences( icd, ocn, depth + 1 );	
     	}
 }
 
@@ -844,10 +839,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
    }
     popChainMaps();
 
-     if (analyzeset != null)
-      analyzeset.add(icn);
-    icn.setSourceFileName(currsourcefile);
-    state.addClass(icn);
+    addClass2State(icn);
 
     return icn;
   }
@@ -1206,10 +1198,7 @@ private void addOuterClassReferences( ClassDescriptor cn, int depth )
       }
       popChainMaps();
 
-      if (analyzeset != null)
-	analyzeset.add(cnnew);
-      cnnew.setSourceFileName(currsourcefile);
-      state.addClass(cnnew);
+      addClass2State(cnnew);
 
       return con;
     } else if (isNode(pn,"createarray")) {

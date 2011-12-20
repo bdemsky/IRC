@@ -1240,6 +1240,18 @@ public class SemanticCheck {
 		//make this into an expression node.
 		NameNode nThis=new NameNode( new NameDescriptor( "this" ) );
 		con.addArgument( nThis );
+		if(cd.isInnerClass()&&!cd.isStatic()) {
+		  // add all the ith lexically enclosing instance if applicable
+		  Iterator it_fields = cd.getFields();
+		  int index = 0;
+		  while(it_fields.hasNext()) {
+		    FieldDescriptor fd = (FieldDescriptor)(it_fields.next());
+		    if(fd.getSymbol().startsWith("this$")) {
+		      con.addArgument(new NameNode(new NameDescriptor("this$"+index)));
+		      index++;
+		    }
+		  }
+		}
 	}
 	else {
 		//REVISIT : here i am storing the expression as an expressionNode which does not implement type, there is no way for me to semantic check this argument.
