@@ -899,7 +899,7 @@ public class SemanticCheck {
 	    throw new Error("Error: access non-static field " + cd.getSymbol() + "." + fd.getSymbol() + " in an inner class " + icd.getSymbol() + " that is declared in a static context");
 	  }
 	}
-	int depth = 1;
+	int depth = 0;
 	int startingDepth = icd.getInnerDepth();
 
 	if( true == cd.isInnerClass() ) 
@@ -908,12 +908,8 @@ public class SemanticCheck {
 	String composed = "this";
 	NameDescriptor runningDesc = new NameDescriptor( "this" );;
 	
-	for ( int index = startingDepth; index > depth; --index ) {
-		composed = "this$" + String.valueOf( index - 1  );	
-		runningDesc = new NameDescriptor( runningDesc, composed );
-	}
-	if( false == cd.isInnerClass() )
-		runningDesc = new NameDescriptor( runningDesc, "this$" + String.valueOf(0) ); //all the way up.
+	composed = "this$" + String.valueOf(startingDepth-depth-1);
+	runningDesc = new NameDescriptor(runningDesc, composed);
 	NameDescriptor idDesc = new NameDescriptor( runningDesc, varname );
 	
 	
