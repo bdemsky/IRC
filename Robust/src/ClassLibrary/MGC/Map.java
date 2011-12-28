@@ -85,7 +85,7 @@ public interface Map//<K, V>
    *
    * @throws UnsupportedOperationException if clear is not supported
    */
-  //void clear();
+  void clear();
 
   /**
    * Returns true if this contains a mapping for the given key.
