@@ -662,8 +662,8 @@ private void addOuterClassParam( ClassDescriptor cn, ClassDescriptor ocn, int de
 		for(Iterator method_it=icd.getMethods(); method_it.hasNext(); ) {
      			 MethodDescriptor md=(MethodDescriptor)method_it.next();
       			 if( md.isConstructor() ){
-				md.addParameter( theTypeDesc, "surrounding$" + String.valueOf(depth) );	
-				initializeOuterMember( md, "this$" + String.valueOf( depth ), "surrounding$" + String.valueOf(depth) );
+				md.addParameter( theTypeDesc, "surrounding___DOLLAR___" + String.valueOf(depth) );	
+				initializeOuterMember( md, "this___DOLLAR___" + String.valueOf( depth ), "surrounding___DOLLAR___" + String.valueOf(depth) );
 				//System.out.println( "The added param is " + md.toString() + "\n" );
 			}
    		}
@@ -691,7 +691,7 @@ private void addOuterClassReferences( ClassDescriptor cn, ClassDescriptor ocn, i
 	tempChildNode.addChild("identifier").addChild ( tempCopy );
 	theNode.addChild("type").addChild( theTypeNode );
 	ParseNode variableDeclaratorID = new ParseNode("single");
-	String theStr = "this$" + String.valueOf( depth );
+	String theStr = "this___DOLLAR___" + String.valueOf( depth );
 	variableDeclaratorID.addChild( theStr );
 	ParseNode variableDeclarator = new ParseNode( "variable_declarator" );
 	variableDeclarator.addChild( variableDeclaratorID );

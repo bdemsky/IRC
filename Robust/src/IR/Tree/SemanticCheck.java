@@ -702,8 +702,8 @@ public class SemanticCheck {
 	       if(icd.getSurroundingDesc()==ltd.getClassDesc()) {
 		   // this is a surrounding class access inside an inner class
 		   fan.setExpression(nn);
-		   fan.setFieldName("this$0");
-		   fd = (FieldDescriptor)icd.getFieldTable().get("this$0");
+		   fan.setFieldName("this___DOLLAR___0");
+		   fd = (FieldDescriptor)icd.getFieldTable().get("this___DOLLAR___0");
 	       } else if(icd==ltd.getClassDesc()) {
 		   // this is an inner class this operation 
 		   fd = new FieldDescriptor(new Modifiers(),new TypeDescriptor(icd),"this",null,false);
@@ -908,7 +908,7 @@ public class SemanticCheck {
 	String composed = "this";
 	NameDescriptor runningDesc = new NameDescriptor( "this" );;
 	
-	composed = "this$" + String.valueOf(startingDepth-depth-1);
+	composed = "this___DOLLAR___" + String.valueOf(startingDepth-depth-1);
 	runningDesc = new NameDescriptor(runningDesc, composed);
 	NameDescriptor idDesc = new NameDescriptor( runningDesc, varname );
 	
@@ -1242,8 +1242,8 @@ public class SemanticCheck {
 		  int index = 0;
 		  while(it_fields.hasNext()) {
 		    FieldDescriptor fd = (FieldDescriptor)(it_fields.next());
-		    if(fd.getSymbol().startsWith("this$")) {
-		      con.addArgument(new NameNode(new NameDescriptor("this$"+index)));
+		    if(fd.getSymbol().startsWith("this___DOLLAR___")) {
+		      con.addArgument(new NameNode(new NameDescriptor("this___DOLLAR___"+index)));
 		      index++;
 		    }
 		  }
@@ -1316,7 +1316,7 @@ public class SemanticCheck {
       if(cd.getSuperDesc().isInnerClass()&&!cd.getSuperDesc().isStatic()&&!cd.getSuperDesc().getInStaticContext()) {
 	// for a super class that is also an inner class with surrounding reference, add the surrounding 
 	// instance of the child instance as the parent instance's surrounding instance
-	min.addArgument(new NameNode(new NameDescriptor("surrounding$0")));
+	min.addArgument(new NameNode(new NameDescriptor("surrounding___DOLLAR___0")));
       }
     }
     for(int i = 0 ; i < tdarray.length; i++) {
@@ -1531,11 +1531,11 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
 	NameDescriptor runningDesc = new NameDescriptor( "this" );;
 	
 	for ( int index = startingDepth; index > depth; --index ) {
-		composed = "this$" + String.valueOf( index - 1  );	
+		composed = "this___DOLLAR___" + String.valueOf( index - 1  );	
 		runningDesc = new NameDescriptor( runningDesc, composed );
 	}
 	if( false == cd.isInnerClass() )
-		runningDesc = new NameDescriptor( runningDesc, "this$" + String.valueOf(0) ); //all the way up.
+		runningDesc = new NameDescriptor( runningDesc, "this___DOLLAR___" + String.valueOf(0) ); //all the way up.
 
 	return new NameNode(runningDesc);
 }
@@ -1606,9 +1606,9 @@ NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.ha
 	// for a super class that is also an inner class with surrounding reference, add the surrounding 
 	// instance of the child instance as the parent instance's surrounding instance
 	if(((MethodDescriptor)md).isConstructor()) {
-	  min.addArgument(new NameNode(new NameDescriptor("surrounding$0")));
+	  min.addArgument(new NameNode(new NameDescriptor("surrounding___DOLLAR___0")));
 	} else if(((MethodDescriptor)md).getClassDesc().isInnerClass()&&!((MethodDescriptor)md).getClassDesc().isStatic()&&!((MethodDescriptor)md).getClassDesc().getInStaticContext()) {
-	  min.addArgument(new NameNode(new NameDescriptor("this$0")));
+	  min.addArgument(new NameNode(new NameDescriptor("this___DOLLAR___0")));
 	}
       }
       tdarray=new TypeDescriptor[min.numArgs()];

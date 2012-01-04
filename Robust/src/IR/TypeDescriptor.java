@@ -150,6 +150,8 @@ public class TypeDescriptor extends Descriptor {
       return "float";
     else if (isOffset())
       return "short";
+    else if (isNull())
+      return "null";
     else
       throw new Error("Error Type: "+type);
   }
