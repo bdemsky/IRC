@@ -131,7 +131,7 @@ public class ClassDescriptor extends Descriptor {
   }
 
   public String getSafeDescriptor() {
-    return "L"+safename.replace(".","___________");
+    return "L"+safename.replace(".","___________").replace("$","___DOLLAR___");
   }
 
   public String getSafeSymbol() {
