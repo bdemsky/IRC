@@ -1,0 +1,1 @@
+time numactl --interleave=all ./Labyrinthd.bin -w 23 -i ./inputs/random-x512-y512-z7-n512.txt

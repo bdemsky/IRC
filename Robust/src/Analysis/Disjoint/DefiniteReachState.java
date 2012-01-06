@@ -424,8 +424,9 @@ public class DefiniteReachState {
   public void copyRs( TempDescriptor x,
                       TempDescriptor y ) {
     DefReachKnown valRs = Rs.get( y );
-    assert( valRs != null );
-    Rs.put( x, valRs );
+    if( valRs != null ) {
+      Rs.put( x, valRs );
+    }
   }
   
   public void loadRs( TempDescriptor x,

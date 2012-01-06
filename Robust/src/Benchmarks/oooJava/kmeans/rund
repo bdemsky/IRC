@@ -1,0 +1,1 @@
+time ./KMeansd.bin -m 40 -n 40 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 1
