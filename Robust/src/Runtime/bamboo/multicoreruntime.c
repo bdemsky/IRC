@@ -338,6 +338,13 @@ long long CALL00(___System______currentTimeMillis____) {
 }
 #endif
 
+#ifdef D___System______nanoTime____ 
+long long CALL00(___System______nanoTime____) {
+  //TilePro64 is 700mHz
+  return ((unsigned long long)BAMBOO_GET_EXE_TIME())/700;
+}
+#endif
+
 #ifdef D___System______setgcprofileflag____
 void CALL00(___System______setgcprofileflag____) {
 #ifdef GC_PROFILE
