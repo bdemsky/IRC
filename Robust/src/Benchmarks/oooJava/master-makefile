@@ -169,7 +169,7 @@ rcr-debug-v: $(SOURCE_FILES) ../master-makefile
 
 clean:
 	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin $(PROGRAM)r.bin $(PROGRAM)c.bin $(PROGRAM)d.bin
-	rm -fr par sing rcr chk def
+	rm -fr par sing rcr chk def tmpbuilddirectory
 	rm -f tmp.c
 	rm -f  *~
 	rm -f  *.dot
