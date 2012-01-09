@@ -295,6 +295,10 @@ public class Main {
         state.DO_DEFINITE_REACH_ANALYSIS = true;
 
 
+      } else if( option.equals("-count-visits") ) {
+        state.DISJOINT_COUNT_VISITS = true;
+
+
       } else if (option.equals("-optional"))
         state.OPTIONAL=true;
       else if (option.equals("-optimize"))

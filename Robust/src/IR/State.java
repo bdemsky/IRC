@@ -132,6 +132,8 @@ public class State {
 
   public boolean DO_DEFINITE_REACH_ANALYSIS=false;
 
+  public boolean DISJOINT_COUNT_VISITS=false;
+
 
   public boolean OOOJAVA=false;
   public boolean OOODEBUG=false;

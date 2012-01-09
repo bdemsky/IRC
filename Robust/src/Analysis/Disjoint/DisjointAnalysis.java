@@ -15,6 +15,7 @@ import java.io.*;
 
 public class DisjointAnalysis implements HeapAnalysis {
 
+
   ///////////////////////////////////////////
   //
   //  Public interface to discover possible
@@ -889,6 +890,10 @@ public class DisjointAnalysis implements HeapAnalysis {
     } else {
       treport = String.format("Disjoint reachability analysis took %.3f sec.", dt);
     }
+    if( state.DISJOINT_COUNT_VISITS ) {
+      treport += "\nFixed point algorithm visited "+totalMethodVisits+
+        " methods and "+totalNodeVisits+" nodes.";
+    }
     String justtime = String.format("%.2f", dt);
     System.out.println(treport);
 
@@ -1115,6 +1120,10 @@ public class DisjointAnalysis implements HeapAnalysis {
   protected ReachGraph analyzeMethod(Descriptor d)
   throws java.io.IOException {
 
+    if( state.DISJOINT_COUNT_VISITS ) {
+      ++totalMethodVisits;
+    }
+
     // get the flat code for this descriptor
     FlatMethod fm;
     if( d == mdAnalysisEntry ) {
@@ -1288,6 +1297,11 @@ public class DisjointAnalysis implements HeapAnalysis {
                   HashSet<FlatReturnNode> setRetNodes,
                   ReachGraph rg
                   ) throws java.io.IOException {
+
+
+    if( state.DISJOINT_COUNT_VISITS ) {
+      ++totalNodeVisits;
+    }
 
 
     // any variables that are no longer live should be
@@ -3251,4 +3265,9 @@ public class DisjointAnalysis implements HeapAnalysis {
 
     return rgAtExit.canPointTo( x, arrayElementFieldName, x.getType().dereference() );
   }
+
+  
+  // to evaluate convergence behavior
+  private static long totalMethodVisits = 0;
+  private static long totalNodeVisits   = 0;
 }
