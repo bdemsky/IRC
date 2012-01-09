@@ -128,10 +128,10 @@ $(PROGRAM)c.bin: $(SOURCE_FILES) ../master-makefile
 
 
 disjoint: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(DISJOINT) -justanalyze $(SOURCE_FILES)
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(DISJOINT) -justanalyze -count-visits $(SOURCE_FILES)
 
 disjoint-defreach: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(DISJOINT) -justanalyze -do-definite-reach-analysis $(SOURCE_FILES)
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(DISJOINT) -justanalyze -count-visits -do-definite-reach-analysis $(SOURCE_FILES)
 
 ooo-defreach: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINTDEBUG) -do-definite-reach-analysis -o $(PROGRAM)d -builddir def  $(SOURCE_FILES) 
