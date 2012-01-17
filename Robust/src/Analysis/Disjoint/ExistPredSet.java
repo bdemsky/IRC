@@ -29,6 +29,8 @@ import java.io.*;
 
 public class ExistPredSet extends Canonical {
 
+  protected static boolean DISABLE_PREDICATES = false;
+
   protected Set<ExistPred> preds;
 
   public static boolean debug = false;
@@ -63,6 +65,19 @@ public class ExistPredSet extends Canonical {
                                     Set<Integer> calleeReachableNodes,
                                     Set<RefSrcNode> callerSrcMatches
                                     ) {
+    // jjenista 1/17/2012
+    //
+    // this does not work to disable predicates, in fact the whole
+    // interprocedural context mapping system is built on predicates
+    // because edges and nodes that get renamed in the callee context
+    // have to be spliced back into the caller context, and the
+    // elements that cross the boundry are fused by matching
+    // predicates of callee elements to caller elements.
+    //
+    //if( DISABLE_PREDICATES ) {
+    //  return ReachGraph.predsTrue;
+    //}
+
     ExistPredSet predsOut = null;
 
     Iterator<ExistPred> predItr = preds.iterator();

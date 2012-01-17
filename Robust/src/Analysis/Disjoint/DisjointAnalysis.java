@@ -876,7 +876,8 @@ public class DisjointAnalysis implements HeapAnalysis {
     }
 
     if( !state.DISJOINT_USE_PREDICATES ) {
-      ReachGraph.DISABLE_PREDICATES = true;
+      ReachGraph.DISABLE_PREDICATES   = true;
+      ExistPredSet.DISABLE_PREDICATES = true;
     }
 
     if( state.DISJOINT_SUMMARIZE_PER_CLASS ) {

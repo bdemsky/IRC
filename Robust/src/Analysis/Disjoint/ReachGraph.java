@@ -2757,7 +2757,7 @@ public class ReachGraph {
 
       AllocSite as = hrnCallee.getAllocSite();
       allocSites.add(as);
-
+      
       Integer hrnIDshadow = as.getShadowIDfromID(hrnCallee.getID() );
 
       HeapRegionNode hrnCaller = id2hrn.get(hrnIDshadow);
