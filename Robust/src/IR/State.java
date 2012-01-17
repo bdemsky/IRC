@@ -123,16 +123,17 @@ public class State {
   public int DISJOINTSNAPVISITTOSTART=0;
   public int DISJOINTSNAPNUMVISITS=0;
   public boolean DISJOINTSNAPSTOPAFTER=false;
-
   public boolean DISJOINTDEBUGSCHEDULING=false;
-
   public boolean DISJOINT_WRITE_ALL_NODE_FINAL_GRAPHS=false;
+  public boolean DISJOINT_COUNT_VISITS=false;
 
   public boolean POINTSTO_CHECK_V_RUNTIME=false;
 
   public boolean DO_DEFINITE_REACH_ANALYSIS=false;
-
-  public boolean DISJOINT_COUNT_VISITS=false;
+  public boolean DISJOINT_USE_GLOBAL_SWEEP=true;
+  public boolean DISJOINT_USE_STRONG_UPDATE=true;
+  public boolean DISJOINT_USE_PREDICATES=true;
+  public boolean DISJOINT_SUMMARIZE_PER_CLASS=false;
 
 
   public boolean OOOJAVA=false;

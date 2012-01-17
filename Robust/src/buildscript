@@ -50,8 +50,14 @@ echo -disjoint-dvisit-stack-callees-on-top alternate stack strat
 echo -disjoint-dvisit-pqueue use prio. q strat to visit descriptors
 echo -disjoint-desire-determinism set above interproc for determinism
 echo -disjoint-debug-scheduling debug when methods are scheduled for analysis
-echo -do-definite-reach-analysis enable improved precision for disjoint reachability analysis
 echo -count-visits for counting visits in the fixed point algorithm to evaluate convergence behavior
+echo
+echo -do-definite-reach-analysis enable improved precision for disjoint reachability analysis
+echo -disjoint-disable-global-sweep
+echo -disjoint-disable-strong-update
+echo -disjoint-disable-predicates
+echo -disjoint-summarize-per-class
+echo
 echo
 echo -pointsto-check-v-runtime check allocation site of pointer targets at runtime to help verify heap analysis results
 echo 

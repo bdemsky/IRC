@@ -32,6 +32,7 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 	-coreprof-enable cpe_taskstallmem
 
 
+
 USEOOO= -ooojava $(NUM_OOO_WORKERS) 2      -squeue #-ooodebug-disable-task-mem-pool
 USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -squeue -ooodebug
 OOODEBUG= -ooodebug -printlinenum
@@ -77,6 +78,11 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # -disjoint-debug-snap-method Remove 10 3 true
 
 DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) \
+	-do-definite-reach-analysis \
+	-disjoint-disable-global-sweep \
+	-disjoint-disable-strong-update \
+	-disjoint-disable-predicates \
+	-disjoint-summarize-per-class \
 	-disjoint-write-dots final
 #	-disjoint-debug-scheduling
 #	-disjoint-debug-callsite Barneshut.Insert Barneshut.run 50 500 true

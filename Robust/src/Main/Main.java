@@ -295,6 +295,19 @@ public class Main {
         state.DO_DEFINITE_REACH_ANALYSIS = true;
 
 
+      } else if( option.equals("-disjoint-disable-global-sweep") ) {
+        state.DISJOINT_USE_GLOBAL_SWEEP = false;
+
+      } else if( option.equals("-disjoint-disable-strong-update") ) {
+        state.DISJOINT_USE_STRONG_UPDATE = false;
+
+      } else if( option.equals("-disjoint-disable-predicates") ) {
+        state.DISJOINT_USE_PREDICATES = false;
+
+      } else if( option.equals("-disjoint-summarize-per-class") ) {
+        state.DISJOINT_SUMMARIZE_PER_CLASS = true;
+
+
       } else if( option.equals("-count-visits") ) {
         state.DISJOINT_COUNT_VISITS = true;
 

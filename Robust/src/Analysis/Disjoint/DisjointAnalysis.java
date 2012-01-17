@@ -416,6 +416,8 @@ public class DisjointAnalysis implements HeapAnalysis {
   protected boolean doDefiniteReachAnalysis = false;
   protected DefiniteReachAnalysis definiteReachAnalysis;
 
+  protected boolean summarizePerClass = false;
+
 
   // data structure for public interface
   private Hashtable< Descriptor, HashSet<AllocSite> >
@@ -853,6 +855,22 @@ public class DisjointAnalysis implements HeapAnalysis {
     if( state.DO_DEFINITE_REACH_ANALYSIS ) {
       doDefiniteReachAnalysis = true;
       definiteReachAnalysis = new DefiniteReachAnalysis( pm );
+    }
+
+    if( !state.DISJOINT_USE_GLOBAL_SWEEP ) {
+      ReachGraph.DISABLE_GLOBAL_SWEEP = true;
+    }
+
+    if( !state.DISJOINT_USE_STRONG_UPDATE ) {
+      ReachGraph.DISABLE_STRONG_UPDATES = true;
+    }
+
+    if( !state.DISJOINT_USE_PREDICATES ) {
+      ReachGraph.DISABLE_PREDICATES = true;
+    }
+
+    if( state.DISJOINT_SUMMARIZE_PER_CLASS ) {
+      summarizePerClass = true;
     }
 
 
