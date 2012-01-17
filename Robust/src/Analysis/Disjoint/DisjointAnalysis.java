@@ -507,6 +507,11 @@ public class DisjointAnalysis implements HeapAnalysis {
   protected Hashtable<FlatNew, AllocSite>
   mapFlatNewToAllocSite;
 
+  // if using summarize-per-class then use this to keep
+  // one alloc site per Type (picks up primitives too)
+  protected Hashtable<TypeDescriptor, AllocSite> mapTypeToAllocSite;
+  protected HashSet<TypeDescriptor> typesToFlag;
+
   // maps intergraph heap region IDs to intergraph
   // allocation sites that created them, a redundant
   // structure for efficiency in some operations
@@ -730,6 +735,11 @@ public class DisjointAnalysis implements HeapAnalysis {
       new Hashtable<Descriptor, ReachGraph>();
 
     fc2enclosing = new Hashtable<FlatCall, Descriptor>();
+
+    if( summarizePerClass ) {
+      mapTypeToAllocSite = new Hashtable<TypeDescriptor, AllocSite>();
+      typesToFlag = new HashSet<TypeDescriptor>();
+    }
   }
 
 
@@ -873,13 +883,20 @@ public class DisjointAnalysis implements HeapAnalysis {
       summarizePerClass = true;
     }
 
-
     if( suppressOutput ) {
       System.out.println("* Running disjoint reachability analysis with output suppressed! *");
     }
 
 
     allocateStructures();
+    
+    
+    if( summarizePerClass && sitesToFlag != null ) {
+      for( FlatNew fnew : sitesToFlag ) {
+        typesToFlag.add( fnew.getType() );
+      }
+    }
+    
 
     initImplicitStringsModel();
 
@@ -914,13 +931,13 @@ public class DisjointAnalysis implements HeapAnalysis {
     }
     String justtime = String.format("%.2f", dt);
     System.out.println(treport);
-
-
+    
+    
     try {
       if( writeFinalDOTs && !writeAllIncrementalDOTs ) {
         writeFinalGraphs();
       }
-
+      
       if( state.DISJOINTWRITEIHMS ) {
         writeFinalIHMs();
       }
@@ -932,7 +949,7 @@ public class DisjointAnalysis implements HeapAnalysis {
       if( state.DISJOINT_WRITE_ALL_NODE_FINAL_GRAPHS ) {
         writeFinalGraphsForEveryNode();
       }
-
+      
       if( state.DISJOINTALIASFILE != null && !suppressOutput ) {
         if( state.TASK ) {
           writeAllSharing(state.DISJOINTALIASFILE, treport, justtime, state.DISJOINTALIASTAB, state.lines);
@@ -945,23 +962,23 @@ public class DisjointAnalysis implements HeapAnalysis {
                               );
         }
       }
-
+      
       if( state.RCR ) {
         buildStateMachines.writeStateMachines();
       }
-
+      
     } catch( IOException e ) {
       throw new Error("IO Exception while writing disjointness analysis output.");
     }
   }
-
-
+    
+    
   protected boolean moreDescriptorsToVisit() {
     if( state.DISJOINTDVISITSTACK ||
         state.DISJOINTDVISITSTACKEESONTOP
         ) {
       return !descriptorsToVisitStack.isEmpty();
-
+      
     } else if( state.DISJOINTDVISITPQUE ) {
       return !descriptorsToVisitQ.isEmpty();
     }
@@ -2184,7 +2201,12 @@ public class DisjointAnalysis implements HeapAnalysis {
 
   // return just the allocation site associated with one FlatNew node
   protected AllocSite getAllocSiteFromFlatNewPRIVATE(FlatNew fnew) {
+    return summarizePerClass ? 
+      getAllocSiteFromFlatNewPRIVATEperClass( fnew ) :
+      getAllocSiteFromFlatNewPRIVATEperSite( fnew );
+  }
 
+  protected AllocSite getAllocSiteFromFlatNewPRIVATEperSite(FlatNew fnew) {
     boolean flagProgrammatically = false;
     if( sitesToFlag != null && sitesToFlag.contains(fnew) ) {
       flagProgrammatically = true;
@@ -2196,20 +2218,53 @@ public class DisjointAnalysis implements HeapAnalysis {
                                        fnew.getDisjointId(),
                                        flagProgrammatically
                                        );
-
+      
       // the newest nodes are single objects
       for( int i = 0; i < allocationDepth; ++i ) {
         Integer id = generateUniqueHeapRegionNodeID();
         as.setIthOldest(i, id);
         mapHrnIdToAllocSite.put(id, as);
       }
-
-      // the oldest node is a summary node
+      
+        // the oldest node is a summary node
       as.setSummary(generateUniqueHeapRegionNodeID() );
-
+      
       mapFlatNewToAllocSite.put(fnew, as);
     }
 
+    return mapFlatNewToAllocSite.get(fnew);
+  }
+
+  protected AllocSite getAllocSiteFromFlatNewPRIVATEperClass(FlatNew fnew) {
+    TypeDescriptor type = fnew.getType();
+
+    boolean flagProgrammatically = typesToFlag.contains( type );
+
+    if( !mapTypeToAllocSite.containsKey( type ) ) {
+      AllocSite as = AllocSite.factory(allocationDepth,
+                                       fnew,
+                                       fnew.getDisjointId(),
+                                       flagProgrammatically
+                                       );
+        
+      // the newest nodes are single objects
+      for( int i = 0; i < allocationDepth; ++i ) {
+        Integer id = generateUniqueHeapRegionNodeID();
+        as.setIthOldest(i, id);
+        mapHrnIdToAllocSite.put(id, as);
+      }
+        
+      // the oldest node is a summary node
+      as.setSummary(generateUniqueHeapRegionNodeID() );
+
+      mapTypeToAllocSite.put( type, as );
+    }
+    
+    if( !mapFlatNewToAllocSite.containsKey( fnew ) ) {
+      AllocSite as = mapTypeToAllocSite.get( type );
+      mapFlatNewToAllocSite.put( fnew, as );
+    }
+    
     return mapFlatNewToAllocSite.get(fnew);
   }
 
