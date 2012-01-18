@@ -67,11 +67,17 @@ public class AtomicBoolean implements java.io.Serializable {
      * the actual value was not equal to the expected value.
      */
     public final boolean compareAndSet(boolean expect, boolean update) {
-        /*int e = expect ? 1 : 0;
+        int e = expect ? 1 : 0;
         int u = update ? 1 : 0;
-        return unsafe.compareAndSwapInt(this, valueOffset, e, u);*/
-	System.out.println("Unimplemented AtomicBoolean.compareAndSet()");
-	return false;
+        synchronized (this) {
+            if(e == value) {
+        	value = u;
+        	return true;
+            } else {
+        	return false;
+            }
+        }
+        //return unsafe.compareAndSwapInt(this, valueOffset, e, u);
     }
 
     /**
@@ -85,11 +91,17 @@ public class AtomicBoolean implements java.io.Serializable {
      * @return true if successful.
      */
     public boolean weakCompareAndSet(boolean expect, boolean update) {
-        /*int e = expect ? 1 : 0;
+        int e = expect ? 1 : 0;
         int u = update ? 1 : 0;
-        return unsafe.compareAndSwapInt(this, valueOffset, e, u);*/
-	System.out.println("Unimplemented AtomicBoolean.weakCompareAndSet()");
-	return false;
+        synchronized (this) {
+            if(e == value) {
+        	value = u;
+        	return true;
+            } else {
+        	return false;
+            }
+        }
+        //return unsafe.compareAndSwapInt(this, valueOffset, e, u);*/
     }
 
     /**
@@ -109,8 +121,10 @@ public class AtomicBoolean implements java.io.Serializable {
      */
     public final void lazySet(boolean newValue) {
         int v = newValue ? 1 : 0;
+        synchronized (this) {
+            value = v;
+        }
         //unsafe.putOrderedInt(this, valueOffset, v);
-        System.out.println("Unimplemented AtomicBoolean.lazySet()");
     }
 
     /**

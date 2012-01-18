@@ -70,8 +70,10 @@ public class AtomicReference/*<V>*/  implements /*java.io.*/Serializable {
      * @since 1.6
      */
     public final void lazySet(Object/*V*/ newValue) {
+	synchronized (this) {
+            value = newValue;
+        }
         //unsafe.putOrderedObject(this, valueOffset, newValue);
-        System.out.println("Unimplemented AtomicReference.lazySet()!");
     }
 
     /**
@@ -83,8 +85,15 @@ public class AtomicReference/*<V>*/  implements /*java.io.*/Serializable {
      * the actual value was not equal to the expected value.
      */
     public final boolean compareAndSet(Object/*V*/ expect, Object/*V*/ update) {
+	synchronized (this) {
+            if(expect == value) {
+        	value = update;
+        	return true;
+            } else {
+        	return false;
+            }
+        }
         //return unsafe.compareAndSwapObject(this, valueOffset, expect, update);
-        System.out.println("Unimplemented AtomicReference.compareAndSet()!");
     }
 
     /**
@@ -98,8 +107,15 @@ public class AtomicReference/*<V>*/  implements /*java.io.*/Serializable {
      * @return true if successful.
      */
     public final boolean weakCompareAndSet(Object/*V*/ expect, Object/*V*/ update) {
-        //return unsafe.compareAndSwapObject(this, valueOffset, expect, update);
-        System.out.println("Unimplemented AtomicReference.weakCompareAndSet()!");
+	synchronized (this) {
+            if(expect == value) {
+        	value = update;
+        	return true;
+            } else {
+        	return false;
+            }
+        }
+        //return unsafe.compareAndSwapObject(this, valueOffset, expect, update);\
     }
 
     /**

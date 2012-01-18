@@ -76,8 +76,10 @@ public class AtomicInteger /*extends Number*/ implements /*java.io.*/Serializabl
      * @since 1.6
      */
     public final void lazySet(int newValue) {
+	synchronized (this) {
+            value = newValue;
+        }
         //unsafe.putOrderedInt(this, valueOffset, newValue);
-        System.out.println("Unimplemented AtomicInteger.lazySet()!");
     }
 
     /**
@@ -104,8 +106,15 @@ public class AtomicInteger /*extends Number*/ implements /*java.io.*/Serializabl
      * the actual value was not equal to the expected value.
      */
     public final boolean compareAndSet(int expect, int update) {
-      System.out.println("Unimplemented AtomicInteger.compareAndSet()!");
-	return false; //unsafe.compareAndSwapInt(this, valueOffset, expect, update);
+	synchronized (this) {
+            if(expect == value) {
+        	value = update;
+        	return true;
+            } else {
+        	return false;
+            }
+        }
+      //unsafe.compareAndSwapInt(this, valueOffset, expect, update);
     }
 
     /**
@@ -119,8 +128,15 @@ public class AtomicInteger /*extends Number*/ implements /*java.io.*/Serializabl
      * @return true if successful.
      */
     public final boolean weakCompareAndSet(int expect, int update) {
-      System.out.println("Unimplemented AtomicInteger.weakCompareAndSet()!");
-	return false; //unsafe.compareAndSwapInt(this, valueOffset, expect, update);
+	synchronized (this) {
+            if(expect == value) {
+        	value = update;
+        	return true;
+            } else {
+        	return false;
+            }
+        }
+      //unsafe.compareAndSwapInt(this, valueOffset, expect, update);
     }
 
     /**
