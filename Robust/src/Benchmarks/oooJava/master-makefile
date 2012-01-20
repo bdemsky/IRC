@@ -77,13 +77,16 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # EX: (skip first 10 visits, capture the next 3, then halt)
 # -disjoint-debug-snap-method Remove 10 3 true
 
-DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE)
-#	-disjoint-disable-predicates \
+DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) \
+	-justanalyze \
+	-disjoint-count-graph-elements
+#	-disjoint-disable-global-sweep \
+#	-disjoint-disable-strong-update
 #	-disjoint-summarize-per-class
+#	-disjoint-disable-predicates \
+#
 #	-disjoint-write-dots final
 #	-do-definite-reach-analysis \
-#	-disjoint-disable-global-sweep \
-#	-disjoint-disable-strong-update \
 #	-disjoint-debug-scheduling
 #	-disjoint-debug-callsite Barneshut.Insert Barneshut.run 50 500 true
 #	-disjoint-debug-snap-method ArrayIndexedGraph.createNode 1 100 true \
@@ -97,7 +100,6 @@ DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE)
 #	-disjoint-debug-snap-method FileInputStream.readLine 1 1000 true
 #	-disjoint-write-all-node-graphs
 #
-#       -justanalyze \
 #	-disjoint-debug-callsite String.toString String.valueOf 1 1000 true \
 #	-disjoint-desire-determinism
 #	-disjoint-debug-callsite Demand.add Lateral.compute 1 1000 true

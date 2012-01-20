@@ -173,4 +173,9 @@ public class ReachState extends Canonical {
     }
     return toStringPreds();
   }
+
+
+  public long numNonzeroTuples() {
+    return reachTuples.size();
+  }
 }

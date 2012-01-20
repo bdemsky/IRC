@@ -930,6 +930,9 @@ public class DisjointAnalysis implements HeapAnalysis {
       treport += "\nFixed point algorithm visited "+totalMethodVisits+
         " methods and "+totalNodeVisits+" nodes.";
     }
+    if( state.DISJOINT_COUNT_GRAPH_ELEMENTS ) {
+      treport += "\n"+getPartial( mdSourceEntry ).countGraphElements()+"\n";
+    }
     String justtime = String.format("%.2f", dt);
     System.out.println(treport);
     

@@ -2310,7 +2310,9 @@ public class ReachGraph {
           }
         }
 
-        assert hrnCalleeAndOutContext.reachHasOnlyOOC();
+        if( !DISABLE_GLOBAL_SWEEP ) {
+          assert hrnCalleeAndOutContext.reachHasOnlyOOC();
+        }
 
         rg.addRefEdge(hrnCalleeAndOutContext,
                       hrnDstCallee,
@@ -5406,5 +5408,42 @@ public class ReachGraph {
     }
     
     return null;
+  }
+
+
+  public String countGraphElements() {
+    long numNodes = 0;
+    long numEdges = 0;
+    long numNodeStates = 0;
+    long numEdgeStates = 0;
+    long numNodeStateNonzero = 0;
+    long numEdgeStateNonzero = 0;
+
+    for( HeapRegionNode node : id2hrn.values() ) {
+      numNodes++;
+      numNodeStates       += node.getAlpha().numStates();
+      numNodeStateNonzero += node.getAlpha().numNonzeroTuples();
+
+      // all edges in the graph point TO a heap node, so scanning
+      // all referencers of all nodes gets every edge
+      Iterator<RefEdge> refItr = node.iteratorToReferencers();
+      while( refItr.hasNext() ) {
+        RefEdge edge = refItr.next();
+
+        numEdges++;
+        numEdgeStates       += edge.getBeta().numStates();
+        numEdgeStateNonzero += edge.getBeta().numNonzeroTuples();
+      }
+    }
+
+    return 
+      "################################################\n"+
+      "Nodes                = "+numNodes+"\n"+
+      "Edges                = "+numEdges+"\n"+
+      "Node states          = "+numNodeStates+"\n"+
+      "Edge states          = "+numEdgeStates+"\n"+
+      "Node non-zero tuples = "+numNodeStateNonzero+"\n"+
+      "Edge non-zero tuples = "+numEdgeStateNonzero+"\n"+
+      "################################################\n";
   }
 }

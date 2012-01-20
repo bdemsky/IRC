@@ -260,4 +260,16 @@ public class ReachSet extends Canonical {
 
     return s+"]";
   }
+
+  public long numStates() {
+    return reachStates.size();
+  }
+
+  public long numNonzeroTuples() {
+    long n = 0;
+    for( ReachState state: reachStates ) {
+      n += state.numNonzeroTuples();
+    }
+    return n;
+  }
 }

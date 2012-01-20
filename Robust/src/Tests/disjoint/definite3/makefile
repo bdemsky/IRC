@@ -4,7 +4,7 @@ SOURCE_FILES=test.java
 
 BUILDSCRIPT=../../../buildscript
 
-DISJOINT= -disjoint -disjoint-k 1 -enable-assertions -do-definite-reach-analysis
+DISJOINT= -disjoint -disjoint-k 1 -enable-assertions -do-definite-reach-analysis -disjoint-count-graph-elements -disjoint-write-dots final
 
 BSFLAGS= -justanalyze -mainclass $(PROGRAM) -heapsize-mb 1024 -noloop -joptimize -debug #-flatirusermethods
 

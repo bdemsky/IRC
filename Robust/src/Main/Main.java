@@ -308,8 +308,11 @@ public class Main {
         state.DISJOINT_SUMMARIZE_PER_CLASS = true;
 
 
-      } else if( option.equals("-count-visits") ) {
+      } else if( option.equals("-disjoint-count-visits") ) {
         state.DISJOINT_COUNT_VISITS = true;
+
+      } else if( option.equals("-disjoint-count-graph-elements") ) {
+        state.DISJOINT_COUNT_GRAPH_ELEMENTS = true;
 
 
       } else if (option.equals("-optional"))
