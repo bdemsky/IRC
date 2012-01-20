@@ -95,7 +95,7 @@ public class Collections
 	i.set(a[pos]);
       }*/
     //TODO 
-    System.println("Collections.sort() invoked");
+    System.println("Unimplemented Collections.sort() invoked");
   }
   
   public static  void sort(List l, Comparator c)
@@ -109,7 +109,7 @@ public class Collections
 	i.set(a[pos]);
       }*/
 //    TODO 
-      System.println("Collections.sort(l, c) invoked");
+      System.println("Unimplemented Collections.sort(l, c) invoked");
   }
 
   

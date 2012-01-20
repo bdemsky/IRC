@@ -45,7 +45,7 @@ class HashMapIterator implements Iterator {
   }
 
   public void remove() {
-    System.out.println("HashMapIterator.remove() not implemented.");
+    System.out.println("Unimplemented HashMapIterator.remove()!");
     System.exit(-1);
   }
 }

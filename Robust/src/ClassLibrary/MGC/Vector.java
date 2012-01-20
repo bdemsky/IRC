@@ -100,7 +100,7 @@ public class Vector implements Set {
   }
 
   public Enumeration elements() {
-    System.printString("Vector.elements not implemented\n");
+    System.printString("Unimplemented Vector.elements()!\n");
     System.exit(-1);
   }
 

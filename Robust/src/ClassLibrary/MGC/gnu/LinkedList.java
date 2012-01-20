@@ -64,7 +64,7 @@ public class LinkedList implements Queue {
   }
 
   public Object clone() {
-    System.out.println("LinkedList.clone() not implemented.");
+    System.out.println("Unimplemented LinkedList.clone()!");
     System.exit(-1);
   }
 

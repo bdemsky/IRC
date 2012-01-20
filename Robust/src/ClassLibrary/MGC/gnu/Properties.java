@@ -359,7 +359,7 @@ label   = Name:\\u0020</pre>
   public void load(InputStream inStream) throws IOException
   {
     //load(new InputStreamReader(inStream, "ISO-8859-1"));
-    //TODO System.println("Properties.load(InputStream) invoked");
+    System.println("Unimplemented Properties.load(InputStream) invoked");
   }
 
   /**
@@ -434,7 +434,7 @@ label   = Name:\\u0020</pre>
       }
 
     writer.flush ();*/
-    System.println("Properties.store() invoked");
+    System.println("Unimplemented Properties.store() invoked");
   }
 
   /**
