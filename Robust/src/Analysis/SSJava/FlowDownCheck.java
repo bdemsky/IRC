@@ -306,23 +306,26 @@ public class FlowDownCheck {
     }
     Vector<AnnotationDescriptor> methodAnnotations = md.getModifiers().getAnnotations();
 
-    // second, check return location annotation
-    if (!md.getReturnType().isVoid()) {
-      CompositeLocation returnLocComp = null;
+    CompositeLocation returnLocComp = null;
 
-      boolean hasReturnLocDeclaration = false;
-      if (methodAnnotations != null) {
-        for (int i = 0; i < methodAnnotations.size(); i++) {
-          AnnotationDescriptor an = methodAnnotations.elementAt(i);
-          if (an.getMarker().equals(ssjava.RETURNLOC)) {
-            // this case, developer explicitly defines method lattice
-            String returnLocDeclaration = an.getValue();
-            returnLocComp = parseLocationDeclaration(md, null, returnLocDeclaration);
-            hasReturnLocDeclaration = true;
-          }
+    boolean hasReturnLocDeclaration = false;
+    if (methodAnnotations != null) {
+      for (int i = 0; i < methodAnnotations.size(); i++) {
+        AnnotationDescriptor an = methodAnnotations.elementAt(i);
+        if (an.getMarker().equals(ssjava.RETURNLOC)) {
+          // this case, developer explicitly defines method lattice
+          String returnLocDeclaration = an.getValue();
+          returnLocComp = parseLocationDeclaration(md, null, returnLocDeclaration);
+          hasReturnLocDeclaration = true;
+        } else if (an.getMarker().equals(ssjava.THISLOC)) {
+          String thisLoc = an.getValue();
+          ssjava.getMethodLattice(md).setThisLoc(thisLoc);
         }
       }
+    }
 
+    // second, check return location annotation
+    if (!md.getReturnType().isVoid()) {
       if (!hasReturnLocDeclaration) {
         // if developer does not define method lattice
         // search return location in the method default lattice
@@ -339,19 +342,17 @@ public class FlowDownCheck {
 
       md2ReturnLoc.put(md, returnLocComp);
 
-      // check this location
+    }
+
+    if (!md.getReturnType().isVoid()) {
       MethodLattice<String> methodLattice = ssjava.getMethodLattice(md);
       String thisLocId = methodLattice.getThisLoc();
-      if (thisLocId == null) {
+      if ((!md.isStatic()) && thisLocId == null) {
         throw new Error("Method '" + md + "' does not have the definition of 'this' location at "
             + md.getClassDesc().getSourceFileName());
       }
       CompositeLocation thisLoc = new CompositeLocation(new Location(md, thisLocId));
       paramList.add(0, thisLoc);
-
-      // System.out.println("### ReturnLocGenerator=" + md);
-      // System.out.println("### md2ReturnLoc.get(md)=" + md2ReturnLoc.get(md));
-
       md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), md, paramList, md
           + " of " + cd.getSourceFileName()));
     }
@@ -682,7 +683,7 @@ public class FlowDownCheck {
         }
         if (!isOwned) {
           throw new Error(
-              "It is now allowed to create the reference alias from the reference not owned by the method at "
+              "It is not allowed to create the reference alias from the reference not owned by the method at "
                   + generateErrorMessage(md.getClassDesc(), tn));
         }
 
