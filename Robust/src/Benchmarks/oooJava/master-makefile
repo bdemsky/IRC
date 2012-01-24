@@ -80,8 +80,8 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) \
 	-justanalyze \
 	-disjoint-count-graph-elements \
-	-disjoint-disable-strong-update \
-	-disjoint-disable-global-sweep
+	-disjoint-disable-strong-update
+#	-disjoint-disable-global-sweep
 
 #	-disjoint-summarize-per-class
 #	-disjoint-disable-predicates \
@@ -187,6 +187,7 @@ clean:
 	rm -f  aliases.txt
 	rm -f  mlpReport*txt
 	rm -f  results*txt
+	rm -f  countElementsNodeListing.txt
 	rm -f *log
 	rm -f coreprof.dat
 	rm -f trace.out

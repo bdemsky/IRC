@@ -5495,9 +5495,18 @@ public class ReachGraph {
     HeapRegionNode hrn = id2hrn.get( id );
     Iterator<RefEdge> refItr = hrn.iteratorToReferencers();
     while( refItr.hasNext() ) {
-      RefSrcNode rsn = refItr.next().getSrc();
+      RefEdge    edge = refItr.next();
+      RefSrcNode rsn  = edge.getSrc();
       if( rsn instanceof VariableNode ) {
-        s += "    "+rsn+"\n";
+        VariableNode vn = (VariableNode)rsn;
+        s += "    "+vn+"\n";
+      } else {
+        HeapRegionNode hrnSrc = (HeapRegionNode)rsn;
+        s += "    ";
+        if( hrnSrc.isOutOfContext() ) {
+          s += "(OOC)";
+        } 
+        s += hrnSrc.getID()+"."+edge.getField()+"\n";
       }
     }
     

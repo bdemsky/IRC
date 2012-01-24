@@ -29,4 +29,4 @@ clean:
 	rm -f  *~
 	rm -f  *.dot
 	rm -f  *.png
-	rm -f  aliases.txt
+	rm -f  aliases.txt countElementsNodeListing.txt
