@@ -276,7 +276,11 @@ public class AllocSite extends Canonical implements Alloc {
   }
 
   public String toStringWithIDs() {
-    String s = "allocSite"+id+" ";
+    return "allocSite"+id+" "+toStringJustIDs();
+  }
+
+  public String toStringJustIDs() {
+    String s = "";
     for( int i = 0; i < ithOldest.size(); ++i ) {
       s += i+"("+ithOldest.get(i)+") ";
     }

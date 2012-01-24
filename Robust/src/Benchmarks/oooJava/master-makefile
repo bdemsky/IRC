@@ -79,9 +79,10 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 
 DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) \
 	-justanalyze \
-	-disjoint-count-graph-elements
-#	-disjoint-disable-global-sweep \
-#	-disjoint-disable-strong-update
+	-disjoint-count-graph-elements \
+	-disjoint-disable-strong-update \
+	-disjoint-disable-global-sweep
+
 #	-disjoint-summarize-per-class
 #	-disjoint-disable-predicates \
 #

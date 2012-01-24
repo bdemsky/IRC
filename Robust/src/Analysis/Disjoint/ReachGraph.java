@@ -5446,4 +5446,61 @@ public class ReachGraph {
       "Edge non-zero tuples = "+numEdgeStateNonzero+"\n"+
       "################################################\n";
   }
+
+
+  public void writeNodes( String filename ) {
+
+    try {
+
+      BufferedWriter bw = new BufferedWriter( new FileWriter( filename ) );
+      
+      for( AllocSite as : allocSites ) {
+        bw.write( "--------------------------\n" ); 
+        
+        // allocation site ID, full type, assigned heap node IDs
+        bw.write( as.toStringVerbose()+"\n"+
+                  "  "+as.toStringJustIDs()+"\n" );
+
+        // which of the nodes are actually in this graph?
+        for( int i = 0; i < allocationDepth; ++i ) {
+          Integer id = as.getIthOldest( i );
+          String s = writeNodeFormat( id );
+          if( s != null ) {
+            bw.write( s );
+          }
+        }
+        Integer id = as.getSummary();
+        String s = writeNodeFormat( id );
+        if( s != null ) {
+          bw.write( s );
+        }
+      }
+
+      bw.close();
+    
+    } catch( IOException e ) {
+      System.out.println( "Error writing nodes to file: "+filename );
+    }
+  }
+
+  private String writeNodeFormat( Integer id ) {
+    String s = null;
+    
+    if( !id2hrn.containsKey( id ) ) {
+      return s;
+    }
+    
+    s = "  "+id+" is present and refrenced by variables:\n";
+
+    HeapRegionNode hrn = id2hrn.get( id );
+    Iterator<RefEdge> refItr = hrn.iteratorToReferencers();
+    while( refItr.hasNext() ) {
+      RefSrcNode rsn = refItr.next().getSrc();
+      if( rsn instanceof VariableNode ) {
+        s += "    "+rsn+"\n";
+      }
+    }
+    
+    return s;
+  }
 }

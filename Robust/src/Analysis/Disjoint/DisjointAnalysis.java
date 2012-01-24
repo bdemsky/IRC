@@ -932,6 +932,15 @@ public class DisjointAnalysis implements HeapAnalysis {
     }
     if( state.DISJOINT_COUNT_GRAPH_ELEMENTS ) {
       treport += "\n"+getPartial( mdSourceEntry ).countGraphElements()+"\n";
+      getPartial( mdSourceEntry ).writeGraph( "countElementsGraph", 
+                                              true,
+                                              true,
+                                              true,
+                                              false,
+                                              true,
+                                              true,
+                                              true );
+      getPartial( mdSourceEntry ).writeNodes( "countElementsNodeListing.txt" );
     }
     String justtime = String.format("%.2f", dt);
     System.out.println(treport);
@@ -948,6 +957,7 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       if( state.DISJOINTWRITEINITCONTEXTS ) {
         writeInitialContexts();
+
       }
 
       if( state.DISJOINT_WRITE_ALL_NODE_FINAL_GRAPHS ) {
