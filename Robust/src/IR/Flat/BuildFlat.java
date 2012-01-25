@@ -359,6 +359,7 @@ public class BuildFlat {
     TypeDescriptor td=con.getType();
     if (!td.isArray()) {
       FlatNode fn=new FlatNew(td, out_temp, con.isGlobal(), con.getDisjointId());
+      fn.setNumLine(con.getNumLine());
       FlatNode last=fn;
       //handle wrapper fields
       ClassDescriptor cd=td.getClassDesc();
@@ -438,6 +439,7 @@ public class BuildFlat {
                                TempDescriptor.tempFactory("arg",en.getType());
         }
         FlatNew fn=new FlatNew(td, out_temp, temps[0], con.isGlobal(), con.getDisjointId());
+        fn.setNumLine(con.getNumLine());
         last.addNext(fn);
         if (temps.length>1) {
           NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0, con.isGlobal());
@@ -1669,6 +1671,7 @@ public class BuildFlat {
 
     // create the new array
     FlatNew fn=new FlatNew(td, out_temp, tmp, isGlobal, disjointId);
+    fn.setNumLine(ain.getNumLine());
     last.addNext(fn);
     last = fn;
 
