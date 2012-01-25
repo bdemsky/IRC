@@ -266,13 +266,25 @@ public class AllocSite extends Canonical implements Alloc {
   }
 
   public String toStringForDOT() {
+    String s = "";
     if( disjointId != null ) {
-      return "disjoint "+disjointId+"\\n"+toString()+
-             "\\n"+getType().toPrettyString();
-    } else {
-      return toString()+
-             "\\n"+getType().toPrettyString();
+      s += "disjoint "+disjointId+"\\n";
     }
+    s += toString()+"\\n";
+
+    // jjenista -- too lazy to make this a compiler option right now
+    // But here's the rub: getting the source file and line number of
+    // each allocation site in the graph is awesome except it blows up
+    // the size of the image dramatically: only turn it on when you
+    // need it.!
+
+    //String filename = DisjointAnalysis.fn2filename.get( flatNew );
+    //if( filename != null ) {
+    //  s += DisjointAnalysis.fn2filename.get( flatNew )+":"+
+    //    flatNew.getNumLine()+"\\n";
+    //}
+
+    return s + getType().toPrettyString();
   }
 
   public String toStringWithIDs() {

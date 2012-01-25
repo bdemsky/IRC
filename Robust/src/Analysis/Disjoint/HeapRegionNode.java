@@ -145,6 +145,9 @@ public class HeapRegionNode extends RefSrcNode {
     return isOutOfContext;
   }
 
+  public boolean isShadow() {
+    return id < 0;
+  }
 
   public Iterator<RefEdge> iteratorToReferencers() {
     return referencers.iterator();

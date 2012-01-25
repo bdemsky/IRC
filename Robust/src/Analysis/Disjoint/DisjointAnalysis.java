@@ -587,6 +587,10 @@ public class DisjointAnalysis implements HeapAnalysis {
 
   Accessible accessible;
 
+
+  // for debugging, which source file is this allocation in?
+  public static Hashtable<FlatNode, String> fn2filename;
+
   
   // we construct an entry method of flat nodes complete
   // with a new allocation site to model the command line
@@ -735,6 +739,8 @@ public class DisjointAnalysis implements HeapAnalysis {
       new Hashtable<Descriptor, ReachGraph>();
 
     fc2enclosing = new Hashtable<FlatCall, Descriptor>();
+
+    fn2filename = new Hashtable<FlatNode, String>();
 
     if( summarizePerClass ) {
       mapTypeToAllocSite = new Hashtable<TypeDescriptor, AllocSite>();
@@ -931,16 +937,11 @@ public class DisjointAnalysis implements HeapAnalysis {
         " methods and "+totalNodeVisits+" nodes.";
     }
     if( state.DISJOINT_COUNT_GRAPH_ELEMENTS ) {
-      treport += "\n"+getPartial( mdSourceEntry ).countGraphElements()+"\n";
-      getPartial( mdSourceEntry ).writeGraph( "countElementsGraph", 
-                                              true,
-                                              true,
-                                              true,
-                                              false,
-                                              true,
-                                              true,
-                                              true );
-      getPartial( mdSourceEntry ).writeNodes( "countElementsNodeListing.txt" );
+      GraphElementCount gec = new GraphElementCount();
+      for( Descriptor d : descriptorsToAnalyze ) {
+        getPartial( d ).countGraphElements( gec );
+      }
+      treport += "\n"+gec+"\n";
     }
     String justtime = String.format("%.2f", dt);
     System.out.println(treport);
@@ -1746,6 +1747,9 @@ public class DisjointAnalysis implements HeapAnalysis {
 
     case FKind.FlatNew:
       FlatNew fnn = (FlatNew) fn;
+
+      recordFilename( fn, fmContaining );
+
       lhs = fnn.getDst();
       if( shouldAnalysisTrack(lhs.getType() ) ) {
         AllocSite as = getAllocSiteFromFlatNewPRIVATE(fnn);
@@ -3352,6 +3356,21 @@ public class DisjointAnalysis implements HeapAnalysis {
 
     return rgAtExit.canPointTo( x, arrayElementFieldName, x.getType().dereference() );
   }
+
+
+  
+  private void recordFilename( FlatNode fn, FlatMethod fmContaining ) {
+    ClassDescriptor cd = fmContaining.getMethod().getClassDesc();
+    String filename = "UNKNOWNFILE";
+    if( cd != null ) {
+      String s = cd.getSourceFileName();
+      if( s != null ) {
+        filename = s;
+      }
+    }
+    fn2filename.put( fn, filename );
+  }
+
 
   
   // to evaluate convergence behavior

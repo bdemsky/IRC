@@ -77,10 +77,10 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # EX: (skip first 10 visits, capture the next 3, then halt)
 # -disjoint-debug-snap-method Remove 10 3 true
 
-DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) \
+DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) -printlinenum \
 	-justanalyze \
-	-disjoint-count-graph-elements \
-	-disjoint-disable-strong-update
+	-disjoint-count-graph-elements
+#	-disjoint-disable-strong-update
 #	-disjoint-disable-global-sweep
 
 #	-disjoint-summarize-per-class

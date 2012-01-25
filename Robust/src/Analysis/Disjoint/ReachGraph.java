@@ -5411,18 +5411,20 @@ public class ReachGraph {
   }
 
 
-  public String countGraphElements() {
-    long numNodes = 0;
-    long numEdges = 0;
-    long numNodeStates = 0;
-    long numEdgeStates = 0;
-    long numNodeStateNonzero = 0;
-    long numEdgeStateNonzero = 0;
+  public void countGraphElements( GraphElementCount c ) {
 
     for( HeapRegionNode node : id2hrn.values() ) {
-      numNodes++;
-      numNodeStates       += node.getAlpha().numStates();
-      numNodeStateNonzero += node.getAlpha().numNonzeroTuples();
+
+      if( node.isShadow() || node.isWiped() ) {
+        // do not count nodes that are not functionally part of the
+        // abstraction (they are in the graph for implementation
+        // convenience when needed next)
+        continue;
+      }
+      
+      c.nodeInc( 1 );
+      c.nodeStateInc( node.getAlpha().numStates() );
+      c.nodeStateNonzeroInc( node.getAlpha().numNonzeroTuples() );
 
       // all edges in the graph point TO a heap node, so scanning
       // all referencers of all nodes gets every edge
@@ -5430,21 +5432,11 @@ public class ReachGraph {
       while( refItr.hasNext() ) {
         RefEdge edge = refItr.next();
 
-        numEdges++;
-        numEdgeStates       += edge.getBeta().numStates();
-        numEdgeStateNonzero += edge.getBeta().numNonzeroTuples();
+        c.edgeInc( 1 );
+        c.edgeStateInc( edge.getBeta().numStates() );
+        c.edgeStateNonzeroInc( edge.getBeta().numNonzeroTuples() );
       }
     }
-
-    return 
-      "################################################\n"+
-      "Nodes                = "+numNodes+"\n"+
-      "Edges                = "+numEdges+"\n"+
-      "Node states          = "+numNodeStates+"\n"+
-      "Edge states          = "+numEdgeStates+"\n"+
-      "Node non-zero tuples = "+numNodeStateNonzero+"\n"+
-      "Edge non-zero tuples = "+numEdgeStateNonzero+"\n"+
-      "################################################\n";
   }
 
 
@@ -5460,6 +5452,9 @@ public class ReachGraph {
         // allocation site ID, full type, assigned heap node IDs
         bw.write( as.toStringVerbose()+"\n"+
                   "  "+as.toStringJustIDs()+"\n" );
+        bw.write( "  on "+
+                  DisjointAnalysis.fn2filename.get( as.getFlatNew() )+":"+
+                  as.getFlatNew().getNumLine()+"\n" );
 
         // which of the nodes are actually in this graph?
         for( int i = 0; i < allocationDepth; ++i ) {
