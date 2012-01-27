@@ -2390,8 +2390,8 @@ public class ReachGraph {
   private static boolean resolveMethodDebugDOTselectTemps     = true;
   private static boolean resolveMethodDebugDOTpruneGarbage    = true;
   private static boolean resolveMethodDebugDOThideReach       = false;
-  private static boolean resolveMethodDebugDOThideSubsetReach = true;
-  private static boolean resolveMethodDebugDOThidePreds       = false;
+  private static boolean resolveMethodDebugDOThideSubsetReach = false;
+  private static boolean resolveMethodDebugDOThidePreds       = true;
   private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
 
   static String debugGraphPrefix;
@@ -4566,6 +4566,14 @@ public class ReachGraph {
 
       BufferedWriter bw =
         new BufferedWriter(new FileWriter(graphName+".dot") );
+
+
+      if( state.DISJOINT_COUNT_GRAPH_ELEMENTS ) {
+        GraphElementCount gec = new GraphElementCount();
+        countGraphElements( gec );
+        bw.write("/* Counting Graph Elements\n"+gec+" */\n");
+      }
+
 
       bw.write("digraph "+graphName+" {\n");
 

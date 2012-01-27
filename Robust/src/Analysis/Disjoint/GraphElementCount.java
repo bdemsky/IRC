@@ -7,12 +7,12 @@ import java.util.*;
 
 public class GraphElementCount {
 
-  public long numNodes;           
-  public long numEdges;           
-  public long numNodeStates;      
-  public long numEdgeStates;      
-  public long numNodeStateNonzero;
-  public long numEdgeStateNonzero;
+  private long numNodes;           
+  private long numEdges;           
+  private long numNodeStates;      
+  private long numEdgeStates;      
+  private long numNodeStateNonzero;
+  private long numEdgeStateNonzero;
 
   public GraphElementCount() {
     numNodes = 0;           

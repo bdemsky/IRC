@@ -61,7 +61,7 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # -disjoint-debug-scheduling (use to get messages about WHY a method is rescheduled for analysis)
 
 # to use -disjoint-debug-callsite flag, arguments are:
-# 1. callee symbol, ex: MainClass.foo() has symbol "foo"
+# 1. callee symbol, ex: MainClass.foo() has symbol "MainClass.foo"
 # 2. caller symbol
 # 3. numCallSiteVisitsToSkip, the analysis sometimes revisits a call site many, MANY times, but usually use 1
 # 4. numCallSiteVisitsToCapture, if you choose a really high number you'll get every visit, could be a lot
@@ -81,15 +81,18 @@ DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) -print
 	-justanalyze \
 	-disjoint-count-graph-elements
 #	-disjoint-disable-strong-update
-#	-disjoint-disable-global-sweep
+#	-disjoint-disable-global-sweep \
+
+#	-disjoint-write-dots final \
 
 #	-disjoint-summarize-per-class
 #	-disjoint-disable-predicates \
 #
-#	-disjoint-write-dots final
 #	-do-definite-reach-analysis \
 #	-disjoint-debug-scheduling
-#	-disjoint-debug-callsite Barneshut.Insert Barneshut.run 50 500 true
+
+#	-disjoint-debug-callsite Common.common_findNearestPoint Normal.work 5 500 true \
+
 #	-disjoint-debug-snap-method ArrayIndexedGraph.createNode 1 100 true \
 #	-disjoint-write-dots final \
 #	-flatirusermethods \
