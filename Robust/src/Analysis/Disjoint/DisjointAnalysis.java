@@ -936,13 +936,6 @@ public class DisjointAnalysis implements HeapAnalysis {
       treport += "\nFixed point algorithm visited "+totalMethodVisits+
         " methods and "+totalNodeVisits+" nodes.";
     }
-    if( state.DISJOINT_COUNT_GRAPH_ELEMENTS ) {
-      GraphElementCount gec = new GraphElementCount();
-      for( Descriptor d : descriptorsToAnalyze ) {
-        getPartial( d ).countGraphElements( gec );
-      }
-      treport += "\n"+gec+"\n";
-    }
     String justtime = String.format("%.2f", dt);
     System.out.println(treport);
     
@@ -963,6 +956,17 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       if( state.DISJOINT_WRITE_ALL_NODE_FINAL_GRAPHS ) {
         writeFinalGraphsForEveryNode();
+      }
+
+      if( state.DISJOINT_COUNT_GRAPH_ELEMENTS ) {
+        GraphElementCount gec = new GraphElementCount();
+        for( Descriptor d : descriptorsToAnalyze ) {
+          getPartial( d ).countGraphElements( gec );
+        }
+        BufferedWriter bw = 
+          new BufferedWriter( new FileWriter( state.DISJOINT_COUNT_GRAPH_ELEMENTS_FILE ) );
+        bw.write( gec.toStringCSV() );
+        bw.close();
       }
       
       if( state.DISJOINTALIASFILE != null && !suppressOutput ) {

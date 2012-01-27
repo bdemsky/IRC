@@ -313,7 +313,7 @@ public class Main {
 
       } else if( option.equals("-disjoint-count-graph-elements") ) {
         state.DISJOINT_COUNT_GRAPH_ELEMENTS = true;
-
+        state.DISJOINT_COUNT_GRAPH_ELEMENTS_FILE = args[++i];
 
       } else if (option.equals("-optional"))
         state.OPTIONAL=true;

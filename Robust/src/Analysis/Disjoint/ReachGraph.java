@@ -5423,7 +5423,7 @@ public class ReachGraph {
 
     for( HeapRegionNode node : id2hrn.values() ) {
 
-      if( node.isShadow() || node.isWiped() ) {
+      if( node.isShadow() || node.isWiped() || node.isOutOfContext() ) {
         // do not count nodes that are not functionally part of the
         // abstraction (they are in the graph for implementation
         // convenience when needed next)

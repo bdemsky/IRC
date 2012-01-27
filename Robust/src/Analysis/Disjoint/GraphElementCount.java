@@ -47,13 +47,23 @@ public class GraphElementCount {
     numEdgeStateNonzero += amount;
   }
 
+  public String toStringCSV() {
+    return
+      numNodes+","+          
+      numEdges+","+          
+      numNodeStates+","+     
+      numEdgeStates+","+     
+      numNodeStateNonzero+","+
+      numEdgeStateNonzero;
+  }
+
   public String toString() {
     return 
       "################################################\n"+
-      "Nodes                = "+numNodes+"\n"+
-      "Edges                = "+numEdges+"\n"+
-      "Node states          = "+numNodeStates+"\n"+
-      "Edge states          = "+numEdgeStates+"\n"+
+      "Nodes                = "+numNodes+"\n"+          
+      "Edges                = "+numEdges+"\n"+          
+      "Node states          = "+numNodeStates+"\n"+     
+      "Edge states          = "+numEdgeStates+"\n"+     
       "Node non-zero tuples = "+numNodeStateNonzero+"\n"+
       "Edge non-zero tuples = "+numEdgeStateNonzero+"\n"+
       "################################################\n";

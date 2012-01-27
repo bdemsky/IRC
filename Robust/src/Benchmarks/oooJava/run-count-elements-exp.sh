@@ -7,39 +7,80 @@ bnum=$[$bnum+1]
 
 BDIR[$bnum]=kmeans
 bnum=$[$bnum+1]
-#
-#BDIR[$bnum]=labyrinth
-#bnum=$[$bnum+1]
-#
-#BDIR[$bnum]=moldyn
-#bnum=$[$bnum+1]
-#
-#BDIR[$bnum]=monte
-#bnum=$[$bnum+1]
-#
-#BDIR[$bnum]=power
-#bnum=$[$bnum+1]
-#
-#BDIR[$bnum]=raytracing
-#bnum=$[$bnum+1]
-#
-#BDIR[$bnum]=tracking
-#bnum=$[$bnum+1]
+
+BDIR[$bnum]=labyrinth
+bnum=$[$bnum+1]
+
+BDIR[$bnum]=moldyn
+bnum=$[$bnum+1]
+
+BDIR[$bnum]=monte
+bnum=$[$bnum+1]
+
+BDIR[$bnum]=power
+bnum=$[$bnum+1]
+
+BDIR[$bnum]=raytracer
+bnum=$[$bnum+1]
+
+BDIR[$bnum]=tracking
+bnum=$[$bnum+1]
 
 
+mnum="0"
 
-CSV=count-elements-exp.csv
+MODE[$mnum]=""
+mnum=$[$mnum+1]
 
-CUR=$PWD
-#echo 'Count Graph Elements Experiment' > $CSV
+MODE[$mnum]="-disjoint-disable-strong-update"
+mnum=$[$mnum+1]
+
+MODE[$mnum]="-disjoint-disable-global-sweep"
+mnum=$[$mnum+1]
+
+MODE[$mnum]="-disjoint-disable-strong-update -disjoint-disable-global-sweep"
+mnum=$[$mnum+1]
+
+MODE[$mnum]="-do-definite-reach-analysis"
+mnum=$[$mnum+1]
+
+MODE[$mnum]="-do-definite-reach-analysis -disjoint-disable-strong-update"
+mnum=$[$mnum+1]
+
+MODE[$mnum]="-do-definite-reach-analysis -disjoint-disable-global-sweep"
+mnum=$[$mnum+1]
+
+MODE[$mnum]="-do-definite-reach-analysis -disjoint-disable-strong-update -disjoint-disable-global-sweep"
+mnum=$[$mnum+1]
 
 
-i="0"
-while [ $i -lt $bnum ]; do
-  cd $CUR/${BDIR[$i]}
+CURDIR=`pwd`
 
-  pwd
+CSV=$CURDIR/count-elements-exp.csv
+rm -f $CSV
+touch $CSV
 
-  cd $CUR
-  i=$[$i+1]
+m="0"
+while [ $m -lt $mnum ]; do
+
+  b="0"
+  while [ $b -lt $bnum ]; do
+
+    cd $CURDIR/${BDIR[$b]}
+  
+    make ooo-debug "DISJOINTDEBUGEXTRAS=${MODE[$m]}"
+    cat cge.txt >> $CSV
+    make clean
+
+    b=$[$b+1]
+
+    if [ $b -lt $[$bnum-1] ]; then
+      cd $CURDIR;
+      cat comma.txt >> $CSV
+    fi
+  done
+
+  echo "" >> $CSV
+
+  m=$[$m+1]
 done

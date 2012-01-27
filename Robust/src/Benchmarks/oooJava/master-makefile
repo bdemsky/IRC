@@ -77,9 +77,13 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # EX: (skip first 10 visits, capture the next 3, then halt)
 # -disjoint-debug-snap-method Remove 10 3 true
 
+ifndef DISJOINTDEBUGEXTRAS
+DISJOINTDEBUGEXTRAS=
+endif
+
 DISJOINTDEBUG= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) -printlinenum \
 	-justanalyze \
-	-disjoint-count-graph-elements
+	-disjoint-count-graph-elements cge.txt
 #	-disjoint-disable-strong-update
 #	-disjoint-disable-global-sweep \
 
@@ -156,11 +160,11 @@ $(PROGRAM)p.bin: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
 
 ooo-debug: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(OOODEBUG) $(DISJOINTDEBUG) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(OOODEBUG) $(DISJOINTDEBUG) $(DISJOINTDEBUGEXTRAS) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
 
 
 disjoint-debug: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINTDEBUG) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES)
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINTDEBUG) $(DISJOINTDEBUGEXTRAS) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES)
 
 rcr: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
@@ -191,6 +195,7 @@ clean:
 	rm -f  mlpReport*txt
 	rm -f  results*txt
 	rm -f  countElementsNodeListing.txt
+	rm -f  cge.txt
 	rm -f *log
 	rm -f coreprof.dat
 	rm -f trace.out

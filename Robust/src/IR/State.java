@@ -127,6 +127,7 @@ public class State {
   public boolean DISJOINT_WRITE_ALL_NODE_FINAL_GRAPHS=false;
   public boolean DISJOINT_COUNT_VISITS=false;
   public boolean DISJOINT_COUNT_GRAPH_ELEMENTS=false;
+  public String DISJOINT_COUNT_GRAPH_ELEMENTS_FILE=null;
 
   public boolean POINTSTO_CHECK_V_RUNTIME=false;
 

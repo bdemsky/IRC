@@ -51,7 +51,7 @@ echo -disjoint-dvisit-pqueue use prio. q strat to visit descriptors
 echo -disjoint-desire-determinism set above interproc for determinism
 echo -disjoint-debug-scheduling debug when methods are scheduled for analysis
 echo -disjoint-count-visits for counting visits in the fixed point algorithm to evaluate convergence behavior
-echo -disjoint-count-graph-elements nodes, edges and states in final graph for main method context
+echo -disjoint-count-graph-elements FILE nodes, edges and states in final graph for main method context
 echo
 echo -do-definite-reach-analysis enable improved precision for disjoint reachability analysis
 echo -disjoint-disable-global-sweep

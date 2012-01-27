@@ -7,7 +7,7 @@ BSFLAGS= -joptimize -printlinenum \
 	-mainclass Test \
 	-justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final \
 	-disjoint-alias-file aliases.txt normal -enable-assertions \
-	-disjoint-count-graph-elements
+	-disjoint-count-graph-elements abc.txt
 #-flatirusermethods 
 
 all: $(PROGRAM).bin
@@ -29,4 +29,4 @@ clean:
 	rm -f  *~
 	rm -f  *.dot
 	rm -f  *.png
-	rm -f  aliases.txt countElementsNodeListing.txt
+	rm -f  aliases.txt countElementsNodeListing.txt abc.txt
