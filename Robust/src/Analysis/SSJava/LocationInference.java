@@ -3,9 +3,11 @@ package Analysis.SSJava;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 
 import IR.ClassDescriptor;
+import IR.FieldDescriptor;
 import IR.MethodDescriptor;
 import IR.State;
 import IR.SymbolTable;
@@ -69,6 +71,23 @@ public class LocationInference {
     return toanalyzeMethodList.remove(0);
   }
 
+  private void checkDeclarationInClass(ClassDescriptor cd) {
+    // Check to see that fields are okay
+    for (Iterator field_it = cd.getFields(); field_it.hasNext();) {
+      FieldDescriptor fd = (FieldDescriptor) field_it.next();
+
+      if (!(fd.isFinal() && fd.isStatic())) {
+        analyzeFieldDeclaration(cd, fd);
+      } else {
+        // for static final, assign top location by default
+      }
+    }
+  }
+
+  private void analyzeFieldDeclaration(ClassDescriptor cd, FieldDescriptor fd) {
+    // assign a unique ID to field
+  }
+
   public void inference() {
 
     setupToAnalyze();
@@ -76,9 +95,15 @@ public class LocationInference {
     while (!toAnalyzeIsEmpty()) {
       ClassDescriptor cd = toAnalyzeNext();
 
+      checkDeclarationInClass(cd);
+
       setupToAnalazeMethod(cd);
       while (!toAnalyzeMethodIsEmpty()) {
         MethodDescriptor md = toAnalyzeMethodNext();
+
+        // need to analyze method declaration for assigning unique id to
+        // parameters(including 'this' variable)
+
         if (ssjava.needTobeAnnotated(md)) {
           if (state.SSJAVADEBUG) {
             System.out.println("SSJAVA: Location Inference: " + md);
