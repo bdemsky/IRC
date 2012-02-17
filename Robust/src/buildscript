@@ -125,6 +125,7 @@ echo
 echo SSJava options
 echo -ssjava enables SSJava
 echo -ssjavadebug reports interim results
+echo -ssjavainfer location type inference
 echo -ssjava-induce-error N S where 1/N is the probability to error at any deref or divide and S is a random seed
 echo
 echo Other options
@@ -681,6 +682,10 @@ JAVAOPTS="$JAVAOPTS -ssjava"
 elif [[ $1 = '-ssjavadebug' ]]
 then
 JAVAOPTS="$JAVAOPTS -ssjavadebug"
+
+elif [[ $1 = '-ssjavainfer' ]]
+then
+JAVAOPTS="$JAVAOPTS -ssjavainfer"
 
 elif [[ $1 = '-ssjava-inject-error' ]]
 then

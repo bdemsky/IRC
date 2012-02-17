@@ -391,7 +391,8 @@ public class Main {
 
       } else if (option.equals("-ssjavadebug")) {
         state.SSJAVADEBUG = true;
-
+      } else if (option.equals("-ssjavainfer")) {
+        state.SSJAVAINFER= true;
       } else if( option.equals( "-ssjava-inject-error" ) ) {
         state.SSJAVA_GENCODE_PREVENT_CRASHES = true;
         state.SSJAVA_INJECT_ERROR   = true;

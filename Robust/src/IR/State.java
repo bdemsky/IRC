@@ -148,6 +148,7 @@ public class State {
   //SSJava
   public boolean SSJAVA=false;
   public boolean SSJAVADEBUG=false;
+  public boolean SSJAVAINFER=false;
   public boolean SSJAVA_GENCODE_PREVENT_CRASHES=false;
   public boolean SSJAVA_INJECT_ERROR=false;
   public int     SSJAVA_INV_ERROR_PROB=0;

@@ -118,11 +118,14 @@ public class SSJavaAnalysis {
     // if (state.SSJAVADEBUG) {
     // debugPrint();
     // }
-    // inference();
-    parseLocationAnnotation();
-    doFlowDownCheck();
-    doDefinitelyWrittenCheck();
-    doLoopCheck();
+    if (state.SSJAVAINFER) {
+      inference();
+    } else {
+      parseLocationAnnotation();
+      doFlowDownCheck();
+      doDefinitelyWrittenCheck();
+      doLoopCheck();
+    }
   }
 
   private void inference() {
