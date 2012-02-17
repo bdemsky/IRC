@@ -118,15 +118,15 @@ public class SSJavaAnalysis {
     // if (state.SSJAVADEBUG) {
     // debugPrint();
     // }
-    parseLocationAnnotation();
     // inference();
+    parseLocationAnnotation();
     doFlowDownCheck();
     doDefinitelyWrittenCheck();
     doLoopCheck();
   }
 
   private void inference() {
-    SSJavaInferenceEngine inferEngine = new SSJavaInferenceEngine(this, state);
+    LocationInference inferEngine = new LocationInference(this, state);
     inferEngine.inference();
   }
 
