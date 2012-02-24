@@ -45,6 +45,8 @@ public class TestRunner {
   }
 
   private void insert(TreeIndexGraph tree, TreeIndexNode nn, LeafNodeData leafNodeData) {
+    if (nn.children==null)
+      nn.children=new TreeIndexNode[2];
     if (nn.children[0] == null) {
       TreeIndexNode newNode = tree.createNode(leafNodeData);
       tree.addNode(newNode);

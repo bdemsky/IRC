@@ -10,7 +10,6 @@ public class TreeIndexNode {
 
   public TreeIndexNode(LeafNodeData data) {
     this.data = data;
-    this.children = new TreeIndexNode[2];
   }
 
   public void advance() {
@@ -31,12 +30,8 @@ public class TreeIndexNode {
 
     if (nn.data == null) { // nn is cell
 
-      if (nn.children[0] != null) {
-        recurseForce(nn.children[0]);
-      }
-
-      if (nn.children[1] != null) {
-        recurseForce(nn.children[1]);
+      for(int i=0;i<nn.children.length;i++) {
+	recurseForce(nn.children[i]);
       }
 
       // } else { // nn is body
