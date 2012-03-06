@@ -12,7 +12,7 @@ RANDOMSEED=12345
 endif
 
 SSJAVA= -ssjava -ssjavadebug
-BSFLAGS= -32bit -mainclass $(PROGRAM)  -heapsize-mb 1000  -nooptimize -debug -garbagestats #-printlinenum #-joptimize
+BSFLAGS= -32bit -mainclass $(PROGRAM)  -heapsize-mb 1350  -nooptimize -debug -garbagestats #-printlinenum #-joptimize
 NORMAL= -ssjava-inject-error 0 0
 INJECT_ERROR= -ssjava-inject-error $(INV_ERROR_PROB) $(RANDOMSEED)
 
