@@ -1,4 +1,16 @@
 #!/bin/bash
+
+usage () {
+  echo 'usage:'
+  echo '  run-batch-mode <random seed>'
+}
+
+if [[ -z $1 ]] ; then
+  usage
+  echo 'Please supply the initial random seed. (e.g. 9090)'
+  exit
+fi
+
 trycommand () {
   $1
   if [[ ! $? ]] ; then
@@ -15,7 +27,12 @@ T=errinj-range.tmp
 
 trycommand "rm $H"
 
-for (( i=0;i<100;i++))
+max=$(($1+100))
+
+echo "### run normal"
+trycommand "run-normal.sh $F"
+
+for (( i=$1;i<max;i++))
 do
   echo 'idx' $i >> $H
   trycommand "rm $X"
@@ -23,9 +40,7 @@ do
   trycommand "make normal"
   trycommand "make cleanerror"
   echo "### make error"
-  trycommand "make error INV_ERROR_PROB=10000000 RANDOMSEED=90$i"
-  echo "### run normal"
-  trycommand "run-normal.sh $F"
+  trycommand "make error INV_ERROR_PROB=10000000 RANDOMSEED=$i"
   echo "### run error"
   trycommand "run-error-batchmode.sh $F $H"
   diff normal.txt error.txt > $D
