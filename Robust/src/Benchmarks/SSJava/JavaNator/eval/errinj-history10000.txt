@@ -1,0 +1,283 @@
+idx 10000
+inj processIOCommand:
+NO DIFF
+idx 10001
+NO DIFF
+idx 10002
+inj processIOCommand:
+241
+idx 10003
+inj setSpeedRight:
+NO DIFF
+idx 10004
+inj MotorControl:
+NO DIFF
+idx 10005
+inj 1
+11
+idx 10006
+NO DIFF
+idx 10007
+inj processIOCommand:
+NO DIFF
+idx 10008
+inj setSpeedLeft:
+158
+idx 10009
+inj setSpeedTurnRight:
+57
+idx 10010
+inj processIOCommand:
+idx 10011
+inj setSpeedRight:
+110
+idx 10012
+inj setSpeedTurnLeft:
+63
+idx 10013
+inj setSpeedTurnLeft:
+47
+idx 10014
+inj MotorControl:
+83
+idx 10015
+inj setSpeedTurnLeft:
+199
+idx 10016
+inj processIOCommand:
+NO DIFF
+idx 10017
+inj MotorControl:
+227
+idx 10018
+inj setSpeedLeft:
+119
+idx 10019
+inj 0
+3
+idx 10020
+inj setSpeedLeft:
+224
+idx 10021
+inj processIOCommand:
+NO DIFF
+idx 10022
+NO DIFF
+idx 10023
+inj processIO:
+NO DIFF
+idx 10024
+inj MotorControl:
+NO DIFF
+idx 10025
+inj 4
+35
+idx 10026
+inj processIOCommand:
+NO DIFF
+idx 10027
+inj processIOCommand:
+19
+idx 10028
+inj processIOCommand:
+NO DIFF
+idx 10029
+NO DIFF
+idx 10030
+inj processIOCommand:
+NO DIFF
+idx 10031
+inj setSpeedLeft:
+7
+idx 10032
+inj 11
+104
+idx 10033
+NO DIFF
+idx 10034
+inj setSpeedLeft:
+119
+idx 10035
+inj setSpeedRight:
+182
+idx 10036
+inj MotorControl:
+83
+idx 10037
+inj setSpeedTurnRight:
+65
+idx 10038
+inj processIOCommand:
+44,49d43
+idx 10039
+inj processIOCommand:
+36
+idx 10040
+inj processIOCommand:
+19
+idx 10041
+inj setSpeedRight:
+88
+idx 10042
+NO DIFF
+idx 10043
+inj setSpeedLeft:
+86
+idx 10044
+inj MotorControl:
+NO DIFF
+idx 10045
+inj processIOCommand:
+NO DIFF
+idx 10046
+inj processIOCommand:
+NO DIFF
+idx 10047
+inj setSpeedLeft:
+108
+idx 10048
+inj setSpeedTurnLeft:
+39
+idx 10049
+inj setSpeedRight:
+NO DIFF
+idx 10050
+inj setSpeedRight:
+246
+idx 10051
+inj processIOCommand:
+NO DIFF
+idx 10052
+inj MotorControl:
+NO DIFF
+idx 10053
+inj processIOCommand:
+28
+idx 10054
+inj processIOCommand:
+52,57d51
+idx 10055
+inj setSpeedTurnRight:
+65
+idx 10056
+inj setSpeedLeft:
+15
+idx 10057
+inj setSpeedTurnRight:
+73
+idx 10058
+inj setSpeedTurnRight:
+41
+idx 10059
+NO DIFF
+idx 10060
+inj processIO:
+NO DIFF
+idx 10061
+inj processIOCommand:
+NO DIFF
+idx 10062
+inj 15
+131
+idx 10063
+inj setSpeedRight:
+25
+idx 10064
+inj processIOCommand:
+idx 10065
+inj setSpeedTurnLeft:
+92
+idx 10066
+inj setSpeedLeft:
+244
+idx 10067
+inj processIOCommand:
+NO DIFF
+idx 10068
+inj 2
+19
+idx 10069
+NO DIFF
+idx 10070
+inj processIOCommand:
+idx 10071
+inj processIOCommand:
+NO DIFF
+idx 10072
+NO DIFF
+idx 10073
+inj 11
+104
+idx 10074
+NO DIFF
+idx 10075
+inj setSpeedRight:
+33
+idx 10076
+inj setSpeedLeft:
+NO DIFF
+idx 10077
+inj processIOCommand:
+idx 10078
+inj processIOCommand:
+NO DIFF
+idx 10079
+inj setSpeedTurnLeft:
+63
+idx 10080
+inj processIO:
+NO DIFF
+idx 10081
+inj processIOCommand:
+NO DIFF
+idx 10082
+inj processIOCommand:
+60
+idx 10083
+inj processIOCommand:
+12
+idx 10084
+inj setSpeedRight:
+174
+idx 10085
+inj setSpeedLeft:
+172
+idx 10086
+inj MotorControl:
+NO DIFF
+idx 10087
+inj processIOCommand:
+67
+idx 10088
+inj processIOCommand:
+28
+idx 10089
+inj processIOCommand:
+NO DIFF
+idx 10090
+inj processIO:
+221
+idx 10091
+inj setSpeedLeft:
+NO DIFF
+idx 10092
+inj processIOCommand:
+52
+idx 10093
+inj processIO:
+NO DIFF
+idx 10094
+NO DIFF
+idx 10095
+NO DIFF
+idx 10096
+inj setSpeedLeft:
+180
+idx 10097
+inj processIOCommand:
+idx 10098
+inj 28
+256
+idx 10099
+inj processIOCommand:
+NO DIFF
