@@ -202,12 +202,12 @@ public class Player {
       // if (h == null){
       // return false;
       // }
-
+      
       // @LOC("O") SampleBuffer output = (SampleBuffer) decoder.decodeFrame(h);
       decoder.decodeFrame(h);
 
-     // DEBUG_OUTPUT_CHECKSUM();
-       DEBUG_OUTPUT();
+//      DEBUG_OUTPUT_CHECKSUM();
+//       DEBUG_OUTPUT();
       // synchronized (this)
       // {
       // out = audio;

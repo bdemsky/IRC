@@ -153,6 +153,7 @@ public class State {
   public boolean SSJAVA_INJECT_ERROR=false;
   public int     SSJAVA_INV_ERROR_PROB=0;
   public int     SSJAVA_ERROR_SEED=0;
+  public Set<MethodDescriptor> annotationRequireSet;
 
   public boolean OPTIONAL=false;
   public boolean NOLOOP=false;
@@ -373,6 +374,14 @@ public class State {
       throw new Error("Task "+td.getSymbol()+" defined twice");
     tasks.add(td);
     numtasks++;
+  }
+  
+  public void setAnnotationRequireSet(Set<MethodDescriptor> set){
+    annotationRequireSet=set;
+  }
+  
+  public Set<MethodDescriptor> getAnnotationRequireSet(){
+    return annotationRequireSet;
   }
 
 }

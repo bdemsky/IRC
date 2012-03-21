@@ -64,6 +64,7 @@ public class DeviationScanner {
   @LATTICE("THIS<C,THIS<IN,THISLOC=THIS,C*")
   @RETURNLOC("THIS,DeviationScanner.DEV")
   public int scanForDeviation(@LOC("IN") Rectangle2D faceRect) {
+
     @LOC("THIS,DeviationScanner.DEV") int deviation = NONE;
 
     for (@LOC("C") int i = 0; i < 3; i++) {

@@ -56,10 +56,10 @@ final class BitReserve {
   private int offset;
 
   @LOC("BIT")
-  private int totbit;
+  public int totbit;
 
   @LOC("BIT")
-  private int buf_byte_idx;
+  public int buf_byte_idx;
 
   @LOC("BIT")
   private final int[] buf;
@@ -93,14 +93,12 @@ final class BitReserve {
 
     @LOC("THIS,BitReserve.BIT") int pos = buf_byte_idx;
     if (pos + N < BUFSIZE) {
-      TERMINATE:
-      while (N-- > 0) {
+      TERMINATE: while (N-- > 0) {
         val <<= 1;
         val |= ((buf[pos++] != 0) ? 1 : 0);
       }
     } else {
-      TERMINATE:
-      while (N-- > 0) {
+      TERMINATE: while (N-- > 0) {
         val <<= 1;
         val |= ((buf[pos] != 0) ? 1 : 0);
         pos = (pos + 1) & BUFSIZE_MASK;

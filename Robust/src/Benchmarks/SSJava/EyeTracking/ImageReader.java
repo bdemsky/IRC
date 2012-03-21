@@ -1,8 +1,21 @@
 public class ImageReader {
+
+  static int idx = 0;
+
   public ImageReader() {
   }
 
   @TRUST
+  public static Image getImage() {
+    System.out.println(idx);
+    Image image = ImageReader.readImage("data/b" + idx + ".bmp");
+    idx++;
+    if (idx > 73) {
+      return null;
+    }
+    return image;
+  }
+
   public static Image readImage(String file) {
 
     FileInputStream fs = new FileInputStream(file);

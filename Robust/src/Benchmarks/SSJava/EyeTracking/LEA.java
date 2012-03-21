@@ -94,10 +94,8 @@ public class LEA {
 
     @LOC("C") int i = 0;
 
-    SSJAVA: while (Counter.idx() < 37) {
-      @LOC("IMG") Image image = ImageReader.readImage("data/b" + Counter.idx() + ".bmp");
-      Counter.inc();
-      // i++;
+    SSJAVA: while (true) {
+      @LOC("IMG") Image image =  ImageReader.getImage();
       if (image == null) {
         break;
       }
@@ -107,6 +105,7 @@ public class LEA {
     System.out.println("Done.");
 
   }
+  
 
   private void processImage(@LOC("IN") Image image) {
     @LOC("THIS,LEA.POS") FaceAndEyePosition positions = implementation.getEyePosition(image);

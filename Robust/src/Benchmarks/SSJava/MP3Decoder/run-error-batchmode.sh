@@ -9,7 +9,8 @@ MP3Playere.bin $1 > error.txt
 
 grep "SSJAVA: Injecting error" error.txt
 
-awk '{if($1=="SSJAVA:" && $2=="Injecting"){print "inj",x};{x=$1} }' error.txt >> $2 
+#awk '{if($1=="SSJAVA:" && $2=="Injecting"){print "inj",x};{x=$1} }' error.txt >> $2 
+awk '{if($1=="SSJAVA:" && $2=="Injecting"){getline; print "inj",$0} }' error.txt >> $2 
 
 X=converterTempFile
 

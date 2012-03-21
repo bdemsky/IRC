@@ -287,12 +287,7 @@ public class RobotMain {
      */
     // issueCommand("OFF");
 
-    @LOC("C") int count = 0;
     SSJAVA: while (active) {
-
-      if (count > 100000) {
-        break;
-      }
 
       // if (DEBUG) {
       // System.out.println("Main: Waiting for remote commands");
@@ -308,7 +303,6 @@ public class RobotMain {
       }
       System.out.println("currentCommand=" + currentCommand);
       processIOCommand();
-      count++;
     }
     System.exit(0);
   }

@@ -742,6 +742,8 @@ public final class Bitstream implements BitstreamErrors {
     for (; bytes_to_discard > 0; bytes_to_discard--)
       br.hgetbits(8);
 
+    // resynch index by trusted code
+    br.buf_byte_idx = br.totbit % br.BUFSIZE;
     return br;
   }
 }

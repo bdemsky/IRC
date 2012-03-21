@@ -28,7 +28,7 @@
 @METHODDEFAULT("OUT<THIS,THIS<V,V<IN,V*,THISLOC=THIS,RETURNLOC=OUT")
 public class MotorControl {
   @LOC("T")
-  boolean DEBUG = false;
+  boolean DEBUG = true;
   @LOC("UP")
   int motorLeftUpTime = 150;
   @LOC("UP")
@@ -83,13 +83,17 @@ public class MotorControl {
       motorUpTime--;
     }
 
-    if (DEBUG) {
-      System.out.println("setSpeedSpinLeft: output-> = " + Integer.toString(motorUpTime));
-    }
+    // if (DEBUG) {
+    // System.out.println("setSpeedSpinLeft: output-> = " +
+    // Integer.toString(motorUpTime));
+    // }
     // synchronized (this) {
     /* Factor in the speed and agility factors */
     motorLeftUpTime = motorUpTime;
     // }
+    if (DEBUG) {
+      System.out.println("MotorControl: setSpeedSpinLeft: output-> " + motorLeftUpTime);
+    }
   }
 
   /**
@@ -118,13 +122,17 @@ public class MotorControl {
       motorUpTime--;
     }
 
-    if (DEBUG) {
-      System.out.println("setSpeedSpinRight: output-> = " + Integer.toString(motorUpTime));
-    }
+    // if (DEBUG) {
+    // System.out.println("setSpeedSpinRight: output-> = " +
+    // Integer.toString(motorUpTime));
+    // }
     // synchronized (this) {
     /* Factor in the speed and agility factors */
     motorRightUpTime = motorUpTime;
     // }
+    if (DEBUG) {
+      System.out.println("MotorControl: setSpeedSpinRight: output-> " + motorRightUpTime);
+    }
   }
 
   /**
@@ -151,13 +159,17 @@ public class MotorControl {
     } else if (motorUpTime == 1000000) {
       motorUpTime--;
     }
-    if (DEBUG) {
-      System.out.println("setSpeedTurnLeft: output-> = " + Integer.toString(motorUpTime));
-    }
+    // if (DEBUG) {
+    // System.out.println("setSpeedTurnLeft: output-> = " +
+    // Integer.toString(motorUpTime));
+    // }
     // synchronized (this) {
     /* Factor in the speed and agility factors */
     motorLeftUpTime = motorUpTime;
     // }
+    if (DEBUG) {
+      System.out.println("MotorControl: setSpeedTurnLeft: output-> " + motorLeftUpTime);
+    }
   }
 
   /**
@@ -183,13 +195,13 @@ public class MotorControl {
       motorUpTime--;
     }
 
-    if (DEBUG) {
-      System.out.println("setSpeedTurnRight: output-> " + Integer.toString(motorUpTime));
-    }
     // synchronized (this) {
     /* Factor in the speed and agility factors */
     motorRightUpTime = motorUpTime;
     // }
+    if (DEBUG) {
+      System.out.println("MotorControl: setSpeedTurnRight: output-> " + motorRightUpTime);
+    }
   }
 
   /**
@@ -221,13 +233,15 @@ public class MotorControl {
     } else if (motorUpTime == 1000000) {
       motorUpTime--;
     }
-    if (DEBUG) {
-      System.out.println("setSpeedLeft: output-> " + Integer.toString(motorUpTime));
-    }
+
     // synchronized (this) {
     /* Factor in speedFactor */
     motorLeftUpTime = motorUpTime;
     // }
+    if (DEBUG) {
+      System.out
+          .println("MotorContol: setSpeedLeft: output-> " + Integer.toString(motorLeftUpTime));
+    }
   }
 
   /**
@@ -251,13 +265,13 @@ public class MotorControl {
     } else if (motorUpTime == 1000000) {
       motorUpTime--;
     }
-    if (DEBUG) {
-      System.out.println("setSpeedRight: output-> " + Integer.toString(motorUpTime));
-    }
     // synchronized (this) {
     /* Factor in speedFactor */
     motorRightUpTime = motorUpTime;
     // }
+    if (DEBUG) {
+      System.out.println("MotorControl: setSpeedRight: output-> " + motorRightUpTime);
+    }
   }
 
   public void setUrgentReverse() {
@@ -265,12 +279,20 @@ public class MotorControl {
     motorLeftUpTime = 1;
     motorRightUpTime = 1;
     // }
+    if (DEBUG) {
+      System.out.println("MotorControl: setUrgentReverse: motorLeftUpTime-> " + motorLeftUpTime);
+      System.out.println("MotorControl: setUrgentReverse: motorRightUpTime-> " + motorRightUpTime);
+    }
   }
 
   public void setUrgentStraight() {
     // synchronized (this) {
     motorLeftUpTime = 99;
     motorRightUpTime = 99;
+    if (DEBUG) {
+      System.out.println("MotorControl: setUrgentStraight: motorLeftUpTime-> " + motorLeftUpTime);
+      System.out.println("MotorControl: setUrgentStraight: motorRightUpTime-> " + motorRightUpTime);
+    }
     // }
   }
 
@@ -278,6 +300,10 @@ public class MotorControl {
     // synchronized (this) {
     motorLeftUpTime = motorLeftUpTime;
     motorRightUpTime = motorRightUpTime;
+    if (DEBUG) {
+      System.out.println("MotorControl: justSync: motorLeftUpTime-> " + motorLeftUpTime);
+      System.out.println("MotorControl: justSync: motorRightUpTime-> " + motorRightUpTime);
+    }
     // }
   }
 

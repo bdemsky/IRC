@@ -115,11 +115,11 @@ public class SSJavaAnalysis {
     doMethodAnnotationCheck();
     computeLinearTypeCheckMethodSet();
     doLinearTypeCheck();
-    // if (state.SSJAVADEBUG) {
-    // debugPrint();
-    // }
+    if (state.SSJAVADEBUG) {
+      // debugPrint();
+    }
     if (state.SSJAVAINFER) {
-      inference();
+      // inference();
     } else {
       parseLocationAnnotation();
       doFlowDownCheck();
@@ -227,6 +227,7 @@ public class SSJavaAnalysis {
     methodAnnotationChecker = new MethodAnnotationCheck(this, state, tu);
     methodAnnotationChecker.methodAnnoatationCheck();
     methodAnnotationChecker.methodAnnoataionInheritanceCheck();
+    state.setAnnotationRequireSet(annotationRequireSet);
   }
 
   public void doFlowDownCheck() {

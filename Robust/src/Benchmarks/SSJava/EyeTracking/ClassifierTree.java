@@ -95,14 +95,18 @@ public class ClassifierTree {
     @LOC("THIS,ClassifierTree.C") int startPosX = (int) lastCoordinates.getX();
     @LOC("THIS,ClassifierTree.C") int startPosY = (int) lastCoordinates.getX();
 
+    @LOC("THIS,ClassifierTree.C") int loopidx = 0;
     TERMINATE: for (@LOC("THIS,ClassifierTree.C") float factorDiff = 0.0f; Math.abs(factorDiff) <= maxScaleDifference; factorDiff =
         (factorDiff + sgn(factorDiff) * 0.1f) * -1 // we alternate between
                                                    // negative and positiv
                                                    // factors
     ) {
 
+      if (++loopidx > 1000) {
+        return null;
+      }
+
       @LOC("THIS,ClassifierTree.C") float factor = startFactor + factorDiff;
-      // System.out.println("factor=" + factor);
       if (factor > maxScaleFactor || factor < minScaleFactor)
         continue;
 
@@ -114,16 +118,28 @@ public class ClassifierTree {
       @LOC("THIS,ClassifierTree.C") int maxDiffX = Math.max(Math.abs(startPosX - maxX), startPosX);
       @LOC("THIS,ClassifierTree.C") int maxDiffY = Math.max(Math.abs(startPosY - maxY), startPosY);
 
+      @LOC("CXY") int xidx = 0;
       TERMINATE: for (@LOC("CXY") float xDiff = 0.1f; Math.abs(xDiff) <= maxDiffX; xDiff =
           (xDiff + sgn(xDiff) * 0.5f) * -1) {
+
+        if (++xidx > 1000) {
+          return null;
+        }
+
         @LOC("CXY") int xPos = Math.round((float) (startPosX + xDiff));
 
         if (xPos < 0 || xPos > maxX)
           continue;
 
+        @LOC("CXY") int yidx = 0;
         // yLines:
         TERMINATE: for (@LOC("CXY") float yDiff = 0.1f; Math.abs(yDiff) <= maxDiffY; yDiff =
             (yDiff + sgn(yDiff) * 0.5f) * -1) {
+
+          if (++yidx > 1000) {
+            return null;
+          }
+
           @LOC("CXY") int yPos = Math.round(startPosY + yDiff);
           if (yPos < 0 || yPos > maxY)
             continue;

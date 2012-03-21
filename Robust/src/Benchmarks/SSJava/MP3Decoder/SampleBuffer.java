@@ -41,6 +41,8 @@ public class SampleBuffer extends Obuffer {
   @LOC("IDX")
   private int idx;
 
+  static public long sampleNumber = 0;
+
   /**
    * Constructor
    */
@@ -119,6 +121,9 @@ public class SampleBuffer extends Obuffer {
 
       s = (short) fs; // it's okay since BUFP of [D,BUFP] is a shared location
       buffer[pos] = s;
+
+      // DEBUG_OUTPUT(pos, s);
+
       // for LHS, LOC(buffer[pos])= GLB( [D,BUF] , [D,BUFP] ) = [D,BUF]
       // for RHS, LOC(s) = [D,BUFP]
       // so it's okay: [D,BUFP] -> [D,BUF]
@@ -158,5 +163,15 @@ public class SampleBuffer extends Obuffer {
    *
    */
   public void set_stop_flag() {
+  }
+
+  @TRUST
+  private void DEBUG_OUTPUT(int pos, short s) {
+    // there is left and right channel interleaved into the
+    // output buffer, so only sample one channel (stride=2)
+    if (pos % 2 == 0) {
+      System.out.println(sampleNumber + " " + s);
+      sampleNumber++;
+    }
   }
 }

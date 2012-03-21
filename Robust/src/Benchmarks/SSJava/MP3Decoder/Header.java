@@ -842,7 +842,7 @@ public final class Header {
   public BitReserve getBitReserve() {
     return br;
   }
-  
+
   @RETURNLOC("THIS,Header.T")
   public int getIdx() {
     return idx;
@@ -851,5 +851,5 @@ public final class Header {
   public int setIdx(int idx) {
     return this.idx = idx;
   }
-  
+
 }

@@ -19,4 +19,4 @@ else
   echo 'NO DIFF!'
 fi
 
-gnuplot -persist nve.cmds
+#gnuplot -persist nve.cmds

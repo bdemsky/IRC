@@ -31,7 +31,7 @@ $(PROGRAM)n.bin: $(SOURCE_FILES) makefile
 	$(BUILDSCRIPT) $(NORMAL) $(BSFLAGS) -o $(PROGRAM)n -builddir norm $(SOURCE_FILES) 
 
 $(PROGRAM)e.bin: $(SOURCE_FILES) makefile
-	$(BUILDSCRIPT) $(INJECT_ERROR) $(BSFLAGS) -o $(PROGRAM)e -builddir injerr $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(SSJAVA) $(INJECT_ERROR) $(BSFLAGS) -o $(PROGRAM)e -builddir injerr $(SOURCE_FILES) 
 
 cleanerror:
 	rm -f $(PROGRAM)e.bin
@@ -44,7 +44,6 @@ clean:
 	rm -f  *~
 	rm -f  *.dot
 	rm -f  *.png
-	rm -f  *.txt
 	rm -f  aliases.txt
 	rm -f  results*txt
 	rm -f *log

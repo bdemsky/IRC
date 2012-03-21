@@ -144,6 +144,7 @@ public class StrategyMgr {
         if (DEBUGL)
           System.out.println("Line Sensors - Left");
         backBearRight();
+
         try {
           // Thread.sleep(1000);
         } catch (InterruptedException ie) {

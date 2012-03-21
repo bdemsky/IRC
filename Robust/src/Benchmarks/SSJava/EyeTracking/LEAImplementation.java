@@ -40,9 +40,11 @@ public class LEAImplementation {
   public FaceAndEyePosition getEyePosition(@LOC("IN") Image image) {
     if (image == null)
       return null;
-
     @LOC("THIS,LEAImplementation.R") Rectangle2D faceRect =
         classifierTree.locateFaceRadial(image, lastRectangle);
+    if (faceRect.getWidth() > image.getWidth() || faceRect.getHeight() > image.getHeight()) {
+      return null;
+    }
     @LOC("V") EyePosition eyePosition = null;
     if (faceRect != null) {
       lastRectangle = faceRect;
@@ -56,7 +58,7 @@ public class LEAImplementation {
     }
     System.out.println("eyePosition=" + eyePosition);
 
-    return new FaceAndEyePosition(faceRect, eyePosition);
+    return new FaceAndEyePosition(lastRectangle, eyePosition);
   }
 
   @LATTICE("OUT<IN,OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
