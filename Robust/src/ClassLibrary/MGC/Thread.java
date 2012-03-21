@@ -5,12 +5,14 @@ public class Thread implements Runnable {
   private boolean daemon;
   private long threadId;
   String name;
+  final ThreadLocalMap locals;
   
   public Thread(){
     finished = false;
     target = null;
     daemon = false;
     threadId = Thread.id++;
+    locals = new ThreadLocalMap();
   }
   
   public long getId()
@@ -21,6 +23,9 @@ public class Thread implements Runnable {
   public Thread(Runnable r) {
     finished = false;
     target = r;
+    daemon = false;
+    threadId = Thread.id++;
+    locals = new ThreadLocalMap();
   }
   
   public Thread(Runnable r, String n)
@@ -28,6 +33,9 @@ public class Thread implements Runnable {
     finished = false;
     target = r;
     name = n;
+    daemon = false;
+    threadId = Thread.id++;
+    locals = new ThreadLocalMap();
   }
 
   public void start() {
@@ -62,7 +70,9 @@ public class Thread implements Runnable {
     return !this.finished;
   }
   
-  public native ThreadLocalMap getThreadLocals();
+  public static ThreadLocalMap getThreadLocals() {
+      return currentThread().locals;
+  }
   
   public final synchronized void setDaemon(boolean daemon) {
     /*if (vmThread != null)
@@ -71,15 +81,11 @@ public class Thread implements Runnable {
     this.daemon = daemon;
   }
   
-  public static Thread currentThread()
-  {
-    System.out.println("Unimplemented Thread.currentThread()!");
-    return null;
-  }
+  public native static Thread currentThread();
   
-  public static Map getAllStackTraces() {
+  /*public static Map getAllStackTraces() {
     System.out.println("Unimplemented Thread.getAllStackTraces()");
     return new HashMap();
-  }
+  }*/
 
 }
