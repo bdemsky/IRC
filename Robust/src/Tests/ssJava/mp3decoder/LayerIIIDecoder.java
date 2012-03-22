@@ -485,6 +485,8 @@ final class LayerIIIDecoder implements FrameDecoder {
     SSJAVA.arrayinit(scalefac_buffer, 0);
     SSJAVA.arrayinit(nonzero, 576);
     SSJAVA.arrayinit(new_slen, 0);
+    SSJAVA.arrayinit(rawout,0);
+    
     CheckSumHuff = 0;
     // prevblck = new float[2][SBLIMIT * SSLIMIT];
     si = new III_side_info_t();

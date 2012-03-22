@@ -3,7 +3,7 @@ BUILDSCRIPT=../../../buildscript
 PROGRAM=MP3Player
 SOURCE_FILES=MP3Player.java
 
-BSFLAGS= -32bit -ssjava -ssjavadebug -mainclass $(PROGRAM)  -heapsize-mb 1000  -nooptimize -debug -garbagestats #-printlinenum #-joptimize
+BSFLAGS= -32bit -ssjava -mainclass $(PROGRAM)  -heapsize-mb 1000  -nooptimize -debug -garbagestats -ssjavadebug #-printlinenum #-joptimize
 
 default: $(PROGRAM)s.bin
 
