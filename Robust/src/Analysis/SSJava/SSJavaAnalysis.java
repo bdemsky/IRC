@@ -119,7 +119,7 @@ public class SSJavaAnalysis {
       // debugPrint();
     }
     if (state.SSJAVAINFER) {
-      // inference();
+       inference();
     } else {
       parseLocationAnnotation();
       doFlowDownCheck();
