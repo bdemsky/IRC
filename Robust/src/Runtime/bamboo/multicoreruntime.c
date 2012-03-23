@@ -338,6 +338,26 @@ long long CALL00(___System______currentTimeMillis____) {
 }
 #endif
 
+#ifdef D___System______numGCs____
+long long ___System______numGCs____(struct ___System______numGCs_____params * ___params___) {
+#ifdef MULTICORE_GC
+  return numGCs;
+#else
+  return 0;
+#endif
+}
+#endif
+
+#ifdef D___System______milliGcTime____
+long long ___System______milliGcTime____(struct ___System______milliGcTime_____params * ___params___) {
+#ifdef MULTICORE_GC
+  return GCtime/700000;
+#else
+  return 0;
+#endif
+}
+#endif
+
 #ifdef D___System______nanoTime____ 
 long long CALL00(___System______nanoTime____) {
   //TilePro64 is 700mHz

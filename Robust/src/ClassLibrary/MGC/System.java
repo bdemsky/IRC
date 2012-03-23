@@ -27,6 +27,10 @@ public class System {
   
   public static native void gc();
 
+  public static native long numGCs();
+
+  public static native long milliGcTime();
+
   public static void println(String s) {
     System.printString(s+"\n");
   }

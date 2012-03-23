@@ -107,6 +107,8 @@ void gc_resetCoreStatus() {
 
 
 void initmulticoregcdata() {
+  numGCs = 0;
+  GCtime = 0;
   bamboo_smem_zero_top = NULL;
   gcflag = false;
   gc_status_info.gcprocessing = false;
@@ -541,6 +543,7 @@ bool gc(struct garbagelist * stackptr) {
   if(0 == BAMBOO_NUM_OF_CORE) {
     GC_PRINTF("start gc! \n");
     GCPROFILE_START_MASTER();
+    unsigned long long thisgctime = BAMBOO_GET_EXE_TIME();
 
     GC_PRINTF("Check if we can do gc or not\n");
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
@@ -552,6 +555,8 @@ bool gc(struct garbagelist * stackptr) {
 
     //pregccheck();
     gc_master(stackptr);
+    GCtime = BAMBOO_GET_EXE_TIME() - thisgctime;
+    numGCs++;
   } else if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
     GC_PRINTF("Core reporting for gc.\n");
     pregcprocessing();

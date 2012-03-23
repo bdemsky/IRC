@@ -84,8 +84,8 @@ public class Collections
    *     some element that is <code>null</code>.
    * @see Arrays#sort(Object[])
    */
-  public static void sort(Vector l)
-  {
+  //public static void sort(Vector l)
+  //{
     /*T[] a = (T[]) l.toArray();
     Arrays.sort(a, c);
     ListIterator<T> i = l.listIterator();
@@ -95,11 +95,11 @@ public class Collections
 	i.set(a[pos]);
       }*/
     //TODO 
-    System.println("Unimplemented Collections.sort() invoked");
-  }
+    //System.println("Unimplemented Collections.sort() invoked");
+  //}
   
-  public static  void sort(List l, Comparator c)
-  {
+  //public static  void sort(List l, Comparator c)
+  //{
     /*Object[] a =  l.toArray();
     Arrays.sort(a, c);
     ListIterator i = l.listIterator();
@@ -109,8 +109,8 @@ public class Collections
 	i.set(a[pos]);
       }*/
 //    TODO 
-      System.println("Unimplemented Collections.sort(l, c) invoked");
-  }
+    //  System.println("Unimplemented Collections.sort(l, c) invoked");
+ // }
 
   
   static final /*<T>*/ int compare(Object/*T*/ o1, Object/*T*/ o2, Comparator/*<? super T>*/ c)
