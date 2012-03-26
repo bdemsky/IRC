@@ -1,0 +1,4 @@
+This benchmark is actually a nonsense computation that mimics a real
+proprietary algorithm.  The authors of the algorithm expressed
+interest in whether OoOJava is appropriate for expressing this kind of
+parallel task.
