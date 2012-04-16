@@ -13,6 +13,14 @@ public class NTuple<T> {
     this.elements.addAll(l);
   }
 
+  public NTuple(NTuple<T> tuple) {
+    this(tuple.toList());
+  }
+
+  public List<T> toList() {
+    return elements;
+  }
+
   public NTuple() {
     this.elements = new ArrayList<T>();
   }

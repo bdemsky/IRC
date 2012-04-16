@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +18,7 @@ import IR.NameDescriptor;
 import IR.Operation;
 import IR.State;
 import IR.SymbolTable;
+import IR.TypeDescriptor;
 import IR.VarDescriptor;
 import IR.Tree.ArrayAccessNode;
 import IR.Tree.AssignmentNode;
@@ -147,7 +149,7 @@ public class LocationInference {
       break;
 
     case Kind.DeclarationNode:
-      analyzeFlowDeclarationNode(md, nametable, (DeclarationNode) bsn, new NTuple<Descriptor>());
+      analyzeFlowDeclarationNode(md, nametable, (DeclarationNode) bsn);
       break;
 
     case Kind.IfStatementNode:
@@ -204,37 +206,42 @@ public class LocationInference {
 
   }
 
-  private NTuple<Descriptor> analyzeFlowDeclarationNode(MethodDescriptor md, SymbolTable nametable,
-      DeclarationNode dn, NTuple<Descriptor> base) {
+  private void analyzeFlowDeclarationNode(MethodDescriptor md, SymbolTable nametable,
+      DeclarationNode dn) {
 
     VarDescriptor vd = dn.getVarDescriptor();
-    base.add(vd);
-    getFlowGraph(md).createNewFlowNode(base);
+    NTuple<Descriptor> tupleLHS = new NTuple<Descriptor>();
+    tupleLHS.add(vd);
+    getFlowGraph(md).createNewFlowNode(tupleLHS);
 
     if (dn.getExpression() != null) {
 
-      NTuple<Descriptor> rhsDescTuple =
-          analyzeFlowExpressionNode(md, nametable, dn.getExpression(), new NTuple<Descriptor>());
+      NodeTupleSet tupleSetRHS = new NodeTupleSet();
+      analyzeFlowExpressionNode(md, nametable, dn.getExpression(), tupleSetRHS,
+          new NTuple<Descriptor>());
 
       // add a new flow edge from rhs to lhs
-      if (rhsDescTuple != null) { // rhs is null when values come from the top
-                                  // location
-        getFlowGraph(md).addValueFlowEdge(rhsDescTuple, base);
+      for (Iterator<NTuple<Descriptor>> iter = tupleSetRHS.iterator(); iter.hasNext();) {
+        NTuple<Descriptor> from = iter.next();
+        addFlowGraphEdge(md, from, tupleLHS);
       }
 
     }
-
-    return null;
 
   }
 
   private void analyzeBlockExpressionNode(MethodDescriptor md, SymbolTable nametable,
       BlockExpressionNode ben) {
-    analyzeFlowExpressionNode(md, nametable, ben.getExpression(), null);
+    analyzeFlowExpressionNode(md, nametable, ben.getExpression(), null, null);
   }
 
   private NTuple<Descriptor> analyzeFlowExpressionNode(MethodDescriptor md, SymbolTable nametable,
-      ExpressionNode en, NTuple<Descriptor> base) {
+      ExpressionNode en, NodeTupleSet nodeSet, NTuple<Descriptor> base) {
+
+    // note that expression node can create more than one flow node
+    // nodeSet contains of flow nodes
+
+    NTuple<Descriptor> flowTuple;
 
     switch (en.kind()) {
 
@@ -243,11 +250,15 @@ public class LocationInference {
       break;
 
     case Kind.FieldAccessNode:
-      analyzeFieldAccessNode(md, nametable, (FieldAccessNode) en);
-      break;
+      flowTuple = analyzeFlowFieldAccessNode(md, nametable, (FieldAccessNode) en, nodeSet, base);
+      nodeSet.addTuple(flowTuple);
+      return flowTuple;
 
     case Kind.NameNode:
-      return analyzeFlowNameNode(md, nametable, (NameNode) en, base);
+      NodeTupleSet nameNodeSet = new NodeTupleSet();
+      flowTuple = analyzeFlowNameNode(md, nametable, (NameNode) en, nameNodeSet, base);
+      nodeSet.addTuple(flowTuple);
+      return flowTuple;
 
     case Kind.OpNode:
       // return analyzeOpNode(md, nametable, (OpNode) en, new
@@ -338,13 +349,15 @@ public class LocationInference {
     ClassDescriptor cd = md.getClassDesc();
 
     // left operand
-    NTuple<Descriptor> leftOpTuple =
-        analyzeFlowExpressionNode(md, nametable, on.getLeft(), new NTuple<Descriptor>());
+    // NTuple<Descriptor> leftOpTuple =
+    // analyzeFlowExpressionNode(md, nametable, on.getLeft(), new
+    // NTuple<Descriptor>());
 
     if (on.getRight() != null) {
       // right operand
-      NTuple<Descriptor> rightOpTuple =
-          analyzeFlowExpressionNode(md, nametable, on.getRight(), new NTuple<Descriptor>());
+      // NTuple<Descriptor> rightOpTuple =
+      // analyzeFlowExpressionNode(md, nametable, on.getRight(), new
+      // NTuple<Descriptor>());
     }
 
     Operation op = on.getOp();
@@ -392,11 +405,15 @@ public class LocationInference {
   }
 
   private NTuple<Descriptor> analyzeFlowNameNode(MethodDescriptor md, SymbolTable nametable,
-      NameNode nn, NTuple<Descriptor> base) {
+      NameNode nn, NodeTupleSet nodeSet, NTuple<Descriptor> base) {
+
+    if (base == null) {
+      base = new NTuple<Descriptor>();
+    }
 
     NameDescriptor nd = nn.getName();
     if (nd.getBase() != null) {
-      analyzeFlowExpressionNode(md, nametable, nn.getExpression(), base);
+      analyzeFlowExpressionNode(md, nametable, nn.getExpression(), nodeSet, base);
     } else {
       String varname = nd.toString();
       if (varname.equals("this")) {
@@ -443,12 +460,10 @@ public class LocationInference {
           base.add(md.getThis());
         }
 
-        // Location fieldLoc = (Location) fd.getType().getExtension();
-        // loc.addLocation(fieldLoc);
         base.add(fd);
       } else if (d == null) {
         // access static field
-        // FieldDescriptor fd = nn.getField();
+        // FieldDescriptor fd = nn.getField();addFlowGraphEdge
         //
         // MethodLattice<String> localLattice = ssjava.getMethodLattice(md);
         // String globalLocId = localLattice.getGlobalLoc();
@@ -473,8 +488,46 @@ public class LocationInference {
 
   }
 
-  private void analyzeFieldAccessNode(MethodDescriptor md, SymbolTable nametable, FieldAccessNode en) {
-    // TODO Auto-generated method stub
+  private NTuple<Descriptor> analyzeFlowFieldAccessNode(MethodDescriptor md, SymbolTable nametable,
+      FieldAccessNode fan, NodeTupleSet nodeSet, NTuple<Descriptor> base) {
+
+    ExpressionNode left = fan.getExpression();
+    TypeDescriptor ltd = left.getType();
+    FieldDescriptor fd = fan.getField();
+
+    String varName = null;
+    if (left.kind() == Kind.NameNode) {
+      NameDescriptor nd = ((NameNode) left).getName();
+      varName = nd.toString();
+    }
+
+    if (ltd.isClassNameRef() || (varName != null && varName.equals("this"))) {
+      // using a class name directly or access using this
+      if (fd.isStatic() && fd.isFinal()) {
+        // loc.addLocation(Location.createTopLocation(md));
+        // return loc;
+      }
+    }
+
+    // if (left instanceof ArrayAccessNode) {
+    // ArrayAccessNode aan = (ArrayAccessNode) left;
+    // left = aan.getExpression();
+    // }
+    // fanNodeSet
+    base = analyzeFlowExpressionNode(md, nametable, left, nodeSet, base);
+
+    if (!left.getType().isPrimitive()) {
+
+      if (fd.getSymbol().equals("length")) {
+        // TODO
+        // array.length access, return the location of the array
+        // return loc;
+      }
+
+      base.add(fd);
+    }
+
+    return base;
 
   }
 
@@ -485,6 +538,9 @@ public class LocationInference {
 
     ClassDescriptor cd = md.getClassDesc();
 
+    NodeTupleSet nodeSetRHS = new NodeTupleSet();
+    NodeTupleSet nodeSetLHS = new NodeTupleSet();
+
     boolean postinc = true;
     if (an.getOperation().getBaseOp() == null
         || (an.getOperation().getBaseOp().getOp() != Operation.POSTINC && an.getOperation()
@@ -494,14 +550,15 @@ public class LocationInference {
 
     // if LHS is array access node, need to capture value flows between an array
     // and its index value
-    analyzeFlowExpressionNode(md, nametable, an.getDest(), base);
+    analyzeFlowExpressionNode(md, nametable, an.getDest(), nodeSetLHS, base);
+    System.out.println("ASSIGNMENT NODE nodeSetLHS=" + nodeSetLHS);
     // NTuple<Descriptor> lhsDescTuple = analyzeFlowExpressionNode(md,
     // nametable, an.getDest(), base);
 
     if (!postinc) {
       // analyze value flows of rhs expression
-      NTuple<Descriptor> rhsDescTuple =
-          analyzeFlowExpressionNode(md, nametable, an.getSrc(), new NTuple<Descriptor>());
+      analyzeFlowExpressionNode(md, nametable, an.getSrc(), nodeSetRHS, null);
+      System.out.println("ASSIGNMENT NODE nodeSetRHS=" + nodeSetRHS);
 
     } else {
 
@@ -510,10 +567,24 @@ public class LocationInference {
 
     }
 
+    // creates edges from RHS to LHS
+    for (Iterator<NTuple<Descriptor>> iter = nodeSetRHS.iterator(); iter.hasNext();) {
+      NTuple<Descriptor> fromTuple = iter.next();
+      for (Iterator<NTuple<Descriptor>> iter2 = nodeSetLHS.iterator(); iter2.hasNext();) {
+        NTuple<Descriptor> toTuple = iter2.next();
+        addFlowGraphEdge(md, fromTuple, toTuple);
+      }
+    }
+
   }
 
   public FlowGraph getFlowGraph(MethodDescriptor md) {
     return mapMethodDescriptorToFlowGraph.get(md);
+  }
+
+  public void addFlowGraphEdge(MethodDescriptor md, NTuple<Descriptor> from, NTuple<Descriptor> to) {
+    FlowGraph graph = getFlowGraph(md);
+    graph.addValueFlowEdge(from, to);
   }
 
 }
