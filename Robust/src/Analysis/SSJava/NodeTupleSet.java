@@ -8,7 +8,7 @@ import IR.Descriptor;
 
 public class NodeTupleSet {
 
-  Set<NTuple<Descriptor>> set;
+  private Set<NTuple<Descriptor>> set;
 
   public NodeTupleSet() {
     set = new HashSet<NTuple<Descriptor>>();
@@ -21,12 +21,12 @@ public class NodeTupleSet {
     // for example, if we have input <a,b,c>, we need to add additional element
     // <a,b> and <a> to the set
 
-    NTuple<Descriptor> cur = new NTuple<Descriptor>();
-    for (int i = 0; i < tuple.size(); i++) {
-      Descriptor d = tuple.get(i);
-      cur.add(d);
-      set.add(new NTuple<Descriptor>(cur));
-    }
+    // NTuple<Descriptor> cur = new NTuple<Descriptor>();
+    // for (int i = 0; i < tuple.size(); i++) {
+    // Descriptor d = tuple.get(i);
+    // cur.add(d);
+    // set.add(new NTuple<Descriptor>(cur));
+    // }
 
     set.add(tuple);
   }
@@ -39,4 +39,11 @@ public class NodeTupleSet {
     return set.toString();
   }
 
+  public Set<NTuple<Descriptor>> getSet() {
+    return set;
+  }
+
+  public void addTupleSet(NodeTupleSet in) {
+    set.addAll(in.getSet());
+  }
 }

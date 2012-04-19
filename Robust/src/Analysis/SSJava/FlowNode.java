@@ -1,5 +1,7 @@
 package Analysis.SSJava;
 
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import IR.Descriptor;
@@ -13,15 +15,23 @@ public class FlowNode {
   // this set contains fields of the base type
   private Set<FlowNode> fieldNodeSet;
 
-  public FlowNode(Descriptor desc) {
-    this(null, desc);
+  public Set<FlowNode> getFieldNodeSet() {
+    return fieldNodeSet;
   }
 
-  public FlowNode(NTuple<Descriptor> base) {
-    this(base, null);
-  }
+  private Set<FlowEdge> outEdgeSet;
 
-  public FlowNode(NTuple<Descriptor> base, Descriptor desc) {
+  public FlowNode(NTuple<Descriptor> tuple) {
+
+    NTuple<Descriptor> base = null;
+    Descriptor desc = null;
+    if (tuple.size() > 1) {
+      base = tuple.subList(0, tuple.size() - 1);
+      desc = tuple.get(tuple.size() - 1);
+    } else {
+      base = tuple;
+    }
+    fieldNodeSet = new HashSet<FlowNode>();
     descTuple = new NTuple<Descriptor>();
     if (base != null) {
       descTuple.addAll(base);
@@ -29,6 +39,11 @@ public class FlowNode {
     if (desc != null) {
       descTuple.add(desc);
     }
+    outEdgeSet = new HashSet<FlowEdge>();
+  }
+
+  public void addFieldNode(FlowNode node) {
+    fieldNodeSet.add(node);
   }
 
   public NTuple<Descriptor> getDescTuple() {
@@ -41,6 +56,43 @@ public class FlowNode {
 
   public String toString() {
     return "[FlowNode]::" + descTuple;
+  }
+
+  public Iterator<FlowEdge> iteratorOfOutEdges() {
+    return outEdgeSet.iterator();
+  }
+
+  public void addOutEdge(FlowEdge out) {
+    outEdgeSet.add(out);
+  }
+
+  public Set<FlowEdge> getOutEdgeSet() {
+    return outEdgeSet;
+  }
+
+  public int hashCode() {
+    return 7 + descTuple.hashCode();
+  }
+
+  public boolean equals(Object obj) {
+
+    if (obj instanceof FlowNode) {
+      FlowNode in = (FlowNode) obj;
+      if (descTuple.equals(in.getDescTuple())) {
+        return true;
+      }
+    }
+
+    return false;
+
+  }
+
+  public String getID() {
+    String id = "";
+    for (int i = 0; i < descTuple.size(); i++) {
+      id += descTuple.get(i).getSymbol();
+    }
+    return id;
   }
 
 }
