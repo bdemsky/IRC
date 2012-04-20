@@ -14,7 +14,9 @@ import java.util.Map.Entry;
 import Analysis.OoOJava.ConflictEdge;
 import Analysis.OoOJava.ConflictNode;
 import IR.Descriptor;
+import IR.FieldDescriptor;
 import IR.MethodDescriptor;
+import IR.VarDescriptor;
 
 public class FlowGraph {
 
@@ -87,7 +89,6 @@ public class FlowGraph {
       NTuple<Descriptor> endTuple) {
 
     FlowEdge edge = new FlowEdge(fromNode, toNode, initTuple, endTuple);
-
     fromNode.addOutEdge(edge);
 
     System.out.println("add a new edge=" + edge);
@@ -98,8 +99,7 @@ public class FlowGraph {
     if (mapDescTupleToInferNode.containsKey(descTuple)) {
       return mapDescTupleToInferNode.get(descTuple);
     } else {
-      FlowNode node = new FlowNode(descTuple);
-      mapDescTupleToInferNode.put(descTuple, node);
+      FlowNode node = createNewFlowNode(descTuple);
       return node;
     }
   }
@@ -108,7 +108,7 @@ public class FlowGraph {
     return thisVarNode;
   }
 
-  public void createNewFlowNode(NTuple<Descriptor> tuple) {
+  public FlowNode createNewFlowNode(NTuple<Descriptor> tuple) {
 
     if (!mapDescTupleToInferNode.containsKey(tuple)) {
       FlowNode node = new FlowNode(tuple);
@@ -121,8 +121,50 @@ public class FlowGraph {
       }
 
       System.out.println("Creating new node=" + node);
+      return node;
+    } else {
+      return mapDescTupleToInferNode.get(tuple);
     }
 
+  }
+
+  private void drawEdges(FlowNode node, BufferedWriter bw, Set<FlowNode> addedNodeSet,
+      Set<FlowEdge> addedEdgeSet) throws IOException {
+
+    Set<FlowEdge> edgeSet = node.getOutEdgeSet();
+
+    for (Iterator<FlowEdge> iterator = edgeSet.iterator(); iterator.hasNext();) {
+      FlowEdge flowEdge = iterator.next();
+
+      FlowNode u = flowEdge.getSrc();
+      FlowNode v = flowEdge.getDst();
+
+      if (u.getDescTuple().equals(flowEdge.getInitTuple())
+          && v.getDescTuple().equals(flowEdge.getEndTuple())) {
+        // only draw an edge of the actual value flow
+
+        if (!addedEdgeSet.contains(flowEdge)) {
+
+          if (!addedNodeSet.contains(u)) {
+            drawNode(u, bw);
+            addedNodeSet.add(u);
+          }
+          if (!addedNodeSet.contains(v)) {
+            drawNode(v, bw);
+            addedNodeSet.add(v);
+          }
+
+          bw.write("" + u.getID() + " -> " + v.getID() + ";\n");
+          addedEdgeSet.add(flowEdge);
+        }
+      }
+
+    }
+
+  }
+
+  private void drawNode(FlowNode node, BufferedWriter bw) throws IOException {
+    bw.write(node.getID() + " [label=\"" + node.getPrettyID() + "\"]" + ";\n");
   }
 
   public void writeGraph() throws java.io.IOException {
@@ -138,57 +180,58 @@ public class FlowGraph {
 
     Iterator<FlowNode> iter = nodeSet.iterator();
 
-    Set<FlowEdge> addedSet = new HashSet<FlowEdge>();
+    Set<FlowEdge> addedEdgeSet = new HashSet<FlowEdge>();
+    Set<FlowNode> addedNodeSet = new HashSet<FlowNode>();
 
     while (iter.hasNext()) {
       FlowNode node = iter.next();
 
-      if (node.getFieldNodeSet().size() > 0) {
-        drawSubgraph(node, bw);
-      }
-
-      String attributes = " [";
-
-      attributes += "label=\"" + node.getID() + "\"]";
-
-      bw.write(node.getID() + attributes + ";\n");
-
-      Set<FlowEdge> edgeSet = node.getOutEdgeSet();
-
-      for (Iterator<FlowEdge> iterator = edgeSet.iterator(); iterator.hasNext();) {
-        FlowEdge flowEdge = iterator.next();
-
-        FlowNode u = flowEdge.getSrc();
-        FlowNode v = flowEdge.getDst();
-
-        if (!addedSet.contains(flowEdge)) {
-          bw.write("" + u.getID() + " -> " + v.getID() + ";\n");
-          addedSet.add(flowEdge);
+      if (node.getDescTuple().size() == 1) {
+        // here, we just care about the local variable
+        if (node.getFieldNodeSet().size() > 0) {
+          drawSubgraph(node, bw, addedEdgeSet);
         }
-
       }
-    }
+      drawEdges(node, bw, addedNodeSet, addedEdgeSet);
 
-    bw.write("graphTitle[label=\"" + graphName + "\",shape=box];\n");
+    }
 
     bw.write("}\n");
     bw.close();
 
   }
 
-  private void drawSubgraph(FlowNode node, BufferedWriter bw) throws IOException {
+  public boolean constainsNode(FlowNode node) {
+    return nodeSet.contains(node);
+  }
 
-    bw.write("  subgraph sg" + node.getID() + "{\n");
-    // bw.write("  color=gray;\n");
-    bw.write("  label=\"" + node.getID() + "\";\n");
+  private void drawSubgraph(FlowNode node, BufferedWriter bw, Set<FlowEdge> addedSet)
+      throws IOException {
+
+    bw.write("subgraph cluster_" + node.getID() + "{\n");
+    bw.write("label=\"" + node.getPrettyID() + "\";\n");
 
     Set<FlowNode> fieldNodeSet = node.getFieldNodeSet();
     for (Iterator iterator = fieldNodeSet.iterator(); iterator.hasNext();) {
       FlowNode fieldNode = (FlowNode) iterator.next();
-      String attribute = fieldNode.getID() + ";\n";
-      bw.write("  " + attribute);
+      if (fieldNode.getFieldNodeSet().size() > 0) {
+        drawSubgraph(fieldNode, bw, addedSet);
+      } else {
+        Descriptor desc = fieldNode.getDescTuple().getLastElement();
+        if (desc instanceof VarDescriptor) {
+          VarDescriptor varDesc = (VarDescriptor) desc;
+          if (varDesc.getType().isPrimitive()) {
+            bw.write(fieldNode.getID() + " [label=\"" + fieldNode.getPrettyID() + "\"];\n");
+          }
+        } else if (desc instanceof FieldDescriptor) {
+          FieldDescriptor fieldDesc = (FieldDescriptor) desc;
+          if (fieldDesc.getType().isPrimitive()) {
+            bw.write(fieldNode.getID() + " [label=\"" + fieldNode.getPrettyID() + "\"];\n");
+          }
+        }
+      }
     }
 
-    bw.write("  }\n");
+    bw.write("}\n");
   }
 }

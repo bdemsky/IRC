@@ -130,37 +130,38 @@ public class LocationInference {
 
   private void analyzeMethodBody(ClassDescriptor cd, MethodDescriptor md) {
     BlockNode bn = state.getMethodBody(md);
-    analyzeBlockNode(md, md.getParameterTable(), bn);
+    analyzeFlowBlockNode(md, md.getParameterTable(), bn, null);
   }
 
-  private void analyzeBlockNode(MethodDescriptor md, SymbolTable nametable, BlockNode bn) {
+  private void analyzeFlowBlockNode(MethodDescriptor md, SymbolTable nametable, BlockNode bn,
+      NodeTupleSet implicitFlowTupleSet) {
 
     bn.getVarTable().setParent(nametable);
     for (int i = 0; i < bn.size(); i++) {
       BlockStatementNode bsn = bn.get(i);
-      analyzeBlockStatementNode(md, bn.getVarTable(), bsn);
+      analyzeBlockStatementNode(md, bn.getVarTable(), bsn, implicitFlowTupleSet);
     }
 
   }
 
   private void analyzeBlockStatementNode(MethodDescriptor md, SymbolTable nametable,
-      BlockStatementNode bsn) {
+      BlockStatementNode bsn, NodeTupleSet implicitFlowTupleSet) {
 
     switch (bsn.kind()) {
     case Kind.BlockExpressionNode:
-      analyzeBlockExpressionNode(md, nametable, (BlockExpressionNode) bsn);
+      analyzeBlockExpressionNode(md, nametable, (BlockExpressionNode) bsn, implicitFlowTupleSet);
       break;
 
     case Kind.DeclarationNode:
-      analyzeFlowDeclarationNode(md, nametable, (DeclarationNode) bsn);
+      analyzeFlowDeclarationNode(md, nametable, (DeclarationNode) bsn, implicitFlowTupleSet);
       break;
 
     case Kind.IfStatementNode:
-      analyzeIfStatementNode(md, nametable, (IfStatementNode) bsn);
+      analyzeFlowIfStatementNode(md, nametable, (IfStatementNode) bsn, implicitFlowTupleSet);
       break;
 
     case Kind.LoopNode:
-      analyzeLoopNode(md, nametable, (LoopNode) bsn);
+      analyzeFlowLoopNode(md, nametable, (LoopNode) bsn, implicitFlowTupleSet);
       break;
 
     case Kind.ReturnNode:
@@ -168,7 +169,7 @@ public class LocationInference {
       break;
 
     case Kind.SubBlockNode:
-      analyzeSubBlockNode(md, nametable, (SubBlockNode) bsn);
+      analyzeFlowSubBlockNode(md, nametable, (SubBlockNode) bsn, implicitFlowTupleSet);
       break;
 
     case Kind.ContinueBreakNode:
@@ -188,9 +189,9 @@ public class LocationInference {
 
   }
 
-  private void analyzeSubBlockNode(MethodDescriptor md, SymbolTable nametable, SubBlockNode bsn) {
-    // TODO Auto-generated method stub
-
+  private void analyzeFlowSubBlockNode(MethodDescriptor md, SymbolTable nametable,
+      SubBlockNode sbn, NodeTupleSet implicitFlowTupleSet) {
+    analyzeFlowBlockNode(md, nametable, sbn.getBlockNode(), implicitFlowTupleSet);
   }
 
   private void analyzeReturnNode(MethodDescriptor md, SymbolTable nametable, ReturnNode bsn) {
@@ -198,19 +199,58 @@ public class LocationInference {
 
   }
 
-  private void analyzeLoopNode(MethodDescriptor md, SymbolTable nametable, LoopNode bsn) {
-    // TODO Auto-generated method stub
+  private void analyzeFlowLoopNode(MethodDescriptor md, SymbolTable nametable, LoopNode ln,
+      NodeTupleSet implicitFlowTupleSet) {
+
+    if (ln.getType() == LoopNode.WHILELOOP || ln.getType() == LoopNode.DOWHILELOOP) {
+
+      NodeTupleSet condTupleNode = new NodeTupleSet();
+      analyzeFlowExpressionNode(md, nametable, ln.getCondition(), condTupleNode, null,
+          implicitFlowTupleSet);
+      condTupleNode.addTupleSet(implicitFlowTupleSet);
+      System.out.println("condTupleNode=" + condTupleNode);
+
+      // add edges from condNodeTupleSet to all nodes of conditional nodes
+      analyzeFlowBlockNode(md, nametable, ln.getBody(), condTupleNode);
+
+    } else {
+      // check 'for loop' case
+      BlockNode bn = ln.getInitializer();
+      analyzeFlowBlockNode(md, nametable, bn, implicitFlowTupleSet);
+      bn.getVarTable().setParent(nametable);
+
+      NodeTupleSet condTupleNode = new NodeTupleSet();
+      analyzeFlowExpressionNode(md, nametable, ln.getCondition(), condTupleNode, null,
+          implicitFlowTupleSet);
+      condTupleNode.addTupleSet(implicitFlowTupleSet);
+      System.out.println("condTupleNode=" + condTupleNode);
+
+      analyzeFlowBlockNode(md, bn.getVarTable(), ln.getUpdate(), condTupleNode);
+      analyzeFlowBlockNode(md, bn.getVarTable(), ln.getBody(), condTupleNode);
+
+    }
 
   }
 
-  private void analyzeIfStatementNode(MethodDescriptor md, SymbolTable nametable,
-      IfStatementNode bsn) {
-    // TODO Auto-generated method stub
+  private void analyzeFlowIfStatementNode(MethodDescriptor md, SymbolTable nametable,
+      IfStatementNode isn, NodeTupleSet implicitFlowTupleSet) {
+
+    NodeTupleSet condTupleNode = new NodeTupleSet();
+    analyzeFlowExpressionNode(md, nametable, isn.getCondition(), condTupleNode, null,
+        implicitFlowTupleSet);
+
+    // add edges from condNodeTupleSet to all nodes of conditional nodes
+    condTupleNode.addTupleSet(implicitFlowTupleSet);
+    analyzeFlowBlockNode(md, nametable, isn.getTrueBlock(), condTupleNode);
+
+    if (isn.getFalseBlock() != null) {
+      analyzeFlowBlockNode(md, nametable, isn.getFalseBlock(), condTupleNode);
+    }
 
   }
 
   private void analyzeFlowDeclarationNode(MethodDescriptor md, SymbolTable nametable,
-      DeclarationNode dn) {
+      DeclarationNode dn, NodeTupleSet implicitFlowTupleSet) {
 
     VarDescriptor vd = dn.getVarDescriptor();
     NTuple<Descriptor> tupleLHS = new NTuple<Descriptor>();
@@ -220,7 +260,8 @@ public class LocationInference {
     if (dn.getExpression() != null) {
 
       NodeTupleSet tupleSetRHS = new NodeTupleSet();
-      analyzeFlowExpressionNode(md, nametable, dn.getExpression(), tupleSetRHS, null);
+      analyzeFlowExpressionNode(md, nametable, dn.getExpression(), tupleSetRHS, null,
+          implicitFlowTupleSet);
 
       // add a new flow edge from rhs to lhs
       for (Iterator<NTuple<Descriptor>> iter = tupleSetRHS.iterator(); iter.hasNext();) {
@@ -233,12 +274,13 @@ public class LocationInference {
   }
 
   private void analyzeBlockExpressionNode(MethodDescriptor md, SymbolTable nametable,
-      BlockExpressionNode ben) {
-    analyzeFlowExpressionNode(md, nametable, ben.getExpression(), null, null);
+      BlockExpressionNode ben, NodeTupleSet implicitFlowTupleSet) {
+    analyzeFlowExpressionNode(md, nametable, ben.getExpression(), null, null, implicitFlowTupleSet);
   }
 
   private NTuple<Descriptor> analyzeFlowExpressionNode(MethodDescriptor md, SymbolTable nametable,
-      ExpressionNode en, NodeTupleSet nodeSet, NTuple<Descriptor> base) {
+      ExpressionNode en, NodeTupleSet nodeSet, NTuple<Descriptor> base,
+      NodeTupleSet implicitFlowTupleSet) {
 
     // note that expression node can create more than one flow node
     // nodeSet contains of flow nodes
@@ -249,22 +291,25 @@ public class LocationInference {
     switch (en.kind()) {
 
     case Kind.AssignmentNode:
-      analyzeFlowAssignmentNode(md, nametable, (AssignmentNode) en, base);
+      analyzeFlowAssignmentNode(md, nametable, (AssignmentNode) en, base, implicitFlowTupleSet);
       break;
 
     case Kind.FieldAccessNode:
-      flowTuple = analyzeFlowFieldAccessNode(md, nametable, (FieldAccessNode) en, nodeSet, base);
+      flowTuple =
+          analyzeFlowFieldAccessNode(md, nametable, (FieldAccessNode) en, nodeSet, base,
+              implicitFlowTupleSet);
       nodeSet.addTuple(flowTuple);
       return flowTuple;
 
     case Kind.NameNode:
       NodeTupleSet nameNodeSet = new NodeTupleSet();
-      flowTuple = analyzeFlowNameNode(md, nametable, (NameNode) en, nameNodeSet, base);
+      flowTuple =
+          analyzeFlowNameNode(md, nametable, (NameNode) en, nameNodeSet, base, implicitFlowTupleSet);
       nodeSet.addTuple(flowTuple);
       return flowTuple;
 
     case Kind.OpNode:
-      analyzeFlowOpNode(md, nametable, (OpNode) en, nodeSet);
+      analyzeFlowOpNode(md, nametable, (OpNode) en, nodeSet, implicitFlowTupleSet);
       break;
 
     case Kind.CreateObjectNode:
@@ -346,20 +391,19 @@ public class LocationInference {
   }
 
   private void analyzeFlowOpNode(MethodDescriptor md, SymbolTable nametable, OpNode on,
-      NodeTupleSet nodeSet) {
-
-    System.out.println("### OPNode=" + on.printNode(0));
+      NodeTupleSet nodeSet, NodeTupleSet implicitFlowTupleSet) {
 
     NodeTupleSet leftOpSet = new NodeTupleSet();
     NodeTupleSet rightOpSet = new NodeTupleSet();
 
     // left operand
-    analyzeFlowExpressionNode(md, nametable, on.getLeft(), leftOpSet, null);
+    analyzeFlowExpressionNode(md, nametable, on.getLeft(), leftOpSet, null, implicitFlowTupleSet);
     System.out.println("leftOpSet=" + leftOpSet);
 
     if (on.getRight() != null) {
       // right operand
-      analyzeFlowExpressionNode(md, nametable, on.getRight(), rightOpSet, null);
+      analyzeFlowExpressionNode(md, nametable, on.getRight(), rightOpSet, null,
+          implicitFlowTupleSet);
       System.out.println("rightOpSet=" + rightOpSet);
     }
 
@@ -407,7 +451,7 @@ public class LocationInference {
   }
 
   private NTuple<Descriptor> analyzeFlowNameNode(MethodDescriptor md, SymbolTable nametable,
-      NameNode nn, NodeTupleSet nodeSet, NTuple<Descriptor> base) {
+      NameNode nn, NodeTupleSet nodeSet, NTuple<Descriptor> base, NodeTupleSet implicitFlowTupleSet) {
 
     if (base == null) {
       base = new NTuple<Descriptor>();
@@ -415,7 +459,8 @@ public class LocationInference {
 
     NameDescriptor nd = nn.getName();
     if (nd.getBase() != null) {
-      analyzeFlowExpressionNode(md, nametable, nn.getExpression(), nodeSet, base);
+      analyzeFlowExpressionNode(md, nametable, nn.getExpression(), nodeSet, base,
+          implicitFlowTupleSet);
     } else {
       String varname = nd.toString();
       if (varname.equals("this")) {
@@ -491,7 +536,8 @@ public class LocationInference {
   }
 
   private NTuple<Descriptor> analyzeFlowFieldAccessNode(MethodDescriptor md, SymbolTable nametable,
-      FieldAccessNode fan, NodeTupleSet nodeSet, NTuple<Descriptor> base) {
+      FieldAccessNode fan, NodeTupleSet nodeSet, NTuple<Descriptor> base,
+      NodeTupleSet implicitFlowTupleSet) {
 
     ExpressionNode left = fan.getExpression();
     TypeDescriptor ltd = left.getType();
@@ -516,7 +562,7 @@ public class LocationInference {
     // left = aan.getExpression();
     // }
     // fanNodeSet
-    base = analyzeFlowExpressionNode(md, nametable, left, nodeSet, base);
+    base = analyzeFlowExpressionNode(md, nametable, left, nodeSet, base, implicitFlowTupleSet);
 
     if (!left.getType().isPrimitive()) {
 
@@ -534,11 +580,9 @@ public class LocationInference {
   }
 
   private void analyzeFlowAssignmentNode(MethodDescriptor md, SymbolTable nametable,
-      AssignmentNode an, NTuple<Descriptor> base) {
+      AssignmentNode an, NTuple<Descriptor> base, NodeTupleSet implicitFlowTupleSet) {
 
     System.out.println("analyzeFlowAssignmentNode=" + an);
-
-    ClassDescriptor cd = md.getClassDesc();
 
     NodeTupleSet nodeSetRHS = new NodeTupleSet();
     NodeTupleSet nodeSetLHS = new NodeTupleSet();
@@ -552,18 +596,27 @@ public class LocationInference {
 
     // if LHS is array access node, need to capture value flows between an array
     // and its index value
-    analyzeFlowExpressionNode(md, nametable, an.getDest(), nodeSetLHS, null);
+    analyzeFlowExpressionNode(md, nametable, an.getDest(), nodeSetLHS, null, implicitFlowTupleSet);
     System.out.println("ASSIGNMENT NODE nodeSetLHS=" + nodeSetLHS);
     // NTuple<Descriptor> lhsDescTuple = analyzeFlowExpressionNode(md,
     // nametable, an.getDest(), base);
 
     if (!postinc) {
       // analyze value flows of rhs expression
-      analyzeFlowExpressionNode(md, nametable, an.getSrc(), nodeSetRHS, null);
+      analyzeFlowExpressionNode(md, nametable, an.getSrc(), nodeSetRHS, null, implicitFlowTupleSet);
       System.out.println("ASSIGNMENT NODE nodeSetRHS=" + nodeSetRHS);
 
       // creates edges from RHS to LHS
       for (Iterator<NTuple<Descriptor>> iter = nodeSetRHS.iterator(); iter.hasNext();) {
+        NTuple<Descriptor> fromTuple = iter.next();
+        for (Iterator<NTuple<Descriptor>> iter2 = nodeSetLHS.iterator(); iter2.hasNext();) {
+          NTuple<Descriptor> toTuple = iter2.next();
+          addFlowGraphEdge(md, fromTuple, toTuple);
+        }
+      }
+
+      // creates edges from implicitFlowTupleSet to LHS
+      for (Iterator<NTuple<Descriptor>> iter = implicitFlowTupleSet.iterator(); iter.hasNext();) {
         NTuple<Descriptor> fromTuple = iter.next();
         for (Iterator<NTuple<Descriptor>> iter2 = nodeSetLHS.iterator(); iter2.hasNext();) {
           NTuple<Descriptor> toTuple = iter2.next();

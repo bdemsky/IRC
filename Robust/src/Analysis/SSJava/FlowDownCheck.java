@@ -606,6 +606,8 @@ public class FlowDownCheck {
     } else {
       // check 'for loop' case
       BlockNode bn = ln.getInitializer();
+      // need to check initialization node
+      checkLocationFromBlockNode(md, nametable, bn, constraint);
       bn.getVarTable().setParent(nametable);
 
       // calculate glb location of condition and update statements

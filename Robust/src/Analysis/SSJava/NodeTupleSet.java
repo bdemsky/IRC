@@ -44,6 +44,8 @@ public class NodeTupleSet {
   }
 
   public void addTupleSet(NodeTupleSet in) {
-    set.addAll(in.getSet());
+    if (in != null) {
+      set.addAll(in.getSet());
+    }
   }
 }

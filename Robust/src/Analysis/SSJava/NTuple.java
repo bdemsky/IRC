@@ -105,4 +105,8 @@ public class NTuple<T> {
 
   }
 
+  public T getLastElement() {
+    return elements.get(elements.size() - 1);
+  }
+
 }

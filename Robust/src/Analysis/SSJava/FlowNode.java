@@ -95,4 +95,15 @@ public class FlowNode {
     return id;
   }
 
+  public String getPrettyID() {
+    String id = "<";
+    for (int i = 0; i < descTuple.size(); i++) {
+      if (i != 0) {
+        id += ",";
+      }
+      id += descTuple.get(i).getSymbol();
+    }
+    id += ">";
+    return id;
+  }
 }
