@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -16,6 +17,7 @@ import java.util.Vector;
 
 import Analysis.CallGraph.CallGraph;
 import Analysis.Loops.GlobalFieldType;
+import Analysis.Loops.LoopFinder;
 import Analysis.Loops.LoopOptimize;
 import Analysis.Loops.LoopTerminate;
 import IR.AnnotationDescriptor;
@@ -93,6 +95,13 @@ public class SSJavaAnalysis {
 
   LinearTypeCheck checker;
 
+  // maps a descriptor to its known dependents: namely
+  // methods or tasks that call the descriptor's method
+  // AND are part of this analysis (reachable from main)
+  private Hashtable<Descriptor, Set<MethodDescriptor>> mapDescriptorToSetDependents;
+
+  private LinkedList<MethodDescriptor> sortedDescriptors;
+
   public SSJavaAnalysis(State state, TypeUtil tu, BuildFlat bf, CallGraph callgraph) {
     this.state = state;
     this.tu = tu;
@@ -109,23 +118,40 @@ public class SSJavaAnalysis {
     this.trustWorthyMDSet = new HashSet<MethodDescriptor>();
     this.mapMethodToOwnedFieldSet = new Hashtable<MethodDescriptor, Set<FieldDescriptor>>();
     this.sameHeightWriteFlatNodeSet = new HashSet<FlatNode>();
+    this.mapDescriptorToSetDependents = new Hashtable<Descriptor, Set<MethodDescriptor>>();
+    this.sortedDescriptors = new LinkedList<MethodDescriptor>();
   }
 
   public void doCheck() {
     doMethodAnnotationCheck();
     computeLinearTypeCheckMethodSet();
     doLinearTypeCheck();
+
+    init();
+
     if (state.SSJAVADEBUG) {
       // debugPrint();
     }
     if (state.SSJAVAINFER) {
-       inference();
+      inference();
     } else {
       parseLocationAnnotation();
       doFlowDownCheck();
       doDefinitelyWrittenCheck();
       doLoopCheck();
     }
+  }
+
+  private void init() {
+    // perform topological sort over the set of methods accessed by the main
+    // event loop
+    Set<MethodDescriptor> methodDescriptorsToAnalyze = new HashSet<MethodDescriptor>();
+    methodDescriptorsToAnalyze.addAll(getAnnotationRequireSet());
+    sortedDescriptors = topologicalSort(methodDescriptorsToAnalyze);
+  }
+
+  public LinkedList<MethodDescriptor> getSortedDescriptors() {
+    return (LinkedList<MethodDescriptor>) sortedDescriptors.clone();
   }
 
   private void inference() {
@@ -301,7 +327,7 @@ public class SSJavaAnalysis {
     }
   }
 
-  private void writeLatticeDotFile(ClassDescriptor cd, SSJavaLattice<String> locOrder) {
+  public void writeLatticeDotFile(ClassDescriptor cd, SSJavaLattice<String> locOrder) {
 
     String className = cd.getSymbol().replaceAll("[\\W_]", "");
 
@@ -573,6 +599,74 @@ public class SSJavaAnalysis {
 
   public boolean isSameHeightWrite(FlatNode fn) {
     return this.sameHeightWriteFlatNodeSet.contains(fn);
+  }
+
+  public LinkedList<MethodDescriptor> topologicalSort(Set<MethodDescriptor> toSort) {
+
+    Set<MethodDescriptor> discovered = new HashSet<MethodDescriptor>();
+
+    LinkedList<MethodDescriptor> sorted = new LinkedList<MethodDescriptor>();
+
+    Iterator<MethodDescriptor> itr = toSort.iterator();
+    while (itr.hasNext()) {
+      MethodDescriptor d = itr.next();
+
+      if (!discovered.contains(d)) {
+        dfsVisit(d, toSort, sorted, discovered);
+      }
+    }
+
+    return sorted;
+  }
+
+  // While we're doing DFS on call graph, remember
+  // dependencies for efficient queuing of methods
+  // during interprocedural analysis:
+  //
+  // a dependent of a method decriptor d for this analysis is:
+  // 1) a method or task that invokes d
+  // 2) in the descriptorsToAnalyze set
+  private void dfsVisit(MethodDescriptor md, Set<MethodDescriptor> toSort,
+      LinkedList<MethodDescriptor> sorted, Set<MethodDescriptor> discovered) {
+
+    discovered.add(md);
+
+    Iterator itr = callgraph.getCallerSet(md).iterator();
+    while (itr.hasNext()) {
+      MethodDescriptor dCaller = (MethodDescriptor) itr.next();
+      // only consider callers in the original set to analyze
+      if (!toSort.contains(dCaller)) {
+        continue;
+      }
+      if (!discovered.contains(dCaller)) {
+        addDependent(md, // callee
+            dCaller // caller
+        );
+
+        dfsVisit(dCaller, toSort, sorted, discovered);
+      }
+    }
+
+    // for leaf-nodes last now!
+    sorted.addLast(md);
+  }
+
+  public void addDependent(MethodDescriptor callee, MethodDescriptor caller) {
+    Set<MethodDescriptor> deps = mapDescriptorToSetDependents.get(callee);
+    if (deps == null) {
+      deps = new HashSet<MethodDescriptor>();
+    }
+    deps.add(caller);
+    mapDescriptorToSetDependents.put(callee, deps);
+  }
+
+  public Set<MethodDescriptor> getDependents(MethodDescriptor callee) {
+    Set<MethodDescriptor> deps = mapDescriptorToSetDependents.get(callee);
+    if (deps == null) {
+      deps = new HashSet<MethodDescriptor>();
+      mapDescriptorToSetDependents.put(callee, deps);
+    }
+    return deps;
   }
 
 }

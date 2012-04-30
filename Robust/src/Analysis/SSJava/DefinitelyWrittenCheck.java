@@ -42,11 +42,6 @@ public class DefinitelyWrittenCheck {
 
   int debugcount = 0;
 
-  // maps a descriptor to its known dependents: namely
-  // methods or tasks that call the descriptor's method
-  // AND are part of this analysis (reachable from main)
-  private Hashtable<Descriptor, Set<MethodDescriptor>> mapDescriptorToSetDependents;
-
   // maps a flat node to its WrittenSet: this keeps all heap path overwritten
   // previously.
   private Hashtable<FlatNode, Set<NTuple<Descriptor>>> mapFlatNodeToMustWriteSet;
@@ -119,8 +114,6 @@ public class DefinitelyWrittenCheck {
   private Hashtable<FlatNode, SharedLocMap> mapFlatNodeToSharedLocMapping;
   private Hashtable<FlatNode, SharedLocMap> mapFlatNodeToDeleteSet;
 
-  private LinkedList<MethodDescriptor> sortedDescriptors;
-
   private LoopFinder ssjavaLoop;
   private Set<FlatNode> loopIncElements;
 
@@ -143,7 +136,6 @@ public class DefinitelyWrittenCheck {
     this.ssjava = ssjava;
     this.callGraph = ssjava.getCallGraph();
     this.mapFlatNodeToMustWriteSet = new Hashtable<FlatNode, Set<NTuple<Descriptor>>>();
-    this.mapDescriptorToSetDependents = new Hashtable<Descriptor, Set<MethodDescriptor>>();
     this.mapHeapPath = new Hashtable<Descriptor, NTuple<Descriptor>>();
     this.mapDescriptorToLocationPath = new Hashtable<TempDescriptor, NTuple<Location>>();
     this.mapFlatMethodToReadSet = new Hashtable<FlatMethod, Set<NTuple<Descriptor>>>();
@@ -194,8 +186,7 @@ public class DefinitelyWrittenCheck {
   private void sharedLocAnalysis() {
 
     // perform method READ/OVERWRITE analysis
-    LinkedList<MethodDescriptor> descriptorListToAnalyze =
-        (LinkedList<MethodDescriptor>) sortedDescriptors.clone();
+    LinkedList<MethodDescriptor> descriptorListToAnalyze = ssjava.getSortedDescriptors();
 
     // current descriptors to visit in fixed-point interprocedural analysis,
     // prioritized by
@@ -232,7 +223,7 @@ public class DefinitelyWrittenCheck {
         // results for callee changed, so enqueue dependents caller for
         // further
         // analysis
-        Iterator<MethodDescriptor> depsItr = getDependents(md).iterator();
+        Iterator<MethodDescriptor> depsItr = ssjava.getDependents(md).iterator();
         while (depsItr.hasNext()) {
           MethodDescriptor methodNext = depsItr.next();
           if (!methodDescriptorsToVisitStack.contains(methodNext)
@@ -579,8 +570,7 @@ public class DefinitelyWrittenCheck {
   }
 
   private void computeSharedCoverSet() {
-    LinkedList<MethodDescriptor> descriptorListToAnalyze =
-        (LinkedList<MethodDescriptor>) sortedDescriptors.clone();
+    LinkedList<MethodDescriptor> descriptorListToAnalyze = ssjava.getSortedDescriptors();
 
     // current descriptors to visit in fixed-point interprocedural analysis,
     // prioritized by
@@ -2045,9 +2035,10 @@ public class DefinitelyWrittenCheck {
 
     // perform topological sort over the set of methods accessed by the main
     // event loop
-    Set<MethodDescriptor> methodDescriptorsToAnalyze = new HashSet<MethodDescriptor>();
-    methodDescriptorsToAnalyze.addAll(ssjava.getAnnotationRequireSet());
-    sortedDescriptors = topologicalSort(methodDescriptorsToAnalyze);
+    // Set<MethodDescriptor> methodDescriptorsToAnalyze = new
+    // HashSet<MethodDescriptor>();
+    // methodDescriptorsToAnalyze.addAll(ssjava.getAnnotationRequireSet());
+    // sortedDescriptors = topologicalSort(methodDescriptorsToAnalyze);
 
     liveInTempSetToEventLoop =
         liveness.getLiveInTemps(state.getMethodFlat(methodContainingSSJavaLoop),
@@ -2056,8 +2047,7 @@ public class DefinitelyWrittenCheck {
 
   private void methodReadWriteSetAnalysis() {
     // perform method READ/OVERWRITE analysis
-    LinkedList<MethodDescriptor> descriptorListToAnalyze =
-        (LinkedList<MethodDescriptor>) sortedDescriptors.clone();
+    LinkedList<MethodDescriptor> descriptorListToAnalyze = ssjava.getSortedDescriptors();
 
     // current descriptors to visit in fixed-point interprocedural analysis,
     // prioritized by
@@ -2099,7 +2089,7 @@ public class DefinitelyWrittenCheck {
         // results for callee changed, so enqueue dependents caller for
         // further
         // analysis
-        Iterator<MethodDescriptor> depsItr = getDependents(md).iterator();
+        Iterator<MethodDescriptor> depsItr = ssjava.getDependents(md).iterator();
         while (depsItr.hasNext()) {
           MethodDescriptor methodNext = depsItr.next();
           if (!methodDescriptorsToVisitStack.contains(methodNext)
@@ -2496,78 +2486,6 @@ public class DefinitelyWrittenCheck {
     }
     return boundedCalleeSet;
 
-  }
-
-  // Borrowed it from disjoint analysis
-  private LinkedList<MethodDescriptor> topologicalSort(Set<MethodDescriptor> toSort) {
-
-    Set<MethodDescriptor> discovered = new HashSet<MethodDescriptor>();
-
-    LinkedList<MethodDescriptor> sorted = new LinkedList<MethodDescriptor>();
-
-    Iterator<MethodDescriptor> itr = toSort.iterator();
-    while (itr.hasNext()) {
-      MethodDescriptor d = itr.next();
-
-      if (!discovered.contains(d)) {
-        dfsVisit(d, toSort, sorted, discovered);
-      }
-    }
-
-    return sorted;
-  }
-
-  // While we're doing DFS on call graph, remember
-  // dependencies for efficient queuing of methods
-  // during interprocedural analysis:
-  //
-  // a dependent of a method decriptor d for this analysis is:
-  // 1) a method or task that invokes d
-  // 2) in the descriptorsToAnalyze set
-  private void dfsVisit(MethodDescriptor md, Set<MethodDescriptor> toSort,
-      LinkedList<MethodDescriptor> sorted, Set<MethodDescriptor> discovered) {
-
-    discovered.add(md);
-
-    Iterator itr = callGraph.getCallerSet(md).iterator();
-    while (itr.hasNext()) {
-      MethodDescriptor dCaller = (MethodDescriptor) itr.next();
-      // only consider callers in the original set to analyze
-      if (!toSort.contains(dCaller)) {
-        continue;
-      }
-      if (!discovered.contains(dCaller)) {
-        addDependent(md, // callee
-            dCaller // caller
-        );
-
-        dfsVisit(dCaller, toSort, sorted, discovered);
-      }
-    }
-
-    // for leaf-nodes last now!
-    sorted.addLast(md);
-  }
-
-  // a dependent of a method decriptor d for this analysis is:
-  // 1) a method or task that invokes d
-  // 2) in the descriptorsToAnalyze set
-  private void addDependent(MethodDescriptor callee, MethodDescriptor caller) {
-    Set<MethodDescriptor> deps = mapDescriptorToSetDependents.get(callee);
-    if (deps == null) {
-      deps = new HashSet<MethodDescriptor>();
-    }
-    deps.add(caller);
-    mapDescriptorToSetDependents.put(callee, deps);
-  }
-
-  private Set<MethodDescriptor> getDependents(MethodDescriptor callee) {
-    Set<MethodDescriptor> deps = mapDescriptorToSetDependents.get(callee);
-    if (deps == null) {
-      deps = new HashSet<MethodDescriptor>();
-      mapDescriptorToSetDependents.put(callee, deps);
-    }
-    return deps;
   }
 
   private NTuple<Descriptor> computePath(Descriptor td) {

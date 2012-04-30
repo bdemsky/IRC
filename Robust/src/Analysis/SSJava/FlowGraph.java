@@ -45,9 +45,13 @@ public class FlowGraph {
     FlowNode thisNode = new FlowNode(thisDescTuple);
     NTuple<Descriptor> thisVarTuple = new NTuple<Descriptor>();
     thisVarTuple.add(md.getThis());
-    mapDescTupleToInferNode.put(thisVarTuple, thisNode);
+    createNewFlowNode(thisVarTuple);
     thisVarNode = thisNode;
 
+  }
+
+  public Set<FlowNode> getNodeSet() {
+    return nodeSet;
   }
 
   public void addNeighbor(FlowNode node, FlowNode neighbor) {

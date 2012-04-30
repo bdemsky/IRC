@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -607,7 +608,7 @@ public class FlowDownCheck {
       // check 'for loop' case
       BlockNode bn = ln.getInitializer();
       // need to check initialization node
-      checkLocationFromBlockNode(md, nametable, bn, constraint);
+      checkLocationFromBlockNode(md, bn.getVarTable(), bn, constraint);
       bn.getVarTable().setParent(nametable);
 
       // calculate glb location of condition and update statements

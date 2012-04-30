@@ -29,4 +29,11 @@ public class SSJavaLattice<T> extends Lattice<T> {
     return sharedLocSet.contains(loc);
   }
 
+  public boolean addRelationHigherToLower(T higher, T lower) {
+
+    System.out.println("add a relation: " + lower + "<" + higher);
+
+    return put(higher, lower);
+  }
+
 }

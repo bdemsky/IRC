@@ -6,11 +6,16 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
+import Analysis.SSJava.FlowDownCheck.ComparisonResult;
+import Analysis.SSJava.FlowDownCheck.CompositeLattice;
 import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FieldDescriptor;
@@ -21,6 +26,7 @@ import IR.State;
 import IR.SymbolTable;
 import IR.TypeDescriptor;
 import IR.VarDescriptor;
+import IR.Flat.FlatMethod;
 import IR.Tree.ArrayAccessNode;
 import IR.Tree.AssignmentNode;
 import IR.Tree.BlockExpressionNode;
@@ -52,6 +58,21 @@ public class LocationInference {
   List<MethodDescriptor> toanalyzeMethodList;
   Map<MethodDescriptor, FlowGraph> mapMethodDescriptorToFlowGraph;
 
+  // keep current descriptors to visit in fixed-point interprocedural analysis,
+  private Stack<MethodDescriptor> methodDescriptorsToVisitStack;
+
+  // map a class descriptor to a field lattice
+  private Map<ClassDescriptor, SSJavaLattice<String>> cd2lattice;
+
+  // map a method descriptor to a method lattice
+  private Map<MethodDescriptor, SSJavaLattice<String>> md2lattice;
+
+  // map a method descriptor to a lattice mapping
+  private Map<MethodDescriptor, Map<VarDescriptor, String>> md2LatticeMapping;
+
+  // map a method descriptor to a lattice mapping
+  private Map<MethodDescriptor, Map<FieldDescriptor, String>> cd2LatticeMapping;
+
   boolean debug = true;
 
   public LocationInference(SSJavaAnalysis ssjava, State state) {
@@ -60,6 +81,11 @@ public class LocationInference {
     this.toanalyzeList = new ArrayList<ClassDescriptor>();
     this.toanalyzeMethodList = new ArrayList<MethodDescriptor>();
     this.mapMethodDescriptorToFlowGraph = new HashMap<MethodDescriptor, FlowGraph>();
+    this.cd2lattice = new HashMap<ClassDescriptor, SSJavaLattice<String>>();
+    this.md2lattice = new HashMap<MethodDescriptor, SSJavaLattice<String>>();
+    this.methodDescriptorsToVisitStack = new Stack<MethodDescriptor>();
+    this.md2LatticeMapping = new HashMap<MethodDescriptor, Map<VarDescriptor, String>>();
+    this.cd2LatticeMapping = new HashMap<MethodDescriptor, Map<FieldDescriptor, String>>();
   }
 
   public void setupToAnalyze() {
@@ -103,7 +129,189 @@ public class LocationInference {
 
   public void inference() {
 
-    // 2) construct value flow graph
+    // 1) construct value flow graph
+    constructFlowGraph();
+
+    // 2) construct lattices
+    inferLattices();
+
+    debug_writeLatticeDotFile();
+
+  }
+
+  private void debug_writeLatticeDotFile() {
+    // generate lattice dot file
+
+    setupToAnalyze();
+
+    while (!toAnalyzeIsEmpty()) {
+      ClassDescriptor cd = toAnalyzeNext();
+
+      setupToAnalazeMethod(cd);
+
+      SSJavaLattice<String> classLattice = cd2lattice.get(cd);
+      if (classLattice != null) {
+        ssjava.writeLatticeDotFile(cd, classLattice);
+      }
+
+      while (!toAnalyzeMethodIsEmpty()) {
+        MethodDescriptor md = toAnalyzeMethodNext();
+        if (ssjava.needTobeAnnotated(md)) {
+          SSJavaLattice<String> methodLattice = md2lattice.get(md);
+          if (methodLattice != null) {
+            ssjava.writeLatticeDotFile(cd, methodLattice);
+          }
+        }
+      }
+    }
+
+  }
+
+  private void inferLattices() {
+
+    // do fixed-point analysis
+
+    // perform method READ/OVERWRITE analysis
+    LinkedList<MethodDescriptor> descriptorListToAnalyze = ssjava.getSortedDescriptors();
+
+    // current descriptors to visit in fixed-point interprocedural analysis,
+    // prioritized by
+    // dependency in the call graph
+    methodDescriptorsToVisitStack.clear();
+
+    descriptorListToAnalyze.removeFirst();
+
+    Set<MethodDescriptor> methodDescriptorToVistSet = new HashSet<MethodDescriptor>();
+    methodDescriptorToVistSet.addAll(descriptorListToAnalyze);
+
+    while (!descriptorListToAnalyze.isEmpty()) {
+      MethodDescriptor md = descriptorListToAnalyze.removeFirst();
+      methodDescriptorsToVisitStack.add(md);
+    }
+
+    // analyze scheduled methods until there are no more to visit
+    while (!methodDescriptorsToVisitStack.isEmpty()) {
+      // start to analyze leaf node
+      MethodDescriptor md = methodDescriptorsToVisitStack.pop();
+      FlatMethod fm = state.getMethodFlat(md);
+
+      SSJavaLattice<String> methodLattice =
+          new SSJavaLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
+
+      analyzeMethodLattice(md, methodLattice);
+
+      SSJavaLattice<String> prevMethodLattice = md2lattice.get(md);
+
+      if (!methodLattice.equals(prevMethodLattice)) {
+        md2lattice.put(md, methodLattice);
+
+        // results for callee changed, so enqueue dependents caller for
+        // further analysis
+        Iterator<MethodDescriptor> depsItr = ssjava.getDependents(md).iterator();
+        while (depsItr.hasNext()) {
+          MethodDescriptor methodNext = depsItr.next();
+          if (!methodDescriptorsToVisitStack.contains(methodNext)
+              && methodDescriptorToVistSet.contains(methodNext)) {
+            methodDescriptorsToVisitStack.add(methodNext);
+          }
+        }
+
+      }
+
+    }
+
+  }
+
+  private String getSymbol(int idx, FlowNode node) {
+    Descriptor desc = node.getDescTuple().get(idx);
+    return desc.getSymbol();
+  }
+
+  private void addMappingDescriptorToLocationIdentifer(MethodDescriptor methodDesc,
+      VarDescriptor varDesc, String identifier) {
+    if (!md2LatticeMapping.containsKey(methodDesc)) {
+      md2LatticeMapping.put(methodDesc, new HashMap<VarDescriptor, String>());
+    }
+
+  }
+
+  private void analyzeMethodLattice(MethodDescriptor md, SSJavaLattice<String> methodLattice) {
+
+    System.out.println("# Create the method lattice for " + md);
+
+    // visit each node of method flow graph
+
+    FlowGraph fg = getFlowGraph(md);
+    Set<FlowNode> nodeSet = fg.getNodeSet();
+
+    // for the method lattice, we need to look at the first element of
+    // NTuple<Descriptor>
+
+    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+      FlowNode srcNode = (FlowNode) iterator.next();
+
+      Set<FlowEdge> outEdgeSet = srcNode.getOutEdgeSet();
+      for (Iterator iterator2 = outEdgeSet.iterator(); iterator2.hasNext();) {
+        FlowEdge outEdge = (FlowEdge) iterator2.next();
+
+        FlowNode dstNode = outEdge.getDst();
+
+        if ((srcNode.getDescTuple().size() > 1 && dstNode.getDescTuple().size() > 1)
+            && srcNode.getDescTuple().get(0).equals(dstNode.getDescTuple().get(0))) {
+          // value flow between fields: we don't need to add a binary relation
+          // for this case
+
+          VarDescriptor varDesc = (VarDescriptor) srcNode.getDescTuple().get(0);
+          ClassDescriptor varClassDesc = varDesc.getType().getClassDesc();
+
+          extractRelationFromFieldFlows(varClassDesc, srcNode, dstNode, 1);
+          continue;
+        }
+
+        // add a new binary relation of dstNode < srcNode
+
+        String srcSymbol = getSymbol(0, srcNode);
+        String dstSymbol = getSymbol(0, dstNode);
+
+        methodLattice.addRelationHigherToLower(srcSymbol, dstSymbol);
+
+      }
+
+    }
+
+  }
+
+  private void extractRelationFromFieldFlows(ClassDescriptor cd, FlowNode srcNode,
+      FlowNode dstNode, int idx) {
+
+    if (srcNode.getDescTuple().get(idx).equals(dstNode.getDescTuple().get(idx))) {
+      // value flow between fields: we don't need to add a binary relation
+      // for this case
+      VarDescriptor varDesc = (VarDescriptor) srcNode.getDescTuple().get(idx);
+      ClassDescriptor varClassDesc = varDesc.getType().getClassDesc();
+      extractRelationFromFieldFlows(varClassDesc, srcNode, dstNode, idx + 1);
+    } else {
+
+      Descriptor srcFieldDesc = srcNode.getDescTuple().get(idx);
+      Descriptor dstFieldDesc = dstNode.getDescTuple().get(idx);
+
+      // add a new binary relation of dstNode < srcNode
+
+      SSJavaLattice<String> fieldLattice = getFieldLattice(cd);
+      fieldLattice.addRelationHigherToLower(srcFieldDesc.getSymbol(), dstFieldDesc.getSymbol());
+
+    }
+
+  }
+
+  public SSJavaLattice<String> getFieldLattice(ClassDescriptor cd) {
+    if (!cd2lattice.containsKey(cd)) {
+      cd2lattice.put(cd, new SSJavaLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM));
+    }
+    return cd2lattice.get(cd);
+  }
+
+  public void constructFlowGraph() {
 
     setupToAnalyze();
 
@@ -125,12 +333,12 @@ public class LocationInference {
     }
 
     _debug_printGraph();
-
   }
 
   private void analyzeMethodBody(ClassDescriptor cd, MethodDescriptor md) {
     BlockNode bn = state.getMethodBody(md);
-    analyzeFlowBlockNode(md, md.getParameterTable(), bn, null);
+    NodeTupleSet implicitFlowTupleSet = new NodeTupleSet();
+    analyzeFlowBlockNode(md, md.getParameterTable(), bn, implicitFlowTupleSet);
   }
 
   private void analyzeFlowBlockNode(MethodDescriptor md, SymbolTable nametable, BlockNode bn,
@@ -206,9 +414,8 @@ public class LocationInference {
 
       NodeTupleSet condTupleNode = new NodeTupleSet();
       analyzeFlowExpressionNode(md, nametable, ln.getCondition(), condTupleNode, null,
-          implicitFlowTupleSet);
+          implicitFlowTupleSet, false);
       condTupleNode.addTupleSet(implicitFlowTupleSet);
-      System.out.println("condTupleNode=" + condTupleNode);
 
       // add edges from condNodeTupleSet to all nodes of conditional nodes
       analyzeFlowBlockNode(md, nametable, ln.getBody(), condTupleNode);
@@ -216,14 +423,13 @@ public class LocationInference {
     } else {
       // check 'for loop' case
       BlockNode bn = ln.getInitializer();
-      analyzeFlowBlockNode(md, nametable, bn, implicitFlowTupleSet);
+      analyzeFlowBlockNode(md, bn.getVarTable(), bn, implicitFlowTupleSet);
       bn.getVarTable().setParent(nametable);
 
       NodeTupleSet condTupleNode = new NodeTupleSet();
-      analyzeFlowExpressionNode(md, nametable, ln.getCondition(), condTupleNode, null,
-          implicitFlowTupleSet);
+      analyzeFlowExpressionNode(md, bn.getVarTable(), ln.getCondition(), condTupleNode, null,
+          implicitFlowTupleSet, false);
       condTupleNode.addTupleSet(implicitFlowTupleSet);
-      System.out.println("condTupleNode=" + condTupleNode);
 
       analyzeFlowBlockNode(md, bn.getVarTable(), ln.getUpdate(), condTupleNode);
       analyzeFlowBlockNode(md, bn.getVarTable(), ln.getBody(), condTupleNode);
@@ -237,7 +443,7 @@ public class LocationInference {
 
     NodeTupleSet condTupleNode = new NodeTupleSet();
     analyzeFlowExpressionNode(md, nametable, isn.getCondition(), condTupleNode, null,
-        implicitFlowTupleSet);
+        implicitFlowTupleSet, false);
 
     // add edges from condNodeTupleSet to all nodes of conditional nodes
     condTupleNode.addTupleSet(implicitFlowTupleSet);
@@ -261,7 +467,7 @@ public class LocationInference {
 
       NodeTupleSet tupleSetRHS = new NodeTupleSet();
       analyzeFlowExpressionNode(md, nametable, dn.getExpression(), tupleSetRHS, null,
-          implicitFlowTupleSet);
+          implicitFlowTupleSet, false);
 
       // add a new flow edge from rhs to lhs
       for (Iterator<NTuple<Descriptor>> iter = tupleSetRHS.iterator(); iter.hasNext();) {
@@ -275,12 +481,18 @@ public class LocationInference {
 
   private void analyzeBlockExpressionNode(MethodDescriptor md, SymbolTable nametable,
       BlockExpressionNode ben, NodeTupleSet implicitFlowTupleSet) {
-    analyzeFlowExpressionNode(md, nametable, ben.getExpression(), null, null, implicitFlowTupleSet);
+    analyzeFlowExpressionNode(md, nametable, ben.getExpression(), null, null, implicitFlowTupleSet,
+        false);
+  }
+
+  private NTuple<Descriptor> analyzeFlowExpressionNode(MethodDescriptor md, SymbolTable nametable,
+      ExpressionNode en, NodeTupleSet nodeSet, boolean isLHS) {
+    return analyzeFlowExpressionNode(md, nametable, en, nodeSet, null, new NodeTupleSet(), isLHS);
   }
 
   private NTuple<Descriptor> analyzeFlowExpressionNode(MethodDescriptor md, SymbolTable nametable,
       ExpressionNode en, NodeTupleSet nodeSet, NTuple<Descriptor> base,
-      NodeTupleSet implicitFlowTupleSet) {
+      NodeTupleSet implicitFlowTupleSet, boolean isLHS) {
 
     // note that expression node can create more than one flow node
     // nodeSet contains of flow nodes
@@ -317,7 +529,7 @@ public class LocationInference {
       break;
 
     case Kind.ArrayAccessNode:
-      analyzeArrayAccessNode(md, nametable, (ArrayAccessNode) en);
+      analyzeFlowArrayAccessNode(md, nametable, (ArrayAccessNode) en, nodeSet, isLHS);
       break;
 
     case Kind.LiteralNode:
@@ -325,15 +537,15 @@ public class LocationInference {
       break;
 
     case Kind.MethodInvokeNode:
-      analyzeMethodInvokeNode(md, nametable, (MethodInvokeNode) en);
+      analyzeFlowMethodInvokeNode(md, nametable, (MethodInvokeNode) en, implicitFlowTupleSet);
       break;
 
     case Kind.TertiaryNode:
-      analyzeTertiaryNode(md, nametable, (TertiaryNode) en);
+      analyzeFlowTertiaryNode(md, nametable, (TertiaryNode) en, nodeSet, implicitFlowTupleSet);
       break;
 
     case Kind.CastNode:
-      analyzeCastNode(md, nametable, (CastNode) en);
+      analyzeFlowCastNode(md, nametable, (CastNode) en, implicitFlowTupleSet);
       break;
 
     // case Kind.InstanceOfNode:
@@ -358,19 +570,108 @@ public class LocationInference {
 
   }
 
-  private void analyzeCastNode(MethodDescriptor md, SymbolTable nametable, CastNode en) {
-    // TODO Auto-generated method stub
+  private void analyzeFlowCastNode(MethodDescriptor md, SymbolTable nametable, CastNode cn,
+      NodeTupleSet implicitFlowTupleSet) {
+
+    NodeTupleSet nodeTupleSet = new NodeTupleSet();
+    analyzeFlowExpressionNode(md, nametable, cn.getExpression(), nodeTupleSet, false);
 
   }
 
-  private void analyzeTertiaryNode(MethodDescriptor md, SymbolTable nametable, TertiaryNode en) {
-    // TODO Auto-generated method stub
+  private void analyzeFlowTertiaryNode(MethodDescriptor md, SymbolTable nametable, TertiaryNode tn,
+      NodeTupleSet nodeSet, NodeTupleSet implicitFlowTupleSet) {
+
+    System.out.println("### analyzeFlowTertiaryNode=" + tn.printNode(0));
+
+    NodeTupleSet tertiaryTupleNode = new NodeTupleSet();
+    analyzeFlowExpressionNode(md, nametable, tn.getCond(), tertiaryTupleNode, null,
+        implicitFlowTupleSet, false);
+
+    // add edges from tertiaryTupleNode to all nodes of conditional nodes
+    tertiaryTupleNode.addTupleSet(implicitFlowTupleSet);
+    System.out.println("### TertiarayNode's condition=" + tertiaryTupleNode);
+    analyzeFlowExpressionNode(md, nametable, tn.getTrueExpr(), tertiaryTupleNode, null,
+        implicitFlowTupleSet, false);
+
+    analyzeFlowExpressionNode(md, nametable, tn.getFalseExpr(), tertiaryTupleNode, null,
+        implicitFlowTupleSet, false);
+
+    nodeSet.addTupleSet(tertiaryTupleNode);
 
   }
 
-  private void analyzeMethodInvokeNode(MethodDescriptor md, SymbolTable nametable,
-      MethodInvokeNode en) {
-    // TODO Auto-generated method stub
+  private void analyzeFlowMethodInvokeNode(MethodDescriptor md, SymbolTable nametable,
+      MethodInvokeNode min, NodeTupleSet implicitFlowTupleSet) {
+
+    MethodDescriptor calleeMD = min.getMethod();
+
+    NameDescriptor baseName = min.getBaseName();
+    boolean isSystemout = false;
+    if (baseName != null) {
+      isSystemout = baseName.getSymbol().equals("System.out");
+    }
+
+    if (!ssjava.isSSJavaUtil(calleeMD.getClassDesc()) && !ssjava.isTrustMethod(calleeMD)
+        && !calleeMD.getModifiers().isNative() && !isSystemout) {
+
+      // CompositeLocation baseLocation = null;
+      if (min.getExpression() != null) {
+
+        NodeTupleSet baseNodeSet = new NodeTupleSet();
+        System.out.println("Analyzing base of method=" + min.getExpression());
+        analyzeFlowExpressionNode(calleeMD, nametable, min.getExpression(), baseNodeSet, null,
+            implicitFlowTupleSet, false);
+
+      } else {
+        if (min.getMethod().isStatic()) {
+          // String globalLocId = ssjava.getMethodLattice(md).getGlobalLoc();
+          // if (globalLocId == null) {
+          // throw new
+          // Error("Method lattice does not define global variable location at "
+          // + generateErrorMessage(md.getClassDesc(), min));
+          // }
+          // baseLocation = new CompositeLocation(new Location(md,
+          // globalLocId));
+        } else {
+          // 'this' var case
+          // String thisLocId = ssjava.getMethodLattice(md).getThisLoc();
+          // baseLocation = new CompositeLocation(new Location(md, thisLocId));
+        }
+      }
+
+      // constraint case:
+      // if (constraint != null) {
+      // int compareResult =
+      // CompositeLattice.compare(constraint, baseLocation, true,
+      // generateErrorMessage(cd, min));
+      // if (compareResult != ComparisonResult.GREATER) {
+      // // if the current constraint is higher than method's THIS location
+      // // no need to check constraints!
+      // CompositeLocation calleeConstraint =
+      // translateCallerLocToCalleeLoc(calleeMD, baseLocation, constraint);
+      // // System.out.println("check method body for constraint:" + calleeMD +
+      // // " calleeConstraint="
+      // // + calleeConstraint);
+      // checkMethodBody(calleeMD.getClassDesc(), calleeMD, calleeConstraint);
+      // }
+      // }
+
+      // checkCalleeConstraints(md, nametable, min, baseLocation, constraint);
+
+      // checkCallerArgumentLocationConstraints(md, nametable, min,
+      // baseLocation, constraint);
+
+      if (!min.getMethod().getReturnType().isVoid()) {
+        // If method has a return value, compute the highest possible return
+        // location in the caller's perspective
+        // CompositeLocation ceilingLoc =
+        // computeCeilingLocationForCaller(md, nametable, min, baseLocation,
+        // constraint);
+        // return ceilingLoc;
+      }
+    }
+
+    // return new CompositeLocation(Location.createTopLocation(md));
 
   }
 
@@ -379,8 +680,31 @@ public class LocationInference {
 
   }
 
-  private void analyzeArrayAccessNode(MethodDescriptor md, SymbolTable nametable, ArrayAccessNode en) {
-    // TODO Auto-generated method stub
+  private void analyzeFlowArrayAccessNode(MethodDescriptor md, SymbolTable nametable,
+      ArrayAccessNode aan, NodeTupleSet nodeSet, boolean isLHS) {
+
+    NodeTupleSet expNodeTupleSet = new NodeTupleSet();
+    analyzeFlowExpressionNode(md, nametable, aan.getExpression(), expNodeTupleSet, isLHS);
+
+    NodeTupleSet idxNodeTupleSet = new NodeTupleSet();
+    analyzeFlowExpressionNode(md, nametable, aan.getIndex(), idxNodeTupleSet, isLHS);
+
+    if (isLHS) {
+      // need to create an edge from idx to array
+
+      for (Iterator<NTuple<Descriptor>> idxIter = idxNodeTupleSet.iterator(); idxIter.hasNext();) {
+        NTuple<Descriptor> idxTuple = idxIter.next();
+        for (Iterator<NTuple<Descriptor>> arrIter = expNodeTupleSet.iterator(); arrIter.hasNext();) {
+          NTuple<Descriptor> arrTuple = arrIter.next();
+          getFlowGraph(md).addValueFlowEdge(idxTuple, arrTuple);
+        }
+      }
+
+      nodeSet.addTupleSet(expNodeTupleSet);
+    } else {
+      nodeSet.addTupleSet(expNodeTupleSet);
+      nodeSet.addTupleSet(idxNodeTupleSet);
+    }
 
   }
 
@@ -397,13 +721,16 @@ public class LocationInference {
     NodeTupleSet rightOpSet = new NodeTupleSet();
 
     // left operand
-    analyzeFlowExpressionNode(md, nametable, on.getLeft(), leftOpSet, null, implicitFlowTupleSet);
+    System.out.println("Analyzing left op=" + on.getLeft().printNode(0) + "::"
+        + on.getLeft().getClass());
+    analyzeFlowExpressionNode(md, nametable, on.getLeft(), leftOpSet, null, implicitFlowTupleSet,
+        false);
     System.out.println("leftOpSet=" + leftOpSet);
 
     if (on.getRight() != null) {
       // right operand
       analyzeFlowExpressionNode(md, nametable, on.getRight(), rightOpSet, null,
-          implicitFlowTupleSet);
+          implicitFlowTupleSet, false);
       System.out.println("rightOpSet=" + rightOpSet);
     }
 
@@ -458,9 +785,10 @@ public class LocationInference {
     }
 
     NameDescriptor nd = nn.getName();
+
     if (nd.getBase() != null) {
       analyzeFlowExpressionNode(md, nametable, nn.getExpression(), nodeSet, base,
-          implicitFlowTupleSet);
+          implicitFlowTupleSet, false);
     } else {
       String varname = nd.toString();
       if (varname.equals("this")) {
@@ -471,13 +799,8 @@ public class LocationInference {
 
       Descriptor d = (Descriptor) nametable.get(varname);
 
-      // CompositeLocation localLoc = null;
       if (d instanceof VarDescriptor) {
         VarDescriptor vd = (VarDescriptor) d;
-        // localLoc = d2loc.get(vd);
-        // the type of var descriptor has a composite location!
-        // loc = ((SSJavaType)
-        // vd.getType().getExtension()).getCompLoc().clone();
         base.add(vd);
       } else if (d instanceof FieldDescriptor) {
         // the type of field descriptor has a location!
@@ -562,7 +885,8 @@ public class LocationInference {
     // left = aan.getExpression();
     // }
     // fanNodeSet
-    base = analyzeFlowExpressionNode(md, nametable, left, nodeSet, base, implicitFlowTupleSet);
+    base =
+        analyzeFlowExpressionNode(md, nametable, left, nodeSet, base, implicitFlowTupleSet, false);
 
     if (!left.getType().isPrimitive()) {
 
@@ -596,14 +920,14 @@ public class LocationInference {
 
     // if LHS is array access node, need to capture value flows between an array
     // and its index value
-    analyzeFlowExpressionNode(md, nametable, an.getDest(), nodeSetLHS, null, implicitFlowTupleSet);
+    analyzeFlowExpressionNode(md, nametable, an.getDest(), nodeSetLHS, null, implicitFlowTupleSet,
+        true);
     System.out.println("ASSIGNMENT NODE nodeSetLHS=" + nodeSetLHS);
-    // NTuple<Descriptor> lhsDescTuple = analyzeFlowExpressionNode(md,
-    // nametable, an.getDest(), base);
 
     if (!postinc) {
       // analyze value flows of rhs expression
-      analyzeFlowExpressionNode(md, nametable, an.getSrc(), nodeSetRHS, null, implicitFlowTupleSet);
+      analyzeFlowExpressionNode(md, nametable, an.getSrc(), nodeSetRHS, null, implicitFlowTupleSet,
+          false);
       System.out.println("ASSIGNMENT NODE nodeSetRHS=" + nodeSetRHS);
 
       // creates edges from RHS to LHS
