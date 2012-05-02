@@ -388,9 +388,9 @@ class Edge {
             Vertex v3 = nex.dest();
             Vertex v4 = snex.dest();
             if (v1.ccw(v2, v3) != v1.ccw(v2, v4)) {
-              Vec2 v21 = prev.orig();
-              Vec2 v22 = prev.dest();
-              Vec2 v23 = nex.dest();
+              Vertex v21 = prev.orig();
+              Vertex v22 = prev.dest();
+              Vertex v23 = nex.dest();
               Vec2 vv1 = v21.circle_center(v22, v23);
               v21 = sprev.orig();
               v22 = sprev.dest();
