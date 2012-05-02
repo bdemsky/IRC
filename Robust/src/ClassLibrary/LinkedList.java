@@ -21,7 +21,7 @@ public class LinkedList {
     clear();
   }
 
-  public add(Object o) {
+  public void add(Object o) {
     if( tail == null ) {
       head = new LinkedListElement(o, null, null);
       tail = head;
@@ -33,7 +33,7 @@ public class LinkedList {
     size++;
   }
 
-  public addFirst(Object o) {
+  public void addFirst(Object o) {
     if( head == null ) {
       head = new LinkedListElement(o, null, null);
       tail = head;
@@ -45,11 +45,11 @@ public class LinkedList {
     size++;
   }
 
-  public addLast(Object o) {
+  public void addLast(Object o) {
     add(o);
   }
 
-  public clear() {
+  public void clear() {
     head = null;
     tail = null;
     size = 0;
