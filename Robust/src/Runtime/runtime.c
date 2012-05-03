@@ -819,7 +819,7 @@ __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
 #endif
 #ifdef MLP
   v->oid=oid;
-  //  v->allocsite=allocsite;
+  v->allocsite=allocsite;
 #endif
   return v;
 }
