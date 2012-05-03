@@ -447,7 +447,7 @@ public class Semaphore implements /*java.io.*/Serializable {
      * @throws InterruptedException if the current thread is interrupted
      * @throws IllegalArgumentException if {@code permits} is negative
      */
-    public void acquire(int permits) throws InterruptedException {
+    public synchronized void acquire(int permits) throws InterruptedException {
         /*if (permits < 0) throw new IllegalArgumentException();
         sync.acquireSharedInterruptibly(permits);*/
       //System.out.println("Unimplemented Semaphore.acquire(int)!");
@@ -594,7 +594,7 @@ public class Semaphore implements /*java.io.*/Serializable {
      * @param permits the number of permits to release
      * @throws IllegalArgumentException if {@code permits} is negative
      */
-    public void release(int permits) {
+    public synchronized void release(int permits) {
         /*if (permits < 0) throw new IllegalArgumentException();
         sync.releaseShared(permits);*/
       //System.out.println("Unimplemented Semaphore.release()!");
