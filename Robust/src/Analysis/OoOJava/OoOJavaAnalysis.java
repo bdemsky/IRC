@@ -147,11 +147,12 @@ public class OoOJavaAnalysis {
     State.logEvent("OoOJavaAnalysis 1st pass completed");
 
     // 2nd pass, liveness, in-set out-set (no virtual reads yet!)
-    Iterator<FlatSESEEnterNode> seseItr = rblockRel.getLocalRootSESEs().iterator();
+    // run liveness analysis for each sese blocks
+    Iterator<FlatSESEEnterNode> seseItr = rblockRel.getAllSESEs().iterator();
     while (seseItr.hasNext()) {
       FlatSESEEnterNode sese = seseItr.next();
       livenessAnalysisBackward(sese);
-    }
+    }  
 
     State.logEvent("OoOJavaAnalysis 2nd pass completed");
 
@@ -324,38 +325,50 @@ public class OoOJavaAnalysis {
 
   }
 
+
   private void livenessAnalysisBackward(FlatSESEEnterNode fsen) {
 
-    // flow backward across nodes to compute liveness, and
-    // take special care with sese enter/exit nodes that
-    // alter this from normal liveness analysis
+    // each task maintains a local liveness result
+    Hashtable<FlatNode, Set<TempDescriptor>> livenessLocalView =
+        new Hashtable<FlatNode, Set<TempDescriptor>>();
+
+    // flow backward across nodes to compute liveness.
+    // it contributes liveness results to the global view
+    // only if the current flat node belongs directly to the currently analyzing
+    // sese.
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    // flatNodesToVisit.add( fm.getFlatExit() );
     flatNodesToVisit.add(fsen.getFlatExit());
 
     while (!flatNodesToVisit.isEmpty()) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove(fn);
 
-      Set<TempDescriptor> prev = livenessGlobalView.get(fn);
+      Set<TempDescriptor> prev = livenessLocalView.get(fn);
 
       // merge sets from control flow joins
       Set<TempDescriptor> livein = new HashSet<TempDescriptor>();
       for (int i = 0; i < fn.numNext(); i++) {
         FlatNode nn = fn.getNext(i);
-        Set<TempDescriptor> s = livenessGlobalView.get(nn);
+        Set<TempDescriptor> s = livenessLocalView.get(nn);
         if (s != null) {
           livein.addAll(s);
         }
       }
 
-      Set<TempDescriptor> curr = liveness_nodeActions(fn, livein);
+      Set<TempDescriptor> curr = liveness_nodeActions(fsen, fn, livein);
 
       // if a new result, schedule backward nodes for analysis
       if (!curr.equals(prev)) {
 
         if (fn != fsen) {
-          livenessGlobalView.put(fn, curr);
+          livenessLocalView.put(fn, curr);
+
+          if (rblockRel.getLocalInnerRBlock(fn).equals(fsen)) {
+            // the current flat node belongs to the currently analyzing sese
+            // store its liveness in the gloval view
+            livenessGlobalView.put(fn, curr);
+          }
+
           for (int i = 0; i < fn.numPrev(); i++) {
             FlatNode nn = fn.getPrev(i);
             flatNodesToVisit.add(nn);
@@ -365,17 +378,21 @@ public class OoOJavaAnalysis {
     }
   }
 
-  private Set<TempDescriptor> liveness_nodeActions(FlatNode fn, Set<TempDescriptor> liveIn) {
+  private Set<TempDescriptor> liveness_nodeActions(FlatSESEEnterNode currSESE, FlatNode fn,
+      Set<TempDescriptor> liveIn) {
+
     switch (fn.kind()) {
 
     case FKind.FlatSESEEnterNode: {
       // add whatever is live-in at a task enter to that
       // task's in-var set
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-      if (liveIn != null) {
-        fsen.addInVarSet(liveIn);
+      if (currSESE.equals(fsen)) {
+        if (liveIn != null) {
+          fsen.addInVarSet(liveIn);
+        }
+        // no break, should also execute default actions
       }
-      // no break, should also execute default actions
     }
 
     default: {
@@ -409,7 +426,7 @@ public class OoOJavaAnalysis {
         liveIn.addAll(virtualReadTemps);
       }
     }
-    break;
+      break;
 
     } // end switch
 
@@ -482,7 +499,8 @@ public class OoOJavaAnalysis {
       // written by an SESE and should be added to the in-set
       // anything virtually read by this SESE should be pruned
       // of parent or sibling sources
-      Set<TempDescriptor> liveVars = liveness.getLiveInTemps(fsen.getfmEnclosing(), fn);
+      // Set<TempDescriptor> liveVars = liveness.getLiveInTemps(fsen.getfmEnclosing(), fn);
+      Set<TempDescriptor> liveVars = livenessGlobalView.get(fn);
 
       Set<TempDescriptor> fsenVirtReads =
         vstTable.calcVirtReadsAndPruneParentAndSiblingTokens(fsen, liveVars);
