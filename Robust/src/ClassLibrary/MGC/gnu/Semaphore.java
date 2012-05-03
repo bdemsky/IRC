@@ -131,6 +131,8 @@ import java.util.concurrent.atomic.*;*/
 
 public class Semaphore implements /*java.io.*/Serializable {
     private static final long serialVersionUID = -3222578661600680210L;
+    private final int count;
+    private final boolean fair;
     /** All mechanics via AbstractQueuedSynchronizer subclass */
     //private final Sync sync;
 
@@ -236,6 +238,7 @@ public class Semaphore implements /*java.io.*/Serializable {
      */
     public Semaphore(int permits) {
         //sync = new NonfairSync(permits);
+	count = permits;
     }
 
     /**
@@ -251,6 +254,8 @@ public class Semaphore implements /*java.io.*/Serializable {
      */
     public Semaphore(int permits, boolean fair) {
         //sync = (fair)? new FairSync(permits) : new NonfairSync(permits);
+	count = permits;
+	fair = fair;
     }
 
     /**
@@ -281,9 +286,12 @@ public class Semaphore implements /*java.io.*/Serializable {
      *
      * @throws InterruptedException if the current thread is interrupted
      */
-    public void acquire() throws InterruptedException {
+    public synchronized void acquire() throws InterruptedException {
         //sync.acquireSharedInterruptibly(1);
-        System.out.println("Unimplemented Semaphore.acquire()!");
+        //System.out.println("Unimplemented Semaphore.acquire()!");
+	while(this.count == 0) wait();
+	this.count--;
+	this.notify();
     }
 
     /**
@@ -396,9 +404,11 @@ public class Semaphore implements /*java.io.*/Serializable {
      * Correct usage of a semaphore is established by programming convention
      * in the application.
      */
-    public void release() {
+    public synchronized void release() {
         //sync.releaseShared(1);
-        System.out.println("Unimplemented Semaphore.release()!");
+        //System.out.println("Unimplemented Semaphore.release()!");
+	this.count++;
+	this.notify();
     }
 
     /**
@@ -440,7 +450,10 @@ public class Semaphore implements /*java.io.*/Serializable {
     public void acquire(int permits) throws InterruptedException {
         /*if (permits < 0) throw new IllegalArgumentException();
         sync.acquireSharedInterruptibly(permits);*/
-      System.out.println("Unimplemented Semaphore.acquire(int)!");
+      //System.out.println("Unimplemented Semaphore.acquire(int)!");
+	while(this.count < permits) wait();
+	this.count-=permits;
+	this.notify();
     }
 
     /**
@@ -584,7 +597,9 @@ public class Semaphore implements /*java.io.*/Serializable {
     public void release(int permits) {
         /*if (permits < 0) throw new IllegalArgumentException();
         sync.releaseShared(permits);*/
-      System.out.println("Unimplemented Semaphore.release()!");
+      //System.out.println("Unimplemented Semaphore.release()!");
+	this.count+=permits;
+	this.notify();
     }
 
     /**

@@ -79,6 +79,10 @@ import java.util.concurrent.atomic.*;*/
  */
 public class ReentrantLock implements /*Lock, java.io.*/Serializable {
     private static final long serialVersionUID = 7373984872572414699L;
+    boolean isLocked = false;
+    Thread  lockedBy = null;
+    int     lockedCount = 0;
+
     /** Synchronizer providing all implementation mechanics */
     //private final Sync sync;
 
@@ -257,9 +261,16 @@ public class ReentrantLock implements /*Lock, java.io.*/Serializable {
      * purposes and lies dormant until the lock has been acquired,
      * at which time the lock hold count is set to one.
      */
-    public void lock() {
+    public synchronized void lock() {
         //sync.lock();
-        System.out.println("Unimplemented ReentrantLock.lock()!");
+        //System.out.println("Unimplemented ReentrantLock.lock()!");
+	Thread callingThread = Thread.currentThread();
+	while(isLocked && lockedBy != callingThread){
+	    wait();
+	}
+	isLocked = true;
+	lockedCount++;
+	lockedBy = callingThread;
     }
 
     /**
@@ -309,7 +320,14 @@ public class ReentrantLock implements /*Lock, java.io.*/Serializable {
      * @throws InterruptedException if the current thread is interrupted
      */
     public void lockInterruptibly() throws InterruptedException {
-	System.out.println("Unimplemented ReentrantLock.lockInterruptibly()!");
+	Thread callingThread = Thread.currentThread();
+	while(isLocked && lockedBy != callingThread){
+	    wait();
+	}
+	isLocked = true;
+	lockedCount++;
+	lockedBy = callingThread;
+	//System.out.println("Unimplemented ReentrantLock.lockInterruptibly()!");
         //sync.acquireInterruptibly(1);
     }
 
@@ -428,9 +446,17 @@ public class ReentrantLock implements /*Lock, java.io.*/Serializable {
      * @throws IllegalMonitorStateException if the current thread does not
      *         hold this lock
      */
-    public void unlock() {
+    public synchronized void unlock() {
         //sync.release(1);
-        System.out.println("Unimplemented ReentrantLock.unlock()!");
+        //System.out.println("Unimplemented ReentrantLock.unlock()!");
+	if(Thread.currentThread() == this.lockedBy){
+	    lockedCount--;
+
+	    if(lockedCount == 0){
+		isLocked = false;
+		notify();
+	    }
+	}
     }
 
     /**
@@ -473,9 +499,10 @@ public class ReentrantLock implements /*Lock, java.io.*/Serializable {
      * @return the Condition object
      */
     public Condition newCondition() {
-      System.out.println("Unimplemented ReentrantLock.newCondition()!");
-      return null;
+      //System.out.println("Unimplemented ReentrantLock.newCondition()!");
+      //return null;
         //return sync.newCondition();
+	return new ConditionObject();
     }
 
     /**

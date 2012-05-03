@@ -94,6 +94,7 @@ public class ArrayBlockingQueue/*<E>*/ extends AbstractQueue/*<E>*/
         putIndex = inc(putIndex);
         ++count;
         notEmpty.signal();
+        //lock.notifyAll();
     }
 
     /**
