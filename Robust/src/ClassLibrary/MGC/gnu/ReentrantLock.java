@@ -319,7 +319,7 @@ public class ReentrantLock implements /*Lock, java.io.*/Serializable {
      *
      * @throws InterruptedException if the current thread is interrupted
      */
-    public void lockInterruptibly() throws InterruptedException {
+    public synchronized void lockInterruptibly() throws InterruptedException {
 	Thread callingThread = Thread.currentThread();
 	while(isLocked && lockedBy != callingThread){
 	    wait();
