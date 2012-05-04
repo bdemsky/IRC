@@ -86,7 +86,7 @@ public class JGFSORBench {
       System.out.println("Validation failed");
       System.out.println("Gtotal = " + Gtotal + "  dev=" + dev + "  sizeParam=" + size);
     }else{
-      System.out.println("Validataion Success! dev="+dev);
+      System.out.println("VALID dev="+dev);
     }
 
   }

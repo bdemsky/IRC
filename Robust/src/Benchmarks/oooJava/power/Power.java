@@ -35,10 +35,14 @@ public class Power {
 	 **/
 	public static void main(String args[]) {
 
-		boolean printResults = false;
+		boolean validationTest = false;
 		boolean printMsgs =true;
 		// the input size is fixed, but the user may want the result printed
 		// parseCmdLine(args);
+		
+		if(args.length>0){
+		  validationTest=true;
+		}
 
 		// initial pass
 		long start0 = System.currentTimeMillis();
@@ -55,18 +59,18 @@ public class Power {
 
 		while (true) {
 			r.compute();
-			if (printResults)
+			if (validationTest)
 				System.out.println(r);
 
 			if (r.reachedLimit())
 				break;
 
-			r.nextIter(printResults);
+			r.nextIter(validationTest);
 		} /* while */
 
 		long end1 = System.currentTimeMillis();
 
-		if (printMsgs) {
+		if (printMsgs && (!validationTest)) {
 			System.out.println("Power build time " + (end0 - start0) / 1000.0);
 			System.out
 					.println("Power compute time " + (end1 - start1) / 1000.0);

@@ -38,7 +38,7 @@ public class JGFMonteCarloBench extends CallAppDemo {
       System.out.println(" expectedReturnRate= " + getAppDemo().JGFavgExpectedReturnRateMC  + "  " + dev
           + "  " + size);
     }else{
-      System.out.println("Validation success");
+      System.out.println("VALID");
     }
   }
 

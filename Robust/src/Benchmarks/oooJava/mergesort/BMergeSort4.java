@@ -3,22 +3,30 @@
  */
 
 public class MergeSort4 extends MergeSort {
+  
+  public  boolean validationTest;
 
   public static void main(String[] args) {
     int problemSize = 4194304;
     int parallelBranch=32;
+    
+    MergeSort4 sort = new MergeSort4();
+    
     if (args.length > 0) {
       problemSize = Integer.parseInt(args[0]);
     }
     if (args.length > 1) {
       parallelBranch = Integer.parseInt(args[1]);
     }
-    MergeSort4 sort = new MergeSort4();
+    if (args.length > 2){
+     sort.validationTest=true;
+    }
     sort.run(problemSize,parallelBranch);
   }
 
   public MergeSort4() {
     super();
+    validationTest=false;
   }
 
   public void runWorkAndTest() {
@@ -28,9 +36,11 @@ public class MergeSort4 extends MergeSort {
       long endT=System.currentTimeMillis();
       System.out.println("running time="+(endT-startT));
     }
-//    sese test{
-//      checkSorted(output);
-//    }
+    if(validationTest){
+      sese test{
+        checkSorted(output);
+      }
+    }
   }
 
   public int[] serializedSort(int A[], int low, int high) {

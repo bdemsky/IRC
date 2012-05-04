@@ -79,7 +79,7 @@ public class MergeSort {
         return;
       }
     }
-    System.out.println("Validation Success.");
+    System.out.println("VALID");
   }
 
   protected void merge(int A[], int B[], int out[]) {

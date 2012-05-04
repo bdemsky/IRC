@@ -228,7 +228,7 @@ public class Labyrinth
         if(!stats)
             System.out.println("Verification not passed");
         else 
-            System.out.println("Verification passed.");
+            System.out.println("VALID");
         
         System.out.println("Finished");    
     }

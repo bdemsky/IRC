@@ -187,7 +187,7 @@ public class RayTracer {
 		view = scene.getView();
 	}
 
-	public void render(Interval interval) {
+	public void render(Interval interval,boolean vtest) {
 		
 //		long checksum;
 //		checksum=0;
@@ -289,7 +289,9 @@ public class RayTracer {
 			
 		} // end for (y)
 
-		System.out.println("END OF WORK");
+		if(!vtest){
+		  System.out.println("END OF WORK");
+		}
 		
 	}
 	

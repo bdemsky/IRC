@@ -55,6 +55,8 @@ public class JGFMolDynBenchSizeB {
     if (l != r ){
       System.printString("Validation failed\n");
       System.printString("Kinetic Energy = " + (long)dval + "  " + (long)dev + "  " + size + "\n");
+    }else{
+      System.printString("VALID\n");
     }
 
     System.printString("Finished\n");

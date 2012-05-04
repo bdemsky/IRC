@@ -32,6 +32,8 @@ public class JGFCryptBench {
   short[] userkey; // Key for encryption/decryption.
   int[] Z; // Encryption subkey (userkey derived).
   int[] DK; // Decryption subkey (userkey derived).
+  
+  public boolean validationTest;
 
   // buildTestData
   // Builds the data used for the test -- each time the test is run.
@@ -279,6 +281,7 @@ public class JGFCryptBench {
     datasizes[0] = 3000000;
     datasizes[1] = 20000000;
     datasizes[2] = 1000000000;
+    validationTest=false;
   }
 
   public void JGFsetsize(int size, int nWorker) {
@@ -355,20 +358,25 @@ public class JGFCryptBench {
     }   
     int p=plain2[0];
     long endT=System.currentTimeMillis();
-    System.out.println(p+"runningtime="+(endT-startT));
+    if(!validationTest){
+      System.out.println(p+"runningtime="+(endT-startT));
+    }
+    
+    if(validationTest){
+      boolean error = false; 
+      for (int i = 0; i < array_rows; i++){
+        error = (plain1 [i] != plain2 [i]); 
+        if (error){
+          System.out.println("Validation failed");
+          System.out.println("Original Byte " + i + " = " + plain1[i]); 
+          System.out.println("Encrypted Byte " + i + " = " + crypt1[i]); 
+          System.out.println("Decrypted Byte " + i + " = " + plain2[i]); 
+          return;
+        }
+      }
+      System.out.println("VALID");
+    }
 
-//    boolean error = false; 
-//    for (int i = 0; i < array_rows; i++){
-//      error = (plain1 [i] != plain2 [i]); 
-//      if (error){
-//        System.out.println("Validation failed");
-//        System.out.println("Original Byte " + i + " = " + plain1[i]); 
-//        System.out.println("Encrypted Byte " + i + " = " + crypt1[i]); 
-//        System.out.println("Decrypted Byte " + i + " = " + plain2[i]); 
-//        return;
-//      }
-//    }
-//    System.out.println("Validation Success");
   }
 
   public void JGFrun(int size, int nWorker) {
@@ -379,7 +387,9 @@ public class JGFCryptBench {
     long endT=System.currentTimeMillis();
     JGFkernel();
     
-    System.out.println("init="+(endT-startT));
+    if(!validationTest){
+      System.out.println("init="+(endT-startT));
+    }
   }
 
   public static void main(String argv[]) {
@@ -395,6 +405,10 @@ public class JGFCryptBench {
 
     if (argv.length > 1) {
       nWorker = Integer.parseInt(argv[1]);
+    }
+    
+    if(argv.length > 2){
+     cb.validationTest=true;
     }
 
     cb.JGFrun(problem_size, nWorker);

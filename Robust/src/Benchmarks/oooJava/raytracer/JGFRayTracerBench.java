@@ -38,7 +38,7 @@ public class JGFRayTracerBench extends RayTracer {
 
 	}
 
-	public void JGFapplication() {
+	public void JGFapplication(boolean vtest) {
 
 //		instr.startTimer("Section3:RayTracer:Run");
 
@@ -47,7 +47,7 @@ public class JGFRayTracerBench extends RayTracer {
 		Interval interval = new Interval(0, width, height, 0, height, 1);
 
 		// Do the business!
-		render(interval);
+		render(interval,vtest);
 //		System.out.println("DONE");
 //		instr.stopTimer("Section3:RayTracer:Run");
 
@@ -76,7 +76,7 @@ public class JGFRayTracerBench extends RayTracer {
 		// System.gc();
 	}
 
-	public void JGFrun(int size, JGFInstrumentor instr) {
+	public void JGFrun(int size, JGFInstrumentor instr,boolean vtest) {
 
 //		instr.addTimer("Section3:RayTracer:Total", "Solutions", size);
 //		instr.addTimer("Section3:RayTracer:Init", "Objects", size);
@@ -87,7 +87,7 @@ public class JGFRayTracerBench extends RayTracer {
 //		instr.startTimer("Section3:RayTracer:Total");
 
 		JGFinitialise();
-		JGFapplication();
+		JGFapplication(vtest);
 //		JGFvalidate();
 //		JGFtidyup();
 

@@ -73,10 +73,12 @@ public class TestRunner // Voronoi
     long start1 = System.currentTimeMillis();
     Edge edge = point.buildDelaunayTriangulation(extra, 0);
     long end1 = System.currentTimeMillis();
-    System.out.println("Build time " + (end0 - start0) / 1000.0);
-    System.out.println("Compute  time " + (end1 - start1) / 1000.0);
-    System.out.println("Total time " + (end1 - start0) / 1000.0);
-    System.out.println("Done!");
+    if (!printResults){
+      System.out.println("Build time " + (end0 - start0) / 1000.0);
+      System.out.println("Compute  time " + (end1 - start1) / 1000.0);
+      System.out.println("Total time " + (end1 - start0) / 1000.0);
+      System.out.println("Done!");
+    }
 
     if (printResults)
       edge.outputVoronoiDiagram();

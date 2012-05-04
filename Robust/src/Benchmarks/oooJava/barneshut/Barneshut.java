@@ -37,8 +37,11 @@ public final class Barneshut {
 
   private  boolean isFirstRun;
   
+  public boolean validationTest;
+  
   public  Barneshut(){
     isFirstRun = true;
+    validationTest=false;
   }
 
   private  void ReadInput(String filename) {
@@ -54,7 +57,7 @@ public final class Barneshut {
     epssq = eps * eps;
     itolsq = 1.0 / (tol * tol);
     
-    if (isFirstRun) {
+    if (isFirstRun && !validationTest) {
       System.out.println("configuration: " + nbodies + " bodies, " + ntimesteps + " time steps");
       System.out.println("");
     }
@@ -207,17 +210,23 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
     mintime =9223372036854775807L;
     run = 0;
     
+    if (args.length > 1 ) {
+      bh.validationTest=true;
+    }
+    
 //    while (((run < 3) || (Math.abs(lasttime-runtime)*64 > min(lasttime, runtime))) && (run < 7)) {
       runtime = bh.run(args);
       if (runtime < mintime) mintime = runtime;
       run++;
 //    }
-    System.out.println("minimum runtime: " + mintime + " ms");
-    System.out.println("");
+    if(!bh.validationTest){
+      System.out.println("minimum runtime: " + mintime + " ms");
+      System.out.println("");
+    }
   }
 
   public  long run(String args[]) {
-    if (isFirstRun) {
+    if (isFirstRun && !validationTest) {
       System.out.println("Lonestar Benchmark Suite v2.1");
       System.out.println("Copyright (C) 2007, 2008, 2009 The University of Texas at Austin");
       System.out.println("http://iss.ices.utexas.edu/lonestar/");
@@ -228,14 +237,16 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
       System.out.println("http://iss.ices.utexas.edu/lonestar/barneshut.html");
       System.out.println("");
     }
-    if (args.length != 1) {
+    if (args.length ==0 ) {
       System.out.println("arguments: input_file_name");
       System.exit(-1);
     }
     long fstart_time = System.currentTimeMillis();
     ReadInput(args[0]);
     long fend_time = System.currentTimeMillis();
-    System.out.println("file reading time="+(fend_time-fstart_time));
+    if(!validationTest){
+      System.out.println("file reading time="+(fend_time-fstart_time));
+    }
     long runtime = 0;
     int local_nbodies=nbodies;
     int local_ntimesteps=ntimesteps;
@@ -280,15 +291,17 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
     long end_time=System.currentTimeMillis();
     
     if (isFirstRun) {
-      /*
-        for (int i = 0; i < local_nbodies; i++) {
-          System.out.println(body[i].posx + " " + body[i].posy + " " + body[i].posz); // print result
+        if(validationTest){
+          for (int i = 0; i < local_nbodies; i++) {
+            System.out.println(body[i].posx + " " + body[i].posy + " " + body[i].posz); // print result
+          }     
+          System.out.println("");
         }
-     */
-      System.out.println("");
     }
     runtime += (end_time-start_time);
-    System.out.println("runtime: " + runtime + " ms");
+    if(!validationTest){
+      System.out.println("runtime: " + runtime + " ms");
+    }
 
     isFirstRun = false;
     return runtime;

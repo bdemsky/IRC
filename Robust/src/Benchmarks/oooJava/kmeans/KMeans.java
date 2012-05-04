@@ -135,6 +135,8 @@ public class KMeans /*extends Thread*/ {
    * Output: Cluster centers
    **/
   float[][] cluster_centres;
+  
+  public boolean validationTest;
 
   public KMeans() {
     max_nclusters = 13;
@@ -143,6 +145,7 @@ public class KMeans /*extends Thread*/ {
     use_zscore_transform = 1;
     threshold = (float) 0.001;
     best_nclusters=0;
+    validationTest=false;
   }
 
   public KMeans(int threadid, GlobalArgs g_args) {
@@ -272,24 +275,24 @@ public class KMeans /*extends Thread*/ {
     }
 
     long endT=System.currentTimeMillis();
+    if(!kms.validationTest){
     System.out.println("running time="+(endT-startT));
+    }
 //    System.out.println("TIME="+g_args.global_time);
 
     System.out.println("Printing output......");
     System.out.println("Best_nclusters= " + kms.best_nclusters);
 
     /* Output: the coordinates of the cluster centres */
-    /*
-    {
-      for (int i = 0; i < kms.best_nclusters; i++) {
-        System.out.print(i + " ");
-        for (int j = 0; j < numAttributes; j++) {
-          System.out.print(kms.cluster_centres[i][j] + " ");
-        }
-        System.out.println("\n");
-      }
+    if(kms.validationTest){      
+        for (int i = 0; i < kms.best_nclusters; i++) {
+          System.out.print(i + " ");
+          for (int j = 0; j < numAttributes; j++) {
+            System.out.print(kms.cluster_centres[i][j] + " ");
+          }
+          System.out.println("\n");
+        }      
     }
-    */
 
     System.out.println("Finished......");
 
@@ -329,6 +332,8 @@ public class KMeans /*extends Thread*/ {
         }
       } else if(arg.equals("-h")) {
         km.usage();
+      } else if(arg.equals("-v")){
+        km.validationTest=true;
       }
     }
     if(km.nthreads == 0 || km.filename == null) {
