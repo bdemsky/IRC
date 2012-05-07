@@ -31,18 +31,22 @@ public class FlowGraph {
   // maps an infer node to the set of neighbors which is pointed by the node
   Map<NTuple<Descriptor>, Set<FlowNode>> mapNodeToNeighborSet;
 
+  // maps a paramter descriptor to its index
+  Map<Descriptor, Integer> mapParamDescToIdx;
   boolean debug = true;
 
-  public FlowGraph(MethodDescriptor md) {
+  public FlowGraph(MethodDescriptor md, Map<Descriptor, Integer> mapParamDescToIdx) {
     this.md = md;
     nodeSet = new HashSet<FlowNode>();
     mapDescTupleToInferNode = new HashMap<NTuple<Descriptor>, FlowNode>();
     mapNodeToNeighborSet = new HashMap<NTuple<Descriptor>, Set<FlowNode>>();
+    this.mapParamDescToIdx = new HashMap<Descriptor, Integer>();
+    this.mapParamDescToIdx.putAll(mapParamDescToIdx);
 
     // create a node for 'this' varialbe
     NTuple<Descriptor> thisDescTuple = new NTuple<Descriptor>();
     thisDescTuple.add(md.getThis());
-    FlowNode thisNode = new FlowNode(thisDescTuple);
+    FlowNode thisNode = new FlowNode(thisDescTuple, true);
     NTuple<Descriptor> thisVarTuple = new NTuple<Descriptor>();
     thisVarTuple.add(md.getThis());
     createNewFlowNode(thisVarTuple);
@@ -115,7 +119,8 @@ public class FlowGraph {
   public FlowNode createNewFlowNode(NTuple<Descriptor> tuple) {
 
     if (!mapDescTupleToInferNode.containsKey(tuple)) {
-      FlowNode node = new FlowNode(tuple);
+
+      FlowNode node = new FlowNode(tuple, isParamter(tuple));
       mapDescTupleToInferNode.put(tuple, node);
       nodeSet.add(node);
 
@@ -130,6 +135,17 @@ public class FlowGraph {
       return mapDescTupleToInferNode.get(tuple);
     }
 
+  }
+
+  public boolean isParamter(NTuple<Descriptor> tuple) {
+    // return true if a descriptor tuple is started with a parameter descriptor
+    Descriptor firstIdxDesc = tuple.get(0);
+    return mapParamDescToIdx.containsKey(firstIdxDesc);
+  }
+
+  public int getParamIdx(NTuple<Descriptor> tuple) {
+    Descriptor firstDesc = tuple.get(0);
+    return mapParamDescToIdx.get(firstDesc).intValue();
   }
 
   private void drawEdges(FlowNode node, BufferedWriter bw, Set<FlowNode> addedNodeSet,

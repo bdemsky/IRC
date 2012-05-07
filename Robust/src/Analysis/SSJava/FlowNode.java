@@ -15,13 +15,18 @@ public class FlowNode {
   // this set contains fields of the base type
   private Set<FlowNode> fieldNodeSet;
 
+  // set true if this node is driven from a paramter
+  private boolean isParameter;
+
   public Set<FlowNode> getFieldNodeSet() {
     return fieldNodeSet;
   }
 
   private Set<FlowEdge> outEdgeSet;
 
-  public FlowNode(NTuple<Descriptor> tuple) {
+  public FlowNode(NTuple<Descriptor> tuple, boolean isParam) {
+
+    this.isParameter = isParam;
 
     NTuple<Descriptor> base = null;
     Descriptor desc = null;
@@ -46,6 +51,10 @@ public class FlowNode {
     fieldNodeSet.add(node);
   }
 
+  public boolean isParameter() {
+    return isParameter;
+  }
+
   public NTuple<Descriptor> getDescTuple() {
     return descTuple;
   }
@@ -55,7 +64,12 @@ public class FlowNode {
   }
 
   public String toString() {
-    return "[FlowNode]::" + descTuple;
+    String rtr = "[FlowNode]:";
+    if (isParameter()) {
+      rtr += "param:";
+    }
+    rtr += ":" + descTuple;
+    return rtr;
   }
 
   public Iterator<FlowEdge> iteratorOfOutEdges() {

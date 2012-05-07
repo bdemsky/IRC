@@ -631,6 +631,12 @@ public class SSJavaAnalysis {
 
     discovered.add(md);
 
+    Iterator itr2 = callgraph.getCalleeSet(md).iterator();
+    while (itr2.hasNext()) {
+      MethodDescriptor dCallee = (MethodDescriptor) itr2.next();
+      addDependent(dCallee, md);
+    }
+
     Iterator itr = callgraph.getCallerSet(md).iterator();
     while (itr.hasNext()) {
       MethodDescriptor dCaller = (MethodDescriptor) itr.next();
