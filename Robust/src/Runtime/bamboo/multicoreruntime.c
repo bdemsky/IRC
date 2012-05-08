@@ -429,6 +429,20 @@ void CALL01(___System______printString____L___String___, struct ___String___ * _
 }
 #endif
 
+#ifdef D___Scanner______nextDouble____ 
+double ___Scanner______nextDouble____(struct ___Scanner______nextDouble_____params * ___params___) {
+  // TODO
+  return 0;
+}
+#endif
+
+#ifdef D___Scanner______nextInt____ 
+int ___Scanner______nextInt____(struct ___Scanner______nextInt_____params * ___params___) {
+  // TODO
+  return 0;
+}
+#endif
+
 /* Object allocation function */
 
 #if defined(MULTICORE_GC)||defined(PMC_GC)
