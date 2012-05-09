@@ -349,7 +349,7 @@ long long ___System______numGCs____(struct ___System______numGCs_____params * __
 #endif
 
 #ifdef D___System______milliGcTime____
-long long ___System______milliGcTime____(struct ___System______milliGcTime_____params * ___params___) {
+long long CALL00(___System______milliGcTime____) {
 #ifdef MULTICORE_GC
   return GCtime/700000;
 #else
@@ -429,17 +429,23 @@ void CALL01(___System______printString____L___String___, struct ___String___ * _
 }
 #endif
 
-#ifdef D___Scanner______nextDouble____ 
-double ___Scanner______nextDouble____(struct ___Scanner______nextDouble_____params * ___params___) {
-  // TODO
-  return 0;
-}
+#ifdef D___Scanner______next____ 
+struct ArrayObject * CALL01(___Scanner______next____, struct ___Scanner___ * ___this___) {
+  int pos = VAR(___this___)->___currentpos___;
+#if defined(MULTICORE_GC)||defined(PMC_GC)
+  struct ArrayObject * result= allocate_newarray(NULL, CHARARRAYTYPE, 10);
+#else
+  struct ArrayObject * result=allocate_newarray(CHARARRAYTYPE, 10);
 #endif
-
-#ifdef D___Scanner______nextInt____ 
-int ___Scanner______nextInt____(struct ___Scanner______nextInt_____params * ___params___) {
-  // TODO
-  return 0;
+  int i = 0;
+  while(true) { //(VAR(___this___)->___sourcename___[pos]==' ')||(VAR(___this___)->___sourcename___[pos]=='\n')){
+	  pos++;
+  }
+  do {
+	  ((short *)(((char *)&result->___length___)+sizeof(int)))[i++]='\0';//(short)VAR(___this___)->___sourcename___[pos++]; // TODO
+  }while(true);//(VAR(___this___)->___sourcename___[pos]!=' ')&&(VAR(___this___)->___sourcename___[pos]!='\n'));
+  VAR(___this___)->___currentpos___ = pos;
+  return result;
 }
 #endif
 
