@@ -1,6 +1,7 @@
 public class Scanner implements Iterator {
   private String sourcename;
   private int currentpos;
+  private int filearray;
 
   public Scanner (final String source)	{
     this.sourcename = source;
@@ -10,13 +11,7 @@ public class Scanner implements Iterator {
   public void close () {
   }
 
-  public double nextDouble () {
-      return Double.parseDouble(new String(next()));
-  }
+  public native double nextDouble ();
 
-  public int nextInt () {
-      return Integer.parseInt(new String(next()));
-  }
-  
-  private native char[] next();
+  public native int nextInt ();
 }
