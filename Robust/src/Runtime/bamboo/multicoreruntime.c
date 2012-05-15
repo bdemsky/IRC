@@ -16,6 +16,10 @@
 #ifdef MEMPERFCOUNT
 #include "memprof.h"
 #endif
+#ifdef INPUTFILE
+#include "InputFileArrays.h"
+#endif
+
 
 extern int classsize[];
 extern int typearray[];
@@ -429,45 +433,11 @@ void CALL01(___System______printString____L___String___, struct ___String___ * _
 }
 #endif
 
+#ifdef INPUTFILE
 #ifdef D___Scanner______nextInt____ 
 int CALL01(___Scanner______nextInt____, struct ___Scanner___ * ___this___) {
   int pos = VAR(___this___)->___currentpos___;
-  int i = 0;
-  unsigned char * filearray = (unsigned char *)(VAR(___this___)->___filearray___);
-  while((filearray[pos]==' ')||(filearray[pos]=='\n')){
-	  pos++;
-  }
-  int value = 0;
-  bool isNeg=false;
-  int radix = 10;
-
-  if (filearray[pos]=='-') {
-	  isNeg=true;
-      pos++;
-  }
-  bool cont=true;
-  do {
-	  unsigned char b=filearray[pos];
-      int val;
-      if (b>='0'&&b<='9')
-        val=b-'0';
-      else if (b>='a'&&b<='z')
-        val=10+b-'a';
-      else if (b>='A'&&b<='Z')
-        val=10+b-'A';
-      else {
-        cont=false;
-      }
-      if (cont) {
-        if (val>=radix)
-          printf("Error in Scanner.nextInt(): val >= radix");
-        value=value*radix+val;
-		pos++;
-      }
-  }while(cont);
-  if (isNeg)
-	  value=-value;
-
+  int value = nextInt(VAR(___this___)->___fd___, &pos);
   VAR(___this___)->___currentpos___ = pos;
   return value;
 }
@@ -476,48 +446,11 @@ int CALL01(___Scanner______nextInt____, struct ___Scanner___ * ___this___) {
 #ifdef D___Scanner______nextDouble____ 
 double CALL01(___Scanner______nextDouble____, struct ___Scanner___ * ___this___) {
   int pos = VAR(___this___)->___currentpos___;
-  int i = 0;
-  unsigned char * filearray = (unsigned char *)(VAR(___this___)->___filearray___);
-  while((filearray[pos]==' ')||(filearray[pos]=='\n')){
-	  pos++;
-  }
-  double value = 0.0;
-  bool isNeg=false;
-  int radix = 10;
-
-  if (filearray[pos]=='-') {
-	  isNeg=true;
-      pos++;
-  } else if(filearray[pos]=='+') {
-	  pos++;
-  }
-  bool cont=true;
-  // TODO
-  /*do {
-	  unsigned char b=filearray[pos];
-      int val;
-      if (b>='0'&&b<='9')
-        val=b-'0';
-      else if (b>='a'&&b<='z')
-        val=10+b-'a';
-      else if (b>='A'&&b<='Z')
-        val=10+b-'A';
-      else {
-        cont=false;
-      }
-      if (cont) {
-        if (val>=radix)
-          System.error();
-        value=value*radix+val;
-		pos++;
-      }
-  }while(cont)*/
-  if (isNeg)
-	  value=-value;
-
+  double value = nextDouble(VAR(___this___)->___fd___, &pos);
   VAR(___this___)->___currentpos___ = pos;
   return value;
 }
+#endif
 #endif
 
 /* Object allocation function */

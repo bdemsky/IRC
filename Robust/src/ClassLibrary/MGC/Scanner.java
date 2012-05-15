@@ -1,14 +1,16 @@
 public class Scanner implements Iterator {
-  private String sourcename;
+  private FileInputStream source;
   private int currentpos;
-  private int filearray;
+  private int fd;
 
   public Scanner (final String source)	{
-    this.sourcename = source;
+    this.source = new FileInputStream(source);
+    this.fd = this.source.getfd();
     this.currentpos = 0;
   }
 
   public void close () {
+      this.source.close();
   }
 
   public native double nextDouble ();

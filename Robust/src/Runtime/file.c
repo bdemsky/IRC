@@ -8,6 +8,9 @@
 #include "mem.h"
 #include "runtime.h"
 #include "methodheaders.h"
+#ifdef INPUTFILE
+#include "InputFileArrays.h"
+#endif
 
 #ifdef D___FileOutputStream______nativeWrite____I__AR_B_I_I
 void CALL34(___FileOutputStream______nativeWrite____I__AR_B_I_I, int fd, int off, int len, int fd, struct ArrayObject * ___array___, int off, int len) {
@@ -40,11 +43,16 @@ void CALL11(___FileOutputStream______nativeFlush____I, int fd, int fd) {
 
 #ifdef D___FileOutputStream______nativeOpen_____AR_B
 int CALL01(___FileOutputStream______nativeOpen_____AR_B, struct ArrayObject * ___filename___) {
-#ifdef MULTICORE
-  return 0;
-#else
   int length=VAR(___filename___)->___length___;
   char* filename= (((char *)&VAR(___filename___)->___length___)+sizeof(int));
+#ifdef MULTICORE
+#ifdef INPUTFILE
+  int fd=filename2fd(filename, length);
+  return fd;
+#else
+  return 0;
+#endif
+#else
   int fd=open(filename, O_WRONLY|O_CREAT|O_TRUNC, S_IRWXU);
   return fd;
 #endif
@@ -66,8 +74,15 @@ int CALL01(___FileOutputStream______nativeAppend_____AR_B, struct ArrayObject * 
 
 #ifdef D___FileInputStream______nativeOpen_____AR_B
 int CALL01(___FileInputStream______nativeOpen_____AR_B, struct ArrayObject * ___filename___) {
+  int length=VAR(___filename___)->___length___;
+  char* filename= (((char *)&VAR(___filename___)->___length___)+sizeof(int));
 #ifdef MULTICORE
+#ifdef INPUTFILE
+  int fd=filename2fd(filename, length);
+  return fd;
+#else
   return 0;
+#endif
 #else
   int length=VAR(___filename___)->___length___;
   char* filename= (((char *)&VAR(___filename___)->___length___)+sizeof(int));
