@@ -983,6 +983,7 @@ fi
 
 if $INPUTFILEFLAG
 then
+./ourjavac -cp ../cup:.:$(CLASSPATH) Util/InputFileTranslator.java
 if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx${COMPILER_HEAP_SIZE}m -classpath $ROBUSTROOT Util.InputFileTranslator \
        -dir $BUILDDIR $INPUTFILES
     then exit $?

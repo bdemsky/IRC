@@ -101,6 +101,7 @@ Analysis/OoOJava/VariableSourceToken.class				\
 Analysis/OoOJava/ContextTaskNames.class					\
 Util/GraphNode.class Util/Namer.class Util/Relation.class		\
 Util/UtilAlgorithms.class                                               \
+Util/InputFileTranslator.class                                               \
 Interface/HTTPHeader.class Interface/HTTPResponse.class			\
 Interface/HTTPServices.class Interface/HashStrings.class		\
 Interface/JhttpServer.class Interface/JhttpWorker.class			\
@@ -120,7 +121,7 @@ Analysis/Scheduling/Schedule.class                                      \
 Analysis/Scheduling/ScheduleSimulator.class                             \
 Analysis/Scheduling/SchedulingUtil.class                                \
 Analysis/Scheduling/TaskSimulator.class                                 \
-Analysis/Scheduling/TransTaskSimulator.class
+Analysis/Scheduling/TransTaskSimulator.class 
 
 JAVAFILES=IR/*.java \
 	IR/Flat/*.java \
