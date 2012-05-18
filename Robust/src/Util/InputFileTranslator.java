@@ -1,13 +1,11 @@
 package Util;
 
+import java.util.Hashtable;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.OutputStream;
-import java.io.FileOutputStream;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -25,6 +23,7 @@ public class InputFileTranslator{
 		    PREFIX=args[++offset]+"/";
 		    offset++;
 		}
+		boolean isCompressed = true;
 
 		System.out.println("Opening the output file............. : opened");
 		
@@ -41,8 +40,8 @@ public class InputFileTranslator{
 		out.println("#endif");
 		out.println();
 		out.println("int filename2fd(char * filename, int length);");
-		out.println("int nextInt(int fd, int * pos);");
-		out.println("double nextDouble(int fd, int * pos);");
+		out.println("int nextInt(int fd, int * pos, int * isHighbits);");
+		out.println("double nextDouble(int fd, int * pos, int * isHighbits);");
 		out.println("#endif");
 		out.close();
 		
@@ -54,7 +53,19 @@ public class InputFileTranslator{
 		out.println("#include \"math.h\"");
 		out.println();
 		Vector<String> sourcefiles=new Vector<String>();
+		Vector<Boolean> compressVec = new Vector<Boolean>();
+		Hashtable<Byte, Integer> encodemapping = new Hashtable<Byte, Integer>();
+		Vector<Byte> encodeVec = new Vector<Byte>();
+		int encodenum = 1;
+		int returncount = 10;
 		for(int i=0; i<args.length-offset; i++)  {
+		    if(isCompressed) {
+			encodemapping.clear();
+			encodeVec.clear();
+			encodenum = 0;
+			encodemapping.put((byte)0, 0);
+			encodeVec.add((byte)0);
+		    }
 		    String inFilename = args[i+offset];
 		    String arrayname = inFilename.replaceAll("\\.", "_");
 		    sourcefiles.add(inFilename);
@@ -72,28 +83,62 @@ public class InputFileTranslator{
 		    boolean printReturn = false;
 		    byte[] buf = new byte[1024];  //size can be changed according to programmer's need.
 		    int len;
+		    int writenum = isCompressed?2:1;
+		    compressVec.add(isCompressed?true:false);
+		    int bitmask = 0x00FF;
 		    while ((len = gzipInputStream.read(buf)) > 0) {
 			//out.write(buf, 0, len);
-			for(int j = 0; j < len; j++) {
-			    if('#' == buf[j]) {
-				// skip the comments
-				while(j<len && buf[j++] != '\n') {
+			for(int j = 0; j < len; ) {
+			    // read out 2 bytes at a time
+			    byte[] towrite = new byte[writenum];
+			    for(int k = 0; k<writenum&&j<len; k++) {
+				if('#' == buf[j]) {
+				    // skip the comments
+				    while(j<len && buf[j++] != '\n') {
+				    }
+				} else {
+				    towrite[k] = buf[j];
 				}
+				j++;
+			    }
+			    int writevalue = towrite[0];
+			    if(isCompressed) {
+				// compress two value into one for compressed version
+				if(!encodemapping.containsKey(towrite[0])) {
+				    encodemapping.put(towrite[0], encodenum++);
+				    encodeVec.add(towrite[0]);
+				}
+				writevalue = encodemapping.get(towrite[0]);
+				if(!encodemapping.containsKey(towrite[1])) {
+				    encodemapping.put(towrite[1], encodenum++);
+				    encodeVec.add(towrite[1]);
+				}
+				if(encodeVec.size()>=16) {
+				    System.err.println("Error! The compressed file has more than 16 types of characters! It can not be compressed!");
+				    System.exit(-1);
+				}
+				writevalue = ((writevalue<<4)|encodemapping.get(towrite[1]))&bitmask;
+			    }
+			    if(!printComma) {
+				printComma = true;
 			    } else {
-				if(!printComma) {
-				    printComma = true;
-				} else {
-				    out.print(',');
-				}
-				if(printReturn) {
-				    out.println();
-				    printReturn = false;
-				}
-				if('\n' == buf[j]) {
-				    out.print("\'\\n\'");
-				    printReturn = true;
-				} else {
-				    out.print(buf[j]);
+				out.print(',');
+			    }
+			    if(printReturn) {
+				out.println();
+				printReturn = false;
+			    }
+			    if(!isCompressed && ('\n' == buf[j])) {
+				out.print("\'\\n\'");
+				printReturn = true;
+			    } else {
+				out.print(writevalue);
+				if(isCompressed) {
+				    returncount--;
+				    if(returncount==0) {
+					printReturn=true;
+					returncount = 10;
+				    }
 				}
 			    }
 			}
@@ -101,6 +146,28 @@ public class InputFileTranslator{
 		    out.println("};");
 		    out.println();
 		    gzipInputStream.close();
+		    if(isCompressed) {
+			// print out the decoding array
+			String decodename = arrayname.concat("_decodeTbl");
+			out.println("unsigned char " + decodename + "[] = {");
+			printComma = false;
+			for(int j = 0; j < encodeVec.size(); j++) {
+			    byte b = encodeVec.elementAt(j).byteValue();
+			    if(!printComma) {
+				printComma = true;
+			    } else {
+				out.print(',');
+			    }
+			    if('\n' == b) {
+				out.print("\'\\n\'");
+				printReturn = true;
+			    } else {
+				out.print(b);
+			    }
+			}
+			out.println("};");
+			out.println();
+		    }
 		}
 		
 		out.println();
@@ -112,6 +179,23 @@ public class InputFileTranslator{
 			out.println(',');
 		    }
 		    out.print("&"+arrayname+"[0]");
+		}
+		out.println();
+		out.println("};");
+		out.println();
+		
+		out.println("unsigned char * inputFileArrays_decodeTbl[]= {");
+		for(int i = 0; i < sourcefiles.size(); i++) {
+		    String arrayname = sourcefiles.elementAt(i).replaceAll("\\.", "_");
+		    
+		    if(i > 0) {
+			out.println(',');
+		    }
+		    if(compressVec.elementAt(i).booleanValue()) {
+			out.print("&"+arrayname.concat("_decodeTbl")+"[0]");
+		    } else {
+			out.print("0");
+		    }
 		}
 		out.println();
 		out.println("};");
@@ -145,151 +229,220 @@ public class InputFileTranslator{
 		}
 		out.println("  return -1;");
 		out.println("}");
-		
 		out.println();
-		out.println("int nextInt(int fd, int * pos) {");
-		out.println("    int i = 0;");
-		out.println("    unsigned char * filearray = inputFileArrays[fd];");
-		out.println("    while((filearray[*pos]==\' \')||(filearray[*pos]==\'\\n\')){");
-		out.println("  	  *pos=*pos+1;");
+		
+		out.println("unsigned char nextValue='\\0';");
+		out.println("bool holdVal=false;");
+		out.println();
+
+		out.println("void initVal() {");
+		out.println("  nextValue='\\0';");
+		out.println("  holdVal=false;");
+		out.println("}");
+		out.println();
+
+		out.println("unsigned char peek(unsigned char * filearray, int * pos, int * isHighbits, bool isCompressed) {");
+		out.println("  if(!isCompressed) {");
+		out.println("    return filearray[*pos];");
+		out.println("  } else {");
+		out.println("    unsigned char value=0;");
+		out.println("    if(!holdVal) {");
+		out.println("      nextValue=filearray[*pos];");
 		out.println("    }");
-		out.println("    unsigned int value = 0;");
-		out.println("    bool isNeg=false;");
-	        out.println("    unsigned int radix = 10;");
+		out.println("    if(1==*isHighbits) {");
+		out.println("      value=((nextValue&0x00F0)>>4)&0x000F;");
+		out.println("      holdVal=true;");
+		out.println("      *isHighbits=0;");
+		out.println("    } else {");
+		out.println("      value=nextValue&0x000F;");
+		out.println("      holdVal=false;");
+		out.println("      *isHighbits=1;");
+		out.println("    }");
+		out.println("    return value;");
+		out.println("  }");
+		out.println("}");
+		out.println();
+
+		out.println("void next(int * pos, bool isCompressed) {");
+		out.println("  if(!isCompressed||!holdVal) {");
+		out.println("    *pos = *pos+1;");
+		out.println(" }");
+		out.println("}");
+		out.println();
+	        
+		out.println("int nextInt(int fd, int * pos, int * isHighbits) {");
+		out.println("  int i = 0;");
+		out.println("  unsigned char * filearray = inputFileArrays[fd];");
+		out.println("  bool isCompressed = false;");
+		out.println("  if(inputFileArrays_decodeTbl[fd]!=0) {");
+		out.println("  	isCompressed = true;");
+		out.println("  }");
+		out.println("  initVal();");
+		out.println();
+		out.println("  unsigned char b='\\0';");
+		out.println("  while(true) {");
+		out.println("    b=peek(filearray, pos, isHighbits, isCompressed); ");
+		out.println("    if((b==' ')||(b=='\\n')){");
+		out.println("      next(pos, isCompressed);");
+		out.println("    } else {");
+		out.println("      break;");
+		out.println("    }");
+		out.println("  }");
+		out.println();
+		out.println("  unsigned int value = 0;");
+		out.println("  bool isNeg=false;");
+	        out.println("  unsigned int radix = 10;");
 	        out.println();
-	        out.println("    if (filearray[*pos]==\'-\') {");
-	        out.println("      isNeg=true;");
-	        out.println("      *pos=*pos+1;");
-	        out.println("    }");
-	        out.println("    bool cont=true;");
-	        out.println("    do {");
-	        out.println("  	   unsigned char b=filearray[*pos];");
-	        out.println("      unsigned int val;");
-	        out.println("      if (b>=\'0\'&&b<=\'9\')");
-	        out.println("        val=b-\'0\';");
-	        out.println("      else if (b>=\'a\'&&b<=\'z\')");
-	        out.println("        val=10+b-\'a\';");
-	        out.println("      else if (b>=\'A\'&&b<=\'Z\')");
-	        out.println("        val=10+b-\'A\';");
-	        out.println("      else {");
-	        out.println("        cont=false;");
-	        out.println("      }");
-	        out.println("      if (cont) {");
-	        out.println("        if (val>=radix)");
-	        out.println("          printf(\"Error in nextInt(): val >= radix\");");
-	        out.println("        value=value*radix+val;");
-	        out.println("        *pos=*pos+1;");
-	        out.println("      }");
-	        out.println("    }while(cont);");
-	        out.println("    if (isNeg)");
-	        out.println("  	  value=-value;");
-	        out.println();
-	        out.println("    return value;");
+	        out.println("  if (b=='-') {");
+	        out.println("    isNeg=true;");
+	        out.println("    next(pos, isCompressed);");
+	        out.println("    b=peek(filearray, pos, isHighbits, isCompressed);");
 	        out.println("  }");
+	        out.println("  bool cont=true;");
+	        out.println("  do {");
+	        out.println("    unsigned int val;");
+	        out.println("    if (b>='0'&&b<='9')");
+	        out.println("      val=b-'0';");
+	        out.println("    else if (b>='a'&&b<='z')");
+	        out.println("      val=10+b-'a';");
+	        out.println("    else if (b>='A'&&b<='Z')");
+	        out.println("      val=10+b-'A';");
+	        out.println("    else {");
+	        out.println("      cont=false;");
+	        out.println("    }");
+	        out.println("    if (cont) {");
+	        out.println("      if (val>=radix)");
+	        out.println("        printf(\"Error in nextInt(): val >= radix\");");
+	        out.println("      value=value*radix+val;");
+	        out.println("      next(pos, isCompressed);");
+	        out.println("      b=peek(filearray, pos, isHighbits, isCompressed);");
+	        out.println("    }");
+	        out.println("  }while(cont);");
+	        out.println("  if (isNeg)");
+	        out.println("  	value=-value;");
+	        out.println();
+	        out.println("  return value;");
+	        out.println("}");
 	        out.println();
 		
-	        out.println("double nextDouble(int fd, int * pos) {");
-	        out.println("    int i = 0;");
-	        out.println("    unsigned char * filearray = inputFileArrays[fd];");
-	        out.println("    while((filearray[*pos]==\' \')||(filearray[*pos]==\'\\n\')){");
-	        out.println("  	  *pos=*pos+1;");
-	        out.println("    }");
-	        out.println("    double result=0.0;");
-	        out.println("    unsigned int value=0;");
-	        out.println("    unsigned int maxvalue=((unsigned int)(1<<32)-1)/10;");
-	        out.println("    bool isNeg=false;");
-	        out.println("    bool isDiv=false;");
-	        out.println("    unsigned int radix = 10;");
+	        out.println("double nextDouble(int fd, int * pos, int * isHighbits) {");
+	        out.println("  int i = 0;");
+	        out.println("  unsigned char * filearray = inputFileArrays[fd];");
+	        out.println("  bool isCompressed = false;");
+		out.println("  if(inputFileArrays_decodeTbl[fd]!=0) {");
+		out.println("  	isCompressed = true;");
+		out.println("  }");
+		out.println("  initVal();");
+		out.println();
+		out.println("  unsigned char b='\\0';");
+		out.println("  while(true) {");
+		out.println("    b=peek(filearray, pos, isHighbits, isCompressed); ");
+		out.println("    if((b==' ')||(b=='\\n')){");
+		out.println("      next(pos, isCompressed);");
+		out.println("    } else {");
+		out.println("      break;");
+		out.println("    }");
+		out.println("  }");
+		out.println();
+	        out.println("  double result=0.0;");
+	        out.println("  unsigned int value=0;");
+	        out.println("  unsigned int maxvalue=((unsigned int)(1<<32)-1)/10;");
+	        out.println("  bool isNeg=false;");
+	        out.println("  bool isDiv=false;");
+	        out.println("  unsigned int radix = 10;");
 	        out.println();
-	        out.println("    if (filearray[*pos]=='-') {");
-	        out.println("      isNeg=true;");
-	        out.println("      *pos=*pos+1;");
+	        out.println("  if (b=='-') {");
+	        out.println("    isNeg=true;");
+	        out.println("    next(pos, isCompressed);");
+	        out.println("    b=peek(filearray, pos, isHighbits, isCompressed); ");
+	        out.println("  }");
+	        out.println("  bool cont=true;");
+	        out.println("  bool exp=false;");
+	        out.println("  bool decimal=false;");
+	        out.println("  bool compute=true;");
+	        out.println("  bool omit=false;");
+	        out.println("  unsigned int dcount=0;");
+	        out.println("  // compute the base");
+	        out.println("  do {");
+	        out.println("    unsigned int val;");
+	        out.println("    if (b>='0'&&b<='9') {");
+	        out.println("      if (!omit) {");
+	        out.println("        val=b-'0';");
+	        out.println("        if(decimal) {");
+	        out.println("          dcount++;");
+	        out.println("        }");
+	        out.println("      }");
+	        out.println("    } else if (b=='.') {");
+	        out.println("      decimal=true;");
+	        out.println("      compute=false;");
+	        out.println("    } else if (b=='E'||b=='e') {");
+	        out.println("      exp=true;");
+	        out.println("      cont=false;");
+	        out.println("      next(pos, isCompressed);");
+	        out.println("    } else {");
+	        out.println("      cont=false;");
 	        out.println("    }");
-	        out.println("    bool cont=true;");
-	        out.println("    bool exp=false;");
-	        out.println("    bool decimal=false;");
-	        out.println("    bool compute=true;");
-	        out.println("    bool omit=false;");
-	        out.println("    unsigned int dcount=0;");
-	        out.println("    // compute the base");
+	        out.println("    if (cont) {");
+	        out.println("      if (val>=radix)");
+	        out.println("        printf(\"Error in nextDouble(): val >= radix\");");
+	        out.println("      if(compute) {");
+	        out.println("        if(value<maxvalue) {");
+	        out.println("          value=value*radix+val;");
+	        out.println("        } else {");
+	        out.println("          omit=true;");
+	        out.println("          compute=false;");
+	        out.println("          dcount--;");
+	        out.println("        }");
+	        out.println("      } else if(!omit) {");
+	        out.println("        compute=true;");
+	        out.println("      }");
+	        out.println("      next(pos, isCompressed);");
+	        out.println("      b=peek(filearray, pos, isHighbits, isCompressed); ");
+	        out.println("    }");
+	        out.println("  }while(cont);");
+	        out.println("  if(exp) {");
+	        out.println("    // compute the power index");
+	        out.println("    cont=true;");
+	        out.println("    unsigned int n=0;");
+	        out.println("    b=peek(filearray, pos, isHighbits, isCompressed); ");
+	        out.println("    if (b=='-') {");
+	        out.println("      isDiv=true;");
+	        out.println("      next(pos, isCompressed);");
+	        out.println("    } else if (b=='+') {");
+	        out.println("      next(pos, isCompressed);");
+	        out.println("      b=peek(filearray, pos, isHighbits, isCompressed); ");
+	        out.println("    }");
 	        out.println("    do {");
-	        out.println("      unsigned char b=filearray[*pos];");
 	        out.println("      unsigned int val;");
 	        out.println("      if (b>='0'&&b<='9') {");
-	        out.println("        if (!omit) {");
-	        out.println("          val=b-'0';");
-	        out.println("          if(decimal) {");
-	        out.println("            dcount++;");
-	        out.println("          }");
-	        out.println("        }");
-	        out.println("      } else if (b=='.') {");
-	        out.println("        decimal=true;");
-	        out.println("        compute=false;");
-	        out.println("      } else if (b=='E'||b=='e') {");
-	        out.println("        exp=true;");
-	        out.println("        cont=false;");
-	        out.println("        *pos=*pos+1;");
+	        out.println("        val=b-'0';");
 	        out.println("      } else {");
 	        out.println("        cont=false;");
 	        out.println("      }");
 	        out.println("      if (cont) {");
 	        out.println("        if (val>=radix)");
 	        out.println("          printf(\"Error in nextDouble(): val >= radix\");");
-	        out.println("        if(compute) {");
-	        out.println("          if(value<maxvalue) {");
-	        out.println("            value=value*radix+val;");
-	        out.println("          } else {");
-	        out.println("            omit=true;");
-	        out.println("            compute=false;");
-	        out.println("            dcount--;");
-	        out.println("          }");
-	        out.println("        } else if(!omit) {");
-	        out.println("          compute=true;");
-	        out.println("        }");
-	        out.println("        *pos=*pos+1;");
+	        out.println("        n=n*10+val;");
+	        out.println("        next(pos, isCompressed);");
+	        out.println("        b=peek(filearray, pos, isHighbits, isCompressed); ");
 	        out.println("      }");
 	        out.println("    }while(cont);");
-	        out.println("    if(exp) {");
-	        out.println("      // compute the power index");
-	        out.println("      cont=true;");
-	        out.println("      unsigned int n=0;");
-	        out.println("      if (filearray[*pos]=='-') {");
-	        out.println("        isDiv=true;");
-	        out.println("        *pos=*pos+1;");
-	        out.println("      } else if (filearray[*pos]=='+') {");
-	        out.println("        *pos=*pos+1;");
-	        out.println("      }");
-	        out.println("      do {");
-	        out.println("        unsigned char b=filearray[*pos];");
-	        out.println("        unsigned int val;");
-	        out.println("        if (b>='0'&&b<='9') {");
-	        out.println("          val=b-'0';");
-	        out.println("        } else {");
-	        out.println("          cont=false;");
-	        out.println("        }");
-	        out.println("        if (cont) {");
-	        out.println("          if (val>=radix)");
-	        out.println("            printf(\"Error in nextDouble(): val >= radix\");");
-	        out.println("          n=n*10+val;");
-	        out.println("          *pos=*pos+1;");
-	        out.println("        }");
-	        out.println("      }while(cont);");
-	        out.println("      if(isDiv) {");
-	        out.println("        result = (double)value/pow(radix, n+dcount);");
-	        out.println("      } else {");
-	        out.println("        if(n>dcount) {");
-	        out.println("          result = (double)value*pow(radix, n-dcount);");
-	        out.println("        } else if(n<dcount) {");
-	        out.println("          result = (double)value/pow(radix, dcount-n);");
-	        out.println("        } else {");
-	        out.println("          result = (double)value;");
-	        out.println("        }");
-	        out.println("      }");
+	        out.println("    if(isDiv) {");
+	        out.println("      result = (double)value/pow(radix, n+dcount);");
 	        out.println("    } else {");
-	        out.println("      result = (double)value/pow(radix, dcount);");
+	        out.println("      if(n>dcount) {");
+	        out.println("        result = (double)value*pow(radix, n-dcount);");
+	        out.println("      } else if(n<dcount) {");
+	        out.println("        result = (double)value/pow(radix, dcount-n);");
+	        out.println("      } else {");
+	        out.println("        result = (double)value;");
+	        out.println("      }");
 	        out.println("    }");
-	        out.println("    if (isNeg)");
-	        out.println("      result=-result;");
+	        out.println("  } else {");
+	        out.println("    result = (double)value/pow(radix, dcount);");
+	        out.println("  }");
+	        out.println("  if (isNeg)");
+	        out.println("    result=-result;");
 	        out.println();
 	        out.println("return result;");
 	        out.println("  }");

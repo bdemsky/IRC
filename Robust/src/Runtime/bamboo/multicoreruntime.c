@@ -437,8 +437,10 @@ void CALL01(___System______printString____L___String___, struct ___String___ * _
 #ifdef D___Scanner______nextInt____ 
 int CALL01(___Scanner______nextInt____, struct ___Scanner___ * ___this___) {
   int pos = VAR(___this___)->___currentpos___;
-  int value = nextInt(VAR(___this___)->___fd___, &pos);
+  int isHighbits = VAR(___this___)->___isHighbits___;
+  int value = nextInt(VAR(___this___)->___fd___, &pos, &isHighbits);
   VAR(___this___)->___currentpos___ = pos;
+  VAR(___this___)->___isHighbits___ = isHighbits;
   return value;
 }
 #endif
@@ -446,8 +448,10 @@ int CALL01(___Scanner______nextInt____, struct ___Scanner___ * ___this___) {
 #ifdef D___Scanner______nextDouble____ 
 double CALL01(___Scanner______nextDouble____, struct ___Scanner___ * ___this___) {
   int pos = VAR(___this___)->___currentpos___;
-  double value = nextDouble(VAR(___this___)->___fd___, &pos);
+  int isHighbits = VAR(___this___)->___isHighbits___;
+  double value = nextDouble(VAR(___this___)->___fd___, &pos, &isHighbits);
   VAR(___this___)->___currentpos___ = pos;
+  VAR(___this___)->___isHighbits___ = isHighbits;
   return value;
 }
 #endif
