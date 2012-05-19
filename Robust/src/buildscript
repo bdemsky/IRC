@@ -95,6 +95,7 @@ echo -profile_interrupt build with profile information of interrupts
 echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo -gccachecoherent turns on the cache coherence during gc
 echo -inputfile enables reading input files in Tilera
+echo -inputfilecompress enables the compressed version of input files
 echo
 echo Multicore GC options
 echo -perfcount performance counters
@@ -278,6 +279,7 @@ TILERA_NUM_BLOCKS="20"
 TILERA_NUM_PAGES_PER_BLOCK="16"
 INPUTFILEFLAG=false
 INPUTFILES=''
+INPUTFILEOPTS=''
 GCCACHECOHERENTFLAG=false
 COMPILER_HEAP_SIZE="1500"
 
@@ -620,6 +622,9 @@ then
 INPUTFILEFLAG=true
 INPUTFILES="$INPUTFILES $2"
 shift
+elif [[ $1 = '-inputfilecompress' ]]
+then
+INPUTFILEOPTS="$INPUTFILEOPTS -compress"
 elif [[ $1 = '-mgcintel' ]]
 then
 MGCINTELFLAG=true
@@ -985,7 +990,7 @@ if $INPUTFILEFLAG
 then
 ./ourjavac -cp ../cup:.:$(CLASSPATH) Util/InputFileTranslator.java
 if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx${COMPILER_HEAP_SIZE}m -classpath $ROBUSTROOT Util.InputFileTranslator \
-       -dir $BUILDDIR $INPUTFILES
+       -dir $BUILDDIR $INPUTFILEOPTS $INPUTFILES
     then exit $?
 fi
 fi

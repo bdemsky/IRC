@@ -19,11 +19,17 @@ public class InputFileTranslator{
 		System.out.println("Please enter the valid file name");
 	    }else{
 		int offset = 0;
+		boolean isCompressed = false;
+		
 		if (args[offset].equals("-dir")) {
 		    PREFIX=args[++offset]+"/";
 		    offset++;
+		} 
+		if(args[offset].equals("-compress")) {
+		    isCompressed = true;
+		    offset++;
 		}
-		boolean isCompressed = true;
+		
 
 		System.out.println("Opening the output file............. : opened");
 		
@@ -62,7 +68,7 @@ public class InputFileTranslator{
 		    if(isCompressed) {
 			encodemapping.clear();
 			encodeVec.clear();
-			encodenum = 0;
+			encodenum = 1;
 			encodemapping.put((byte)0, 0);
 			encodeVec.add((byte)0);
 		    }
@@ -128,7 +134,7 @@ public class InputFileTranslator{
 				out.println();
 				printReturn = false;
 			    }
-			    if(!isCompressed && ('\n' == buf[j])) {
+			    if(!isCompressed && ('\n' == writevalue)) {
 				out.print("\'\\n\'");
 				printReturn = true;
 			    } else {
@@ -241,7 +247,7 @@ public class InputFileTranslator{
 		out.println("}");
 		out.println();
 
-		out.println("unsigned char peek(unsigned char * filearray, int * pos, int * isHighbits, bool isCompressed) {");
+		out.println("unsigned char peek(unsigned char * filearray, unsigned char * decodearray, int * pos, int * isHighbits, bool isCompressed) {");
 		out.println("  if(!isCompressed) {");
 		out.println("    return filearray[*pos];");
 		out.println("  } else {");
@@ -252,38 +258,45 @@ public class InputFileTranslator{
 		out.println("    if(1==*isHighbits) {");
 		out.println("      value=((nextValue&0x00F0)>>4)&0x000F;");
 		out.println("      holdVal=true;");
-		out.println("      *isHighbits=0;");
 		out.println("    } else {");
 		out.println("      value=nextValue&0x000F;");
 		out.println("      holdVal=false;");
-		out.println("      *isHighbits=1;");
 		out.println("    }");
+		out.println("    value=decodearray[value];");
 		out.println("    return value;");
 		out.println("  }");
 		out.println("}");
 		out.println();
 
-		out.println("void next(int * pos, bool isCompressed) {");
+		out.println("void next(int * pos, int * isHighbits, bool isCompressed) {");
 		out.println("  if(!isCompressed||!holdVal) {");
 		out.println("    *pos = *pos+1;");
-		out.println(" }");
+		out.println("  }");
+		out.println("  if(isCompressed) {");
+		out.println("    if(*isHighbits) {");
+		out.println("      *isHighbits=0;");
+		out.println("    } else {");
+		out.println("      *isHighbits=1;");
+		out.println("    }");
+		out.println("  }");
 		out.println("}");
 		out.println();
 	        
 		out.println("int nextInt(int fd, int * pos, int * isHighbits) {");
 		out.println("  int i = 0;");
 		out.println("  unsigned char * filearray = inputFileArrays[fd];");
+	        out.println("  unsigned char * decodearray = inputFileArrays_decodeTbl[fd];");
 		out.println("  bool isCompressed = false;");
-		out.println("  if(inputFileArrays_decodeTbl[fd]!=0) {");
+		out.println("  if(decodearray!=0) {");
 		out.println("  	isCompressed = true;");
 		out.println("  }");
 		out.println("  initVal();");
 		out.println();
 		out.println("  unsigned char b='\\0';");
 		out.println("  while(true) {");
-		out.println("    b=peek(filearray, pos, isHighbits, isCompressed); ");
+		out.println("    b=peek(filearray, decodearray, pos, isHighbits, isCompressed); ");
 		out.println("    if((b==' ')||(b=='\\n')){");
-		out.println("      next(pos, isCompressed);");
+		out.println("      next(pos, isHighbits, isCompressed);");
 		out.println("    } else {");
 		out.println("      break;");
 		out.println("    }");
@@ -295,12 +308,12 @@ public class InputFileTranslator{
 	        out.println();
 	        out.println("  if (b=='-') {");
 	        out.println("    isNeg=true;");
-	        out.println("    next(pos, isCompressed);");
-	        out.println("    b=peek(filearray, pos, isHighbits, isCompressed);");
+	        out.println("    next(pos, isHighbits, isCompressed);");
 	        out.println("  }");
 	        out.println("  bool cont=true;");
 	        out.println("  do {");
-	        out.println("    unsigned int val;");
+	        out.println("    b=peek(filearray, decodearray, pos, isHighbits, isCompressed); ");
+	        out.println("    unsigned int val=0;");
 	        out.println("    if (b>='0'&&b<='9')");
 	        out.println("      val=b-'0';");
 	        out.println("    else if (b>='a'&&b<='z')");
@@ -314,8 +327,7 @@ public class InputFileTranslator{
 	        out.println("      if (val>=radix)");
 	        out.println("        printf(\"Error in nextInt(): val >= radix\");");
 	        out.println("      value=value*radix+val;");
-	        out.println("      next(pos, isCompressed);");
-	        out.println("      b=peek(filearray, pos, isHighbits, isCompressed);");
+	        out.println("      next(pos, isHighbits, isCompressed);");
 	        out.println("    }");
 	        out.println("  }while(cont);");
 	        out.println("  if (isNeg)");
@@ -328,17 +340,18 @@ public class InputFileTranslator{
 	        out.println("double nextDouble(int fd, int * pos, int * isHighbits) {");
 	        out.println("  int i = 0;");
 	        out.println("  unsigned char * filearray = inputFileArrays[fd];");
+	        out.println("  unsigned char * decodearray = inputFileArrays_decodeTbl[fd];");
 	        out.println("  bool isCompressed = false;");
-		out.println("  if(inputFileArrays_decodeTbl[fd]!=0) {");
+		out.println("  if(decodearray!=0) {");
 		out.println("  	isCompressed = true;");
 		out.println("  }");
 		out.println("  initVal();");
 		out.println();
 		out.println("  unsigned char b='\\0';");
 		out.println("  while(true) {");
-		out.println("    b=peek(filearray, pos, isHighbits, isCompressed); ");
+		out.println("    b=peek(filearray, decodearray, pos, isHighbits, isCompressed); ");
 		out.println("    if((b==' ')||(b=='\\n')){");
-		out.println("      next(pos, isCompressed);");
+		out.println("      next(pos, isHighbits, isCompressed);");
 		out.println("    } else {");
 		out.println("      break;");
 		out.println("    }");
@@ -353,8 +366,7 @@ public class InputFileTranslator{
 	        out.println();
 	        out.println("  if (b=='-') {");
 	        out.println("    isNeg=true;");
-	        out.println("    next(pos, isCompressed);");
-	        out.println("    b=peek(filearray, pos, isHighbits, isCompressed); ");
+	        out.println("    next(pos, isHighbits, isCompressed);");
 	        out.println("  }");
 	        out.println("  bool cont=true;");
 	        out.println("  bool exp=false;");
@@ -364,7 +376,8 @@ public class InputFileTranslator{
 	        out.println("  unsigned int dcount=0;");
 	        out.println("  // compute the base");
 	        out.println("  do {");
-	        out.println("    unsigned int val;");
+	        out.println("    b=peek(filearray, decodearray, pos, isHighbits, isCompressed); ");
+	        out.println("    unsigned int val=0;");
 	        out.println("    if (b>='0'&&b<='9') {");
 	        out.println("      if (!omit) {");
 	        out.println("        val=b-'0';");
@@ -378,7 +391,7 @@ public class InputFileTranslator{
 	        out.println("    } else if (b=='E'||b=='e') {");
 	        out.println("      exp=true;");
 	        out.println("      cont=false;");
-	        out.println("      next(pos, isCompressed);");
+	        out.println("      next(pos, isHighbits, isCompressed);");
 	        out.println("    } else {");
 	        out.println("      cont=false;");
 	        out.println("    }");
@@ -396,23 +409,22 @@ public class InputFileTranslator{
 	        out.println("      } else if(!omit) {");
 	        out.println("        compute=true;");
 	        out.println("      }");
-	        out.println("      next(pos, isCompressed);");
-	        out.println("      b=peek(filearray, pos, isHighbits, isCompressed); ");
+	        out.println("      next(pos, isHighbits, isCompressed);");
 	        out.println("    }");
 	        out.println("  }while(cont);");
 	        out.println("  if(exp) {");
 	        out.println("    // compute the power index");
 	        out.println("    cont=true;");
 	        out.println("    unsigned int n=0;");
-	        out.println("    b=peek(filearray, pos, isHighbits, isCompressed); ");
+	        out.println("    b=peek(filearray, decodearray, pos, isHighbits, isCompressed); ");
 	        out.println("    if (b=='-') {");
 	        out.println("      isDiv=true;");
-	        out.println("      next(pos, isCompressed);");
+	        out.println("      next(pos, isHighbits, isCompressed);");
 	        out.println("    } else if (b=='+') {");
-	        out.println("      next(pos, isCompressed);");
-	        out.println("      b=peek(filearray, pos, isHighbits, isCompressed); ");
+	        out.println("      next(pos, isHighbits, isCompressed);");
 	        out.println("    }");
 	        out.println("    do {");
+	        out.println("      b=peek(filearray, decodearray, pos, isHighbits, isCompressed); ");
 	        out.println("      unsigned int val;");
 	        out.println("      if (b>='0'&&b<='9') {");
 	        out.println("        val=b-'0';");
@@ -423,8 +435,7 @@ public class InputFileTranslator{
 	        out.println("        if (val>=radix)");
 	        out.println("          printf(\"Error in nextDouble(): val >= radix\");");
 	        out.println("        n=n*10+val;");
-	        out.println("        next(pos, isCompressed);");
-	        out.println("        b=peek(filearray, pos, isHighbits, isCompressed); ");
+	        out.println("        next(pos, isHighbits, isCompressed);");
 	        out.println("      }");
 	        out.println("    }while(cont);");
 	        out.println("    if(isDiv) {");
