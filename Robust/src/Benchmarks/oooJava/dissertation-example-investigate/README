@@ -1,0 +1,16 @@
+Why doesn't the example work written like this?
+
+In makeNewTree when 
+TreeNode left = buildSubTree( ...
+
+The variable edge from left has reachability states
+saying it can get to an object reachable from previous
+root objects, which seems obviously over conservative, then
+
+root.left = left;
+
+seals the deal and updates the graph by introducing states that admit
+reachability from both the newest root and a previous root.
+
+
+Why did that happen?
