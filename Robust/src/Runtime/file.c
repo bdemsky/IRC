@@ -84,8 +84,6 @@ int CALL01(___FileInputStream______nativeOpen_____AR_B, struct ArrayObject * ___
   return 0;
 #endif
 #else
-  int length=VAR(___filename___)->___length___;
-  char* filename= (((char *)&VAR(___filename___)->___length___)+sizeof(int));
   int fd;
   if ((fd=open(filename, O_RDONLY, 0)) < 0) {
     printf(">>>\n");

@@ -331,23 +331,57 @@ public class BuildCode {
     // execute all the static blocks and all the static field initializations
     SymbolTable sctbl = this.state.getSClassSymbolTable();
     Iterator it_sclasses = sctbl.getDescriptorsIterator();
-    if(it_sclasses.hasNext()) {
-      while(it_sclasses.hasNext()) {
-        ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
-        MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
+    Vector<ClassDescriptor> tooutput = new Vector<ClassDescriptor>();
+    Queue<ClassDescriptor> toprocess=new LinkedList<ClassDescriptor>();
+    Vector<ClassDescriptor> outputs = new Vector<ClassDescriptor>();
+    while(it_sclasses.hasNext()) {
+	ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
+	if(!outputs.contains(t_cd)) {
+	    tooutput.clear();
+	    tooutput.add(t_cd);
+	    toprocess.clear();
+	    toprocess.add(t_cd);
+	    while(!toprocess.isEmpty()) {
+		ClassDescriptor pcd = toprocess.poll();
+		// check super interfaces
+		Iterator it_sinterfaces = pcd.getSuperInterfaces();
+		while(it_sinterfaces.hasNext()) {
+		    ClassDescriptor sint = (ClassDescriptor)it_sinterfaces.next();
+		    if(!outputs.contains(sint)) {
+			toprocess.add(sint);
+			if(sctbl.contains(sint.getClassName())) {
+			    tooutput.add(sint);
+			}
+		    }
+		}
+		// check super classes
+		ClassDescriptor supercd = pcd.getSuperDesc();
+		if(supercd!=null && !outputs.contains(supercd)) {
+		    toprocess.add(supercd);
+		    if(sctbl.contains(supercd.getClassName())) {
+			tooutput.add(supercd);
+		    }
+		}
+	    }
+	    
+	    for(int i = tooutput.size()-1; i>=0; i--) {
+		ClassDescriptor output = tooutput.elementAt(i);
+		MethodDescriptor t_md = (MethodDescriptor)output.getMethodTable().get("staticblocks");
 
-        if(t_md != null&&callgraph.isInit(t_cd)) {
-          outmethod.println("   {");
-          if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
-            outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-            outmethod.println("0, NULL};");
-            outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-          } else {
-            outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
-          }
-          outmethod.println("   }");
-        }
-      }
+		if(t_md != null&&callgraph.isInit(output)) {
+		    outmethod.println("   {");
+		    if ((GENERATEPRECISEGC) || state.MULTICOREGC||state.PMC) {
+			outmethod.print("       struct "+output.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+			outmethod.println("0, NULL};");
+			outmethod.println("     "+output.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+		    } else {
+			outmethod.println("     "+output.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+		    }
+		    outmethod.println("   }");
+		}
+		outputs.add(output);
+	    }
+	}
     }
   }
 
