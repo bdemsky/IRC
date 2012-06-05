@@ -386,8 +386,8 @@ public class BuildCodeMultiCore extends BuildCode {
       outmethod.println("  }");
     }
 
-    outputStaticBlocks(outmethod);
     outputClassObjects(outmethod);
+    outputStaticBlocks(outmethod);
 
     outmethod.println("}");
   }

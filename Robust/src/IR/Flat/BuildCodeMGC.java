@@ -162,8 +162,8 @@ public class BuildCodeMGC extends BuildCode {
       outmethod.println("  }");
     }
 
-    outputStaticBlocks(outmethod);
     outputClassObjects(outmethod);
+    outputStaticBlocks(outmethod);
 
     if ((GENERATEPRECISEGC) || state.MULTICOREGC || state.PMC) {
       outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");

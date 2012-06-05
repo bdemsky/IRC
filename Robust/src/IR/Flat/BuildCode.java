@@ -428,9 +428,8 @@ public class BuildCode {
       outmethod.println("    ((struct garbagelist *)global_defs_p)->array[i]=NULL;");
       outmethod.println("  }");
     }
-    outputStaticBlocks(outmethod);
     outputClassObjects(outmethod);
-
+    outputStaticBlocks(outmethod);
 
     additionalCodeAtTopOfMain(outmethod);
     for(BuildCodeExtension bcx: extensions) {

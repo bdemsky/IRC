@@ -127,8 +127,8 @@ public class BuildCodeTran extends BuildCode {
       outmethod.println("  }");
     }
 
-    outputStaticBlocks(outmethod);
     outputClassObjects(outmethod);
+    outputStaticBlocks(outmethod);
     additionalCodeAtTopOfMain(outmethod);
 
     if (state.DSM) {
