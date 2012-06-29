@@ -283,7 +283,7 @@ public class SSJavaAnalysis {
 
           if (state.SSJAVADEBUG) {
             // generate lattice dot file
-            writeLatticeDotFile(cd, locOrder);
+            writeLatticeDotFile(cd, null, locOrder);
           }
 
         } else if (marker.equals(METHODDEFAULT)) {
@@ -327,16 +327,23 @@ public class SSJavaAnalysis {
     }
   }
 
-  public void writeLatticeDotFile(ClassDescriptor cd, SSJavaLattice<String> locOrder) {
+  public void writeLatticeDotFile(ClassDescriptor cd, MethodDescriptor md,
+      SSJavaLattice<String> locOrder) {
 
-    String className = cd.getSymbol().replaceAll("[\\W_]", "");
+    String fileName = "lattice_";
+    if (md != null) {
+      fileName +=
+          cd.getSymbol().replaceAll("[\\W_]", "") + "_" + md.getSymbol().replaceAll("[\\W_]", "");
+    } else {
+      fileName += cd.getSymbol().replaceAll("[\\W_]", "");
+    }
 
     Set<Pair<String, String>> pairSet = locOrder.getOrderingPairSet();
 
     try {
-      BufferedWriter bw = new BufferedWriter(new FileWriter(className + ".dot"));
+      BufferedWriter bw = new BufferedWriter(new FileWriter(fileName + ".dot"));
 
-      bw.write("digraph " + className + " {\n");
+      bw.write("digraph " + fileName + " {\n");
 
       for (Iterator iterator = pairSet.iterator(); iterator.hasNext();) {
         // pair is in the form of <higher, lower>

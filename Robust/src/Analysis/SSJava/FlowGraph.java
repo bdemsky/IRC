@@ -58,6 +58,17 @@ public class FlowGraph {
     return nodeSet;
   }
 
+  public Set<FlowNode> getParameterNodeSet() {
+    Set<FlowNode> paramNodeSet = new HashSet<FlowNode>();
+    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+      FlowNode fn = (FlowNode) iterator.next();
+      if (fn.isParameter()) {
+        paramNodeSet.add(fn);
+      }
+    }
+    return paramNodeSet;
+  }
+
   public void addNeighbor(FlowNode node, FlowNode neighbor) {
     Set<FlowNode> set = mapNodeToNeighborSet.get(node);
     if (set == null) {
@@ -66,6 +77,26 @@ public class FlowGraph {
     set.add(neighbor);
 
     System.out.println("add a new neighbor " + neighbor + " to " + node);
+  }
+
+  public boolean hasEdge(NTuple<Descriptor> fromDescTuple, NTuple<Descriptor> toDescTuple) {
+
+    FlowNode fromNode = mapDescTupleToInferNode.get(fromDescTuple);
+    FlowNode toNode = mapDescTupleToInferNode.get(toDescTuple);
+
+    Set<FlowEdge> fromNodeOutEdgeSet = fromNode.getOutEdgeSet();
+    for (Iterator iterator = fromNodeOutEdgeSet.iterator(); iterator.hasNext();) {
+      FlowEdge flowEdge = (FlowEdge) iterator.next();
+      if (flowEdge.getDst().equals(toNode)) {
+        return true;
+      } else {
+        if (hasEdge(flowEdge.getDst().getDescTuple(), toDescTuple)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   public void addValueFlowEdge(NTuple<Descriptor> fromDescTuple, NTuple<Descriptor> toDescTuple) {
