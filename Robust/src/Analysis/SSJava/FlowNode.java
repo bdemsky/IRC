@@ -18,6 +18,9 @@ public class FlowNode {
   // set true if this node is driven from a paramter
   private boolean isParameter;
 
+  // set true if this node stores a return value
+  private boolean isReturn;
+
   public Set<FlowNode> getFieldNodeSet() {
     return fieldNodeSet;
   }
@@ -61,6 +64,14 @@ public class FlowNode {
 
   public Descriptor getOwnDescriptor() {
     return descTuple.get(descTuple.size() - 1);
+  }
+
+  public boolean isReturn() {
+    return isReturn;
+  }
+
+  public void setReturn(boolean isReturn) {
+    this.isReturn = isReturn;
   }
 
   public String toString() {

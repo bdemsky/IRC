@@ -76,7 +76,9 @@ public class Lattice<T> {
       topNeighbor.remove(value);
 
       // if key is already connected with bottom,, it is no longer to be
-      table.get(key).remove(getBottomItem());
+      if (!value.equals(getBottomItem())) {
+        table.get(key).remove(getBottomItem());
+      }
 
       return true;
     } else
@@ -129,7 +131,9 @@ public class Lattice<T> {
 
     Set<T> neighborSet = get(a);
 
-    if (neighborSet == null) {
+    if (a.equals(b)) {
+      return true;
+    } else if (neighborSet == null) {
       return false;
     } else if (neighborSet.contains(b)) {
       return true;
@@ -145,6 +149,10 @@ public class Lattice<T> {
   }
 
   public boolean isGreaterThan(T a, T b) {
+
+    if (a.equals(b)) {
+      return false;
+    }
 
     if (a.equals(top)) {
       if (b.equals(top)) {

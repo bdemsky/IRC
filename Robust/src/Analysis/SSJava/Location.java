@@ -23,9 +23,9 @@ public class Location implements TypeExtension {
     this.d = d;
     this.type = type;
     if (type == TOP) {
-      loc = SSJavaLattice.TOP;
+      loc = SSJavaAnalysis.TOP;
     } else if (type == BOTTOM) {
-      loc = SSJavaLattice.BOTTOM;
+      loc = SSJavaAnalysis.BOTTOM;
     }
   }
 

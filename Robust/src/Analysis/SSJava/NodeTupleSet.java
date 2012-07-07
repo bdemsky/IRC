@@ -1,51 +1,53 @@
 package Analysis.SSJava;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import IR.Descriptor;
 
 public class NodeTupleSet {
 
-  private Set<NTuple<Descriptor>> set;
+  private List<NTuple<Descriptor>> list;
 
   public NodeTupleSet() {
-    set = new HashSet<NTuple<Descriptor>>();
+    list = new ArrayList<NTuple<Descriptor>>();
   }
 
   public void addTuple(NTuple<Descriptor> tuple) {
 
-    // need to add additional elements because we need to create edges even from
-    // the base
-    // for example, if we have input <a,b,c>, we need to add additional element
-    // <a,b> and <a> to the set
+    for (Iterator iterator = list.iterator(); iterator.hasNext();) {
+      NTuple<Descriptor> t = (NTuple<Descriptor>) iterator.next();
+      if (t.equals(tuple)) {
+        return;
+      }
+    }
 
-    // NTuple<Descriptor> cur = new NTuple<Descriptor>();
-    // for (int i = 0; i < tuple.size(); i++) {
-    // Descriptor d = tuple.get(i);
-    // cur.add(d);
-    // set.add(new NTuple<Descriptor>(cur));
-    // }
-
-    set.add(tuple);
+    list.add(tuple);
   }
 
   public Iterator<NTuple<Descriptor>> iterator() {
-    return set.iterator();
+    return list.iterator();
   }
 
   public String toString() {
-    return set.toString();
+    return list.toString();
   }
 
   public Set<NTuple<Descriptor>> getSet() {
+    Set<NTuple<Descriptor>> set = new HashSet<NTuple<Descriptor>>();
+    set.addAll(list);
     return set;
   }
 
   public void addTupleSet(NodeTupleSet in) {
     if (in != null) {
-      set.addAll(in.getSet());
+      for (Iterator iterator = in.iterator(); iterator.hasNext();) {
+        NTuple<Descriptor> inTuple = (NTuple<Descriptor>) iterator.next();
+        addTuple(inTuple);
+      }
     }
   }
 }

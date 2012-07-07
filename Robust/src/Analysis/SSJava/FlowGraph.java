@@ -23,6 +23,7 @@ public class FlowGraph {
   MethodDescriptor md;
 
   Set<FlowNode> nodeSet;
+  Set<FlowNode> returnNodeSet;
   FlowNode thisVarNode;
 
   // maps the composite representation of field/var descriptors to infer nodes
@@ -37,11 +38,12 @@ public class FlowGraph {
 
   public FlowGraph(MethodDescriptor md, Map<Descriptor, Integer> mapParamDescToIdx) {
     this.md = md;
-    nodeSet = new HashSet<FlowNode>();
-    mapDescTupleToInferNode = new HashMap<NTuple<Descriptor>, FlowNode>();
-    mapNodeToNeighborSet = new HashMap<NTuple<Descriptor>, Set<FlowNode>>();
+    this.nodeSet = new HashSet<FlowNode>();
+    this.mapDescTupleToInferNode = new HashMap<NTuple<Descriptor>, FlowNode>();
+    this.mapNodeToNeighborSet = new HashMap<NTuple<Descriptor>, Set<FlowNode>>();
     this.mapParamDescToIdx = new HashMap<Descriptor, Integer>();
     this.mapParamDescToIdx.putAll(mapParamDescToIdx);
+    this.returnNodeSet = new HashSet<FlowNode>();
 
     // create a node for 'this' varialbe
     NTuple<Descriptor> thisDescTuple = new NTuple<Descriptor>();
@@ -168,6 +170,22 @@ public class FlowGraph {
 
   }
 
+  public void setReturnFlowNode(NTuple<Descriptor> tuple) {
+
+    if (!mapDescTupleToInferNode.containsKey(tuple)) {
+      createNewFlowNode(tuple);
+    }
+
+    FlowNode node = mapDescTupleToInferNode.get(tuple);
+    node.setReturn(true);
+
+    returnNodeSet.add(node);
+  }
+
+  public Set<FlowNode> getReturnNodeSet() {
+    return returnNodeSet;
+  }
+
   public boolean isParamter(NTuple<Descriptor> tuple) {
     // return true if a descriptor tuple is started with a parameter descriptor
     Descriptor firstIdxDesc = tuple.get(0);
@@ -220,7 +238,7 @@ public class FlowGraph {
 
   public void writeGraph() throws java.io.IOException {
 
-    String graphName = md.toString();
+    String graphName = "flowgraph_" + md.toString();
     graphName = graphName.replaceAll("[\\W]", "");
 
     BufferedWriter bw = new BufferedWriter(new FileWriter(graphName + ".dot"));

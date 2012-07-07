@@ -48,6 +48,9 @@ public class SSJavaAnalysis {
   public static final String DELEGATETHIS = "DELEGATETHIS";
   public static final String TRUST = "TRUST";
 
+  public static final String TOP = "_top_";
+  public static final String BOTTOM = "_bottom_";
+
   State state;
   TypeUtil tu;
   FlowDownCheck flowDownChecker;
@@ -277,7 +280,7 @@ public class SSJavaAnalysis {
         String marker = an.getMarker();
         if (marker.equals(LATTICE)) {
           SSJavaLattice<String> locOrder =
-              new SSJavaLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
+              new SSJavaLattice<String>(SSJavaAnalysis.TOP, SSJavaAnalysis.BOTTOM);
           cd2lattice.put(cd, locOrder);
           parseClassLatticeDefinition(cd, an.getValue(), locOrder);
 
@@ -288,7 +291,7 @@ public class SSJavaAnalysis {
 
         } else if (marker.equals(METHODDEFAULT)) {
           MethodLattice<String> locOrder =
-              new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
+              new MethodLattice<String>(SSJavaAnalysis.TOP, SSJavaAnalysis.BOTTOM);
           cd2methodDefault.put(cd, locOrder);
           parseMethodDefaultLatticeDefinition(cd, an.getValue(), locOrder);
         }
@@ -306,7 +309,7 @@ public class SSJavaAnalysis {
               if (an.getMarker().equals(LATTICE)) {
                 // developer explicitly defines method lattice
                 MethodLattice<String> locOrder =
-                    new MethodLattice<String>(SSJavaLattice.TOP, SSJavaLattice.BOTTOM);
+                    new MethodLattice<String>(SSJavaAnalysis.TOP, SSJavaAnalysis.BOTTOM);
                 md2lattice.put(md, locOrder);
                 parseMethodDefaultLatticeDefinition(cd, an.getValue(), locOrder);
               } else if (an.getMarker().equals(TERMINATE)) {
@@ -327,8 +330,8 @@ public class SSJavaAnalysis {
     }
   }
 
-  public void writeLatticeDotFile(ClassDescriptor cd, MethodDescriptor md,
-      SSJavaLattice<String> locOrder) {
+  public <T> void writeLatticeDotFile(ClassDescriptor cd, MethodDescriptor md,
+      SSJavaLattice<T> locOrder) {
 
     String fileName = "lattice_";
     if (md != null) {
@@ -338,32 +341,40 @@ public class SSJavaAnalysis {
       fileName += cd.getSymbol().replaceAll("[\\W_]", "");
     }
 
-    Set<Pair<String, String>> pairSet = locOrder.getOrderingPairSet();
+    Set<Pair<T, T>> pairSet = locOrder.getOrderingPairSet();
 
-    try {
-      BufferedWriter bw = new BufferedWriter(new FileWriter(fileName + ".dot"));
+    if (pairSet.size() > 0) {
+      try {
+        BufferedWriter bw = new BufferedWriter(new FileWriter(fileName + ".dot"));
 
-      bw.write("digraph " + fileName + " {\n");
+        bw.write("digraph " + fileName + " {\n");
 
-      for (Iterator iterator = pairSet.iterator(); iterator.hasNext();) {
-        // pair is in the form of <higher, lower>
-        Pair<String, String> pair = (Pair<String, String>) iterator.next();
+        for (Iterator iterator = pairSet.iterator(); iterator.hasNext();) {
+          // pair is in the form of <higher, lower>
+          Pair<T, T> pair = (Pair<T, T>) iterator.next();
 
-        String highLocId = pair.getFirst();
-        if (locOrder.isSharedLoc(highLocId)) {
-          highLocId = "\"" + highLocId + "*\"";
+          T highLocId = pair.getFirst();
+          String highLocStr, lowLocStr;
+          if (locOrder.isSharedLoc(highLocId)) {
+            highLocStr = "\"" + highLocId + "*\"";
+          } else {
+            highLocStr = highLocId.toString();
+          }
+          T lowLocId = pair.getSecond();
+          if (locOrder.isSharedLoc(lowLocId)) {
+            lowLocStr = "\"" + lowLocId + "*\"";
+          } else {
+            lowLocStr = lowLocId.toString();
+          }
+          bw.write(highLocId + " -> " + lowLocId + ";\n");
         }
-        String lowLocId = pair.getSecond();
-        if (locOrder.isSharedLoc(lowLocId)) {
-          lowLocId = "\"" + lowLocId + "*\"";
-        }
-        bw.write(highLocId + " -> " + lowLocId + ";\n");
+        bw.write("}\n");
+        bw.close();
+
+      } catch (IOException e) {
+        e.printStackTrace();
       }
-      bw.write("}\n");
-      bw.close();
 
-    } catch (IOException e) {
-      e.printStackTrace();
     }
 
   }
