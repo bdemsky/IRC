@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.Set;
 
 import IR.Descriptor;
+import IR.FieldDescriptor;
+import IR.VarDescriptor;
 
 public class FlowNode {
 
@@ -72,6 +74,16 @@ public class FlowNode {
 
   public void setReturn(boolean isReturn) {
     this.isReturn = isReturn;
+  }
+
+  public boolean isPrimitiveType() {
+    Descriptor desc = descTuple.get(descTuple.size() - 1);
+    if (desc instanceof VarDescriptor) {
+      return ((VarDescriptor) desc).getType().isPrimitive();
+    } else if (desc instanceof FieldDescriptor) {
+      return ((FieldDescriptor) desc).getType().isPrimitive();
+    }
+    return false;
   }
 
   public String toString() {

@@ -1,7 +1,6 @@
 package Analysis.SSJava;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
@@ -9,10 +8,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
-import Analysis.OoOJava.ConflictEdge;
-import Analysis.OoOJava.ConflictNode;
+import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
@@ -58,6 +55,10 @@ public class FlowGraph {
 
   public Set<FlowNode> getNodeSet() {
     return nodeSet;
+  }
+
+  public MethodDescriptor getMethodDescriptor() {
+    return md;
   }
 
   public Set<FlowNode> getParameterNodeSet() {
@@ -184,6 +185,135 @@ public class FlowGraph {
 
   public Set<FlowNode> getReturnNodeSet() {
     return returnNodeSet;
+  }
+
+  public Set<FlowNode> getReachableFlowNodeSet(FlowNode fn) {
+    Set<FlowNode> set = new HashSet<FlowNode>();
+    getReachableFlowNodeSet(fn, set);
+    return set;
+  }
+
+  private void getReachableFlowNodeSet(FlowNode fn, Set<FlowNode> visited) {
+
+    for (Iterator iterator = fn.getOutEdgeSet().iterator(); iterator.hasNext();) {
+      FlowEdge edge = (FlowEdge) iterator.next();
+
+      if (fn.equals(getFlowNode(edge.getInitTuple()))) {
+
+        FlowNode dstNode = getFlowNode(edge.getEndTuple());
+
+        if (!visited.contains(dstNode)) {
+          visited.add(dstNode);
+          getReachableFlowNodeSet(dstNode, visited);
+        }
+      }
+    }
+
+  }
+
+  public Set<NTuple<Location>> getReachableFlowTupleSet(Set<NTuple<Location>> visited, FlowNode fn) {
+    for (Iterator iterator = fn.getOutEdgeSet().iterator(); iterator.hasNext();) {
+      FlowEdge edge = (FlowEdge) iterator.next();
+
+      if (fn.getDescTuple().equals(edge.getInitTuple())) {
+        FlowNode dstNode = getFlowNode(edge.getEndTuple());
+        NTuple<Location> dstTuple = getLocationTuple(dstNode);
+
+        if (!visited.contains(dstTuple)) {
+          visited.add(dstTuple);
+          visited.addAll(getReachableFlowTupleSet(visited, dstNode));
+        }
+
+      }
+    }
+    return visited;
+  }
+
+  public NTuple<Location> getLocationTuple(FlowNode fn) {
+
+    NTuple<Descriptor> descTuple = fn.getDescTuple();
+
+    NTuple<Location> locTuple = new NTuple<Location>();
+
+    ClassDescriptor cd = null;
+
+    for (int i = 0; i < descTuple.size(); i++) {
+      Descriptor d = descTuple.get(i);
+      Location loc;
+      if (i == 0) {
+        loc = new Location(md, d.getSymbol());
+        cd = ((VarDescriptor) d).getType().getClassDesc();
+      } else {
+        loc = new Location(cd, d.getSymbol());
+        cd = ((FieldDescriptor) d).getType().getClassDesc();
+      }
+      locTuple.add(loc);
+    }
+
+    return locTuple;
+  }
+
+  public Set<FlowNode> getIncomingFlowNodeSet(FlowNode node) {
+    Set<FlowNode> set = new HashSet<FlowNode>();
+    getIncomingFlowNodeSet(node, set);
+    return set;
+  }
+
+  public void getIncomingFlowNodeSet(FlowNode node, Set<FlowNode> visited) {
+
+    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+      FlowNode curNode = (FlowNode) iterator.next();
+      Set<FlowEdge> edgeSet = curNode.getOutEdgeSet();
+
+      for (Iterator iterator2 = edgeSet.iterator(); iterator2.hasNext();) {
+        FlowEdge flowEdge = (FlowEdge) iterator2.next();
+
+        if (node.equals(getFlowNode(flowEdge.getEndTuple()))) {
+          FlowNode incomingNode = getFlowNode(flowEdge.getInitTuple());
+
+          if (!visited.contains(incomingNode)) {
+            visited.add(incomingNode);
+            getIncomingFlowNodeSet(incomingNode, visited);
+          }
+        }
+      }
+    }
+
+  }
+
+  public Set<NTuple<Location>> getIncomingFlowTupleSet(FlowNode fn) {
+
+    NTuple<Descriptor> dstTuple = fn.getDescTuple();
+
+    Set<NTuple<Location>> set = new HashSet<NTuple<Location>>();
+
+    ClassDescriptor cd = null;
+
+    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+      FlowNode node = (FlowNode) iterator.next();
+      Set<FlowEdge> edgeSet = node.getOutEdgeSet();
+      for (Iterator iterator2 = edgeSet.iterator(); iterator2.hasNext();) {
+        FlowEdge flowEdge = (FlowEdge) iterator2.next();
+        if (dstTuple.equals(flowEdge.getEndTuple())) {
+          NTuple<Descriptor> initTuple = flowEdge.getInitTuple();
+          NTuple<Location> locTuple = new NTuple<Location>();
+          for (int i = 0; i < initTuple.size(); i++) {
+            Descriptor d = initTuple.get(i);
+            Location loc;
+            if (i == 0) {
+              loc = new Location(md, d.getSymbol());
+              cd = ((VarDescriptor) d).getType().getClassDesc();
+            } else {
+              loc = new Location(cd, d.getSymbol());
+              cd = ((FieldDescriptor) d).getType().getClassDesc();
+            }
+            locTuple.add(loc);
+          }
+          set.add(locTuple);
+        }
+      }
+    }
+    return set;
   }
 
   public boolean isParamter(NTuple<Descriptor> tuple) {

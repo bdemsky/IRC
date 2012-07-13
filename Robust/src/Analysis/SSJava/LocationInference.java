@@ -13,8 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import Analysis.SSJava.FlowDownCheck.ComparisonResult;
-import Analysis.SSJava.FlowDownCheck.CompositeLattice;
 import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FieldDescriptor;
@@ -74,7 +72,9 @@ public class LocationInference {
 
   private Map<MethodInvokeNode, Map<Integer, NTuple<Descriptor>>> mapMethodInvokeNodeToArgIdxMap;
 
-  private Map<MethodDescriptor, MethodLocationInfo> mapLatticeToMethodLocationInfo;
+  private Map<MethodDescriptor, MethodLocationInfo> mapMethodDescToMethodLocationInfo;
+
+  private Map<ClassDescriptor, LocationInfo> mapClassToLocationInfo;
 
   private Map<MethodDescriptor, Set<MethodDescriptor>> mapMethodDescToPossibleMethodDescSet;
 
@@ -93,9 +93,10 @@ public class LocationInference {
         new HashMap<MethodDescriptor, Set<MethodInvokeNode>>();
     this.mapMethodInvokeNodeToArgIdxMap =
         new HashMap<MethodInvokeNode, Map<Integer, NTuple<Descriptor>>>();
-    this.mapLatticeToMethodLocationInfo = new HashMap<MethodDescriptor, MethodLocationInfo>();
+    this.mapMethodDescToMethodLocationInfo = new HashMap<MethodDescriptor, MethodLocationInfo>();
     this.mapMethodDescToPossibleMethodDescSet =
         new HashMap<MethodDescriptor, Set<MethodDescriptor>>();
+    this.mapClassToLocationInfo = new HashMap<ClassDescriptor, LocationInfo>();
   }
 
   public void setupToAnalyze() {
@@ -318,6 +319,11 @@ public class LocationInference {
     return desc.getSymbol();
   }
 
+  private Descriptor getDescriptor(int idx, FlowNode node) {
+    Descriptor desc = node.getDescTuple().get(idx);
+    return desc;
+  }
+
   private void analyzeMethodLattice(MethodDescriptor md, SSJavaLattice<String> methodLattice) {
 
     MethodLocationInfo methodInfo = getMethodLocationInfo(md);
@@ -355,14 +361,16 @@ public class LocationInference {
             extractRelationFromFieldFlows(varClassDesc, srcNode, dstNode, 1);
 
           } else {
-            // in this case, take a look at connected nodes at the local level
-            addRelationToLattice(md, methodLattice, srcNode, dstNode);
+            // for the method lattice, we need to look at the first element of
+            // NTuple<Descriptor>
+            if (srcNodeTuple.size() == 1 || dstNodeTuple.size() == 1) {
+              // in this case, take a look at connected nodes at the local level
+              addRelationToLattice(md, methodLattice, srcNode, dstNode);
+            }
           }
 
         }
-
       }
-
     }
 
     // grab the this location if the method use the 'this' reference
@@ -472,40 +480,334 @@ public class LocationInference {
 
   }
 
+  private LocationInfo getLocationInfo(Descriptor d) {
+    if (d instanceof MethodDescriptor) {
+      return getMethodLocationInfo((MethodDescriptor) d);
+    } else {
+      return getFieldLocationInfo((ClassDescriptor) d);
+    }
+  }
+
   private MethodLocationInfo getMethodLocationInfo(MethodDescriptor md) {
 
-    if (!mapLatticeToMethodLocationInfo.containsKey(md)) {
-      mapLatticeToMethodLocationInfo.put(md, new MethodLocationInfo(md));
+    if (!mapMethodDescToMethodLocationInfo.containsKey(md)) {
+      mapMethodDescToMethodLocationInfo.put(md, new MethodLocationInfo(md));
     }
 
-    return mapLatticeToMethodLocationInfo.get(md);
+    return mapMethodDescToMethodLocationInfo.get(md);
+
+  }
+
+  private LocationInfo getFieldLocationInfo(ClassDescriptor cd) {
+
+    if (!mapClassToLocationInfo.containsKey(cd)) {
+      mapClassToLocationInfo.put(cd, new LocationInfo(cd));
+    }
+
+    return mapClassToLocationInfo.get(cd);
 
   }
 
   private void addRelationToLattice(MethodDescriptor md, SSJavaLattice<String> methodLattice,
       FlowNode srcNode, FlowNode dstNode) {
 
-    // add a new binary relation of dstNode < srcNode
-    String srcSymbol = getSymbol(0, srcNode);
-    String dstSymbol = getSymbol(0, dstNode);
+    System.out.println("### addRelationToLattice src=" + srcNode + " dst=" + dstNode);
 
+    // add a new binary relation of dstNode < srcNode
     FlowGraph flowGraph = getFlowGraph(md);
     MethodLocationInfo methodInfo = getMethodLocationInfo(md);
 
+    String srcOriginSymbol = getSymbol(0, srcNode);
+    String dstOriginSymbol = getSymbol(0, dstNode);
+
+    Descriptor srcDesc = getDescriptor(0, srcNode);
+    Descriptor dstDesc = getDescriptor(0, dstNode);
+
+    String srcSymbol = methodInfo.getLocName(srcOriginSymbol);
+    String dstSymbol = methodInfo.getLocName(dstOriginSymbol);
+
     if (srcNode.isParameter()) {
       int paramIdx = flowGraph.getParamIdx(srcNode.getDescTuple());
-      methodInfo.addParameter(srcSymbol, srcNode, paramIdx);
+      methodInfo.addParameter(srcSymbol, srcDesc, paramIdx);
+    } else {
+      methodInfo.addMappingOfLocNameToDescriptor(srcSymbol, srcDesc);
     }
+
     if (dstNode.isParameter()) {
       int paramIdx = flowGraph.getParamIdx(dstNode.getDescTuple());
-      methodInfo.addParameter(dstSymbol, dstNode, paramIdx);
+      methodInfo.addParameter(dstSymbol, dstDesc, paramIdx);
+    } else {
+      methodInfo.addMappingOfLocNameToDescriptor(dstSymbol, dstDesc);
     }
 
-    if (!methodLattice.isGreaterThan(srcSymbol, dstSymbol)) {
-      // if the lattice does not have this relation, add it
-      methodLattice.addRelationHigherToLower(srcSymbol, dstSymbol);
+    // consider a composite location case
+
+    boolean isSrcLocalVar = false;
+    boolean isDstLocalVar = false;
+    if (srcNode.getDescTuple().size() == 1) {
+      isSrcLocalVar = true;
     }
 
+    if (dstNode.getDescTuple().size() == 1) {
+      isDstLocalVar = true;
+    }
+
+    boolean isAssignedCompositeLocation = false;
+    if (isSrcLocalVar && isDstLocalVar) {
+      // both src and dst are local var
+
+      // CompositeLocation inferSrc=methodInfo.getInferLocation(srcNode);
+      // CompositeLocation inferDst=methodInfo.getInferLocation(dstNode);
+      // if( (inferSrc!=null && inferSrc.getSize()>1) || (inferDst!=null &&
+      // inferDst.getSize()>1)){
+      // isAssignedCompositeLocation = true;
+      // }
+
+      // TODO: need to fix
+      isAssignedCompositeLocation =
+          calculateCompositeLocationForLocalVar(flowGraph, methodLattice, methodInfo, srcNode);
+      calculateCompositeLocationForLocalVar(flowGraph, methodLattice, methodInfo, dstNode);
+
+    } else if (isSrcLocalVar) {
+      // src is local var
+      isAssignedCompositeLocation =
+          calculateCompositeLocationForLocalVar(flowGraph, methodLattice, methodInfo, srcNode);
+    } else if (isDstLocalVar) {
+      // dst is local var
+      isAssignedCompositeLocation =
+          calculateCompositeLocationForLocalVar(flowGraph, methodLattice, methodInfo, dstNode);
+    }
+
+    if (!isAssignedCompositeLocation) {
+      if (!methodLattice.isGreaterThan(srcSymbol, dstSymbol)) {
+        // if the lattice does not have this relation, add it
+        methodLattice.addRelationHigherToLower(srcSymbol, dstSymbol);
+      }
+    }
+
+    // Set<String> cycleElementSet =
+    // methodLattice.getPossibleCycleElements(srcSymbol, dstSymbol);
+    //
+    // System.out.println("### POSSIBLE CYCLE ELEMENT SET=" + cycleElementSet);
+    // boolean hasNonPrimitiveElement = false;
+    // for (Iterator iterator = cycleElementSet.iterator(); iterator.hasNext();)
+    // {
+    // String cycleElementSymbol = (String) iterator.next();
+    // Set<Descriptor> flowNodeSet =
+    // methodInfo.getFlowNodeSet(cycleElementSymbol);
+    // for (Iterator iterator2 = flowNodeSet.iterator(); iterator2.hasNext();) {
+    // Descriptor desc = (Descriptor) iterator2.next();
+    // if (!isPrimitiveTypeDescriptor(desc)) {
+    // hasNonPrimitiveElement = true;
+    // }
+    // System.out
+    // .println("flowNode=" + desc + " is primitive?=" +
+    // isPrimitiveTypeDescriptor(desc));
+    // }
+    // }
+    //
+    // if (hasNonPrimitiveElement) {
+    // // if there is non-primitive element in the cycle, no way to merge cyclic
+    // // elements into the shared location
+    // System.out.println("Failed to merge cyclic value flows into a shared location.");
+    //
+    // // try to assign more fine-grind composite location to the source or the
+    // // destination
+    // System.out.println("SRC=" + srcSymbol + "    DST=" + dstSymbol);
+    // System.out.println("### SRCNODE=" + srcNode + " DSTNODE=" + dstNode);
+    //
+    // FlowNode targetNode;
+    // if (isPrimitiveLocalVariable(srcNode)) {
+    // targetNode = srcNode;
+    // } else {
+    // targetNode = dstNode;
+    // }
+    //
+    // calculateMoreFineGrainedLocation(md, methodLattice, targetNode);
+    //
+    // return;
+    // }
+    //
+    // if (cycleElementSet.size() > 0) {
+    // String newSharedLoc = "SharedLoc" + (SSJavaLattice.seed++);
+    // methodLattice.mergeIntoSharedLocation(cycleElementSet, newSharedLoc);
+    //
+    // for (Iterator iterator = cycleElementSet.iterator(); iterator.hasNext();)
+    // {
+    // String locName = (String) iterator.next();
+    // methodInfo.mapDescSymbolToLocName(locName, newSharedLoc);
+    // }
+    //
+    // } else if (!methodLattice.isGreaterThan(srcSymbol, dstSymbol)) {
+    // // if the lattice does not have this relation, add it
+    // methodLattice.addRelationHigherToLower(srcSymbol, dstSymbol);
+    // }
+    //
+    // System.out.println("methodLattice=" + methodLattice.getKeySet());
+
+  }
+
+  private void addPrefixMapping(Map<NTuple<Location>, Set<NTuple<Location>>> map,
+      NTuple<Location> prefix, NTuple<Location> element) {
+
+    if (!map.containsKey(prefix)) {
+      map.put(prefix, new HashSet<NTuple<Location>>());
+    }
+    map.get(prefix).add(element);
+
+  }
+
+  private NTuple<Location> getLocationTuple(MethodLocationInfo methodInfo, FlowGraph flowGraph,
+      FlowNode flowNode) {
+
+    NTuple<Location> locTuple;
+    CompositeLocation inferLoc = methodInfo.getInferLocation(flowNode);
+    if (inferLoc != null) {
+      // the flow node has already been assigned to the location
+      locTuple = new NTuple<Location>();
+      NTuple<Location> inferLocTuple = inferLoc.getTuple();
+      for (int i = 0; i < inferLocTuple.size(); i++) {
+        locTuple.add(inferLocTuple.get(i));
+      }
+    } else {
+      locTuple = flowGraph.getLocationTuple(flowNode);
+    }
+
+    return locTuple;
+  }
+
+  private boolean calculateCompositeLocationForLocalVar(FlowGraph flowGraph,
+      SSJavaLattice<String> methodLattice, MethodLocationInfo methodInfo, FlowNode flowNode) {
+
+    Set<FlowNode> inNodeSet = flowGraph.getIncomingFlowNodeSet(flowNode);
+    Set<FlowNode> reachableNodeSet = flowGraph.getReachableFlowNodeSet(flowNode);
+
+    Map<NTuple<Location>, Set<NTuple<Location>>> mapPrefixToIncomingLocTupleSet =
+        new HashMap<NTuple<Location>, Set<NTuple<Location>>>();
+
+    List<NTuple<Location>> prefixList = new ArrayList<NTuple<Location>>();
+
+    for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
+      FlowNode inNode = (FlowNode) iterator.next();
+      NTuple<Location> inTuple = getLocationTuple(methodInfo, flowGraph, inNode);
+
+      if (inTuple.size() > 1) {
+        for (int i = 1; i < inTuple.size(); i++) {
+          NTuple<Location> prefix = inTuple.subList(0, i);
+          if (!prefixList.contains(prefix)) {
+            prefixList.add(prefix);
+          }
+          addPrefixMapping(mapPrefixToIncomingLocTupleSet, prefix, inTuple);
+        }
+      }
+    }
+
+    Collections.sort(prefixList, new Comparator<NTuple<Location>>() {
+      public int compare(NTuple<Location> arg0, NTuple<Location> arg1) {
+        int s0 = arg0.size();
+        int s1 = arg1.size();
+        if (s0 > s1) {
+          return -1;
+        } else if (s0 == s1) {
+          return 0;
+        } else {
+          return 1;
+        }
+      }
+    });
+
+    // find out reachable nodes that have the longest common prefix
+    for (int i = 0; i < prefixList.size(); i++) {
+      NTuple<Location> curPrefix = prefixList.get(i);
+      Set<NTuple<Location>> reachableCommonPrefixSet = new HashSet<NTuple<Location>>();
+
+      for (Iterator iterator2 = reachableNodeSet.iterator(); iterator2.hasNext();) {
+        FlowNode reachableNode = (FlowNode) iterator2.next();
+        NTuple<Location> reachLocTuple = flowGraph.getLocationTuple(reachableNode);
+        if (reachLocTuple.startsWith(curPrefix)) {
+          reachableCommonPrefixSet.add(reachLocTuple);
+        }
+      }
+
+      if (!reachableCommonPrefixSet.isEmpty()) {
+        Set<NTuple<Location>> incomingCommonPrefixSet =
+            mapPrefixToIncomingLocTupleSet.get(curPrefix);
+
+        int idx = curPrefix.size();
+        NTuple<Location> element = incomingCommonPrefixSet.iterator().next();
+        Descriptor desc = element.get(idx).getDescriptor();
+
+        SSJavaLattice<String> lattice = getLattice(desc);
+        LocationInfo locInfo = getLocationInfo(desc);
+
+        CompositeLocation inferNode = methodInfo.getInferLocation(flowNode);
+        String nodeSymbol;
+        if (inferNode != null) {
+
+        } else {
+          String newLocSymbol = "Loc" + (SSJavaLattice.seed++);
+          inferNode = new CompositeLocation();
+          for (int locIdx = 0; locIdx < curPrefix.size(); locIdx++) {
+            inferNode.addLocation(curPrefix.get(locIdx));
+          }
+          inferNode.addLocation(new Location(desc, newLocSymbol));
+          methodInfo.mapFlowNodeToInferLocation(flowNode, inferNode);
+          if (flowNode.getDescTuple().size() == 1) {
+            // local variable case
+            modifyLocalLatticeAccrodingToNewlyAddedCompositeLocation(methodLattice, methodInfo,
+                inferNode, flowNode);
+          }
+        }
+
+        nodeSymbol = inferNode.get(inferNode.getSize() - 1).getLocIdentifier();
+
+        for (Iterator iterator = incomingCommonPrefixSet.iterator(); iterator.hasNext();) {
+          NTuple<Location> tuple = (NTuple<Location>) iterator.next();
+          Location loc = tuple.get(idx);
+          String higher = locInfo.getLocName(loc.getLocIdentifier());
+          lattice.addRelationHigherToLower(higher, nodeSymbol);
+        }
+
+        for (Iterator iterator = reachableCommonPrefixSet.iterator(); iterator.hasNext();) {
+          NTuple<Location> tuple = (NTuple<Location>) iterator.next();
+          Location loc = tuple.get(idx);
+          String lower = locInfo.getLocName(loc.getLocIdentifier());
+          lattice.addRelationHigherToLower(nodeSymbol, lower);
+        }
+
+        return true;
+      }
+
+    }
+
+    return false;
+
+  }
+
+  private void modifyLocalLatticeAccrodingToNewlyAddedCompositeLocation(
+      SSJavaLattice<String> methodLattice, MethodLocationInfo methodInfo,
+      CompositeLocation inferNode, FlowNode flowNode) {
+
+    Location localLocation = inferNode.get(0);
+    String newLocName = methodInfo.getLocName(localLocation.getLocIdentifier());
+    String oldLocName = methodInfo.getLocName(flowNode.getDescTuple().get(0).getSymbol());
+
+    methodInfo.mapDescSymbolToLocName(oldLocName, newLocName);
+    methodLattice.substituteLocation(oldLocName, newLocName);
+
+  }
+
+  public boolean isPrimitiveLocalVariable(FlowNode node) {
+    VarDescriptor varDesc = (VarDescriptor) node.getDescTuple().get(0);
+    return varDesc.getType().isPrimitive();
+  }
+
+  private SSJavaLattice<String> getLattice(Descriptor d) {
+    if (d instanceof MethodDescriptor) {
+      return getMethodLattice((MethodDescriptor) d);
+    } else {
+      return getFieldLattice((ClassDescriptor) d);
+    }
   }
 
   private SSJavaLattice<String> getMethodLattice(MethodDescriptor md) {
@@ -546,10 +848,27 @@ public class LocationInference {
       // add a new binary relation of dstNode < srcNode
       SSJavaLattice<String> fieldLattice = getFieldLattice(cd);
 
-      String srcSymbol = srcFieldDesc.getSymbol();
-      String dstSymbol = dstFieldDesc.getSymbol();
+      String srcOriginalSymbol = srcFieldDesc.getSymbol();
+      String dstOriginalSymbol = dstFieldDesc.getSymbol();
 
-      if (!fieldLattice.isGreaterThan(srcSymbol, dstSymbol)) {
+      LocationInfo fieldInfo = getFieldLocationInfo(cd);
+
+      String srcSymbol = fieldInfo.getLocName(srcOriginalSymbol);
+      String dstSymbol = fieldInfo.getLocName(dstOriginalSymbol);
+
+      Set<String> cycleElementSet = fieldLattice.getPossibleCycleElements(srcSymbol, dstSymbol);
+
+      if (cycleElementSet.size() > 0) {
+        String newSharedLoc = "SharedLoc" + (SSJavaLattice.seed++);
+        fieldLattice.mergeIntoSharedLocation(cycleElementSet, newSharedLoc);
+
+        for (Iterator iterator = cycleElementSet.iterator(); iterator.hasNext();) {
+          String locName = (String) iterator.next();
+          fieldInfo.mapDescSymbolToLocName(locName, newSharedLoc);
+        }
+
+      } else if (!fieldLattice.isGreaterThan(srcSymbol, dstSymbol)) {
+        // if the lattice does not have this relation, add it
         fieldLattice.addRelationHigherToLower(srcSymbol, dstSymbol);
       }
 

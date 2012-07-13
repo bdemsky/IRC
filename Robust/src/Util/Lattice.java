@@ -3,6 +3,7 @@ package Util;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 public class Lattice<T> {
@@ -32,6 +33,10 @@ public class Lattice<T> {
 
   public Set<T> getKeySet() {
     return table.keySet();
+  }
+
+  public Map<T, Set<T>> getTable() {
+    return table;
   }
 
   public boolean put(T key) {

@@ -5,22 +5,35 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import IR.Descriptor;
 import IR.MethodDescriptor;
 
-public class MethodLocationInfo {
+public class MethodLocationInfo extends LocationInfo {
+
+  MethodDescriptor md;
 
   String returnLocName;
   String thisLocName;
   String PCLocName;
+
   Map<Integer, String> mapParamIdxToLocName;
-  Map<String, FlowNode> mapLocNameToFlowNode;
-  MethodDescriptor md;
+  Set<String> paramLocNameSet;
+  Map<FlowNode, CompositeLocation> mapFlowNodeToLocation;
 
   public MethodLocationInfo(MethodDescriptor md) {
     this.md = md;
     this.mapParamIdxToLocName = new HashMap<Integer, String>();
-    this.mapLocNameToFlowNode = new HashMap<String, FlowNode>();
+    this.paramLocNameSet = new HashSet<String>();
     this.PCLocName = SSJavaAnalysis.TOP;
+    this.mapFlowNodeToLocation = new HashMap<FlowNode, CompositeLocation>();
+  }
+
+  public void mapFlowNodeToInferLocation(FlowNode node, CompositeLocation location) {
+    mapFlowNodeToLocation.put(node, location);
+  }
+
+  public CompositeLocation getInferLocation(FlowNode node) {
+    return mapFlowNodeToLocation.get(node);
   }
 
   public String getReturnLocName() {
@@ -47,9 +60,9 @@ public class MethodLocationInfo {
     PCLocName = pCLocName;
   }
 
-  public void addParameter(String name, FlowNode node, int idx) {
+  public void addParameter(String name, Descriptor desc, int idx) {
     mapParamIdxToLocName.put(new Integer(idx), name);
-    mapLocNameToFlowNode.put(name, node);
+    addMappingOfLocNameToDescriptor(name, desc);
   }
 
   public Set<String> getParameterLocNameSet() {
@@ -65,7 +78,7 @@ public class MethodLocationInfo {
       paramSet.add(returnLocName);
     }
 
-    paramSet.addAll(mapLocNameToFlowNode.keySet());
+    paramSet.addAll(mapParamIdxToLocName.values());
 
     return paramSet;
   }
