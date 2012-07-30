@@ -23,6 +23,9 @@ public class FlowGraph {
   Set<FlowNode> returnNodeSet;
   FlowNode thisVarNode;
 
+  Map<NTuple<Location>, FlowNode> mapLocTupleToFlowNode;
+  Map<FlowNode, NTuple<Location>> mapFlowNodeToLocTuple;
+
   // maps the composite representation of field/var descriptors to infer nodes
   Map<NTuple<Descriptor>, FlowNode> mapDescTupleToInferNode;
 
@@ -35,6 +38,8 @@ public class FlowGraph {
 
   public FlowGraph(MethodDescriptor md, Map<Descriptor, Integer> mapParamDescToIdx) {
     this.md = md;
+    this.mapFlowNodeToLocTuple = new HashMap<FlowNode, NTuple<Location>>();
+    this.mapLocTupleToFlowNode = new HashMap<NTuple<Location>, FlowNode>();
     this.nodeSet = new HashSet<FlowNode>();
     this.mapDescTupleToInferNode = new HashMap<NTuple<Descriptor>, FlowNode>();
     this.mapNodeToNeighborSet = new HashMap<NTuple<Descriptor>, Set<FlowNode>>();
@@ -42,14 +47,16 @@ public class FlowGraph {
     this.mapParamDescToIdx.putAll(mapParamDescToIdx);
     this.returnNodeSet = new HashSet<FlowNode>();
 
-    // create a node for 'this' varialbe
-    NTuple<Descriptor> thisDescTuple = new NTuple<Descriptor>();
-    thisDescTuple.add(md.getThis());
-    FlowNode thisNode = new FlowNode(thisDescTuple, true);
-    NTuple<Descriptor> thisVarTuple = new NTuple<Descriptor>();
-    thisVarTuple.add(md.getThis());
-    createNewFlowNode(thisVarTuple);
-    thisVarNode = thisNode;
+    if (!md.isStatic()) {
+      // create a node for 'this' varialbe
+      NTuple<Descriptor> thisDescTuple = new NTuple<Descriptor>();
+      thisDescTuple.add(md.getThis());
+      FlowNode thisNode = new FlowNode(thisDescTuple, true);
+      NTuple<Descriptor> thisVarTuple = new NTuple<Descriptor>();
+      thisVarTuple.add(md.getThis());
+      createNewFlowNode(thisVarTuple);
+      thisVarNode = thisNode;
+    }
 
   }
 
@@ -158,6 +165,8 @@ public class FlowGraph {
       mapDescTupleToInferNode.put(tuple, node);
       nodeSet.add(node);
 
+      mapLocTupleToFlowNode.put(getLocationTuple(node), node);
+
       if (tuple.size() > 1) {
         NTuple<Descriptor> baseTuple = tuple.subList(0, tuple.size() - 1);
         getFlowNode(baseTuple).addFieldNode(node);
@@ -231,26 +240,28 @@ public class FlowGraph {
 
   public NTuple<Location> getLocationTuple(FlowNode fn) {
 
-    NTuple<Descriptor> descTuple = fn.getDescTuple();
+    if (!mapFlowNodeToLocTuple.containsKey(fn)) {
+      NTuple<Descriptor> descTuple = fn.getDescTuple();
+      NTuple<Location> locTuple = new NTuple<Location>();
+      ClassDescriptor cd = null;
 
-    NTuple<Location> locTuple = new NTuple<Location>();
-
-    ClassDescriptor cd = null;
-
-    for (int i = 0; i < descTuple.size(); i++) {
-      Descriptor d = descTuple.get(i);
-      Location loc;
-      if (i == 0) {
-        loc = new Location(md, d.getSymbol());
-        cd = ((VarDescriptor) d).getType().getClassDesc();
-      } else {
-        loc = new Location(cd, d.getSymbol());
-        cd = ((FieldDescriptor) d).getType().getClassDesc();
+      for (int i = 0; i < descTuple.size(); i++) {
+        Descriptor curDesc = descTuple.get(i);
+        Location loc;
+        if (i == 0) {
+          loc = new Location(md, curDesc.getSymbol());
+          loc.setLocDescriptor(md);
+          cd = ((VarDescriptor) curDesc).getType().getClassDesc();
+        } else {
+          loc = new Location(cd, curDesc.getSymbol());
+          loc.setLocDescriptor(curDesc);
+          cd = ((FieldDescriptor) curDesc).getType().getClassDesc();
+        }
+        locTuple.add(loc);
       }
-      locTuple.add(loc);
+      mapFlowNodeToLocTuple.put(fn, locTuple);
     }
-
-    return locTuple;
+    return mapFlowNodeToLocTuple.get(fn);
   }
 
   public Set<FlowNode> getIncomingFlowNodeSet(FlowNode node) {

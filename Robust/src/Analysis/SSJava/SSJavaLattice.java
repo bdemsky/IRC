@@ -135,10 +135,24 @@ public class SSJavaLattice<T> extends Lattice<T> {
     Set<T> set = getTable().get(newLoc);
     set.addAll(newConnectedSet);
 
+    // clean up lattice
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      T keyElement = (T) iterator.next();
+      get(keyElement).removeAll(cycleSet);
+    }
+
+    for (Iterator iterator = cycleSet.iterator(); iterator.hasNext();) {
+      T cycleElement = (T) iterator.next();
+      getTable().remove(cycleElement);
+    }
+
   }
 
   public void substituteLocation(T oldLoc, T newLoc) {
     // the new location is going to take all relations of the old location
+    if (!getKeySet().contains(newLoc)) {
+      put(newLoc);
+    }
 
     // consider the set of location s.t. LOC is greater than oldLoc
     Set<T> keySet = getKeySet();
@@ -172,6 +186,71 @@ public class SSJavaLattice<T> extends Lattice<T> {
       }
     }
 
+    getTable().remove(oldLoc);
+
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      T key = (T) iterator.next();
+      getTable().get(key).remove(oldLoc);
+    }
+
   }
 
+  public void removeRedundantEdges() {
+    boolean isUpdated;
+    do {
+      isUpdated = recurRemoveRedundant();
+    } while (isUpdated);
+  }
+
+  public boolean recurRemoveRedundant() {
+
+    Set<T> keySet = getKeySet();
+    Set<T> visited = new HashSet<T>();
+
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      T key = (T) iterator.next();
+      Set<T> connectedSet = getTable().get(key);
+      if (connectedSet != null) {
+        Set<T> toberemovedSet = new HashSet<T>();
+        for (Iterator iterator2 = connectedSet.iterator(); iterator2.hasNext();) {
+          T dst = (T) iterator2.next();
+          Set<T> otherNeighborSet = new HashSet<T>();
+          otherNeighborSet.addAll(connectedSet);
+          otherNeighborSet.remove(dst);
+          for (Iterator iterator3 = otherNeighborSet.iterator(); iterator3.hasNext();) {
+            T neighbor = (T) iterator3.next();
+            if (isReachable(neighbor, visited, dst)) {
+              toberemovedSet.add(dst);
+            }
+          }
+        }
+        if (toberemovedSet.size() > 0) {
+          connectedSet.removeAll(toberemovedSet);
+          return true;
+        }
+      }
+    }
+
+    return false;
+
+  }
+
+  private boolean isReachable(T neighbor, Set<T> visited, T dst) {
+    Set<T> connectedSet = getTable().get(neighbor);
+    if (connectedSet != null) {
+      for (Iterator<T> iterator = connectedSet.iterator(); iterator.hasNext();) {
+        T n = iterator.next();
+        if (n.equals(dst)) {
+          return true;
+        }
+        if (!visited.contains(n)) {
+          visited.add(n);
+          if (isReachable(n, visited, dst)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
 }

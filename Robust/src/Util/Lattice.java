@@ -71,7 +71,7 @@ public class Lattice<T> {
       size++;
       s.add(value);
 
-      if (!table.containsKey(value)) {
+      if ((!table.containsKey(value)) && (!value.equals(bottom))) {
         Set<T> lowerNeighbor = new HashSet<T>();
         lowerNeighbor.add(bottom);
         table.put(value, lowerNeighbor);
@@ -155,6 +155,13 @@ public class Lattice<T> {
 
   public boolean isGreaterThan(T a, T b) {
 
+    Set<T> visited = new HashSet<T>();
+    return isGreaterThan(a, b, visited);
+
+  }
+
+  public boolean isGreaterThan(T a, T b, Set<T> visited) {
+
     if (a.equals(b)) {
       return false;
     }
@@ -185,7 +192,10 @@ public class Lattice<T> {
       boolean reachable = false;
       for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext();) {
         T neighbor = iterator.next();
-        reachable = reachable || isGreaterThan(neighbor, b);
+        if (!visited.contains(neighbor)) {
+          visited.add(neighbor);
+          reachable = reachable || isGreaterThan(neighbor, b, visited);
+        }
       }
       return reachable;
     }

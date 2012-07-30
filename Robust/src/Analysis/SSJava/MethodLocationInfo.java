@@ -10,32 +10,27 @@ import IR.MethodDescriptor;
 
 public class MethodLocationInfo extends LocationInfo {
 
-  MethodDescriptor md;
-
   String returnLocName;
   String thisLocName;
   String PCLocName;
 
   Map<Integer, String> mapParamIdxToLocName;
   Set<String> paramLocNameSet;
-  Map<FlowNode, CompositeLocation> mapFlowNodeToLocation;
 
   public MethodLocationInfo(MethodDescriptor md) {
     this.md = md;
     this.mapParamIdxToLocName = new HashMap<Integer, String>();
     this.paramLocNameSet = new HashSet<String>();
     this.PCLocName = SSJavaAnalysis.TOP;
-    this.mapFlowNodeToLocation = new HashMap<FlowNode, CompositeLocation>();
   }
 
-  public void mapFlowNodeToInferLocation(FlowNode node, CompositeLocation location) {
-    mapFlowNodeToLocation.put(node, location);
-  }
-
-  public CompositeLocation getInferLocation(FlowNode node) {
-    return mapFlowNodeToLocation.get(node);
-  }
-
+  /*
+   * public void mapFlowNodeToInferLocation(FlowNode node, CompositeLocation
+   * location) { mapFlowNodeToLocation.put(node, location); }
+   * 
+   * public CompositeLocation getInferLocation(FlowNode node) { return
+   * mapFlowNodeToLocation.get(node); }
+   */
   public String getReturnLocName() {
     return returnLocName;
   }
@@ -62,7 +57,7 @@ public class MethodLocationInfo extends LocationInfo {
 
   public void addParameter(String name, Descriptor desc, int idx) {
     mapParamIdxToLocName.put(new Integer(idx), name);
-    addMappingOfLocNameToDescriptor(name, desc);
+    // addMappingOfLocNameToDescriptor(name, desc);
   }
 
   public Set<String> getParameterLocNameSet() {
@@ -81,6 +76,11 @@ public class MethodLocationInfo extends LocationInfo {
     paramSet.addAll(mapParamIdxToLocName.values());
 
     return paramSet;
+  }
+
+  public void removeMaplocalVarToLocSet(Descriptor localVarDesc) {
+    String localVarLocSymbol = localVarDesc.getSymbol();
+    getDescSet(localVarLocSymbol).remove(localVarDesc);
   }
 
 }

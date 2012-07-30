@@ -12,6 +12,7 @@ public class Location implements TypeExtension {
   int type;
   Descriptor d;
   String loc;
+  Descriptor locDesc;
 
   public Location(Descriptor d, String loc) {
     this.d = d;
@@ -27,6 +28,14 @@ public class Location implements TypeExtension {
     } else if (type == BOTTOM) {
       loc = SSJavaAnalysis.BOTTOM;
     }
+  }
+
+  public void setLocDescriptor(Descriptor d) {
+    locDesc = d;
+  }
+
+  public Descriptor getLocDescriptor() {
+    return locDesc;
   }
 
   public void setType(int type) {
