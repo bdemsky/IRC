@@ -607,10 +607,14 @@ public class FlowDownCheck {
     } else {
       // check 'for loop' case
       BlockNode bn = ln.getInitializer();
-      // need to check initialization node
-      checkLocationFromBlockNode(md, bn.getVarTable(), bn, constraint);
       bn.getVarTable().setParent(nametable);
-
+      // need to check initialization node
+//      checkLocationFromBlockNode(md, bn.getVarTable(), bn, constraint);
+      for(int i=0; i<bn.size(); i++) {
+        BlockStatementNode bsn=bn.get(i);
+        checkLocationFromBlockStatementNode(md, bn.getVarTable(),bsn, constraint);
+      }
+      
       // calculate glb location of condition and update statements
       CompositeLocation condLoc =
           checkLocationFromExpressionNode(md, bn.getVarTable(), ln.getCondition(),
@@ -733,11 +737,12 @@ public class FlowDownCheck {
 
   private void checkDeclarationInSubBlockNode(MethodDescriptor md, SymbolTable nametable,
       SubBlockNode sbn) {
-    checkDeclarationInBlockNode(md, nametable.getParent(), sbn.getBlockNode());
+    checkDeclarationInBlockNode(md, nametable, sbn.getBlockNode());
   }
 
   private CompositeLocation checkLocationFromBlockExpressionNode(MethodDescriptor md,
       SymbolTable nametable, BlockExpressionNode ben, CompositeLocation constraint) {
+
     CompositeLocation compLoc =
         checkLocationFromExpressionNode(md, nametable, ben.getExpression(), null, constraint, false);
     // addTypeLocation(ben.getExpression().getType(), compLoc);
