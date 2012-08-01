@@ -227,7 +227,9 @@ public class FlowDownCheck {
           if (state.SSJAVADEBUG) {
             System.out.println("SSJAVA: Checking Flow-down Rules: " + md);
           }
-          checkMethodBody(cd, md, null);
+          CompositeLocation calleePCLOC =
+              new CompositeLocation(new Location(md, ssjava.getMethodLattice(md).getPCLoc()));
+          checkMethodBody(cd, md, calleePCLOC);
         }
       }
     }
@@ -321,6 +323,12 @@ public class FlowDownCheck {
         } else if (an.getMarker().equals(ssjava.THISLOC)) {
           String thisLoc = an.getValue();
           ssjava.getMethodLattice(md).setThisLoc(thisLoc);
+        } else if (an.getMarker().equals(ssjava.GLOBALLOC)) {
+          String globalLoc = an.getValue();
+          ssjava.getMethodLattice(md).setGlobalLoc(globalLoc);
+        } else if (an.getMarker().equals(ssjava.PCLOC)) {
+          String pcLoc = an.getValue();
+          ssjava.getMethodLattice(md).setPCLoc(pcLoc);
         }
       }
     }
@@ -609,12 +617,12 @@ public class FlowDownCheck {
       BlockNode bn = ln.getInitializer();
       bn.getVarTable().setParent(nametable);
       // need to check initialization node
-//      checkLocationFromBlockNode(md, bn.getVarTable(), bn, constraint);
-      for(int i=0; i<bn.size(); i++) {
-        BlockStatementNode bsn=bn.get(i);
-        checkLocationFromBlockStatementNode(md, bn.getVarTable(),bsn, constraint);
+      // checkLocationFromBlockNode(md, bn.getVarTable(), bn, constraint);
+      for (int i = 0; i < bn.size(); i++) {
+        BlockStatementNode bsn = bn.get(i);
+        checkLocationFromBlockStatementNode(md, bn.getVarTable(), bsn, constraint);
       }
-      
+
       // calculate glb location of condition and update statements
       CompositeLocation condLoc =
           checkLocationFromExpressionNode(md, bn.getVarTable(), ln.getCondition(),
@@ -931,19 +939,74 @@ public class FlowDownCheck {
       // min.printNode(0)
       // + " baseLocation=" + baseLocation + " constraint=" + constraint);
 
-      if (constraint != null) {
-        int compareResult =
-            CompositeLattice.compare(constraint, baseLocation, true, generateErrorMessage(cd, min));
-        if (compareResult != ComparisonResult.GREATER) {
-          // if the current constraint is higher than method's THIS location
-          // no need to check constraints!
-          CompositeLocation calleeConstraint =
-              translateCallerLocToCalleeLoc(calleeMD, baseLocation, constraint);
-          // System.out.println("check method body for constraint:" + calleeMD +
-          // " calleeConstraint="
-          // + calleeConstraint);
-          checkMethodBody(calleeMD.getClassDesc(), calleeMD, calleeConstraint);
+      // setup the location list of caller's arguments
+      List<CompositeLocation> callerArgList = new ArrayList<CompositeLocation>();
+
+      if (min.numArgs() > 0) {
+        // setup caller args set
+        // first, add caller's base(this) location
+        callerArgList.add(baseLocation);
+        // second, add caller's arguments
+        for (int i = 0; i < min.numArgs(); i++) {
+          ExpressionNode en = min.getArg(i);
+          CompositeLocation callerArgLoc =
+              checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(),
+                  constraint, false);
+          callerArgList.add(callerArgLoc);
         }
+      }
+
+      // setup the location list of callee's parameters
+      MethodDescriptor calleemd = min.getMethod();
+      MethodLattice<String> calleeLattice = ssjava.getMethodLattice(calleemd);
+      CompositeLocation calleeThisLoc =
+          new CompositeLocation(new Location(calleemd, calleeLattice.getThisLoc()));
+      List<CompositeLocation> calleeParamList = new ArrayList<CompositeLocation>();
+      // first, add callee's this location
+      calleeParamList.add(calleeThisLoc);
+      // second, add callee's parameters
+      for (int i = 0; i < calleemd.numParameters(); i++) {
+        VarDescriptor calleevd = (VarDescriptor) calleemd.getParameter(i);
+        CompositeLocation calleeLoc = d2loc.get(calleevd);
+        calleeParamList.add(calleeLoc);
+      }
+
+      if (constraint != null) {
+        // check whether the PC location is lower than one of the
+        // argument locations. If it is lower, the callee has to have @PCLOC
+        // annotation that declares the program counter that is higher than
+        // corresponding parameter
+
+        CompositeLocation calleePCLOC =
+            new CompositeLocation(new Location(calleemd, calleeLattice.getPCLoc()));
+
+        for (int idx = 0; idx < callerArgList.size(); idx++) {
+          CompositeLocation argLocation = callerArgList.get(idx);
+
+          int compareResult =
+              CompositeLattice
+                  .compare(constraint, argLocation, true, generateErrorMessage(cd, min));
+
+          // need to check that param is higher than PCLOC
+          if (compareResult != ComparisonResult.GREATER) {
+
+            CompositeLocation paramLocation = calleeParamList.get(idx);
+
+            int paramCompareResult =
+                CompositeLattice.compare(paramLocation, calleePCLOC, true,
+                    generateErrorMessage(cd, min));
+
+            if (paramCompareResult != ComparisonResult.GREATER) {
+              throw new Error("The program counter location " + constraint
+                  + " is lower than the argument location " + argLocation
+                  + ". Need to specify that the initial PC location of the callee is lower than "
+                  + paramLocation + ":" + min.getNumLine());
+            }
+
+          }
+
+        }
+
       }
 
       checkCalleeConstraints(md, nametable, min, baseLocation, constraint);

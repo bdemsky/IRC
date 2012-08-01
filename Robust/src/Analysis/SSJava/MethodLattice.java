@@ -7,9 +7,11 @@ public class MethodLattice<T> extends SSJavaLattice<T> {
   private T thisLoc;
   private T globalLoc;
   private T returnLoc;
+  private T pcLoc;
 
   public MethodLattice(T top, T bottom) {
     super(top, bottom);
+    pcLoc = top;
   }
 
   public void setThisLoc(T thisLoc) {
@@ -34,6 +36,14 @@ public class MethodLattice<T> extends SSJavaLattice<T> {
 
   public T getReturnLoc() {
     return returnLoc;
+  }
+
+  public T getPCLoc() {
+    return pcLoc;
+  }
+
+  public void setPCLoc(T pcLoc) {
+    this.pcLoc = pcLoc;
   }
 
 }

@@ -41,6 +41,7 @@ public class SSJavaAnalysis {
   public static final String THISLOC = "THISLOC";
   public static final String GLOBALLOC = "GLOBALLOC";
   public static final String RETURNLOC = "RETURNLOC";
+  public static final String PCLOC = "PCLOC";
   public static final String LOC = "LOC";
   public static final String DELTA = "DELTA";
   public static final String TERMINATE = "TERMINATE";
@@ -406,6 +407,9 @@ public class SSJavaAnalysis {
       } else if (orderElement.startsWith(RETURNLOC + "=")) {
         String returnLoc = orderElement.substring(10);
         locOrder.setReturnLoc(returnLoc);
+      } else if (orderElement.startsWith(PCLOC + "=")) {
+        String pcLoc = orderElement.substring(6);
+        locOrder.setPCLoc(pcLoc);
       } else if (orderElement.endsWith("*")) {
         // spin loc definition
         locOrder.addSharedLoc(orderElement.substring(0, orderElement.length() - 1));
