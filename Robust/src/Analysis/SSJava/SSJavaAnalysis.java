@@ -133,7 +133,7 @@ public class SSJavaAnalysis {
     init();
 
     if (state.SSJAVADEBUG) {
-      // debugPrint();
+      debug_printAnnotationRequiredSet();
     }
     if (state.SSJAVAINFER) {
       inference();
@@ -243,11 +243,11 @@ public class SSJavaAnalysis {
     checker.linearTypeCheck();
   }
 
-  public void debugPrint() {
+  public void debug_printAnnotationRequiredSet() {
     System.out.println("SSJAVA: SSJava is checking the following methods:");
     for (Iterator<MethodDescriptor> iterator = annotationRequireSet.iterator(); iterator.hasNext();) {
       MethodDescriptor md = iterator.next();
-      System.out.print(" " + md);
+      System.out.println(md);
     }
     System.out.println();
   }

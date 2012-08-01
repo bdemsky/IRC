@@ -13,6 +13,7 @@ public class MethodLocationInfo extends LocationInfo {
   String returnLocName;
   String thisLocName;
   String PCLocName;
+  String globalLocName;
 
   Map<Integer, String> mapParamIdxToLocName;
   Set<String> paramLocNameSet;
@@ -31,6 +32,11 @@ public class MethodLocationInfo extends LocationInfo {
    * public CompositeLocation getInferLocation(FlowNode node) { return
    * mapFlowNodeToLocation.get(node); }
    */
+
+  public void setGlobalLocName(String globalLocName) {
+    this.globalLocName = globalLocName;
+  }
+
   public String getReturnLocName() {
     return returnLocName;
   }

@@ -86,7 +86,7 @@ public class FlowGraph {
     }
     set.add(neighbor);
 
-    System.out.println("add a new neighbor " + neighbor + " to " + node);
+//    System.out.println("add a new neighbor " + neighbor + " to " + node);
   }
 
   public boolean hasEdge(NTuple<Descriptor> fromDescTuple, NTuple<Descriptor> toDescTuple) {
@@ -111,10 +111,10 @@ public class FlowGraph {
 
   public void addValueFlowEdge(NTuple<Descriptor> fromDescTuple, NTuple<Descriptor> toDescTuple) {
 
-    FlowNode fromNode = mapDescTupleToInferNode.get(fromDescTuple);
-    FlowNode toNode = mapDescTupleToInferNode.get(toDescTuple);
+    FlowNode fromNode = getFlowNode(fromDescTuple);
+    FlowNode toNode = getFlowNode(toDescTuple);
 
-    System.out.println("create an edge from " + fromNode + " to " + toNode);
+    // System.out.println("create an edge from " + fromNode + " to " + toNode);
 
     int fromTupleSize = fromDescTuple.size();
     NTuple<Descriptor> curTuple = new NTuple<Descriptor>();
@@ -140,7 +140,7 @@ public class FlowGraph {
     FlowEdge edge = new FlowEdge(fromNode, toNode, initTuple, endTuple);
     fromNode.addOutEdge(edge);
 
-    System.out.println("add a new edge=" + edge);
+//    System.out.println("add a new edge=" + edge);
 
   }
 
@@ -172,7 +172,7 @@ public class FlowGraph {
         getFlowNode(baseTuple).addFieldNode(node);
       }
 
-      System.out.println("Creating new node=" + node);
+//      System.out.println("Creating new node=" + node);
       return node;
     } else {
       return mapDescTupleToInferNode.get(tuple);
@@ -245,20 +245,31 @@ public class FlowGraph {
       NTuple<Location> locTuple = new NTuple<Location>();
       ClassDescriptor cd = null;
 
-      for (int i = 0; i < descTuple.size(); i++) {
-        Descriptor curDesc = descTuple.get(i);
-        Location loc;
-        if (i == 0) {
-          loc = new Location(md, curDesc.getSymbol());
-          loc.setLocDescriptor(md);
-          cd = ((VarDescriptor) curDesc).getType().getClassDesc();
-        } else {
-          loc = new Location(cd, curDesc.getSymbol());
-          loc.setLocDescriptor(curDesc);
-          cd = ((FieldDescriptor) curDesc).getType().getClassDesc();
+      Descriptor localDesc = fn.getDescTuple().get(0);
+      if (localDesc.getSymbol().equals(LocationInference.TOPLOC)) {
+        Location topLoc = new Location(md, Location.TOP);
+        locTuple.add(topLoc);
+      } else if (localDesc.getSymbol().equals(LocationInference.GLOBALLOC)) {
+        Location topLoc = new Location(md, LocationInference.GLOBALLOC);
+        locTuple.add(topLoc);
+      } else {
+        // normal case
+        for (int i = 0; i < descTuple.size(); i++) {
+          Descriptor curDesc = descTuple.get(i);
+          Location loc;
+          if (i == 0) {
+            loc = new Location(md, curDesc.getSymbol());
+            loc.setLocDescriptor(md);
+            cd = ((VarDescriptor) curDesc).getType().getClassDesc();
+          } else {
+            loc = new Location(cd, curDesc.getSymbol());
+            loc.setLocDescriptor(curDesc);
+            cd = ((FieldDescriptor) curDesc).getType().getClassDesc();
+          }
+          locTuple.add(loc);
         }
-        locTuple.add(loc);
       }
+
       mapFlowNodeToLocTuple.put(fn, locTuple);
     }
     return mapFlowNodeToLocTuple.get(fn);
