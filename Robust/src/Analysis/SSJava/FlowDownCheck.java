@@ -6,7 +6,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -227,8 +226,7 @@ public class FlowDownCheck {
           if (state.SSJAVADEBUG) {
             System.out.println("SSJAVA: Checking Flow-down Rules: " + md);
           }
-          CompositeLocation calleePCLOC =
-              new CompositeLocation(new Location(md, ssjava.getMethodLattice(md).getPCLoc()));
+          CompositeLocation calleePCLOC = ssjava.getPCLocation(md);
           checkMethodBody(cd, md, calleePCLOC);
         }
       }
@@ -327,8 +325,8 @@ public class FlowDownCheck {
           String globalLoc = an.getValue();
           ssjava.getMethodLattice(md).setGlobalLoc(globalLoc);
         } else if (an.getMarker().equals(ssjava.PCLOC)) {
-          String pcLoc = an.getValue();
-          ssjava.getMethodLattice(md).setPCLoc(pcLoc);
+          String pcLocDeclaration = an.getValue();
+          ssjava.setPCLocation(md, parseLocationDeclaration(md, null, pcLocDeclaration));
         }
       }
     }
@@ -977,30 +975,35 @@ public class FlowDownCheck {
         // annotation that declares the program counter that is higher than
         // corresponding parameter
 
-        CompositeLocation calleePCLOC =
-            new CompositeLocation(new Location(calleemd, calleeLattice.getPCLoc()));
+        CompositeLocation calleePCLOC = ssjava.getPCLocation(calleemd);
 
         for (int idx = 0; idx < callerArgList.size(); idx++) {
           CompositeLocation argLocation = callerArgList.get(idx);
 
           int compareResult =
               CompositeLattice
-                  .compare(constraint, argLocation, true, generateErrorMessage(cd, min));
+                  .compare(argLocation, constraint, true, generateErrorMessage(cd, min));
 
           // need to check that param is higher than PCLOC
-          if (compareResult != ComparisonResult.GREATER) {
+          if (compareResult == ComparisonResult.GREATER) {
 
             CompositeLocation paramLocation = calleeParamList.get(idx);
 
             int paramCompareResult =
-                CompositeLattice.compare(paramLocation, calleePCLOC, true,
+                CompositeLattice.compare(calleePCLOC, paramLocation, true,
                     generateErrorMessage(cd, min));
 
-            if (paramCompareResult != ComparisonResult.GREATER) {
-              throw new Error("The program counter location " + constraint
-                  + " is lower than the argument location " + argLocation
-                  + ". Need to specify that the initial PC location of the callee is lower than "
-                  + paramLocation + ":" + min.getNumLine());
+            if (paramCompareResult == ComparisonResult.GREATER) {
+              throw new Error(
+                  "The program counter location "
+                      + constraint
+                      + " is lower than the argument(idx="
+                      + idx
+                      + ") location "
+                      + argLocation
+                      + ". Need to specify that the initial PC location of the callee, which is currently set to "
+                      + calleePCLOC + ", is lower than " + paramLocation + " in the method "
+                      + calleeMD.getSymbol() + ":" + min.getNumLine());
             }
 
           }

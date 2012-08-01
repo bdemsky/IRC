@@ -6,18 +6,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
 import Analysis.CallGraph.CallGraph;
 import Analysis.Loops.GlobalFieldType;
-import Analysis.Loops.LoopFinder;
 import Analysis.Loops.LoopOptimize;
 import Analysis.Loops.LoopTerminate;
 import IR.AnnotationDescriptor;
@@ -85,6 +86,9 @@ public class SSJavaAnalysis {
   // the set of method descriptors annotated as "TRUST"
   Set<MethodDescriptor> trustWorthyMDSet;
 
+  // method -> the initial program counter location
+  Map<MethodDescriptor, CompositeLocation> md2pcLoc;
+
   // points to method containing SSJAVA Loop
   private MethodDescriptor methodContainingSSJavaLoop;
 
@@ -124,6 +128,7 @@ public class SSJavaAnalysis {
     this.sameHeightWriteFlatNodeSet = new HashSet<FlatNode>();
     this.mapDescriptorToSetDependents = new Hashtable<Descriptor, Set<MethodDescriptor>>();
     this.sortedDescriptors = new LinkedList<MethodDescriptor>();
+    this.md2pcLoc = new HashMap<MethodDescriptor, CompositeLocation>();
   }
 
   public void doCheck() {
@@ -407,9 +412,6 @@ public class SSJavaAnalysis {
       } else if (orderElement.startsWith(RETURNLOC + "=")) {
         String returnLoc = orderElement.substring(10);
         locOrder.setReturnLoc(returnLoc);
-      } else if (orderElement.startsWith(PCLOC + "=")) {
-        String pcLoc = orderElement.substring(6);
-        locOrder.setPCLoc(pcLoc);
       } else if (orderElement.endsWith("*")) {
         // spin loc definition
         locOrder.addSharedLoc(orderElement.substring(0, orderElement.length() - 1));
@@ -502,6 +504,19 @@ public class SSJavaAnalysis {
       }
 
     }
+  }
+
+  public CompositeLocation getPCLocation(MethodDescriptor md) {
+    if (!md2pcLoc.containsKey(md)) {
+      // by default, the initial pc location is TOP
+      CompositeLocation pcLoc = new CompositeLocation(new Location(md, Location.TOP));
+      md2pcLoc.put(md, pcLoc);
+    }
+    return md2pcLoc.get(md);
+  }
+
+  public void setPCLocation(MethodDescriptor md, CompositeLocation pcLoc) {
+    md2pcLoc.put(md, pcLoc);
   }
 
   public boolean needToCheckLinearType(MethodDescriptor md) {
