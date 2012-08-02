@@ -1563,8 +1563,6 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromAssignmentNode(MethodDescriptor md,
       SymbolTable nametable, AssignmentNode an, CompositeLocation loc, CompositeLocation constraint) {
 
-    // System.out.println("\n# ASSIGNMENTNODE=" + an.printNode(0));
-
     ClassDescriptor cd = md.getClassDesc();
 
     Set<CompositeLocation> inputGLBSet = new HashSet<CompositeLocation>();
@@ -1592,20 +1590,22 @@ public class FlowDownCheck {
           checkLocationFromExpressionNode(md, nametable, an.getSrc(), new CompositeLocation(),
               constraint, false);
 
-      srcLocation = rhsLocation;
+      if (an.getOperation().getOp() >= 2 && an.getOperation().getOp() <= 12) {
+        // if assignment contains OP+EQ operator, need to merge location types
+        // of LHS & RHS into the RHS
+        Set<CompositeLocation> srcGLBSet = new HashSet<CompositeLocation>();
+        srcGLBSet.add(rhsLocation);
+        srcGLBSet.add(destLocation);
+        srcLocation = CompositeLattice.calculateGLB(srcGLBSet, generateErrorMessage(cd, an));
+      } else {
+        srcLocation = rhsLocation;
+      }
 
-      // if (!rhsLocation.get(rhsLocation.getSize() - 1).isTop()) {
       if (constraint != null) {
-        inputGLBSet.add(rhsLocation);
+        inputGLBSet.add(srcLocation);
         inputGLBSet.add(constraint);
         srcLocation = CompositeLattice.calculateGLB(inputGLBSet, generateErrorMessage(cd, an));
       }
-      // }
-
-      // System.out.println("dstLocation=" + destLocation);
-      // System.out.println("rhsLocation=" + rhsLocation);
-      // System.out.println("srcLocation=" + srcLocation);
-      // System.out.println("constraint=" + constraint);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
 
@@ -1642,10 +1642,6 @@ public class FlowDownCheck {
       } else {
         srcLocation = rhsLocation;
       }
-
-      // System.out.println("srcLocation=" + srcLocation);
-      // System.out.println("rhsLocation=" + rhsLocation);
-      // System.out.println("constraint=" + constraint);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
 

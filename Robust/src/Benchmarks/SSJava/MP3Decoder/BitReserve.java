@@ -38,7 +38,7 @@
 // REVIEW: there is no range checking, so buffer underflow or overflow
 // can silently occur.
 @LATTICE("BUF<OFF,BUF<BIT,BIT*,OFF*")
-@METHODDEFAULT("OUT<THIS,THIS<IN,IN*,THISLOC=THIS,RETURNLOC=OUT")
+@METHODDEFAULT("OUT<THIS,THIS<IN,IN*,OUT*,THISLOC=THIS,RETURNLOC=OUT")
 final class BitReserve {
   /**
    * Size of the internal buffer to store the reserved bits. Must be a power of
