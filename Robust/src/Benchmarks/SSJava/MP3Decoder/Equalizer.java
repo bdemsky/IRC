@@ -173,6 +173,7 @@ public final class Equalizer {
    * 
    */
   @RETURNLOC("C")
+  @PCLOC("C")
   float getBandFactor(@LOC("IN") float eq) {
     if (eq == BAND_NOT_PRESENT)
       return 0.0f;

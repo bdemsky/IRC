@@ -75,6 +75,7 @@ public class Classifier {
    * @return true if this region was classified as face, else false
    */
   @LATTICE("OUT<V,V<C,C<THIS,THIS<IN,C*,V*,THISLOC=THIS,RETURNLOC=OUT")
+  @PCLOC("THIS,Classifier.C")
   public boolean classifyFace(@LOC("THIS,Classifier.C") IntegralImageData image,
       @LOC("THIS,Classifier.C") float scaleFactor, @LOC("THIS,Classifier.C") int translationX,
       @LOC("THIS,Classifier.C") int translationY, @LOC("THIS,Classifier.C") float borderline) {

@@ -37,6 +37,7 @@ public class LEAImplementation {
   }
 
   @LATTICE("OUT<V,V<THIS,THIS<IN,V*,THISLOC=THIS,RETURNLOC=OUT")
+  @PCLOC("THIS")
   public FaceAndEyePosition getEyePosition(@LOC("IN") Image image) {
     if (image == null)
       return null;
@@ -61,7 +62,8 @@ public class LEAImplementation {
     return new FaceAndEyePosition(lastRectangle, eyePosition);
   }
 
-  @LATTICE("OUT<IN,OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
+  @LATTICE("OUT<P,P<IN,OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
+  @PCLOC("P")
   private Point readEyes(@LOC("IN") Image image, @LOC("IN") Rectangle2D rect) {
     @LOC("OUT") EyeDetector ed = new EyeDetector(image, rect);
     return ed.detectEye();

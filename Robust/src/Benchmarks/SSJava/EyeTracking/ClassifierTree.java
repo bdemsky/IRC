@@ -1,3 +1,5 @@
+import SSJava.PCLOC;
+
 /*
  * Copyright 2009 (c) Florian Frankenberger (darkblue.de)
  * 
@@ -51,6 +53,7 @@ public class ClassifierTree {
    *         null if no face could be detected
    */
   @LATTICE("OUT<CXY,CXY<THIS,THIS<V,V<IMG,IMG<C,C<IN,C*,V*,FACTOR*,CXY*,THISLOC=THIS,RETURNLOC=OUT,GLOBALLOC=IN")
+  @PCLOC("C")
   public Rectangle2D locateFaceRadial(@LOC("IN") Image smallImage,
       @LOC("THIS,ClassifierTree.C") Rectangle2D lastCoordinates) {
 
@@ -181,7 +184,8 @@ public class ClassifierTree {
 
   }
 
-  @LATTICE("OUT<IN,OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
+  @LATTICE("OUT<IN,OUT<P,P<THIS,THISLOC=THIS,RETURNLOC=OUT")
+  @PCLOC("P")
   private static int sgn(@LOC("IN") float value) {
     return (value < 0 ? -1 : (value > 0 ? +1 : 1));
   }

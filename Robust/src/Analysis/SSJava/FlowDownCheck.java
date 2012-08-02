@@ -903,7 +903,7 @@ public class FlowDownCheck {
       CompositeLocation constraint) {
 
     ClassDescriptor cd = md.getClassDesc();
-    MethodDescriptor calleeMD = min.getMethod();
+    MethodDescriptor calleeMethodDesc = min.getMethod();
 
     NameDescriptor baseName = min.getBaseName();
     boolean isSystemout = false;
@@ -911,8 +911,9 @@ public class FlowDownCheck {
       isSystemout = baseName.getSymbol().equals("System.out");
     }
 
-    if (!ssjava.isSSJavaUtil(calleeMD.getClassDesc()) && !ssjava.isTrustMethod(calleeMD)
-        && !calleeMD.getModifiers().isNative() && !isSystemout) {
+    if (!ssjava.isSSJavaUtil(calleeMethodDesc.getClassDesc())
+        && !ssjava.isTrustMethod(calleeMethodDesc) && !calleeMethodDesc.getModifiers().isNative()
+        && !isSystemout) {
 
       CompositeLocation baseLocation = null;
       if (min.getExpression() != null) {
@@ -940,11 +941,14 @@ public class FlowDownCheck {
       // setup the location list of caller's arguments
       List<CompositeLocation> callerArgList = new ArrayList<CompositeLocation>();
 
+      // setup the location list of callee's parameters
+      MethodLattice<String> calleeLattice = ssjava.getMethodLattice(calleeMethodDesc);
+      List<CompositeLocation> calleeParamList = new ArrayList<CompositeLocation>();
+
       if (min.numArgs() > 0) {
-        // setup caller args set
-        // first, add caller's base(this) location
-        callerArgList.add(baseLocation);
-        // second, add caller's arguments
+        if (!calleeMethodDesc.isStatic()) {
+          callerArgList.add(baseLocation);
+        }
         for (int i = 0; i < min.numArgs(); i++) {
           ExpressionNode en = min.getArg(i);
           CompositeLocation callerArgLoc =
@@ -952,21 +956,18 @@ public class FlowDownCheck {
                   constraint, false);
           callerArgList.add(callerArgLoc);
         }
-      }
 
-      // setup the location list of callee's parameters
-      MethodDescriptor calleemd = min.getMethod();
-      MethodLattice<String> calleeLattice = ssjava.getMethodLattice(calleemd);
-      CompositeLocation calleeThisLoc =
-          new CompositeLocation(new Location(calleemd, calleeLattice.getThisLoc()));
-      List<CompositeLocation> calleeParamList = new ArrayList<CompositeLocation>();
-      // first, add callee's this location
-      calleeParamList.add(calleeThisLoc);
-      // second, add callee's parameters
-      for (int i = 0; i < calleemd.numParameters(); i++) {
-        VarDescriptor calleevd = (VarDescriptor) calleemd.getParameter(i);
-        CompositeLocation calleeLoc = d2loc.get(calleevd);
-        calleeParamList.add(calleeLoc);
+        if (!calleeMethodDesc.isStatic()) {
+          CompositeLocation calleeThisLoc =
+              new CompositeLocation(new Location(calleeMethodDesc, calleeLattice.getThisLoc()));
+          calleeParamList.add(calleeThisLoc);
+        }
+
+        for (int i = 0; i < calleeMethodDesc.numParameters(); i++) {
+          VarDescriptor calleevd = (VarDescriptor) calleeMethodDesc.getParameter(i);
+          CompositeLocation calleeLoc = d2loc.get(calleevd);
+          calleeParamList.add(calleeLoc);
+        }
       }
 
       if (constraint != null) {
@@ -975,17 +976,15 @@ public class FlowDownCheck {
         // annotation that declares the program counter that is higher than
         // corresponding parameter
 
-        CompositeLocation calleePCLOC = ssjava.getPCLocation(calleemd);
+        CompositeLocation calleePCLOC = ssjava.getPCLocation(calleeMethodDesc);
 
         for (int idx = 0; idx < callerArgList.size(); idx++) {
           CompositeLocation argLocation = callerArgList.get(idx);
 
-          int compareResult =
-              CompositeLattice
-                  .compare(argLocation, constraint, true, generateErrorMessage(cd, min));
-
           // need to check that param is higher than PCLOC
-          if (compareResult == ComparisonResult.GREATER) {
+          if (!argLocation.get(0).isTop()
+              && CompositeLattice.compare(argLocation, constraint, true,
+                  generateErrorMessage(cd, min)) == ComparisonResult.GREATER) {
 
             CompositeLocation paramLocation = calleeParamList.get(idx);
 
@@ -1003,7 +1002,7 @@ public class FlowDownCheck {
                       + argLocation
                       + ". Need to specify that the initial PC location of the callee, which is currently set to "
                       + calleePCLOC + ", is lower than " + paramLocation + " in the method "
-                      + calleeMD.getSymbol() + ":" + min.getNumLine());
+                      + calleeMethodDesc.getSymbol() + ":" + min.getNumLine());
             }
 
           }

@@ -53,6 +53,7 @@ public class Math {
   }
 
   @RETURNLOC("OUT")
+  @PCLOC("IN")
   public static int min(@LOC("IN") int a, @LOC("IN") int b) {
     return (a < b) ? a : b;
   }

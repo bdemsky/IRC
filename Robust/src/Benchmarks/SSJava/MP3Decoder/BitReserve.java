@@ -85,6 +85,7 @@ final class BitReserve {
    * @param N
    *          the number of
    */
+  @PCLOC("THIS,BitReserve.BIT")
   public int hgetbits(@LOC("THIS,BitReserve.BIT") int N) {
 
     totbit += N;

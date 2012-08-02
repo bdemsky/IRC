@@ -812,6 +812,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 	 *
 	 */
   @LATTICE("THIS<IN,THISLOC=THIS,GLOBALLOC=IN")
+  @PCLOC("THIS,LayerIIIDecoder.SF15")
   private void get_scale_factors(@LOC("THIS,LayerIIIDecoder.SF1") Header header,
       @LOC("THIS,LayerIIIDecoder.SF1") int ch, @LOC("THIS,LayerIIIDecoder.SF1") int gr) {
 
@@ -926,6 +927,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 
   // ssjava
   @LATTICE("M<THIS,THIS<IN,THIS<C,C*,M*,THISLOC=THIS,GLOBALLOC=THIS")
+  @PCLOC("THIS,LayerIIIDecoder.SI0")
   private void get_LSF_scale_data(@LOC("THIS,LayerIIIDecoder.SF15") Header header,
       @LOC("THIS,LayerIIIDecoder.SF15") int ch, @LOC("THIS,LayerIIIDecoder.SF15") int gr) {
 
@@ -1031,6 +1033,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 	 *
 	 */
   @LATTICE("THIS<IN,THISLOC=THIS,GLOBALLOC=IN")
+  @PCLOC("THIS,LayerIIIDecoder.SF15")
   private void get_LSF_scale_factors(@LOC("THIS,LayerIIIDecoder.SF1") Header header,
       @LOC("THIS,LayerIIIDecoder.SF1") int ch, @LOC("THIS,LayerIIIDecoder.SF1") int gr) {
 
@@ -1223,6 +1226,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   /**
 	 *
 	 */
+  @PCLOC("THIS,LayerIIIDecoder.LR")
   private void i_stereo_k_values(@LOC("THIS,LayerIIIDecoder.LR") int is_pos,
       @LOC("THIS,LayerIIIDecoder.LR") int io_type, @LOC("THIS,LayerIIIDecoder.LR") int i) {
     if (is_pos == 0) {

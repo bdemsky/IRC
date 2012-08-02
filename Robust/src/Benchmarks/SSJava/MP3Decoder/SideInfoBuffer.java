@@ -42,7 +42,8 @@ public class SideInfoBuffer {
       0x000000FF, 0x000001FF, 0x000003FF, 0x000007FF, 0x00000FFF, 0x00001FFF, 0x00003FFF,
       0x00007FFF, 0x0000FFFF, 0x0001FFFF };
 
-  @LATTICE("OUT<THIS,THIS<IN,OUT*,THISLOC=THIS,RETURNLOC=OUT")
+  @LATTICE("OUT<THIS,THIS<P,P<IN,OUT*,THISLOC=THIS,RETURNLOC=OUT")
+  @PCLOC("P")
   public int get_bits(@LOC("IN") int number_of_bits) {
     @LOC("OUT") int returnvalue = 0;
     @LOC("THIS,SideInfoBuffer.IDX") int sum = bitindex + number_of_bits;
