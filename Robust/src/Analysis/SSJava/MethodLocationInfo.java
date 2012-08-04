@@ -29,6 +29,14 @@ public class MethodLocationInfo extends LocationInfo {
     mapParamIdxToInferLoc.put(paramIdx, inferLoc);
   }
 
+  public int getNumParam() {
+    return mapParamIdxToInferLoc.keySet().size();
+  }
+
+  public CompositeLocation getParamCompositeLocation(int idx) {
+    return mapParamIdxToInferLoc.get(idx);
+  }
+
   public Map<Integer, CompositeLocation> getMapParamIdxToInferLoc() {
     return mapParamIdxToInferLoc;
   }
