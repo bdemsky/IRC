@@ -2,6 +2,7 @@ package Analysis.SSJava;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -260,6 +261,12 @@ public class LocationInference {
 
     LinkedList<MethodDescriptor> descriptorListToAnalyze = ssjava.getSortedDescriptors();
 
+    Collections.sort(descriptorListToAnalyze, new Comparator<MethodDescriptor>() {
+      public int compare(MethodDescriptor o1, MethodDescriptor o2) {
+        return o1.getSymbol().compareToIgnoreCase(o2.getSymbol());
+      }
+    });
+
     // current descriptors to visit in fixed-point interprocedural analysis,
     // prioritized by
     // dependency in the call graph
@@ -312,7 +319,6 @@ public class LocationInference {
       }
 
     }
-
   }
 
   private void setMethodLocInfo(MethodDescriptor md, MethodLocationInfo methodInfo) {
@@ -339,32 +345,66 @@ public class LocationInference {
   private void checkConsistency(MethodDescriptor md1, MethodDescriptor md2) {
 
     // check that two lattice have the same relations between parameters(+PC
-    // LOC, RETURN LOC)
+    // LOC, GLOBAL_LOC RETURN LOC)
 
-    MethodLocationInfo methodInfo1 = getMethodLocationInfo(md1);
+    List<CompositeLocation> list1 = new ArrayList<CompositeLocation>();
+    List<CompositeLocation> list2 = new ArrayList<CompositeLocation>();
 
-    SSJavaLattice<String> lattice1 = getMethodLattice(md1);
-    SSJavaLattice<String> lattice2 = getMethodLattice(md2);
+    MethodLocationInfo locInfo1 = getMethodLocationInfo(md1);
+    MethodLocationInfo locInfo2 = getMethodLocationInfo(md2);
 
-    Set<String> paramLocNameSet1 = methodInfo1.getParameterLocNameSet();
+    Map<Integer, CompositeLocation> paramMap1 = locInfo1.getMapParamIdxToInferLoc();
+    Map<Integer, CompositeLocation> paramMap2 = locInfo2.getMapParamIdxToInferLoc();
 
-    for (Iterator iterator = paramLocNameSet1.iterator(); iterator.hasNext();) {
-      String locName1 = (String) iterator.next();
-      for (Iterator iterator2 = paramLocNameSet1.iterator(); iterator2.hasNext();) {
-        String locName2 = (String) iterator2.next();
+    int numParam = locInfo1.getMapParamIdxToInferLoc().keySet().size();
 
-        if (!locName1.equals(locName2)) {
+    // add location types of paramters
+    for (int idx = 0; idx < numParam; idx++) {
+      list1.add(paramMap1.get(Integer.valueOf(idx)));
+      list2.add(paramMap2.get(Integer.valueOf(idx)));
+    }
 
-          boolean r1 = lattice1.isGreaterThan(locName1, locName2);
-          boolean r2 = lattice2.isGreaterThan(locName1, locName2);
+    // add program counter location
+    list1.add(locInfo1.getPCLoc());
+    list2.add(locInfo2.getPCLoc());
+
+    if (!md1.getReturnType().isVoid()) {
+      // add return value location
+      CompositeLocation rtrLoc1 =
+          new CompositeLocation(new Location(md1, locInfo1.getReturnLocName()));
+      CompositeLocation rtrLoc2 =
+          new CompositeLocation(new Location(md2, locInfo2.getReturnLocName()));
+      list1.add(rtrLoc1);
+      list2.add(rtrLoc2);
+    }
+
+    // add global location type
+    if (md1.isStatic()) {
+      CompositeLocation globalLoc1 =
+          new CompositeLocation(new Location(md1, locInfo1.getGlobalLocName()));
+      CompositeLocation globalLoc2 =
+          new CompositeLocation(new Location(md2, locInfo2.getGlobalLocName()));
+      list1.add(globalLoc1);
+      list2.add(globalLoc2);
+    }
+
+    for (int i = 0; i < list1.size(); i++) {
+      CompositeLocation locA1 = list1.get(i);
+      CompositeLocation locA2 = list2.get(i);
+      for (int k = 0; k < list1.size(); k++) {
+        if (i != k) {
+          CompositeLocation locB1 = list1.get(k);
+          CompositeLocation locB2 = list2.get(k);
+          boolean r1 = isGreaterThan(locA1, locB1);
+
+          boolean r2 = isGreaterThan(locA2, locB2);
 
           if (r1 != r2) {
             throw new Error("The method " + md1 + " is not consistent with the method " + md2
-                + ".:: They have a different ordering relation between parameters " + locName1
-                + " and " + locName2 + ".");
+                + ".:: They have a different ordering relation between locations (" + locA1 + ","
+                + locB1 + ") and (" + locA2 + "," + locB2 + ").");
           }
         }
-
       }
     }
 
@@ -445,6 +485,37 @@ public class LocationInference {
       }
     }
 
+    // create mapping from param idx to inferred composite location
+
+    int offset;
+    if (!md.isStatic()) {
+      // add 'this' reference location
+      offset = 1;
+      methodInfo.addMapParamIdxToInferLoc(0, methodInfo.getInferLocation(md.getThis()));
+    } else {
+      offset = 0;
+    }
+
+    for (int idx = 0; idx < md.numParameters(); idx++) {
+      Descriptor paramDesc = md.getParameter(idx);
+      CompositeLocation inferParamLoc = methodInfo.getInferLocation(paramDesc);
+      methodInfo.addMapParamIdxToInferLoc(idx + offset, inferParamLoc);
+    }
+
+    // calculate the initial program counter location
+    // PC location is higher than location types of all parameters
+    String pcLocSymbol = "PCLOC";
+    Map<Integer, CompositeLocation> mapParamToLoc = methodInfo.getMapParamIdxToInferLoc();
+    Set<Integer> keySet = mapParamToLoc.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      Integer paramIdx = (Integer) iterator.next();
+      CompositeLocation inferLoc = mapParamToLoc.get(paramIdx);
+      String paramLocLocalSymbol = inferLoc.get(0).getLocIdentifier();
+      if (!methodLattice.isGreaterThan(pcLocSymbol, paramLocLocalSymbol)) {
+        addRelationHigherToLower(methodLattice, methodInfo, pcLocSymbol, paramLocLocalSymbol);
+      }
+    }
+
     // calculate a return location
     if (!md.getReturnType().isVoid()) {
       Set<FlowNode> returnNodeSet = fg.getReturnNodeSet();
@@ -459,7 +530,8 @@ public class LocationInference {
 
       String returnGLB = methodLattice.getGLB(returnVarSymbolSet);
       if (returnGLB.equals(SSJavaAnalysis.BOTTOM)) {
-        // need to insert a new location in-between the bottom and all locations
+        // need to insert a new location in-between the bottom and all
+        // locations
         // that is directly connected to the bottom
         String returnNewLocationSymbol = "Loc" + (SSJavaLattice.seed++);
         methodLattice.insertNewLocationAtOneLevelHigher(returnGLB, returnNewLocationSymbol);
@@ -469,6 +541,52 @@ public class LocationInference {
       }
     }
 
+  }
+
+  private CompositeLocation getHighestLocation(Collection<CompositeLocation> locSet) {
+
+    Iterator<CompositeLocation> locIter = locSet.iterator();
+
+    CompositeLocation highest = locIter.next();
+
+    for (; locIter.hasNext();) {
+      CompositeLocation loc = (CompositeLocation) locIter.next();
+      if (isGreaterThan(loc, highest)) {
+        highest = loc;
+      }
+    }
+
+    return highest;
+
+  }
+
+  private boolean isGreaterThan(CompositeLocation comp1, CompositeLocation comp2) {
+
+    for (int idx = 0; idx < comp1.getSize(); idx++) {
+      Location loc1 = comp1.get(idx);
+      Location loc2 = comp2.get(idx);
+
+      Descriptor desc1 = loc1.getDescriptor();
+      Descriptor desc2 = loc2.getDescriptor();
+
+      if (!desc1.equals(desc2)) {
+        throw new Error("Fail to compare " + comp1 + " and " + comp2);
+      }
+
+      String symbol1 = loc1.getLocIdentifier();
+      String symbol2 = loc2.getLocIdentifier();
+
+      if (symbol1.equals(symbol2)) {
+        continue;
+      } else if (getLattice(desc1).isGreaterThan(symbol1, symbol2)) {
+        return true;
+      } else {
+        return false;
+      }
+
+    }
+
+    return false;
   }
 
   private void recursiveAddRelationToLattice(int idx, MethodDescriptor md,
@@ -511,6 +629,7 @@ public class LocationInference {
           setPossibleCallees.addAll(ssjava.getCallGraph().getMethods(mdCallee));
         }
 
+        System.out.println("mdCaller=" + mdCaller + " setPossibleCallees=" + setPossibleCallees);
         for (Iterator iterator2 = setPossibleCallees.iterator(); iterator2.hasNext();) {
           MethodDescriptor possibleMdCallee = (MethodDescriptor) iterator2.next();
           propagateRelationToCaller(min, mdCaller, possibleMdCallee);
@@ -528,6 +647,7 @@ public class LocationInference {
 
     FlowGraph calleeFlowGraph = getFlowGraph(possibleMdCallee);
 
+    System.out.println("calleeFlowGraph=" + calleeFlowGraph + " of " + possibleMdCallee);
     // find parameter node
     Set<FlowNode> paramNodeSet = calleeFlowGraph.getParameterNodeSet();
 
@@ -556,7 +676,11 @@ public class LocationInference {
           NTuple<Descriptor> higherArg = getArgTupleByArgIdx(min, higherLocIdxCallee);
           NTuple<Descriptor> lowerArg = getArgTupleByArgIdx(min, lowerLocIdxCallee);
 
-          addFlowGraphEdge(mdCaller, higherArg, lowerArg);
+          if (higherArg != null && lowerArg != null) {
+            // if the argument has the TOP location, getArgTupleByArgIdx returns
+            // null
+            addFlowGraphEdge(mdCaller, higherArg, lowerArg);
+          }
 
         }
 
@@ -602,74 +726,99 @@ public class LocationInference {
 
     // add a new binary relation of dstNode < srcNode
     FlowGraph flowGraph = getFlowGraph(md);
-    // MethodLocationInfo methodInfo = getMethodLocationInfo(md);
-
-    // String srcOriginSymbol = getSymbol(0, srcNode);
-    // String dstOriginSymbol = getSymbol(0, dstNode);
 
     Descriptor srcDesc = getDescriptor(0, srcNode);
     Descriptor dstDesc = getDescriptor(0, dstNode);
 
-    // consider a composite location case
-    boolean isSrcLocalVar = false;
-    boolean isDstLocalVar = false;
-    if (srcNode.getDescTuple().size() == 1) {
-      isSrcLocalVar = true;
-    }
-
-    if (dstNode.getDescTuple().size() == 1) {
-      isDstLocalVar = true;
-    }
-
-    boolean isAssignedCompositeLocation = false;
-    if (!methodInfo.getInferLocation(srcDesc).get(0).getLocIdentifier()
-        .equals(methodInfo.getThisLocName())) {
-      isAssignedCompositeLocation =
-          calculateCompositeLocation(flowGraph, methodLattice, methodInfo, srcNode);
-    }
+    // boolean isAssignedCompositeLocation = false;
+    // if (!methodInfo.getInferLocation(srcDesc).get(0).getLocIdentifier()
+    // .equals(methodInfo.getThisLocName())) {
+    // isAssignedCompositeLocation =
+    calculateCompositeLocation(flowGraph, methodLattice, methodInfo, srcNode);
+    // }
 
     String srcSymbol = methodInfo.getInferLocation(srcDesc).get(0).getLocIdentifier();
     String dstSymbol = methodInfo.getInferLocation(dstDesc).get(0).getLocIdentifier();
 
-    if (srcNode.isParameter()) {
-      int paramIdx = flowGraph.getParamIdx(srcNode.getDescTuple());
-      methodInfo.addParameter(srcSymbol, srcDesc, paramIdx);
+    // if (srcNode.isParameter()) {
+    // int paramIdx = flowGraph.getParamIdx(srcNode.getDescTuple());
+    // methodInfo.addParameter(srcSymbol, srcDesc, paramIdx);
+    // }
+    //
+    // if (dstNode.isParameter()) {
+    // int paramIdx = flowGraph.getParamIdx(dstNode.getDescTuple());
+    // methodInfo.addParameter(dstSymbol, dstDesc, paramIdx);
+    // }
+
+    CompositeLocation srcInferLoc = methodInfo.getInferLocation(srcDesc);
+    CompositeLocation dstInferLoc = methodInfo.getInferLocation(dstDesc);
+
+    String srcLocalLocSymbol = srcInferLoc.get(0).getLocIdentifier();
+    String dstLocalLocSymbol = dstInferLoc.get(0).getLocIdentifier();
+
+    if (srcInferLoc.getSize() == 1 && dstInferLoc.getSize() == 1) {
+      // add a new relation to the local lattice
+      addRelationHigherToLower(methodLattice, methodInfo, srcLocalLocSymbol, dstLocalLocSymbol);
+    } else if (srcInferLoc.getSize() > 1 && dstInferLoc.getSize() > 1) {
+      // both src and dst have assigned to a composite location
+      recursivelyAddRelation(1, srcInferLoc, dstInferLoc);
     } else {
-      // methodInfo.addMappingOfLocNameToDescriptor(srcSymbol, srcDesc);
-    }
-
-    if (dstNode.isParameter()) {
-      int paramIdx = flowGraph.getParamIdx(dstNode.getDescTuple());
-      methodInfo.addParameter(dstSymbol, dstDesc, paramIdx);
-    } else {
-      // methodInfo.addMappingOfLocNameToDescriptor(dstSymbol, dstDesc);
-    }
-
-    if (!isAssignedCompositeLocation) {
-      // source does not have a composite location
-      if (!srcSymbol.equals(dstSymbol)) {
-        // add a local relation
-        if (!methodLattice.isGreaterThan(srcSymbol, dstSymbol)) {
-          // if the lattice does not have this relation, add it
-          addRelationHigherToLower(methodLattice, methodInfo, srcSymbol, dstSymbol);
-          // methodLattice.addRelationHigherToLower(srcSymbol, dstSymbol);
-        }
-      } else {
-        // if src and dst have the same local location...
-
-        recursivelyAddCompositeRelation(md, flowGraph, methodInfo, srcNode, dstNode, srcDesc,
-            dstDesc);
-
+      // either src or dst has assigned to a composite location
+      if (!srcLocalLocSymbol.equals(dstLocalLocSymbol)) {
+        addRelationHigherToLower(methodLattice, methodInfo, srcLocalLocSymbol, dstLocalLocSymbol);
       }
+    }
+    // if (!isAssignedCompositeLocation) {
+    // // source does not have a composite location
+    //
+    // NTuple<Location> srcTuple = flowGraph.getLocationTuple(srcNode);
+    // NTuple<Location> dstTuple = flowGraph.getLocationTuple(dstNode);
+    //
+    // recursivelyAddCompositeRelation(md, flowGraph, methodInfo, srcNode,
+    // dstNode, srcDesc, dstDesc);
+    //
+    // // if (!srcSymbol.equals(dstSymbol)) {
+    // // // add a local relation
+    // // if (!methodLattice.isGreaterThan(srcSymbol, dstSymbol)) {
+    // // // if the lattice does not have this relation, add it
+    // // addRelationHigherToLower(methodLattice, methodInfo, srcSymbol,
+    // // dstSymbol);
+    // // // methodLattice.addRelationHigherToLower(srcSymbol, dstSymbol);
+    // // }
+    // // } else {
+    // // // if src and dst have the same local location...
+    // // recursivelyAddCompositeRelation(md, flowGraph, methodInfo, srcNode,
+    // // dstNode, srcDesc,
+    // // dstDesc);
+    // // }
+    //
+    // } else {
+    // // source variable has a composite location
+    // if (methodInfo.getInferLocation(dstDesc).getSize() == 1) {
+    // if (!srcSymbol.equals(dstSymbol)) {
+    // addRelationHigherToLower(methodLattice, methodInfo, srcSymbol,
+    // dstSymbol);
+    // }
+    // }
+    //
+    // }
 
+  }
+
+  private void recursivelyAddRelation(int idx, CompositeLocation srcInferLoc,
+      CompositeLocation dstInferLoc) {
+
+    String srcLocSymbol = srcInferLoc.get(idx).getLocIdentifier();
+    String dstLocSymbol = dstInferLoc.get(idx).getLocIdentifier();
+
+    if (srcLocSymbol.equals(dstLocSymbol)) {
+      recursivelyAddRelation(idx + 1, srcInferLoc, dstInferLoc);
     } else {
-      // source variable has a composite location
-      if (methodInfo.getInferLocation(dstDesc).getSize() == 1) {
-        if (!srcSymbol.equals(dstSymbol)) {
-          addRelationHigherToLower(methodLattice, methodInfo, srcSymbol, dstSymbol);
-        }
-      }
 
+      Descriptor parentDesc = srcInferLoc.get(idx).getDescriptor();
+
+      addRelationHigherToLower(getLattice(parentDesc), getLocationInfo(parentDesc), srcLocSymbol,
+          dstLocSymbol);
     }
 
   }
@@ -1095,6 +1244,8 @@ public class LocationInference {
   public void constructFlowGraph() {
 
     setupToAnalyze();
+    
+    Set<MethodDescriptor> visited=new HashSet<MethodDescriptor>();
 
     while (!toAnalyzeIsEmpty()) {
       ClassDescriptor cd = toAnalyzeNext();
@@ -1102,7 +1253,7 @@ public class LocationInference {
       setupToAnalazeMethod(cd);
       while (!toAnalyzeMethodIsEmpty()) {
         MethodDescriptor md = toAnalyzeMethodNext();
-        if (ssjava.needTobeAnnotated(md)) {
+//        if (ssjava.needTobeAnnotated(md)) {
           if (state.SSJAVADEBUG) {
             System.out.println();
             System.out.println("SSJAVA: Constructing a flow graph: " + md);
@@ -1115,6 +1266,16 @@ public class LocationInference {
           } else {
             setPossibleCallees.addAll(ssjava.getCallGraph().getMethods(md));
           }
+          
+          Set<MethodDescriptor> calleeSet=ssjava.getCallGraph().getCalleeSet(md);
+          
+          for (Iterator iterator = calleeSet.iterator(); iterator.hasNext();) {
+            MethodDescriptor calleemd = (MethodDescriptor) iterator.next();
+            if((!ssjava.isSSJavaUtil(calleemd.getClassDesc())) && (! visited.contains(calleemd))){
+              toanalyzeMethodList.add(calleemd);
+            }
+          }
+
           mapMethodDescToPossibleMethodDescSet.put(md, setPossibleCallees);
 
           // creates a mapping from a parameter descriptor to its index
@@ -1128,10 +1289,12 @@ public class LocationInference {
           FlowGraph fg = new FlowGraph(md, mapParamDescToIdx);
           mapMethodDescriptorToFlowGraph.put(md, fg);
 
+          visited.add(md);
           analyzeMethodBody(cd, md);
+          
         }
       }
-    }
+//    }
 
     _debug_printGraph();
   }
@@ -1493,7 +1656,7 @@ public class LocationInference {
       // checkCallerArgumentLocationConstraints(md, nametable, min,
       // baseLocation, constraint);
 
-      if (!min.getMethod().getReturnType().isVoid()) {
+      if (min.getMethod().getReturnType()!=null && !min.getMethod().getReturnType().isVoid()) {
         // If method has a return value, compute the highest possible return
         // location in the caller's perspective
         // CompositeLocation ceilingLoc =
@@ -1532,6 +1695,7 @@ public class LocationInference {
         NTuple<Descriptor> argTuple =
             analyzeFlowExpressionNode(callermd, nametable, en, new NodeTupleSet(), false);
 
+        // if argument is liternal node, argTuple is set to NULL.
         addArgIdxMap(min, i + offset, argTuple);
       }
 
@@ -1540,7 +1704,6 @@ public class LocationInference {
   }
 
   private void analyzeLiteralNode(MethodDescriptor md, SymbolTable nametable, LiteralNode en) {
-    // TODO Auto-generated method stub
 
   }
 
@@ -1786,6 +1949,17 @@ public class LocationInference {
       // analyze value flows of rhs expression
       analyzeFlowExpressionNode(md, nametable, an.getSrc(), nodeSetRHS, null, implicitFlowTupleSet,
           false);
+
+      if (an.getOperation().getOp() >= 2 && an.getOperation().getOp() <= 12) {
+        // if assignment contains OP+EQ operator, creates edges from LHS to LHS
+        for (Iterator<NTuple<Descriptor>> iter = nodeSetLHS.iterator(); iter.hasNext();) {
+          NTuple<Descriptor> fromTuple = iter.next();
+          for (Iterator<NTuple<Descriptor>> iter2 = nodeSetLHS.iterator(); iter2.hasNext();) {
+            NTuple<Descriptor> toTuple = iter2.next();
+            addFlowGraphEdge(md, fromTuple, toTuple);
+          }
+        }
+      }
 
       // creates edges from RHS to LHS
       for (Iterator<NTuple<Descriptor>> iter = nodeSetRHS.iterator(); iter.hasNext();) {

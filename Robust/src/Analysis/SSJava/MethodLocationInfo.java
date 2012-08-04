@@ -12,26 +12,30 @@ public class MethodLocationInfo extends LocationInfo {
 
   String returnLocName;
   String thisLocName;
-  String PCLocName;
+  CompositeLocation pcLoc;
   String globalLocName;
 
-  Map<Integer, String> mapParamIdxToLocName;
+  Map<Integer, CompositeLocation> mapParamIdxToInferLoc;
   Set<String> paramLocNameSet;
 
   public MethodLocationInfo(MethodDescriptor md) {
     this.md = md;
-    this.mapParamIdxToLocName = new HashMap<Integer, String>();
     this.paramLocNameSet = new HashSet<String>();
-    this.PCLocName = SSJavaAnalysis.TOP;
+    this.pcLoc = new CompositeLocation(new Location(md, Location.TOP));
+    this.mapParamIdxToInferLoc = new HashMap<Integer, CompositeLocation>();
   }
 
-  /*
-   * public void mapFlowNodeToInferLocation(FlowNode node, CompositeLocation
-   * location) { mapFlowNodeToLocation.put(node, location); }
-   * 
-   * public CompositeLocation getInferLocation(FlowNode node) { return
-   * mapFlowNodeToLocation.get(node); }
-   */
+  public void addMapParamIdxToInferLoc(int paramIdx, CompositeLocation inferLoc) {
+    mapParamIdxToInferLoc.put(paramIdx, inferLoc);
+  }
+
+  public Map<Integer, CompositeLocation> getMapParamIdxToInferLoc() {
+    return mapParamIdxToInferLoc;
+  }
+
+  public String getGlobalLocName() {
+    return globalLocName;
+  }
 
   public void setGlobalLocName(String globalLocName) {
     this.globalLocName = globalLocName;
@@ -53,35 +57,12 @@ public class MethodLocationInfo extends LocationInfo {
     this.thisLocName = thisLocName;
   }
 
-  public String getPCLocName() {
-    return PCLocName;
+  public CompositeLocation getPCLoc() {
+    return pcLoc;
   }
 
-  public void setPCLocName(String pCLocName) {
-    PCLocName = pCLocName;
-  }
-
-  public void addParameter(String name, Descriptor desc, int idx) {
-    mapParamIdxToLocName.put(new Integer(idx), name);
-    // addMappingOfLocNameToDescriptor(name, desc);
-  }
-
-  public Set<String> getParameterLocNameSet() {
-    Set<String> paramSet = new HashSet<String>();
-
-    paramSet.add(PCLocName);
-
-    if (thisLocName != null) {
-      paramSet.add(thisLocName);
-    }
-
-    if (returnLocName != null) {
-      paramSet.add(returnLocName);
-    }
-
-    paramSet.addAll(mapParamIdxToLocName.values());
-
-    return paramSet;
+  public void setPCLoc(CompositeLocation pcLoc) {
+    this.pcLoc = pcLoc;
   }
 
   public void removeMaplocalVarToLocSet(Descriptor localVarDesc) {
