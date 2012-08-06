@@ -252,10 +252,12 @@ public class FlowGraph {
       Descriptor localDesc = fn.getDescTuple().get(0);
       if (localDesc.getSymbol().equals(LocationInference.TOPLOC)) {
         Location topLoc = new Location(md, Location.TOP);
+        topLoc.setLocDescriptor(LocationInference.TOPDESC);
         locTuple.add(topLoc);
       } else if (localDesc.getSymbol().equals(LocationInference.GLOBALLOC)) {
-        Location topLoc = new Location(md, LocationInference.GLOBALLOC);
-        locTuple.add(topLoc);
+        Location globalLoc = new Location(md, LocationInference.GLOBALLOC);
+        globalLoc.setLocDescriptor(LocationInference.GLOBALDESC);
+        locTuple.add(globalLoc);
       } else {
         // normal case
         for (int i = 0; i < descTuple.size(); i++) {
