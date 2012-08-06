@@ -63,7 +63,6 @@ public class LocationInfo {
   }
 
   public void addMapLocSymbolToDescSet(String locSymbol, Descriptor desc) {
-    System.out.println("mapLocSymbolToDescSet=" + mapLocSymbolToDescSet);
     if (!mapLocSymbolToDescSet.containsKey(locSymbol)) {
       mapLocSymbolToDescSet.put(locSymbol, new HashSet<Descriptor>());
     }

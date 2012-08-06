@@ -86,7 +86,7 @@ public class FlowGraph {
     }
     set.add(neighbor);
 
-//    System.out.println("add a new neighbor " + neighbor + " to " + node);
+    // System.out.println("add a new neighbor " + neighbor + " to " + node);
   }
 
   public boolean hasEdge(NTuple<Descriptor> fromDescTuple, NTuple<Descriptor> toDescTuple) {
@@ -140,7 +140,7 @@ public class FlowGraph {
     FlowEdge edge = new FlowEdge(fromNode, toNode, initTuple, endTuple);
     fromNode.addOutEdge(edge);
 
-//    System.out.println("add a new edge=" + edge);
+    // System.out.println("add a new edge=" + edge);
 
   }
 
@@ -161,7 +161,7 @@ public class FlowGraph {
 
     if (!mapDescTupleToInferNode.containsKey(tuple)) {
 
-      FlowNode node = new FlowNode(tuple, isParamter(tuple));
+      FlowNode node = new FlowNode(tuple, isParameter(tuple));
       mapDescTupleToInferNode.put(tuple, node);
       nodeSet.add(node);
 
@@ -172,7 +172,7 @@ public class FlowGraph {
         getFlowNode(baseTuple).addFieldNode(node);
       }
 
-//      System.out.println("Creating new node=" + node);
+      // System.out.println("Creating new node=" + node);
       return node;
     } else {
       return mapDescTupleToInferNode.get(tuple);
@@ -238,6 +238,10 @@ public class FlowGraph {
     return visited;
   }
 
+  public NTuple<Location> getLocationTuple(NTuple<Descriptor> descTuple) {
+    return getLocationTuple(getFlowNode(descTuple));
+  }
+
   public NTuple<Location> getLocationTuple(FlowNode fn) {
 
     if (!mapFlowNodeToLocTuple.containsKey(fn)) {
@@ -259,7 +263,7 @@ public class FlowGraph {
           Location loc;
           if (i == 0) {
             loc = new Location(md, curDesc.getSymbol());
-            loc.setLocDescriptor(md);
+            loc.setLocDescriptor(curDesc);
             cd = ((VarDescriptor) curDesc).getType().getClassDesc();
           } else {
             loc = new Location(cd, curDesc.getSymbol());
@@ -338,7 +342,7 @@ public class FlowGraph {
     return set;
   }
 
-  public boolean isParamter(NTuple<Descriptor> tuple) {
+  public boolean isParameter(NTuple<Descriptor> tuple) {
     // return true if a descriptor tuple is started with a parameter descriptor
     Descriptor firstIdxDesc = tuple.get(0);
     return mapParamDescToIdx.containsKey(firstIdxDesc);

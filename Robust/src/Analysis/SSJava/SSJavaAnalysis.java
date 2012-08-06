@@ -139,7 +139,7 @@ public class SSJavaAnalysis {
     init();
 
     if (state.SSJAVADEBUG) {
-      debug_printAnnotationRequiredSet();
+      // debug_printAnnotationRequiredSet();
     }
     if (state.SSJAVAINFER) {
       inference();
@@ -372,7 +372,7 @@ public class SSJavaAnalysis {
           } else {
             lowLocStr = lowLocId.toString();
           }
-          bw.write(highLocId + " -> " + lowLocId + ";\n");
+          bw.write(highLocStr + " -> " + lowLocStr + ";\n");
         }
         bw.write("}\n");
         bw.close();
