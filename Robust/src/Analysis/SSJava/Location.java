@@ -30,6 +30,10 @@ public class Location implements TypeExtension {
     }
   }
 
+  public void setLocIdentifier(String s) {
+    loc = s;
+  }
+
   public void setLocDescriptor(Descriptor d) {
     locDesc = d;
   }

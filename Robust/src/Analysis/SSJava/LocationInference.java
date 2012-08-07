@@ -46,6 +46,7 @@ import IR.Tree.SubBlockNode;
 import IR.Tree.SwitchStatementNode;
 import IR.Tree.TertiaryNode;
 import IR.Tree.TreeNode;
+import Util.Pair;
 
 public class LocationInference {
 
@@ -87,6 +88,8 @@ public class LocationInference {
   public static final Descriptor GLOBALDESC = new NameDescriptor(GLOBALLOC);
 
   public static final Descriptor TOPDESC = new NameDescriptor(TOPLOC);
+
+  LocationInfo curMethodInfo;
 
   boolean debug = true;
 
@@ -290,6 +293,7 @@ public class LocationInference {
           new SSJavaLattice<String>(SSJavaAnalysis.TOP, SSJavaAnalysis.BOTTOM);
 
       MethodLocationInfo methodInfo = new MethodLocationInfo(md);
+      curMethodInfo = methodInfo;
 
       System.out.println();
       System.out.println("SSJAVA: Inferencing the lattice from " + md);
@@ -731,6 +735,7 @@ public class LocationInference {
   private void addRelation(SSJavaLattice<String> methodLattice, MethodLocationInfo methodInfo,
       CompositeLocation srcInferLoc, CompositeLocation dstInferLoc) throws CyclicFlowException {
 
+    System.out.println("--- srcInferLoc=" + srcInferLoc + "  dstInferLoc=" + dstInferLoc);
     String srcLocalLocSymbol = srcInferLoc.get(0).getLocIdentifier();
     String dstLocalLocSymbol = dstInferLoc.get(0).getLocIdentifier();
 
@@ -752,9 +757,11 @@ public class LocationInference {
       }
     }
 
+    System.out.println();
+
   }
 
-  private LocationInfo getLocationInfo(Descriptor d) {
+  public LocationInfo getLocationInfo(Descriptor d) {
     if (d instanceof MethodDescriptor) {
       return getMethodLocationInfo((MethodDescriptor) d);
     } else {
@@ -1000,6 +1007,7 @@ public class LocationInference {
           inferLocation.addLocation(fieldLoc);
 
           methodInfo.mapDescriptorToLocation(localVarDesc, inferLocation);
+          addMapLocSymbolToInferredLocation(methodInfo.md, localVarDesc, inferLocation);
           methodInfo.removeMaplocalVarToLocSet(localVarDesc);
 
           String newMethodLocationSymbol = curPrefix.get(0).getLocIdentifier();
@@ -1039,6 +1047,7 @@ public class LocationInference {
           if (isCompositeLocation(inNodeInferLoc)) {
             // need to make sure that newLocSymbol is lower than the infernode
             // location in the field lattice
+            System.out.println("--- srcNode=" + localNode + "  dstNode=" + flowNode);
             addRelation(methodLattice, methodInfo, inNodeInferLoc, inferLocation);
 
           }
@@ -1071,6 +1080,7 @@ public class LocationInference {
           if (isCompositeLocation(outNodeInferLoc)) {
             // need to make sure that newLocSymbol is higher than the infernode
             // location
+            System.out.println("--- srcNode=" + flowNode + "  dstNode=" + localOutNode);
 
             addRelation(methodLattice, methodInfo, inferLocation, outNodeInferLoc);
 
@@ -1084,6 +1094,15 @@ public class LocationInference {
 
     return false;
 
+  }
+
+  private void addMapLocSymbolToInferredLocation(MethodDescriptor md, Descriptor localVar,
+      CompositeLocation inferLoc) {
+
+    Location locElement = inferLoc.get((inferLoc.getSize() - 1));
+    Descriptor enclosingDesc = locElement.getDescriptor();
+    LocationInfo locInfo = getLocationInfo(enclosingDesc);
+    locInfo.addMapLocSymbolToRelatedInferLoc(locElement.getLocIdentifier(), md, localVar);
   }
 
   private boolean isCompositeLocation(CompositeLocation cl) {
@@ -1138,13 +1157,35 @@ public class LocationInference {
     }
 
     if (cycleElementSet.size() > 0) {
+
       String newSharedLoc = "SharedLoc" + (SSJavaLattice.seed++);
 
       lattice.mergeIntoSharedLocation(cycleElementSet, newSharedLoc);
 
       for (Iterator iterator = cycleElementSet.iterator(); iterator.hasNext();) {
         String oldLocSymbol = (String) iterator.next();
-        locInfo.mergeMapping(oldLocSymbol, newSharedLoc);
+
+        Set<Pair<Descriptor, Descriptor>> inferLocSet = locInfo.getRelatedInferLocSet(oldLocSymbol);
+        for (Iterator iterator2 = inferLocSet.iterator(); iterator2.hasNext();) {
+          Pair<Descriptor, Descriptor> pair = (Pair<Descriptor, Descriptor>) iterator2.next();
+          Descriptor enclosingDesc = pair.getFirst();
+          Descriptor desc = pair.getSecond();
+
+          CompositeLocation inferLoc;
+          if (curMethodInfo.md.equals(enclosingDesc)) {
+            inferLoc = curMethodInfo.getInferLocation(desc);
+          } else {
+            inferLoc = getLocationInfo(enclosingDesc).getInferLocation(desc);
+          }
+
+          Location locElement = inferLoc.get(inferLoc.getSize() - 1);
+
+          locElement.setLocIdentifier(newSharedLoc);
+          locInfo.addMapLocSymbolToRelatedInferLoc(newSharedLoc, enclosingDesc, desc);
+
+        }
+        locInfo.removeRelatedInferLocSet(oldLocSymbol, newSharedLoc);
+
       }
 
       lattice.addSharedLoc(newSharedLoc);

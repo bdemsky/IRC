@@ -9,12 +9,12 @@ import java.util.Set;
 import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.MethodDescriptor;
+import Util.Pair;
 
 public class LocationInfo {
 
-  // Map<Descriptor, String> mapDescToLocSymbol;
   Map<String, Set<Descriptor>> mapLocSymbolToDescSet;
-
+  Map<String, Set<Pair<Descriptor, Descriptor>>> mapLocSymbolToRelatedInferLocSet;
   Map<Descriptor, CompositeLocation> mapDescToInferCompositeLocation;
   MethodDescriptor md;
   ClassDescriptor cd;
@@ -22,6 +22,7 @@ public class LocationInfo {
   public LocationInfo() {
     mapDescToInferCompositeLocation = new HashMap<Descriptor, CompositeLocation>();
     mapLocSymbolToDescSet = new HashMap<String, Set<Descriptor>>();
+    mapLocSymbolToRelatedInferLocSet = new HashMap<String, Set<Pair<Descriptor, Descriptor>>>();
   }
 
   public LocationInfo(ClassDescriptor cd) {
@@ -37,27 +38,40 @@ public class LocationInfo {
     return mapDescToInferCompositeLocation;
   }
 
+  public void addMapLocSymbolToRelatedInferLoc(String locSymbol, Descriptor enclosingDesc,
+      Descriptor desc) {
+    if (!mapLocSymbolToRelatedInferLocSet.containsKey(locSymbol)) {
+      mapLocSymbolToRelatedInferLocSet.put(locSymbol, new HashSet<Pair<Descriptor, Descriptor>>());
+    }
+    mapLocSymbolToRelatedInferLocSet.get(locSymbol).add(
+        new Pair<Descriptor, Descriptor>(enclosingDesc, desc));
+  }
+
+  public Set<Pair<Descriptor, Descriptor>> getRelatedInferLocSet(String locSymbol) {
+    return mapLocSymbolToRelatedInferLocSet.get(locSymbol);
+  }
+
   public void mapDescriptorToLocation(Descriptor desc, CompositeLocation inferLoc) {
     mapDescToInferCompositeLocation.put(desc, inferLoc);
   }
-
-  // public void mapDescSymbolToLocName(String descSymbol, String locName) {
-  // mapDescSymbolToLocName.put(descSymbol, locName);
-  // }
 
   public CompositeLocation getInferLocation(Descriptor desc) {
     if (!mapDescToInferCompositeLocation.containsKey(desc)) {
       CompositeLocation newInferLoc = new CompositeLocation();
       Location loc;
+      Descriptor enclosingDesc;
       if (md != null) {
         // method lattice
-        loc = new Location(md, desc.getSymbol());
+        enclosingDesc = md;
       } else {
-        loc = new Location(cd, desc.getSymbol());
+        enclosingDesc = cd;
       }
+      loc = new Location(enclosingDesc, desc.getSymbol());
+
       newInferLoc.addLocation(loc);
       mapDescToInferCompositeLocation.put(desc, newInferLoc);
       addMapLocSymbolToDescSet(desc.getSymbol(), desc);
+      addMapLocSymbolToRelatedInferLoc(desc.getSymbol(), enclosingDesc, desc);
     }
     return mapDescToInferCompositeLocation.get(desc);
   }
@@ -80,49 +94,11 @@ public class LocationInfo {
     return mapLocSymbolToDescSet.get(locSymbol);
   }
 
-  public void mergeMapping(String oldLocSymbol, String newSharedLoc) {
+  public void removeRelatedInferLocSet(String oldLocSymbol, String newSharedLoc) {
     Set<Descriptor> descSet = getDescSet(oldLocSymbol);
     getDescSet(newSharedLoc).addAll(descSet);
     mapLocSymbolToDescSet.remove(oldLocSymbol);
-
-    Set<Descriptor> keySet = mapDescToInferCompositeLocation.keySet();
-    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-      Descriptor key = (Descriptor) iterator.next();
-      CompositeLocation inferLoc = getInferLocation(key);
-
-      CompositeLocation newInferLoc = new CompositeLocation();
-      if (inferLoc.getSize() > 1) {
-        // local variable has a composite location [refLoc.inferedLoc]
-
-        Location oldLoc = inferLoc.get(inferLoc.getSize() - 1);
-        // oldLoc corresponds to infered loc.
-
-        if (oldLoc.getLocIdentifier().equals(oldLocSymbol)) {
-          for (int i = 0; i < inferLoc.getSize() - 1; i++) {
-            Location loc = inferLoc.get(i);
-            newInferLoc.addLocation(loc);
-          }
-          Location newLoc = new Location(oldLoc.getDescriptor(), newSharedLoc);
-          newInferLoc.addLocation(newLoc);
-          mapDescriptorToLocation(key, newInferLoc);
-        }
-        // else {
-        // return;
-        // }
-      } else {
-        // local var has a local location
-        Location oldLoc = inferLoc.get(0);
-        if (oldLoc.getLocIdentifier().equals(oldLocSymbol)) {
-          Location newLoc = new Location(oldLoc.getDescriptor(), newSharedLoc);
-          newInferLoc.addLocation(newLoc);
-          mapDescriptorToLocation(key, newInferLoc);
-        }
-        // else {
-        // return;
-        // }
-      }
-
-    }
+    mapLocSymbolToRelatedInferLocSet.remove(oldLocSymbol);
   }
 
 }
