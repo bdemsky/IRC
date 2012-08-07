@@ -1039,7 +1039,6 @@ public class LocationInference {
           if (isCompositeLocation(inNodeInferLoc)) {
             // need to make sure that newLocSymbol is lower than the infernode
             // location in the field lattice
-
             addRelation(methodLattice, methodInfo, inNodeInferLoc, inferLocation);
 
           }
@@ -1065,13 +1064,14 @@ public class LocationInference {
             continue;
           }
 
-          
-          CompositeLocation outNodeInferLoc= generateInferredCompositeLocation(methodInfo, flowGraph.getLocationTuple(localOutNode));
+          CompositeLocation outNodeInferLoc =
+              generateInferredCompositeLocation(methodInfo,
+                  flowGraph.getLocationTuple(localOutNode));
 
           if (isCompositeLocation(outNodeInferLoc)) {
             // need to make sure that newLocSymbol is higher than the infernode
             // location
-            
+
             addRelation(methodLattice, methodInfo, inferLocation, outNodeInferLoc);
 
           }
@@ -1117,8 +1117,6 @@ public class LocationInference {
     // return;
     // }
     Set<String> cycleElementSet = lattice.getPossibleCycleElements(higher, lower);
-    System.out.println("#Check cycle=" + lower + " < " + higher);
-    System.out.println("#cycleElementSet=" + cycleElementSet);
 
     boolean hasNonPrimitiveElement = false;
     for (Iterator iterator = cycleElementSet.iterator(); iterator.hasNext();) {
@@ -1132,6 +1130,8 @@ public class LocationInference {
     }
 
     if (hasNonPrimitiveElement) {
+      System.out.println("#Check cycle= " + lower + " < " + higher + "     cycleElementSet="
+          + cycleElementSet);
       // if there is non-primitive element in the cycle, no way to merge cyclic
       // elements into the shared location
       throw new CyclicFlowException();
@@ -1517,7 +1517,7 @@ public class LocationInference {
     case Kind.FieldAccessNode:
       flowTuple =
           analyzeFlowFieldAccessNode(md, nametable, (FieldAccessNode) en, nodeSet, base,
-              implicitFlowTupleSet);
+              implicitFlowTupleSet, isLHS);
       if (flowTuple != null) {
         nodeSet.addTuple(flowTuple);
       }
@@ -1918,7 +1918,7 @@ public class LocationInference {
 
   private NTuple<Descriptor> analyzeFlowFieldAccessNode(MethodDescriptor md, SymbolTable nametable,
       FieldAccessNode fan, NodeTupleSet nodeSet, NTuple<Descriptor> base,
-      NodeTupleSet implicitFlowTupleSet) {
+      NodeTupleSet implicitFlowTupleSet, boolean isLHS) {
 
     ExpressionNode left = fan.getExpression();
     TypeDescriptor ltd = left.getType();
@@ -1938,12 +1938,15 @@ public class LocationInference {
     }
 
     if (left instanceof ArrayAccessNode) {
+
       ArrayAccessNode aan = (ArrayAccessNode) left;
       left = aan.getExpression();
+      analyzeFlowExpressionNode(md, nametable, aan.getIndex(), nodeSet, base, implicitFlowTupleSet,
+          isLHS);
     }
     // fanNodeSet
     base =
-        analyzeFlowExpressionNode(md, nametable, left, nodeSet, base, implicitFlowTupleSet, false);
+        analyzeFlowExpressionNode(md, nametable, left, nodeSet, base, implicitFlowTupleSet, isLHS);
     if (base == null) {
       // in this case, field is TOP location
       return null;
@@ -1951,9 +1954,8 @@ public class LocationInference {
 
       if (!left.getType().isPrimitive()) {
 
-        if (fd.getSymbol().equals("length")) {
+        if (!fd.getSymbol().equals("length")) {
           // array.length access, just have the location of the array
-        } else {
           base.add(fd);
         }
 
@@ -2034,6 +2036,15 @@ public class LocationInference {
       for (Iterator<NTuple<Descriptor>> iter2 = nodeSetLHS.iterator(); iter2.hasNext();) {
         NTuple<Descriptor> tuple = iter2.next();
         addFlowGraphEdge(md, tuple, tuple);
+      }
+
+      // creates edges from implicitFlowTupleSet to LHS
+      for (Iterator<NTuple<Descriptor>> iter = implicitFlowTupleSet.iterator(); iter.hasNext();) {
+        NTuple<Descriptor> fromTuple = iter.next();
+        for (Iterator<NTuple<Descriptor>> iter2 = nodeSetLHS.iterator(); iter2.hasNext();) {
+          NTuple<Descriptor> toTuple = iter2.next();
+          addFlowGraphEdge(md, fromTuple, toTuple);
+        }
       }
 
     }

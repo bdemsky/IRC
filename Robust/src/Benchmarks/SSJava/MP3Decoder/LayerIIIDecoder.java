@@ -56,7 +56,7 @@ final class LayerIIIDecoder implements FrameDecoder {
 
   // MDM: removed, as this wasn't being used.
   // private float CheckSumOut1d = 0.0f;
-  @LOC("SI1")
+  @LOC("IS1D")
   private int CheckSumHuff = 0;
   @LOC("IS1D")
   private int[] is_1d;
@@ -1106,10 +1106,10 @@ final class LayerIIIDecoder implements FrameDecoder {
   private void huffman_decode(@LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int part2_start_local,
       @LOC("THIS,LayerIIIDecoder.CH0") int ch, @LOC("THIS,LayerIIIDecoder.CH0") int gr) {
 
-    @LOC("RE") int x[] = new int[1];
-    @LOC("RE") int y[] = new int[1];
-    @LOC("RE") int v[] = new int[1];
-    @LOC("RE") int w[] = new int[1];
+    @LOC("THIS,LayerIIIDecoder.IS1D") int x[] = new int[1];
+    @LOC("THIS,LayerIIIDecoder.IS1D") int y[] = new int[1];
+    @LOC("THIS,LayerIIIDecoder.IS1D") int v[] = new int[1];
+    @LOC("THIS,LayerIIIDecoder.IS1D") int w[] = new int[1];
 
     @LOC("THIS,LayerIIIDecoder.BR,BitReserve.BIT") int part2_3_end =
         part2_start_local + si.ch[ch].gr[gr].part2_3_length;

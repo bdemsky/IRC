@@ -506,13 +506,14 @@ final class huffcodetab {
    * Do the huffman-decoding. note! for counta,countb -the 4 bit value is
    * returned in y, discard x.
    */
-  @LATTICE("OUT<V1,THIS<V1,V1<V,V<IN,IN<C,C*,V*,THISLOC=THIS,GLOBALLOC=IN")
+//  @LATTICE("OUT<V1, THIS<V1,V1<V,V<IN,IN<C,C*,V*,THISLOC=THIS,GLOBALLOC=IN")
+  @LATTICE("OUT<THIS, THIS<V1,V1<V,V<IN,IN<C,C*,V*,THISLOC=THIS,GLOBALLOC=IN")
   @RETURNLOC("OUT,BitReserve.BIT")
   @PCLOC("OUT,BitReserve.BIT")
   public static int huffman_decoder(@LOC("THIS,LayerIIIDecoder.SI2") int htIdx,
       @LOC("OUT,BitReserve.BIT") int[] x, @LOC("OUT,BitReserve.BIT") int[] y,
       @LOC("OUT,BitReserve.BIT") int[] v, @LOC("OUT,BitReserve.BIT") int[] w,
-      @LOC("OUT") BitReserve br) {
+      @LOC("V1") BitReserve br) {
     // array of all huffcodtable headers
     // 0..31 Huffman code table 0..31
     // 32,33 count1-tables

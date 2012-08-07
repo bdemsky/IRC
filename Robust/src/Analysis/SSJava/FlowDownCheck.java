@@ -1162,11 +1162,10 @@ public class FlowDownCheck {
   private void checkCalleeConstraints(MethodDescriptor md, SymbolTable nametable,
       MethodInvokeNode min, CompositeLocation callerBaseLoc, CompositeLocation constraint) {
 
-    // System.out.println("checkCalleeConstraints=" + min.printNode(0));
-
     MethodDescriptor calleemd = min.getMethod();
 
     MethodLattice<String> calleeLattice = ssjava.getMethodLattice(calleemd);
+
     CompositeLocation calleeThisLoc =
         new CompositeLocation(new Location(calleemd, calleeLattice.getThisLoc()));
 
@@ -1179,7 +1178,8 @@ public class FlowDownCheck {
 
       // setup caller args set
       // first, add caller's base(this) location
-      callerArgList.add(callerBaseLoc);
+      if (!calleemd.isStatic())
+        callerArgList.add(callerBaseLoc);
       // second, add caller's arguments
       for (int i = 0; i < min.numArgs(); i++) {
         ExpressionNode en = min.getArg(i);
@@ -1191,7 +1191,8 @@ public class FlowDownCheck {
 
       // setup callee params set
       // first, add callee's this location
-      calleeParamList.add(calleeThisLoc);
+      if (!calleemd.isStatic())
+        calleeParamList.add(calleeThisLoc);
       // second, add callee's parameters
       for (int i = 0; i < calleemd.numParameters(); i++) {
         VarDescriptor calleevd = (VarDescriptor) calleemd.getParameter(i);
@@ -1499,26 +1500,28 @@ public class FlowDownCheck {
       }
     }
 
+    Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
     if (left instanceof ArrayAccessNode) {
       ArrayAccessNode aan = (ArrayAccessNode) left;
-      left = aan.getExpression();
+      CompositeLocation indexLoc =
+          checkLocationFromExpressionNode(md, nametable, aan.getIndex(), loc, constraint, false);
+      inputGLB.add(indexLoc);
     }
 
     loc = checkLocationFromExpressionNode(md, nametable, left, loc, constraint, false);
-    // System.out.println("### checkLocationFromFieldAccessNode=" +
-    // fan.printNode(0));
-    // System.out.println("### left=" + left.printNode(0));
 
     if (!left.getType().isPrimitive()) {
 
-      if (fd.getSymbol().equals("length")) {
+      if (!fd.getSymbol().equals("length")) {
         // array.length access, return the location of the array
-        return loc;
+        Location fieldLoc = getFieldLocation(fd);
+        loc.addLocation(fieldLoc);
       }
 
-      Location fieldLoc = getFieldLocation(fd);
-      loc.addLocation(fieldLoc);
     }
+
+    inputGLB.add(loc);
+    loc = CompositeLattice.calculateGLB(inputGLB, generateErrorMessage(md.getClassDesc(), fan));
     return loc;
   }
 
