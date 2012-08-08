@@ -78,4 +78,8 @@ public class MethodLocationInfo extends LocationInfo {
     getDescSet(localVarLocSymbol).remove(localVarDesc);
   }
 
+  public MethodDescriptor getMethodDesc() {
+    return md;
+  }
+
 }

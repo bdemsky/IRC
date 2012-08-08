@@ -111,8 +111,9 @@ public class SSJavaLattice<T> extends Lattice<T> {
           removeSet.add(cur);
         }
       }
+
       if (!removeSet.isEmpty()) {
-        // remove relations of locationElement -> cycle
+        // // remove relations of locationElement -> cycle
         connectedSet.removeAll(removeSet);
         // add a new relation of location Element -> shared loc
         connectedSet.add(newLoc);

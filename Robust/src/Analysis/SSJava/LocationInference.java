@@ -706,29 +706,44 @@ public class LocationInference {
   private CompositeLocation generateInferredCompositeLocation(MethodLocationInfo methodInfo,
       NTuple<Location> tuple) {
 
+    // System.out.println("@@@@@generateInferredCompositeLocation=" + tuple);
+    // System.out.println("generateInferredCompositeLocation=" + tuple + "   0="
+    // + tuple.get(0).getLocDescriptor());
     // first, retrieve inferred location by the local var descriptor
     CompositeLocation inferLoc = new CompositeLocation();
 
     CompositeLocation localVarInferLoc =
         methodInfo.getInferLocation(tuple.get(0).getLocDescriptor());
 
+    localVarInferLoc.get(0).setLocDescriptor(tuple.get(0).getLocDescriptor());
+
     for (int i = 0; i < localVarInferLoc.getSize(); i++) {
       inferLoc.addLocation(localVarInferLoc.get(i));
     }
+    // System.out.println("@@@@@localVarInferLoc=" + localVarInferLoc);
 
     for (int i = 1; i < tuple.size(); i++) {
       Location cur = tuple.get(i);
       Descriptor enclosingDesc = cur.getDescriptor();
       Descriptor curDesc = cur.getLocDescriptor();
 
-      String fieldLocSymbol =
-          getLocationInfo(enclosingDesc).getInferLocation(curDesc).get(0).getLocIdentifier();
-      Location inferLocElement = new Location(enclosingDesc, fieldLocSymbol);
+      Location inferLocElement;
+      if (curDesc == null) {
+        // in this case, we have a newly generated location.
+        // System.out.println("!!! generated location=" +
+        // cur.getLocIdentifier());
+        inferLocElement = new Location(enclosingDesc, cur.getLocIdentifier());
+      } else {
+        String fieldLocSymbol =
+            getLocationInfo(enclosingDesc).getInferLocation(curDesc).get(0).getLocIdentifier();
+        inferLocElement = new Location(enclosingDesc, fieldLocSymbol);
+        inferLocElement.setLocDescriptor(curDesc);
+      }
 
       inferLoc.addLocation(inferLocElement);
 
     }
-
+    // System.out.println("@@@@@inferLoc=" + inferLoc);
     return inferLoc;
   }
 
@@ -797,21 +812,24 @@ public class LocationInference {
 
     // add a new binary relation of dstNode < srcNode
     FlowGraph flowGraph = getFlowGraph(md);
-
-    calculateCompositeLocation(flowGraph, methodLattice, methodInfo, srcNode);
-
-    CompositeLocation srcInferLoc =
-        generateInferredCompositeLocation(methodInfo, flowGraph.getLocationTuple(srcNode));
-    CompositeLocation dstInferLoc =
-        generateInferredCompositeLocation(methodInfo, flowGraph.getLocationTuple(dstNode));
-
     try {
+      System.out.println("***** src composite case::");
+      calculateCompositeLocation(flowGraph, methodLattice, methodInfo, srcNode);
+
+      CompositeLocation srcInferLoc =
+          generateInferredCompositeLocation(methodInfo, flowGraph.getLocationTuple(srcNode));
+      CompositeLocation dstInferLoc =
+          generateInferredCompositeLocation(methodInfo, flowGraph.getLocationTuple(dstNode));
+
       addRelation(methodLattice, methodInfo, srcInferLoc, dstInferLoc);
     } catch (CyclicFlowException e) {
       // there is a cyclic value flow... try to calculate a composite location
       // for the destination node
+      System.out.println("***** dst composite case::");
       calculateCompositeLocation(flowGraph, methodLattice, methodInfo, dstNode);
-      dstInferLoc =
+      CompositeLocation srcInferLoc =
+          generateInferredCompositeLocation(methodInfo, flowGraph.getLocationTuple(srcNode));
+      CompositeLocation dstInferLoc =
           generateInferredCompositeLocation(methodInfo, flowGraph.getLocationTuple(dstNode));
       try {
         addRelation(methodLattice, methodInfo, srcInferLoc, dstInferLoc);
@@ -834,6 +852,7 @@ public class LocationInference {
       // check if it is the case of shared location
       if (srcInferLoc.getSize() == (idx + 1) && dstInferLoc.getSize() == (idx + 1)) {
         Location inferLocElement = srcInferLoc.get(idx);
+        System.out.println("SET SHARED LOCATION=" + inferLocElement);
         getLattice(inferLocElement.getDescriptor())
             .addSharedLoc(inferLocElement.getLocIdentifier());
       } else if (srcInferLoc.getSize() > (idx + 1) && dstInferLoc.getSize() > (idx + 1)) {
@@ -896,6 +915,10 @@ public class LocationInference {
 
     Descriptor localVarDesc = flowNode.getDescTuple().get(0);
 
+    if (localVarDesc.equals(methodInfo.getMethodDesc())) {
+      return false;
+    }
+
     Set<FlowNode> inNodeSet = flowGraph.getIncomingFlowNodeSet(flowNode);
     Set<FlowNode> reachableNodeSet = flowGraph.getReachableFlowNodeSet(flowNode);
 
@@ -912,15 +935,20 @@ public class LocationInference {
 
     for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
       FlowNode inNode = (FlowNode) iterator.next();
-      NTuple<Location> inTuple = flowGraph.getLocationTuple(inNode);
+      NTuple<Location> inNodeTuple = flowGraph.getLocationTuple(inNode);
 
-      if (inTuple.size() > 1) {
-        for (int i = 1; i < inTuple.size(); i++) {
-          NTuple<Location> prefix = inTuple.subList(0, i);
+      CompositeLocation inNodeInferredLoc =
+          generateInferredCompositeLocation(methodInfo, inNodeTuple);
+
+      NTuple<Location> inNodeInferredLocTuple = inNodeInferredLoc.getTuple();
+
+      if (inNodeTuple.size() > 1) {
+        for (int i = 1; i < inNodeInferredLocTuple.size(); i++) {
+          NTuple<Location> prefix = inNodeInferredLocTuple.subList(0, i);
           if (!prefixList.contains(prefix)) {
             prefixList.add(prefix);
           }
-          addPrefixMapping(mapPrefixToIncomingLocTupleSet, prefix, inTuple);
+          addPrefixMapping(mapPrefixToIncomingLocTupleSet, prefix, inNodeInferredLocTuple);
         }
       } else {
         localInNodeSet.add(inNode);
@@ -956,7 +984,9 @@ public class LocationInference {
       for (Iterator iterator2 = reachableNodeSet.iterator(); iterator2.hasNext();) {
         FlowNode reachableNode = (FlowNode) iterator2.next();
         NTuple<Location> reachLocTuple = flowGraph.getLocationTuple(reachableNode);
-        if (reachLocTuple.startsWith(curPrefix)) {
+        CompositeLocation reachLocInferLoc =
+            generateInferredCompositeLocation(methodInfo, reachLocTuple);
+        if (reachLocInferLoc.getTuple().startsWith(curPrefix)) {
           reachableCommonPrefixSet.add(reachLocTuple);
         }
       }
@@ -987,52 +1017,60 @@ public class LocationInference {
         SSJavaLattice<String> lattice = getLattice(desc);
         LocationInfo locInfo = getLocationInfo(desc);
 
-        // CompositeLocation inferLocation =
-        // methodInfo.getInferLocation(flowNode);
         CompositeLocation inferLocation = methodInfo.getInferLocation(localVarDesc);
+        CompositeLocation newInferLocation = new CompositeLocation();
 
-        String newlyInsertedLocName;
-        if (inferLocation.getSize() == 1) {
-          // need to replace the old local location with a new composite
-          // location
+        if (inferLocation.getTuple().startsWith(curPrefix)) {
+          // the same infer location is already existed. no need to do
+          // anything
+          return true;
+        } else {
+          // assign a new composite location
 
-          String oldMethodLocationSymbol = inferLocation.get(0).getLocIdentifier();
-
+          // String oldMethodLocationSymbol =
+          // inferLocation.get(0).getLocIdentifier();
           String newLocSymbol = "Loc" + (SSJavaLattice.seed++);
-          inferLocation = new CompositeLocation();
           for (int locIdx = 0; locIdx < curPrefix.size(); locIdx++) {
-            inferLocation.addLocation(curPrefix.get(locIdx));
+            newInferLocation.addLocation(curPrefix.get(locIdx));
           }
           Location fieldLoc = new Location(desc, newLocSymbol);
-          inferLocation.addLocation(fieldLoc);
+          newInferLocation.addLocation(fieldLoc);
 
-          methodInfo.mapDescriptorToLocation(localVarDesc, inferLocation);
-          addMapLocSymbolToInferredLocation(methodInfo.md, localVarDesc, inferLocation);
+          NTuple<Location> locTuple = flowGraph.getLocationTuple(flowNode);
+          for (int tidx = 1; tidx < locTuple.size(); tidx++) {
+            Location cur = locTuple.get(tidx);
+            Descriptor enclosingDesc = cur.getDescriptor();
+            Descriptor curDesc = cur.getLocDescriptor();
+            Location inferLocElement;
+            if (curDesc == null) {
+              // in this case, we have a newly generated location.
+              inferLocElement = new Location(enclosingDesc, cur.getLocIdentifier());
+            } else {
+              String fieldLocSymbol =
+                  getLocationInfo(enclosingDesc).getInferLocation(curDesc).get(0)
+                      .getLocIdentifier();
+              inferLocElement = new Location(enclosingDesc, fieldLocSymbol);
+              inferLocElement.setLocDescriptor(curDesc);
+            }
+            newInferLocation.addLocation(inferLocElement);
+          }
+
+          methodInfo.mapDescriptorToLocation(localVarDesc, newInferLocation);
+          addMapLocSymbolToInferredLocation(methodInfo.getMethodDesc(), localVarDesc,
+              newInferLocation);
           methodInfo.removeMaplocalVarToLocSet(localVarDesc);
-
-          String newMethodLocationSymbol = curPrefix.get(0).getLocIdentifier();
-
-          replaceOldLocWithNewLoc(methodLattice, oldMethodLocationSymbol, newMethodLocationSymbol);
-
-        } else {
-
-          String localLocName = methodInfo.getInferLocation(localVarDesc).get(0).getLocIdentifier();
-          return true;
 
         }
 
-        newlyInsertedLocName = inferLocation.get(inferLocation.getSize() - 1).getLocIdentifier();
+        String newlyInsertedLocName =
+            newInferLocation.get(inferLocation.getSize() - 1).getLocIdentifier();
 
         for (Iterator iterator = incomingCommonPrefixSet.iterator(); iterator.hasNext();) {
           NTuple<Location> tuple = (NTuple<Location>) iterator.next();
-
           Location loc = tuple.get(idx);
           String higher = locInfo.getFieldInferLocation(loc.getLocDescriptor()).getLocIdentifier();
-          System.out.println("--");
-          System.out.println("add in-flow relation:");
           addRelationHigherToLower(lattice, locInfo, higher, newlyInsertedLocName);
         }
-        System.out.println("end of add-inflow relation");
 
         for (Iterator iterator = localInNodeSet.iterator(); iterator.hasNext();) {
           FlowNode localNode = (FlowNode) iterator.next();
@@ -1047,8 +1085,9 @@ public class LocationInference {
           if (isCompositeLocation(inNodeInferLoc)) {
             // need to make sure that newLocSymbol is lower than the infernode
             // location in the field lattice
-            System.out.println("--- srcNode=" + localNode + "  dstNode=" + flowNode);
-            addRelation(methodLattice, methodInfo, inNodeInferLoc, inferLocation);
+            System.out.println("----srcNode=" + localNode + "  dstNode=" + flowNode);
+            addRelationToLattice(methodInfo.getMethodDesc(), methodLattice, methodInfo, localNode,
+                flowNode);
 
           }
 
@@ -1059,12 +1098,9 @@ public class LocationInference {
           if (tuple.size() > idx) {
             Location loc = tuple.get(idx);
             String lower = locInfo.getFieldInferLocation(loc.getLocDescriptor()).getLocIdentifier();
-            // lattice.addRelationHigherToLower(newlyInsertedLocName, lower);
-            System.out.println("add out-flow relation:");
             addRelationHigherToLower(lattice, locInfo, newlyInsertedLocName, lower);
           }
         }
-        System.out.println("end of add out-flow relation");
 
         for (Iterator iterator = localOutNodeSet.iterator(); iterator.hasNext();) {
           FlowNode localOutNode = (FlowNode) iterator.next();
@@ -1081,8 +1117,8 @@ public class LocationInference {
             // need to make sure that newLocSymbol is higher than the infernode
             // location
             System.out.println("--- srcNode=" + flowNode + "  dstNode=" + localOutNode);
-
-            addRelation(methodLattice, methodInfo, inferLocation, outNodeInferLoc);
+            addRelationToLattice(methodInfo.getMethodDesc(), methodLattice, methodInfo, flowNode,
+                localOutNode);
 
           }
         }
@@ -1160,12 +1196,14 @@ public class LocationInference {
 
       String newSharedLoc = "SharedLoc" + (SSJavaLattice.seed++);
 
+      System.out.println("$$$ASSIGN NEW SHARED LOC=" + newSharedLoc + "   to  " + cycleElementSet);
       lattice.mergeIntoSharedLocation(cycleElementSet, newSharedLoc);
 
       for (Iterator iterator = cycleElementSet.iterator(); iterator.hasNext();) {
         String oldLocSymbol = (String) iterator.next();
 
         Set<Pair<Descriptor, Descriptor>> inferLocSet = locInfo.getRelatedInferLocSet(oldLocSymbol);
+        System.out.println("$$$update related locations=" + inferLocSet);
         for (Iterator iterator2 = inferLocSet.iterator(); iterator2.hasNext();) {
           Pair<Descriptor, Descriptor> pair = (Pair<Descriptor, Descriptor>) iterator2.next();
           Descriptor enclosingDesc = pair.getFirst();
@@ -1182,6 +1220,13 @@ public class LocationInference {
 
           locElement.setLocIdentifier(newSharedLoc);
           locInfo.addMapLocSymbolToRelatedInferLoc(newSharedLoc, enclosingDesc, desc);
+
+          if (curMethodInfo.md.equals(enclosingDesc)) {
+            inferLoc = curMethodInfo.getInferLocation(desc);
+          } else {
+            inferLoc = getLocationInfo(enclosingDesc).getInferLocation(desc);
+          }
+          System.out.println("$$$New Infer Loc=" + inferLoc);
 
         }
         locInfo.removeRelatedInferLocSet(oldLocSymbol, newSharedLoc);
