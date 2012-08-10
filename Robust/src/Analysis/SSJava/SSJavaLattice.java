@@ -91,6 +91,7 @@ public class SSJavaLattice<T> extends Lattice<T> {
         getInBetweenElements(cur, end, elementSet);
       }
     }
+    System.out.println("            start=" + start + " end=" + end + "   element=" + elementSet);
   }
 
   public void mergeIntoSharedLocation(Set<T> cycleSet, T newLoc) {
@@ -146,6 +147,34 @@ public class SSJavaLattice<T> extends Lattice<T> {
       T cycleElement = (T) iterator.next();
       getTable().remove(cycleElement);
     }
+
+  }
+
+  public void remove(T loc) {
+
+    Set<T> keySet = getKeySet();
+
+    Set<T> inSet = new HashSet<T>();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      T keyElement = (T) iterator.next();
+      Set<T> connectedSet = get(keyElement);
+      if (connectedSet.contains(loc)) {
+        inSet.add(loc);
+        connectedSet.remove(loc);
+      }
+    }
+
+    Set<T> outSet = get(loc);
+
+    for (Iterator iterator = inSet.iterator(); iterator.hasNext();) {
+      T in = (T) iterator.next();
+      for (Iterator iterator2 = outSet.iterator(); iterator2.hasNext();) {
+        T out = (T) iterator2.next();
+        put(in, out);
+      }
+    }
+
+    getTable().remove(loc);
 
   }
 

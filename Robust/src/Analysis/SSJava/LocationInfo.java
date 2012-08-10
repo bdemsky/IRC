@@ -2,7 +2,6 @@ package Analysis.SSJava;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,6 +27,15 @@ public class LocationInfo {
   public LocationInfo(ClassDescriptor cd) {
     this();
     this.cd = cd;
+  }
+
+  public Descriptor getDescIdentifier() {
+    if (md != null) {
+      return md;
+    }
+    {
+      return cd;
+    }
   }
 
   public Map<String, Set<Descriptor>> getMapLocSymbolToDescSet() {
@@ -97,6 +105,7 @@ public class LocationInfo {
   public void removeRelatedInferLocSet(String oldLocSymbol, String newSharedLoc) {
     Set<Descriptor> descSet = getDescSet(oldLocSymbol);
     getDescSet(newSharedLoc).addAll(descSet);
+    // getRelatedInferLocSet(newSharedLoc).addAll(getRelatedInferLocSet(oldLocSymbol));
     mapLocSymbolToDescSet.remove(oldLocSymbol);
     mapLocSymbolToRelatedInferLocSet.remove(oldLocSymbol);
   }
