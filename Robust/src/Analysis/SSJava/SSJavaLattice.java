@@ -91,7 +91,6 @@ public class SSJavaLattice<T> extends Lattice<T> {
         getInBetweenElements(cur, end, elementSet);
       }
     }
-    System.out.println("            start=" + start + " end=" + end + "   element=" + elementSet);
   }
 
   public void mergeIntoSharedLocation(Set<T> cycleSet, T newLoc) {

@@ -160,7 +160,6 @@ public class FlowGraph {
   public FlowNode createNewFlowNode(NTuple<Descriptor> tuple) {
 
     if (!mapDescTupleToInferNode.containsKey(tuple)) {
-
       FlowNode node = new FlowNode(tuple, isParameter(tuple));
       mapDescTupleToInferNode.put(tuple, node);
       nodeSet.add(node);

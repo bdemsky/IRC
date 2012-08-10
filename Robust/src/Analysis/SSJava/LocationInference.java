@@ -478,27 +478,35 @@ public class LocationInference {
               VarDescriptor varDesc = (VarDescriptor) srcNodeTuple.get(0);
               classDesc = varDesc.getType().getClassDesc();
             }
-
             extractRelationFromFieldFlows(classDesc, srcNode, dstNode, 1);
 
-          } else if (srcNodeTuple.size() == 1 || dstNodeTuple.size() == 1) {
-            // for the method lattice, we need to look at the first element of
-            // NTuple<Descriptor>
-            // in this case, take a look at connected nodes at the local level
-            addRelationToLattice(md, methodLattice, methodInfo, srcNode, dstNode);
           } else {
-
-            if (!srcNode.getDescTuple().get(0).equals(dstNode.getDescTuple().get(0))) {
-              // in this case, take a look at connected nodes at the local level
-              addRelationToLattice(md, methodLattice, methodInfo, srcNode, dstNode);
-            } else {
-              Descriptor srcDesc = srcNode.getDescTuple().get(0);
-              Descriptor dstDesc = dstNode.getDescTuple().get(0);
-              recursivelyAddCompositeRelation(md, fg, methodInfo, srcNode, dstNode, srcDesc,
-                  dstDesc);
-              // recursiveAddRelationToLattice(1, md, srcNode, dstNode);
-            }
+            // value flow between local var - local var or local var - field
+            addRelationToLattice(md, methodLattice, methodInfo, srcNode, dstNode);
           }
+
+          // else if (srcNodeTuple.size() == 1 || dstNodeTuple.size() == 1) {
+          // // for the method lattice, we need to look at the first element of
+          // // NTuple<Descriptor>
+          // // in this case, take a look at connected nodes at the local level
+          // addRelationToLattice(md, methodLattice, methodInfo, srcNode,
+          // dstNode);
+          // } else {
+          // if
+          // (!srcNode.getDescTuple().get(0).equals(dstNode.getDescTuple().get(0)))
+          // {
+          // // in this case, take a look at connected nodes at the local level
+          // addRelationToLattice(md, methodLattice, methodInfo, srcNode,
+          // dstNode);
+          // } else {
+          // Descriptor srcDesc = srcNode.getDescTuple().get(0);
+          // Descriptor dstDesc = dstNode.getDescTuple().get(0);
+          // recursivelyAddCompositeRelation(md, fg, methodInfo, srcNode,
+          // dstNode, srcDesc,
+          // dstDesc);
+          // // recursiveAddRelationToLattice(1, md, srcNode, dstNode);
+          // }
+          // }
 
         }
       }
@@ -823,7 +831,6 @@ public class LocationInference {
           generateInferredCompositeLocation(methodInfo, flowGraph.getLocationTuple(srcNode));
       CompositeLocation dstInferLoc =
           generateInferredCompositeLocation(methodInfo, flowGraph.getLocationTuple(dstNode));
-
       addRelation(methodLattice, methodInfo, srcInferLoc, dstInferLoc);
     } catch (CyclicFlowException e) {
       // there is a cyclic value flow... try to calculate a composite location
@@ -917,6 +924,7 @@ public class LocationInference {
       throws CyclicFlowException {
 
     Descriptor localVarDesc = flowNode.getDescTuple().get(0);
+    NTuple<Location> flowNodelocTuple = flowGraph.getLocationTuple(flowNode);
 
     if (localVarDesc.equals(methodInfo.getMethodDesc())) {
       return false;
@@ -1020,9 +1028,14 @@ public class LocationInference {
         SSJavaLattice<String> lattice = getLattice(desc);
         LocationInfo locInfo = getLocationInfo(desc);
 
-        CompositeLocation inferLocation = methodInfo.getInferLocation(localVarDesc);
+        CompositeLocation inferLocation =
+            generateInferredCompositeLocation(methodInfo, flowNodelocTuple);
+
+        // methodInfo.getInferLocation(localVarDesc);
         CompositeLocation newInferLocation = new CompositeLocation();
 
+        System.out.println("PREV INFER LOCATION=" + inferLocation + "             curPrefix="
+            + curPrefix);
         if (inferLocation.getTuple().startsWith(curPrefix)) {
           // the same infer location is already existed. no need to do
           // anything
@@ -1036,13 +1049,13 @@ public class LocationInference {
           for (int locIdx = 0; locIdx < curPrefix.size(); locIdx++) {
             newInferLocation.addLocation(curPrefix.get(locIdx));
           }
-          Location fieldLoc = new Location(desc, newLocSymbol);
-          newInferLocation.addLocation(fieldLoc);
+          Location newLocationElement = new Location(desc, newLocSymbol);
+          newInferLocation.addLocation(newLocationElement);
 
-          if (flowNode.getDescTuple().size() == 1) {
-            // maps local variable to location types of the common prefix
-            methodInfo.mapDescriptorToLocation(localVarDesc, newInferLocation.clone());
-          }
+          // if (flowNode.getDescTuple().size() == 1) {
+          // maps local variable to location types of the common prefix
+          methodInfo.mapDescriptorToLocation(localVarDesc, newInferLocation.clone());
+          // }
 
           // methodInfo.mapDescriptorToLocation(localVarDesc, newInferLocation);
           addMapLocSymbolToInferredLocation(methodInfo.getMethodDesc(), localVarDesc,
@@ -1144,8 +1157,6 @@ public class LocationInference {
                   flowGraph.getLocationTuple(localOutNode));
 
           if (isCompositeLocation(outNodeInferLoc)) {
-            // need to make sure that newLocSymbol is higher than the infernode
-            // location
             System.out.println("--- srcNode=" + flowNode + "  dstNode=" + localOutNode);
             addRelationToLattice(methodInfo.getMethodDesc(), methodLattice, methodInfo, flowNode,
                 localOutNode);
@@ -1873,7 +1884,6 @@ public class LocationInference {
 
     if (isLHS) {
       // need to create an edge from idx to array
-
       for (Iterator<NTuple<Descriptor>> idxIter = idxNodeTupleSet.iterator(); idxIter.hasNext();) {
         NTuple<Descriptor> idxTuple = idxIter.next();
         for (Iterator<NTuple<Descriptor>> arrIter = expNodeTupleSet.iterator(); arrIter.hasNext();) {
@@ -2057,32 +2067,44 @@ public class LocationInference {
       }
     }
 
+    NodeTupleSet idxNodeTupleSet = new NodeTupleSet();
     if (left instanceof ArrayAccessNode) {
 
       ArrayAccessNode aan = (ArrayAccessNode) left;
       left = aan.getExpression();
-      analyzeFlowExpressionNode(md, nametable, aan.getIndex(), nodeSet, base, implicitFlowTupleSet,
-          isLHS);
+      analyzeFlowExpressionNode(md, nametable, aan.getIndex(), idxNodeTupleSet, base,
+          implicitFlowTupleSet, isLHS);
+      nodeSet.addTupleSet(idxNodeTupleSet);
     }
-    // fanNodeSet
     base =
         analyzeFlowExpressionNode(md, nametable, left, nodeSet, base, implicitFlowTupleSet, isLHS);
+
     if (base == null) {
       // in this case, field is TOP location
       return null;
     } else {
 
+      NTuple<Descriptor> flowFieldTuple = new NTuple<Descriptor>(base.toList());
+
       if (!left.getType().isPrimitive()) {
 
         if (!fd.getSymbol().equals("length")) {
           // array.length access, just have the location of the array
-          base.add(fd);
+          flowFieldTuple.add(fd);
+          nodeSet.removeTuple(base);
         }
 
       }
+      getFlowGraph(md).createNewFlowNode(flowFieldTuple);
 
-      getFlowGraph(md).createNewFlowNode(base);
-      return base;
+      if (isLHS) {
+        for (Iterator<NTuple<Descriptor>> idxIter = idxNodeTupleSet.iterator(); idxIter.hasNext();) {
+          NTuple<Descriptor> idxTuple = idxIter.next();
+          getFlowGraph(md).addValueFlowEdge(idxTuple, flowFieldTuple);
+        }
+      }
+
+      return flowFieldTuple;
 
     }
 

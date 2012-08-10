@@ -28,6 +28,10 @@ public class NodeTupleSet {
     list.add(tuple);
   }
 
+  public void removeTuple(NTuple<Descriptor> tuple) {
+    list.remove(tuple);
+  }
+
   public Iterator<NTuple<Descriptor>> iterator() {
     return list.iterator();
   }
