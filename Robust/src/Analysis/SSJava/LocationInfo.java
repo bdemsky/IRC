@@ -45,7 +45,7 @@ public class LocationInfo {
   public Map<Descriptor, CompositeLocation> getMapDescToInferLocation() {
     return mapDescToInferCompositeLocation;
   }
-
+  
   public void addMapLocSymbolToRelatedInferLoc(String locSymbol, Descriptor enclosingDesc,
       Descriptor desc) {
     if (!mapLocSymbolToRelatedInferLocSet.containsKey(locSymbol)) {
@@ -53,6 +53,8 @@ public class LocationInfo {
     }
     mapLocSymbolToRelatedInferLocSet.get(locSymbol).add(
         new Pair<Descriptor, Descriptor>(enclosingDesc, desc));
+    
+    addMapLocSymbolToDescSet(locSymbol, desc);
   }
 
   public Set<Pair<Descriptor, Descriptor>> getRelatedInferLocSet(String locSymbol) {
@@ -78,7 +80,7 @@ public class LocationInfo {
 
       newInferLoc.addLocation(loc);
       mapDescToInferCompositeLocation.put(desc, newInferLoc);
-      addMapLocSymbolToDescSet(desc.getSymbol(), desc);
+//      addMapLocSymbolToDescSet(desc.getSymbol(), desc);
       addMapLocSymbolToRelatedInferLoc(desc.getSymbol(), enclosingDesc, desc);
     }
     return mapDescToInferCompositeLocation.get(desc);

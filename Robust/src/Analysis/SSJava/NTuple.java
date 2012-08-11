@@ -109,4 +109,10 @@ public class NTuple<T> {
     return elements.get(elements.size() - 1);
   }
 
+  public NTuple<T> clone() {
+    NTuple<T> clone = new NTuple<T>();
+    clone.addAll(this);
+    return clone;
+  }
+
 }
