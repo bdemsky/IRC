@@ -133,8 +133,11 @@ public class SSJavaAnalysis {
 
   public void doCheck() {
     doMethodAnnotationCheck();
-    computeLinearTypeCheckMethodSet();
-    doLinearTypeCheck();
+
+    if (state.SSJAVA) {
+      computeLinearTypeCheckMethodSet();
+      doLinearTypeCheck();
+    }
 
     init();
 
@@ -262,6 +265,10 @@ public class SSJavaAnalysis {
     methodAnnotationChecker = new MethodAnnotationCheck(this, state, tu);
     methodAnnotationChecker.methodAnnoatationCheck();
     methodAnnotationChecker.methodAnnoataionInheritanceCheck();
+    if (state.SSJAVAINFER) {
+      annotationRequireClassSet.add(methodContainingSSJavaLoop.getClassDesc());
+      annotationRequireSet.add(methodContainingSSJavaLoop);
+    }
     state.setAnnotationRequireSet(annotationRequireSet);
   }
 

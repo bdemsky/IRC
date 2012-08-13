@@ -184,6 +184,8 @@ tmpbuilddirectory="tmpbuilddirectory"
 JNI=false
 SSJAVA=false
 USE_SSJAVA_CLASSPATH=false
+USE_SSJAVA_INFER_CLASSPATH=false
+USE_SSJAVA_NOCLASSPATH=false
 SRCAFTERPP=false;
 COREPROF=false;
 NUMA=false;
@@ -696,8 +698,13 @@ elif [[ $1 = '-ssjavadebug' ]]
 then
 JAVAOPTS="$JAVAOPTS -ssjavadebug"
 
+elif [[ $1 = '-ssjavanoclasspath' ]]
+then
+USE_SSJAVA_NOCLASSPATH=true
+
 elif [[ $1 = '-ssjavainfer' ]]
 then
+USE_SSJAVA_INFER_CLASSPATH=true
 JAVAOPTS="$JAVAOPTS -ssjavainfer"
 
 elif [[ $1 = '-ssjava-inject-error' ]]
@@ -906,7 +913,13 @@ elif $MGCFLAG
 
 elif $USE_SSJAVA_CLASSPATH
   then
-  JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/SSJava"  
+  if $USE_SSJAVA_INFER_CLASSPATH
+    then
+    JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/SSJavaInfer"
+  elif ! $USE_SSJAVA_INFER_NOCLASSPATH
+    then
+    JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/SSJava"  
+  fi
 
 else
   JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/"

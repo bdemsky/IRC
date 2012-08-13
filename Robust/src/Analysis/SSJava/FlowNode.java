@@ -23,6 +23,8 @@ public class FlowNode {
   // set true if this node stores a return value
   private boolean isReturn;
 
+  private boolean isDeclarationNode = false;
+
   public Set<FlowNode> getFieldNodeSet() {
     return fieldNodeSet;
   }
@@ -142,5 +144,13 @@ public class FlowNode {
     }
     id += ">";
     return id;
+  }
+
+  public void setDeclarationNode() {
+    isDeclarationNode = true;
+  }
+
+  public boolean isDeclaratonNode() {
+    return isDeclarationNode;
   }
 }

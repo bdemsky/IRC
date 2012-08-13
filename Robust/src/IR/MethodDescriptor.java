@@ -23,6 +23,9 @@ public class MethodDescriptor extends Descriptor {
   protected boolean isinvokedbystatic;  // flag to indicate if this method is invoked by some static block
 
   protected boolean isdefaultconstructor; // flag to indicate if this is a default constructor
+  
+  private int lineNum;
+
 
   public MethodDescriptor(Modifiers m, TypeDescriptor rt, String identifier) {
     super(identifier);
@@ -224,4 +227,29 @@ public class MethodDescriptor extends Descriptor {
   public void setDefaultConstructor() {
     this.isdefaultconstructor = true;
   }
+  
+  public String getMethodDeclaration(){
+    String st="";
+    String type="";
+      if (returntype != null)
+        st = modifier.toString() + returntype.toString() + " " + type + identifier + "(";
+      else
+        st = modifier.toString() + identifier + "(";
+      for (int i = 0; i < params.size(); i++) {
+        st += getParamType(i) + " " + getParamName(i);
+        if ((i + 1) != params.size())
+          st += ", ";
+      }
+      st += ")";
+      return st;
+  }
+  
+  public void setLineNum(int n){
+    lineNum=n;
+  }
+ 
+  public int getLineNum(){
+    return lineNum;
+  }
+  
 }

@@ -1,8 +1,11 @@
 package Analysis.SSJava;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -13,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.Vector;
 
 import IR.ClassDescriptor;
 import IR.Descriptor;
@@ -81,6 +85,10 @@ public class LocationInference {
 
   private Map<MethodDescriptor, Set<MethodDescriptor>> mapMethodToCalleeSet;
 
+  private Map<String, Vector<String>> mapFileNameToLineVector;
+
+  private Map<Descriptor, Integer> mapDescToDefinitionLine;
+
   public static final String GLOBALLOC = "GLOBALLOC";
 
   public static final String TOPLOC = "TOPLOC";
@@ -88,6 +96,8 @@ public class LocationInference {
   public static final Descriptor GLOBALDESC = new NameDescriptor(GLOBALLOC);
 
   public static final Descriptor TOPDESC = new NameDescriptor(TOPLOC);
+
+  public static String newline = System.getProperty("line.separator");
 
   LocationInfo curMethodInfo;
 
@@ -109,6 +119,9 @@ public class LocationInference {
     this.mapMethodDescToMethodLocationInfo = new HashMap<MethodDescriptor, MethodLocationInfo>();
     this.mapMethodToCalleeSet = new HashMap<MethodDescriptor, Set<MethodDescriptor>>();
     this.mapClassToLocationInfo = new HashMap<ClassDescriptor, LocationInfo>();
+
+    this.mapFileNameToLineVector = new HashMap<String, Vector<String>>();
+    this.mapDescToDefinitionLine = new HashMap<Descriptor, Integer>();
   }
 
   public void setupToAnalyze() {
@@ -165,6 +178,299 @@ public class LocationInference {
     // 3) check properties
     checkLattices();
 
+    // 4) generate annotated source codes
+    generateAnnoatedCode();
+
+  }
+
+  private void addMapClassDefinitionToLineNum(ClassDescriptor cd, String strLine, int lineNum) {
+    String pattern = "class " + cd.getSymbol() + " ";
+    if (strLine.indexOf(pattern) != -1) {
+      mapDescToDefinitionLine.put(cd, lineNum);
+    }
+  }
+
+  private void addMapMethodDefinitionToLineNum(Set<MethodDescriptor> methodSet, String strLine,
+      int lineNum) {
+    for (Iterator iterator = methodSet.iterator(); iterator.hasNext();) {
+      MethodDescriptor md = (MethodDescriptor) iterator.next();
+      String pattern = md.getMethodDeclaration();
+      if (strLine.indexOf(pattern) != -1) {
+        mapDescToDefinitionLine.put(md, lineNum);
+        methodSet.remove(md);
+        return;
+      }
+    }
+
+  }
+
+  private void readOriginalSourceFiles() {
+
+    SymbolTable classtable = state.getClassSymbolTable();
+
+    Set<ClassDescriptor> classDescSet = new HashSet<ClassDescriptor>();
+    classDescSet.addAll(classtable.getValueSet());
+
+    try {
+      // inefficient implement. it may re-visit the same file if the file
+      // contains more than one class definitions.
+      for (Iterator iterator = classDescSet.iterator(); iterator.hasNext();) {
+        ClassDescriptor cd = (ClassDescriptor) iterator.next();
+
+        Set<MethodDescriptor> methodSet = new HashSet<MethodDescriptor>();
+        methodSet.addAll(cd.getMethodTable().getValueSet());
+
+        String sourceFileName = cd.getSourceFileName();
+        Vector<String> lineVec = new Vector<String>();
+
+        mapFileNameToLineVector.put(sourceFileName, lineVec);
+
+        BufferedReader in = new BufferedReader(new FileReader(sourceFileName));
+        String strLine;
+        int lineNum = 1;
+        lineVec.add(""); // the index is started from 1.
+        while ((strLine = in.readLine()) != null) {
+          lineVec.add(lineNum, strLine);
+          addMapClassDefinitionToLineNum(cd, strLine, lineNum);
+          addMapMethodDefinitionToLineNum(methodSet, strLine, lineNum);
+          lineNum++;
+        }
+
+      }
+
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+  }
+
+  private String generateLatticeDefinition(Descriptor desc) {
+
+    SSJavaLattice<String> lattice = getLattice(desc);
+    String rtr = "@LATTICE(\"";
+
+    Map<String, Set<String>> map = lattice.getTable();
+    Set<String> keySet = map.keySet();
+    boolean first = true;
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      String key = (String) iterator.next();
+      if (!key.equals(lattice.getTopItem())) {
+        Set<String> connectedSet = map.get(key);
+
+        if (connectedSet.size() == 1) {
+          if (connectedSet.iterator().next().equals(lattice.getBottomItem())) {
+            if (!first) {
+              rtr += ",";
+            } else {
+              rtr += "LOC,";
+              first = false;
+            }
+            rtr += key;
+          }
+        }
+
+        for (Iterator iterator2 = connectedSet.iterator(); iterator2.hasNext();) {
+          String loc = (String) iterator2.next();
+          if (!loc.equals(lattice.getBottomItem())) {
+            if (!first) {
+              rtr += ",";
+            } else {
+              rtr += "LOC,";
+              first = false;
+            }
+            rtr += loc + "<" + key;
+          }
+        }
+      }
+    }
+
+    rtr += "\")";
+
+    if (desc instanceof MethodDescriptor) {
+      TypeDescriptor returnType = ((MethodDescriptor) desc).getReturnType();
+      if (returnType != null && (!returnType.isVoid())) {
+        rtr += "\n@RETURNLOC(\"RETURNLOC\")";
+      }
+      rtr += "\n@THISLOC(\"this\")\n@PCLOC(\"PCLOC\")\n@GLOBALLOC(\"GLOBALLOC\")";
+
+    }
+
+    return rtr;
+  }
+
+  private void generateAnnoatedCode() {
+
+    readOriginalSourceFiles();
+
+    setupToAnalyze();
+
+    while (!toAnalyzeIsEmpty()) {
+      ClassDescriptor cd = toAnalyzeNext();
+
+      setupToAnalazeMethod(cd);
+
+      LocationInfo locInfo = mapClassToLocationInfo.get(cd);
+
+      String sourceFileName = cd.getSourceFileName();
+
+      int classDefLine = mapDescToDefinitionLine.get(cd);
+      Vector<String> sourceVec = mapFileNameToLineVector.get(sourceFileName);
+
+      if (locInfo != null) {
+
+        Map<Descriptor, CompositeLocation> mapDescToInferLoc = locInfo.getMapDescToInferLocation();
+        Set<Descriptor> fieldDescSet = mapDescToInferLoc.keySet();
+        for (Iterator iterator = fieldDescSet.iterator(); iterator.hasNext();) {
+          Descriptor fieldDesc = (Descriptor) iterator.next();
+          String locIdentifier = locInfo.getFieldInferLocation(fieldDesc).getLocIdentifier();
+          if (!getLattice(cd).containsKey(locIdentifier)) {
+            getLattice(cd).put(locIdentifier);
+          }
+        }
+
+        String fieldLatticeDefStr = generateLatticeDefinition(cd);
+        String annoatedSrc = fieldLatticeDefStr + newline + sourceVec.get(classDefLine);
+        sourceVec.set(classDefLine, annoatedSrc);
+
+        // generate annotations for field declarations
+        LocationInfo fieldLocInfo = getLocationInfo(cd);
+        Map<Descriptor, CompositeLocation> inferLocMap = fieldLocInfo.getMapDescToInferLocation();
+
+        for (Iterator iter = cd.getFields(); iter.hasNext();) {
+          FieldDescriptor fd = (FieldDescriptor) iter.next();
+
+          String locAnnotationStr;
+          if (inferLocMap.containsKey(fd)) {
+            CompositeLocation inferLoc = inferLocMap.get(fd);
+            locAnnotationStr = generateLocationAnnoatation(inferLoc);
+          } else {
+            // if the field is not accssed by SS part, just assigns dummy
+            // location
+            locAnnotationStr = "@LOC(\"LOC\")";
+          }
+          int fdLineNum = fd.getLineNum();
+          String orgFieldDeclarationStr = sourceVec.get(fdLineNum);
+          String fieldDeclaration = fd.toString();
+          fieldDeclaration = fieldDeclaration.substring(0, fieldDeclaration.length() - 1);
+
+          int idx = orgFieldDeclarationStr.indexOf(fieldDeclaration);
+          String annoatedStr =
+              orgFieldDeclarationStr.substring(0, idx) + locAnnotationStr + " "
+                  + orgFieldDeclarationStr.substring(idx);
+          sourceVec.set(fdLineNum, annoatedStr);
+
+        }
+
+      }
+
+      while (!toAnalyzeMethodIsEmpty()) {
+        MethodDescriptor md = toAnalyzeMethodNext();
+        SSJavaLattice<String> methodLattice = md2lattice.get(md);
+        if (methodLattice != null) {
+
+          int methodDefLine = md.getLineNum();
+
+          MethodLocationInfo methodLocInfo = getMethodLocationInfo(md);
+
+          Map<Descriptor, CompositeLocation> inferLocMap =
+              methodLocInfo.getMapDescToInferLocation();
+          Set<Descriptor> localVarDescSet = inferLocMap.keySet();
+
+          for (Iterator iterator = localVarDescSet.iterator(); iterator.hasNext();) {
+            Descriptor localVarDesc = (Descriptor) iterator.next();
+            CompositeLocation inferLoc = inferLocMap.get(localVarDesc);
+
+            String locAnnotationStr = generateLocationAnnoatation(inferLoc);
+
+            if (!isParameter(md, localVarDesc)) {
+              if (mapDescToDefinitionLine.containsKey(localVarDesc)) {
+                int varLineNum = mapDescToDefinitionLine.get(localVarDesc);
+
+                String orgSourceLine = sourceVec.get(varLineNum);
+                int idx = orgSourceLine.indexOf(localVarDesc.toString());
+                String annoatedStr =
+                    orgSourceLine.substring(0, idx) + locAnnotationStr + " "
+                        + orgSourceLine.substring(idx);
+                sourceVec.set(varLineNum, annoatedStr);
+              }
+            } else {
+              String methodDefStr = sourceVec.get(methodDefLine);
+              int idx = methodDefStr.indexOf(localVarDesc.toString());
+              assert (idx != -1);
+              String annoatedStr =
+                  methodDefStr.substring(0, idx) + locAnnotationStr + " "
+                      + methodDefStr.substring(idx);
+              sourceVec.set(methodDefLine, annoatedStr);
+            }
+
+          }
+
+          String methodLatticeDefStr = generateLatticeDefinition(md);
+          String annoatedStr = methodLatticeDefStr + newline + sourceVec.get(methodDefLine);
+          sourceVec.set(methodDefLine, annoatedStr);
+
+        }
+      }
+    }
+
+    codeGen();
+  }
+
+  private String generateLocationAnnoatation(CompositeLocation loc) {
+    String rtr = "@LOC(\"";
+
+    // method location
+    Location methodLoc = loc.get(0);
+    rtr += methodLoc.getLocIdentifier();
+
+    for (int i = 1; i < loc.getSize(); i++) {
+      Location element = loc.get(i);
+      rtr += "," + element.getDescriptor().getSymbol() + "." + element.getLocIdentifier();
+    }
+
+    rtr += "\")";
+    return rtr;
+  }
+
+  private boolean isParameter(MethodDescriptor md, Descriptor localVarDesc) {
+    return getFlowGraph(md).isParamDesc(localVarDesc);
+  }
+
+  private String extractFileName(String fileName) {
+    int idx = fileName.lastIndexOf("/");
+    if (idx == -1) {
+      return fileName;
+    } else {
+      return fileName.substring(idx + 1);
+    }
+
+  }
+
+  private void codeGen() {
+
+    Set<String> originalFileNameSet = mapFileNameToLineVector.keySet();
+    for (Iterator iterator = originalFileNameSet.iterator(); iterator.hasNext();) {
+      String orgFileName = (String) iterator.next();
+      String outputFileName = extractFileName(orgFileName);
+
+      Vector<String> sourceVec = mapFileNameToLineVector.get(orgFileName);
+
+      try {
+
+        FileWriter fileWriter = new FileWriter("./infer/" + outputFileName);
+        BufferedWriter out = new BufferedWriter(fileWriter);
+
+        for (int i = 0; i < sourceVec.size(); i++) {
+          out.write(sourceVec.get(i));
+          out.newLine();
+        }
+        out.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+
+    }
+
   }
 
   private void simplifyLattices() {
@@ -184,11 +490,9 @@ public class LocationInference {
 
       while (!toAnalyzeMethodIsEmpty()) {
         MethodDescriptor md = toAnalyzeMethodNext();
-        if (ssjava.needTobeAnnotated(md)) {
-          SSJavaLattice<String> methodLattice = md2lattice.get(md);
-          if (methodLattice != null) {
-            methodLattice.removeRedundantEdges();
-          }
+        SSJavaLattice<String> methodLattice = md2lattice.get(md);
+        if (methodLattice != null) {
+          methodLattice.removeRedundantEdges();
         }
       }
     }
@@ -234,12 +538,10 @@ public class LocationInference {
 
       while (!toAnalyzeMethodIsEmpty()) {
         MethodDescriptor md = toAnalyzeMethodNext();
-        if (ssjava.needTobeAnnotated(md)) {
-          SSJavaLattice<String> methodLattice = md2lattice.get(md);
-          if (methodLattice != null) {
-            ssjava.writeLatticeDotFile(cd, md, methodLattice);
-            debug_printDescriptorToLocNameMapping(md);
-          }
+        SSJavaLattice<String> methodLattice = md2lattice.get(md);
+        if (methodLattice != null) {
+          ssjava.writeLatticeDotFile(cd, md, methodLattice);
+          debug_printDescriptorToLocNameMapping(md);
         }
       }
     }
@@ -509,6 +811,18 @@ public class LocationInference {
           // }
 
         }
+      }
+    }
+
+    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+      FlowNode flowNode = (FlowNode) iterator.next();
+      if (flowNode.isDeclaratonNode()) {
+        CompositeLocation inferLoc = methodInfo.getInferLocation(flowNode.getDescTuple().get(0));
+        String locIdentifier = inferLoc.get(0).getLocIdentifier();
+        if (!methodLattice.containsKey(locIdentifier)) {
+          methodLattice.put(locIdentifier);
+        }
+
       }
     }
 
@@ -1533,9 +1847,11 @@ public class LocationInference {
       DeclarationNode dn, NodeTupleSet implicitFlowTupleSet) {
 
     VarDescriptor vd = dn.getVarDescriptor();
+    mapDescToDefinitionLine.put(vd, dn.getNumLine());
     NTuple<Descriptor> tupleLHS = new NTuple<Descriptor>();
     tupleLHS.add(vd);
-    getFlowGraph(md).createNewFlowNode(tupleLHS);
+    FlowNode fn = getFlowGraph(md).createNewFlowNode(tupleLHS);
+    fn.setDeclarationNode();
 
     if (dn.getExpression() != null) {
 

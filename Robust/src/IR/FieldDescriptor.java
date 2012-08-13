@@ -20,6 +20,7 @@ public class FieldDescriptor extends Descriptor {
   private boolean isenum;
   private int enumvalue;
   private boolean isEnumClass;
+  private int lineNum;
 
   private ClassDescriptor cn;
 
@@ -116,6 +117,14 @@ public class FieldDescriptor extends Descriptor {
 
   public boolean isEnumClass() {
     return this.isEnumClass;
+  }
+  
+  public void setLineNum(int n){
+     lineNum=n;
+  }
+  
+  public int getLineNum(){
+      return lineNum;
   }
 
 }

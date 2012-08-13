@@ -1027,7 +1027,9 @@ private void addOuterClassReferences( ClassDescriptor cn, ClassDescriptor ocn, i
         }
       }
 
-      cn.addField(new FieldDescriptor(m, arrayt, identifier, en, isglobal));
+      FieldDescriptor fd=new FieldDescriptor(m, arrayt, identifier, en, isglobal);
+      fd.setLineNum(tmp.getLine());
+      cn.addField(fd);
       assignAnnotationsToType(m,arrayt);
     }
   }
@@ -1826,7 +1828,8 @@ private void addOuterClassReferences( ClassDescriptor cn, ClassDescriptor ocn, i
     ParseNode pmd=pn.getChild("method_declarator");
     String name=pmd.getChild("name").getTerminal();
     MethodDescriptor md=new MethodDescriptor(m, returntype, name);
-
+    md.setLineNum(pmd.getLine());
+    
     ParseNode paramnode=pmd.getChild("parameters");
     parseParameterList(md,paramnode);
     return md;

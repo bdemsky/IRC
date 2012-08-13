@@ -89,6 +89,10 @@ public class FlowGraph {
     // System.out.println("add a new neighbor " + neighbor + " to " + node);
   }
 
+  public boolean isParamDesc(Descriptor desc) {
+    return mapParamDescToIdx.containsKey(desc);
+  }
+
   public boolean hasEdge(NTuple<Descriptor> fromDescTuple, NTuple<Descriptor> toDescTuple) {
 
     FlowNode fromNode = mapDescTupleToInferNode.get(fromDescTuple);
