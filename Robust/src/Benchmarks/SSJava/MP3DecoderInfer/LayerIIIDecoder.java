@@ -197,8 +197,7 @@ final class LayerIIIDecoder implements FrameDecoder {
     channels = (header.mode() == Header.SINGLE_CHANNEL) ? 1 : 2;
     max_gr = (header.version() == Header.MPEG1) ? 2 : 1;
 
-    sfreq = header.sample_frequency() + ((header.version() == Header.MPEG1) ? 3
-        : (header.version() == Header.MPEG25_LSF) ? 6 : 0); // SZD
+    sfreq = header.sample_frequency() + ((header.version() == Header.MPEG1) ? 3 : (header.version() == Header.MPEG25_LSF) ? 6 : 0); // SZD
 
     if (channels == 2) {
       switch (which_channels) {
@@ -1068,10 +1067,10 @@ final class LayerIIIDecoder implements FrameDecoder {
 
   private void huffman_decode(int part2_start_local, int ch, int gr) {
 
-    int x[] = new int[1];
-    int y[] = new int[1];
-    int v[] = new int[1];
-    int w[] = new int[1];
+    int[] x = new int[1];
+    int[] y = new int[1];
+    int[] v = new int[1];
+    int[] w = new int[1];
 
     int part2_3_end = part2_start_local + si.ch[ch].gr[gr].part2_3_length;
     int num_bits;
@@ -1204,8 +1203,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   //
 
   // ssjava
-  private void dequantize_sample(
-  /* float xr[][], */int ch, int gr) {
+  private void dequantize_sample(int ch, int gr) {
 
     // gr_info_s gr_info = (si.ch[ch].gr[gr]); remove alias!
     int cb = 0;
@@ -1367,7 +1365,7 @@ final class LayerIIIDecoder implements FrameDecoder {
   // ssjava
   //
 
-  private void reorder(/* float xr[][], */int ch, int gr) {
+  private void reorder(int ch, int gr) {
     // the purpose of reordering: move 'short samples' back to their original
     // position
     // after reorder, the samples are no long ordered by frequency
@@ -2403,7 +2401,7 @@ final class LayerIIIDecoder implements FrameDecoder {
    * ExceptionInInitializerError(ex); } }
    */
 
-  static int[] reorder(int scalefac_band[]) { // SZD: converted from
+  static int[] reorder(int[] scalefac_band) { // SZD: converted from
                                               // LAME
     int j = 0;
     int ix[] = new int[576];

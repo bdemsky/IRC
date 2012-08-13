@@ -184,7 +184,14 @@ public class LocationInference {
   }
 
   private void addMapClassDefinitionToLineNum(ClassDescriptor cd, String strLine, int lineNum) {
-    String pattern = "class " + cd.getSymbol() + " ";
+
+    String classSymbol = cd.getSymbol();
+    int idx = classSymbol.lastIndexOf("$");
+    if (idx != -1) {
+      classSymbol = classSymbol.substring(idx + 1);
+    }
+
+    String pattern = "class " + classSymbol + " ";
     if (strLine.indexOf(pattern) != -1) {
       mapDescToDefinitionLine.put(cd, lineNum);
     }
@@ -246,6 +253,8 @@ public class LocationInference {
 
   private String generateLatticeDefinition(Descriptor desc) {
 
+    Set<String> sharedLocSet = new HashSet<String>();
+
     SSJavaLattice<String> lattice = getLattice(desc);
     String rtr = "@LATTICE(\"";
 
@@ -266,6 +275,9 @@ public class LocationInference {
               first = false;
             }
             rtr += key;
+            if (lattice.isSharedLoc(key)) {
+              rtr += "," + key + "*";
+            }
           }
         }
 
@@ -279,6 +291,15 @@ public class LocationInference {
               first = false;
             }
             rtr += loc + "<" + key;
+            if (lattice.isSharedLoc(key) && (!sharedLocSet.contains(key))) {
+              rtr += "," + key + "*";
+              sharedLocSet.add(key);
+            }
+            if (lattice.isSharedLoc(loc) && (!sharedLocSet.contains(loc))) {
+              rtr += "," + loc + "*";
+              sharedLocSet.add(loc);
+            }
+
           }
         }
       }
@@ -303,63 +324,60 @@ public class LocationInference {
     readOriginalSourceFiles();
 
     setupToAnalyze();
-
     while (!toAnalyzeIsEmpty()) {
       ClassDescriptor cd = toAnalyzeNext();
 
       setupToAnalazeMethod(cd);
 
       LocationInfo locInfo = mapClassToLocationInfo.get(cd);
-
       String sourceFileName = cd.getSourceFileName();
+
+      if (cd.isInterface()) {
+        continue;
+      }
 
       int classDefLine = mapDescToDefinitionLine.get(cd);
       Vector<String> sourceVec = mapFileNameToLineVector.get(sourceFileName);
 
-      if (locInfo != null) {
+      if (locInfo == null) {
+        locInfo = getLocationInfo(cd);
+      }
 
-        Map<Descriptor, CompositeLocation> mapDescToInferLoc = locInfo.getMapDescToInferLocation();
-        Set<Descriptor> fieldDescSet = mapDescToInferLoc.keySet();
-        for (Iterator iterator = fieldDescSet.iterator(); iterator.hasNext();) {
-          Descriptor fieldDesc = (Descriptor) iterator.next();
-          String locIdentifier = locInfo.getFieldInferLocation(fieldDesc).getLocIdentifier();
-          if (!getLattice(cd).containsKey(locIdentifier)) {
-            getLattice(cd).put(locIdentifier);
-          }
+      for (Iterator iter = cd.getFields(); iter.hasNext();) {
+        Descriptor fieldDesc = (Descriptor) iter.next();
+        String locIdentifier = locInfo.getFieldInferLocation(fieldDesc).getLocIdentifier();
+        if (!getLattice(cd).containsKey(locIdentifier)) {
+          getLattice(cd).put(locIdentifier);
         }
+      }
 
-        String fieldLatticeDefStr = generateLatticeDefinition(cd);
-        String annoatedSrc = fieldLatticeDefStr + newline + sourceVec.get(classDefLine);
-        sourceVec.set(classDefLine, annoatedSrc);
+      String fieldLatticeDefStr = generateLatticeDefinition(cd);
+      String annoatedSrc = fieldLatticeDefStr + newline + sourceVec.get(classDefLine);
+      sourceVec.set(classDefLine, annoatedSrc);
 
-        // generate annotations for field declarations
-        LocationInfo fieldLocInfo = getLocationInfo(cd);
-        Map<Descriptor, CompositeLocation> inferLocMap = fieldLocInfo.getMapDescToInferLocation();
+      // generate annotations for field declarations
+      LocationInfo fieldLocInfo = getLocationInfo(cd);
+      Map<Descriptor, CompositeLocation> inferLocMap = fieldLocInfo.getMapDescToInferLocation();
 
-        for (Iterator iter = cd.getFields(); iter.hasNext();) {
-          FieldDescriptor fd = (FieldDescriptor) iter.next();
+      for (Iterator iter = cd.getFields(); iter.hasNext();) {
+        FieldDescriptor fd = (FieldDescriptor) iter.next();
 
-          String locAnnotationStr;
-          if (inferLocMap.containsKey(fd)) {
-            CompositeLocation inferLoc = inferLocMap.get(fd);
-            locAnnotationStr = generateLocationAnnoatation(inferLoc);
-          } else {
-            // if the field is not accssed by SS part, just assigns dummy
-            // location
-            locAnnotationStr = "@LOC(\"LOC\")";
-          }
-          int fdLineNum = fd.getLineNum();
-          String orgFieldDeclarationStr = sourceVec.get(fdLineNum);
-          String fieldDeclaration = fd.toString();
-          fieldDeclaration = fieldDeclaration.substring(0, fieldDeclaration.length() - 1);
-
-          int idx = orgFieldDeclarationStr.indexOf(fieldDeclaration);
-          String annoatedStr =
-              orgFieldDeclarationStr.substring(0, idx) + locAnnotationStr + " "
-                  + orgFieldDeclarationStr.substring(idx);
-          sourceVec.set(fdLineNum, annoatedStr);
-
+        String locAnnotationStr;
+        if (inferLocMap.containsKey(fd)) {
+          CompositeLocation inferLoc = inferLocMap.get(fd);
+          locAnnotationStr = generateLocationAnnoatation(inferLoc);
+        } else {
+          // if the field is not accssed by SS part, just assigns dummy
+          // location
+          locAnnotationStr = "@LOC(\"LOC\")";
         }
+        int fdLineNum = fd.getLineNum();
+        String orgFieldDeclarationStr = sourceVec.get(fdLineNum);
+        String fieldDeclaration = fd.toString();
+        fieldDeclaration = fieldDeclaration.substring(0, fieldDeclaration.length() - 1);
+
+        String annoatedStr = locAnnotationStr + " " + orgFieldDeclarationStr;
+        sourceVec.set(fdLineNum, annoatedStr);
 
       }
 
@@ -372,22 +390,23 @@ public class LocationInference {
 
           MethodLocationInfo methodLocInfo = getMethodLocationInfo(md);
 
-          Map<Descriptor, CompositeLocation> inferLocMap =
+          Map<Descriptor, CompositeLocation> methodInferLocMap =
               methodLocInfo.getMapDescToInferLocation();
-          Set<Descriptor> localVarDescSet = inferLocMap.keySet();
+          Set<Descriptor> localVarDescSet = methodInferLocMap.keySet();
 
           for (Iterator iterator = localVarDescSet.iterator(); iterator.hasNext();) {
             Descriptor localVarDesc = (Descriptor) iterator.next();
-            CompositeLocation inferLoc = inferLocMap.get(localVarDesc);
+            CompositeLocation inferLoc = methodInferLocMap.get(localVarDesc);
 
             String locAnnotationStr = generateLocationAnnoatation(inferLoc);
 
             if (!isParameter(md, localVarDesc)) {
               if (mapDescToDefinitionLine.containsKey(localVarDesc)) {
                 int varLineNum = mapDescToDefinitionLine.get(localVarDesc);
-
                 String orgSourceLine = sourceVec.get(varLineNum);
-                int idx = orgSourceLine.indexOf(localVarDesc.toString());
+                int idx =
+                    orgSourceLine.indexOf(generateVarDeclaration((VarDescriptor) localVarDesc));
+                assert (idx != -1);
                 String annoatedStr =
                     orgSourceLine.substring(0, idx) + locAnnotationStr + " "
                         + orgSourceLine.substring(idx);
@@ -395,7 +414,7 @@ public class LocationInference {
               }
             } else {
               String methodDefStr = sourceVec.get(methodDefLine);
-              int idx = methodDefStr.indexOf(localVarDesc.toString());
+              int idx = methodDefStr.indexOf(generateVarDeclaration((VarDescriptor) localVarDesc));
               assert (idx != -1);
               String annoatedStr =
                   methodDefStr.substring(0, idx) + locAnnotationStr + " "
@@ -411,9 +430,24 @@ public class LocationInference {
 
         }
       }
+
     }
 
     codeGen();
+  }
+
+  private String generateVarDeclaration(VarDescriptor varDesc) {
+
+    TypeDescriptor td = varDesc.getType();
+    String rtr = td.toString();
+    if (td.isArray()) {
+      for (int i = 0; i < td.getArrayCount(); i++) {
+        rtr += "[]";
+      }
+    }
+    rtr += " " + varDesc.getName();
+    return rtr;
+
   }
 
   private String generateLocationAnnoatation(CompositeLocation loc) {

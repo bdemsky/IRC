@@ -1,4 +1,4 @@
-BUILDSCRIPT=../../../buildscript
+BUILDSCRIPT=../../../../buildscript
 
 PROGRAM=MP3Player
 SOURCE_FILES=MP3Player.java Player.java
