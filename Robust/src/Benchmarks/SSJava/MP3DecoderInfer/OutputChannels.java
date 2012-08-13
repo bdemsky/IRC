@@ -27,7 +27,6 @@
  * @since 0.0.7
  */
 
-
 public class OutputChannels {
   /**
    * Flag to indicate output should include both channels.
@@ -54,7 +53,6 @@ public class OutputChannels {
   public static final OutputChannels BOTH = new OutputChannels(BOTH_CHANNELS);
   public static final OutputChannels DOWNMIX = new OutputChannels(DOWNMIX_CHANNELS);
 
-  
   private/* final */int outputChannels;
 
   /**
@@ -82,7 +80,7 @@ public class OutputChannels {
     }
   }
 
-  public OutputChannels( int channels) {
+  public OutputChannels(int channels) {
     outputChannels = channels;
 
     if (channels < 0 || channels > 3)

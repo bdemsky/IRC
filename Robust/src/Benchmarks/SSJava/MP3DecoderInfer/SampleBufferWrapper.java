@@ -6,9 +6,9 @@ public class SampleBufferWrapper {
   static void init(int freq, int channels) {
     output = new SampleBuffer(freq, channels);
   }
-  
+
   @TRUST
-  static void clear_buffer(){
+  static void clear_buffer() {
     output.clear_buffer();
   }
 

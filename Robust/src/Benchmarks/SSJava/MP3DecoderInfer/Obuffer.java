@@ -37,7 +37,6 @@
  * Base Class for audio output.
  */
 
-
 public abstract class Obuffer {
   public static final int OBUFFERSIZE = 2 * 1152; // max. 2 * 1152 samples per
                                                   // frame
@@ -46,15 +45,15 @@ public abstract class Obuffer {
   /**
    * Takes a 16 Bit PCM sample.
    */
-  public abstract void append( int channel,  short value);
+  public abstract void append(int channel, short value);
 
   /**
    * Accepts 32 new PCM samples.
    */
-  
-  public void appendSamples( int channel,  float[] f) {
-     short s;
-    for ( int i = 0; i < 32;) {
+
+  public void appendSamples(int channel, float[] f) {
+    short s;
+    for (int i = 0; i < 32;) {
       s = clip(f[i++]);
       append(channel, s);
     }
@@ -63,10 +62,10 @@ public abstract class Obuffer {
   /**
    * Clip Sample to 16 Bits
    */
-  
-  private final short clip( float sample) {
 
-     short s = (short) sample;
+  private final short clip(float sample) {
+
+    short s = (short) sample;
 
     if (sample > 32767.0f) {
       s = (short) 32767;
@@ -81,7 +80,7 @@ public abstract class Obuffer {
   /**
    * Write the samples to the file or directly to the audio hardware.
    */
-  public abstract void write_buffer( int val);
+  public abstract void write_buffer(int val);
 
   public abstract void close();
 

@@ -31,22 +31,18 @@
  * @author MDM
  */
 
-
 public final class Equalizer {
   /**
    * Equalizer setting to denote that a given band will not be present in the
    * output signal.
    */
-  
+
   static public final float BAND_NOT_PRESENT = Float.NEGATIVE_INFINITY;
 
-  
   static public final Equalizer PASS_THRU_EQ = new Equalizer();
 
-  
   private static final int BANDS = 32;
 
-  
   private final float[] settings = new float[BANDS];
 
   /**
@@ -154,12 +150,11 @@ public final class Equalizer {
    * 
    * @return an array of factors that can be applied to the subbands.
    */
-  
-  
+
   float[] getBandFactors() {
-     float[] factors = new float[BANDS];
-     int maxCount = BANDS;
-    for ( int i = 0; i < maxCount; i++) {
+    float[] factors = new float[BANDS];
+    int maxCount = BANDS;
+    for (int i = 0; i < maxCount; i++) {
       factors[i] = getBandFactor(settings[i]);
     }
 
@@ -172,12 +167,12 @@ public final class Equalizer {
    * the range [-1.0,1.0].
    * 
    */
-  
-  float getBandFactor( float eq) {
+
+  float getBandFactor(float eq) {
     if (eq == BAND_NOT_PRESENT)
       return 0.0f;
 
-     float f = (float) Math.pow(2.0, eq);
+    float f = (float) Math.pow(2.0, eq);
     return f;
   }
 

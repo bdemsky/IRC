@@ -28,39 +28,33 @@
  * Implements decoding of MPEG Audio Layer I frames.
  */
 
-
 class LayerIDecoder implements FrameDecoder {
 
-  
   protected Bitstream stream;
-  
+
   protected Header header;
-  
+
   protected SynthesisFilter filter1;
-  
+
   protected SynthesisFilter filter2;
-  
+
   protected Obuffer buffer;
-  
+
   protected int which_channels;
-  
+
   protected int mode;
 
-  
   protected int num_subbands;
-  
+
   protected Subband[] subbands;
 
-  
   protected Crc16 crc = null; // new Crc16[1] to enable CRC checking.
 
   public LayerIDecoder() {
     crc = new Crc16();
   }
 
-  public void create( Bitstream stream0,  Header header0,
-       SynthesisFilter filtera,  SynthesisFilter filterb,
-       Obuffer buffer0,  int which_ch0) {
+  public void create(Bitstream stream0, Header header0, SynthesisFilter filtera, SynthesisFilter filterb, Obuffer buffer0, int which_ch0) {
     stream = stream0;
     header = header0;
     filter1 = filtera;
@@ -90,7 +84,7 @@ class LayerIDecoder implements FrameDecoder {
   }
 
   protected void createSubbands() {
-     int i;
+    int i;
     if (mode == Header.SINGLE_CHANNEL) {
       for (i = 0; i < num_subbands; ++i) {
         subbands[i] = new SubbandLayer1(i);
@@ -111,7 +105,7 @@ class LayerIDecoder implements FrameDecoder {
 
   protected void readAllocation() throws DecoderException {
     // start to read audio data:
-    for ( int i = 0; i < num_subbands; ++i)
+    for (int i = 0; i < num_subbands; ++i)
       subbands[i].read_allocation(stream, header, crc);
 
   }
@@ -121,20 +115,19 @@ class LayerIDecoder implements FrameDecoder {
   }
 
   protected void readScaleFactors() {
-    for ( int i = 0; i < num_subbands; ++i)
+    for (int i = 0; i < num_subbands; ++i)
       subbands[i].read_scalefactor(stream, header);
   }
 
-  
   protected void readSampleData() {
 
-     boolean read_ready = false;
-     boolean write_ready = false;
+    boolean read_ready = false;
+    boolean write_ready = false;
 
-     int mode = header.mode(); // header.mode() will return
-                                           // DELTA(THIS)
+    int mode = header.mode(); // header.mode() will return
+                              // DELTA(THIS)
 
-     int i;
+    int i;
     do {
 
       for (i = 0; i < num_subbands; ++i) {
@@ -161,53 +154,34 @@ class LayerIDecoder implements FrameDecoder {
    * Class for layer I subbands in single channel mode. Used for single channel
    * mode and in derived class for intensity stereo mode
    */
-  
-  
+
   static class SubbandLayer1 extends Subband {
 
     // Factors and offsets for sample requantization
-    public static final float table_factor[] = { 0.0f, (1.0f / 2.0f) * (4.0f / 3.0f),
-        (1.0f / 4.0f) * (8.0f / 7.0f), (1.0f / 8.0f) * (16.0f / 15.0f),
-        (1.0f / 16.0f) * (32.0f / 31.0f), (1.0f / 32.0f) * (64.0f / 63.0f),
-        (1.0f / 64.0f) * (128.0f / 127.0f), (1.0f / 128.0f) * (256.0f / 255.0f),
-        (1.0f / 256.0f) * (512.0f / 511.0f), (1.0f / 512.0f) * (1024.0f / 1023.0f),
-        (1.0f / 1024.0f) * (2048.0f / 2047.0f), (1.0f / 2048.0f) * (4096.0f / 4095.0f),
-        (1.0f / 4096.0f) * (8192.0f / 8191.0f), (1.0f / 8192.0f) * (16384.0f / 16383.0f),
-        (1.0f / 16384.0f) * (32768.0f / 32767.0f) };
+    public static final float table_factor[] = { 0.0f, (1.0f / 2.0f) * (4.0f / 3.0f), (1.0f / 4.0f) * (8.0f / 7.0f), (1.0f / 8.0f) * (16.0f / 15.0f), (1.0f / 16.0f) * (32.0f / 31.0f), (1.0f / 32.0f) * (64.0f / 63.0f), (1.0f / 64.0f) * (128.0f / 127.0f), (1.0f / 128.0f) * (256.0f / 255.0f), (1.0f / 256.0f) * (512.0f / 511.0f), (1.0f / 512.0f) * (1024.0f / 1023.0f), (1.0f / 1024.0f) * (2048.0f / 2047.0f), (1.0f / 2048.0f) * (4096.0f / 4095.0f), (1.0f / 4096.0f) * (8192.0f / 8191.0f), (1.0f / 8192.0f) * (16384.0f / 16383.0f), (1.0f / 16384.0f) * (32768.0f / 32767.0f) };
 
-    public static final float table_offset[] = { 0.0f, ((1.0f / 2.0f) - 1.0f) * (4.0f / 3.0f),
-        ((1.0f / 4.0f) - 1.0f) * (8.0f / 7.0f), ((1.0f / 8.0f) - 1.0f) * (16.0f / 15.0f),
-        ((1.0f / 16.0f) - 1.0f) * (32.0f / 31.0f), ((1.0f / 32.0f) - 1.0f) * (64.0f / 63.0f),
-        ((1.0f / 64.0f) - 1.0f) * (128.0f / 127.0f), ((1.0f / 128.0f) - 1.0f) * (256.0f / 255.0f),
-        ((1.0f / 256.0f) - 1.0f) * (512.0f / 511.0f),
-        ((1.0f / 512.0f) - 1.0f) * (1024.0f / 1023.0f),
-        ((1.0f / 1024.0f) - 1.0f) * (2048.0f / 2047.0f),
-        ((1.0f / 2048.0f) - 1.0f) * (4096.0f / 4095.0f),
-        ((1.0f / 4096.0f) - 1.0f) * (8192.0f / 8191.0f),
-        ((1.0f / 8192.0f) - 1.0f) * (16384.0f / 16383.0f),
-        ((1.0f / 16384.0f) - 1.0f) * (32768.0f / 32767.0f) };
+    public static final float table_offset[] = { 0.0f, ((1.0f / 2.0f) - 1.0f) * (4.0f / 3.0f), ((1.0f / 4.0f) - 1.0f) * (8.0f / 7.0f), ((1.0f / 8.0f) - 1.0f) * (16.0f / 15.0f), ((1.0f / 16.0f) - 1.0f) * (32.0f / 31.0f), ((1.0f / 32.0f) - 1.0f) * (64.0f / 63.0f), ((1.0f / 64.0f) - 1.0f) * (128.0f / 127.0f), ((1.0f / 128.0f) - 1.0f) * (256.0f / 255.0f), ((1.0f / 256.0f) - 1.0f) * (512.0f / 511.0f), ((1.0f / 512.0f) - 1.0f) * (1024.0f / 1023.0f), ((1.0f / 1024.0f) - 1.0f) * (2048.0f / 2047.0f), ((1.0f / 2048.0f) - 1.0f) * (4096.0f / 4095.0f), ((1.0f / 4096.0f) - 1.0f) * (8192.0f / 8191.0f), ((1.0f / 8192.0f) - 1.0f) * (16384.0f / 16383.0f), ((1.0f / 16384.0f) - 1.0f) * (32768.0f / 32767.0f) };
 
-    
     protected int subbandnumber;
-    
+
     protected int samplenumber;
-    
+
     protected int allocation;
-    
+
     protected float scalefactor;
-    
+
     protected int samplelength;
-    
+
     protected float sample;
-    
+
     protected float factor;
-    
+
     protected float offset;
 
     /**
      * Construtor.
      */
-    public SubbandLayer1( int subbandnumber) {
+    public SubbandLayer1(int subbandnumber) {
       this.subbandnumber = subbandnumber;
       samplenumber = 0;
     }
@@ -215,11 +189,9 @@ class LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    // 
-    
-    public void read_allocation( Bitstream stream,
-         Header header,  Crc16 crc)
-        throws DecoderException {
+    //
+
+    public void read_allocation(Bitstream stream, Header header, Crc16 crc) throws DecoderException {
 
       if ((allocation = stream.get_bits(4)) == 15) {
         // CGJ: catch this condition and throw appropriate exception
@@ -242,15 +214,14 @@ class LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    public void read_scalefactor( Bitstream stream,  Header header) {
+    public void read_scalefactor(Bitstream stream, Header header) {
       if (allocation != 0)
         scalefactor = scalefactors[stream.get_bits(6)];
     }
 
     // ssjava
-    
-    
-    public boolean read_sampledata( Bitstream stream) {
+
+    public boolean read_sampledata(Bitstream stream) {
       if (allocation != 0) {
         sample = (float) (stream.get_bits(samplelength));
       }
@@ -261,14 +232,11 @@ class LayerIDecoder implements FrameDecoder {
       return false;
     }
 
-    // 
-    
-    public boolean put_next_sample( int channels,
-         SynthesisFilter filter1,
-         SynthesisFilter filter2) {
+    //
+
+    public boolean put_next_sample(int channels, SynthesisFilter filter1, SynthesisFilter filter2) {
       if ((allocation != 0) && (channels != OutputChannels.RIGHT_CHANNEL)) {
-         float scaled_sample =
-            (sample * factor + offset) * scalefactor;
+        float scaled_sample = (sample * factor + offset) * scalefactor;
         filter1.input_sample(scaled_sample, subbandnumber);
       }
       return true;
@@ -278,56 +246,53 @@ class LayerIDecoder implements FrameDecoder {
   /**
    * Class for layer I subbands in joint stereo mode.
    */
-  
-  
+
   static class SubbandLayer1IntensityStereo extends SubbandLayer1 {
-    
+
     protected float channel2_scalefactor;
 
     /**
      * Constructor
      */
-    public SubbandLayer1IntensityStereo( int subbandnumber) {
+    public SubbandLayer1IntensityStereo(int subbandnumber) {
       super(subbandnumber);
     }
 
     /**
 	   *
 	   */
-    
-    public void read_allocation( Bitstream stream,  Header header,
-         Crc16 crc) throws DecoderException {
+
+    public void read_allocation(Bitstream stream, Header header, Crc16 crc) throws DecoderException {
       super.read_allocation(stream, header, crc);
     }
 
     /**
 	   *
 	   */
-    public void read_scalefactor( Bitstream stream,  Header header) {
+    public void read_scalefactor(Bitstream stream, Header header) {
       if (allocation != 0) {
         scalefactor = scalefactors[stream.get_bits(6)];
         channel2_scalefactor = scalefactors[stream.get_bits(6)];
       }
     }
 
-    public boolean read_sampledata( Bitstream stream) {
+    public boolean read_sampledata(Bitstream stream) {
       return super.read_sampledata(stream);
     }
 
-    public boolean put_next_sample( int channels,  SynthesisFilter filter1,
-         SynthesisFilter filter2) {
+    public boolean put_next_sample(int channels, SynthesisFilter filter1, SynthesisFilter filter2) {
       if (allocation != 0) {
         sample = sample * factor + offset; // requantization
         if (channels == OutputChannels.BOTH_CHANNELS) {
-           float sample1 = sample * scalefactor;
-           float sample2 = sample * channel2_scalefactor;
+          float sample1 = sample * scalefactor;
+          float sample2 = sample * channel2_scalefactor;
           filter1.input_sample(sample1, subbandnumber);
           filter2.input_sample(sample2, subbandnumber);
         } else if (channels == OutputChannels.LEFT_CHANNEL) {
-           float sample1 = sample * scalefactor;
+          float sample1 = sample * scalefactor;
           filter1.input_sample(sample1, subbandnumber);
         } else {
-           float sample2 = sample * channel2_scalefactor;
+          float sample2 = sample * channel2_scalefactor;
           filter1.input_sample(sample2, subbandnumber);
         }
       }
@@ -338,26 +303,25 @@ class LayerIDecoder implements FrameDecoder {
   /**
    * Class for layer I subbands in stereo mode.
    */
-  
-  
+
   static class SubbandLayer1Stereo extends SubbandLayer1 {
-    
+
     protected int channel2_allocation;
-    
+
     protected float channel2_scalefactor;
-    
+
     protected int channel2_samplelength;
-    
+
     protected float channel2_sample;
-    
+
     protected float channel2_factor;
-    
+
     protected float channel2_offset;
 
     /**
      * Constructor
      */
-    public SubbandLayer1Stereo( int subbandnumber) {
+    public SubbandLayer1Stereo(int subbandnumber) {
       super(subbandnumber);
     }
 
@@ -365,9 +329,7 @@ class LayerIDecoder implements FrameDecoder {
 	   *
 	   */
     // ssjava
-    public void read_allocation( Bitstream stream,
-         Header header,  Crc16 crc)
-        throws DecoderException {
+    public void read_allocation(Bitstream stream, Header header, Crc16 crc) throws DecoderException {
       allocation = stream.get_bits(4);
       channel2_allocation = stream.get_bits(4);
       if (crc != null) {
@@ -389,7 +351,7 @@ class LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    public void read_scalefactor( Bitstream stream,  Header header) {
+    public void read_scalefactor(Bitstream stream, Header header) {
       if (allocation != 0)
         scalefactor = scalefactors[stream.get_bits(6)];
       if (channel2_allocation != 0)
@@ -399,10 +361,9 @@ class LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    
-    public boolean read_sampledata( Bitstream stream) {
-       boolean returnvalue =
-          super.read_sampledata(stream);
+
+    public boolean read_sampledata(Bitstream stream) {
+      boolean returnvalue = super.read_sampledata(stream);
       if (channel2_allocation != 0) {
         channel2_sample = (float) (stream.get_bits(channel2_samplelength));
       }
@@ -412,13 +373,11 @@ class LayerIDecoder implements FrameDecoder {
     /**
 	   *
 	   */
-    
-    public boolean put_next_sample( int channels,  SynthesisFilter filter1,
-         SynthesisFilter filter2) {
+
+    public boolean put_next_sample(int channels, SynthesisFilter filter1, SynthesisFilter filter2) {
       super.put_next_sample(channels, filter1, filter2);
       if ((channel2_allocation != 0) && (channels != OutputChannels.LEFT_CHANNEL)) {
-         float sample2 =
-            (channel2_sample * channel2_factor + channel2_offset) * channel2_scalefactor;
+        float sample2 = (channel2_sample * channel2_factor + channel2_offset) * channel2_scalefactor;
         if (channels == OutputChannels.BOTH_CHANNELS)
           filter2.input_sample(sample2, subbandnumber);
         else

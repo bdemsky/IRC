@@ -35,31 +35,28 @@
  * are removed by ignoring higher subbands.
  */
 
-
 final class SynthesisFilter {
 
-  
   public int vidx;
-  
+
   public float[] v1;
-  
+
   public float[] v2;
 
-  
   public float[] prev1;
-  
+
   public float[] prev2;
 
   // private float[] actual_v; // v1 or v2
-  
+
   public int actual_write_pos; // 0-15
-  
+
   private float[] samples; // 32 new subband samples
-  
+
   public final int channel;
-  
+
   public final float scalefactor;
-  
+
   private float[] eq;
 
   /**
@@ -129,50 +126,50 @@ final class SynthesisFilter {
   /**
    * Inject Sample.
    */
-  public void input_sample( float sample,  int subbandnumber) {
+  public void input_sample(float sample, int subbandnumber) {
     samples[subbandnumber] = eq[subbandnumber] * sample;
   }
 
-  public void input_samples( float[] s) {
-    TERMINATE: for ( int i = 31; i >= 0; i--) {
+  public void input_samples(float[] s) {
+    TERMINATE: for (int i = 31; i >= 0; i--) {
       samples[i] = s[i] * eq[i];
     }
   }
 
   private void compute_new_v2_v1() {
 
-     float new_v0 = 0.0f;
-     float new_v1 = 0.0f;
-     float new_v2 = 0.0f;
-     float new_v3 = 0.0f;
-     float new_v4 = 0.0f;
-     float new_v5 = 0.0f;
-     float new_v6 = 0.0f;
-     float new_v7 = 0.0f;
-     float new_v8 = 0.0f;
-     float new_v9 = 0.0f;
-     float new_v10 = 0.0f;
-     float new_v11 = 0.0f;
-     float new_v12 = 0.0f;
-     float new_v13 = 0.0f;
-     float new_v14 = 0.0f;
-     float new_v15 = 0.0f;
-     float new_v16 = 0.0f;
-     float new_v17 = 0.0f;
-     float new_v18 = 0.0f;
-     float new_v19 = 0.0f;
-     float new_v20 = 0.0f;
-     float new_v21 = 0.0f;
-     float new_v22 = 0.0f;
-     float new_v23 = 0.0f;
-     float new_v24 = 0.0f;
-     float new_v25 = 0.0f;
-     float new_v26 = 0.0f;
-     float new_v27 = 0.0f;
-     float new_v28 = 0.0f;
-     float new_v29 = 0.0f;
-     float new_v30 = 0.0f;
-     float new_v31 = 0.0f;
+    float new_v0 = 0.0f;
+    float new_v1 = 0.0f;
+    float new_v2 = 0.0f;
+    float new_v3 = 0.0f;
+    float new_v4 = 0.0f;
+    float new_v5 = 0.0f;
+    float new_v6 = 0.0f;
+    float new_v7 = 0.0f;
+    float new_v8 = 0.0f;
+    float new_v9 = 0.0f;
+    float new_v10 = 0.0f;
+    float new_v11 = 0.0f;
+    float new_v12 = 0.0f;
+    float new_v13 = 0.0f;
+    float new_v14 = 0.0f;
+    float new_v15 = 0.0f;
+    float new_v16 = 0.0f;
+    float new_v17 = 0.0f;
+    float new_v18 = 0.0f;
+    float new_v19 = 0.0f;
+    float new_v20 = 0.0f;
+    float new_v21 = 0.0f;
+    float new_v22 = 0.0f;
+    float new_v23 = 0.0f;
+    float new_v24 = 0.0f;
+    float new_v25 = 0.0f;
+    float new_v26 = 0.0f;
+    float new_v27 = 0.0f;
+    float new_v28 = 0.0f;
+    float new_v29 = 0.0f;
+    float new_v30 = 0.0f;
+    float new_v31 = 0.0f;
 
     // float[] new_v = new float[32]; // new V[0-15] and V[33-48] of Figure
     // 3-A.2 in ISO DIS 11172-3
@@ -181,72 +178,72 @@ final class SynthesisFilter {
 
     // float[] s = samples;
 
-     float s0 = samples[0];
-     float s1 = samples[1];
-     float s2 = samples[2];
-     float s3 = samples[3];
-     float s4 = samples[4];
-     float s5 = samples[5];
-     float s6 = samples[6];
-     float s7 = samples[7];
-     float s8 = samples[8];
-     float s9 = samples[9];
-     float s10 = samples[10];
-     float s11 = samples[11];
-     float s12 = samples[12];
-     float s13 = samples[13];
-     float s14 = samples[14];
-     float s15 = samples[15];
-     float s16 = samples[16];
-     float s17 = samples[17];
-     float s18 = samples[18];
-     float s19 = samples[19];
-     float s20 = samples[20];
-     float s21 = samples[21];
-     float s22 = samples[22];
-     float s23 = samples[23];
-     float s24 = samples[24];
-     float s25 = samples[25];
-     float s26 = samples[26];
-     float s27 = samples[27];
-     float s28 = samples[28];
-     float s29 = samples[29];
-     float s30 = samples[30];
-     float s31 = samples[31];
+    float s0 = samples[0];
+    float s1 = samples[1];
+    float s2 = samples[2];
+    float s3 = samples[3];
+    float s4 = samples[4];
+    float s5 = samples[5];
+    float s6 = samples[6];
+    float s7 = samples[7];
+    float s8 = samples[8];
+    float s9 = samples[9];
+    float s10 = samples[10];
+    float s11 = samples[11];
+    float s12 = samples[12];
+    float s13 = samples[13];
+    float s14 = samples[14];
+    float s15 = samples[15];
+    float s16 = samples[16];
+    float s17 = samples[17];
+    float s18 = samples[18];
+    float s19 = samples[19];
+    float s20 = samples[20];
+    float s21 = samples[21];
+    float s22 = samples[22];
+    float s23 = samples[23];
+    float s24 = samples[24];
+    float s25 = samples[25];
+    float s26 = samples[26];
+    float s27 = samples[27];
+    float s28 = samples[28];
+    float s29 = samples[29];
+    float s30 = samples[30];
+    float s31 = samples[31];
 
-     float p0 = s0 + s31;
-     float p1 = s1 + s30;
-     float p2 = s2 + s29;
-     float p3 = s3 + s28;
-     float p4 = s4 + s27;
-     float p5 = s5 + s26;
-     float p6 = s6 + s25;
-     float p7 = s7 + s24;
-     float p8 = s8 + s23;
-     float p9 = s9 + s22;
-     float p10 = s10 + s21;
-     float p11 = s11 + s20;
-     float p12 = s12 + s19;
-     float p13 = s13 + s18;
-     float p14 = s14 + s17;
-     float p15 = s15 + s16;
+    float p0 = s0 + s31;
+    float p1 = s1 + s30;
+    float p2 = s2 + s29;
+    float p3 = s3 + s28;
+    float p4 = s4 + s27;
+    float p5 = s5 + s26;
+    float p6 = s6 + s25;
+    float p7 = s7 + s24;
+    float p8 = s8 + s23;
+    float p9 = s9 + s22;
+    float p10 = s10 + s21;
+    float p11 = s11 + s20;
+    float p12 = s12 + s19;
+    float p13 = s13 + s18;
+    float p14 = s14 + s17;
+    float p15 = s15 + s16;
 
-     float pp0 = p0 + p15;
-     float pp1 = p1 + p14;
-     float pp2 = p2 + p13;
-     float pp3 = p3 + p12;
-     float pp4 = p4 + p11;
-     float pp5 = p5 + p10;
-     float pp6 = p6 + p9;
-     float pp7 = p7 + p8;
-     float pp8 = (p0 - p15) * cos1_32;
-     float pp9 = (p1 - p14) * cos3_32;
-     float pp10 = (p2 - p13) * cos5_32;
-     float pp11 = (p3 - p12) * cos7_32;
-     float pp12 = (p4 - p11) * cos9_32;
-     float pp13 = (p5 - p10) * cos11_32;
-     float pp14 = (p6 - p9) * cos13_32;
-     float pp15 = (p7 - p8) * cos15_32;
+    float pp0 = p0 + p15;
+    float pp1 = p1 + p14;
+    float pp2 = p2 + p13;
+    float pp3 = p3 + p12;
+    float pp4 = p4 + p11;
+    float pp5 = p5 + p10;
+    float pp6 = p6 + p9;
+    float pp7 = p7 + p8;
+    float pp8 = (p0 - p15) * cos1_32;
+    float pp9 = (p1 - p14) * cos3_32;
+    float pp10 = (p2 - p13) * cos5_32;
+    float pp11 = (p3 - p12) * cos7_32;
+    float pp12 = (p4 - p11) * cos9_32;
+    float pp13 = (p5 - p10) * cos11_32;
+    float pp14 = (p6 - p9) * cos13_32;
+    float pp15 = (p7 - p8) * cos15_32;
 
     p0 = pp0 + pp7;
     p1 = pp1 + pp6;
@@ -300,7 +297,7 @@ final class SynthesisFilter {
     p15 = (pp14 - pp15) * cos1_4;
 
     // this is pretty insane coding
-     float tmp1;
+    float tmp1;
     new_v19/* 36-17 */= -(new_v4 = (new_v12 = p7) + p5) - p6;
     new_v27/* 44-17 */= -p6 - p7 - p4;
     new_v6 = (new_v10 = (new_v14 = p15) + p11) + p13;
@@ -399,7 +396,7 @@ final class SynthesisFilter {
 
     // manually doing something that a compiler should handle sucks
     // coding like this is hard to read
-     float tmp2;
+    float tmp2;
     new_v5 = (new_v11 = (new_v13 = (new_v15 = p15) + p7) + p11) + p5 + p13;
     new_v7 = (new_v9 = p15 + p11 + p3) + p13;
     new_v16/* 33-17 */= -(new_v1 = (tmp1 = p13 + p15 + p9) + p1) - p14;
@@ -416,7 +413,7 @@ final class SynthesisFilter {
     // float[] x2 = actual_v + actual_write_pos;
     // float dest[] = actual_v; v2
 
-     int pos = actual_write_pos;
+    int pos = actual_write_pos;
 
     v2[0 + pos] = new_v0;
     v2[16 + pos] = new_v1;
@@ -577,38 +574,38 @@ final class SynthesisFilter {
 
   private void compute_new_v1_v2() {
 
-     float new_v0 = 0.0f;
-     float new_v1 = 0.0f;
-     float new_v2 = 0.0f;
-     float new_v3 = 0.0f;
-     float new_v4 = 0.0f;
-     float new_v5 = 0.0f;
-     float new_v6 = 0.0f;
-     float new_v7 = 0.0f;
-     float new_v8 = 0.0f;
-     float new_v9 = 0.0f;
-     float new_v10 = 0.0f;
-     float new_v11 = 0.0f;
-     float new_v12 = 0.0f;
-     float new_v13 = 0.0f;
-     float new_v14 = 0.0f;
-     float new_v15 = 0.0f;
-     float new_v16 = 0.0f;
-     float new_v17 = 0.0f;
-     float new_v18 = 0.0f;
-     float new_v19 = 0.0f;
-     float new_v20 = 0.0f;
-     float new_v21 = 0.0f;
-     float new_v22 = 0.0f;
-     float new_v23 = 0.0f;
-     float new_v24 = 0.0f;
-     float new_v25 = 0.0f;
-     float new_v26 = 0.0f;
-     float new_v27 = 0.0f;
-     float new_v28 = 0.0f;
-     float new_v29 = 0.0f;
-     float new_v30 = 0.0f;
-     float new_v31 = 0.0f;
+    float new_v0 = 0.0f;
+    float new_v1 = 0.0f;
+    float new_v2 = 0.0f;
+    float new_v3 = 0.0f;
+    float new_v4 = 0.0f;
+    float new_v5 = 0.0f;
+    float new_v6 = 0.0f;
+    float new_v7 = 0.0f;
+    float new_v8 = 0.0f;
+    float new_v9 = 0.0f;
+    float new_v10 = 0.0f;
+    float new_v11 = 0.0f;
+    float new_v12 = 0.0f;
+    float new_v13 = 0.0f;
+    float new_v14 = 0.0f;
+    float new_v15 = 0.0f;
+    float new_v16 = 0.0f;
+    float new_v17 = 0.0f;
+    float new_v18 = 0.0f;
+    float new_v19 = 0.0f;
+    float new_v20 = 0.0f;
+    float new_v21 = 0.0f;
+    float new_v22 = 0.0f;
+    float new_v23 = 0.0f;
+    float new_v24 = 0.0f;
+    float new_v25 = 0.0f;
+    float new_v26 = 0.0f;
+    float new_v27 = 0.0f;
+    float new_v28 = 0.0f;
+    float new_v29 = 0.0f;
+    float new_v30 = 0.0f;
+    float new_v31 = 0.0f;
 
     // float[] new_v = new float[32]; // new V[0-15] and V[33-48] of Figure
     // 3-A.2 in ISO DIS 11172-3
@@ -617,72 +614,72 @@ final class SynthesisFilter {
 
     // float[] s = samples;
 
-     float s0 = samples[0];
-     float s1 = samples[1];
-     float s2 = samples[2];
-     float s3 = samples[3];
-     float s4 = samples[4];
-     float s5 = samples[5];
-     float s6 = samples[6];
-     float s7 = samples[7];
-     float s8 = samples[8];
-     float s9 = samples[9];
-     float s10 = samples[10];
-     float s11 = samples[11];
-     float s12 = samples[12];
-     float s13 = samples[13];
-     float s14 = samples[14];
-     float s15 = samples[15];
-     float s16 = samples[16];
-     float s17 = samples[17];
-     float s18 = samples[18];
-     float s19 = samples[19];
-     float s20 = samples[20];
-     float s21 = samples[21];
-     float s22 = samples[22];
-     float s23 = samples[23];
-     float s24 = samples[24];
-     float s25 = samples[25];
-     float s26 = samples[26];
-     float s27 = samples[27];
-     float s28 = samples[28];
-     float s29 = samples[29];
-     float s30 = samples[30];
-     float s31 = samples[31];
+    float s0 = samples[0];
+    float s1 = samples[1];
+    float s2 = samples[2];
+    float s3 = samples[3];
+    float s4 = samples[4];
+    float s5 = samples[5];
+    float s6 = samples[6];
+    float s7 = samples[7];
+    float s8 = samples[8];
+    float s9 = samples[9];
+    float s10 = samples[10];
+    float s11 = samples[11];
+    float s12 = samples[12];
+    float s13 = samples[13];
+    float s14 = samples[14];
+    float s15 = samples[15];
+    float s16 = samples[16];
+    float s17 = samples[17];
+    float s18 = samples[18];
+    float s19 = samples[19];
+    float s20 = samples[20];
+    float s21 = samples[21];
+    float s22 = samples[22];
+    float s23 = samples[23];
+    float s24 = samples[24];
+    float s25 = samples[25];
+    float s26 = samples[26];
+    float s27 = samples[27];
+    float s28 = samples[28];
+    float s29 = samples[29];
+    float s30 = samples[30];
+    float s31 = samples[31];
 
-     float p0 = s0 + s31;
-     float p1 = s1 + s30;
-     float p2 = s2 + s29;
-     float p3 = s3 + s28;
-     float p4 = s4 + s27;
-     float p5 = s5 + s26;
-     float p6 = s6 + s25;
-     float p7 = s7 + s24;
-     float p8 = s8 + s23;
-     float p9 = s9 + s22;
-     float p10 = s10 + s21;
-     float p11 = s11 + s20;
-     float p12 = s12 + s19;
-     float p13 = s13 + s18;
-     float p14 = s14 + s17;
-     float p15 = s15 + s16;
+    float p0 = s0 + s31;
+    float p1 = s1 + s30;
+    float p2 = s2 + s29;
+    float p3 = s3 + s28;
+    float p4 = s4 + s27;
+    float p5 = s5 + s26;
+    float p6 = s6 + s25;
+    float p7 = s7 + s24;
+    float p8 = s8 + s23;
+    float p9 = s9 + s22;
+    float p10 = s10 + s21;
+    float p11 = s11 + s20;
+    float p12 = s12 + s19;
+    float p13 = s13 + s18;
+    float p14 = s14 + s17;
+    float p15 = s15 + s16;
 
-     float pp0 = p0 + p15;
-     float pp1 = p1 + p14;
-     float pp2 = p2 + p13;
-     float pp3 = p3 + p12;
-     float pp4 = p4 + p11;
-     float pp5 = p5 + p10;
-     float pp6 = p6 + p9;
-     float pp7 = p7 + p8;
-     float pp8 = (p0 - p15) * cos1_32;
-     float pp9 = (p1 - p14) * cos3_32;
-     float pp10 = (p2 - p13) * cos5_32;
-     float pp11 = (p3 - p12) * cos7_32;
-     float pp12 = (p4 - p11) * cos9_32;
-     float pp13 = (p5 - p10) * cos11_32;
-     float pp14 = (p6 - p9) * cos13_32;
-     float pp15 = (p7 - p8) * cos15_32;
+    float pp0 = p0 + p15;
+    float pp1 = p1 + p14;
+    float pp2 = p2 + p13;
+    float pp3 = p3 + p12;
+    float pp4 = p4 + p11;
+    float pp5 = p5 + p10;
+    float pp6 = p6 + p9;
+    float pp7 = p7 + p8;
+    float pp8 = (p0 - p15) * cos1_32;
+    float pp9 = (p1 - p14) * cos3_32;
+    float pp10 = (p2 - p13) * cos5_32;
+    float pp11 = (p3 - p12) * cos7_32;
+    float pp12 = (p4 - p11) * cos9_32;
+    float pp13 = (p5 - p10) * cos11_32;
+    float pp14 = (p6 - p9) * cos13_32;
+    float pp15 = (p7 - p8) * cos15_32;
 
     p0 = pp0 + pp7;
     p1 = pp1 + pp6;
@@ -736,7 +733,7 @@ final class SynthesisFilter {
     p15 = (pp14 - pp15) * cos1_4;
 
     // this is pretty insane coding
-     float tmp1;
+    float tmp1;
     new_v19/* 36-17 */= -(new_v4 = (new_v12 = p7) + p5) - p6;
     new_v27/* 44-17 */= -p6 - p7 - p4;
     new_v6 = (new_v10 = (new_v14 = p15) + p11) + p13;
@@ -835,7 +832,7 @@ final class SynthesisFilter {
 
     // manually doing something that a compiler should handle sucks
     // coding like this is hard to read
-     float tmp2;
+    float tmp2;
     new_v5 = (new_v11 = (new_v13 = (new_v15 = p15) + p7) + p11) + p5 + p13;
     new_v7 = (new_v9 = p15 + p11 + p3) + p13;
     new_v16/* 33-17 */= -(new_v1 = (tmp1 = p13 + p15 + p9) + p1) - p14;
@@ -852,7 +849,7 @@ final class SynthesisFilter {
     // float[] x2 = actual_v + actual_write_pos;
     // float dest[] = actual_v; actual_v=v1;
 
-     int pos = actual_write_pos;
+    int pos = actual_write_pos;
 
     v1[0 + pos] = new_v0;
     v1[16 + pos] = new_v1;
@@ -1015,7 +1012,6 @@ final class SynthesisFilter {
    * Compute PCM Samples.
    */
 
-  
   private float[] _tmpOut = new float[32];
 
   private void compute_pcm_samples0() {
@@ -1024,21 +1020,13 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
-         float pcm_sample;
+      for (int i = 0; i < 32; i++) {
+        float pcm_sample;
         // final float[] dp = d16[i];
-        pcm_sample =
-            (float) (((v1[0 + dvp] * d16[i][0]) + (v1[15 + dvp] * d16[i][1])
-                + (v1[14 + dvp] * d16[i][2]) + (v1[13 + dvp] * d16[i][3])
-                + (v1[12 + dvp] * d16[i][4]) + (v1[11 + dvp] * d16[i][5])
-                + (v1[10 + dvp] * d16[i][6]) + (v1[9 + dvp] * d16[i][7])
-                + (v1[8 + dvp] * d16[i][8]) + (v1[7 + dvp] * d16[i][9])
-                + (v1[6 + dvp] * d16[i][10]) + (v1[5 + dvp] * d16[i][11])
-                + (v1[4 + dvp] * d16[i][12]) + (v1[3 + dvp] * d16[i][13])
-                + (v1[2 + dvp] * d16[i][14]) + (v1[1 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[0 + dvp] * d16[i][0]) + (v1[15 + dvp] * d16[i][1]) + (v1[14 + dvp] * d16[i][2]) + (v1[13 + dvp] * d16[i][3]) + (v1[12 + dvp] * d16[i][4]) + (v1[11 + dvp] * d16[i][5]) + (v1[10 + dvp] * d16[i][6]) + (v1[9 + dvp] * d16[i][7]) + (v1[8 + dvp] * d16[i][8]) + (v1[7 + dvp] * d16[i][9]) + (v1[6 + dvp] * d16[i][10]) + (v1[5 + dvp] * d16[i][11]) + (v1[4 + dvp] * d16[i][12]) + (v1[3 + dvp] * d16[i][13]) + (v1[2 + dvp] * d16[i][14]) + (v1[1 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1048,21 +1036,13 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
-         float pcm_sample;
+      for (int i = 0; i < 32; i++) {
+        float pcm_sample;
         // final float[] dp = d16[i];
-        pcm_sample =
-            (float) (((v2[0 + dvp] * d16[i][0]) + (v2[15 + dvp] * d16[i][1])
-                + (v2[14 + dvp] * d16[i][2]) + (v2[13 + dvp] * d16[i][3])
-                + (v2[12 + dvp] * d16[i][4]) + (v2[11 + dvp] * d16[i][5])
-                + (v2[10 + dvp] * d16[i][6]) + (v2[9 + dvp] * d16[i][7])
-                + (v2[8 + dvp] * d16[i][8]) + (v2[7 + dvp] * d16[i][9])
-                + (v2[6 + dvp] * d16[i][10]) + (v2[5 + dvp] * d16[i][11])
-                + (v2[4 + dvp] * d16[i][12]) + (v2[3 + dvp] * d16[i][13])
-                + (v2[2 + dvp] * d16[i][14]) + (v2[1 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[0 + dvp] * d16[i][0]) + (v2[15 + dvp] * d16[i][1]) + (v2[14 + dvp] * d16[i][2]) + (v2[13 + dvp] * d16[i][3]) + (v2[12 + dvp] * d16[i][4]) + (v2[11 + dvp] * d16[i][5]) + (v2[10 + dvp] * d16[i][6]) + (v2[9 + dvp] * d16[i][7]) + (v2[8 + dvp] * d16[i][8]) + (v2[7 + dvp] * d16[i][9]) + (v2[6 + dvp] * d16[i][10]) + (v2[5 + dvp] * d16[i][11]) + (v2[4 + dvp] * d16[i][12]) + (v2[3 + dvp] * d16[i][13]) + (v2[2 + dvp] * d16[i][14]) + (v2[1 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1078,22 +1058,14 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[1 + dvp] * d16[i][0]) + (v1[0 + dvp] * d16[i][1])
-                + (v1[15 + dvp] * d16[i][2]) + (v1[14 + dvp] * d16[i][3])
-                + (v1[13 + dvp] * d16[i][4]) + (v1[12 + dvp] * d16[i][5])
-                + (v1[11 + dvp] * d16[i][6]) + (v1[10 + dvp] * d16[i][7])
-                + (v1[9 + dvp] * d16[i][8]) + (v1[8 + dvp] * d16[i][9])
-                + (v1[7 + dvp] * d16[i][10]) + (v1[6 + dvp] * d16[i][11])
-                + (v1[5 + dvp] * d16[i][12]) + (v1[4 + dvp] * d16[i][13])
-                + (v1[3 + dvp] * d16[i][14]) + (v1[2 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[1 + dvp] * d16[i][0]) + (v1[0 + dvp] * d16[i][1]) + (v1[15 + dvp] * d16[i][2]) + (v1[14 + dvp] * d16[i][3]) + (v1[13 + dvp] * d16[i][4]) + (v1[12 + dvp] * d16[i][5]) + (v1[11 + dvp] * d16[i][6]) + (v1[10 + dvp] * d16[i][7]) + (v1[9 + dvp] * d16[i][8]) + (v1[8 + dvp] * d16[i][9]) + (v1[7 + dvp] * d16[i][10]) + (v1[6 + dvp] * d16[i][11]) + (v1[5 + dvp] * d16[i][12]) + (v1[4 + dvp] * d16[i][13]) + (v1[3 + dvp] * d16[i][14]) + (v1[2 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1103,22 +1075,14 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[1 + dvp] * d16[i][0]) + (v2[0 + dvp] * d16[i][1])
-                + (v2[15 + dvp] * d16[i][2]) + (v2[14 + dvp] * d16[i][3])
-                + (v2[13 + dvp] * d16[i][4]) + (v2[12 + dvp] * d16[i][5])
-                + (v2[11 + dvp] * d16[i][6]) + (v2[10 + dvp] * d16[i][7])
-                + (v2[9 + dvp] * d16[i][8]) + (v2[8 + dvp] * d16[i][9])
-                + (v2[7 + dvp] * d16[i][10]) + (v2[6 + dvp] * d16[i][11])
-                + (v2[5 + dvp] * d16[i][12]) + (v2[4 + dvp] * d16[i][13])
-                + (v2[3 + dvp] * d16[i][14]) + (v2[2 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[1 + dvp] * d16[i][0]) + (v2[0 + dvp] * d16[i][1]) + (v2[15 + dvp] * d16[i][2]) + (v2[14 + dvp] * d16[i][3]) + (v2[13 + dvp] * d16[i][4]) + (v2[12 + dvp] * d16[i][5]) + (v2[11 + dvp] * d16[i][6]) + (v2[10 + dvp] * d16[i][7]) + (v2[9 + dvp] * d16[i][8]) + (v2[8 + dvp] * d16[i][9]) + (v2[7 + dvp] * d16[i][10]) + (v2[6 + dvp] * d16[i][11]) + (v2[5 + dvp] * d16[i][12]) + (v2[4 + dvp] * d16[i][13]) + (v2[3 + dvp] * d16[i][14]) + (v2[2 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1134,22 +1098,14 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[2 + dvp] * d16[i][0]) + (v1[1 + dvp] * d16[i][1])
-                + (v1[0 + dvp] * d16[i][2]) + (v1[15 + dvp] * d16[i][3])
-                + (v1[14 + dvp] * d16[i][4]) + (v1[13 + dvp] * d16[i][5])
-                + (v1[12 + dvp] * d16[i][6]) + (v1[11 + dvp] * d16[i][7])
-                + (v1[10 + dvp] * d16[i][8]) + (v1[9 + dvp] * d16[i][9])
-                + (v1[8 + dvp] * d16[i][10]) + (v1[7 + dvp] * d16[i][11])
-                + (v1[6 + dvp] * d16[i][12]) + (v1[5 + dvp] * d16[i][13])
-                + (v1[4 + dvp] * d16[i][14]) + (v1[3 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[2 + dvp] * d16[i][0]) + (v1[1 + dvp] * d16[i][1]) + (v1[0 + dvp] * d16[i][2]) + (v1[15 + dvp] * d16[i][3]) + (v1[14 + dvp] * d16[i][4]) + (v1[13 + dvp] * d16[i][5]) + (v1[12 + dvp] * d16[i][6]) + (v1[11 + dvp] * d16[i][7]) + (v1[10 + dvp] * d16[i][8]) + (v1[9 + dvp] * d16[i][9]) + (v1[8 + dvp] * d16[i][10]) + (v1[7 + dvp] * d16[i][11]) + (v1[6 + dvp] * d16[i][12]) + (v1[5 + dvp] * d16[i][13]) + (v1[4 + dvp] * d16[i][14]) + (v1[3 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1159,22 +1115,14 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[2 + dvp] * d16[i][0]) + (v2[1 + dvp] * d16[i][1])
-                + (v2[0 + dvp] * d16[i][2]) + (v2[15 + dvp] * d16[i][3])
-                + (v2[14 + dvp] * d16[i][4]) + (v2[13 + dvp] * d16[i][5])
-                + (v2[12 + dvp] * d16[i][6]) + (v2[11 + dvp] * d16[i][7])
-                + (v2[10 + dvp] * d16[i][8]) + (v2[9 + dvp] * d16[i][9])
-                + (v2[8 + dvp] * d16[i][10]) + (v2[7 + dvp] * d16[i][11])
-                + (v2[6 + dvp] * d16[i][12]) + (v2[5 + dvp] * d16[i][13])
-                + (v2[4 + dvp] * d16[i][14]) + (v2[3 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[2 + dvp] * d16[i][0]) + (v2[1 + dvp] * d16[i][1]) + (v2[0 + dvp] * d16[i][2]) + (v2[15 + dvp] * d16[i][3]) + (v2[14 + dvp] * d16[i][4]) + (v2[13 + dvp] * d16[i][5]) + (v2[12 + dvp] * d16[i][6]) + (v2[11 + dvp] * d16[i][7]) + (v2[10 + dvp] * d16[i][8]) + (v2[9 + dvp] * d16[i][9]) + (v2[8 + dvp] * d16[i][10]) + (v2[7 + dvp] * d16[i][11]) + (v2[6 + dvp] * d16[i][12]) + (v2[5 + dvp] * d16[i][13]) + (v2[4 + dvp] * d16[i][14]) + (v2[3 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1191,22 +1139,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[3 + dvp] * d16[i][0]) + (v1[2 + dvp] * d16[i][1])
-                + (v1[1 + dvp] * d16[i][2]) + (v1[0 + dvp] * d16[i][3])
-                + (v1[15 + dvp] * d16[i][4]) + (v1[14 + dvp] * d16[i][5])
-                + (v1[13 + dvp] * d16[i][6]) + (v1[12 + dvp] * d16[i][7])
-                + (v1[11 + dvp] * d16[i][8]) + (v1[10 + dvp] * d16[i][9])
-                + (v1[9 + dvp] * d16[i][10]) + (v1[8 + dvp] * d16[i][11])
-                + (v1[7 + dvp] * d16[i][12]) + (v1[6 + dvp] * d16[i][13])
-                + (v1[5 + dvp] * d16[i][14]) + (v1[4 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[3 + dvp] * d16[i][0]) + (v1[2 + dvp] * d16[i][1]) + (v1[1 + dvp] * d16[i][2]) + (v1[0 + dvp] * d16[i][3]) + (v1[15 + dvp] * d16[i][4]) + (v1[14 + dvp] * d16[i][5]) + (v1[13 + dvp] * d16[i][6]) + (v1[12 + dvp] * d16[i][7]) + (v1[11 + dvp] * d16[i][8]) + (v1[10 + dvp] * d16[i][9]) + (v1[9 + dvp] * d16[i][10]) + (v1[8 + dvp] * d16[i][11]) + (v1[7 + dvp] * d16[i][12]) + (v1[6 + dvp] * d16[i][13]) + (v1[5 + dvp] * d16[i][14]) + (v1[4 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1217,22 +1157,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[3 + dvp] * d16[i][0]) + (v2[2 + dvp] * d16[i][1])
-                + (v2[1 + dvp] * d16[i][2]) + (v2[0 + dvp] * d16[i][3])
-                + (v2[15 + dvp] * d16[i][4]) + (v2[14 + dvp] * d16[i][5])
-                + (v2[13 + dvp] * d16[i][6]) + (v2[12 + dvp] * d16[i][7])
-                + (v2[11 + dvp] * d16[i][8]) + (v2[10 + dvp] * d16[i][9])
-                + (v2[9 + dvp] * d16[i][10]) + (v2[8 + dvp] * d16[i][11])
-                + (v2[7 + dvp] * d16[i][12]) + (v2[6 + dvp] * d16[i][13])
-                + (v2[5 + dvp] * d16[i][14]) + (v2[4 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[3 + dvp] * d16[i][0]) + (v2[2 + dvp] * d16[i][1]) + (v2[1 + dvp] * d16[i][2]) + (v2[0 + dvp] * d16[i][3]) + (v2[15 + dvp] * d16[i][4]) + (v2[14 + dvp] * d16[i][5]) + (v2[13 + dvp] * d16[i][6]) + (v2[12 + dvp] * d16[i][7]) + (v2[11 + dvp] * d16[i][8]) + (v2[10 + dvp] * d16[i][9]) + (v2[9 + dvp] * d16[i][10]) + (v2[8 + dvp] * d16[i][11]) + (v2[7 + dvp] * d16[i][12]) + (v2[6 + dvp] * d16[i][13]) + (v2[5 + dvp] * d16[i][14]) + (v2[4 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1249,21 +1181,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[4 + dvp] * d16[i][0]) + (v1[3 + dvp] * d16[i][1])
-                + (v1[2 + dvp] * d16[i][2]) + (v1[1 + dvp] * d16[i][3]) + (v1[0 + dvp] * d16[i][4])
-                + (v1[15 + dvp] * d16[i][5]) + (v1[14 + dvp] * d16[i][6])
-                + (v1[13 + dvp] * d16[i][7]) + (v1[12 + dvp] * d16[i][8])
-                + (v1[11 + dvp] * d16[i][9]) + (v1[10 + dvp] * d16[i][10])
-                + (v1[9 + dvp] * d16[i][11]) + (v1[8 + dvp] * d16[i][12])
-                + (v1[7 + dvp] * d16[i][13]) + (v1[6 + dvp] * d16[i][14]) + (v1[5 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[4 + dvp] * d16[i][0]) + (v1[3 + dvp] * d16[i][1]) + (v1[2 + dvp] * d16[i][2]) + (v1[1 + dvp] * d16[i][3]) + (v1[0 + dvp] * d16[i][4]) + (v1[15 + dvp] * d16[i][5]) + (v1[14 + dvp] * d16[i][6]) + (v1[13 + dvp] * d16[i][7]) + (v1[12 + dvp] * d16[i][8]) + (v1[11 + dvp] * d16[i][9]) + (v1[10 + dvp] * d16[i][10]) + (v1[9 + dvp] * d16[i][11]) + (v1[8 + dvp] * d16[i][12]) + (v1[7 + dvp] * d16[i][13]) + (v1[6 + dvp] * d16[i][14]) + (v1[5 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1274,21 +1199,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[4 + dvp] * d16[i][0]) + (v2[3 + dvp] * d16[i][1])
-                + (v2[2 + dvp] * d16[i][2]) + (v2[1 + dvp] * d16[i][3]) + (v2[0 + dvp] * d16[i][4])
-                + (v2[15 + dvp] * d16[i][5]) + (v2[14 + dvp] * d16[i][6])
-                + (v2[13 + dvp] * d16[i][7]) + (v2[12 + dvp] * d16[i][8])
-                + (v2[11 + dvp] * d16[i][9]) + (v2[10 + dvp] * d16[i][10])
-                + (v2[9 + dvp] * d16[i][11]) + (v2[8 + dvp] * d16[i][12])
-                + (v2[7 + dvp] * d16[i][13]) + (v2[6 + dvp] * d16[i][14]) + (v2[5 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[4 + dvp] * d16[i][0]) + (v2[3 + dvp] * d16[i][1]) + (v2[2 + dvp] * d16[i][2]) + (v2[1 + dvp] * d16[i][3]) + (v2[0 + dvp] * d16[i][4]) + (v2[15 + dvp] * d16[i][5]) + (v2[14 + dvp] * d16[i][6]) + (v2[13 + dvp] * d16[i][7]) + (v2[12 + dvp] * d16[i][8]) + (v2[11 + dvp] * d16[i][9]) + (v2[10 + dvp] * d16[i][10]) + (v2[9 + dvp] * d16[i][11]) + (v2[8 + dvp] * d16[i][12]) + (v2[7 + dvp] * d16[i][13]) + (v2[6 + dvp] * d16[i][14]) + (v2[5 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1305,21 +1223,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[5 + dvp] * d16[i][0]) + (v1[4 + dvp] * d16[i][1])
-                + (v1[3 + dvp] * d16[i][2]) + (v1[2 + dvp] * d16[i][3]) + (v1[1 + dvp] * d16[i][4])
-                + (v1[0 + dvp] * d16[i][5]) + (v1[15 + dvp] * d16[i][6])
-                + (v1[14 + dvp] * d16[i][7]) + (v1[13 + dvp] * d16[i][8])
-                + (v1[12 + dvp] * d16[i][9]) + (v1[11 + dvp] * d16[i][10])
-                + (v1[10 + dvp] * d16[i][11]) + (v1[9 + dvp] * d16[i][12])
-                + (v1[8 + dvp] * d16[i][13]) + (v1[7 + dvp] * d16[i][14]) + (v1[6 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[5 + dvp] * d16[i][0]) + (v1[4 + dvp] * d16[i][1]) + (v1[3 + dvp] * d16[i][2]) + (v1[2 + dvp] * d16[i][3]) + (v1[1 + dvp] * d16[i][4]) + (v1[0 + dvp] * d16[i][5]) + (v1[15 + dvp] * d16[i][6]) + (v1[14 + dvp] * d16[i][7]) + (v1[13 + dvp] * d16[i][8]) + (v1[12 + dvp] * d16[i][9]) + (v1[11 + dvp] * d16[i][10]) + (v1[10 + dvp] * d16[i][11]) + (v1[9 + dvp] * d16[i][12]) + (v1[8 + dvp] * d16[i][13]) + (v1[7 + dvp] * d16[i][14]) + (v1[6 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1330,21 +1241,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[5 + dvp] * d16[i][0]) + (v2[4 + dvp] * d16[i][1])
-                + (v2[3 + dvp] * d16[i][2]) + (v2[2 + dvp] * d16[i][3]) + (v2[1 + dvp] * d16[i][4])
-                + (v2[0 + dvp] * d16[i][5]) + (v2[15 + dvp] * d16[i][6])
-                + (v2[14 + dvp] * d16[i][7]) + (v2[13 + dvp] * d16[i][8])
-                + (v2[12 + dvp] * d16[i][9]) + (v2[11 + dvp] * d16[i][10])
-                + (v2[10 + dvp] * d16[i][11]) + (v2[9 + dvp] * d16[i][12])
-                + (v2[8 + dvp] * d16[i][13]) + (v2[7 + dvp] * d16[i][14]) + (v2[6 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[5 + dvp] * d16[i][0]) + (v2[4 + dvp] * d16[i][1]) + (v2[3 + dvp] * d16[i][2]) + (v2[2 + dvp] * d16[i][3]) + (v2[1 + dvp] * d16[i][4]) + (v2[0 + dvp] * d16[i][5]) + (v2[15 + dvp] * d16[i][6]) + (v2[14 + dvp] * d16[i][7]) + (v2[13 + dvp] * d16[i][8]) + (v2[12 + dvp] * d16[i][9]) + (v2[11 + dvp] * d16[i][10]) + (v2[10 + dvp] * d16[i][11]) + (v2[9 + dvp] * d16[i][12]) + (v2[8 + dvp] * d16[i][13]) + (v2[7 + dvp] * d16[i][14]) + (v2[6 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1361,21 +1265,14 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[6 + dvp] * d16[i][0]) + (v1[5 + dvp] * d16[i][1])
-                + (v1[4 + dvp] * d16[i][2]) + (v1[3 + dvp] * d16[i][3]) + (v1[2 + dvp] * d16[i][4])
-                + (v1[1 + dvp] * d16[i][5]) + (v1[0 + dvp] * d16[i][6])
-                + (v1[15 + dvp] * d16[i][7]) + (v1[14 + dvp] * d16[i][8])
-                + (v1[13 + dvp] * d16[i][9]) + (v1[12 + dvp] * d16[i][10])
-                + (v1[11 + dvp] * d16[i][11]) + (v1[10 + dvp] * d16[i][12])
-                + (v1[9 + dvp] * d16[i][13]) + (v1[8 + dvp] * d16[i][14]) + (v1[7 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[6 + dvp] * d16[i][0]) + (v1[5 + dvp] * d16[i][1]) + (v1[4 + dvp] * d16[i][2]) + (v1[3 + dvp] * d16[i][3]) + (v1[2 + dvp] * d16[i][4]) + (v1[1 + dvp] * d16[i][5]) + (v1[0 + dvp] * d16[i][6]) + (v1[15 + dvp] * d16[i][7]) + (v1[14 + dvp] * d16[i][8]) + (v1[13 + dvp] * d16[i][9]) + (v1[12 + dvp] * d16[i][10]) + (v1[11 + dvp] * d16[i][11]) + (v1[10 + dvp] * d16[i][12]) + (v1[9 + dvp] * d16[i][13]) + (v1[8 + dvp] * d16[i][14]) + (v1[7 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1386,21 +1283,14 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[6 + dvp] * d16[i][0]) + (v2[5 + dvp] * d16[i][1])
-                + (v2[4 + dvp] * d16[i][2]) + (v2[3 + dvp] * d16[i][3]) + (v2[2 + dvp] * d16[i][4])
-                + (v2[1 + dvp] * d16[i][5]) + (v2[0 + dvp] * d16[i][6])
-                + (v2[15 + dvp] * d16[i][7]) + (v2[14 + dvp] * d16[i][8])
-                + (v2[13 + dvp] * d16[i][9]) + (v2[12 + dvp] * d16[i][10])
-                + (v2[11 + dvp] * d16[i][11]) + (v2[10 + dvp] * d16[i][12])
-                + (v2[9 + dvp] * d16[i][13]) + (v2[8 + dvp] * d16[i][14]) + (v2[7 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[6 + dvp] * d16[i][0]) + (v2[5 + dvp] * d16[i][1]) + (v2[4 + dvp] * d16[i][2]) + (v2[3 + dvp] * d16[i][3]) + (v2[2 + dvp] * d16[i][4]) + (v2[1 + dvp] * d16[i][5]) + (v2[0 + dvp] * d16[i][6]) + (v2[15 + dvp] * d16[i][7]) + (v2[14 + dvp] * d16[i][8]) + (v2[13 + dvp] * d16[i][9]) + (v2[12 + dvp] * d16[i][10]) + (v2[11 + dvp] * d16[i][11]) + (v2[10 + dvp] * d16[i][12]) + (v2[9 + dvp] * d16[i][13]) + (v2[8 + dvp] * d16[i][14]) + (v2[7 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1417,21 +1307,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[7 + dvp] * d16[i][0]) + (v1[6 + dvp] * d16[i][1])
-                + (v1[5 + dvp] * d16[i][2]) + (v1[4 + dvp] * d16[i][3]) + (v1[3 + dvp] * d16[i][4])
-                + (v1[2 + dvp] * d16[i][5]) + (v1[1 + dvp] * d16[i][6]) + (v1[0 + dvp] * d16[i][7])
-                + (v1[15 + dvp] * d16[i][8]) + (v1[14 + dvp] * d16[i][9])
-                + (v1[13 + dvp] * d16[i][10]) + (v1[12 + dvp] * d16[i][11])
-                + (v1[11 + dvp] * d16[i][12]) + (v1[10 + dvp] * d16[i][13])
-                + (v1[9 + dvp] * d16[i][14]) + (v1[8 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[7 + dvp] * d16[i][0]) + (v1[6 + dvp] * d16[i][1]) + (v1[5 + dvp] * d16[i][2]) + (v1[4 + dvp] * d16[i][3]) + (v1[3 + dvp] * d16[i][4]) + (v1[2 + dvp] * d16[i][5]) + (v1[1 + dvp] * d16[i][6]) + (v1[0 + dvp] * d16[i][7]) + (v1[15 + dvp] * d16[i][8]) + (v1[14 + dvp] * d16[i][9]) + (v1[13 + dvp] * d16[i][10]) + (v1[12 + dvp] * d16[i][11]) + (v1[11 + dvp] * d16[i][12]) + (v1[10 + dvp] * d16[i][13]) + (v1[9 + dvp] * d16[i][14]) + (v1[8 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1442,21 +1325,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[7 + dvp] * d16[i][0]) + (v2[6 + dvp] * d16[i][1])
-                + (v2[5 + dvp] * d16[i][2]) + (v2[4 + dvp] * d16[i][3]) + (v2[3 + dvp] * d16[i][4])
-                + (v2[2 + dvp] * d16[i][5]) + (v2[1 + dvp] * d16[i][6]) + (v2[0 + dvp] * d16[i][7])
-                + (v2[15 + dvp] * d16[i][8]) + (v2[14 + dvp] * d16[i][9])
-                + (v2[13 + dvp] * d16[i][10]) + (v2[12 + dvp] * d16[i][11])
-                + (v2[11 + dvp] * d16[i][12]) + (v2[10 + dvp] * d16[i][13])
-                + (v2[9 + dvp] * d16[i][14]) + (v2[8 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[7 + dvp] * d16[i][0]) + (v2[6 + dvp] * d16[i][1]) + (v2[5 + dvp] * d16[i][2]) + (v2[4 + dvp] * d16[i][3]) + (v2[3 + dvp] * d16[i][4]) + (v2[2 + dvp] * d16[i][5]) + (v2[1 + dvp] * d16[i][6]) + (v2[0 + dvp] * d16[i][7]) + (v2[15 + dvp] * d16[i][8]) + (v2[14 + dvp] * d16[i][9]) + (v2[13 + dvp] * d16[i][10]) + (v2[12 + dvp] * d16[i][11]) + (v2[11 + dvp] * d16[i][12]) + (v2[10 + dvp] * d16[i][13]) + (v2[9 + dvp] * d16[i][14]) + (v2[8 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1474,21 +1350,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[8 + dvp] * d16[i][0]) + (v1[7 + dvp] * d16[i][1])
-                + (v1[6 + dvp] * d16[i][2]) + (v1[5 + dvp] * d16[i][3]) + (v1[4 + dvp] * d16[i][4])
-                + (v1[3 + dvp] * d16[i][5]) + (v1[2 + dvp] * d16[i][6]) + (v1[1 + dvp] * d16[i][7])
-                + (v1[0 + dvp] * d16[i][8]) + (v1[15 + dvp] * d16[i][9])
-                + (v1[14 + dvp] * d16[i][10]) + (v1[13 + dvp] * d16[i][11])
-                + (v1[12 + dvp] * d16[i][12]) + (v1[11 + dvp] * d16[i][13])
-                + (v1[10 + dvp] * d16[i][14]) + (v1[9 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[8 + dvp] * d16[i][0]) + (v1[7 + dvp] * d16[i][1]) + (v1[6 + dvp] * d16[i][2]) + (v1[5 + dvp] * d16[i][3]) + (v1[4 + dvp] * d16[i][4]) + (v1[3 + dvp] * d16[i][5]) + (v1[2 + dvp] * d16[i][6]) + (v1[1 + dvp] * d16[i][7]) + (v1[0 + dvp] * d16[i][8]) + (v1[15 + dvp] * d16[i][9]) + (v1[14 + dvp] * d16[i][10]) + (v1[13 + dvp] * d16[i][11]) + (v1[12 + dvp] * d16[i][12]) + (v1[11 + dvp] * d16[i][13]) + (v1[10 + dvp] * d16[i][14]) + (v1[9 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1500,21 +1369,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[8 + dvp] * d16[i][0]) + (v2[7 + dvp] * d16[i][1])
-                + (v2[6 + dvp] * d16[i][2]) + (v2[5 + dvp] * d16[i][3]) + (v2[4 + dvp] * d16[i][4])
-                + (v2[3 + dvp] * d16[i][5]) + (v2[2 + dvp] * d16[i][6]) + (v2[1 + dvp] * d16[i][7])
-                + (v2[0 + dvp] * d16[i][8]) + (v2[15 + dvp] * d16[i][9])
-                + (v2[14 + dvp] * d16[i][10]) + (v2[13 + dvp] * d16[i][11])
-                + (v2[12 + dvp] * d16[i][12]) + (v2[11 + dvp] * d16[i][13])
-                + (v2[10 + dvp] * d16[i][14]) + (v2[9 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[8 + dvp] * d16[i][0]) + (v2[7 + dvp] * d16[i][1]) + (v2[6 + dvp] * d16[i][2]) + (v2[5 + dvp] * d16[i][3]) + (v2[4 + dvp] * d16[i][4]) + (v2[3 + dvp] * d16[i][5]) + (v2[2 + dvp] * d16[i][6]) + (v2[1 + dvp] * d16[i][7]) + (v2[0 + dvp] * d16[i][8]) + (v2[15 + dvp] * d16[i][9]) + (v2[14 + dvp] * d16[i][10]) + (v2[13 + dvp] * d16[i][11]) + (v2[12 + dvp] * d16[i][12]) + (v2[11 + dvp] * d16[i][13]) + (v2[10 + dvp] * d16[i][14]) + (v2[9 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1531,21 +1393,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[9 + dvp] * d16[i][0]) + (v1[8 + dvp] * d16[i][1])
-                + (v1[7 + dvp] * d16[i][2]) + (v1[6 + dvp] * d16[i][3]) + (v1[5 + dvp] * d16[i][4])
-                + (v1[4 + dvp] * d16[i][5]) + (v1[3 + dvp] * d16[i][6]) + (v1[2 + dvp] * d16[i][7])
-                + (v1[1 + dvp] * d16[i][8]) + (v1[0 + dvp] * d16[i][9])
-                + (v1[15 + dvp] * d16[i][10]) + (v1[14 + dvp] * d16[i][11])
-                + (v1[13 + dvp] * d16[i][12]) + (v1[12 + dvp] * d16[i][13])
-                + (v1[11 + dvp] * d16[i][14]) + (v1[10 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[9 + dvp] * d16[i][0]) + (v1[8 + dvp] * d16[i][1]) + (v1[7 + dvp] * d16[i][2]) + (v1[6 + dvp] * d16[i][3]) + (v1[5 + dvp] * d16[i][4]) + (v1[4 + dvp] * d16[i][5]) + (v1[3 + dvp] * d16[i][6]) + (v1[2 + dvp] * d16[i][7]) + (v1[1 + dvp] * d16[i][8]) + (v1[0 + dvp] * d16[i][9]) + (v1[15 + dvp] * d16[i][10]) + (v1[14 + dvp] * d16[i][11]) + (v1[13 + dvp] * d16[i][12]) + (v1[12 + dvp] * d16[i][13]) + (v1[11 + dvp] * d16[i][14]) + (v1[10 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1556,21 +1411,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[9 + dvp] * d16[i][0]) + (v2[8 + dvp] * d16[i][1])
-                + (v2[7 + dvp] * d16[i][2]) + (v2[6 + dvp] * d16[i][3]) + (v2[5 + dvp] * d16[i][4])
-                + (v2[4 + dvp] * d16[i][5]) + (v2[3 + dvp] * d16[i][6]) + (v2[2 + dvp] * d16[i][7])
-                + (v2[1 + dvp] * d16[i][8]) + (v2[0 + dvp] * d16[i][9])
-                + (v2[15 + dvp] * d16[i][10]) + (v2[14 + dvp] * d16[i][11])
-                + (v2[13 + dvp] * d16[i][12]) + (v2[12 + dvp] * d16[i][13])
-                + (v2[11 + dvp] * d16[i][14]) + (v2[10 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[9 + dvp] * d16[i][0]) + (v2[8 + dvp] * d16[i][1]) + (v2[7 + dvp] * d16[i][2]) + (v2[6 + dvp] * d16[i][3]) + (v2[5 + dvp] * d16[i][4]) + (v2[4 + dvp] * d16[i][5]) + (v2[3 + dvp] * d16[i][6]) + (v2[2 + dvp] * d16[i][7]) + (v2[1 + dvp] * d16[i][8]) + (v2[0 + dvp] * d16[i][9]) + (v2[15 + dvp] * d16[i][10]) + (v2[14 + dvp] * d16[i][11]) + (v2[13 + dvp] * d16[i][12]) + (v2[12 + dvp] * d16[i][13]) + (v2[11 + dvp] * d16[i][14]) + (v2[10 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1585,21 +1433,14 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[10 + dvp] * d16[i][0]) + (v1[9 + dvp] * d16[i][1])
-                + (v1[8 + dvp] * d16[i][2]) + (v1[7 + dvp] * d16[i][3]) + (v1[6 + dvp] * d16[i][4])
-                + (v1[5 + dvp] * d16[i][5]) + (v1[4 + dvp] * d16[i][6]) + (v1[3 + dvp] * d16[i][7])
-                + (v1[2 + dvp] * d16[i][8]) + (v1[1 + dvp] * d16[i][9])
-                + (v1[0 + dvp] * d16[i][10]) + (v1[15 + dvp] * d16[i][11])
-                + (v1[14 + dvp] * d16[i][12]) + (v1[13 + dvp] * d16[i][13])
-                + (v1[12 + dvp] * d16[i][14]) + (v1[11 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[10 + dvp] * d16[i][0]) + (v1[9 + dvp] * d16[i][1]) + (v1[8 + dvp] * d16[i][2]) + (v1[7 + dvp] * d16[i][3]) + (v1[6 + dvp] * d16[i][4]) + (v1[5 + dvp] * d16[i][5]) + (v1[4 + dvp] * d16[i][6]) + (v1[3 + dvp] * d16[i][7]) + (v1[2 + dvp] * d16[i][8]) + (v1[1 + dvp] * d16[i][9]) + (v1[0 + dvp] * d16[i][10]) + (v1[15 + dvp] * d16[i][11]) + (v1[14 + dvp] * d16[i][12]) + (v1[13 + dvp] * d16[i][13]) + (v1[12 + dvp] * d16[i][14]) + (v1[11 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1609,21 +1450,14 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[10 + dvp] * d16[i][0]) + (v2[9 + dvp] * d16[i][1])
-                + (v2[8 + dvp] * d16[i][2]) + (v2[7 + dvp] * d16[i][3]) + (v2[6 + dvp] * d16[i][4])
-                + (v2[5 + dvp] * d16[i][5]) + (v2[4 + dvp] * d16[i][6]) + (v2[3 + dvp] * d16[i][7])
-                + (v2[2 + dvp] * d16[i][8]) + (v2[1 + dvp] * d16[i][9])
-                + (v2[0 + dvp] * d16[i][10]) + (v2[15 + dvp] * d16[i][11])
-                + (v2[14 + dvp] * d16[i][12]) + (v2[13 + dvp] * d16[i][13])
-                + (v2[12 + dvp] * d16[i][14]) + (v2[11 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[10 + dvp] * d16[i][0]) + (v2[9 + dvp] * d16[i][1]) + (v2[8 + dvp] * d16[i][2]) + (v2[7 + dvp] * d16[i][3]) + (v2[6 + dvp] * d16[i][4]) + (v2[5 + dvp] * d16[i][5]) + (v2[4 + dvp] * d16[i][6]) + (v2[3 + dvp] * d16[i][7]) + (v2[2 + dvp] * d16[i][8]) + (v2[1 + dvp] * d16[i][9]) + (v2[0 + dvp] * d16[i][10]) + (v2[15 + dvp] * d16[i][11]) + (v2[14 + dvp] * d16[i][12]) + (v2[13 + dvp] * d16[i][13]) + (v2[12 + dvp] * d16[i][14]) + (v2[11 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1640,21 +1474,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[11 + dvp] * d16[i][0]) + (v1[10 + dvp] * d16[i][1])
-                + (v1[9 + dvp] * d16[i][2]) + (v1[8 + dvp] * d16[i][3]) + (v1[7 + dvp] * d16[i][4])
-                + (v1[6 + dvp] * d16[i][5]) + (v1[5 + dvp] * d16[i][6]) + (v1[4 + dvp] * d16[i][7])
-                + (v1[3 + dvp] * d16[i][8]) + (v1[2 + dvp] * d16[i][9])
-                + (v1[1 + dvp] * d16[i][10]) + (v1[0 + dvp] * d16[i][11])
-                + (v1[15 + dvp] * d16[i][12]) + (v1[14 + dvp] * d16[i][13])
-                + (v1[13 + dvp] * d16[i][14]) + (v1[12 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[11 + dvp] * d16[i][0]) + (v1[10 + dvp] * d16[i][1]) + (v1[9 + dvp] * d16[i][2]) + (v1[8 + dvp] * d16[i][3]) + (v1[7 + dvp] * d16[i][4]) + (v1[6 + dvp] * d16[i][5]) + (v1[5 + dvp] * d16[i][6]) + (v1[4 + dvp] * d16[i][7]) + (v1[3 + dvp] * d16[i][8]) + (v1[2 + dvp] * d16[i][9]) + (v1[1 + dvp] * d16[i][10]) + (v1[0 + dvp] * d16[i][11]) + (v1[15 + dvp] * d16[i][12]) + (v1[14 + dvp] * d16[i][13]) + (v1[13 + dvp] * d16[i][14]) + (v1[12 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1665,21 +1492,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[11 + dvp] * d16[i][0]) + (v2[10 + dvp] * d16[i][1])
-                + (v2[9 + dvp] * d16[i][2]) + (v2[8 + dvp] * d16[i][3]) + (v2[7 + dvp] * d16[i][4])
-                + (v2[6 + dvp] * d16[i][5]) + (v2[5 + dvp] * d16[i][6]) + (v2[4 + dvp] * d16[i][7])
-                + (v2[3 + dvp] * d16[i][8]) + (v2[2 + dvp] * d16[i][9])
-                + (v2[1 + dvp] * d16[i][10]) + (v2[0 + dvp] * d16[i][11])
-                + (v2[15 + dvp] * d16[i][12]) + (v2[14 + dvp] * d16[i][13])
-                + (v2[13 + dvp] * d16[i][14]) + (v2[12 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[11 + dvp] * d16[i][0]) + (v2[10 + dvp] * d16[i][1]) + (v2[9 + dvp] * d16[i][2]) + (v2[8 + dvp] * d16[i][3]) + (v2[7 + dvp] * d16[i][4]) + (v2[6 + dvp] * d16[i][5]) + (v2[5 + dvp] * d16[i][6]) + (v2[4 + dvp] * d16[i][7]) + (v2[3 + dvp] * d16[i][8]) + (v2[2 + dvp] * d16[i][9]) + (v2[1 + dvp] * d16[i][10]) + (v2[0 + dvp] * d16[i][11]) + (v2[15 + dvp] * d16[i][12]) + (v2[14 + dvp] * d16[i][13]) + (v2[13 + dvp] * d16[i][14]) + (v2[12 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1695,21 +1515,14 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[12 + dvp] * d16[i][0]) + (v1[11 + dvp] * d16[i][1])
-                + (v1[10 + dvp] * d16[i][2]) + (v1[9 + dvp] * d16[i][3])
-                + (v1[8 + dvp] * d16[i][4]) + (v1[7 + dvp] * d16[i][5]) + (v1[6 + dvp] * d16[i][6])
-                + (v1[5 + dvp] * d16[i][7]) + (v1[4 + dvp] * d16[i][8]) + (v1[3 + dvp] * d16[i][9])
-                + (v1[2 + dvp] * d16[i][10]) + (v1[1 + dvp] * d16[i][11])
-                + (v1[0 + dvp] * d16[i][12]) + (v1[15 + dvp] * d16[i][13])
-                + (v1[14 + dvp] * d16[i][14]) + (v1[13 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[12 + dvp] * d16[i][0]) + (v1[11 + dvp] * d16[i][1]) + (v1[10 + dvp] * d16[i][2]) + (v1[9 + dvp] * d16[i][3]) + (v1[8 + dvp] * d16[i][4]) + (v1[7 + dvp] * d16[i][5]) + (v1[6 + dvp] * d16[i][6]) + (v1[5 + dvp] * d16[i][7]) + (v1[4 + dvp] * d16[i][8]) + (v1[3 + dvp] * d16[i][9]) + (v1[2 + dvp] * d16[i][10]) + (v1[1 + dvp] * d16[i][11]) + (v1[0 + dvp] * d16[i][12]) + (v1[15 + dvp] * d16[i][13]) + (v1[14 + dvp] * d16[i][14]) + (v1[13 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1719,21 +1532,14 @@ final class SynthesisFilter {
       // final float[] vp = actual_v;
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[12 + dvp] * d16[i][0]) + (v2[11 + dvp] * d16[i][1])
-                + (v2[10 + dvp] * d16[i][2]) + (v2[9 + dvp] * d16[i][3])
-                + (v2[8 + dvp] * d16[i][4]) + (v2[7 + dvp] * d16[i][5]) + (v2[6 + dvp] * d16[i][6])
-                + (v2[5 + dvp] * d16[i][7]) + (v2[4 + dvp] * d16[i][8]) + (v2[3 + dvp] * d16[i][9])
-                + (v2[2 + dvp] * d16[i][10]) + (v2[1 + dvp] * d16[i][11])
-                + (v2[0 + dvp] * d16[i][12]) + (v2[15 + dvp] * d16[i][13])
-                + (v2[14 + dvp] * d16[i][14]) + (v2[13 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[12 + dvp] * d16[i][0]) + (v2[11 + dvp] * d16[i][1]) + (v2[10 + dvp] * d16[i][2]) + (v2[9 + dvp] * d16[i][3]) + (v2[8 + dvp] * d16[i][4]) + (v2[7 + dvp] * d16[i][5]) + (v2[6 + dvp] * d16[i][6]) + (v2[5 + dvp] * d16[i][7]) + (v2[4 + dvp] * d16[i][8]) + (v2[3 + dvp] * d16[i][9]) + (v2[2 + dvp] * d16[i][10]) + (v2[1 + dvp] * d16[i][11]) + (v2[0 + dvp] * d16[i][12]) + (v2[15 + dvp] * d16[i][13]) + (v2[14 + dvp] * d16[i][14]) + (v2[13 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1750,21 +1556,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[13 + dvp] * d16[i][0]) + (v1[12 + dvp] * d16[i][1])
-                + (v1[11 + dvp] * d16[i][2]) + (v1[10 + dvp] * d16[i][3])
-                + (v1[9 + dvp] * d16[i][4]) + (v1[8 + dvp] * d16[i][5]) + (v1[7 + dvp] * d16[i][6])
-                + (v1[6 + dvp] * d16[i][7]) + (v1[5 + dvp] * d16[i][8]) + (v1[4 + dvp] * d16[i][9])
-                + (v1[3 + dvp] * d16[i][10]) + (v1[2 + dvp] * d16[i][11])
-                + (v1[1 + dvp] * d16[i][12]) + (v1[0 + dvp] * d16[i][13])
-                + (v1[15 + dvp] * d16[i][14]) + (v1[14 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[13 + dvp] * d16[i][0]) + (v1[12 + dvp] * d16[i][1]) + (v1[11 + dvp] * d16[i][2]) + (v1[10 + dvp] * d16[i][3]) + (v1[9 + dvp] * d16[i][4]) + (v1[8 + dvp] * d16[i][5]) + (v1[7 + dvp] * d16[i][6]) + (v1[6 + dvp] * d16[i][7]) + (v1[5 + dvp] * d16[i][8]) + (v1[4 + dvp] * d16[i][9]) + (v1[3 + dvp] * d16[i][10]) + (v1[2 + dvp] * d16[i][11]) + (v1[1 + dvp] * d16[i][12]) + (v1[0 + dvp] * d16[i][13]) + (v1[15 + dvp] * d16[i][14]) + (v1[14 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1775,21 +1574,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[13 + dvp] * d16[i][0]) + (v2[12 + dvp] * d16[i][1])
-                + (v2[11 + dvp] * d16[i][2]) + (v2[10 + dvp] * d16[i][3])
-                + (v2[9 + dvp] * d16[i][4]) + (v2[8 + dvp] * d16[i][5]) + (v2[7 + dvp] * d16[i][6])
-                + (v2[6 + dvp] * d16[i][7]) + (v2[5 + dvp] * d16[i][8]) + (v2[4 + dvp] * d16[i][9])
-                + (v2[3 + dvp] * d16[i][10]) + (v2[2 + dvp] * d16[i][11])
-                + (v2[1 + dvp] * d16[i][12]) + (v2[0 + dvp] * d16[i][13])
-                + (v2[15 + dvp] * d16[i][14]) + (v2[14 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[13 + dvp] * d16[i][0]) + (v2[12 + dvp] * d16[i][1]) + (v2[11 + dvp] * d16[i][2]) + (v2[10 + dvp] * d16[i][3]) + (v2[9 + dvp] * d16[i][4]) + (v2[8 + dvp] * d16[i][5]) + (v2[7 + dvp] * d16[i][6]) + (v2[6 + dvp] * d16[i][7]) + (v2[5 + dvp] * d16[i][8]) + (v2[4 + dvp] * d16[i][9]) + (v2[3 + dvp] * d16[i][10]) + (v2[2 + dvp] * d16[i][11]) + (v2[1 + dvp] * d16[i][12]) + (v2[0 + dvp] * d16[i][13]) + (v2[15 + dvp] * d16[i][14]) + (v2[14 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1806,21 +1598,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v1[14 + dvp] * d16[i][0]) + (v1[13 + dvp] * d16[i][1])
-                + (v1[12 + dvp] * d16[i][2]) + (v1[11 + dvp] * d16[i][3])
-                + (v1[10 + dvp] * d16[i][4]) + (v1[9 + dvp] * d16[i][5])
-                + (v1[8 + dvp] * d16[i][6]) + (v1[7 + dvp] * d16[i][7]) + (v1[6 + dvp] * d16[i][8])
-                + (v1[5 + dvp] * d16[i][9]) + (v1[4 + dvp] * d16[i][10])
-                + (v1[3 + dvp] * d16[i][11]) + (v1[2 + dvp] * d16[i][12])
-                + (v1[1 + dvp] * d16[i][13]) + (v1[0 + dvp] * d16[i][14]) + (v1[15 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[14 + dvp] * d16[i][0]) + (v1[13 + dvp] * d16[i][1]) + (v1[12 + dvp] * d16[i][2]) + (v1[11 + dvp] * d16[i][3]) + (v1[10 + dvp] * d16[i][4]) + (v1[9 + dvp] * d16[i][5]) + (v1[8 + dvp] * d16[i][6]) + (v1[7 + dvp] * d16[i][7]) + (v1[6 + dvp] * d16[i][8]) + (v1[5 + dvp] * d16[i][9]) + (v1[4 + dvp] * d16[i][10]) + (v1[3 + dvp] * d16[i][11]) + (v1[2 + dvp] * d16[i][12]) + (v1[1 + dvp] * d16[i][13]) + (v1[0 + dvp] * d16[i][14]) + (v1[15 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1831,21 +1616,14 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
+      for (int i = 0; i < 32; i++) {
         // final float[] dp = d16[i];
-         float pcm_sample;
+        float pcm_sample;
 
-        pcm_sample =
-            (float) (((v2[14 + dvp] * d16[i][0]) + (v2[13 + dvp] * d16[i][1])
-                + (v2[12 + dvp] * d16[i][2]) + (v2[11 + dvp] * d16[i][3])
-                + (v2[10 + dvp] * d16[i][4]) + (v2[9 + dvp] * d16[i][5])
-                + (v2[8 + dvp] * d16[i][6]) + (v2[7 + dvp] * d16[i][7]) + (v2[6 + dvp] * d16[i][8])
-                + (v2[5 + dvp] * d16[i][9]) + (v2[4 + dvp] * d16[i][10])
-                + (v2[3 + dvp] * d16[i][11]) + (v2[2 + dvp] * d16[i][12])
-                + (v2[1 + dvp] * d16[i][13]) + (v2[0 + dvp] * d16[i][14]) + (v2[15 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[14 + dvp] * d16[i][0]) + (v2[13 + dvp] * d16[i][1]) + (v2[12 + dvp] * d16[i][2]) + (v2[11 + dvp] * d16[i][3]) + (v2[10 + dvp] * d16[i][4]) + (v2[9 + dvp] * d16[i][5]) + (v2[8 + dvp] * d16[i][6]) + (v2[7 + dvp] * d16[i][7]) + (v2[6 + dvp] * d16[i][8]) + (v2[5 + dvp] * d16[i][9]) + (v2[4 + dvp] * d16[i][10]) + (v2[3 + dvp] * d16[i][11]) + (v2[2 + dvp] * d16[i][12]) + (v2[1 + dvp] * d16[i][13]) + (v2[0 + dvp] * d16[i][14]) + (v2[15 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
 
@@ -1861,20 +1639,13 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
-         float pcm_sample;
+      for (int i = 0; i < 32; i++) {
+        float pcm_sample;
         // final float d16[i][] = d16[i];
-        pcm_sample =
-            (float) (((v1[15 + dvp] * d16[i][0]) + (v1[14 + dvp] * d16[i][1])
-                + (v1[13 + dvp] * d16[i][2]) + (v1[12 + dvp] * d16[i][3])
-                + (v1[11 + dvp] * d16[i][4]) + (v1[10 + dvp] * d16[i][5])
-                + (v1[9 + dvp] * d16[i][6]) + (v1[8 + dvp] * d16[i][7]) + (v1[7 + dvp] * d16[i][8])
-                + (v1[6 + dvp] * d16[i][9]) + (v1[5 + dvp] * d16[i][10])
-                + (v1[4 + dvp] * d16[i][11]) + (v1[3 + dvp] * d16[i][12])
-                + (v1[2 + dvp] * d16[i][13]) + (v1[1 + dvp] * d16[i][14]) + (v1[0 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v1[15 + dvp] * d16[i][0]) + (v1[14 + dvp] * d16[i][1]) + (v1[13 + dvp] * d16[i][2]) + (v1[12 + dvp] * d16[i][3]) + (v1[11 + dvp] * d16[i][4]) + (v1[10 + dvp] * d16[i][5]) + (v1[9 + dvp] * d16[i][6]) + (v1[8 + dvp] * d16[i][7]) + (v1[7 + dvp] * d16[i][8]) + (v1[6 + dvp] * d16[i][9]) + (v1[5 + dvp] * d16[i][10]) + (v1[4 + dvp] * d16[i][11]) + (v1[3 + dvp] * d16[i][12]) + (v1[2 + dvp] * d16[i][13]) + (v1[1 + dvp] * d16[i][14]) + (v1[0 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
         dvp += 16;
@@ -1884,20 +1655,13 @@ final class SynthesisFilter {
 
       // int inc = v_inc;
       // final float[] tmpOut = _tmpOut;
-       int dvp = 0;
+      int dvp = 0;
 
       // fat chance of having this loop unroll
-      for ( int i = 0; i < 32; i++) {
-         float pcm_sample;
+      for (int i = 0; i < 32; i++) {
+        float pcm_sample;
         // final float d16[i][] = d16[i];
-        pcm_sample =
-            (float) (((v2[15 + dvp] * d16[i][0]) + (v2[14 + dvp] * d16[i][1])
-                + (v2[13 + dvp] * d16[i][2]) + (v2[12 + dvp] * d16[i][3])
-                + (v2[11 + dvp] * d16[i][4]) + (v2[10 + dvp] * d16[i][5])
-                + (v2[9 + dvp] * d16[i][6]) + (v2[8 + dvp] * d16[i][7]) + (v2[7 + dvp] * d16[i][8])
-                + (v2[6 + dvp] * d16[i][9]) + (v2[5 + dvp] * d16[i][10])
-                + (v2[4 + dvp] * d16[i][11]) + (v2[3 + dvp] * d16[i][12])
-                + (v2[2 + dvp] * d16[i][13]) + (v2[1 + dvp] * d16[i][14]) + (v2[0 + dvp] * d16[i][15])) * scalefactor);
+        pcm_sample = (float) (((v2[15 + dvp] * d16[i][0]) + (v2[14 + dvp] * d16[i][1]) + (v2[13 + dvp] * d16[i][2]) + (v2[12 + dvp] * d16[i][3]) + (v2[11 + dvp] * d16[i][4]) + (v2[10 + dvp] * d16[i][5]) + (v2[9 + dvp] * d16[i][6]) + (v2[8 + dvp] * d16[i][7]) + (v2[7 + dvp] * d16[i][8]) + (v2[6 + dvp] * d16[i][9]) + (v2[5 + dvp] * d16[i][10]) + (v2[4 + dvp] * d16[i][11]) + (v2[3 + dvp] * d16[i][12]) + (v2[2 + dvp] * d16[i][13]) + (v2[1 + dvp] * d16[i][14]) + (v2[0 + dvp] * d16[i][15])) * scalefactor);
 
         _tmpOut[i] = pcm_sample;
         dvp += 16;
@@ -1979,17 +1743,16 @@ final class SynthesisFilter {
      */
   }
 
-  
   public void clear() {
     // clear out v1,v2
     SSJAVA.arrayinit(v1, 0);
     SSJAVA.arrayinit(v2, 0);
     // copy previous v1,v2
 
-    for ( int i = 0; i < prev1.length; i++) {
+    for (int i = 0; i < prev1.length; i++) {
       v1[i] = prev1[i];
     }
-    for ( int i = 0; i < prev2.length; i++) {
+    for (int i = 0; i < prev2.length; i++) {
       v2[i] = prev2[i];
     }
     // clear out previous buffer
@@ -2005,7 +1768,8 @@ final class SynthesisFilter {
 
   public void calculate_pcm_samples() {
 
-//    System.out.println("#calculate_pcm_samples::actual_write_pos=" + actual_write_pos);
+    // System.out.println("#calculate_pcm_samples::actual_write_pos=" +
+    // actual_write_pos);
 
     if (vidx == 1) {
       compute_new_v1_v2();
@@ -2020,7 +1784,7 @@ final class SynthesisFilter {
     // System.out.println("3.actual_v=" + (actual_v == v1) + " vidx=" + vidx);
 
     actual_write_pos = (actual_write_pos + 1) & 0xf;
-//     System.out.println("actual_write_pos="+actual_write_pos);
+    // System.out.println("actual_write_pos="+actual_write_pos);
     // actual_v = (actual_v == v1) ? v2 : v1;
 
     if (vidx == 1) {
@@ -2083,7 +1847,7 @@ final class SynthesisFilter {
    * by allowing a block of 16 to be addressed with constant offset.
    **/
   // TODO CONST
-  
+
   private final static float d16[][] = null;
 
   /**
@@ -2141,91 +1905,6 @@ final class SynthesisFilter {
   // The original data for d[]. This data is loaded from a file
   // to reduce the overall package size and to improve performance.
 
-  static final float d[] = { 0.000000000f, -0.000442505f, 0.003250122f, -0.007003784f,
-      0.031082153f, -0.078628540f, 0.100311279f, -0.572036743f, 1.144989014f, 0.572036743f,
-      0.100311279f, 0.078628540f, 0.031082153f, 0.007003784f, 0.003250122f, 0.000442505f,
-      -0.000015259f, -0.000473022f, 0.003326416f, -0.007919312f, 0.030517578f, -0.084182739f,
-      0.090927124f, -0.600219727f, 1.144287109f, 0.543823242f, 0.108856201f, 0.073059082f,
-      0.031478882f, 0.006118774f, 0.003173828f, 0.000396729f, -0.000015259f, -0.000534058f,
-      0.003387451f, -0.008865356f, 0.029785156f, -0.089706421f, 0.080688477f, -0.628295898f,
-      1.142211914f, 0.515609741f, 0.116577148f, 0.067520142f, 0.031738281f, 0.005294800f,
-      0.003082275f, 0.000366211f, -0.000015259f, -0.000579834f, 0.003433228f, -0.009841919f,
-      0.028884888f, -0.095169067f, 0.069595337f, -0.656219482f, 1.138763428f, 0.487472534f,
-      0.123474121f, 0.061996460f, 0.031845093f, 0.004486084f, 0.002990723f, 0.000320435f,
-      -0.000015259f, -0.000625610f, 0.003463745f, -0.010848999f, 0.027801514f, -0.100540161f,
-      0.057617188f, -0.683914185f, 1.133926392f, 0.459472656f, 0.129577637f, 0.056533813f,
-      0.031814575f, 0.003723145f, 0.002899170f, 0.000289917f, -0.000015259f, -0.000686646f,
-      0.003479004f, -0.011886597f, 0.026535034f, -0.105819702f, 0.044784546f, -0.711318970f,
-      1.127746582f, 0.431655884f, 0.134887695f, 0.051132202f, 0.031661987f, 0.003005981f,
-      0.002792358f, 0.000259399f, -0.000015259f, -0.000747681f, 0.003479004f, -0.012939453f,
-      0.025085449f, -0.110946655f, 0.031082153f, -0.738372803f, 1.120223999f, 0.404083252f,
-      0.139450073f, 0.045837402f, 0.031387329f, 0.002334595f, 0.002685547f, 0.000244141f,
-      -0.000030518f, -0.000808716f, 0.003463745f, -0.014022827f, 0.023422241f, -0.115921021f,
-      0.016510010f, -0.765029907f, 1.111373901f, 0.376800537f, 0.143264771f, 0.040634155f,
-      0.031005859f, 0.001693726f, 0.002578735f, 0.000213623f, -0.000030518f, -0.000885010f,
-      0.003417969f, -0.015121460f, 0.021575928f, -0.120697021f, 0.001068115f, -0.791213989f,
-      1.101211548f, 0.349868774f, 0.146362305f, 0.035552979f, 0.030532837f, 0.001098633f,
-      0.002456665f, 0.000198364f, -0.000030518f, -0.000961304f, 0.003372192f, -0.016235352f,
-      0.019531250f, -0.125259399f, -0.015228271f, -0.816864014f, 1.089782715f, 0.323318481f,
-      0.148773193f, 0.030609131f, 0.029937744f, 0.000549316f, 0.002349854f, 0.000167847f,
-      -0.000030518f, -0.001037598f, 0.003280640f, -0.017349243f, 0.017257690f, -0.129562378f,
-      -0.032379150f, -0.841949463f, 1.077117920f, 0.297210693f, 0.150497437f, 0.025817871f,
-      0.029281616f, 0.000030518f, 0.002243042f, 0.000152588f, -0.000045776f, -0.001113892f,
-      0.003173828f, -0.018463135f, 0.014801025f, -0.133590698f, -0.050354004f, -0.866363525f,
-      1.063217163f, 0.271591187f, 0.151596069f, 0.021179199f, 0.028533936f, -0.000442505f,
-      0.002120972f, 0.000137329f, -0.000045776f, -0.001205444f, 0.003051758f, -0.019577026f,
-      0.012115479f, -0.137298584f, -0.069168091f, -0.890090942f, 1.048156738f, 0.246505737f,
-      0.152069092f, 0.016708374f, 0.027725220f, -0.000869751f, 0.002014160f, 0.000122070f,
-      -0.000061035f, -0.001296997f, 0.002883911f, -0.020690918f, 0.009231567f, -0.140670776f,
-      -0.088775635f, -0.913055420f, 1.031936646f, 0.221984863f, 0.151962280f, 0.012420654f,
-      0.026840210f, -0.001266479f, 0.001907349f, 0.000106812f, -0.000061035f, -0.001388550f,
-      0.002700806f, -0.021789551f, 0.006134033f, -0.143676758f, -0.109161377f, -0.935195923f,
-      1.014617920f, 0.198059082f, 0.151306152f, 0.008316040f, 0.025909424f, -0.001617432f,
-      0.001785278f, 0.000106812f, -0.000076294f, -0.001480103f, 0.002487183f, -0.022857666f,
-      0.002822876f, -0.146255493f, -0.130310059f, -0.956481934f, 0.996246338f, 0.174789429f,
-      0.150115967f, 0.004394531f, 0.024932861f, -0.001937866f, 0.001693726f, 0.000091553f,
-      -0.000076294f, -0.001586914f, 0.002227783f, -0.023910522f, -0.000686646f, -0.148422241f,
-      -0.152206421f, -0.976852417f, 0.976852417f, 0.152206421f, 0.148422241f, 0.000686646f,
-      0.023910522f, -0.002227783f, 0.001586914f, 0.000076294f, -0.000091553f, -0.001693726f,
-      0.001937866f, -0.024932861f, -0.004394531f, -0.150115967f, -0.174789429f, -0.996246338f,
-      0.956481934f, 0.130310059f, 0.146255493f, -0.002822876f, 0.022857666f, -0.002487183f,
-      0.001480103f, 0.000076294f, -0.000106812f, -0.001785278f, 0.001617432f, -0.025909424f,
-      -0.008316040f, -0.151306152f, -0.198059082f, -1.014617920f, 0.935195923f, 0.109161377f,
-      0.143676758f, -0.006134033f, 0.021789551f, -0.002700806f, 0.001388550f, 0.000061035f,
-      -0.000106812f, -0.001907349f, 0.001266479f, -0.026840210f, -0.012420654f, -0.151962280f,
-      -0.221984863f, -1.031936646f, 0.913055420f, 0.088775635f, 0.140670776f, -0.009231567f,
-      0.020690918f, -0.002883911f, 0.001296997f, 0.000061035f, -0.000122070f, -0.002014160f,
-      0.000869751f, -0.027725220f, -0.016708374f, -0.152069092f, -0.246505737f, -1.048156738f,
-      0.890090942f, 0.069168091f, 0.137298584f, -0.012115479f, 0.019577026f, -0.003051758f,
-      0.001205444f, 0.000045776f, -0.000137329f, -0.002120972f, 0.000442505f, -0.028533936f,
-      -0.021179199f, -0.151596069f, -0.271591187f, -1.063217163f, 0.866363525f, 0.050354004f,
-      0.133590698f, -0.014801025f, 0.018463135f, -0.003173828f, 0.001113892f, 0.000045776f,
-      -0.000152588f, -0.002243042f, -0.000030518f, -0.029281616f, -0.025817871f, -0.150497437f,
-      -0.297210693f, -1.077117920f, 0.841949463f, 0.032379150f, 0.129562378f, -0.017257690f,
-      0.017349243f, -0.003280640f, 0.001037598f, 0.000030518f, -0.000167847f, -0.002349854f,
-      -0.000549316f, -0.029937744f, -0.030609131f, -0.148773193f, -0.323318481f, -1.089782715f,
-      0.816864014f, 0.015228271f, 0.125259399f, -0.019531250f, 0.016235352f, -0.003372192f,
-      0.000961304f, 0.000030518f, -0.000198364f, -0.002456665f, -0.001098633f, -0.030532837f,
-      -0.035552979f, -0.146362305f, -0.349868774f, -1.101211548f, 0.791213989f, -0.001068115f,
-      0.120697021f, -0.021575928f, 0.015121460f, -0.003417969f, 0.000885010f, 0.000030518f,
-      -0.000213623f, -0.002578735f, -0.001693726f, -0.031005859f, -0.040634155f, -0.143264771f,
-      -0.376800537f, -1.111373901f, 0.765029907f, -0.016510010f, 0.115921021f, -0.023422241f,
-      0.014022827f, -0.003463745f, 0.000808716f, 0.000030518f, -0.000244141f, -0.002685547f,
-      -0.002334595f, -0.031387329f, -0.045837402f, -0.139450073f, -0.404083252f, -1.120223999f,
-      0.738372803f, -0.031082153f, 0.110946655f, -0.025085449f, 0.012939453f, -0.003479004f,
-      0.000747681f, 0.000015259f, -0.000259399f, -0.002792358f, -0.003005981f, -0.031661987f,
-      -0.051132202f, -0.134887695f, -0.431655884f, -1.127746582f, 0.711318970f, -0.044784546f,
-      0.105819702f, -0.026535034f, 0.011886597f, -0.003479004f, 0.000686646f, 0.000015259f,
-      -0.000289917f, -0.002899170f, -0.003723145f, -0.031814575f, -0.056533813f, -0.129577637f,
-      -0.459472656f, -1.133926392f, 0.683914185f, -0.057617188f, 0.100540161f, -0.027801514f,
-      0.010848999f, -0.003463745f, 0.000625610f, 0.000015259f, -0.000320435f, -0.002990723f,
-      -0.004486084f, -0.031845093f, -0.061996460f, -0.123474121f, -0.487472534f, -1.138763428f,
-      0.656219482f, -0.069595337f, 0.095169067f, -0.028884888f, 0.009841919f, -0.003433228f,
-      0.000579834f, 0.000015259f, -0.000366211f, -0.003082275f, -0.005294800f, -0.031738281f,
-      -0.067520142f, -0.116577148f, -0.515609741f, -1.142211914f, 0.628295898f, -0.080688477f,
-      0.089706421f, -0.029785156f, 0.008865356f, -0.003387451f, 0.000534058f, 0.000015259f,
-      -0.000396729f, -0.003173828f, -0.006118774f, -0.031478882f, -0.073059082f, -0.108856201f,
-      -0.543823242f, -1.144287109f, 0.600219727f, -0.090927124f, 0.084182739f, -0.030517578f,
-      0.007919312f, -0.003326416f, 0.000473022f, 0.000015259f };
+  static final float d[] = { 0.000000000f, -0.000442505f, 0.003250122f, -0.007003784f, 0.031082153f, -0.078628540f, 0.100311279f, -0.572036743f, 1.144989014f, 0.572036743f, 0.100311279f, 0.078628540f, 0.031082153f, 0.007003784f, 0.003250122f, 0.000442505f, -0.000015259f, -0.000473022f, 0.003326416f, -0.007919312f, 0.030517578f, -0.084182739f, 0.090927124f, -0.600219727f, 1.144287109f, 0.543823242f, 0.108856201f, 0.073059082f, 0.031478882f, 0.006118774f, 0.003173828f, 0.000396729f, -0.000015259f, -0.000534058f, 0.003387451f, -0.008865356f, 0.029785156f, -0.089706421f, 0.080688477f, -0.628295898f, 1.142211914f, 0.515609741f, 0.116577148f, 0.067520142f, 0.031738281f, 0.005294800f, 0.003082275f, 0.000366211f, -0.000015259f, -0.000579834f, 0.003433228f, -0.009841919f, 0.028884888f, -0.095169067f, 0.069595337f, -0.656219482f, 1.138763428f, 0.487472534f, 0.123474121f, 0.061996460f, 0.031845093f, 0.004486084f, 0.002990723f, 0.000320435f, -0.000015259f, -0.000625610f, 0.003463745f, -0.010848999f, 0.027801514f, -0.100540161f, 0.057617188f, -0.683914185f, 1.133926392f, 0.459472656f, 0.129577637f, 0.056533813f, 0.031814575f, 0.003723145f, 0.002899170f, 0.000289917f, -0.000015259f, -0.000686646f, 0.003479004f, -0.011886597f, 0.026535034f, -0.105819702f, 0.044784546f, -0.711318970f, 1.127746582f, 0.431655884f, 0.134887695f, 0.051132202f, 0.031661987f, 0.003005981f, 0.002792358f, 0.000259399f, -0.000015259f, -0.000747681f, 0.003479004f, -0.012939453f, 0.025085449f, -0.110946655f, 0.031082153f, -0.738372803f, 1.120223999f, 0.404083252f, 0.139450073f, 0.045837402f, 0.031387329f, 0.002334595f, 0.002685547f, 0.000244141f, -0.000030518f, -0.000808716f, 0.003463745f, -0.014022827f, 0.023422241f, -0.115921021f, 0.016510010f, -0.765029907f, 1.111373901f, 0.376800537f, 0.143264771f, 0.040634155f, 0.031005859f, 0.001693726f, 0.002578735f, 0.000213623f, -0.000030518f, -0.000885010f, 0.003417969f, -0.015121460f, 0.021575928f, -0.120697021f, 0.001068115f, -0.791213989f, 1.101211548f, 0.349868774f, 0.146362305f, 0.035552979f, 0.030532837f, 0.001098633f, 0.002456665f, 0.000198364f, -0.000030518f, -0.000961304f, 0.003372192f, -0.016235352f, 0.019531250f, -0.125259399f, -0.015228271f, -0.816864014f, 1.089782715f, 0.323318481f, 0.148773193f, 0.030609131f, 0.029937744f, 0.000549316f, 0.002349854f, 0.000167847f, -0.000030518f, -0.001037598f, 0.003280640f, -0.017349243f, 0.017257690f, -0.129562378f, -0.032379150f, -0.841949463f, 1.077117920f, 0.297210693f, 0.150497437f, 0.025817871f, 0.029281616f, 0.000030518f, 0.002243042f, 0.000152588f, -0.000045776f, -0.001113892f, 0.003173828f, -0.018463135f, 0.014801025f, -0.133590698f, -0.050354004f, -0.866363525f, 1.063217163f, 0.271591187f, 0.151596069f, 0.021179199f, 0.028533936f, -0.000442505f, 0.002120972f, 0.000137329f, -0.000045776f, -0.001205444f, 0.003051758f, -0.019577026f, 0.012115479f, -0.137298584f, -0.069168091f, -0.890090942f, 1.048156738f, 0.246505737f, 0.152069092f, 0.016708374f, 0.027725220f, -0.000869751f, 0.002014160f, 0.000122070f, -0.000061035f, -0.001296997f, 0.002883911f, -0.020690918f, 0.009231567f, -0.140670776f, -0.088775635f, -0.913055420f, 1.031936646f, 0.221984863f, 0.151962280f, 0.012420654f, 0.026840210f, -0.001266479f, 0.001907349f, 0.000106812f, -0.000061035f, -0.001388550f, 0.002700806f, -0.021789551f, 0.006134033f, -0.143676758f, -0.109161377f, -0.935195923f, 1.014617920f, 0.198059082f, 0.151306152f, 0.008316040f, 0.025909424f, -0.001617432f, 0.001785278f, 0.000106812f, -0.000076294f, -0.001480103f, 0.002487183f, -0.022857666f, 0.002822876f, -0.146255493f, -0.130310059f, -0.956481934f, 0.996246338f, 0.174789429f, 0.150115967f, 0.004394531f, 0.024932861f, -0.001937866f, 0.001693726f, 0.000091553f, -0.000076294f, -0.001586914f, 0.002227783f, -0.023910522f, -0.000686646f, -0.148422241f, -0.152206421f, -0.976852417f, 0.976852417f, 0.152206421f, 0.148422241f, 0.000686646f, 0.023910522f, -0.002227783f, 0.001586914f, 0.000076294f, -0.000091553f, -0.001693726f, 0.001937866f, -0.024932861f, -0.004394531f, -0.150115967f, -0.174789429f, -0.996246338f, 0.956481934f, 0.130310059f, 0.146255493f, -0.002822876f, 0.022857666f, -0.002487183f, 0.001480103f, 0.000076294f, -0.000106812f, -0.001785278f, 0.001617432f, -0.025909424f, -0.008316040f, -0.151306152f, -0.198059082f, -1.014617920f, 0.935195923f, 0.109161377f, 0.143676758f, -0.006134033f, 0.021789551f, -0.002700806f, 0.001388550f, 0.000061035f, -0.000106812f, -0.001907349f, 0.001266479f, -0.026840210f, -0.012420654f, -0.151962280f, -0.221984863f, -1.031936646f, 0.913055420f, 0.088775635f, 0.140670776f, -0.009231567f, 0.020690918f, -0.002883911f, 0.001296997f, 0.000061035f, -0.000122070f, -0.002014160f, 0.000869751f, -0.027725220f, -0.016708374f, -0.152069092f, -0.246505737f, -1.048156738f, 0.890090942f, 0.069168091f, 0.137298584f, -0.012115479f, 0.019577026f, -0.003051758f, 0.001205444f, 0.000045776f, -0.000137329f, -0.002120972f, 0.000442505f, -0.028533936f, -0.021179199f, -0.151596069f, -0.271591187f, -1.063217163f, 0.866363525f, 0.050354004f, 0.133590698f, -0.014801025f, 0.018463135f, -0.003173828f, 0.001113892f, 0.000045776f, -0.000152588f, -0.002243042f, -0.000030518f, -0.029281616f, -0.025817871f, -0.150497437f, -0.297210693f, -1.077117920f, 0.841949463f, 0.032379150f, 0.129562378f, -0.017257690f, 0.017349243f, -0.003280640f, 0.001037598f, 0.000030518f, -0.000167847f, -0.002349854f, -0.000549316f, -0.029937744f, -0.030609131f, -0.148773193f, -0.323318481f, -1.089782715f, 0.816864014f, 0.015228271f, 0.125259399f, -0.019531250f, 0.016235352f, -0.003372192f, 0.000961304f, 0.000030518f, -0.000198364f, -0.002456665f, -0.001098633f, -0.030532837f, -0.035552979f, -0.146362305f, -0.349868774f, -1.101211548f, 0.791213989f, -0.001068115f, 0.120697021f, -0.021575928f, 0.015121460f, -0.003417969f, 0.000885010f, 0.000030518f, -0.000213623f, -0.002578735f, -0.001693726f, -0.031005859f, -0.040634155f, -0.143264771f, -0.376800537f, -1.111373901f, 0.765029907f, -0.016510010f, 0.115921021f, -0.023422241f, 0.014022827f, -0.003463745f, 0.000808716f, 0.000030518f, -0.000244141f, -0.002685547f, -0.002334595f, -0.031387329f, -0.045837402f, -0.139450073f, -0.404083252f, -1.120223999f, 0.738372803f, -0.031082153f, 0.110946655f, -0.025085449f, 0.012939453f, -0.003479004f, 0.000747681f, 0.000015259f, -0.000259399f, -0.002792358f, -0.003005981f, -0.031661987f, -0.051132202f, -0.134887695f, -0.431655884f, -1.127746582f, 0.711318970f, -0.044784546f, 0.105819702f, -0.026535034f, 0.011886597f, -0.003479004f, 0.000686646f, 0.000015259f, -0.000289917f, -0.002899170f, -0.003723145f, -0.031814575f, -0.056533813f, -0.129577637f, -0.459472656f, -1.133926392f, 0.683914185f, -0.057617188f, 0.100540161f, -0.027801514f, 0.010848999f, -0.003463745f, 0.000625610f, 0.000015259f, -0.000320435f, -0.002990723f, -0.004486084f, -0.031845093f, -0.061996460f, -0.123474121f, -0.487472534f, -1.138763428f, 0.656219482f, -0.069595337f, 0.095169067f, -0.028884888f, 0.009841919f, -0.003433228f, 0.000579834f, 0.000015259f, -0.000366211f, -0.003082275f, -0.005294800f, -0.031738281f, -0.067520142f, -0.116577148f, -0.515609741f, -1.142211914f, 0.628295898f, -0.080688477f, 0.089706421f, -0.029785156f, 0.008865356f, -0.003387451f, 0.000534058f, 0.000015259f, -0.000396729f, -0.003173828f, -0.006118774f, -0.031478882f, -0.073059082f, -0.108856201f, -0.543823242f, -1.144287109f, 0.600219727f, -0.090927124f, 0.084182739f, -0.030517578f, 0.007919312f, -0.003326416f, 0.000473022f, 0.000015259f };
 
 }

@@ -38,7 +38,6 @@
 // REVIEW: there is no range checking, so buffer underflow or overflow
 // can silently occur.
 
-
 final class BitReserve {
   /**
    * Size of the internal buffer to store the reserved bits. Must be a power of
@@ -52,16 +51,12 @@ final class BitReserve {
    */
   private static final int BUFSIZE_MASK = BUFSIZE - 1;
 
-  
   private int offset;
 
-  
   public int totbit;
 
-  
   public int buf_byte_idx;
 
-  
   private final int[] buf;
 
   BitReserve() {
@@ -74,7 +69,7 @@ final class BitReserve {
   /**
    * Return totbit Field.
    */
-  
+
   public int hsstell() {
     return (totbit);
   }
@@ -85,13 +80,13 @@ final class BitReserve {
    * @param N
    *          the number of
    */
-  public int hgetbits( int N) {
+  public int hgetbits(int N) {
 
     totbit += N;
 
-     int val = 0;
+    int val = 0;
 
-     int pos = buf_byte_idx;
+    int pos = buf_byte_idx;
     if (pos + N < BUFSIZE) {
       TERMINATE: while (N-- > 0) {
         val <<= 1;
@@ -116,10 +111,10 @@ final class BitReserve {
    * 
    * @returns 0 if next bit is reset, or 1 if next bit is set.
    */
-  
+
   public int hget1bit() {
     totbit++;
-     int val = buf[buf_byte_idx];
+    int val = buf[buf_byte_idx];
     buf_byte_idx = (buf_byte_idx + 1) & BUFSIZE_MASK;
     return val;
   }
@@ -127,9 +122,9 @@ final class BitReserve {
   /**
    * Write 8 bits into the bit stream.
    */
-  
-  public void hputbuf( int val) {
-     int ofs = offset;
+
+  public void hputbuf(int val) {
+    int ofs = offset;
     buf[ofs++] = val & 0x80;
     buf[ofs++] = val & 0x40;
     buf[ofs++] = val & 0x20;
@@ -149,7 +144,7 @@ final class BitReserve {
   /**
    * Rewind N bits in Stream.
    */
-  public void rewindNbits( int N) {
+  public void rewindNbits(int N) {
     totbit -= N;
     buf_byte_idx -= N;
     if (buf_byte_idx < 0)
@@ -159,9 +154,9 @@ final class BitReserve {
   /**
    * Rewind N bytes in Stream.
    */
-  
-  public void rewindNbytes( int N) {
-     int bits = (N << 3);
+
+  public void rewindNbytes(int N) {
+    int bits = (N << 3);
     totbit -= bits;
     buf_byte_idx -= bits;
     if (buf_byte_idx < 0)

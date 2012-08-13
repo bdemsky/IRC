@@ -37,7 +37,7 @@ public class Player {
   /**
    * The current frame number.
    */
-  
+
   private int frame = 0;
 
   /**
@@ -59,19 +59,17 @@ public class Player {
   /**
    * Has the player been closed?
    */
-  
+
   private boolean closed = false;
 
   /**
    * Has the player played back all frames from the stream?
    */
-  
+
   private boolean complete = false;
 
-  
   private int lastPosition = 0;
 
-  
   private long sampleNumber;
 
   /**
@@ -110,20 +108,19 @@ public class Player {
    * @return true if the last frame was played, or false if there are more
    *         frames.
    */
-  
-  
-  public boolean play( int frames) throws JavaLayerException {
-     boolean ret = true;
+
+  public boolean play(int frames) throws JavaLayerException {
+    boolean ret = true;
 
     // initialization before ssjava loop
-     boolean init = true;
-     Header h = BitstreamWrapper.readFrame();
+    boolean init = true;
+    Header h = BitstreamWrapper.readFrame();
     decoder.init(h);
 
     sampleNumber = 1;
     System.out.println("Gobble sentinel: +++");
 
-    //  int count = 0;
+    // int count = 0;
     SSJAVA: while (true) {
       if (h == null) {
         break;
@@ -189,9 +186,8 @@ public class Player {
    * 
    * @return true if there are no more frames to decode, false otherwise.
    */
-  
-  protected boolean decodeFrame( boolean init,  Header h)
-      throws JavaLayerException {
+
+  protected boolean decodeFrame(boolean init, Header h) throws JavaLayerException {
     try {
       // AudioDevice out = audio;
       // if (out==null)
@@ -202,12 +198,12 @@ public class Player {
       // if (h == null){
       // return false;
       // }
-      
-      //  SampleBuffer output = (SampleBuffer) decoder.decodeFrame(h);
+
+      // SampleBuffer output = (SampleBuffer) decoder.decodeFrame(h);
       decoder.decodeFrame(h);
 
-//      DEBUG_OUTPUT_CHECKSUM();
-//       DEBUG_OUTPUT();
+      // DEBUG_OUTPUT_CHECKSUM();
+      // DEBUG_OUTPUT();
       // synchronized (this)
       // {
       // out = audio;
@@ -247,10 +243,10 @@ public class Player {
   @TRUST
   public void DEBUG_OUTPUT_CHECKSUM() {
     // eom debug
-     int sum = 0;
-     short[] outbuf = SampleBufferWrapper.getBuffer();
+    int sum = 0;
+    short[] outbuf = SampleBufferWrapper.getBuffer();
     // short[] outbuf = output.getBuffer();
-    TERMINATE: for ( int i = 0; i < SampleBufferWrapper.getBufferLength(); i++) {
+    TERMINATE: for (int i = 0; i < SampleBufferWrapper.getBufferLength(); i++) {
       // System.out.println(outbuf[i]);
       sum += outbuf[i];
     }

@@ -27,7 +27,6 @@
  * @since 0.0.5
  */
 
-
 public class Decoder implements DecoderErrors {
 
   static private final Params DEFAULT_PARAMS = new Params();
@@ -35,49 +34,45 @@ public class Decoder implements DecoderErrors {
   /**
    * The Bistream from which the MPEG audio frames are read.
    */
-  // 
+  //
   // private Bitstream stream;
 
   /**
    * The Obuffer instance that will receive the decoded PCM samples.
    */
-  // 
+  //
   // private Obuffer output;
 
   /**
    * Synthesis filter for the left channel.
    */
-  // 
+  //
   // private SynthesisFilter filter1;
 
   /**
    * Sythesis filter for the right channel.
    */
-  // 
+  //
   // private SynthesisFilter filter2;
 
   /**
    * The decoder used to decode layer III frames.
    */
-  
+
   private LayerIIIDecoder l3decoder;
-  // 
+  //
   // private LayerIIDecoder l2decoder;
-  // 
+  //
   // private LayerIDecoder l1decoder;
 
-  
   private int outputFrequency;
-  
+
   private int outputChannels;
 
-  
   private Equalizer equalizer = new Equalizer();
 
-  
   private Params params;
 
-  
   private boolean initialized;
 
   /**
@@ -127,25 +122,24 @@ public class Decoder implements DecoderErrors {
   // if (filter2 != null)
   // filter2.setEQ(factors);
   // }
-  
-  public void init(  Header header) {
-     float scalefactor = 32700.0f;
 
-     int mode = header.mode();
-     int layer = header.layer();
-     int channels = mode == Header.SINGLE_CHANNEL ? 1 : 2;
+  public void init(Header header) {
+    float scalefactor = 32700.0f;
+
+    int mode = header.mode();
+    int layer = header.layer();
+    int channels = mode == Header.SINGLE_CHANNEL ? 1 : 2;
 
     // set up output buffer if not set up by client.
     // if (output == null)
     // output = new SampleBuffer(header.frequency(), channels);
     SampleBufferWrapper.init(header.frequency(), channels);
 
-     float[] factors = equalizer.getBandFactors();
-     SynthesisFilter filter1 =
-        new SynthesisFilter(0, scalefactor, factors);
+    float[] factors = equalizer.getBandFactors();
+    SynthesisFilter filter1 = new SynthesisFilter(0, scalefactor, factors);
 
     // REVIEW: allow mono output for stereo
-     SynthesisFilter filter2 = null;
+    SynthesisFilter filter2 = null;
     if (channels == 2) {
       filter2 = new SynthesisFilter(1, scalefactor, factors);
     }
@@ -153,7 +147,7 @@ public class Decoder implements DecoderErrors {
     outputChannels = channels;
     outputFrequency = header.frequency();
 
-    l3decoder = new LayerIIIDecoder(header,filter1, filter2, OutputChannels.BOTH_CHANNELS);
+    l3decoder = new LayerIIIDecoder(header, filter1, filter2, OutputChannels.BOTH_CHANNELS);
 
   }
 
@@ -167,8 +161,8 @@ public class Decoder implements DecoderErrors {
    * 
    * @return A SampleBuffer containing the decoded samples.
    */
-  
-  public void decodeFrame( Header header) throws DecoderException {
+
+  public void decodeFrame(Header header) throws DecoderException {
 
     SampleBufferWrapper.clear_buffer();
     l3decoder.decode(header);
@@ -234,67 +228,63 @@ public class Decoder implements DecoderErrors {
   }
 }
 
+/**
+ * The <code>Params</code> class presents the customizable aspects of the
+ * decoder.
+ * <p>
+ * Instances of this class are not thread safe.
+ */
+public class Params implements Cloneable {
 
+  // private OutputChannels outputChannels = OutputChannels.BOTH;
+  private OutputChannels outputChannels = new OutputChannels(0);
 
+  private Equalizer equalizer = new Equalizer();
 
+  public Params() {
+  }
+
+  public Object clone() {
+    // TODO: need to have better clone method
+    Params clone = new Params();
+    clone.outputChannels = new OutputChannels(outputChannels.getChannelsOutputCode());
+    clone.equalizer = new Equalizer();
+    return clone;
+    // try
+    // {
+    // return super.clone();
+    // }
+    // catch (CloneNotSupportedException ex)
+    // {
+    // throw new InternalError(this+": "+ex);
+    // }
+  }
+
+  public void setOutputChannels(OutputChannels out) {
+    if (out == null)
+      throw new NullPointerException("out");
+
+    outputChannels = out;
+  }
+
+  public OutputChannels getOutputChannels() {
+    return outputChannels;
+  }
 
   /**
-   * The <code>Params</code> class presents the customizable aspects of the
-   * decoder.
+   * Retrieves the equalizer settings that the decoder's equalizer will be
+   * initialized from.
    * <p>
-   * Instances of this class are not thread safe.
+   * The <code>Equalizer</code> instance returned cannot be changed in real time
+   * to affect the decoder output as it is used only to initialize the decoders
+   * EQ settings. To affect the decoder's output in realtime, use the Equalizer
+   * returned from the getEqualizer() method on the decoder.
+   * 
+   * @return The <code>Equalizer</code> used to initialize the EQ settings of
+   *         the decoder.
    */
-  public class Params implements Cloneable {
-
-    // private OutputChannels outputChannels = OutputChannels.BOTH;
-    private OutputChannels outputChannels = new OutputChannels(0);
-
-    private Equalizer equalizer = new Equalizer();
-
-    public Params() {
-    }
-
-    public Object clone() {
-      // TODO: need to have better clone method
-      Params clone = new Params();
-      clone.outputChannels = new OutputChannels(outputChannels.getChannelsOutputCode());
-      clone.equalizer = new Equalizer();
-      return clone;
-      // try
-      // {
-      // return super.clone();
-      // }
-      // catch (CloneNotSupportedException ex)
-      // {
-      // throw new InternalError(this+": "+ex);
-      // }
-    }
-
-    public void setOutputChannels(OutputChannels out) {
-      if (out == null)
-        throw new NullPointerException("out");
-
-      outputChannels = out;
-    }
-
-    public OutputChannels getOutputChannels() {
-      return outputChannels;
-    }
-
-    /**
-     * Retrieves the equalizer settings that the decoder's equalizer will be
-     * initialized from.
-     * <p>
-     * The <code>Equalizer</code> instance returned cannot be changed in real
-     * time to affect the decoder output as it is used only to initialize the
-     * decoders EQ settings. To affect the decoder's output in realtime, use the
-     * Equalizer returned from the getEqualizer() method on the decoder.
-     * 
-     * @return The <code>Equalizer</code> used to initialize the EQ settings of
-     *         the decoder.
-     */
-    public Equalizer getInitialEqualizerSettings() {
-      return equalizer;
-    }
-
+  public Equalizer getInitialEqualizerSettings() {
+    return equalizer;
   }
+
+}

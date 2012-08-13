@@ -1,3 +1,3 @@
-public @interface METHODDEFAULT{
-    String value();
+public @interface METHODDEFAULT {
+  String value();
 }

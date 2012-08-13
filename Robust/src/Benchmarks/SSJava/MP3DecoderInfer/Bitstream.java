@@ -41,102 +41,90 @@
  * This should be moved into this class and associated inner classes.
  */
 
-
 public final class Bitstream implements BitstreamErrors {
   /**
    * Synchronization control constant for the initial synchronization to the
    * start of a frame.
    */
-  
+
   static byte INITIAL_SYNC = 0;
 
   /**
    * Synchronization control constant for non-initial frame synchronizations.
    */
 
-  
   static byte STRICT_SYNC = 1;
 
   // max. 1730 bytes per frame: 144 * 384kbit/s / 32000 Hz + 2 Bytes CRC
   /**
    * Maximum size of the frame buffer.
    */
-  
+
   private static final int BUFFER_INT_SIZE = 433;
 
   /**
    * The frame buffer that holds the data for the current frame.
    */
-  
+
   private final int[] framebuffer = new int[BUFFER_INT_SIZE];
 
   /**
    * Number of valid bytes in the frame buffer.
    */
-  
+
   private int framesize;
 
   /**
    * The bytes read from the stream.
    */
-  
+
   private byte[] frame_bytes = new byte[BUFFER_INT_SIZE * 4];
 
   /**
    * Index into <code>framebuffer</code> where the next bits are retrieved.
    */
-  
+
   private int wordpointer;
 
   /**
    * Number (0-31, from MSB to LSB) of next bit for get_bits()
    */
-  
+
   private int bitindex;
 
   /**
    * The current specified syncword
    */
-  
+
   private int syncword;
 
   /**
    * Audio header position in stream.
    */
-  
+
   private int header_pos = 0;
 
   /**
       *
       */
-  
+
   private boolean single_ch_mode;
   // private int current_frame_number;
   // private int last_frame_number;
 
-  
-  private final int bitmask[] = {
-      0, // dummy
-      0x00000001, 0x00000003, 0x00000007, 0x0000000F, 0x0000001F, 0x0000003F, 0x0000007F,
-      0x000000FF, 0x000001FF, 0x000003FF, 0x000007FF, 0x00000FFF, 0x00001FFF, 0x00003FFF,
-      0x00007FFF, 0x0000FFFF, 0x0001FFFF };
+  private final int bitmask[] = { 0, // dummy
+  0x00000001, 0x00000003, 0x00000007, 0x0000000F, 0x0000001F, 0x0000003F, 0x0000007F, 0x000000FF, 0x000001FF, 0x000003FF, 0x000007FF, 0x00000FFF, 0x00001FFF, 0x00003FFF, 0x00007FFF, 0x0000FFFF, 0x0001FFFF };
 
-  
   private final PushbackInputStream source;
 
-  
   private final Header header = new Header();
 
-  
   private final byte syncbuf[] = new byte[4];
 
-  
   private Crc16[] crc = new Crc16[1];
 
-  
   private byte[] rawid3v2 = null;
 
-  
   private boolean firstframe = true;
 
   private BitReserve br;
@@ -226,8 +214,7 @@ public final class Bitstream implements BitstreamErrors {
       int majorVersion = id3header[0];
       int revision = id3header[1];
       in.read(id3header, 0, 4);
-      size =
-          (int) (id3header[0] << 21) + (id3header[1] << 14) + (id3header[2] << 7) + (id3header[3]);
+      size = (int) (id3header[0] << 21) + (id3header[1] << 14) + (id3header[2] << 7) + (id3header[3]);
     }
     return (size + 10);
   }
@@ -364,9 +351,7 @@ public final class Bitstream implements BitstreamErrors {
    */
   public boolean isSyncCurrentPosition(int syncmode) throws BitstreamException {
     int read = readBytes(syncbuf, 0, 4);
-    int headerstring =
-        ((syncbuf[0] << 24) & 0xFF000000) | ((syncbuf[1] << 16) & 0x00FF0000)
-            | ((syncbuf[2] << 8) & 0x0000FF00) | ((syncbuf[3] << 0) & 0x000000FF);
+    int headerstring = ((syncbuf[0] << 24) & 0xFF000000) | ((syncbuf[1] << 16) & 0x00FF0000) | ((syncbuf[2] << 8) & 0x0000FF00) | ((syncbuf[3] << 0) & 0x000000FF);
 
     try {
       source.unread(syncbuf, 0, read);
@@ -462,9 +447,7 @@ public final class Bitstream implements BitstreamErrors {
     if (bytesRead != 3)
       throw newBitstreamException(STREAM_EOF, null);
 
-    headerstring =
-        ((syncbuf[0] << 16) & 0x00FF0000) | ((syncbuf[1] << 8) & 0x0000FF00)
-            | ((syncbuf[2] << 0) & 0x000000FF);
+    headerstring = ((syncbuf[0] << 16) & 0x00FF0000) | ((syncbuf[1] << 8) & 0x0000FF00) | ((syncbuf[2] << 0) & 0x000000FF);
 
     do {
       headerstring <<= 8;
@@ -494,9 +477,7 @@ public final class Bitstream implements BitstreamErrors {
       // sync = ((headerstring & 0xFFF00000) == 0xFFF00000);
       sync = ((headerstring & 0xFFE00000) == 0xFFE00000); // SZD: MPEG 2.5
     } else {
-      sync =
-          ((headerstring & 0xFFF80C00) == word)
-              && (((headerstring & 0x000000C0) == 0x000000C0) == single_ch_mode);
+      sync = ((headerstring & 0xFFF80C00) == word) && (((headerstring & 0x000000C0) == 0x000000C0) == single_ch_mode);
     }
 
     // filter out invalid sample rate
@@ -528,12 +509,12 @@ public final class Bitstream implements BitstreamErrors {
   /**
    * Parses the data previously read with read_frame_data().
    */
-  
+
   void parse_frame() throws BitstreamException {
     // Convert Bytes read to int
-     int b = 0;
-     byte[] byteread = frame_bytes;
-     int bytesize = framesize;
+    int b = 0;
+    byte[] byteread = frame_bytes;
+    int bytesize = framesize;
 
     // Check ID3v1 TAG (True only if last frame).
     // for (int t=0;t<(byteread.length)-2;t++)
@@ -545,12 +526,12 @@ public final class Bitstream implements BitstreamErrors {
     // }
     // }
 
-    for ( int k = 0; k < bytesize; k = k + 4) {
-       int convert = 0;
-       byte b0 = 0;
-       byte b1 = 0;
-       byte b2 = 0;
-       byte b3 = 0;
+    for (int k = 0; k < bytesize; k = k + 4) {
+      int convert = 0;
+      byte b0 = 0;
+      byte b1 = 0;
+      byte b2 = 0;
+      byte b3 = 0;
       b0 = byteread[k];
       if (k + 1 < bytesize)
         b1 = byteread[k + 1];
@@ -558,9 +539,7 @@ public final class Bitstream implements BitstreamErrors {
         b2 = byteread[k + 2];
       if (k + 3 < bytesize)
         b3 = byteread[k + 3];
-      framebuffer[b++] =
-          ((b0 << 24) & 0xFF000000) | ((b1 << 16) & 0x00FF0000) | ((b2 << 8) & 0x0000FF00)
-              | (b3 & 0x000000FF);
+      framebuffer[b++] = ((b0 << 24) & 0xFF000000) | ((b1 << 16) & 0x00FF0000) | ((b2 << 8) & 0x0000FF00) | (b3 & 0x000000FF);
     }
     wordpointer = 0;
     bitindex = 0;
@@ -570,11 +549,11 @@ public final class Bitstream implements BitstreamErrors {
    * Read bits from buffer into the lower bits of an unsigned int. The LSB
    * contains the latest read bit of the stream. (1 <= number_of_bits <= 16)
    */
-  
-  public int get_bits( int number_of_bits) {
 
-     int returnvalue = 0;
-     int sum = bitindex + number_of_bits;
+  public int get_bits(int number_of_bits) {
+
+    int returnvalue = 0;
+    int sum = bitindex + number_of_bits;
 
     // E.B
     // There is a problem here, wordpointer could be -1 ?!
@@ -597,9 +576,9 @@ public final class Bitstream implements BitstreamErrors {
     // ((short[])&returnvalue)[0] = ((short[])wordpointer + 1)[0];
     // wordpointer++; // Added by me!
     // ((short[])&returnvalue + 1)[0] = ((short[])wordpointer)[0];
-     int Right = (framebuffer[wordpointer] & 0x0000FFFF);
+    int Right = (framebuffer[wordpointer] & 0x0000FFFF);
     wordpointer++;
-     int Left = (framebuffer[wordpointer] & 0xFFFF0000);
+    int Left = (framebuffer[wordpointer] & 0xFFFF0000);
     returnvalue = ((Right << 16) & 0xFFFF0000) | ((Left >>> 16) & 0x0000FFFF);
 
     returnvalue >>>= 48 - sum; // returnvalue >>= 16 - (number_of_bits - (32 -
@@ -612,7 +591,7 @@ public final class Bitstream implements BitstreamErrors {
   /**
    * Set the word we want to sync the header to. In Big-Endian byte order
    */
-  void set_syncword( int syncword0) {
+  void set_syncword(int syncword0) {
     syncword = syncword0 & 0xFFFFFF3F;
     single_ch_mode = ((syncword0 & 0x000000C0) == 0x000000C0);
   }
@@ -632,14 +611,12 @@ public final class Bitstream implements BitstreamErrors {
    *              is thrown if the specified number of bytes could not be read
    *              from the stream.
    */
-  
-  
-  private int readFully( byte[] b,  int offs,  int len)
-      throws BitstreamException {
-     int nRead = 0;
+
+  private int readFully(byte[] b, int offs, int len) throws BitstreamException {
+    int nRead = 0;
     try {
       while (len > 0) {
-         int bytesread = source.read(b, offs, len);
+        int bytesread = source.read(b, offs, len);
         if (bytesread == -1) {
           while (len-- > 0) {
             b[offs++] = 0;
@@ -660,14 +637,12 @@ public final class Bitstream implements BitstreamErrors {
   /**
    * Simlar to readFully, but doesn't throw exception when EOF is reached.
    */
-  
-  
-  private int readBytes( byte[] b,  int offs,  int len)
-      throws BitstreamException {
-     int totalBytesRead = 0;
+
+  private int readBytes(byte[] b, int offs, int len) throws BitstreamException {
+    int totalBytesRead = 0;
     try {
       while (len > 0) {
-         int bytesread = source.read(b, offs, len);
+        int bytesread = source.read(b, offs, len);
         if (bytesread == -1) {
           break;
         }

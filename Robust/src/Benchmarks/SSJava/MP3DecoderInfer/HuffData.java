@@ -2,11 +2,11 @@
 
 public class HuffData {
 
-   public int x;
-   public int y;
-   public int w;
-   public int v;
-   public BitReserve br;
+  public int x;
+  public int y;
+  public int w;
+  public int v;
+  public BitReserve br;
 
   public HuffData(int x, int y, int w, int v, BitReserve br) {
     this.x = x;

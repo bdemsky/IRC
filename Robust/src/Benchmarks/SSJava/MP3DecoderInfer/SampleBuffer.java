@@ -28,17 +28,16 @@
  * storage for a fixed size block of samples.
  */
 
-
 public class SampleBuffer extends Obuffer {
-  
+
   private short[] buffer;
-  
+
   private int[] bufferp;
-  
+
   private int channels;
-  
+
   private int frequency;
-  
+
   private int idx;
 
   static public long sampleNumber = 0;
@@ -46,13 +45,13 @@ public class SampleBuffer extends Obuffer {
   /**
    * Constructor
    */
-  public SampleBuffer( int sample_frequency,  int number_of_channels) {
+  public SampleBuffer(int sample_frequency, int number_of_channels) {
     buffer = new short[OBUFFERSIZE];
     bufferp = new int[MAXCHANNELS];
     channels = number_of_channels; // [IN] -> [D]
     frequency = sample_frequency; // [IN] -> [D]
 
-    for ( int i = 0; i < number_of_channels; ++i) {
+    for (int i = 0; i < number_of_channels; ++i) {
       bufferp[i] = (short) i; // LOC(bufferp[i]) has indirect flows from the
                               // location C, IN
       // also, it has a direct flow from C
@@ -81,7 +80,7 @@ public class SampleBuffer extends Obuffer {
   /**
    * Takes a 16 Bit PCM sample.
    */
-  public void append( int channel,  short value) {
+  public void append(int channel, short value) {
     buffer[bufferp[channel]] = value;
     // LOC(bufferp[channel])= [local.D,SampleBuffer.BUF]
     // so, for LHS, LOC(buffer) < LOC(bufferp[channle])
@@ -93,16 +92,15 @@ public class SampleBuffer extends Obuffer {
 
   }
 
-  
-  public void appendSamples( int channel,  float[] f) {
-     int pos = bufferp[channel];
+  public void appendSamples(int channel, float[] f) {
+    int pos = bufferp[channel];
     // LOC(bufferp[channel])=[D,SampleBuffer.BUFP]
     // LOC(pos)=[D,SampleBuffer.BUFP]
 
-     short s;
-     float fs;
+    short s;
+    float fs;
 
-    for ( int i = 0; i < 32;) {
+    for (int i = 0; i < 32;) {
       fs = f[i++]; // [IN] -> [D,BUFP]
 
       if (fs > 32767.0f) {
@@ -140,7 +138,7 @@ public class SampleBuffer extends Obuffer {
   /**
    * Write the samples to the file (Random Acces).
    */
-  public void write_buffer( int val) {
+  public void write_buffer(int val) {
 
     // for (int i = 0; i < channels; ++i)
     // bufferp[i] = (short)i;

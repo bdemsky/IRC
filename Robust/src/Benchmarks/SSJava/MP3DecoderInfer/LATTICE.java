@@ -1,3 +1,3 @@
-public @interface LATTICE{
-    String value();
+public @interface LATTICE {
+  String value();
 }
