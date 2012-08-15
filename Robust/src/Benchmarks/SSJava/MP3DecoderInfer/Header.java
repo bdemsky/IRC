@@ -116,7 +116,8 @@ public final class Header {
   Header() {
   }
 
-  public String toString() {
+  /*
+  public String toString() {    
     StringBuffer buffer = new StringBuffer(200);
     buffer.append("Layer ");
     buffer.append(layer_string());
@@ -136,7 +137,8 @@ public final class Header {
     String s = buffer.toString();
     return s;
   }
-
+  */
+  
   /**
    * Read a 32-bit header from the bitstream.
    */

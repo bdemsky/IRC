@@ -10,7 +10,6 @@ import IR.MethodDescriptor;
 
 public class MethodLocationInfo extends LocationInfo {
 
-  String returnLocName;
   String thisLocName;
   CompositeLocation pcLoc;
   CompositeLocation returnLoc;
@@ -57,14 +56,6 @@ public class MethodLocationInfo extends LocationInfo {
 
   public void setGlobalLocName(String globalLocName) {
     this.globalLocName = globalLocName;
-  }
-
-  public String getReturnLocName() {
-    return returnLocName;
-  }
-
-  public void setReturnLocName(String returnLocName) {
-    this.returnLocName = returnLocName;
   }
 
   public String getThisLocName() {

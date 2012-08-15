@@ -134,12 +134,11 @@ public class SSJavaAnalysis {
   public void doCheck() {
     doMethodAnnotationCheck();
 
-    if (state.SSJAVA) {
+    if (state.SSJAVA && !state.SSJAVAINFER) {
       computeLinearTypeCheckMethodSet();
       doLinearTypeCheck();
+      init();
     }
-
-    init();
 
     if (state.SSJAVADEBUG) {
       // debug_printAnnotationRequiredSet();
@@ -155,7 +154,7 @@ public class SSJavaAnalysis {
     }
   }
 
-  private void init() {
+  public void init() {
     // perform topological sort over the set of methods accessed by the main
     // event loop
     Set<MethodDescriptor> methodDescriptorsToAnalyze = new HashSet<MethodDescriptor>();
