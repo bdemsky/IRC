@@ -146,6 +146,7 @@ public class SSJavaAnalysis {
     }
     if (state.SSJAVAINFER) {
       inference();
+      System.exit(0);
     } else {
       parseLocationAnnotation();
       doFlowDownCheck();

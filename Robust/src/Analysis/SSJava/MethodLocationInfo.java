@@ -13,6 +13,16 @@ public class MethodLocationInfo extends LocationInfo {
   String returnLocName;
   String thisLocName;
   CompositeLocation pcLoc;
+  CompositeLocation returnLoc;
+
+  public CompositeLocation getReturnLoc() {
+    return returnLoc;
+  }
+
+  public void setReturnLoc(CompositeLocation returnLoc) {
+    this.returnLoc = returnLoc;
+  }
+
   String globalLocName;
 
   Map<Integer, CompositeLocation> mapParamIdxToInferLoc;

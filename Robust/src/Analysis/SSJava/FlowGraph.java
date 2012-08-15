@@ -34,6 +34,9 @@ public class FlowGraph {
 
   // maps a paramter descriptor to its index
   Map<Descriptor, Integer> mapParamDescToIdx;
+
+  Map<Integer, FlowNode> mapIdxToFlowNode;
+
   boolean debug = true;
 
   public FlowGraph(MethodDescriptor md, Map<Descriptor, Integer> mapParamDescToIdx) {
@@ -46,6 +49,7 @@ public class FlowGraph {
     this.mapParamDescToIdx = new HashMap<Descriptor, Integer>();
     this.mapParamDescToIdx.putAll(mapParamDescToIdx);
     this.returnNodeSet = new HashSet<FlowNode>();
+    this.mapIdxToFlowNode = new HashMap<Integer, FlowNode>();
 
     if (!md.isStatic()) {
       // create a node for 'this' varialbe
@@ -58,6 +62,25 @@ public class FlowGraph {
       thisVarNode = thisNode;
     }
 
+    setupMapIdxToDesc();
+
+  }
+
+  private void setupMapIdxToDesc() {
+
+    Set<Descriptor> descSet = mapParamDescToIdx.keySet();
+    for (Iterator iterator = descSet.iterator(); iterator.hasNext();) {
+      Descriptor paramDesc = (Descriptor) iterator.next();
+      int idx = mapParamDescToIdx.get(paramDesc);
+      NTuple<Descriptor> descTuple = new NTuple<Descriptor>();
+      descTuple.add(paramDesc);
+      mapIdxToFlowNode.put(idx, getFlowNode(descTuple));
+    }
+
+  }
+
+  public FlowNode getParamFlowNode(int idx) {
+    return mapIdxToFlowNode.get(idx);
   }
 
   public Set<FlowNode> getNodeSet() {
@@ -90,7 +113,16 @@ public class FlowGraph {
   }
 
   public boolean isParamDesc(Descriptor desc) {
-    return mapParamDescToIdx.containsKey(desc);
+
+    if (mapParamDescToIdx.containsKey(desc)) {
+      int idx = mapParamDescToIdx.get(desc);
+      if (!md.isStatic() && idx == 0) {
+        return false;
+      }
+      return true;
+    }
+
+    return false;
   }
 
   public boolean hasEdge(NTuple<Descriptor> fromDescTuple, NTuple<Descriptor> toDescTuple) {
@@ -183,7 +215,7 @@ public class FlowGraph {
 
   }
 
-  public void setReturnFlowNode(NTuple<Descriptor> tuple) {
+  public void addReturnFlowNode(NTuple<Descriptor> tuple) {
 
     if (!mapDescTupleToInferNode.containsKey(tuple)) {
       createNewFlowNode(tuple);
