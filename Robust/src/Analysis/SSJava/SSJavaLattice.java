@@ -27,6 +27,21 @@ public class SSJavaLattice<T> extends Lattice<T> {
   public boolean isSharedLoc(T loc) {
     return sharedLocSet.contains(loc);
   }
+  
+  public Set<T> getElementSet(){
+    Set<T> set=new HashSet<T>();
+    
+    Set<T> keySet=getKeySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      T key = (T) iterator.next();
+      set.add(key);
+      set.addAll(getTable().get(key));
+    }
+    
+    set.remove(getTopItem());
+    set.remove(getBottomItem());
+    return set;
+  }
 
   public boolean addRelationHigherToLower(T higher, T lower) {
 
