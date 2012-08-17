@@ -20,6 +20,7 @@ public class Lattice<T> {
     this.bottom = bottom;
 
     table.put(top, new HashSet<T>());
+    table.put(bottom, new HashSet<T>());
 
   }
 

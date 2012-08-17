@@ -320,11 +320,15 @@ public class LocationInference {
         rtr +=
             "\n@RETURNLOC(\"" + generateLocationAnnoatation(methodLocInfo.getReturnLoc()) + "\")";
       }
-      rtr += "\n@THISLOC(\"this\")\n@GLOBALLOC(\"GLOBALLOC\")";
 
-      if (lattice.containsKey("PCLOC")) {
-        rtr += "\n@PCLOC(\"PCLOC\")";
+      rtr += "\n@THISLOC(\"this\")";
+      rtr += "\n@GLOBALLOC(\"GLOBALLOC\")";
+
+      CompositeLocation pcLoc = methodLocInfo.getPCLoc();
+      if (pcLoc != null) {
+        rtr += "\n@PCLOC(\"" + generateLocationAnnoatation(pcLoc) + "\")";
       }
+
     }
 
     return rtr;
@@ -355,10 +359,12 @@ public class LocationInference {
       }
 
       for (Iterator iter = cd.getFields(); iter.hasNext();) {
-        Descriptor fieldDesc = (Descriptor) iter.next();
-        String locIdentifier = locInfo.getFieldInferLocation(fieldDesc).getLocIdentifier();
-        if (!getLattice(cd).containsKey(locIdentifier)) {
-          getLattice(cd).put(locIdentifier);
+        FieldDescriptor fieldDesc = (FieldDescriptor) iter.next();
+        if (!(fieldDesc.isStatic() && fieldDesc.isFinal())) {
+          String locIdentifier = locInfo.getFieldInferLocation(fieldDesc).getLocIdentifier();
+          if (!getLattice(cd).getElementSet().contains(locIdentifier)) {
+            getLattice(cd).put(locIdentifier);
+          }
         }
       }
 
@@ -374,21 +380,18 @@ public class LocationInference {
         FieldDescriptor fd = (FieldDescriptor) iter.next();
 
         String locAnnotationStr;
-        if (inferLocMap.containsKey(fd)) {
-          CompositeLocation inferLoc = inferLocMap.get(fd);
-          locAnnotationStr = "@LOC(\"" + generateLocationAnnoatation(inferLoc) + "\")";
-        } else {
-          // if the field is not accssed by SS part, just assigns dummy
-          // location
-          locAnnotationStr = "@LOC(\"LOC\")";
-        }
-        int fdLineNum = fd.getLineNum();
-        String orgFieldDeclarationStr = sourceVec.get(fdLineNum);
-        String fieldDeclaration = fd.toString();
-        fieldDeclaration = fieldDeclaration.substring(0, fieldDeclaration.length() - 1);
+        CompositeLocation inferLoc = inferLocMap.get(fd);
 
-        String annoatedStr = locAnnotationStr + " " + orgFieldDeclarationStr;
-        sourceVec.set(fdLineNum, annoatedStr);
+        if (inferLoc != null) {
+          // infer loc is null if the corresponding field is static and final
+          locAnnotationStr = "@LOC(\"" + generateLocationAnnoatation(inferLoc) + "\")";
+          int fdLineNum = fd.getLineNum();
+          String orgFieldDeclarationStr = sourceVec.get(fdLineNum);
+          String fieldDeclaration = fd.toString();
+          fieldDeclaration = fieldDeclaration.substring(0, fieldDeclaration.length() - 1);
+          String annoatedStr = locAnnotationStr + " " + orgFieldDeclarationStr;
+          sourceVec.set(fdLineNum, annoatedStr);
+        }
 
       }
 
@@ -410,9 +413,16 @@ public class LocationInference {
               methodLocInfo.getMapDescToInferLocation();
           Set<Descriptor> localVarDescSet = methodInferLocMap.keySet();
 
+          Set<String> localLocElementSet = methodLattice.getElementSet();
+
           for (Iterator iterator = localVarDescSet.iterator(); iterator.hasNext();) {
             Descriptor localVarDesc = (Descriptor) iterator.next();
             CompositeLocation inferLoc = methodInferLocMap.get(localVarDesc);
+
+            String localLocIdentifier = inferLoc.get(0).getLocIdentifier();
+            if (!localLocElementSet.contains(localLocIdentifier)) {
+              methodLattice.put(localLocIdentifier);
+            }
 
             String locAnnotationStr = "@LOC(\"" + generateLocationAnnoatation(inferLoc) + "\")";
 
@@ -445,6 +455,14 @@ public class LocationInference {
 
           }
 
+          // check if the lattice has to have the location type for the this
+          // reference...
+
+          // boolean needToAddthisRef = hasThisReference(md);
+          if (localLocElementSet.contains("this")) {
+            methodLattice.put("this");
+          }
+
           String methodLatticeDefStr = generateLatticeDefinition(md);
           String annoatedStr = methodLatticeDefStr + newline + sourceVec.get(methodDefLine);
           sourceVec.set(methodDefLine, annoatedStr);
@@ -455,6 +473,20 @@ public class LocationInference {
     }
 
     codeGen();
+  }
+
+  private boolean hasThisReference(MethodDescriptor md) {
+
+    FlowGraph fg = getFlowGraph(md);
+    Set<FlowNode> nodeSet = fg.getNodeSet();
+    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+      FlowNode flowNode = (FlowNode) iterator.next();
+      if (flowNode.getDescTuple().get(0).equals(md.getThis())) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private int getParamLocation(String methodStr, String paramStr) {
@@ -904,7 +936,7 @@ public class LocationInference {
     }
 
     Map<Integer, CompositeLocation> mapParamToLoc = methodInfo.getMapParamIdxToInferLoc();
-    Set<Integer> keySet = mapParamToLoc.keySet();
+    Set<Integer> paramIdxSet = mapParamToLoc.keySet();
 
     try {
       if (!ssjava.getMethodContainingSSJavaLoop().equals(md)) {
@@ -912,29 +944,24 @@ public class LocationInference {
         // PC location is higher than location types of all parameters
         String pcLocSymbol = "PCLOC";
 
-        for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-          Integer paramIdx = (Integer) iterator.next();
-          CompositeLocation inferLoc = mapParamToLoc.get(paramIdx);
-          String paramLocLocalSymbol = inferLoc.get(0).getLocIdentifier();
-          if (!methodLattice.isGreaterThan(pcLocSymbol, paramLocLocalSymbol)) {
-            addRelationHigherToLower(methodLattice, methodInfo, pcLocSymbol, paramLocLocalSymbol);
+        Set<CompositeLocation> paramInFlowSet = new HashSet<CompositeLocation>();
 
-            Set<String> higherLocSet = getHigherLocSymbolThan(methodLattice, paramLocLocalSymbol);
-            higherLocSet.remove(pcLocSymbol);
-            for (Iterator iterator2 = higherLocSet.iterator(); iterator2.hasNext();) {
-              String loc = (String) iterator2.next();
-              addRelationHigherToLower(methodLattice, methodInfo, pcLocSymbol, loc);
-            }
+        for (Iterator iterator = paramIdxSet.iterator(); iterator.hasNext();) {
+          Integer paramIdx = (Integer) iterator.next();
+
+          FlowNode paramFlowNode = fg.getParamFlowNode(paramIdx);
+
+          if (fg.getIncomingFlowNodeSet(paramFlowNode).size() > 0) {
+            // parameter has in-value flows
+            CompositeLocation inferLoc = mapParamToLoc.get(paramIdx);
+            paramInFlowSet.add(inferLoc);
           }
         }
 
-        Set<String> locElementSet = methodLattice.getElementSet();
-        locElementSet.remove(pcLocSymbol);
-        for (Iterator iterator = locElementSet.iterator(); iterator.hasNext();) {
-          String loc = (String) iterator.next();
-          if (!methodLattice.isGreaterThan(pcLocSymbol, loc)) {
-            addRelationHigherToLower(methodLattice, methodInfo, pcLocSymbol, loc);
-          }
+        if (paramInFlowSet.size() > 0) {
+          CompositeLocation lowestLoc = getLowest(methodLattice, paramInFlowSet);
+          assert (lowestLoc != null);
+          methodInfo.setPCLoc(lowestLoc);
         }
 
       }
@@ -962,6 +989,7 @@ public class LocationInference {
         }
 
         Set<FlowNode> returnNodeSet = fg.getReturnNodeSet();
+
         skip: for (Iterator iterator = returnNodeSet.iterator(); iterator.hasNext();) {
           FlowNode returnNode = (FlowNode) iterator.next();
           CompositeLocation inferReturnLoc =
@@ -987,6 +1015,12 @@ public class LocationInference {
         if (inferFieldReturnLocSet.size() > 0) {
 
           CompositeLocation returnLoc = getLowest(methodLattice, inferFieldReturnLocSet);
+          if (returnLoc == null) {
+            // in this case, assign <'this',bottom> to the RETURNLOC
+            returnLoc = new CompositeLocation(new Location(md, md.getThis().getSymbol()));
+            returnLoc.addLocation(new Location(md.getClassDesc(), getLattice(md.getClassDesc())
+                .getBottomItem()));
+          }
           methodInfo.setReturnLoc(returnLoc);
 
         } else {
@@ -995,7 +1029,7 @@ public class LocationInference {
               new CompositeLocation(new Location(md, returnLocSymbol));
           methodInfo.setReturnLoc(returnLocInferLoc);
 
-          for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+          for (Iterator iterator = paramIdxSet.iterator(); iterator.hasNext();) {
             Integer paramIdx = (Integer) iterator.next();
             CompositeLocation inferLoc = mapParamToLoc.get(paramIdx);
             String paramLocLocalSymbol = inferLoc.get(0).getLocIdentifier();
@@ -1047,11 +1081,55 @@ public class LocationInference {
 
     for (Iterator iterator = set.iterator(); iterator.hasNext();) {
       CompositeLocation loc = (CompositeLocation) iterator.next();
-      if (isGreaterThan(methodLattice, lowest, loc)) {
+
+      if ((!loc.equals(lowest)) && (!isComparable(methodLattice, lowest, loc))) {
+        // if there is a case where composite locations are incomparable, just
+        // return null
+        return null;
+      }
+
+      if ((!loc.equals(lowest)) && isGreaterThan(methodLattice, lowest, loc)) {
         lowest = loc;
       }
     }
     return lowest;
+  }
+
+  private boolean isComparable(SSJavaLattice<String> methodLattice, CompositeLocation comp1,
+      CompositeLocation comp2) {
+
+    int size = comp1.getSize() >= comp2.getSize() ? comp2.getSize() : comp1.getSize();
+
+    for (int idx = 0; idx < size; idx++) {
+      Location loc1 = comp1.get(idx);
+      Location loc2 = comp2.get(idx);
+
+      Descriptor desc1 = loc1.getDescriptor();
+      Descriptor desc2 = loc2.getDescriptor();
+
+      if (!desc1.equals(desc2)) {
+        throw new Error("Fail to compare " + comp1 + " and " + comp2);
+      }
+
+      String symbol1 = loc1.getLocIdentifier();
+      String symbol2 = loc2.getLocIdentifier();
+
+      SSJavaLattice<String> lattice;
+      if (idx == 0) {
+        lattice = methodLattice;
+      } else {
+        lattice = getLattice(desc1);
+      }
+
+      if (symbol1.equals(symbol2)) {
+        continue;
+      } else if (!lattice.isComparable(symbol1, symbol2)) {
+        return false;
+      }
+
+    }
+
+    return true;
   }
 
   private boolean isGreaterThan(SSJavaLattice<String> methodLattice, CompositeLocation comp1,
@@ -1079,6 +1157,7 @@ public class LocationInference {
       } else {
         lattice = getLattice(desc1);
       }
+
       if (symbol1.equals(symbol2)) {
         continue;
       } else if (lattice.isGreaterThan(symbol1, symbol2)) {
@@ -1151,7 +1230,6 @@ public class LocationInference {
   private void propagateRelationToCaller(MethodInvokeNode min, MethodDescriptor mdCaller,
       MethodDescriptor possibleMdCallee, SSJavaLattice<String> methodLattice,
       MethodLocationInfo methodInfo) throws CyclicFlowException {
-
 
     SSJavaLattice<String> calleeLattice = getMethodLattice(possibleMdCallee);
     MethodLocationInfo calleeLocInfo = getMethodLocationInfo(possibleMdCallee);
@@ -2221,7 +2299,6 @@ public class LocationInference {
   private void analyzeFlowMethodInvokeNode(MethodDescriptor md, SymbolTable nametable,
       MethodInvokeNode min, NodeTupleSet nodeSet, NodeTupleSet implicitFlowTupleSet) {
 
-
     if (nodeSet == null) {
       nodeSet = new NodeTupleSet();
     }
@@ -2248,10 +2325,8 @@ public class LocationInference {
         analyzeFlowExpressionNode(md, nametable, min.getExpression(), baseNodeSet, null,
             implicitFlowTupleSet, false);
 
-
         if (!min.getMethod().isStatic()) {
           addArgIdxMap(min, 0, baseNodeSet);
-
 
           for (Iterator iterator = calleeReturnSet.iterator(); iterator.hasNext();) {
             FlowNode returnNode = (FlowNode) iterator.next();
@@ -2375,7 +2450,8 @@ public class LocationInference {
       ArrayAccessNode aan, NodeTupleSet nodeSet, boolean isLHS) {
 
     NodeTupleSet expNodeTupleSet = new NodeTupleSet();
-    analyzeFlowExpressionNode(md, nametable, aan.getExpression(), expNodeTupleSet, isLHS);
+    NTuple<Descriptor> base =
+        analyzeFlowExpressionNode(md, nametable, aan.getExpression(), expNodeTupleSet, isLHS);
 
     NodeTupleSet idxNodeTupleSet = new NodeTupleSet();
     analyzeFlowExpressionNode(md, nametable, aan.getIndex(), idxNodeTupleSet, isLHS);
