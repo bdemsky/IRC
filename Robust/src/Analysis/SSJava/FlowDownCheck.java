@@ -668,7 +668,6 @@ public class FlowDownCheck {
             constraint, false);
 
     // addLocationType(isn.getCondition().getType(), condLoc);
-
     constraint = generateNewConstraint(constraint, condLoc);
     checkLocationFromBlockNode(md, nametable, isn.getTrueBlock(), constraint);
 
@@ -1021,6 +1020,10 @@ public class FlowDownCheck {
         // location in the caller's perspective
         CompositeLocation ceilingLoc =
             computeCeilingLocationForCaller(md, nametable, min, baseLocation, constraint);
+
+        if (ceilingLoc == null) {
+          return new CompositeLocation(Location.createTopLocation(md));
+        }
         return ceilingLoc;
       }
     }
@@ -1140,7 +1143,9 @@ public class FlowDownCheck {
     List<CompositeLocation> argList = new ArrayList<CompositeLocation>();
 
     // by default, method has a THIS parameter
-    argList.add(baseLocation);
+    if (!md.isStatic()) {
+      argList.add(baseLocation);
+    }
 
     for (int i = 0; i < min.numArgs(); i++) {
       ExpressionNode en = min.getArg(i);
@@ -1565,7 +1570,6 @@ public class FlowDownCheck {
 
   private CompositeLocation checkLocationFromAssignmentNode(MethodDescriptor md,
       SymbolTable nametable, AssignmentNode an, CompositeLocation loc, CompositeLocation constraint) {
-
     ClassDescriptor cd = md.getClassDesc();
 
     Set<CompositeLocation> inputGLBSet = new HashSet<CompositeLocation>();
@@ -1605,9 +1609,16 @@ public class FlowDownCheck {
       }
 
       if (constraint != null) {
-        inputGLBSet.add(srcLocation);
-        inputGLBSet.add(constraint);
-        srcLocation = CompositeLattice.calculateGLB(inputGLBSet, generateErrorMessage(cd, an));
+
+        if (!CompositeLattice.isGreaterThan(constraint, destLocation, generateErrorMessage(cd, an))) {
+          throw new Error("The value flow from " + constraint + " to " + destLocation
+              + " does not respect location hierarchy on the assignment " + an.printNode(0)
+              + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
+        }
+        // inputGLBSet.add(srcLocation);
+        // inputGLBSet.add(constraint);
+        // srcLocation = CompositeLattice.calculateGLB(inputGLBSet,
+        // generateErrorMessage(cd, an));
       }
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
@@ -1639,9 +1650,17 @@ public class FlowDownCheck {
                   constraint, false);
 
       if (constraint != null) {
-        inputGLBSet.add(rhsLocation);
-        inputGLBSet.add(constraint);
-        srcLocation = CompositeLattice.calculateGLB(inputGLBSet, generateErrorMessage(cd, an));
+
+        if (!CompositeLattice.isGreaterThan(constraint, destLocation, generateErrorMessage(cd, an))) {
+          throw new Error("The value flow from " + constraint + " to " + destLocation
+              + " does not respect location hierarchy on the assignment " + an.printNode(0)
+              + " at " + cd.getSourceFileName() + "::" + an.getNumLine());
+        }
+        // inputGLBSet.add(rhsLocation);
+        // inputGLBSet.add(constraint);
+        // srcLocation = CompositeLattice.calculateGLB(inputGLBSet,
+        // generateErrorMessage(cd, an));
+        srcLocation = rhsLocation;
       } else {
         srcLocation = rhsLocation;
       }
@@ -2084,7 +2103,6 @@ public class FlowDownCheck {
 
       SSJavaLattice<String> locOrder = getLatticeByDescriptor(priorityDescriptor);
       String glbOfPriorityLoc = locOrder.getGLB(priorityLocIdentifierSet);
-
       glbCompLoc.addLocation(new Location(priorityDescriptor, glbOfPriorityLoc));
       Set<CompositeLocation> compSet = locId2CompLocSet.get(glbOfPriorityLoc);
 
@@ -2346,6 +2364,9 @@ class ReturnLocGenerator {
       // compute GLB of arguments subset that are same or higher than return
       // location
       if (inputGLB.isEmpty()) {
+        if (args.size() == 0) {
+          return null;
+        }
         CompositeLocation rtr =
             new CompositeLocation(Location.createTopLocation(args.get(0).get(0).getDescriptor()));
         return rtr;

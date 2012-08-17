@@ -54,4 +54,8 @@ public class NodeTupleSet {
       }
     }
   }
+
+  public int size() {
+    return list.size();
+  }
 }

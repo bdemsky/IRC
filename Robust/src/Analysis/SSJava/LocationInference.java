@@ -95,6 +95,8 @@ public class LocationInference {
 
   public static final String TOPLOC = "TOPLOC";
 
+  public static final String INTERLOC = "INTERLOC";
+
   public static final Descriptor GLOBALDESC = new NameDescriptor(GLOBALLOC);
 
   public static final Descriptor TOPDESC = new NameDescriptor(TOPLOC);
@@ -325,7 +327,7 @@ public class LocationInference {
       rtr += "\n@GLOBALLOC(\"GLOBALLOC\")";
 
       CompositeLocation pcLoc = methodLocInfo.getPCLoc();
-      if (pcLoc != null) {
+      if ((pcLoc != null) && (!pcLoc.get(0).isTop())) {
         rtr += "\n@PCLOC(\"" + generateLocationAnnoatation(pcLoc) + "\")";
       }
 
@@ -1393,7 +1395,7 @@ public class LocationInference {
     FlowGraph flowGraph = getFlowGraph(md);
     try {
       System.out.println("***** src composite case::");
-      calculateCompositeLocation(flowGraph, methodLattice, methodInfo, srcNode);
+      calculateCompositeLocation(flowGraph, methodLattice, methodInfo, srcNode, null);
 
       CompositeLocation srcInferLoc =
           generateInferredCompositeLocation(methodInfo, flowGraph.getLocationTuple(srcNode));
@@ -1404,7 +1406,7 @@ public class LocationInference {
       // there is a cyclic value flow... try to calculate a composite location
       // for the destination node
       System.out.println("***** dst composite case::");
-      calculateCompositeLocation(flowGraph, methodLattice, methodInfo, dstNode);
+      calculateCompositeLocation(flowGraph, methodLattice, methodInfo, dstNode, srcNode);
       CompositeLocation srcInferLoc =
           generateInferredCompositeLocation(methodInfo, flowGraph.getLocationTuple(srcNode));
       CompositeLocation dstInferLoc =
@@ -1488,8 +1490,8 @@ public class LocationInference {
   }
 
   private boolean calculateCompositeLocation(FlowGraph flowGraph,
-      SSJavaLattice<String> methodLattice, MethodLocationInfo methodInfo, FlowNode flowNode)
-      throws CyclicFlowException {
+      SSJavaLattice<String> methodLattice, MethodLocationInfo methodInfo, FlowNode flowNode,
+      FlowNode srcNode) throws CyclicFlowException {
 
     Descriptor localVarDesc = flowNode.getDescTuple().get(0);
     NTuple<Location> flowNodelocTuple = flowGraph.getLocationTuple(flowNode);
@@ -1538,8 +1540,8 @@ public class LocationInference {
       }
     });
 
-    System.out.println("prefixList=" + prefixList);
-    System.out.println("reachableNodeSet=" + reachableNodeSet);
+    // System.out.println("prefixList=" + prefixList);
+    // System.out.println("reachableNodeSet=" + reachableNodeSet);
 
     // find out reachable nodes that have the longest common prefix
     for (int i = 0; i < prefixList.size(); i++) {
@@ -1585,6 +1587,43 @@ public class LocationInference {
           // the same infer location is already existed. no need to do
           // anything
           System.out.println("NO ATTEMPT TO MAKE A COMPOSITE LOCATION curPrefix=" + curPrefix);
+
+          // TODO: refactoring!
+          if (srcNode != null) {
+            CompositeLocation newLoc = new CompositeLocation();
+            String newLocSymbol = "Loc" + (SSJavaLattice.seed++);
+            for (int locIdx = 0; locIdx < curPrefix.size(); locIdx++) {
+              newLoc.addLocation(curPrefix.get(locIdx));
+            }
+            Location newLocationElement = new Location(desc, newLocSymbol);
+            newLoc.addLocation(newLocationElement);
+
+            Descriptor srcLocalVar = srcNode.getDescTuple().get(0);
+            methodInfo.mapDescriptorToLocation(srcLocalVar, newLoc.clone());
+            addMapLocSymbolToInferredLocation(methodInfo.getMethodDesc(), srcLocalVar, newLoc);
+            methodInfo.removeMaplocalVarToLocSet(srcLocalVar);
+
+            // add the field/var descriptor to the set of the location symbol
+            int lastIdx = srcNode.getDescTuple().size() - 1;
+            Descriptor lastFlowNodeDesc = srcNode.getDescTuple().get(lastIdx);
+            NTuple<Location> srcNodelocTuple = flowGraph.getLocationTuple(srcNode);
+            Descriptor enclosinglastLastFlowNodeDesc = srcNodelocTuple.get(lastIdx).getDescriptor();
+
+            CompositeLocation newlyInferredLocForFlowNode =
+                generateInferredCompositeLocation(methodInfo, srcNodelocTuple);
+            Location lastInferLocElement =
+                newlyInferredLocForFlowNode.get(newlyInferredLocForFlowNode.getSize() - 1);
+            Descriptor enclosingLastInferLocElement = lastInferLocElement.getDescriptor();
+
+            // getLocationInfo(enclosingLastInferLocElement).addMapLocSymbolToDescSet(
+            // lastInferLocElement.getLocIdentifier(), lastFlowNodeDesc);
+            getLocationInfo(enclosingLastInferLocElement).addMapLocSymbolToRelatedInferLoc(
+                lastInferLocElement.getLocIdentifier(), enclosinglastLastFlowNodeDesc,
+                lastFlowNodeDesc);
+
+            System.out.println("@@@@@@@ ASSIGN " + newLoc + " to SRC=" + srcNode);
+          }
+
           return true;
         } else {
           // assign a new composite location
@@ -2115,6 +2154,25 @@ public class LocationInference {
     analyzeFlowExpressionNode(md, nametable, isn.getCondition(), condTupleNode, null,
         implicitFlowTupleSet, false);
 
+//    NTuple<Descriptor> interTuple = getFlowGraph(md).createIntermediateNode().getDescTuple();
+//    for (Iterator<NTuple<Descriptor>> idxIter = condTupleNode.iterator(); idxIter.hasNext();) {
+//      NTuple<Descriptor> tuple = idxIter.next();
+//      addFlowGraphEdge(md, tuple, interTuple);
+//    }
+//
+//    for (Iterator<NTuple<Descriptor>> idxIter = implicitFlowTupleSet.iterator(); idxIter.hasNext();) {
+//      NTuple<Descriptor> tuple = idxIter.next();
+//      addFlowGraphEdge(md, tuple, interTuple);
+//    }
+//
+//    NodeTupleSet newImplicitSet = new NodeTupleSet();
+//    newImplicitSet.addTuple(interTuple);
+//    analyzeFlowBlockNode(md, nametable, isn.getTrueBlock(), newImplicitSet);
+//
+//    if (isn.getFalseBlock() != null) {
+//      analyzeFlowBlockNode(md, nametable, isn.getFalseBlock(), newImplicitSet);
+//    }
+
     // add edges from condNodeTupleSet to all nodes of conditional nodes
     condTupleNode.addTupleSet(implicitFlowTupleSet);
     analyzeFlowBlockNode(md, nametable, isn.getTrueBlock(), condTupleNode);
@@ -2641,12 +2699,14 @@ public class LocationInference {
     }
 
     NodeTupleSet idxNodeTupleSet = new NodeTupleSet();
+
     if (left instanceof ArrayAccessNode) {
 
       ArrayAccessNode aan = (ArrayAccessNode) left;
       left = aan.getExpression();
       analyzeFlowExpressionNode(md, nametable, aan.getIndex(), idxNodeTupleSet, base,
           implicitFlowTupleSet, isLHS);
+
       nodeSet.addTupleSet(idxNodeTupleSet);
     }
     base =
@@ -2720,6 +2780,7 @@ public class LocationInference {
 
       if (an.getOperation().getOp() >= 2 && an.getOperation().getOp() <= 12) {
         // if assignment contains OP+EQ operator, creates edges from LHS to LHS
+
         for (Iterator<NTuple<Descriptor>> iter = nodeSetLHS.iterator(); iter.hasNext();) {
           NTuple<Descriptor> fromTuple = iter.next();
           for (Iterator<NTuple<Descriptor>> iter2 = nodeSetLHS.iterator(); iter2.hasNext();) {
@@ -2730,11 +2791,16 @@ public class LocationInference {
       }
 
       // creates edges from RHS to LHS
+      NTuple<Descriptor> interTuple = null;
+      if (nodeSetRHS.size() > 1) {
+        interTuple = getFlowGraph(md).createIntermediateNode().getDescTuple();
+      }
+
       for (Iterator<NTuple<Descriptor>> iter = nodeSetRHS.iterator(); iter.hasNext();) {
         NTuple<Descriptor> fromTuple = iter.next();
         for (Iterator<NTuple<Descriptor>> iter2 = nodeSetLHS.iterator(); iter2.hasNext();) {
           NTuple<Descriptor> toTuple = iter2.next();
-          addFlowGraphEdge(md, fromTuple, toTuple);
+          addFlowGraphEdge(md, fromTuple, interTuple, toTuple);
         }
       }
 
@@ -2749,6 +2815,7 @@ public class LocationInference {
 
     } else {
       // postinc case
+
       for (Iterator<NTuple<Descriptor>> iter2 = nodeSetLHS.iterator(); iter2.hasNext();) {
         NTuple<Descriptor> tuple = iter2.next();
         addFlowGraphEdge(md, tuple, tuple);
@@ -2776,11 +2843,23 @@ public class LocationInference {
 
   private boolean addFlowGraphEdge(MethodDescriptor md, NTuple<Descriptor> from,
       NTuple<Descriptor> to) {
-    // TODO
-    // return true if it adds a new edge
     FlowGraph graph = getFlowGraph(md);
     graph.addValueFlowEdge(from, to);
     return true;
+  }
+
+  private void addFlowGraphEdge(MethodDescriptor md, NTuple<Descriptor> from,
+      NTuple<Descriptor> inter, NTuple<Descriptor> to) {
+
+    FlowGraph graph = getFlowGraph(md);
+
+    if (inter != null) {
+      graph.addValueFlowEdge(from, inter);
+      graph.addValueFlowEdge(inter, to);
+    } else {
+      graph.addValueFlowEdge(from, to);
+    }
+
   }
 
   public void _debug_printGraph() {
@@ -2801,5 +2880,13 @@ public class LocationInference {
 }
 
 class CyclicFlowException extends Exception {
+
+}
+
+class InterDescriptor extends Descriptor {
+
+  public InterDescriptor(String name) {
+    super(name);
+  }
 
 }

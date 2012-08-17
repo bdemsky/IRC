@@ -13,6 +13,7 @@ import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
+import IR.NameDescriptor;
 import IR.VarDescriptor;
 
 public class FlowGraph {
@@ -36,6 +37,8 @@ public class FlowGraph {
   Map<Descriptor, Integer> mapParamDescToIdx;
 
   Map<Integer, FlowNode> mapIdxToFlowNode;
+
+  public static int interseed = 0;
 
   boolean debug = true;
 
@@ -64,6 +67,15 @@ public class FlowGraph {
 
     setupMapIdxToDesc();
 
+  }
+
+  public FlowNode createIntermediateNode() {
+    NTuple<Descriptor> tuple = new NTuple<Descriptor>();
+    Descriptor interDesc = new InterDescriptor(LocationInference.INTERLOC + interseed);
+    tuple.add(interDesc);
+    interseed++;
+    FlowNode node = createNewFlowNode(tuple, true);
+    return node;
   }
 
   private void setupMapIdxToDesc() {
@@ -194,9 +206,14 @@ public class FlowGraph {
   }
 
   public FlowNode createNewFlowNode(NTuple<Descriptor> tuple) {
+    return createNewFlowNode(tuple, false);
+  }
+
+  public FlowNode createNewFlowNode(NTuple<Descriptor> tuple, boolean isIntermediate) {
 
     if (!mapDescTupleToInferNode.containsKey(tuple)) {
       FlowNode node = new FlowNode(tuple, isParameter(tuple));
+      node.setIntermediate(isIntermediate);
       mapDescTupleToInferNode.put(tuple, node);
       nodeSet.add(node);
 
@@ -285,7 +302,12 @@ public class FlowGraph {
       ClassDescriptor cd = null;
 
       Descriptor localDesc = fn.getDescTuple().get(0);
-      if (localDesc.getSymbol().equals(LocationInference.TOPLOC)) {
+
+      if (fn.isIntermediate()) {
+        Location interLoc = new Location(md, localDesc.getSymbol());
+        interLoc.setLocDescriptor(localDesc);
+        locTuple.add(interLoc);
+      } else if (localDesc.getSymbol().equals(LocationInference.TOPLOC)) {
         Location topLoc = new Location(md, Location.TOP);
         topLoc.setLocDescriptor(LocationInference.TOPDESC);
         locTuple.add(topLoc);

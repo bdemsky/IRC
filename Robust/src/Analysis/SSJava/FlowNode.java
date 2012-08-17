@@ -25,6 +25,16 @@ public class FlowNode {
 
   private boolean isDeclarationNode = false;
 
+  private boolean isIntermediate;
+
+  public boolean isIntermediate() {
+    return isIntermediate;
+  }
+
+  public void setIntermediate(boolean isIntermediate) {
+    this.isIntermediate = isIntermediate;
+  }
+
   public Set<FlowNode> getFieldNodeSet() {
     return fieldNodeSet;
   }
