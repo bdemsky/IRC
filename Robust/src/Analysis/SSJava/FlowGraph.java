@@ -56,12 +56,13 @@ public class FlowGraph {
 
     if (!md.isStatic()) {
       // create a node for 'this' varialbe
-      NTuple<Descriptor> thisDescTuple = new NTuple<Descriptor>();
-      thisDescTuple.add(md.getThis());
-      FlowNode thisNode = new FlowNode(thisDescTuple, true);
+      // NTuple<Descriptor> thisDescTuple = new NTuple<Descriptor>();
+      // thisDescTuple.add(md.getThis());
+
       NTuple<Descriptor> thisVarTuple = new NTuple<Descriptor>();
       thisVarTuple.add(md.getThis());
-      createNewFlowNode(thisVarTuple);
+      FlowNode thisNode = createNewFlowNode(thisVarTuple);
+      thisNode.setSkeleton(true);
       thisVarNode = thisNode;
     }
 
@@ -69,13 +70,25 @@ public class FlowGraph {
 
   }
 
+  public Map<Descriptor, Integer> getMapParamDescToIdx() {
+    return mapParamDescToIdx;
+  }
+
   public FlowNode createIntermediateNode() {
     NTuple<Descriptor> tuple = new NTuple<Descriptor>();
     Descriptor interDesc = new InterDescriptor(LocationInference.INTERLOC + interseed);
     tuple.add(interDesc);
     interseed++;
-    FlowNode node = createNewFlowNode(tuple, true);
-    return node;
+
+    FlowNode newNode = new FlowNode(tuple);
+    newNode.setIntermediate(true);
+
+    mapDescTupleToInferNode.put(tuple, newNode);
+    nodeSet.add(newNode);
+
+    System.out.println("create new intermediate node= " + newNode);
+
+    return newNode;
   }
 
   private void setupMapIdxToDesc() {
@@ -86,9 +99,15 @@ public class FlowGraph {
       int idx = mapParamDescToIdx.get(paramDesc);
       NTuple<Descriptor> descTuple = new NTuple<Descriptor>();
       descTuple.add(paramDesc);
-      mapIdxToFlowNode.put(idx, getFlowNode(descTuple));
+      FlowNode paramNode = getFlowNode(descTuple);
+      mapIdxToFlowNode.put(idx, paramNode);
+      paramNode.setSkeleton(true);
     }
 
+  }
+
+  public int getNumParameters() {
+    return mapIdxToFlowNode.keySet().size();
   }
 
   public FlowNode getParamFlowNode(int idx) {
@@ -101,17 +120,6 @@ public class FlowGraph {
 
   public MethodDescriptor getMethodDescriptor() {
     return md;
-  }
-
-  public Set<FlowNode> getParameterNodeSet() {
-    Set<FlowNode> paramNodeSet = new HashSet<FlowNode>();
-    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
-      FlowNode fn = (FlowNode) iterator.next();
-      if (fn.isParameter()) {
-        paramNodeSet.add(fn);
-      }
-    }
-    return paramNodeSet;
   }
 
   public void addNeighbor(FlowNode node, FlowNode neighbor) {
@@ -162,23 +170,37 @@ public class FlowGraph {
     FlowNode fromNode = getFlowNode(fromDescTuple);
     FlowNode toNode = getFlowNode(toDescTuple);
 
-    // System.out.println("create an edge from " + fromNode + " to " + toNode);
+    System.out.println("create an edge from " + fromNode + " to " + toNode);
 
     int fromTupleSize = fromDescTuple.size();
-    NTuple<Descriptor> curTuple = new NTuple<Descriptor>();
+    NTuple<Descriptor> curFromTuple = new NTuple<Descriptor>();
     for (int i = 0; i < fromTupleSize; i++) {
       Descriptor desc = fromDescTuple.get(i);
-      curTuple.add(desc);
-      addFlowEdge(getFlowNode(curTuple), toNode, fromDescTuple, toDescTuple);
+      curFromTuple.add(desc);
+      int toTupleSize = toDescTuple.size();
+      NTuple<Descriptor> curToTuple = new NTuple<Descriptor>();
+      for (int k = 0; k < toTupleSize; k++) {
+        Descriptor toDesc = toDescTuple.get(k);
+        curToTuple.add(toDesc);
+        addFlowEdge(getFlowNode(curFromTuple), getFlowNode(curToTuple), fromDescTuple, toDescTuple);
+      }
     }
 
-    int toTupleSize = toDescTuple.size();
-    curTuple = new NTuple<Descriptor>();
-    for (int i = 0; i < toTupleSize; i++) {
-      Descriptor desc = toDescTuple.get(i);
-      curTuple.add(desc);
-      addFlowEdge(fromNode, getFlowNode(curTuple), fromDescTuple, toDescTuple);
-    }
+    // int fromTupleSize = fromDescTuple.size();
+    // NTuple<Descriptor> curTuple = new NTuple<Descriptor>();
+    // for (int i = 0; i < fromTupleSize; i++) {
+    // Descriptor desc = fromDescTuple.get(i);
+    // curTuple.add(desc);
+    // addFlowEdge(getFlowNode(curTuple), toNode, fromDescTuple, toDescTuple);
+    // }
+    //
+    // int toTupleSize = toDescTuple.size();
+    // curTuple = new NTuple<Descriptor>();
+    // for (int i = 0; i < toTupleSize; i++) {
+    // Descriptor desc = toDescTuple.get(i);
+    // curTuple.add(desc);
+    // addFlowEdge(fromNode, getFlowNode(curTuple), fromDescTuple, toDescTuple);
+    // }
 
   }
 
@@ -188,17 +210,15 @@ public class FlowGraph {
     FlowEdge edge = new FlowEdge(fromNode, toNode, initTuple, endTuple);
     fromNode.addOutEdge(edge);
 
-    // System.out.println("add a new edge=" + edge);
-
+    System.out.println("add a new edge=" + edge);
   }
 
   public FlowNode getFlowNode(NTuple<Descriptor> descTuple) {
-    if (mapDescTupleToInferNode.containsKey(descTuple)) {
-      return mapDescTupleToInferNode.get(descTuple);
-    } else {
+    if (!mapDescTupleToInferNode.containsKey(descTuple)) {
       FlowNode node = createNewFlowNode(descTuple);
-      return node;
+      mapDescTupleToInferNode.put(descTuple, node);
     }
+    return mapDescTupleToInferNode.get(descTuple);
   }
 
   public FlowNode getThisVarNode() {
@@ -206,14 +226,9 @@ public class FlowGraph {
   }
 
   public FlowNode createNewFlowNode(NTuple<Descriptor> tuple) {
-    return createNewFlowNode(tuple, false);
-  }
-
-  public FlowNode createNewFlowNode(NTuple<Descriptor> tuple, boolean isIntermediate) {
 
     if (!mapDescTupleToInferNode.containsKey(tuple)) {
-      FlowNode node = new FlowNode(tuple, isParameter(tuple));
-      node.setIntermediate(isIntermediate);
+      FlowNode node = new FlowNode(tuple);
       mapDescTupleToInferNode.put(tuple, node);
       nodeSet.add(node);
 
@@ -248,29 +263,66 @@ public class FlowGraph {
     return returnNodeSet;
   }
 
-  public Set<FlowNode> getReachableFlowNodeSet(FlowNode fn) {
+  public Set<FlowNode> getLocalReachFlowNodeSetFrom(FlowNode fn) {
     Set<FlowNode> set = new HashSet<FlowNode>();
-    getReachableFlowNodeSet(fn, set);
+    recurLocalReachFlowNodeSet(fn, set);
     return set;
   }
 
-  private void getReachableFlowNodeSet(FlowNode fn, Set<FlowNode> visited) {
+  private void recurLocalReachFlowNodeSet(FlowNode fn, Set<FlowNode> visited) {
+
+    for (Iterator iterator = fn.getOutEdgeSet().iterator(); iterator.hasNext();) {
+      FlowEdge edge = (FlowEdge) iterator.next();
+      FlowNode dstNode = edge.getDst();
+
+      if (!visited.contains(dstNode)) {
+        visited.add(dstNode);
+        recurLocalReachFlowNodeSet(dstNode, visited);
+      }
+    }
+
+  }
+
+  private void getReachFlowNodeSetFrom(FlowNode fn, Set<FlowNode> visited) {
 
     for (Iterator iterator = fn.getOutEdgeSet().iterator(); iterator.hasNext();) {
       FlowEdge edge = (FlowEdge) iterator.next();
 
       if (fn.equals(getFlowNode(edge.getInitTuple()))) {
-
         FlowNode dstNode = getFlowNode(edge.getEndTuple());
-
         if (!visited.contains(dstNode)) {
           visited.add(dstNode);
-          getReachableFlowNodeSet(dstNode, visited);
+          getReachFlowNodeSetFrom(dstNode, visited);
         }
       }
     }
 
   }
+
+  public Set<FlowNode> getReachFlowNodeSetFrom(FlowNode fn) {
+    Set<FlowNode> set = new HashSet<FlowNode>();
+    getReachFlowNodeSetFrom(fn, set);
+    return set;
+  }
+
+  // private void getReachFlowNodeSetFrom(FlowNode fn, Set<FlowNode> visited) {
+  //
+  // for (Iterator iterator = fn.getOutEdgeSet().iterator();
+  // iterator.hasNext();) {
+  // FlowEdge edge = (FlowEdge) iterator.next();
+  //
+  // if (fn.equals(getFlowNode(edge.getInitTuple()))) {
+  //
+  // FlowNode dstNode = getFlowNode(edge.getEndTuple());
+  //
+  // if (!visited.contains(dstNode)) {
+  // visited.add(dstNode);
+  // getReachFlowNodeSetFrom(dstNode, visited);
+  // }
+  // }
+  // }
+  //
+  // }
 
   public Set<NTuple<Location>> getReachableFlowTupleSet(Set<NTuple<Location>> visited, FlowNode fn) {
     for (Iterator iterator = fn.getOutEdgeSet().iterator(); iterator.hasNext();) {
@@ -405,11 +457,6 @@ public class FlowGraph {
     // return true if a descriptor tuple is started with a parameter descriptor
     Descriptor firstIdxDesc = tuple.get(0);
     return mapParamDescToIdx.containsKey(firstIdxDesc);
-  }
-
-  public int getParamIdx(NTuple<Descriptor> tuple) {
-    Descriptor firstDesc = tuple.get(0);
-    return mapParamDescToIdx.get(firstDesc).intValue();
   }
 
   private void drawEdges(FlowNode node, BufferedWriter bw, Set<FlowNode> addedNodeSet,

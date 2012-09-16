@@ -17,15 +17,16 @@ public class FlowNode {
   // this set contains fields of the base type
   private Set<FlowNode> fieldNodeSet;
 
-  // set true if this node is driven from a paramter
-  private boolean isParameter;
-
   // set true if this node stores a return value
   private boolean isReturn;
 
   private boolean isDeclarationNode = false;
 
   private boolean isIntermediate;
+
+  private CompositeLocation compLoc;
+
+  private boolean isSkeleton;
 
   public boolean isIntermediate() {
     return isIntermediate;
@@ -41,9 +42,10 @@ public class FlowNode {
 
   private Set<FlowEdge> outEdgeSet;
 
-  public FlowNode(NTuple<Descriptor> tuple, boolean isParam) {
+  public FlowNode(NTuple<Descriptor> tuple) {
 
-    this.isParameter = isParam;
+    this.isSkeleton = false;
+    this.isIntermediate = false;
 
     NTuple<Descriptor> base = null;
     Descriptor desc = null;
@@ -62,14 +64,19 @@ public class FlowNode {
       descTuple.add(desc);
     }
     outEdgeSet = new HashSet<FlowEdge>();
+
+  }
+
+  public void setCompositeLocation(CompositeLocation in) {
+    compLoc = in;
+  }
+
+  public CompositeLocation getCompositeLocation() {
+    return compLoc;
   }
 
   public void addFieldNode(FlowNode node) {
     fieldNodeSet.add(node);
-  }
-
-  public boolean isParameter() {
-    return isParameter;
   }
 
   public NTuple<Descriptor> getDescTuple() {
@@ -100,8 +107,8 @@ public class FlowNode {
 
   public String toString() {
     String rtr = "[FlowNode]:";
-    if (isParameter()) {
-      rtr += "param:";
+    if (isSkeleton()) {
+      rtr += "SKELETON:";
     }
     rtr += ":" + descTuple;
     return rtr;
@@ -153,6 +160,11 @@ public class FlowNode {
       id += descTuple.get(i).getSymbol();
     }
     id += ">";
+
+    if (compLoc != null) {
+      id += " " + compLoc;
+    }
+
     return id;
   }
 
@@ -163,4 +175,27 @@ public class FlowNode {
   public boolean isDeclaratonNode() {
     return isDeclarationNode;
   }
+
+  public NTuple<Descriptor> getCurrentDescTuple() {
+
+    if (compLoc == null) {
+      return descTuple;
+    }
+
+    NTuple<Descriptor> curDescTuple = new NTuple<Descriptor>();
+    for (int i = 0; i < compLoc.getSize(); i++) {
+      Location locElement = compLoc.get(i);
+      curDescTuple.add(locElement.getLocDescriptor());
+    }
+    return curDescTuple;
+  }
+
+  public boolean isSkeleton() {
+    return isSkeleton;
+  }
+
+  public void setSkeleton(boolean isSkeleton) {
+    this.isSkeleton = isSkeleton;
+  }
+
 }

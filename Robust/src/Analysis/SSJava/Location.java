@@ -17,7 +17,15 @@ public class Location implements TypeExtension {
   public Location(Descriptor d, String loc) {
     this.d = d;
     this.loc = loc;
-    this.type = NORMAL;
+
+    if (loc.equals(SSJavaAnalysis.TOP)) {
+      type = TOP;
+    } else if (loc.equals(SSJavaAnalysis.BOTTOM)) {
+      type = BOTTOM;
+    } else {
+      type = NORMAL;
+    }
+
   }
 
   public Location(Descriptor d, int type) {

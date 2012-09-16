@@ -1,7 +1,9 @@
 package Analysis.SSJava;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import Util.Lattice;
@@ -27,17 +29,17 @@ public class SSJavaLattice<T> extends Lattice<T> {
   public boolean isSharedLoc(T loc) {
     return sharedLocSet.contains(loc);
   }
-  
-  public Set<T> getElementSet(){
-    Set<T> set=new HashSet<T>();
-    
-    Set<T> keySet=getKeySet();
+
+  public Set<T> getElementSet() {
+    Set<T> set = new HashSet<T>();
+
+    Set<T> keySet = getKeySet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       T key = (T) iterator.next();
       set.add(key);
       set.addAll(getTable().get(key));
     }
-    
+
     set.remove(getTopItem());
     set.remove(getBottomItem());
     return set;
@@ -108,11 +110,10 @@ public class SSJavaLattice<T> extends Lattice<T> {
     }
   }
 
-  public void mergeIntoSharedLocation(Set<T> cycleSet, T newLoc) {
+  public void mergeIntoNewLocation(Set<T> cycleSet, T newLoc) {
 
-    // add a new shared loc
+    // add a new loc
     put(newLoc);
-    addSharedLoc(newLoc);
 
     Set<T> keySet = getKeySet();
 
@@ -296,5 +297,26 @@ public class SSJavaLattice<T> extends Lattice<T> {
       }
     }
     return false;
+  }
+
+  public Map<T, Set<T>> getIncomingElementMap() {
+    Map<T, Set<T>> map = new HashMap<T, Set<T>>();
+
+    Set<T> keySet = getKeySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      T key = (T) iterator.next();
+
+      Set<T> incomingSet = new HashSet<T>();
+
+      for (Iterator iterator2 = keySet.iterator(); iterator2.hasNext();) {
+        T in = (T) iterator2.next();
+        if (!in.equals(key) && get(in).contains(key)) {
+          incomingSet.add(in);
+        }
+      }
+      map.put(key, incomingSet);
+    }
+
+    return map;
   }
 }

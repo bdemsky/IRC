@@ -546,7 +546,10 @@ public class FlowDownCheck {
       ReturnNode rn, CompositeLocation constraint) {
 
     ExpressionNode returnExp = rn.getReturnExpression();
+    
+    CompositeLocation declaredReturnLoc = md2ReturnLoc.get(md);
 
+    
     CompositeLocation returnValueLoc;
     if (returnExp != null) {
       returnValueLoc =
@@ -568,9 +571,40 @@ public class FlowDownCheck {
       // generateErrorMessage(md.getClassDesc(), rn));
       // }
 
+      if (constraint != null) {
+
+        // Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
+        // inputGLB.add(returnValueLoc);
+        // inputGLB.add(constraint);
+        // returnValueLoc =
+        // CompositeLattice.calculateGLB(inputGLB,
+        // generateErrorMessage(md.getClassDesc(), rn));
+
+        // if (!returnValueLoc.get(returnValueLoc.getSize() - 1).isTop()) {
+        // if (!CompositeLattice.isGreaterThan(constraint, returnValueLoc,
+        // generateErrorMessage(md.getClassDesc(), rn))) {
+        // System.out.println("returnValueLoc.get(returnValueLoc.getSize() - 1).isTop()="
+        // + returnValueLoc.get(returnValueLoc.getSize() - 1).isTop());
+        // throw new Error("The value flow from " + constraint + " to " +
+        // returnValueLoc
+        // + " does not respect location hierarchy on the assignment " +
+        // rn.printNode(0)
+        // + " at " + md.getClassDesc().getSourceFileName() + "::" +
+        // rn.getNumLine());
+        // }
+        // }
+
+        if (!CompositeLattice.isGreaterThan(constraint, declaredReturnLoc,
+            generateErrorMessage(md.getClassDesc(), rn))) {
+          throw new Error("The value flow from " + constraint + " to " + declaredReturnLoc
+              + " does not respect location hierarchy on the assignment " + rn.printNode(0)
+              + " at " + md.getClassDesc().getSourceFileName() + "::" + rn.getNumLine());
+        }
+
+      }
+
       // check if return value is equal or higher than RETRUNLOC of method
       // declaration annotation
-      CompositeLocation declaredReturnLoc = md2ReturnLoc.get(md);
 
       int compareResult =
           CompositeLattice.compare(returnValueLoc, declaredReturnLoc, false,
@@ -1143,7 +1177,7 @@ public class FlowDownCheck {
     List<CompositeLocation> argList = new ArrayList<CompositeLocation>();
 
     // by default, method has a THIS parameter
-    if (!md.isStatic()) {
+    if (!min.getMethod().isStatic()) {
       argList.add(baseLocation);
     }
 
@@ -1155,10 +1189,9 @@ public class FlowDownCheck {
       argList.add(callerArg);
     }
 
-    // System.out.println("\n## computeReturnLocation=" + min.getMethod() +
-    // " argList=" + argList);
+    System.out.println("\n## computeReturnLocation=" + min.getMethod() + " argList=" + argList);
     CompositeLocation ceilLoc = md2ReturnLocGen.get(min.getMethod()).computeReturnLocation(argList);
-    // System.out.println("## ReturnLocation=" + ceilLoc);
+    System.out.println("## ReturnLocation=" + ceilLoc);
 
     return ceilLoc;
 
@@ -1170,6 +1203,9 @@ public class FlowDownCheck {
     MethodDescriptor calleemd = min.getMethod();
 
     MethodLattice<String> calleeLattice = ssjava.getMethodLattice(calleemd);
+
+    System.out.println("checkCalleeConstraints=" + calleemd + " calleeLattice.getThisLoc()="
+        + calleeLattice.getThisLoc());
 
     CompositeLocation calleeThisLoc =
         new CompositeLocation(new Location(calleemd, calleeLattice.getThisLoc()));
@@ -1280,7 +1316,7 @@ public class FlowDownCheck {
 
   private CompositeLocation checkLocationFromArrayAccessNode(MethodDescriptor md,
       SymbolTable nametable, ArrayAccessNode aan, CompositeLocation constraint, boolean isLHS) {
-
+    System.out.println("aan=" + aan.printNode(0) + "  line#=" + aan.getNumLine());
     ClassDescriptor cd = md.getClassDesc();
 
     CompositeLocation arrayLoc =
@@ -1620,6 +1656,8 @@ public class FlowDownCheck {
         // srcLocation = CompositeLattice.calculateGLB(inputGLBSet,
         // generateErrorMessage(cd, an));
       }
+
+      System.out.println("src=" + srcLocation + "  dest=" + destLocation + "  const=" + constraint);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
 
@@ -2054,7 +2092,7 @@ public class FlowDownCheck {
 
     public static CompositeLocation calculateGLB(Set<CompositeLocation> inputSet, String errMsg) {
 
-      // System.out.println("Calculating GLB=" + inputSet);
+      System.out.println("Calculating GLB=" + inputSet);
       CompositeLocation glbCompLoc = new CompositeLocation();
 
       // calculate GLB of the first(priority) element
