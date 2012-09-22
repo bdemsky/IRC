@@ -40,6 +40,17 @@ public class Lattice<T> {
     return table;
   }
 
+  public void setTable(Map<T, Set<T>> in) {
+    Set<T> keySet = in.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      T key = (T) iterator.next();
+      Set<T> setIn = in.get(key);
+      Set<T> newSet = new HashSet<T>();
+      newSet.addAll(setIn);
+      table.put(key, newSet);
+    }
+  }
+
   public boolean put(T key) {
     if (table.containsKey(key)) {
       return false;

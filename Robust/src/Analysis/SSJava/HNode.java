@@ -67,11 +67,26 @@ public class HNode {
   }
 
   public String toString() {
-    String isShared = "";
+
+    String properties = "";
+
     if (isSharedNode()) {
-      isShared = "*";
+      properties += "*";
     }
-    return "[Node::" + name + isShared + "]";
+
+    if (isCombinationNode()) {
+      properties += "C";
+    }
+
+    if (isSkeleton()) {
+      properties += "S";
+    }
+
+    if (properties.length() > 0) {
+      properties = "(" + properties + ")";
+    }
+
+    return "[" + name + properties + "]";
   }
 
   public Descriptor getDescriptor() {

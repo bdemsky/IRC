@@ -18,6 +18,10 @@ public class SSJavaLattice<T> extends Lattice<T> {
     sharedLocSet = new HashSet<T>();
   }
 
+  public void setSharedLocSet(Set<T> in) {
+    sharedLocSet.addAll(in);
+  }
+
   public Set<T> getSharedLocSet() {
     return sharedLocSet;
   }
@@ -241,42 +245,29 @@ public class SSJavaLattice<T> extends Lattice<T> {
   }
 
   public void removeRedundantEdges() {
-    boolean isUpdated;
-    do {
-      isUpdated = recurRemoveRedundant();
-    } while (isUpdated);
-  }
 
-  public boolean recurRemoveRedundant() {
-
-    Set<T> keySet = getKeySet();
-    Set<T> visited = new HashSet<T>();
+    Set<T> keySet = getTable().keySet();
 
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-      T key = (T) iterator.next();
-      Set<T> connectedSet = getTable().get(key);
-      if (connectedSet != null) {
-        Set<T> toberemovedSet = new HashSet<T>();
-        for (Iterator iterator2 = connectedSet.iterator(); iterator2.hasNext();) {
-          T dst = (T) iterator2.next();
-          Set<T> otherNeighborSet = new HashSet<T>();
-          otherNeighborSet.addAll(connectedSet);
-          otherNeighborSet.remove(dst);
-          for (Iterator iterator3 = otherNeighborSet.iterator(); iterator3.hasNext();) {
-            T neighbor = (T) iterator3.next();
-            if (isReachable(neighbor, visited, dst)) {
-              toberemovedSet.add(dst);
-            }
+      T src = (T) iterator.next();
+      Set<T> connectedSet = getTable().get(src);
+      Set<T> toberemovedSet = new HashSet<T>();
+      for (Iterator iterator2 = connectedSet.iterator(); iterator2.hasNext();) {
+        T dst = (T) iterator2.next();
+        Set<T> otherNeighborSet = new HashSet<T>();
+        otherNeighborSet.addAll(connectedSet);
+        otherNeighborSet.remove(dst);
+        for (Iterator iterator3 = otherNeighborSet.iterator(); iterator3.hasNext();) {
+          T neighbor = (T) iterator3.next();
+          if (isReachable(neighbor, new HashSet<T>(), dst)) {
+            toberemovedSet.add(dst);
           }
         }
-        if (toberemovedSet.size() > 0) {
-          connectedSet.removeAll(toberemovedSet);
-          return true;
-        }
+      }
+      if (toberemovedSet.size() > 0) {
+        connectedSet.removeAll(toberemovedSet);
       }
     }
-
-    return false;
 
   }
 
@@ -319,4 +310,32 @@ public class SSJavaLattice<T> extends Lattice<T> {
 
     return map;
   }
+
+  public void insertNewLocationBetween(T higher, T lower, T newLoc) {
+    Set<T> connectedSet = get(higher);
+    connectedSet.remove(lower);
+    connectedSet.add(newLoc);
+
+    put(newLoc, lower);
+  }
+
+  public void insertNewLocationBetween(T higher, Set<T> lowerSet, T newLoc) {
+    Set<T> connectedSet = get(higher);
+    connectedSet.removeAll(lowerSet);
+    connectedSet.add(newLoc);
+
+    for (Iterator iterator = lowerSet.iterator(); iterator.hasNext();) {
+      T lower = (T) iterator.next();
+      put(newLoc, lower);
+    }
+  }
+
+  public SSJavaLattice<T> clone() {
+
+    SSJavaLattice<T> clone = new SSJavaLattice<T>(getTopItem(), getBottomItem());
+    clone.setTable(getTable());
+    clone.setSharedLocSet(getSharedLocSet());
+    return clone;
+  }
+
 }

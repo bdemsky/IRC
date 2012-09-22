@@ -25,10 +25,16 @@ public class HierarchyGraph {
   Map<HNode, Set<HNode>> mapCombinationNodeToCombineNodeSet;
   Map<Set<HNode>, HNode> mapCombineNodeSetToCombinationNode;
   Map<Set<HNode>, Set<HNode>> mapCombineNodeSetToOutgoingNodeSet;
+  Map<HNode, String> mapHNodeToLocationName;
 
   Set<HNode> nodeSet;
 
   public static int seed = 0;
+
+  // for the lattice generation
+  Map<HNode, Integer> mapHNodeToUniqueIndex;
+  Map<HNode, Set<Integer>> mapHNodeToBasis;
+  Set<Integer> BASISTOPELEMENT;
 
   public HierarchyGraph() {
     mapHNodeToIncomingSet = new HashMap<HNode, Set<HNode>>();
@@ -40,6 +46,12 @@ public class HierarchyGraph {
     mapCombineNodeSetToOutgoingNodeSet = new HashMap<Set<HNode>, Set<HNode>>();
     mapCombineNodeSetToCombinationNode = new HashMap<Set<HNode>, HNode>();
     nodeSet = new HashSet<HNode>();
+
+    mapHNodeToUniqueIndex = new HashMap<HNode, Integer>();
+    mapHNodeToBasis = new HashMap<HNode, Set<Integer>>();
+
+    mapHNodeToLocationName = new HashMap<HNode, String>();
+
   }
 
   public Descriptor getDesc() {
@@ -48,6 +60,14 @@ public class HierarchyGraph {
 
   public void setDesc(Descriptor desc) {
     this.desc = desc;
+  }
+
+  public void addMapHNodeToLocationName(HNode node, String locName) {
+    mapHNodeToLocationName.put(node, locName);
+  }
+
+  public String getLocationName(HNode node) {
+    return mapHNodeToLocationName.get(node);
   }
 
   public String getName() {
@@ -96,14 +116,19 @@ public class HierarchyGraph {
 
     Set<HNode> possibleCycleSet = getPossibleCycleNodes(srcHNode, dstHNode);
 
-    System.out.println("src=" + srcHNode + " dstHNode=" + dstHNode + " possibleCycleSet="
-        + possibleCycleSet);
-
     if (possibleCycleSet.size() > 0) {
+
+      if (possibleCycleSet.size() == 1) {
+        if (dstHNode.isSharedNode()) {
+          // it has already been assigned shared node.
+          return;
+        }
+      }
+
       HNode newMergeNode = mergeNodes(possibleCycleSet, false);
       newMergeNode.setSharedNode(true);
-      System.out.println("### CYCLIC VALUE FLOW: " + srcHNode + " -> " + dstHNode);
       System.out.println("### INTRODUCE A NEW MERGE NODE: " + newMergeNode);
+      System.out.println("### CYCLIC VALUE FLOW: " + srcHNode + " -> " + dstHNode);
     } else {
       getIncomingNodeSet(dstHNode).add(srcHNode);
       getOutgoingNodeSet(srcHNode).add(dstHNode);
@@ -185,7 +210,7 @@ public class HierarchyGraph {
     return connected;
   }
 
-  private void removeRedundantEdges() {
+  public void removeRedundantEdges() {
 
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode src = (HNode) iterator.next();
@@ -226,7 +251,7 @@ public class HierarchyGraph {
     combineRedundantNodes(true);
   }
 
-  private void combineRedundantNodes(boolean onlyCombinationNodes) {
+  public void combineRedundantNodes(boolean onlyCombinationNodes) {
     // Combine field/parameter nodes who have the same set of incoming/outgoing edges.
     boolean isUpdated = false;
     do {
@@ -241,7 +266,7 @@ public class HierarchyGraph {
     return mapHNodeToIncomingSet.get(node);
   }
 
-  private Set<HNode> getOutgoingNodeSet(HNode node) {
+  public Set<HNode> getOutgoingNodeSet(HNode node) {
     if (!mapHNodeToOutgoingSet.containsKey(node)) {
       mapHNodeToOutgoingSet.put(node, new HashSet<HNode>());
     }
@@ -328,6 +353,8 @@ public class HierarchyGraph {
         break;
       }
     }
+    System.out.println("--Set merging node=" + newMergeNode + " as a skeleton=" + set
+        + " hasSkeleton=" + hasSkeleton);
     newMergeNode.setSkeleton(hasSkeleton);
 
     for (Iterator iterator = set.iterator(); iterator.hasNext();) {
@@ -357,7 +384,7 @@ public class HierarchyGraph {
       }
     }
 
-    System.out.println("#MERGING NODE=" + set + " new node=" + newMergeNode);
+    System.out.println("###MERGING NODE=" + set + " new node=" + newMergeNode);
     return newMergeNode;
   }
 
@@ -401,6 +428,69 @@ public class HierarchyGraph {
 
   }
 
+  public Set<HNode> getDirectlyReachableSkeletonCombinationNodeFrom(HNode node,
+      Set<HNode> combinationNodeSet) {
+    Set<HNode> reachable = new HashSet<HNode>();
+    Set<HNode> visited = new HashSet<HNode>();
+    visited.add(node);
+    recurDirectlyReachableSkeletonCombinationNodeFrom(node, visited, reachable, combinationNodeSet);
+    return reachable;
+  }
+
+  public void recurDirectlyReachableSkeletonCombinationNodeFrom(HNode node, Set<HNode> visited,
+      Set<HNode> reachable, Set<HNode> combinationNodeSet) {
+
+    Set<HNode> outSet = getOutgoingNodeSet(node);
+    for (Iterator iterator = outSet.iterator(); iterator.hasNext();) {
+      HNode out = (HNode) iterator.next();
+
+      if (!visited.contains(out)) {
+        visited.add(out);
+        if (out.isSkeleton()) {
+          reachable.add(out);
+        } else if (out.isCombinationNode()) {
+          if (combinationNodeSet == null) {
+            reachable.add(out);
+          } else if (!combinationNodeSet.contains(out)) {
+            reachable.add(out);
+          } else {
+            recurDirectlyReachableSkeletonCombinationNodeFrom(out, visited, reachable,
+                combinationNodeSet);
+          }
+        } else {
+          recurDirectlyReachableSkeletonCombinationNodeFrom(out, visited, reachable,
+              combinationNodeSet);
+        }
+
+      }
+
+    }
+
+  }
+
+  public HNode getDirectlyReachableSkeletonCombinationNodeFrom(HNode node) {
+    Set<HNode> visited = new HashSet<HNode>();
+    return recurDirectlyReachableSkeletonCombinationNodeFrom(node, visited);
+  }
+
+  public HNode recurDirectlyReachableSkeletonCombinationNodeFrom(HNode node, Set<HNode> visited) {
+
+    Set<HNode> outSet = getOutgoingNodeSet(node);
+    for (Iterator iterator = outSet.iterator(); iterator.hasNext();) {
+      HNode out = (HNode) iterator.next();
+      // if (!visited.contains(out)) {
+      if (out.isCombinationNode() || out.isSkeleton()) {
+        return out;
+      } else {
+        // visited.add(out);
+        return getDirectlyReachableSkeletonCombinationNodeFrom(out);
+      }
+    }
+    // }
+
+    return null;
+  }
+
   public Set<HNode> getPossibleCycleNodes(HNode src, HNode dst) {
     // if an edge from src to dst introduces a new cycle flow,
     // the method returns the set of elements consisting of the cycle
@@ -440,7 +530,7 @@ public class HierarchyGraph {
     return mapCombinationNodeToCombineNodeSet.get(node);
   }
 
-  private HNode getCombinationNode(Set<HNode> combineSet) {
+  public HNode getCombinationNode(Set<HNode> combineSet) {
     if (!mapCombineNodeSetToCombinationNode.containsKey(combineSet)) {
       String name = "COMB" + (seed++);
       HNode node = new HNode(name);
@@ -465,14 +555,22 @@ public class HierarchyGraph {
     Set<Set<HNode>> keySet = hierarchyGraph.getCombineNodeSet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Set<HNode> combineSet = (Set<HNode>) iterator.next();
-      System.out.println("combineSet=" + combineSet);
+      System.out.println("--combineSet=" + combineSet);
       HNode combinationNode = getCombinationNode(combineSet);
-
+      System.out.println("--combinationNode=" + combinationNode);
       // add an edge from a skeleton node to a combination node
       for (Iterator iterator2 = combineSet.iterator(); iterator2.hasNext();) {
         HNode inSkeletonNode = (HNode) iterator2.next();
-        HNode srcNode = getHNode(inSkeletonNode.getDescriptor());
-        System.out.println("inSkeletonNode=" + inSkeletonNode + "   srcNode=" + srcNode);
+        // System.out.println("--inSkeletonNode=" + inSkeletonNode + "  desc="
+        // + inSkeletonNode.getDescriptor());
+        HNode srcNode;
+        if (inSkeletonNode.getDescriptor() == null) {
+          // the node is merging one...
+          srcNode = inSkeletonNode;
+        } else {
+          srcNode = getHNode(inSkeletonNode.getDescriptor());
+        }
+        // System.out.println("--srcNode=" + srcNode);
         addEdgeWithNoCycleCheck(srcNode, combinationNode);
       }
 
@@ -488,6 +586,8 @@ public class HierarchyGraph {
           addEdgeWithNoCycleCheck(combinationNode, curNode);
         }
       }
+
+      System.out.println("--");
 
     }
 
@@ -522,10 +622,31 @@ public class HierarchyGraph {
 
     Set<HNode> reachToSet = new HashSet<HNode>();
     Set<HNode> visited = new HashSet<HNode>();
-
     recurSkeletonReachTo(node, reachToSet, visited);
 
+    // if a node reaches to one of elements in the reachToSet, we do not need to keep it
+    // because the node is not directly connected to the combination node
+
+    removeRedundantReachToNodes(reachToSet);
+
     return reachToSet;
+  }
+
+  private void removeRedundantReachToNodes(Set<HNode> reachToSet) {
+
+    Set<HNode> toberemoved = new HashSet<HNode>();
+    for (Iterator iterator = reachToSet.iterator(); iterator.hasNext();) {
+      HNode cur = (HNode) iterator.next();
+
+      for (Iterator iterator2 = reachToSet.iterator(); iterator2.hasNext();) {
+        HNode dst = (HNode) iterator2.next();
+        if (!cur.equals(dst) && reachTo(cur, dst)) {
+          // it is redundant
+          toberemoved.add(cur);
+        }
+      }
+    }
+    reachToSet.removeAll(toberemoved);
   }
 
   private void recurSkeletonReachTo(HNode node, Set<HNode> reachToSet, Set<HNode> visited) {
@@ -609,7 +730,10 @@ public class HierarchyGraph {
       HNode node = (HNode) iterator.next();
       if (!node.isSkeleton()) {
         Set<HNode> reachToSet = getSkeleteNodeSetReachTo(node);
-        if (reachToSet.size() > 1) {
+        // if (reachToSet.size() > 1) {
+        if (countSkeletonNodes(reachToSet) > 1) {
+          System.out.println("-node=" + node + "  reachToSet=" + reachToSet);
+          System.out.println("-set combinationnode=" + node);
           node.setCombinationNode(true);
           mapCombinationNodeToCombineNodeSet.put(node, reachToSet);
         }
@@ -626,6 +750,22 @@ public class HierarchyGraph {
       }
     }
 
+  }
+
+  public Map<HNode, Set<HNode>> getMapCombinationNodeToCombineNodeSet() {
+    return mapCombinationNodeToCombineNodeSet;
+  }
+
+  public int countSkeletonNodes(Set<HNode> set) {
+    int count = 0;
+
+    for (Iterator iterator = set.iterator(); iterator.hasNext();) {
+      HNode node = (HNode) iterator.next();
+      Set<Descriptor> descSet = getDescSetOfNode(node);
+      count += descSet.size();
+    }
+
+    return count;
   }
 
   private void addMapCombineSetToOutgoingSet(Set<HNode> combineSet, Set<HNode> outSet) {
@@ -669,6 +809,114 @@ public class HierarchyGraph {
 
     }
 
+  }
+
+  private Set<HNode> getReachableNodeSetFrom(HNode node) {
+
+    Set<HNode> reachableSet = new HashSet<HNode>();
+    Set<HNode> visited = new HashSet<HNode>();
+
+    recurReachableNodeSetFrom(node, reachableSet, visited);
+
+    return reachableSet;
+  }
+
+  private void recurReachableNodeSetFrom(HNode node, Set<HNode> reachableSet, Set<HNode> visited) {
+
+    Set<HNode> outgoingNodeSet = getOutgoingNodeSet(node);
+    for (Iterator iterator = outgoingNodeSet.iterator(); iterator.hasNext();) {
+      HNode outNode = (HNode) iterator.next();
+      reachableSet.add(outNode);
+      if (!visited.contains(outNode)) {
+        visited.add(outNode);
+        recurReachableNodeSetFrom(outNode, reachableSet, visited);
+      }
+    }
+
+  }
+
+  public void assignUniqueIndexToNode() {
+    int idx = 1;
+    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+      HNode node = (HNode) iterator.next();
+      mapHNodeToUniqueIndex.put(node, idx);
+      idx++;
+    }
+
+    BASISTOPELEMENT = new HashSet<Integer>();
+    for (int i = 1; i < idx + 1; i++) {
+      BASISTOPELEMENT.add(i);
+    }
+  }
+
+  public BasisSet computeBasisSet() {
+
+    // assign a unique index to a node
+    assignUniqueIndexToNode();
+
+    // compute basis for each node
+    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+      HNode node = (HNode) iterator.next();
+
+      Set<Integer> basis = new HashSet<Integer>();
+      basis.addAll(BASISTOPELEMENT);
+
+      Set<HNode> reachableNodeSet = getReachableNodeSetFrom(node);
+      System.out.println("node=" + node + "    reachableNodeSet=" + reachableNodeSet);
+
+      // if a node is reachable from the current node
+      // need to remove the index of the reachable node from the basis
+
+      basis.remove(getHNodeIndex(node));
+      for (Iterator iterator2 = reachableNodeSet.iterator(); iterator2.hasNext();) {
+        HNode reachableNode = (HNode) iterator2.next();
+        int idx = getHNodeIndex(reachableNode);
+        basis.remove(idx);
+      }
+
+      mapHNodeToBasis.put(node, basis);
+    }
+
+    // construct the basis set
+
+    BasisSet basisSet = new BasisSet();
+
+    Set<HNode> keySet = mapHNodeToBasis.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      HNode node = (HNode) iterator.next();
+      Set<Integer> basis = mapHNodeToBasis.get(node);
+      basisSet.addElement(basis, node);
+    }
+
+    return basisSet;
+
+  }
+
+  public int getHNodeIndex(HNode node) {
+    return mapHNodeToUniqueIndex.get(node).intValue();
+  }
+
+  public Map<HNode, Integer> getMapHNodeToUniqueIndex() {
+    return mapHNodeToUniqueIndex;
+  }
+
+  public Map<HNode, Set<Integer>> getMapHNodeToBasis() {
+    return mapHNodeToBasis;
+  }
+
+  public Set<HNode> getCombinationNodeSetByCombineNodeSet(Set<HNode> combineSkeletonNodeSet) {
+
+    Set<HNode> combinationNodeSet = new HashSet<HNode>();
+    Set<HNode> keySet = mapCombinationNodeToCombineNodeSet.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      HNode key = (HNode) iterator.next();
+
+      if (mapCombinationNodeToCombineNodeSet.get(key).equals(combineSkeletonNodeSet)) {
+        combinationNodeSet.add(key);
+      }
+    }
+
+    return combinationNodeSet;
   }
 
   public void writeGraph() {
@@ -721,11 +969,9 @@ public class HierarchyGraph {
   }
 
   private void drawNode(BufferedWriter bw, HNode node) throws IOException {
-    String shared = "";
-    if (node.isSharedNode()) {
-      shared = "*";
-    }
-    bw.write(node.getName() + " [label=\"" + node.getName() + shared + "\"]" + ";\n");
+    String nodeName = node.toString();
+    nodeName = nodeName.substring(1, nodeName.length() - 1);
+    bw.write(node.getName() + " [label=\"" + nodeName + "\"]" + ";\n");
   }
 
 }

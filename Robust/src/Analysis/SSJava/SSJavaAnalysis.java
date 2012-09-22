@@ -345,14 +345,22 @@ public class SSJavaAnalysis {
 
   public <T> void writeLatticeDotFile(ClassDescriptor cd, MethodDescriptor md,
       SSJavaLattice<T> locOrder) {
+    writeLatticeDotFile(cd, md, locOrder, "");
+
+  }
+
+  public <T> void writeLatticeDotFile(ClassDescriptor cd, MethodDescriptor md,
+      SSJavaLattice<T> locOrder, String nameSuffix) {
 
     String fileName = "lattice_";
     if (md != null) {
       fileName +=
-          cd.getSymbol().replaceAll("[\\W_]", "") + "_" + md.getSymbol().replaceAll("[\\W_]", "");
+          cd.getSymbol().replaceAll("[\\W_]", "") + "_" + md.toString().replaceAll("[\\W_]", "");
     } else {
       fileName += cd.getSymbol().replaceAll("[\\W_]", "");
     }
+
+    fileName += nameSuffix;
 
     Set<Pair<T, T>> pairSet = locOrder.getOrderingPairSet();
 
