@@ -18,7 +18,10 @@ public class BuildLattice {
     this.infer = infer;
   }
 
-  public SSJavaLattice<String> buildLattice(HierarchyGraph inputGraph) {
+  public SSJavaLattice<String> buildLattice(Descriptor desc) {
+
+    HierarchyGraph inputGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
+    LocationSummary locSummary = infer.getLocationSummary(desc);
 
     BasisSet basisSet = inputGraph.computeBasisSet();
     debug_print(inputGraph);
@@ -26,13 +29,13 @@ public class BuildLattice {
     Family family = generateFamily(basisSet);
     Map<Set<Integer>, Set<Set<Integer>>> mapImSucc = coveringGraph(basisSet, family);
 
-    SSJavaLattice<String> lattice = buildLattice(basisSet, inputGraph, mapImSucc);
+    SSJavaLattice<String> lattice = buildLattice(basisSet, inputGraph, locSummary, mapImSucc);
     return lattice;
 
   }
 
   private SSJavaLattice<String> buildLattice(BasisSet basisSet, HierarchyGraph inputGraph,
-      Map<Set<Integer>, Set<Set<Integer>>> mapImSucc) {
+      LocationSummary locSummary, Map<Set<Integer>, Set<Set<Integer>>> mapImSucc) {
 
     SSJavaLattice<String> lattice =
         new SSJavaLattice<String>(SSJavaAnalysis.TOP, SSJavaAnalysis.BOTTOM);
@@ -44,12 +47,24 @@ public class BuildLattice {
       Set<Integer> higher = (Set<Integer>) iterator.next();
 
       String higherName = generateElementName(basisSet, inputGraph, mapFToLocName, higher);
+      locSummary.addMapHNodeNameToLocationName(higherName, higherName);
+
+      HNode higherNode = inputGraph.getHNode(higherName);
+      if (higherNode != null && higherNode.isSharedNode()) {
+        lattice.addSharedLoc(higherName);
+      }
 
       Set<Set<Integer>> lowerSet = mapImSucc.get(higher);
       for (Iterator iterator2 = lowerSet.iterator(); iterator2.hasNext();) {
         Set<Integer> lower = (Set<Integer>) iterator2.next();
 
         String lowerName = generateElementName(basisSet, inputGraph, mapFToLocName, lower);
+        locSummary.addMapHNodeNameToLocationName(lowerName, lowerName);
+
+        HNode lowerNode = inputGraph.getHNode(higherName);
+        if (lowerNode != null && lowerNode.isSharedNode()) {
+          lattice.addSharedLoc(lowerName);
+        }
 
         if (higher.size() == 0) {
           // empty case
@@ -65,12 +80,24 @@ public class BuildLattice {
     return lattice;
   }
 
-  public HNode getCombinationNodeInSCGraph(Descriptor desc, HNode simpleGraphNode) {
+  public HNode getCombinationNodeInSCGraph(Descriptor desc, HNode nodeFromSimpleGraph) {
+
+    HierarchyGraph scGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
+
+    if (nodeFromSimpleGraph.isSkeleton()) {
+      return scGraph.getCurrentHNode(nodeFromSimpleGraph);
+    }
 
     Set<HNode> combineSkeletonNodeSet =
-        infer.getSimpleHierarchyGraph(desc).getCombineSetByCombinationNode(simpleGraphNode);
+        infer.getSimpleHierarchyGraph(desc).getCombineSetByCombinationNode(nodeFromSimpleGraph);
     HNode combinationNodeInSCGraph =
-        infer.getSkeletonCombinationHierarchyGraph(desc).getCombinationNode(combineSkeletonNodeSet);
+        infer.getSkeletonCombinationHierarchyGraph(desc).getMapCombineNodeSetToCombinationNode()
+            .get(combineSkeletonNodeSet);
+
+    // Set<HNode> combineSkeletonNodeSet =
+    // infer.getSimpleHierarchyGraph(desc).getCombineSetByCombinationNode(simpleGraphNode);
+    // HNode combinationNodeInSCGraph =
+    // infer.getSkeletonCombinationHierarchyGraph(desc).getCombinationNode(combineSkeletonNodeSet);
     return combinationNodeInSCGraph;
   }
 
@@ -82,16 +109,14 @@ public class BuildLattice {
 
     HierarchyGraph simpleGraph = infer.getSimpleHierarchyGraph(desc);
     HierarchyGraph scGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
+    LocationSummary locSummary = infer.getLocationSummary(desc);
 
     SSJavaLattice<String> lattice = skeletonLattice.clone();
-
-    Map<TripleItem, String> mapIntermediateLocation = new HashMap<TripleItem, String>();
 
     Set<HNode> visited = new HashSet<HNode>();
 
     Set<HNode> nodeSet = simpleGraph.getNodeSet();
 
-    // expand a combination node
     Map<TripleItem, String> mapIntermediateLoc = new HashMap<TripleItem, String>();
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
@@ -104,34 +129,62 @@ public class BuildLattice {
 
           if (!outNode.isSkeleton()) {
             if (outNode.isCombinationNode()) {
+              // expand the combination node 'outNode'
+              System.out.println("-COMBINATION NODE=" + outNode);
               // here we need to expand the corresponding combination location in the lattice
               HNode combinationNodeInSCGraph = getCombinationNodeInSCGraph(desc, outNode);
 
               Set<HNode> combineSkeletonNodeSet =
                   simpleGraph.getCombineSetByCombinationNode(outNode);
+
+              System.out.println("combineSkeletonNodeSet=" + combineSkeletonNodeSet);
+
               Set<HNode> combinationNodeSet =
                   simpleGraph.getCombinationNodeSetByCombineNodeSet(combineSkeletonNodeSet);
+
+              System.out.println("combinationNodeSet=" + combinationNodeSet);
+
               Set<HNode> endNodeSetFromSimpleGraph =
                   simpleGraph.getDirectlyReachableSkeletonCombinationNodeFrom(outNode,
                       combinationNodeSet);
+              System.out.println("-endNodeSetFromSimpleGraph=" + endNodeSetFromSimpleGraph);
               Set<HNode> endCombNodeSet = new HashSet<HNode>();
               for (Iterator iterator3 = endNodeSetFromSimpleGraph.iterator(); iterator3.hasNext();) {
                 HNode endNode = (HNode) iterator3.next();
                 endCombNodeSet.add(getCombinationNodeInSCGraph(desc, endNode));
               }
+              System.out.println("-endCombNodeSet=" + endCombNodeSet);
               visited.add(outNode);
+
               // follows the straight line up to another skeleton/combination node
               if (endCombNodeSet.size() > 0) {
+                endCombNodeSet =
+                    removeTransitivelyReachToNode(desc, combinationNodeInSCGraph, endCombNodeSet);
                 recurDFS(desc, lattice, combinationNodeInSCGraph, endCombNodeSet, visited,
-                    mapIntermediateLoc, 1, outNode);
+                    mapIntermediateLoc, 1, locSummary, outNode);
+                // recurDFS(desc, lattice, combinationNodeInSCGraph, endCombNodeSet, visited,
+                // mapIntermediateLoc, 1, locSummary, outNode);
               }
 
             } else {
               // we have a node that is neither combination or skeleton node
-              HNode startNode = node;
+              System.out.println("skeleton node=" + node + "  outNode=" + outNode);
+              HNode startNode = scGraph.getCurrentHNode(node);
+
+              // if (node.getDescriptor() != null) {
+              // // node is a skeleton node and it might be merged into another node in the SC
+              // graph.
+              // startNode = scGraph.getHNode(node.getDescriptor());
+              // } else {
+              // // this node has already been merged before the SC graph.
+              // startNode = node;
+              // }
+
               Set<HNode> endNodeSetFromSimpleGraph =
                   simpleGraph.getDirectlyReachableSkeletonCombinationNodeFrom(outNode, null);
 
+              System.out.println("endNodeSetFromSimpleGraph=" + endNodeSetFromSimpleGraph
+                  + "   from=" + outNode);
               Set<HNode> endCombNodeSet = new HashSet<HNode>();
               for (Iterator iterator3 = endNodeSetFromSimpleGraph.iterator(); iterator3.hasNext();) {
                 HNode endNode = (HNode) iterator3.next();
@@ -141,16 +194,30 @@ public class BuildLattice {
               visited.add(outNode);
               if (endCombNodeSet.size() > 0) {
                 // follows the straight line up to another skeleton/combination node
+                endCombNodeSet = removeTransitivelyReachToNode(desc, startNode, endCombNodeSet);
                 recurDFSNormalNode(desc, lattice, startNode, endCombNodeSet, visited,
-                    mapIntermediateLoc, 1, outNode);
-
+                    mapIntermediateLoc, 1, locSummary, outNode);
               }
-
             }
 
           }
 
         }
+      } else if (!node.isSkeleton() && !node.isCombinationNode() && !node.isMergeNode()
+          && !visited.contains(node)) {
+        // an intermediate node 'node' is located between "TOP" location and a skeleton node
+
+        Set<HNode> outNodeSet = simpleGraph.getOutgoingNodeSet(node);
+        Set<String> belowSkeletonLocNameSet = new HashSet<String>();
+        for (Iterator iterator2 = outNodeSet.iterator(); iterator2.hasNext();) {
+          HNode outNode = (HNode) iterator2.next();
+          if (outNode.isSkeleton()) {
+            belowSkeletonLocNameSet.add(scGraph.getCurrentHNode(outNode).getName());
+          }
+        }
+        String newLocName = "ILOC" + (seed++);
+        lattice.insertNewLocationBetween(lattice.getTopItem(), belowSkeletonLocNameSet, newLocName);
+        locSummary.addMapHNodeNameToLocationName(node.getName(), newLocName);
       }
     }
 
@@ -158,12 +225,62 @@ public class BuildLattice {
 
   }
 
+  private Set<HNode> removeTransitivelyReachToNode(Descriptor desc, HNode startNode,
+      Set<HNode> endNodeSet) {
+
+    // if an end node is not directly connected to the start node in the SC graph
+    // replace it with a directly connected one which transitively reaches to it.
+
+    HierarchyGraph scGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
+    Set<HNode> newEndNodeSet = new HashSet<HNode>();
+
+    for (Iterator iterator = endNodeSet.iterator(); iterator.hasNext();) {
+      HNode endNode = (HNode) iterator.next();
+      if (scGraph.isDirectlyConnectedTo(startNode, endNode)) {
+        newEndNodeSet.add(endNode);
+      } else {
+        HNode newEndNode =
+            getDirectlyReachableNodeFromStartNodeReachToEndNode(scGraph, startNode, endNode);
+        System.out.println("#### old END NODE=" + endNode + " --->" + newEndNode);
+        newEndNodeSet.add(newEndNode);
+      }
+    }
+
+    System.out.println("removeTransitivelyReachToNode=" + endNodeSet + "  newSet=" + newEndNodeSet);
+
+    return newEndNodeSet;
+
+  }
+
+  private HNode getDirectlyReachableNodeFromStartNodeReachToEndNode(HierarchyGraph scGraph,
+      HNode startNode, HNode endNode) {
+    Set<HNode> connected = new HashSet<HNode>();
+    recurDirectlyReachableNodeFromStartNodeReachToEndNode(scGraph, startNode, endNode, connected);
+    return connected.iterator().next();
+  }
+
+  private void recurDirectlyReachableNodeFromStartNodeReachToEndNode(HierarchyGraph scGraph,
+      HNode startNode, HNode curNode, Set<HNode> connected) {
+
+    Set<HNode> inNodeSet = scGraph.getIncomingNodeSet(curNode);
+    for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
+      HNode inNode = (HNode) iterator.next();
+      if (inNode.equals(startNode)) {
+        connected.add(curNode);
+      } else {
+        System.out.println("inNode=" + inNode);
+        recurDirectlyReachableNodeFromStartNodeReachToEndNode(scGraph, startNode, inNode, connected);
+      }
+    }
+
+  }
+
   private void recurDFSNormalNode(Descriptor desc, SSJavaLattice<String> lattice, HNode startNode,
       Set<HNode> endNodeSet, Set<HNode> visited, Map<TripleItem, String> mapIntermediateLoc,
-      int idx, HNode curNode) {
+      int idx, LocationSummary locSummary, HNode curNode) {
 
     TripleItem item = new TripleItem(startNode, endNodeSet, idx);
-
+    System.out.println("item=" + item);
     if (!mapIntermediateLoc.containsKey(item)) {
       // need to create a new intermediate location in the lattice
       String newLocName = "ILOC" + (seed++);
@@ -188,6 +305,7 @@ public class BuildLattice {
     }
 
     String locName = mapIntermediateLoc.get(item);
+    locSummary.addMapHNodeNameToLocationName(curNode.getName(), locName);
 
     HierarchyGraph graph = infer.getSimpleHierarchyGraph(desc);
     Set<HNode> outSet = graph.getOutgoingNodeSet(curNode);
@@ -196,7 +314,7 @@ public class BuildLattice {
       if (!outNode.isSkeleton() && !outNode.isCombinationNode() && !visited.contains(outNode)) {
         visited.add(outNode);
         recurDFSNormalNode(desc, lattice, startNode, endNodeSet, visited, mapIntermediateLoc,
-            idx + 1, outNode);
+            idx + 1, locSummary, outNode);
       }
     }
 
@@ -204,34 +322,39 @@ public class BuildLattice {
 
   private void recurDFS(Descriptor desc, SSJavaLattice<String> lattice,
       HNode combinationNodeInSCGraph, Set<HNode> endNodeSet, Set<HNode> visited,
-      Map<TripleItem, String> mapIntermediateLoc, int idx, HNode curNode) {
+      Map<TripleItem, String> mapIntermediateLoc, int idx, LocationSummary locSummary, HNode curNode) {
 
     TripleItem item = new TripleItem(combinationNodeInSCGraph, endNodeSet, idx);
 
     if (!mapIntermediateLoc.containsKey(item)) {
       // need to create a new intermediate location in the lattice
-      String newLocName = "ILOC" + (seed++);
       String above;
       if (idx == 1) {
-        above = combinationNodeInSCGraph.getName();
+        String newLocName = combinationNodeInSCGraph.getName();
+        mapIntermediateLoc.put(item, newLocName);
       } else {
+        String newLocName = "ILOC" + (seed++);
         int prevIdx = idx - 1;
         TripleItem prevItem = new TripleItem(combinationNodeInSCGraph, endNodeSet, prevIdx);
         above = mapIntermediateLoc.get(prevItem);
+
+        Set<String> belowSet = new HashSet<String>();
+        for (Iterator iterator = endNodeSet.iterator(); iterator.hasNext();) {
+          HNode endNode = (HNode) iterator.next();
+          belowSet.add(endNode.getName());
+        }
+        lattice.insertNewLocationBetween(above, belowSet, newLocName);
+        mapIntermediateLoc.put(item, newLocName);
+
       }
-
-      Set<String> belowSet = new HashSet<String>();
-      for (Iterator iterator = endNodeSet.iterator(); iterator.hasNext();) {
-        HNode endNode = (HNode) iterator.next();
-        belowSet.add(endNode.getName());
-      }
-      lattice.insertNewLocationBetween(above, belowSet, newLocName);
-
-      mapIntermediateLoc.put(item, newLocName);
-
-      String locName = mapIntermediateLoc.get(item);
 
     }
+
+    String locName = mapIntermediateLoc.get(item);
+    locSummary.addMapHNodeNameToLocationName(curNode.getName(), locName);
+
+    System.out.println("-TripleItem=" + item);
+    System.out.println("-curNode=" + curNode.getName() + " locName=" + locName);
 
     HierarchyGraph graph = infer.getSimpleHierarchyGraph(desc);
     Set<HNode> outSet = graph.getOutgoingNodeSet(curNode);
@@ -241,7 +364,7 @@ public class BuildLattice {
         if (combinationNodeInSCGraph.equals(getCombinationNodeInSCGraph(desc, outNode))) {
           visited.add(outNode);
           recurDFS(desc, lattice, combinationNodeInSCGraph, endNodeSet, visited,
-              mapIntermediateLoc, idx + 1, outNode);
+              mapIntermediateLoc, idx + 1, locSummary, outNode);
         }
       }
     }

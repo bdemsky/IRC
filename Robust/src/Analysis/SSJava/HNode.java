@@ -10,11 +10,21 @@ public class HNode {
   private boolean isSkeleton;
   private boolean isCombinationNode;
   private boolean isSharedNode;
+  private boolean isMergeNode;
 
   public HNode() {
     this.isSkeleton = false;
     this.isCombinationNode = false;
     this.isSharedNode = false;
+    this.isMergeNode = false;
+  }
+
+  public boolean isMergeNode() {
+    return isMergeNode;
+  }
+
+  public void setMergeNode(boolean isMergeNode) {
+    this.isMergeNode = isMergeNode;
   }
 
   public HNode(String name) {
@@ -64,6 +74,10 @@ public class HNode {
       }
     }
     return false;
+  }
+
+  public String getNamePropertyString() {
+    return toString().substring(1, toString().length() - 1);
   }
 
   public String toString() {

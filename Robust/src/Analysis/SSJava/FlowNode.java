@@ -40,8 +40,6 @@ public class FlowNode {
     return fieldNodeSet;
   }
 
-  private Set<FlowEdge> outEdgeSet;
-
   public FlowNode(NTuple<Descriptor> tuple) {
 
     this.isSkeleton = false;
@@ -63,7 +61,6 @@ public class FlowNode {
     if (desc != null) {
       descTuple.add(desc);
     }
-    outEdgeSet = new HashSet<FlowEdge>();
 
   }
 
@@ -114,17 +111,17 @@ public class FlowNode {
     return rtr;
   }
 
-  public Iterator<FlowEdge> iteratorOfOutEdges() {
-    return outEdgeSet.iterator();
-  }
-
-  public void addOutEdge(FlowEdge out) {
-    outEdgeSet.add(out);
-  }
-
-  public Set<FlowEdge> getOutEdgeSet() {
-    return outEdgeSet;
-  }
+//  public Iterator<FlowEdge> iteratorOfOutEdges() {
+//    return outEdgeSet.iterator();
+//  }
+//
+//  public void addOutEdge(FlowEdge out) {
+//    outEdgeSet.add(out);
+//  }
+//
+//  public Set<FlowEdge> getOutEdgeSet() {
+//    return outEdgeSet;
+//  }
 
   public int hashCode() {
     return 7 + descTuple.hashCode();
@@ -153,6 +150,7 @@ public class FlowNode {
 
   public String getPrettyID() {
     String id = "<";
+    String property = "";
     for (int i = 0; i < descTuple.size(); i++) {
       if (i != 0) {
         id += ",";
@@ -165,7 +163,19 @@ public class FlowNode {
       id += " " + compLoc;
     }
 
-    return id;
+    if (isReturn()) {
+      property += "R";
+    }
+
+    if (isSkeleton()) {
+      property += "S";
+    }
+
+    if (property.length() > 0) {
+      property = " [" + property + "]";
+    }
+
+    return id + property;
   }
 
   public void setDeclarationNode() {
