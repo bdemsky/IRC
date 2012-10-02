@@ -94,7 +94,7 @@ public class LocationInference {
   // invoked by the method descriptor
   private Map<MethodDescriptor, Set<MethodInvokeNode>> mapMethodDescriptorToMethodInvokeNodeSet;
 
-  private Map<MethodInvokeNode, Map<Integer, NodeTupleSet>> mapMethodInvokeNodeToArgIdxMap;
+  private Map<MethodInvokeNode, Map<Integer, NTuple<Descriptor>>> mapMethodInvokeNodeToArgIdxMap;
 
   private Map<MethodInvokeNode, NTuple<Descriptor>> mapMethodInvokeNodeToBaseTuple;
 
@@ -146,7 +146,7 @@ public class LocationInference {
     this.mapMethodDescriptorToMethodInvokeNodeSet =
         new HashMap<MethodDescriptor, Set<MethodInvokeNode>>();
     this.mapMethodInvokeNodeToArgIdxMap =
-        new HashMap<MethodInvokeNode, Map<Integer, NodeTupleSet>>();
+        new HashMap<MethodInvokeNode, Map<Integer, NTuple<Descriptor>>>();
     this.mapMethodDescToMethodLocationInfo = new HashMap<MethodDescriptor, MethodLocationInfo>();
     this.mapMethodToCalleeSet = new HashMap<MethodDescriptor, Set<MethodDescriptor>>();
     this.mapClassToLocationInfo = new HashMap<ClassDescriptor, LocationInfo>();
@@ -290,8 +290,8 @@ public class LocationInference {
         // FlowGraph fg = new FlowGraph(md, mapParamDescToIdx);
         // mapMethodDescriptorToFlowGraph.put(md, fg);
         // analyzeMethodBody(md.getClassDesc(), md);
-
       }
+
     }
     // _debug_printGraph();
 
@@ -340,55 +340,100 @@ public class LocationInference {
     int numParam = calleeSubGlobalGraph.getNumParameters();
     for (int idx = 0; idx < numParam; idx++) {
       FlowNode paramNode = calleeSubGlobalGraph.getParamFlowNode(idx);
-      NodeTupleSet argTupleSet = mapMethodInvokeNodeToArgIdxMap.get(min).get(idx);
-      System.out.println("argTupleSet=" + argTupleSet + "   param=" + paramNode);
-      for (Iterator<NTuple<Descriptor>> iter = argTupleSet.iterator(); iter.hasNext();) {
-        NTuple<Descriptor> argTuple = iter.next();
-        addValueFlowsFromCalleeParam(calleeSubGlobalGraph, paramNode, callerSubGlobalGraph,
-            argTuple, baseTuple);
-      }
+      NTuple<Descriptor> argTuple = mapMethodInvokeNodeToArgIdxMap.get(min).get(idx);
+      System.out.println("argTupleSet=" + argTuple + "   param=" + paramNode);
+      // here, it adds all value flows reachable from the paramNode in the callee's flow graph
+      addValueFlowsFromCalleeParam(min, calleeSubGlobalGraph, paramNode, callerSubGlobalGraph,
+          argTuple, baseTuple);
     }
 
   }
 
-  private void addValueFlowsFromCalleeParam(FlowGraph calleeSubGlobalGraph, FlowNode paramNode,
-      FlowGraph callerSubGlobalGraph, NTuple<Descriptor> argTuple, NTuple<Descriptor> baseTuple) {
+  private void addValueFlowsFromCalleeParam(MethodInvokeNode min, FlowGraph calleeSubGlobalGraph,
+      FlowNode paramNode, FlowGraph callerSubGlobalGraph, NTuple<Descriptor> argTuple,
+      NTuple<Descriptor> baseTuple) {
 
     Set<FlowNode> visited = new HashSet<FlowNode>();
 
     visited.add(paramNode);
-    recurAddValueFlowsFromCalleeParam(calleeSubGlobalGraph, paramNode, callerSubGlobalGraph,
+    recurAddValueFlowsFromCalleeParam(min, calleeSubGlobalGraph, paramNode, callerSubGlobalGraph,
         argTuple, visited, baseTuple);
   }
 
-  private void recurAddValueFlowsFromCalleeParam(FlowGraph calleeSubGlobalGraph,
-      FlowNode calleeSrcNode, FlowGraph callerSubGlobalGraph, NTuple<Descriptor> callerSrcTuple,
-      Set<FlowNode> visited, NTuple<Descriptor> baseTuple) {
+  private void recurAddValueFlowsFromCalleeParam(MethodInvokeNode min,
+      FlowGraph calleeSubGlobalGraph, FlowNode calleeSrcNode, FlowGraph callerSubGlobalGraph,
+      NTuple<Descriptor> callerSrcTuple, Set<FlowNode> visited, NTuple<Descriptor> baseTuple) {
 
     MethodDescriptor mdCallee = calleeSubGlobalGraph.getMethodDescriptor();
 
-    Set<FlowEdge> edgeSet = calleeSubGlobalGraph.getOutEdgeSet(calleeSrcNode);
+    // Set<FlowEdge> edgeSet = calleeSubGlobalGraph.getOutEdgeSet(calleeSrcNode);
+    Set<FlowEdge> edgeSet = calleeSubGlobalGraph.getOutEdgeSetStartingFrom(calleeSrcNode);
     for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
       FlowEdge flowEdge = (FlowEdge) iterator.next();
-      FlowNode dstNode = flowEdge.getDst();
 
-      NTuple<Descriptor> dstDescTuple = dstNode.getCurrentDescTuple();
-      if (dstDescTuple.get(0).equals(mdCallee.getThis())) {
-        // destination node is started with 'this' variable
-        // need to translate it in terms of the caller's base node
-        dstDescTuple = translateToCaller(dstDescTuple, baseTuple);
+      NTuple<Descriptor> srcDescTuple = flowEdge.getInitTuple();
+      NTuple<Descriptor> dstDescTuple = flowEdge.getEndTuple();
+
+      FlowNode dstNode = calleeSubGlobalGraph.getFlowNode(dstDescTuple);
+
+      if (calleeSubGlobalGraph.isParameter(srcDescTuple)) {
+        // destination node is started with 'parameter'
+        // need to translate it in terms of the caller's a node
+        srcDescTuple =
+            translateToCaller(min, calleeSubGlobalGraph.getParamIdx(srcDescTuple), srcDescTuple);
       }
 
-      callerSubGlobalGraph.addValueFlowEdge(callerSrcTuple, dstDescTuple);
+      if (calleeSubGlobalGraph.isParameter(dstDescTuple)) {
+        // destination node is started with 'parameter'
+        // need to translate it in terms of the caller's a node
+        dstDescTuple =
+            translateToCaller(min, calleeSubGlobalGraph.getParamIdx(dstDescTuple), dstDescTuple);
+      }
+
+      callerSubGlobalGraph.addValueFlowEdge(srcDescTuple, dstDescTuple);
 
       if (!visited.contains(dstNode)) {
         visited.add(dstNode);
-        recurAddValueFlowsFromCalleeParam(calleeSubGlobalGraph, dstNode, callerSubGlobalGraph,
+        recurAddValueFlowsFromCalleeParam(min, calleeSubGlobalGraph, dstNode, callerSubGlobalGraph,
             dstDescTuple, visited, baseTuple);
       }
 
     }
 
+  }
+
+  private NTuple<Descriptor> translateToCaller(MethodInvokeNode min, int paramIdx,
+      NTuple<Descriptor> srcDescTuple) {
+
+    NTuple<Descriptor> callerTuple = new NTuple<Descriptor>();
+
+    NTuple<Descriptor> argTuple = mapMethodInvokeNodeToArgIdxMap.get(min).get(paramIdx);
+
+    for (int i = 0; i < argTuple.size(); i++) {
+      callerTuple.add(argTuple.get(i));
+    }
+
+    for (int i = 1; i < srcDescTuple.size(); i++) {
+      callerTuple.add(srcDescTuple.get(i));
+    }
+
+    return callerTuple;
+  }
+
+  private NTuple<Descriptor> traslateToCalleeParamTupleToCallerArgTuple(
+      NTuple<Descriptor> calleeInitTuple, NTuple<Descriptor> callerSrcTuple) {
+
+    NTuple<Descriptor> callerInitTuple = new NTuple<Descriptor>();
+
+    for (int i = 0; i < callerSrcTuple.size(); i++) {
+      callerInitTuple.add(callerSrcTuple.get(i));
+    }
+
+    for (int i = 1; i < calleeInitTuple.size(); i++) {
+      callerInitTuple.add(calleeInitTuple.get(i));
+    }
+
+    return callerInitTuple;
   }
 
   private NTuple<Descriptor> translateToCaller(NTuple<Descriptor> dstDescTuple,
@@ -2010,39 +2055,28 @@ public class LocationInference {
           FlowNode paramNode1 = calleeFlowGraph.getParamFlowNode(i);
           FlowNode paramNode2 = calleeFlowGraph.getParamFlowNode(k);
 
-          NodeTupleSet tupleSetArg1 = getNodeTupleSetByArgIdx(min, i);
-          NodeTupleSet tupleSetArg2 = getNodeTupleSetByArgIdx(min, k);
+          NTuple<Descriptor> arg1Tuple = getNodeTupleByArgIdx(min, i);
+          NTuple<Descriptor> arg2Tuple = getNodeTupleByArgIdx(min, k);
 
-          for (Iterator<NTuple<Descriptor>> iter1 = tupleSetArg1.iterator(); iter1.hasNext();) {
-            NTuple<Descriptor> arg1Tuple = iter1.next();
+          // check if the callee propagates an ordering constraints through
+          // parameters
 
-            for (Iterator<NTuple<Descriptor>> iter2 = tupleSetArg2.iterator(); iter2.hasNext();) {
-              NTuple<Descriptor> arg2Tuple = iter2.next();
+          Set<FlowNode> localReachSet = calleeFlowGraph.getLocalReachFlowNodeSetFrom(paramNode1);
 
-              // check if the callee propagates an ordering constraints through
-              // parameters
+          if (localReachSet.contains(paramNode2)) {
+            // need to propagate an ordering relation s.t. arg1 is higher
+            // than arg2
 
-              Set<FlowNode> localReachSet =
-                  calleeFlowGraph.getLocalReachFlowNodeSetFrom(paramNode1);
+            System.out.println("-param1=" + paramNode1 + " is higher than param2=" + paramNode2);
+            System.out
+                .println("-arg1Tuple=" + arg1Tuple + " is higher than arg2Tuple=" + arg2Tuple);
 
-              if (localReachSet.contains(paramNode2)) {
-                // need to propagate an ordering relation s.t. arg1 is higher
-                // than arg2
-
-                System.out
-                    .println("-param1=" + paramNode1 + " is higher than param2=" + paramNode2);
-                System.out.println("-arg1Tuple=" + arg1Tuple + " is higher than arg2Tuple="
-                    + arg2Tuple);
-
-                // otherwise, flows between method/field locations...
-                callerFlowGraph.addValueFlowEdge(arg1Tuple, arg2Tuple);
-                System.out.println("arg1=" + arg1Tuple + "   arg2=" + arg2Tuple);
-
-              }
-
-            }
+            // otherwise, flows between method/field locations...
+            callerFlowGraph.addValueFlowEdge(arg1Tuple, arg2Tuple);
+            System.out.println("arg1=" + arg1Tuple + "   arg2=" + arg2Tuple);
 
           }
+
           System.out.println();
         }
       }
@@ -2082,8 +2116,11 @@ public class LocationInference {
           System.out.println("param2=" + paramNode2 + " curDescTuple="
               + paramNode2.getCurrentDescTuple());
 
-          NodeTupleSet tupleSetArg1 = getNodeTupleSetByArgIdx(min, i);
-          NodeTupleSet tupleSetArg2 = getNodeTupleSetByArgIdx(min, k);
+          // TODO: deprecated method
+          // NodeTupleSet tupleSetArg1 = getNodeTupleSetByArgIdx(min, i);
+          // NodeTupleSet tupleSetArg2 = getNodeTupleSetByArgIdx(min, k);
+          NodeTupleSet tupleSetArg1 = null;
+          NodeTupleSet tupleSetArg2 = null;
 
           for (Iterator<NTuple<Descriptor>> iter1 = tupleSetArg1.iterator(); iter1.hasNext();) {
             NTuple<Descriptor> arg1Tuple = iter1.next();
@@ -2491,8 +2528,10 @@ public class LocationInference {
           CompositeLocation param2 = calleeLocInfo.getParamCompositeLocation(k);
 
           if (isGreaterThan(getLattice(possibleMdCallee), param1, param2)) {
-            NodeTupleSet argDescTupleSet1 = getNodeTupleSetByArgIdx(min, i);
-            NodeTupleSet argDescTupleSet2 = getNodeTupleSetByArgIdx(min, k);
+            // NodeTupleSet argDescTupleSet1 = getNodeTupleSetByArgIdx(min, i);
+            // NodeTupleSet argDescTupleSet2 = getNodeTupleSetByArgIdx(min, k);
+            NodeTupleSet argDescTupleSet1 = null;
+            NodeTupleSet argDescTupleSet2 = null;
 
             // the callee has the relation in which param1 is higher than param2
             // therefore, the caller has to have the relation in which arg1 is
@@ -3963,10 +4002,11 @@ public class LocationInference {
             implicitFlowTupleSet, false);
 
         assert (baseNodeSet.size() == 1);
-        mapMethodInvokeNodeToBaseTuple.put(min, baseNodeSet.iterator().next());
+        NTuple<Descriptor> baseTuple = baseNodeSet.iterator().next();
+        mapMethodInvokeNodeToBaseTuple.put(min, baseTuple);
 
         if (!min.getMethod().isStatic()) {
-          addArgIdxMap(min, 0, baseNodeSet);
+          addArgIdxMap(min, 0, baseTuple);
 
           for (Iterator iterator = calleeReturnSet.iterator(); iterator.hasNext();) {
             FlowNode returnNode = (FlowNode) iterator.next();
@@ -3974,14 +4014,11 @@ public class LocationInference {
             if (returnDescTuple.startsWith(calleeMethodDesc.getThis())) {
               // the location type of the return value is started with 'this'
               // reference
-              for (Iterator<NTuple<Descriptor>> baseIter = baseNodeSet.iterator(); baseIter
-                  .hasNext();) {
-                NTuple<Descriptor> baseTuple = baseIter.next();
-                NTuple<Descriptor> inFlowTuple = new NTuple<Descriptor>(baseTuple.getList());
-                inFlowTuple.addAll(returnDescTuple.subList(1, returnDescTuple.size()));
-                nodeSet.addTuple(inFlowTuple);
-              }
+              NTuple<Descriptor> inFlowTuple = new NTuple<Descriptor>(baseTuple.getList());
+              inFlowTuple.addAll(returnDescTuple.subList(1, returnDescTuple.size()));
+              nodeSet.addTuple(inFlowTuple);
             } else {
+              // TODO
               Set<FlowNode> inFlowSet = calleeFlowGraph.getIncomingFlowNodeSet(returnNode);
               for (Iterator iterator2 = inFlowSet.iterator(); iterator2.hasNext();) {
                 FlowNode inFlowNode = (FlowNode) iterator2.next();
@@ -4012,7 +4049,21 @@ public class LocationInference {
           NodeTupleSet argTupleSet = new NodeTupleSet();
           analyzeFlowExpressionNode(md, nametable, en, argTupleSet, false);
           // if argument is liternal node, argTuple is set to NULL.
-          addArgIdxMap(min, idx, argTupleSet);
+
+          NTuple<Descriptor> argTuple = new NTuple<Descriptor>();
+          if (argTupleSet.size() > 1) {
+            NTuple<Descriptor> interTuple =
+                getFlowGraph(md).createIntermediateNode().getDescTuple();
+            for (Iterator<NTuple<Descriptor>> idxIter = argTupleSet.iterator(); idxIter.hasNext();) {
+              NTuple<Descriptor> tuple = idxIter.next();
+              addFlowGraphEdge(md, tuple, interTuple);
+            }
+            argTuple = interTuple;
+          } else {
+            argTuple = argTupleSet.iterator().next();
+          }
+
+          addArgIdxMap(min, idx, argTuple);
           FlowNode paramNode = calleeFlowGraph.getParamFlowNode(idx);
           if (hasInFlowTo(calleeFlowGraph, paramNode, calleeReturnSet)
               || calleeMethodDesc.getModifiers().isNative()) {
@@ -4041,48 +4092,20 @@ public class LocationInference {
     return false;
   }
 
-  private NodeTupleSet getNodeTupleSetByArgIdx(MethodInvokeNode min, int idx) {
+  private NTuple<Descriptor> getNodeTupleByArgIdx(MethodInvokeNode min, int idx) {
     return mapMethodInvokeNodeToArgIdxMap.get(min).get(new Integer(idx));
   }
 
-  private void addArgIdxMap(MethodInvokeNode min, int idx, NodeTupleSet tupleSet) {
-    Map<Integer, NodeTupleSet> mapIdxToTupleSet = mapMethodInvokeNodeToArgIdxMap.get(min);
-    if (mapIdxToTupleSet == null) {
-      mapIdxToTupleSet = new HashMap<Integer, NodeTupleSet>();
-      mapMethodInvokeNodeToArgIdxMap.put(min, mapIdxToTupleSet);
+  private void addArgIdxMap(MethodInvokeNode min, int idx, NTuple<Descriptor> argTuple /*
+                                                                                        * NodeTupleSet
+                                                                                        * tupleSet
+                                                                                        */) {
+    Map<Integer, NTuple<Descriptor>> mapIdxToTuple = mapMethodInvokeNodeToArgIdxMap.get(min);
+    if (mapIdxToTuple == null) {
+      mapIdxToTuple = new HashMap<Integer, NTuple<Descriptor>>();
+      mapMethodInvokeNodeToArgIdxMap.put(min, mapIdxToTuple);
     }
-    mapIdxToTupleSet.put(new Integer(idx), tupleSet);
-  }
-
-  private void analyzeFlowMethodParameters(MethodDescriptor callermd, SymbolTable nametable,
-      MethodInvokeNode min, NodeTupleSet nodeSet) {
-
-    if (min.numArgs() > 0) {
-
-      int offset;
-      if (min.getMethod().isStatic()) {
-        offset = 0;
-      } else {
-        offset = 1;
-        // NTuple<Descriptor> thisArgTuple = new NTuple<Descriptor>();
-        // thisArgTuple.add(callermd.getThis());
-        // NodeTupleSet argTupleSet = new NodeTupleSet();
-        // argTupleSet.addTuple(thisArgTuple);
-        // addArgIdxMap(min, 0, argTupleSet);
-        // nodeSet.addTuple(thisArgTuple);
-      }
-
-      for (int i = 0; i < min.numArgs(); i++) {
-        ExpressionNode en = min.getArg(i);
-        NodeTupleSet argTupleSet = new NodeTupleSet();
-        analyzeFlowExpressionNode(callermd, nametable, en, argTupleSet, false);
-        // if argument is liternal node, argTuple is set to NULL.
-        addArgIdxMap(min, i + offset, argTupleSet);
-        nodeSet.addTupleSet(argTupleSet);
-      }
-
-    }
-
+    mapIdxToTuple.put(new Integer(idx), argTuple);
   }
 
   private void analyzeLiteralNode(MethodDescriptor md, SymbolTable nametable, LiteralNode en) {

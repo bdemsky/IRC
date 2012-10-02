@@ -111,17 +111,6 @@ public class FlowNode {
     return rtr;
   }
 
-//  public Iterator<FlowEdge> iteratorOfOutEdges() {
-//    return outEdgeSet.iterator();
-//  }
-//
-//  public void addOutEdge(FlowEdge out) {
-//    outEdgeSet.add(out);
-//  }
-//
-//  public Set<FlowEdge> getOutEdgeSet() {
-//    return outEdgeSet;
-//  }
 
   public int hashCode() {
     return 7 + descTuple.hashCode();
@@ -163,13 +152,13 @@ public class FlowNode {
       id += " " + compLoc;
     }
 
-    if (isReturn()) {
-      property += "R";
-    }
-
-    if (isSkeleton()) {
-      property += "S";
-    }
+    // if (isReturn()) {
+    // property += "R";
+    // }
+    //
+    // if (isSkeleton()) {
+    // property += "S";
+    // }
 
     if (property.length() > 0) {
       property = " [" + property + "]";

@@ -13,14 +13,11 @@ import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
-import IR.NameDescriptor;
 import IR.VarDescriptor;
 
 public class FlowGraph {
 
   MethodDescriptor md;
-
-  Set<FlowNode> nodeSet;
 
   Set<FlowNode> returnNodeSet;
   FlowNode thisVarNode;
@@ -47,7 +44,6 @@ public class FlowGraph {
     this.md = md;
     this.mapFlowNodeToLocTuple = new HashMap<FlowNode, NTuple<Location>>();
     this.mapLocTupleToFlowNode = new HashMap<NTuple<Location>, FlowNode>();
-    this.nodeSet = new HashSet<FlowNode>();
     this.mapDescTupleToInferNode = new HashMap<NTuple<Descriptor>, FlowNode>();
     this.mapParamDescToIdx = new HashMap<Descriptor, Integer>();
     this.mapParamDescToIdx.putAll(mapParamDescToIdx);
@@ -87,10 +83,6 @@ public class FlowGraph {
     this.mapLocTupleToFlowNode.putAll(in);
   }
 
-  public void setNodeSet(Set<FlowNode> in) {
-    this.nodeSet.addAll(in);
-  }
-
   public void setReturnNodeSet(Set<FlowNode> in) {
     this.returnNodeSet.addAll(in);
   }
@@ -113,7 +105,7 @@ public class FlowGraph {
     newNode.setIntermediate(true);
 
     mapDescTupleToInferNode.put(tuple, newNode);
-    nodeSet.add(newNode);
+    // nodeSet.add(newNode);
 
     System.out.println("create new intermediate node= " + newNode);
 
@@ -144,7 +136,9 @@ public class FlowGraph {
   }
 
   public Set<FlowNode> getNodeSet() {
-    return nodeSet;
+    Set<FlowNode> set = new HashSet<FlowNode>();
+    set.addAll(mapDescTupleToInferNode.values());
+    return set;
   }
 
   public MethodDescriptor getMethodDescriptor() {
@@ -184,6 +178,26 @@ public class FlowGraph {
     return false;
   }
 
+  public Set<FlowEdge> getOutEdgeSetStartingFrom(FlowNode startNode) {
+
+    Descriptor prefixDesc = startNode.getCurrentDescTuple().get(0);
+
+    // returns the set of edges that share the same prefix of startNode
+    Set<FlowEdge> edgeSet = new HashSet<FlowEdge>();
+
+    for (Iterator<Set<FlowEdge>> iter = mapFlowNodeToOutEdgeSet.values().iterator(); iter.hasNext();) {
+      Set<FlowEdge> nodeEdgeSet = iter.next();
+      for (Iterator<FlowEdge> iter2 = nodeEdgeSet.iterator(); iter2.hasNext();) {
+        FlowEdge edge = iter2.next();
+        if (edge.getInitTuple().get(0).equals(prefixDesc)) {
+          edgeSet.add(edge);
+        }
+      }
+    }
+
+    return edgeSet;
+  }
+
   public Set<FlowEdge> getOutEdgeSet(FlowNode node) {
     if (!mapFlowNodeToOutEdgeSet.containsKey(node)) {
       mapFlowNodeToOutEdgeSet.put(node, new HashSet<FlowEdge>());
@@ -196,7 +210,7 @@ public class FlowGraph {
     FlowNode fromNode = getFlowNode(fromDescTuple);
     FlowNode toNode = getFlowNode(toDescTuple);
 
-    System.out.println("create an edge from " + fromNode + " to " + toNode);
+    // System.out.println("create an edge from " + fromNode + " to " + toNode);
 
     int fromTupleSize = fromDescTuple.size();
     NTuple<Descriptor> curFromTuple = new NTuple<Descriptor>();
@@ -263,7 +277,7 @@ public class FlowGraph {
     if (!mapDescTupleToInferNode.containsKey(tuple)) {
       FlowNode node = new FlowNode(tuple);
       mapDescTupleToInferNode.put(tuple, node);
-      nodeSet.add(node);
+      // nodeSet.add(node);
 
       mapLocTupleToFlowNode.put(getLocationTuple(node), node);
 
@@ -442,7 +456,7 @@ public class FlowGraph {
 
   public void getIncomingFlowNodeSet(FlowNode node, Set<FlowNode> visited) {
 
-    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+    for (Iterator iterator = getNodeSet().iterator(); iterator.hasNext();) {
       FlowNode curNode = (FlowNode) iterator.next();
       Set<FlowEdge> edgeSet = getOutEdgeSet(curNode);
 
@@ -470,7 +484,7 @@ public class FlowGraph {
 
     ClassDescriptor cd = null;
 
-    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+    for (Iterator iterator = getNodeSet().iterator(); iterator.hasNext();) {
       FlowNode node = (FlowNode) iterator.next();
 
       Set<FlowEdge> edgeSet = getOutEdgeSet(node);
@@ -504,10 +518,15 @@ public class FlowGraph {
     return mapParamDescToIdx.containsKey(firstIdxDesc);
   }
 
+  public int getParamIdx(NTuple<Descriptor> tuple) {
+    Descriptor firstIdxDesc = tuple.get(0);
+    return mapParamDescToIdx.get(firstIdxDesc);
+  }
+
   public FlowGraph clone() {
     FlowGraph clone = new FlowGraph(md, mapParamDescToIdx);
 
-    clone.setNodeSet(getNodeSet());
+    // clone.setNodeSet(getNodeSet());
     clone.setMapLocTupleToFlowNode(getMapLocTupleToFlowNode());
     clone.setMapFlowNodeToLocTuple(getMapFlowNodeToLocTuple());
     clone.setMapDescTupleToInferNode(getMapDescTupleToInferNode());
@@ -595,7 +614,8 @@ public class FlowGraph {
 
     // then visit every flow node
 
-    Iterator<FlowNode> iter = nodeSet.iterator();
+    // Iterator<FlowNode> iter = nodeSet.iterator();
+    Iterator<FlowNode> iter = getNodeSet().iterator();
 
     Set<FlowEdge> addedEdgeSet = new HashSet<FlowEdge>();
     Set<FlowNode> addedNodeSet = new HashSet<FlowNode>();
@@ -619,7 +639,7 @@ public class FlowGraph {
   }
 
   public boolean constainsNode(FlowNode node) {
-    return nodeSet.contains(node);
+    return getNodeSet().contains(node);
   }
 
   private void drawSubgraph(FlowNode node, BufferedWriter bw, Set<FlowEdge> addedSet)
