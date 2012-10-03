@@ -14,6 +14,12 @@ public class Location implements TypeExtension {
   String loc;
   Descriptor locDesc;
 
+  public Location(Descriptor enclosingDesc, Descriptor locDescriptor) {
+    this.d = enclosingDesc;
+    this.locDesc = locDescriptor;
+    this.loc = locDescriptor.getSymbol();
+  }
+
   public Location(Descriptor d, String loc) {
     this.d = d;
     this.loc = loc;

@@ -95,13 +95,18 @@ public class FlowGraph {
     return mapParamDescToIdx;
   }
 
-  public FlowNode createIntermediateNode() {
+  public FlowNode createIntermediateNode(MethodDescriptor md) {
+
     NTuple<Descriptor> tuple = new NTuple<Descriptor>();
     Descriptor interDesc = new InterDescriptor(LocationInference.INTERLOC + interseed);
     tuple.add(interDesc);
     interseed++;
 
-    FlowNode newNode = new FlowNode(tuple);
+    NTuple<Location> locTuple = new NTuple<Location>();
+    Location interLoc = new Location(md, interDesc);
+    locTuple.add(interLoc);
+
+    FlowNode newNode = new FlowNode(locTuple);
     newNode.setIntermediate(true);
 
     mapDescTupleToInferNode.put(tuple, newNode);
@@ -274,8 +279,10 @@ public class FlowGraph {
 
   public FlowNode createNewFlowNode(NTuple<Descriptor> tuple) {
 
+    NTuple<Location> locTuple = translateToLocationTuple(tuple);
     if (!mapDescTupleToInferNode.containsKey(tuple)) {
-      FlowNode node = new FlowNode(tuple);
+
+      FlowNode node = new FlowNode(locTuple);
       mapDescTupleToInferNode.put(tuple, node);
       // nodeSet.add(node);
 
@@ -380,7 +387,7 @@ public class FlowGraph {
     for (Iterator iterator = outEdgeSet.iterator(); iterator.hasNext();) {
       FlowEdge edge = (FlowEdge) iterator.next();
 
-      if (fn.getDescTuple().equals(edge.getInitTuple())) {
+      if (fn.getLocTuple().equals(edge.getInitTuple())) {
         FlowNode dstNode = getFlowNode(edge.getEndTuple());
         NTuple<Location> dstTuple = getLocationTuple(dstNode);
 
@@ -396,6 +403,51 @@ public class FlowGraph {
 
   public NTuple<Location> getLocationTuple(NTuple<Descriptor> descTuple) {
     return getLocationTuple(getFlowNode(descTuple));
+  }
+
+  public NTuple<Location> translateToLocationTuple(NTuple<Descriptor> descTuple) {
+
+    NTuple<Location> locTuple = new NTuple<Location>();
+    ClassDescriptor cd = null;
+
+    Descriptor localDesc = descTuple.get(0);
+
+    if (localDesc instanceof InterDescriptor) {
+      Location interLoc = new Location(md, localDesc);
+      locTuple.add(interLoc);
+    } else if (localDesc.getSymbol().equals(LocationInference.TOPLOC)) {
+      Location topLoc = new Location(md, Location.TOP);
+      topLoc.setLocDescriptor(LocationInference.TOPDESC);
+      locTuple.add(topLoc);
+    } else if (localDesc.getSymbol().equals(LocationInference.GLOBALLOC)) {
+      Location globalLoc = new Location(md, LocationInference.GLOBALLOC);
+      globalLoc.setLocDescriptor(LocationInference.GLOBALDESC);
+      locTuple.add(globalLoc);
+    } else {
+      // normal case
+      for (int i = 0; i < descTuple.size(); i++) {
+        Descriptor curDesc = descTuple.get(i);
+        Location loc;
+        if (i == 0) {
+          loc = new Location(md, curDesc.getSymbol());
+          loc.setLocDescriptor(curDesc);
+          cd = ((VarDescriptor) curDesc).getType().getClassDesc();
+        } else {
+          loc = new Location(cd, curDesc.getSymbol());
+          loc.setLocDescriptor(curDesc);
+
+          if (curDesc instanceof FieldDescriptor) {
+            cd = ((FieldDescriptor) curDesc).getType().getClassDesc();
+          } else {
+            cd = ((LocationDescriptor) curDesc).getEnclosingClassDesc();
+          }
+
+        }
+        locTuple.add(loc);
+      }
+    }
+
+    return locTuple;
   }
 
   public NTuple<Location> getLocationTuple(FlowNode fn) {
@@ -571,8 +623,8 @@ public class FlowGraph {
       FlowNode u = flowEdge.getSrc();
       FlowNode v = flowEdge.getDst();
 
-      if (u.getDescTuple().equals(flowEdge.getInitTuple())
-          && v.getDescTuple().equals(flowEdge.getEndTuple())) {
+      if (u.getLocTuple().equals(flowEdge.getInitTuple())
+          && v.getLocTuple().equals(flowEdge.getEndTuple())) {
         // only draw an edge of the actual value flow
 
         if (!addedEdgeSet.contains(flowEdge)) {
@@ -623,7 +675,7 @@ public class FlowGraph {
     while (iter.hasNext()) {
       FlowNode node = iter.next();
 
-      if (node.getDescTuple().size() == 1) {
+      if (node.getLocTuple().size() == 1) {
         // here, we just care about the local variable
         if (node.getFieldNodeSet().size() > 0) {
           drawSubgraph(node, bw, addedEdgeSet);
