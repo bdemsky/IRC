@@ -11,7 +11,7 @@ import IR.VarDescriptor;
 public class FlowNode {
 
   // descriptor tuple is a unique identifier of the flow node
-  private NTuple<Location> locTuple;
+  private NTuple<Descriptor> descTuple;
 
   // if the infer node represents the base type of field access,
   // this set contains fields of the base type
@@ -40,26 +40,26 @@ public class FlowNode {
     return fieldNodeSet;
   }
 
-  public FlowNode(NTuple<Location> tuple) {
+  public FlowNode(NTuple<Descriptor> tuple) {
 
     this.isSkeleton = false;
     this.isIntermediate = false;
 
-    NTuple<Location> base = null;
-    Location loc = null;
+    NTuple<Descriptor> base = null;
+    Descriptor desc = null;
     if (tuple.size() > 1) {
       base = tuple.subList(0, tuple.size() - 1);
-      loc = tuple.get(tuple.size() - 1);
+      desc = tuple.get(tuple.size() - 1);
     } else {
       base = tuple;
     }
     fieldNodeSet = new HashSet<FlowNode>();
-    locTuple = new NTuple<Location>();
+    descTuple = new NTuple<Descriptor>();
     if (base != null) {
-      locTuple.addAll(base);
+      descTuple.addAll(base);
     }
-    if (loc != null) {
-      locTuple.add(loc);
+    if (desc != null) {
+      descTuple.add(desc);
     }
 
   }
@@ -76,8 +76,12 @@ public class FlowNode {
     fieldNodeSet.add(node);
   }
 
-  public NTuple<Location> getLocTuple() {
-    return locTuple;
+  public NTuple<Descriptor> getDescTuple() {
+    return descTuple;
+  }
+
+  public Descriptor getOwnDescriptor() {
+    return descTuple.get(descTuple.size() - 1);
   }
 
   public boolean isReturn() {
@@ -88,24 +92,35 @@ public class FlowNode {
     this.isReturn = isReturn;
   }
 
+  public boolean isPrimitiveType() {
+    Descriptor desc = descTuple.get(descTuple.size() - 1);
+    if (desc instanceof VarDescriptor) {
+      return ((VarDescriptor) desc).getType().isPrimitive();
+    } else if (desc instanceof FieldDescriptor) {
+      return ((FieldDescriptor) desc).getType().isPrimitive();
+    }
+    return false;
+  }
+
   public String toString() {
     String rtr = "[FlowNode]:";
     if (isSkeleton()) {
       rtr += "SKELETON:";
     }
-    rtr += ":" + locTuple;
+    rtr += ":" + descTuple;
     return rtr;
   }
 
+
   public int hashCode() {
-    return 7 + locTuple.hashCode();
+    return 7 + descTuple.hashCode();
   }
 
   public boolean equals(Object obj) {
 
     if (obj instanceof FlowNode) {
       FlowNode in = (FlowNode) obj;
-      if (locTuple.equals(in.getLocTuple())) {
+      if (descTuple.equals(in.getDescTuple())) {
         return true;
       }
     }
@@ -116,8 +131,8 @@ public class FlowNode {
 
   public String getID() {
     String id = "";
-    for (int i = 0; i < locTuple.size(); i++) {
-      id += locTuple.get(i).getSymbol();
+    for (int i = 0; i < descTuple.size(); i++) {
+      id += descTuple.get(i).getSymbol();
     }
     return id;
   }
@@ -125,11 +140,11 @@ public class FlowNode {
   public String getPrettyID() {
     String id = "<";
     String property = "";
-    for (int i = 0; i < locTuple.size(); i++) {
+    for (int i = 0; i < descTuple.size(); i++) {
       if (i != 0) {
         id += ",";
       }
-      id += locTuple.get(i).getSymbol();
+      id += descTuple.get(i).getSymbol();
     }
     id += ">";
 
@@ -160,22 +175,10 @@ public class FlowNode {
     return isDeclarationNode;
   }
 
-  public NTuple<Location> getCurrentLocTuple() {
-    if (compLoc == null) {
-      return locTuple;
-    }
-    NTuple<Location> curLocTuple = new NTuple<Location>();
-    for (int i = 0; i < compLoc.getSize(); i++) {
-      Location locElement = compLoc.get(i);
-      curLocTuple.add(locElement);
-    }
-    return curLocTuple;
-  }
-
   public NTuple<Descriptor> getCurrentDescTuple() {
 
     if (compLoc == null) {
-      return getDescTuple();
+      return descTuple;
     }
 
     NTuple<Descriptor> curDescTuple = new NTuple<Descriptor>();
@@ -192,14 +195,6 @@ public class FlowNode {
 
   public void setSkeleton(boolean isSkeleton) {
     this.isSkeleton = isSkeleton;
-  }
-
-  public NTuple<Descriptor> getDescTuple() {
-    NTuple<Descriptor> descTuple = new NTuple<Descriptor>();
-    for (int i = 0; i < locTuple.size(); i++) {
-      descTuple.add(locTuple.get(i).getLocDescriptor());
-    }
-    return descTuple;
   }
 
 }
