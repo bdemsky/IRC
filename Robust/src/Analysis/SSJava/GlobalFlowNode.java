@@ -56,6 +56,14 @@ public class GlobalFlowNode {
     return id;
   }
 
+  public void setInferCompositeLocation(CompositeLocation in) {
+    this.compLoc = in;
+  }
+
+  public CompositeLocation getInferCompositeLocation() {
+    return compLoc;
+  }
+
   public String getPrettyID() {
 
     NTuple<Descriptor> descTuple = getDescTuple();

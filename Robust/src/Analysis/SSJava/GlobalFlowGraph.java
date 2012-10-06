@@ -11,6 +11,7 @@ import java.util.Set;
 
 import IR.Descriptor;
 import IR.MethodDescriptor;
+import IR.Tree.MethodInvokeNode;
 
 public class GlobalFlowGraph {
 
@@ -21,15 +22,19 @@ public class GlobalFlowGraph {
 
   Map<Location, CompositeLocation> mapLocationToInferCompositeLocation;
 
-  Map<MethodDescriptor, Map<NTuple<Location>, NTuple<Location>>> mapCalleeToMapCallerArgToCalleeArg;
-
   public GlobalFlowGraph(MethodDescriptor md) {
     this.md = md;
     this.mapLocTupleToNode = new HashMap<NTuple<Location>, GlobalFlowNode>();
     this.mapFlowNodeToOutNodeSet = new HashMap<GlobalFlowNode, Set<GlobalFlowNode>>();
     this.mapLocationToInferCompositeLocation = new HashMap<Location, CompositeLocation>();
-    this.mapCalleeToMapCallerArgToCalleeArg =
-        new HashMap<MethodDescriptor, Map<NTuple<Location>, NTuple<Location>>>();
+  }
+
+  public MethodDescriptor getMethodDescriptor() {
+    return md;
+  }
+
+  public Map<Location, CompositeLocation> getMapLocationToInferCompositeLocation() {
+    return mapLocationToInferCompositeLocation;
   }
 
   public GlobalFlowNode getFlowNode(NTuple<Location> locTuple) {
@@ -39,7 +44,7 @@ public class GlobalFlowGraph {
     }
     return mapLocTupleToNode.get(locTuple);
   }
-  
+
   private GlobalFlowNode createNewGlobalFlowNode(NTuple<Location> locTuple) {
     GlobalFlowNode node = new GlobalFlowNode(locTuple);
     return node;
@@ -53,7 +58,7 @@ public class GlobalFlowGraph {
       // if both old and new do not share the prefix, throw error
       CompositeLocation oldCompLoc = mapLocationToInferCompositeLocation.get(loc);
 
-      if (newCompLoc.getSize() > oldCompLoc.getSize()) {
+      if (newCompLoc.getSize() == oldCompLoc.getSize()) {
         for (int i = 0; i < oldCompLoc.getSize(); i++) {
           Location oldLocElement = oldCompLoc.get(i);
           Location newLocElement = newCompLoc.get(i);
@@ -62,6 +67,7 @@ public class GlobalFlowGraph {
             throw new Error("Failed to generate a composite location");
           }
         }
+      } else if (newCompLoc.getSize() > oldCompLoc.getSize()) {
         mapLocationToInferCompositeLocation.put(loc, newCompLoc);
       }
 
