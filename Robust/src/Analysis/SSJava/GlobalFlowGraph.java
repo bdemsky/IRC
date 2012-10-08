@@ -64,7 +64,8 @@ public class GlobalFlowGraph {
           Location newLocElement = newCompLoc.get(i);
 
           if (!oldLocElement.equals(newLocElement)) {
-            throw new Error("Failed to generate a composite location");
+            throw new Error("Failed to generate a composite location. The old composite location="
+                + oldCompLoc + " and the new composite location=" + newCompLoc);
           }
         }
       } else if (newCompLoc.getSize() > oldCompLoc.getSize()) {

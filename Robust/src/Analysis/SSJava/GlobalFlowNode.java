@@ -9,6 +9,9 @@ public class GlobalFlowNode {
 
   public GlobalFlowNode(NTuple<Location> in) {
     locTuple = in;
+    if (in.size() == 0) {
+      throw new Error();
+    }
   }
 
   public int hashCode() {
