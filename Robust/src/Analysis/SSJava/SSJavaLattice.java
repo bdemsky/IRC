@@ -320,6 +320,8 @@ public class SSJavaLattice<T> extends Lattice<T> {
   }
 
   public void insertNewLocationBetween(T higher, Set<T> lowerSet, T newLoc) {
+    System.out.println("---insert new location=" + newLoc + "   between=" + higher + "<->"
+        + lowerSet);
     Set<T> connectedSet = get(higher);
     connectedSet.removeAll(lowerSet);
     connectedSet.add(newLoc);

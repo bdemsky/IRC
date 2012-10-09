@@ -19,6 +19,7 @@ public class GlobalFlowGraph {
 
   Map<NTuple<Location>, GlobalFlowNode> mapLocTupleToNode;
   Map<GlobalFlowNode, Set<GlobalFlowNode>> mapFlowNodeToOutNodeSet;
+  Map<GlobalFlowNode, Set<GlobalFlowNode>> mapFlowNodeToInNodeSet;
 
   Map<Location, CompositeLocation> mapLocationToInferCompositeLocation;
 
@@ -26,6 +27,8 @@ public class GlobalFlowGraph {
     this.md = md;
     this.mapLocTupleToNode = new HashMap<NTuple<Location>, GlobalFlowNode>();
     this.mapFlowNodeToOutNodeSet = new HashMap<GlobalFlowNode, Set<GlobalFlowNode>>();
+    this.mapFlowNodeToInNodeSet = new HashMap<GlobalFlowNode, Set<GlobalFlowNode>>();
+
     this.mapLocationToInferCompositeLocation = new HashMap<Location, CompositeLocation>();
   }
 
@@ -59,7 +62,7 @@ public class GlobalFlowGraph {
       CompositeLocation oldCompLoc = mapLocationToInferCompositeLocation.get(loc);
 
       if (newCompLoc.getSize() == oldCompLoc.getSize()) {
-        for (int i = 0; i < oldCompLoc.getSize(); i++) {
+        for (int i = 0; i < oldCompLoc.getSize() - 1; i++) {
           Location oldLocElement = oldCompLoc.get(i);
           Location newLocElement = newCompLoc.get(i);
 
@@ -96,8 +99,20 @@ public class GlobalFlowGraph {
     }
     mapFlowNodeToOutNodeSet.get(fromNode).add(toNode);
 
+    if (!mapFlowNodeToInNodeSet.containsKey(toNode)) {
+      mapFlowNodeToInNodeSet.put(toNode, new HashSet<GlobalFlowNode>());
+    }
+    mapFlowNodeToInNodeSet.get(toNode).add(fromNode);
+
     System.out.println("create a global edge from " + fromNode + " to " + toNode);
 
+  }
+
+  public Set<GlobalFlowNode> getInNodeSet(GlobalFlowNode node) {
+    if (!mapFlowNodeToInNodeSet.containsKey(node)) {
+      mapFlowNodeToInNodeSet.put(node, new HashSet<GlobalFlowNode>());
+    }
+    return mapFlowNodeToInNodeSet.get(node);
   }
 
   public Set<GlobalFlowNode> getNodeSet() {
@@ -200,6 +215,80 @@ public class GlobalFlowGraph {
       }
     }
 
+  }
+
+  public Set<GlobalFlowNode> getIncomingNodeSetByPrefix(Location prefix) {
+
+    Set<GlobalFlowNode> incomingNodeSet = new HashSet<GlobalFlowNode>();
+
+    for (Iterator iterator = getNodeSet().iterator(); iterator.hasNext();) {
+      GlobalFlowNode curNode = (GlobalFlowNode) iterator.next();
+      Set<GlobalFlowNode> outNodeSet = getOutNodeSet(curNode);
+
+      for (Iterator iterator2 = outNodeSet.iterator(); iterator2.hasNext();) {
+        GlobalFlowNode outNode = (GlobalFlowNode) iterator2.next();
+
+        if (outNode.getLocTuple().startsWith(prefix)) {
+          incomingNodeSet.add(curNode);
+          recurIncomingNodeSetByPrefix(prefix, curNode, incomingNodeSet);
+        }
+
+      }
+    }
+
+    return incomingNodeSet;
+
+  }
+
+  private void recurIncomingNodeSetByPrefix(Location prefix, GlobalFlowNode node,
+      Set<GlobalFlowNode> visited) {
+
+    Set<GlobalFlowNode> inNodeSet = getInNodeSet(node);
+
+    for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
+      GlobalFlowNode curNode = (GlobalFlowNode) iterator.next();
+
+      if (!curNode.getLocTuple().startsWith(prefix) && !visited.contains(curNode)) {
+        visited.add(curNode);
+        recurIncomingNodeSetByPrefix(prefix, curNode, visited);
+      }
+    }
+
+  }
+
+  public Set<GlobalFlowNode> getReachableNodeSetByPrefix(Location prefix) {
+
+    Set<GlobalFlowNode> reachableNodeSet = new HashSet<GlobalFlowNode>();
+
+    for (Iterator iterator = getNodeSet().iterator(); iterator.hasNext();) {
+      GlobalFlowNode curNode = (GlobalFlowNode) iterator.next();
+
+      if (curNode.getLocTuple().startsWith(prefix)) {
+        Set<GlobalFlowNode> outNodeSet = getOutNodeSet(curNode);
+        for (Iterator iterator2 = outNodeSet.iterator(); iterator2.hasNext();) {
+          GlobalFlowNode outNode = (GlobalFlowNode) iterator2.next();
+          if (!outNode.getLocTuple().startsWith(prefix) && !reachableNodeSet.contains(outNode)) {
+            reachableNodeSet.add(outNode);
+            recurReachableNodeSetByPrefix(prefix, outNode, reachableNodeSet);
+          }
+
+        }
+      }
+    }
+
+    return reachableNodeSet;
+  }
+
+  private void recurReachableNodeSetByPrefix(Location prefix, GlobalFlowNode node,
+      Set<GlobalFlowNode> reachableNodeSet) {
+    Set<GlobalFlowNode> outNodeSet = getOutNodeSet(node);
+    for (Iterator iterator = outNodeSet.iterator(); iterator.hasNext();) {
+      GlobalFlowNode outNode = (GlobalFlowNode) iterator.next();
+      if (!outNode.getLocTuple().startsWith(prefix) && !reachableNodeSet.contains(outNode)) {
+        reachableNodeSet.add(outNode);
+        recurReachableNodeSetByPrefix(prefix, outNode, reachableNodeSet);
+      }
+    }
   }
 
   public Set<GlobalFlowNode> getReachableNodeSetFrom(GlobalFlowNode node) {

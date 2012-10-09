@@ -118,6 +118,8 @@ public class BuildLattice {
     Set<HNode> nodeSet = simpleGraph.getNodeSet();
 
     Map<TripleItem, String> mapIntermediateLoc = new HashMap<TripleItem, String>();
+
+
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
       if (node.isSkeleton() && (!visited.contains(node))) {
@@ -205,19 +207,22 @@ public class BuildLattice {
         }
       } else if (!node.isSkeleton() && !node.isCombinationNode() && !node.isMergeNode()
           && !visited.contains(node)) {
-        // an intermediate node 'node' is located between "TOP" location and a skeleton node
+        // an intermediate node 'node' may be located between "TOP" location and a skeleton node
+        // but there is no such a case.
 
-        Set<HNode> outNodeSet = simpleGraph.getOutgoingNodeSet(node);
-        Set<String> belowSkeletonLocNameSet = new HashSet<String>();
-        for (Iterator iterator2 = outNodeSet.iterator(); iterator2.hasNext();) {
-          HNode outNode = (HNode) iterator2.next();
-          if (outNode.isSkeleton()) {
-            belowSkeletonLocNameSet.add(scGraph.getCurrentHNode(outNode).getName());
-          }
-        }
-        String newLocName = "ILOC" + (seed++);
-        lattice.insertNewLocationBetween(lattice.getTopItem(), belowSkeletonLocNameSet, newLocName);
-        locSummary.addMapHNodeNameToLocationName(node.getName(), newLocName);
+        // Set<HNode> outNodeSet = simpleGraph.getOutgoingNodeSet(node);
+        // Set<String> belowSkeletonLocNameSet = new HashSet<String>();
+        // for (Iterator iterator2 = outNodeSet.iterator(); iterator2.hasNext();) {
+        // HNode outNode = (HNode) iterator2.next();
+        // if (outNode.isSkeleton()) {
+        // belowSkeletonLocNameSet.add(scGraph.getCurrentHNode(outNode).getName());
+        // }
+        // }
+        // String newLocName = "ILOC" + (seed++);
+        // lattice.insertNewLocationBetween(lattice.getTopItem(), belowSkeletonLocNameSet,
+        // newLocName);
+        // locSummary.addMapHNodeNameToLocationName(node.getName(), newLocName);
+
       }
     }
 
