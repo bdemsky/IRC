@@ -30,4 +30,12 @@ public class MethodSummary extends LocationSummary {
     mapParamIdxToInferLoc.put(paramIdx, inferLoc);
   }
 
+  public Map<Integer, CompositeLocation> getMapParamIdxToInferLoc() {
+    return mapParamIdxToInferLoc;
+  }
+
+  public void setPCLoc(CompositeLocation pcLoc) {
+    this.pcLoc = pcLoc;
+  }
+
 }

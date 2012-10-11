@@ -1098,4 +1098,32 @@ public class HierarchyGraph {
     }
     bw.write(node.getName() + " [label=\"" + nodeName + "\"]" + ";\n");
   }
+
+  public int countHopFromTopLocation(HNode node) {
+
+    Set<HNode> inNodeSet = getIncomingNodeSet(node);
+    int count = 0;
+    if (inNodeSet.size() > 0) {
+      count = recurCountHopFromTopLocation(inNodeSet, 1);
+    }
+
+    return count;
+  }
+
+  private int recurCountHopFromTopLocation(Set<HNode> nodeSet, int curCount) {
+
+    int max = curCount;
+    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+      HNode node = (HNode) iterator.next();
+      Set<HNode> inNodeSet = getIncomingNodeSet(node);
+      if (inNodeSet.size() > 0) {
+        int recurCount = recurCountHopFromTopLocation(inNodeSet, curCount + 1);
+        if (max < recurCount) {
+          max = recurCount;
+        }
+      }
+    }
+    return max;
+  }
+
 }

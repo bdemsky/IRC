@@ -22,6 +22,7 @@ public class FlowGraph {
   Set<FlowNode> returnNodeSet;
   FlowNode thisVarNode;
 
+  Map<FlowNode, Set<FlowEdge>> mapFlowNodeToInEdgeSet;
   Map<FlowNode, Set<FlowEdge>> mapFlowNodeToOutEdgeSet;
 
   Map<NTuple<Location>, FlowNode> mapLocTupleToFlowNode;
@@ -50,6 +51,7 @@ public class FlowGraph {
     this.returnNodeSet = new HashSet<FlowNode>();
     this.mapIdxToFlowNode = new HashMap<Integer, FlowNode>();
     this.mapFlowNodeToOutEdgeSet = new HashMap<FlowNode, Set<FlowEdge>>();
+    this.mapFlowNodeToInEdgeSet = new HashMap<FlowNode, Set<FlowEdge>>();
 
     if (!md.isStatic()) {
       // create a node for 'this' varialbe
@@ -217,6 +219,13 @@ public class FlowGraph {
     return mapFlowNodeToOutEdgeSet.get(node);
   }
 
+  public Set<FlowEdge> getInEdgeSet(FlowNode node) {
+    if (!mapFlowNodeToInEdgeSet.containsKey(node)) {
+      mapFlowNodeToInEdgeSet.put(node, new HashSet<FlowEdge>());
+    }
+    return mapFlowNodeToInEdgeSet.get(node);
+  }
+
   public void addValueFlowEdge(NTuple<Descriptor> fromDescTuple, NTuple<Descriptor> toDescTuple) {
 
     FlowNode fromNode = getFlowNode(fromDescTuple);
@@ -261,8 +270,13 @@ public class FlowGraph {
 
     FlowEdge edge = new FlowEdge(fromNode, toNode, initTuple, endTuple);
     addOutEdge(fromNode, edge);
+    addInEdge(toNode, edge);
 
     // System.out.println("add a new edge=" + edge);
+  }
+
+  private void addInEdge(FlowNode toNode, FlowEdge edge) {
+    getInEdgeSet(toNode).add(edge);
   }
 
   private void addOutEdge(FlowNode fromNode, FlowEdge edge) {
@@ -590,6 +604,46 @@ public class FlowGraph {
     return mapFlowNodeToOutEdgeSet;
   }
 
+  public Set<FlowNode> getIncomingNodeSetByPrefix(Descriptor prefix) {
+
+    Set<FlowNode> incomingNodeSet = new HashSet<FlowNode>();
+
+    for (Iterator iterator = getNodeSet().iterator(); iterator.hasNext();) {
+      FlowNode curNode = (FlowNode) iterator.next();
+      Set<FlowEdge> outEdgeSet = getOutEdgeSet(curNode);
+
+      for (Iterator iterator2 = outEdgeSet.iterator(); iterator2.hasNext();) {
+        FlowEdge outEdge = (FlowEdge) iterator2.next();
+
+        if (outEdge.getEndTuple().startsWith(prefix)) {
+          incomingNodeSet.add(curNode);
+          recurIncomingNodeSetByPrefix(prefix, curNode, incomingNodeSet);
+
+        }
+
+      }
+    }
+
+    return incomingNodeSet;
+
+  }
+
+  private void recurIncomingNodeSetByPrefix(Descriptor prefix, FlowNode node, Set<FlowNode> visited) {
+
+    Set<FlowEdge> inEdgeSet = getInEdgeSet(node);
+
+    for (Iterator iterator = inEdgeSet.iterator(); iterator.hasNext();) {
+      FlowEdge inEdge = (FlowEdge) iterator.next();
+
+      FlowNode inNode = getFlowNode(inEdge.getInitTuple());
+      if (!inEdge.getInitTuple().startsWith(prefix) && !visited.contains(inNode)) {
+        visited.add(inNode);
+        recurIncomingNodeSetByPrefix(prefix, inNode, visited);
+      }
+    }
+
+  }
+
   public void setMapFlowNodeToOutEdgeSet(Map<FlowNode, Set<FlowEdge>> inMap) {
     Set<FlowNode> keySet = inMap.keySet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
@@ -712,5 +766,4 @@ public class FlowGraph {
     bw.write("}\n");
   }
 
-  
 }

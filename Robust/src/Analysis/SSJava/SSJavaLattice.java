@@ -323,7 +323,11 @@ public class SSJavaLattice<T> extends Lattice<T> {
     System.out.println("---insert new location=" + newLoc + "   between=" + higher + "<->"
         + lowerSet);
     Set<T> connectedSet = get(higher);
-    connectedSet.removeAll(lowerSet);
+    if (connectedSet == null) {
+      connectedSet = new HashSet<T>();
+    }else{
+      connectedSet.removeAll(lowerSet);
+    }
     connectedSet.add(newLoc);
 
     for (Iterator iterator = lowerSet.iterator(); iterator.hasNext();) {
