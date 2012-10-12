@@ -10,6 +10,10 @@ public class CompositeLocation implements TypeExtension {
     locTuple = new NTuple<Location>();
   }
 
+  public CompositeLocation(NTuple<Location> locTuple) {
+    this.locTuple = locTuple.clone();
+  }
+
   public CompositeLocation(Location loc) {
     locTuple = new NTuple<Location>();
     locTuple.add(loc);

@@ -470,7 +470,7 @@ public class HierarchyGraph {
     return mergingSet;
   }
 
-  private Set<Descriptor> getDescSetOfNode(HNode node) {
+  public Set<Descriptor> getDescSetOfNode(HNode node) {
     if (!mapHNodeToDescSet.containsKey(node)) {
       mapHNodeToDescSet.put(node, new HashSet<Descriptor>());
     }
