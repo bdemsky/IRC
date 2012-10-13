@@ -19,12 +19,16 @@ public class MethodSummary extends LocationSummary {
   Map<Integer, CompositeLocation> mapParamIdxToInferLoc;
   Map<Descriptor, CompositeLocation> mapVarDescToInferCompositeLocation;
 
+  boolean hasGlobalAccess;
+
   public MethodSummary(MethodDescriptor md) {
     this.md = md;
     this.pcLoc = new CompositeLocation(new Location(md, Location.TOP));
     this.mapParamIdxToInferLoc = new HashMap<Integer, CompositeLocation>();
     this.mapVarDescToInferCompositeLocation = new HashMap<Descriptor, CompositeLocation>();
     this.thisLocName = "this";
+    this.globalLocName = "GLOBAL";
+    this.hasGlobalAccess = false;
   }
 
   public Map<Descriptor, CompositeLocation> getMapVarDescToInferCompositeLocation() {
@@ -68,6 +72,30 @@ public class MethodSummary extends LocationSummary {
 
   public CompositeLocation getRETURNLoc() {
     return returnLoc;
+  }
+
+  public void setThisLocName(String name) {
+    this.thisLocName = name;
+  }
+
+  public String getThisLocName() {
+    return thisLocName;
+  }
+
+  public void setGlobalLocName(String name) {
+    this.globalLocName = name;
+  }
+
+  public String getGlobalLocName() {
+    return globalLocName;
+  }
+
+  public void setHasGlobalAccess() {
+    this.hasGlobalAccess = true;
+  }
+
+  public boolean hasGlobalAccess() {
+    return hasGlobalAccess;
   }
 
 }

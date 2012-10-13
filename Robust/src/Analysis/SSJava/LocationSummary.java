@@ -12,7 +12,7 @@ public abstract class LocationSummary {
   }
 
   public void addMapHNodeNameToLocationName(String nodeName, String locName) {
-    System.out.println("nodeName="+nodeName+"  locName="+locName);
+    // System.out.println("nodeName="+nodeName+"  locName="+locName);
     mapHNodeNameToLocationName.put(nodeName, locName);
   }
 

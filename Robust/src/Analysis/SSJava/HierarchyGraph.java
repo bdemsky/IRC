@@ -11,6 +11,7 @@ import java.util.Set;
 
 import IR.Descriptor;
 import IR.FieldDescriptor;
+import IR.VarDescriptor;
 
 public class HierarchyGraph {
 
@@ -32,8 +33,6 @@ public class HierarchyGraph {
   Map<HNode, Set<HNode>> mapCombinationNodeToCombineNodeSet;
   Map<Set<HNode>, HNode> mapCombineNodeSetToCombinationNode;
   Map<Set<HNode>, Set<HNode>> mapCombineNodeSetToOutgoingNodeSet;
-
-  Map<HNode, String> mapHNodeToLocationName;
 
   Set<HNode> nodeSet;
 
@@ -58,7 +57,6 @@ public class HierarchyGraph {
     mapHNodeToUniqueIndex = new HashMap<HNode, Integer>();
     mapHNodeToBasis = new HashMap<HNode, Set<Integer>>();
 
-    mapHNodeToLocationName = new HashMap<HNode, String>();
     mapMergeNodetoMergingSet = new HashMap<HNode, Set<HNode>>();
 
     mapHNodeToCurrentHNode = new HashMap<HNode, HNode>();
@@ -71,14 +69,6 @@ public class HierarchyGraph {
 
   public void setDesc(Descriptor desc) {
     this.desc = desc;
-  }
-
-  public void addMapHNodeToLocationName(HNode node, String locName) {
-    mapHNodeToLocationName.put(node, locName);
-  }
-
-  public String getLocationName(HNode node) {
-    return mapHNodeToLocationName.get(node);
   }
 
   public String getName() {
@@ -326,6 +316,10 @@ public class HierarchyGraph {
           continue;
         }
 
+        if (!isEligibleForMerging(node1, node2)) {
+          continue;
+        }
+
         if (!node1.equals(node2)) {
 
           Set<HNode> incomingNodeSet2 = getIncomingNodeSet(node2);
@@ -346,6 +340,44 @@ public class HierarchyGraph {
       }
 
     }
+    return false;
+  }
+
+  private boolean isEligibleForMerging(HNode node1, HNode node2) {
+
+    System.out.println("********isEligibleForMerging=" + node1 + " " + node2);
+
+    if (node1.isSharedNode() || node2.isSharedNode()) {
+
+      // if either of nodes is a shared node,
+      // all descriptors of node1 & node2 should have a primitive type
+
+      Set<Descriptor> descSet = new HashSet<Descriptor>();
+      descSet.addAll(getDescSetOfNode(node1));
+      descSet.addAll(getDescSetOfNode(node2));
+
+      for (Iterator iterator = descSet.iterator(); iterator.hasNext();) {
+        Descriptor desc = (Descriptor) iterator.next();
+        if (!isPrimitive(desc)) {
+          return false;
+        }
+      }
+      System.out.println("******** true");
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isPrimitive(Descriptor desc) {
+
+    if (desc instanceof FieldDescriptor) {
+      return ((FieldDescriptor) desc).getType().isPrimitive();
+    } else if (desc instanceof VarDescriptor) {
+      return ((VarDescriptor) desc).getType().isPrimitive();
+    } else if (desc instanceof InterDescriptor) {
+      return true;
+    }
+
     return false;
   }
 
@@ -432,14 +464,23 @@ public class HierarchyGraph {
       HNode mergedNode = (HNode) iterator.next();
       addMapHNodeToCurrentHNode(mergedNode, newMergeNode);
     }
-
+    System.out.println("\n###mergedSkeletonNode=" + mergedSkeletonNode);
     System.out.println("###MERGING NODE=" + set + " new node=" + newMergeNode);
+
+    for (Iterator iterator = set.iterator(); iterator.hasNext();) {
+      HNode hNode = (HNode) iterator.next();
+      System.out.println("old=" + hNode + "----->newNode=" + getCurrentHNode(hNode));
+    }
+
     return newMergeNode;
   }
 
   private void addMapHNodeToCurrentHNode(HNode curNode, HNode newNode) {
     if (curNode.isMergeNode()) {
       Set<HNode> mergingSet = getMergingSet(curNode);
+      mergingSet.add(curNode);
+      System.out.println("addMapHNodeToCurrentHNode curNode=" + curNode + " meringSet="
+          + mergingSet);
       for (Iterator iterator = mergingSet.iterator(); iterator.hasNext();) {
         HNode mergingNode = (HNode) iterator.next();
         mapHNodeToCurrentHNode.put(mergingNode, newNode);
@@ -462,6 +503,7 @@ public class HierarchyGraph {
     for (Iterator iterator = mergedNode.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
       if (node.isMergeNode()) {
+        mergingSet.add(node);
         mergingSet.addAll(getMergingSet(node));
       } else {
         mergingSet.add(node);
@@ -669,8 +711,10 @@ public class HierarchyGraph {
           HNode outNode = getCombinationNode(combineNode);
           addEdgeWithNoCycleCheck(combinationNode, outNode);
         } else if (curNode.isSkeleton()) {
-          // HNode dstNode = getHNode(curNode.getDescriptor());
+          // HNode dstNode2 = getHNode(curNode.getDescriptor());
           HNode dstNode = getCurrentHNode(curNode);
+          // System.out.println("-----curNode=" + curNode + "------->" + dstNode + "    dstNode2="
+          // + dstNode2);
           addEdgeWithNoCycleCheck(combinationNode, dstNode);
         }
       }
@@ -934,6 +978,7 @@ public class HierarchyGraph {
 
   public void assignUniqueIndexToNode() {
     int idx = 1;
+    System.out.println("nodeSet=" + nodeSet);
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
       mapHNodeToUniqueIndex.put(node, idx);
@@ -960,7 +1005,7 @@ public class HierarchyGraph {
 
       Set<HNode> reachableNodeSet = getReachableNodeSetFrom(node);
       System.out.println("node=" + node + "    reachableNodeSet=" + reachableNodeSet);
-
+      System.out.println("mapHNodeToUniqueIndex.get(node)=" + mapHNodeToUniqueIndex.get(node));
       // if a node is reachable from the current node
       // need to remove the index of the reachable node from the basis
 
@@ -968,6 +1013,8 @@ public class HierarchyGraph {
       for (Iterator iterator2 = reachableNodeSet.iterator(); iterator2.hasNext();) {
         HNode reachableNode = (HNode) iterator2.next();
         System.out.println("reachableNode=" + reachableNode);
+        System.out.println("getHNodeIndex(reachableNode))="
+            + mapHNodeToUniqueIndex.get(reachableNode));
         int idx = getHNodeIndex(reachableNode);
         basis.remove(idx);
       }

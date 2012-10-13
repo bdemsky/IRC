@@ -58,6 +58,8 @@ public class BuildLattice {
         lattice.addSharedLoc(higherName);
       }
       Set<Descriptor> descSet = inputGraph.getDescSetOfNode(higherNode);
+      // System.out.println("higherName=" + higherName + "  higherNode=" + higherNode + "  descSet="
+      // + descSet);
       for (Iterator iterator2 = descSet.iterator(); iterator2.hasNext();) {
         Descriptor d = (Descriptor) iterator2.next();
         locSummary.addMapHNodeNameToLocationName(d.getSymbol(), higherName);
@@ -69,13 +71,21 @@ public class BuildLattice {
         Set<Integer> lower = (Set<Integer>) iterator2.next();
 
         String lowerName = generateElementName(basisSet, inputGraph, mapFToLocName, lower);
-        locSummary.addMapHNodeNameToLocationName(lowerName, lowerName);
-
-        HNode lowerNode = inputGraph.getHNode(higherName);
+        HNode lowerNode = inputGraph.getHNode(lowerName);
         if (lowerNode != null && lowerNode.isSharedNode()) {
           lattice.addSharedLoc(lowerName);
         }
 
+        Set<Descriptor> lowerDescSet = inputGraph.getDescSetOfNode(lowerNode);
+        // System.out.println("lowerName=" + lowerName + "  lowerNode=" + lowerNode + "  descSet="
+        // + lowerDescSet);
+        for (Iterator iterator3 = lowerDescSet.iterator(); iterator3.hasNext();) {
+          Descriptor d = (Descriptor) iterator3.next();
+          locSummary.addMapHNodeNameToLocationName(d.getSymbol(), lowerName);
+        }
+        // locSummary.addMapHNodeNameToLocationName(lowerName, lowerName);
+
+        // System.out.println("higherName=" + higherName + "   lowerName=" + lowerName);
         if (higher.size() == 0) {
           // empty case
           lattice.put(lowerName);
@@ -131,7 +141,7 @@ public class BuildLattice {
 
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
-      System.out.println("node=" + node);
+      // System.out.println("node=" + node);
       if (node.isSkeleton() && (!visited.contains(node))) {
         visited.add(node);
 
@@ -176,7 +186,7 @@ public class BuildLattice {
 
             } else {
               // we have a node that is neither combination or skeleton node
-              System.out.println("%%%skeleton node=" + node + "  outNode=" + outNode);
+              // System.out.println("%%%skeleton node=" + node + "  outNode=" + outNode);
               HNode startNode = scGraph.getCurrentHNode(node);
 
               // if (node.getDescriptor() != null) {
@@ -191,14 +201,14 @@ public class BuildLattice {
               Set<HNode> endNodeSetFromSimpleGraph =
                   simpleGraph.getDirectlyReachableSkeletonCombinationNodeFrom(outNode, null);
 
-              System.out.println("endNodeSetFromSimpleGraph=" + endNodeSetFromSimpleGraph
-                  + "   from=" + outNode);
+              // System.out.println("endNodeSetFromSimpleGraph=" + endNodeSetFromSimpleGraph
+              // + "   from=" + outNode);
               Set<HNode> endCombNodeSet = new HashSet<HNode>();
               for (Iterator iterator3 = endNodeSetFromSimpleGraph.iterator(); iterator3.hasNext();) {
                 HNode endNode = (HNode) iterator3.next();
                 endCombNodeSet.add(getCombinationNodeInSCGraph(desc, endNode));
               }
-              System.out.println("endCombNodeSet=" + endCombNodeSet);
+              // System.out.println("endCombNodeSet=" + endCombNodeSet);
               visited.add(outNode);
               if (endCombNodeSet.size() > 0) {
                 // follows the straight line up to another skeleton/combination node
