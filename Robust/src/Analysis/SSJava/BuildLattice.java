@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import IR.Descriptor;
+import IR.MethodDescriptor;
 import Util.Pair;
 
 public class BuildLattice {
@@ -28,7 +29,30 @@ public class BuildLattice {
     HierarchyGraph inputGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
     LocationSummary locSummary = infer.getLocationSummary(desc);
 
-    BasisSet basisSet = inputGraph.computeBasisSet();
+    Set<HNode> nodeSetWithCompositeLocation = new HashSet<HNode>();
+    if (desc instanceof MethodDescriptor) {
+      FlowGraph flowGraph = infer.getFlowGraph((MethodDescriptor) desc);
+
+      for (Iterator iterator = inputGraph.getNodeSet().iterator(); iterator.hasNext();) {
+        HNode hnode = (HNode) iterator.next();
+        Descriptor hnodeDesc = hnode.getDescriptor();
+        if (hnodeDesc != null) {
+          NTuple<Descriptor> descTuple = new NTuple<Descriptor>();
+          descTuple.add(hnodeDesc);
+
+          if (flowGraph.contains(descTuple)) {
+            FlowNode flowNode = flowGraph.getFlowNode(descTuple);
+            if (flowNode.getCompositeLocation() != null) {
+              nodeSetWithCompositeLocation.add(hnode);
+            }
+          }
+
+        }
+      }
+
+    }
+
+    BasisSet basisSet = inputGraph.computeBasisSet(nodeSetWithCompositeLocation);
     debug_print(inputGraph);
 
     Family family = generateFamily(basisSet);
@@ -85,7 +109,6 @@ public class BuildLattice {
         }
         // locSummary.addMapHNodeNameToLocationName(lowerName, lowerName);
 
-        // System.out.println("higherName=" + higherName + "   lowerName=" + lowerName);
         if (higher.size() == 0) {
           // empty case
           lattice.put(lowerName);

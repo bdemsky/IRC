@@ -286,6 +286,10 @@ public class FlowGraph {
     mapFlowNodeToOutEdgeSet.get(fromNode).add(edge);
   }
 
+  public boolean contains(NTuple<Descriptor> descTuple) {
+    return mapDescTupleToInferNode.containsKey(descTuple);
+  }
+
   public FlowNode getFlowNode(NTuple<Descriptor> descTuple) {
     if (!mapDescTupleToInferNode.containsKey(descTuple)) {
       FlowNode node = createNewFlowNode(descTuple);

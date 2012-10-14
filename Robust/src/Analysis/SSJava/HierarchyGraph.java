@@ -358,26 +358,13 @@ public class HierarchyGraph {
 
       for (Iterator iterator = descSet.iterator(); iterator.hasNext();) {
         Descriptor desc = (Descriptor) iterator.next();
-        if (!isPrimitive(desc)) {
+        if (!LocationInference.isPrimitive(desc)) {
           return false;
         }
       }
       System.out.println("******** true");
       return true;
     }
-    return false;
-  }
-
-  private boolean isPrimitive(Descriptor desc) {
-
-    if (desc instanceof FieldDescriptor) {
-      return ((FieldDescriptor) desc).getType().isPrimitive();
-    } else if (desc instanceof VarDescriptor) {
-      return ((VarDescriptor) desc).getType().isPrimitive();
-    } else if (desc instanceof InterDescriptor) {
-      return true;
-    }
-
     return false;
   }
 
@@ -991,7 +978,7 @@ public class HierarchyGraph {
     }
   }
 
-  public BasisSet computeBasisSet() {
+  public BasisSet computeBasisSet(Set<HNode> notGenerateSet) {
 
     // assign a unique index to a node
     assignUniqueIndexToNode();
@@ -1000,6 +987,10 @@ public class HierarchyGraph {
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
 
+      if (notGenerateSet.contains(node)) {
+        System.out.println("%%%SKIP =" + node);
+        continue;
+      }
       Set<Integer> basis = new HashSet<Integer>();
       basis.addAll(BASISTOPELEMENT);
 

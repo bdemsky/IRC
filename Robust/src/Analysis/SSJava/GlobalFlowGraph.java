@@ -104,7 +104,7 @@ public class GlobalFlowGraph {
     }
     mapFlowNodeToInNodeSet.get(toNode).add(fromNode);
 
-    System.out.println("create a global edge from " + fromNode + " to " + toNode);
+    // System.out.println("create a global edge from " + fromNode + " to " + toNode);
 
   }
 
