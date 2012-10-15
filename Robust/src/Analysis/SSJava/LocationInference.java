@@ -140,7 +140,7 @@ public class LocationInference {
 
   boolean debug = true;
 
-  private static int locSeed = 0;
+  public static int locSeed = 0;
 
   public LocationInference(SSJavaAnalysis ssjava, State state) {
     this.ssjava = ssjava;
@@ -350,6 +350,14 @@ public class LocationInference {
       String locName;
       if (!enclosingDesc.equals(GLOBALDESC)) {
         LocationSummary locSummary = getLocationSummary(enclosingDesc);
+        HierarchyGraph hierarchyGraph = getSimpleHierarchyGraph(enclosingDesc);
+        if (hierarchyGraph != null) {
+
+          HNode curNode = hierarchyGraph.getCurrentHNode(nodeIdentifier);
+          if (curNode != null) {
+            nodeIdentifier = curNode.getName();
+          }
+        }
         locName = locSummary.getLocationName(nodeIdentifier);
       } else {
         locName = nodeIdentifier;
@@ -362,7 +370,6 @@ public class LocationInference {
   }
 
   private void translateCompositeLocationAssignmentToFlowGraph(MethodDescriptor mdCaller) {
-
 
     // First, assign a composite location to a node in the flow graph
     GlobalFlowGraph callerGlobalFlowGraph = getSubGlobalFlowGraph(mdCaller);
@@ -499,8 +506,8 @@ public class LocationInference {
       }
     }
 
-    System.out.println("-----*AFTER TRANSLATING COMP LOC MAPPING, CALLEE MAPPING="
-        + calleeGlobalGraph.getMapLocationToInferCompositeLocation());
+    // System.out.println("-----*AFTER TRANSLATING COMP LOC MAPPING, CALLEE MAPPING="
+    // + calleeGlobalGraph.getMapLocationToInferCompositeLocation());
 
     // If the location of an argument has a composite location
     // need to assign a proper composite location to the corresponding callee parameter
@@ -1722,6 +1729,7 @@ public class LocationInference {
 
           NTuple<Descriptor> srcCurTuple = srcNode.getCurrentDescTuple();
           NTuple<Descriptor> dstCurTuple = dstNode.getCurrentDescTuple();
+
 
           if ((srcCurTuple.size() > 1 && dstCurTuple.size() > 1)
               && srcCurTuple.get(0).equals(dstCurTuple.get(0))) {
@@ -2960,7 +2968,6 @@ public class LocationInference {
 
   private void propagateFlowsToCallerWithNoCompositeLocation(MethodInvokeNode min,
       MethodDescriptor mdCaller, MethodDescriptor mdCallee) {
-
 
     // if the parameter A reaches to the parameter B
     // then, add an edge the argument A -> the argument B to the caller's flow
@@ -4483,7 +4490,6 @@ public class LocationInference {
           } else {
             argTuple = new NTuple<Descriptor>();
           }
-
 
           addArgIdxMap(min, idx, argTuple);
 
