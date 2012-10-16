@@ -1730,7 +1730,6 @@ public class LocationInference {
           NTuple<Descriptor> srcCurTuple = srcNode.getCurrentDescTuple();
           NTuple<Descriptor> dstCurTuple = dstNode.getCurrentDescTuple();
 
-
           if ((srcCurTuple.size() > 1 && dstCurTuple.size() > 1)
               && srcCurTuple.get(0).equals(dstCurTuple.get(0))) {
 
@@ -2345,21 +2344,23 @@ public class LocationInference {
     // PC location is higher than location types of parameters which has incoming flows.
 
     Set<NTuple<Location>> paramLocTupleHavingInFlowSet = new HashSet<NTuple<Location>>();
+    Set<NTuple<Location>> paramLocTupleNOTHavingInFlowSet = new HashSet<NTuple<Location>>();
 
     int numParams = fg.getNumParameters();
     for (int i = 0; i < numParams; i++) {
       FlowNode paramFlowNode = fg.getParamFlowNode(i);
       Descriptor prefix = paramFlowNode.getDescTuple().get(0);
+      NTuple<Descriptor> paramDescTuple = paramFlowNode.getCurrentDescTuple();
+      NTuple<Location> paramLocTuple = translateToLocTuple(md, paramDescTuple);
 
       if (fg.getIncomingNodeSetByPrefix(prefix).size() > 0) {
         // parameter has in-value flows
-        NTuple<Descriptor> paramDescTuple = paramFlowNode.getCurrentDescTuple();
-        NTuple<Location> paramLocTuple = translateToLocTuple(md, paramDescTuple);
         paramLocTupleHavingInFlowSet.add(paramLocTuple);
+      } else {
+        paramLocTupleNOTHavingInFlowSet.add(paramLocTuple);
       }
     }
 
-    System.out.println("paramLocTupleHavingInFlowSet=" + paramLocTupleHavingInFlowSet);
 
     if (paramLocTupleHavingInFlowSet.size() > 0
         && !coversAllParamters(md, fg, paramLocTupleHavingInFlowSet)) {
@@ -2378,11 +2379,21 @@ public class LocationInference {
       HNode pcNode = hierarchyGraph.getHNode(pcDesc);
       pcNode.setSkeleton(true);
 
+      // add ordering relations s.t. PCLOC is higher than all of parameters with incoming flows
+      // and lower than paramters which do not have any incoming flows
       for (Iterator iterator = paramLocTupleHavingInFlowSet.iterator(); iterator.hasNext();) {
         NTuple<Location> paramLocTuple = (NTuple<Location>) iterator.next();
         if (paramLocTuple.size() > pcLocTupleIdx) {
           Descriptor lowerDesc = paramLocTuple.get(pcLocTupleIdx).getLocDescriptor();
           hierarchyGraph.addEdge(pcDesc, lowerDesc);
+        }
+      }
+
+      for (Iterator iterator = paramLocTupleNOTHavingInFlowSet.iterator(); iterator.hasNext();) {
+        NTuple<Location> paramLocTuple = (NTuple<Location>) iterator.next();
+        if (paramLocTuple.size() > pcLocTupleIdx) {
+          Descriptor higherDesc = paramLocTuple.get(pcLocTupleIdx).getLocDescriptor();
+          hierarchyGraph.addEdge(higherDesc, pcDesc);
         }
       }
 

@@ -355,8 +355,6 @@ public class HierarchyGraph {
 
   private boolean isEligibleForMerging(HNode node1, HNode node2) {
 
-    System.out.println("********isEligibleForMerging=" + node1 + " " + node2);
-
     if (node1.isSharedNode() || node2.isSharedNode()) {
 
       // if either of nodes is a shared node,
@@ -372,7 +370,6 @@ public class HierarchyGraph {
           return false;
         }
       }
-      System.out.println("******** true");
       return true;
     }
     return false;

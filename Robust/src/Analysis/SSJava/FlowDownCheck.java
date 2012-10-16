@@ -332,7 +332,7 @@ public class FlowDownCheck {
     }
 
     // second, check return location annotation
-    if (!md.getReturnType().isVoid()) {
+    if (!md.getReturnType().isVoid() && !ssjava.getMethodContainingSSJavaLoop().equals(md)) {
       if (!hasReturnLocDeclaration) {
         // if developer does not define method lattice
         // search return location in the method default lattice
@@ -351,7 +351,7 @@ public class FlowDownCheck {
 
     }
 
-    if (!md.getReturnType().isVoid()) {
+    if (!md.getReturnType().isVoid() && !ssjava.getMethodContainingSSJavaLoop().equals(md)) {
       MethodLattice<String> methodLattice = ssjava.getMethodLattice(md);
       String thisLocId = methodLattice.getThisLoc();
       if ((!md.isStatic()) && thisLocId == null) {
@@ -546,10 +546,9 @@ public class FlowDownCheck {
       ReturnNode rn, CompositeLocation constraint) {
 
     ExpressionNode returnExp = rn.getReturnExpression();
-    
+
     CompositeLocation declaredReturnLoc = md2ReturnLoc.get(md);
 
-    
     CompositeLocation returnValueLoc;
     if (returnExp != null) {
       returnValueLoc =

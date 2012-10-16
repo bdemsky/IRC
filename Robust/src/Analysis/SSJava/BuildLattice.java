@@ -175,9 +175,7 @@ public class BuildLattice {
 
           if (!outNode.isSkeleton()) {
             if (outNode.isCombinationNode()) {
-
               expandCombinationNode(desc, lattice, visited, mapIntermediateLoc, locSummary, outNode);
-
             } else {
               // we have a node that is neither combination or skeleton node
               // System.out.println("%%%skeleton node=" + node + "  outNode=" + outNode);
@@ -206,12 +204,15 @@ public class BuildLattice {
               visited.add(outNode);
               if (endCombNodeSet.size() > 0) {
                 // follows the straight line up to another skeleton/combination node
-                endCombNodeSet = removeTransitivelyReachToNode(desc, startNode, endCombNodeSet);
+                // endCombNodeSet = removeTransitivelyReachToNode(desc, startNode, endCombNodeSet);
               } else if (endCombNodeSet.size() == 0) {
                 // the outNode is (directly/transitively) connected to the bottom node
                 // therefore, we just add a dummy bottom HNode to the endCombNodeSet.
                 endCombNodeSet.add(bottomNode);
               }
+
+              startNode = refineStartNode(desc, startNode, endCombNodeSet);
+
               recurDFSNormalNode(desc, lattice, startNode, endCombNodeSet, visited,
                   mapIntermediateLoc, 1, locSummary, outNode);
             }
@@ -219,10 +220,6 @@ public class BuildLattice {
           }
 
         }
-      } else if (!node.isSkeleton() && node.isCombinationNode()) {
-
-        expandCombinationNode(desc, lattice, visited, mapIntermediateLoc, locSummary, node);
-
       } else if (!node.isSkeleton() && !node.isCombinationNode() && !node.isMergeNode()
           && !visited.contains(node)) {
 
@@ -293,11 +290,36 @@ public class BuildLattice {
 
     // follows the straight line up to another skeleton/combination node
     if (endCombNodeSet.size() > 0) {
-      endCombNodeSet =
-          removeTransitivelyReachToNode(desc, combinationNodeInSCGraph, endCombNodeSet);
+      System.out.println("---endCombNodeSet=" + endCombNodeSet);
+      // endCombNodeSet =
+      // removeTransitivelyReachToNode(desc, combinationNodeInSCGraph, endCombNodeSet);
+
+      combinationNodeInSCGraph = refineStartNode(desc, combinationNodeInSCGraph, endCombNodeSet);
+
       recurDFS(desc, lattice, combinationNodeInSCGraph, endCombNodeSet, visited,
           mapIntermediateLoc, 1, locSummary, cnode);
+    } else {
+      endCombNodeSet.add(bottomNode);
+      System.out.println("---endCombNodeSet is zero");
+      System.out.println("---endNodeSetFromSimpleGraph=" + endNodeSetFromSimpleGraph);
+      System.out.println("---incoming=" + simpleGraph.getIncomingNodeSet(cnode));
+      recurDFS(desc, lattice, combinationNodeInSCGraph, endCombNodeSet, visited,
+          mapIntermediateLoc, 1, locSummary, cnode);
+
     }
+
+  }
+
+  private HNode refineStartNode(Descriptor desc, HNode startNode, Set<HNode> endNodeSet) {
+
+    HierarchyGraph scGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
+
+    HNode newStartNode = getDirectlyReachableSCNodeFromEndNode(scGraph, startNode, endNodeSet);
+
+    System.out.println("---removeTransitivelyReachToNode2 startNode=" + startNode + " old="
+        + endNodeSet + "  newStartNode=" + newStartNode);
+
+    return newStartNode;
 
   }
 
@@ -308,8 +330,8 @@ public class BuildLattice {
     // replace it with a directly connected one which transitively reaches to it.
 
     HierarchyGraph scGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
-    Set<HNode> newEndNodeSet = new HashSet<HNode>();
 
+    Set<HNode> newEndNodeSet = new HashSet<HNode>();
     for (Iterator iterator = endNodeSet.iterator(); iterator.hasNext();) {
       HNode endNode = (HNode) iterator.next();
       if (scGraph.isDirectlyConnectedTo(startNode, endNode)) {
@@ -327,6 +349,53 @@ public class BuildLattice {
 
     return newEndNodeSet;
 
+  }
+
+  private HNode getDirectlyReachableSCNodeFromEndNode(HierarchyGraph scGraph, HNode startNode,
+      Set<HNode> endNodeSet) {
+
+    System.out.println("getDirectlyReachableSCNodeFromEndNode start=" + startNode + " endNodeSet="
+        + endNodeSet);
+    Set<HNode> newStartNodeSet = new HashSet<HNode>();
+
+    for (Iterator iterator = endNodeSet.iterator(); iterator.hasNext();) {
+      HNode endNode = (HNode) iterator.next();
+      Set<HNode> connectedToEndNodeSet = scGraph.getIncomingNodeSet(endNode);
+
+      for (Iterator iterator2 = connectedToEndNodeSet.iterator(); iterator2.hasNext();) {
+        HNode curNode = (HNode) iterator2.next();
+        if (recurConnectedFromStartNode(scGraph, startNode, curNode, new HashSet<HNode>())) {
+          newStartNodeSet.add(curNode);
+        }
+      }
+    }
+
+    System.out.println("newStartNodeSet=" + newStartNodeSet);
+
+    if (newStartNodeSet.size() == 0) {
+      newStartNodeSet.add(startNode);
+    }
+
+    return newStartNodeSet.iterator().next();
+  }
+
+  private boolean recurConnectedFromStartNode(HierarchyGraph scGraph, HNode startNode,
+      HNode curNode, Set<HNode> visited) {
+    // return true if curNode is transitively connected from the startNode
+
+    boolean isConnected = false;
+    Set<HNode> inNodeSet = scGraph.getIncomingNodeSet(curNode);
+    for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
+      HNode in = (HNode) iterator.next();
+      if (in.equals(startNode)) {
+        return true;
+      } else {
+        visited.add(in);
+        isConnected |= recurConnectedFromStartNode(scGraph, startNode, in, visited);
+      }
+    }
+
+    return isConnected;
   }
 
   private HNode getDirectlyReachableNodeFromStartNodeReachToEndNode(HierarchyGraph scGraph,
@@ -398,6 +467,12 @@ public class BuildLattice {
     }
     locSummary.addMapHNodeNameToLocationName(curNode.getName(), locName);
 
+    if (curNode.isSharedNode()) {
+      lattice.addSharedLoc(locName);
+    }
+
+    System.out.println("-TripleItem=" + item);
+    System.out.println("-curNode=" + curNode.getName() + " locName=" + locName);
 
     Set<HNode> outSet = graph.getOutgoingNodeSet(curNode);
     for (Iterator iterator2 = outSet.iterator(); iterator2.hasNext();) {

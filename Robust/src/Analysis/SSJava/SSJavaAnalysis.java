@@ -465,7 +465,7 @@ public class SSJavaAnalysis {
         locOrder.put(higherLoc, lowerLoc);
         if (locOrder.isIntroducingCycle(higherLoc)) {
           throw new Error("Error: the order relation " + lowerLoc + " < " + higherLoc
-              + " introduces a cycle.");
+              + " introduces a cycle in the class lattice " + cd);
         }
       } else if (orderElement.contains("*")) {
         // spin loc definition
