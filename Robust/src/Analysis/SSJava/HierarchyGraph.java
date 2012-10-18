@@ -163,10 +163,16 @@ public class HierarchyGraph {
   }
 
   public void addEdge(Descriptor src, Descriptor dst) {
-    HNode srcHNode = getHNode(src);
-    HNode dstHNode = getHNode(dst);
 
-    addEdge(srcHNode, dstHNode);
+    if (src.equals(LocationInference.LITERALDESC)) {
+      // in this case, we do not need to add a source hnode
+      // just add a destination hnode
+      getHNode(dst);
+    } else {
+      HNode srcHNode = getHNode(src);
+      HNode dstHNode = getHNode(dst);
+      addEdge(srcHNode, dstHNode);
+    }
 
   }
 
@@ -177,9 +183,16 @@ public class HierarchyGraph {
   public HNode getHNode(Descriptor d) {
     if (!mapDescToHNode.containsKey(d)) {
       HNode newNode = new HNode(d);
+
       if (d instanceof FieldDescriptor) {
         newNode.setSkeleton(true);
       }
+
+      String symbol = d.getSymbol();
+      if (symbol.startsWith(LocationInference.PCLOC) || symbol.startsWith(LocationInference.RLOC)) {
+        newNode.setSkeleton(true);
+      }
+
       mappingDescriptorToHNode(d, newNode);
       nodeSet.add(newNode);
     }

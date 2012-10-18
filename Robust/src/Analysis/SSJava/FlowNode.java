@@ -84,14 +84,6 @@ public class FlowNode {
     return descTuple.get(descTuple.size() - 1);
   }
 
-  public boolean isReturn() {
-    return isReturn;
-  }
-
-  public void setReturn(boolean isReturn) {
-    this.isReturn = isReturn;
-  }
-
   public boolean isPrimitiveType() {
     Descriptor desc = descTuple.get(descTuple.size() - 1);
     if (desc instanceof VarDescriptor) {
@@ -110,7 +102,6 @@ public class FlowNode {
     rtr += ":" + descTuple;
     return rtr;
   }
-
 
   public int hashCode() {
     return 7 + descTuple.hashCode();

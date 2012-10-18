@@ -331,8 +331,6 @@ public class FlowGraph {
     }
 
     FlowNode node = mapDescTupleToInferNode.get(tuple);
-    node.setReturn(true);
-
     returnNodeSet.add(node);
   }
 
@@ -465,6 +463,8 @@ public class FlowGraph {
 
       Descriptor localDesc = fn.getDescTuple().get(0);
 
+      System.out.println("descTuple=" + descTuple);
+
       if (fn.isIntermediate()) {
         Location interLoc = new Location(md, localDesc.getSymbol());
         interLoc.setLocDescriptor(localDesc);
@@ -485,15 +485,23 @@ public class FlowGraph {
           if (i == 0) {
             loc = new Location(md, curDesc.getSymbol());
             loc.setLocDescriptor(curDesc);
-            cd = ((VarDescriptor) curDesc).getType().getClassDesc();
+            if (curDesc instanceof VarDescriptor) {
+              cd = ((VarDescriptor) curDesc).getType().getClassDesc();
+            } else {
+              // otherwise it should be the last element
+              cd = null;
+            }
           } else {
             loc = new Location(cd, curDesc.getSymbol());
             loc.setLocDescriptor(curDesc);
 
             if (curDesc instanceof FieldDescriptor) {
               cd = ((FieldDescriptor) curDesc).getType().getClassDesc();
-            } else {
+            } else if (curDesc instanceof LocationDescriptor) {
               cd = ((LocationDescriptor) curDesc).getEnclosingClassDesc();
+            } else {
+              // otherwise it should be the last element of the tuple
+              cd = null;
             }
 
           }

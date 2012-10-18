@@ -204,14 +204,13 @@ public class BuildLattice {
               visited.add(outNode);
               if (endCombNodeSet.size() > 0) {
                 // follows the straight line up to another skeleton/combination node
-                // endCombNodeSet = removeTransitivelyReachToNode(desc, startNode, endCombNodeSet);
+                endCombNodeSet = removeTransitivelyReachToNode(desc, startNode, endCombNodeSet);
               } else if (endCombNodeSet.size() == 0) {
                 // the outNode is (directly/transitively) connected to the bottom node
                 // therefore, we just add a dummy bottom HNode to the endCombNodeSet.
                 endCombNodeSet.add(bottomNode);
               }
 
-              startNode = refineStartNode(desc, startNode, endCombNodeSet);
 
               recurDFSNormalNode(desc, lattice, startNode, endCombNodeSet, visited,
                   mapIntermediateLoc, 1, locSummary, outNode);
@@ -291,10 +290,9 @@ public class BuildLattice {
     // follows the straight line up to another skeleton/combination node
     if (endCombNodeSet.size() > 0) {
       System.out.println("---endCombNodeSet=" + endCombNodeSet);
-      // endCombNodeSet =
-      // removeTransitivelyReachToNode(desc, combinationNodeInSCGraph, endCombNodeSet);
+      endCombNodeSet =
+          removeTransitivelyReachToNode(desc, combinationNodeInSCGraph, endCombNodeSet);
 
-      combinationNodeInSCGraph = refineStartNode(desc, combinationNodeInSCGraph, endCombNodeSet);
 
       recurDFS(desc, lattice, combinationNodeInSCGraph, endCombNodeSet, visited,
           mapIntermediateLoc, 1, locSummary, cnode);
@@ -307,19 +305,6 @@ public class BuildLattice {
           mapIntermediateLoc, 1, locSummary, cnode);
 
     }
-
-  }
-
-  private HNode refineStartNode(Descriptor desc, HNode startNode, Set<HNode> endNodeSet) {
-
-    HierarchyGraph scGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
-
-    HNode newStartNode = getDirectlyReachableSCNodeFromEndNode(scGraph, startNode, endNodeSet);
-
-    System.out.println("---removeTransitivelyReachToNode2 startNode=" + startNode + " old="
-        + endNodeSet + "  newStartNode=" + newStartNode);
-
-    return newStartNode;
 
   }
 
