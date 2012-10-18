@@ -36,6 +36,8 @@ public class HierarchyGraph {
   Map<Set<HNode>, HNode> mapCombineNodeSetToCombinationNode;
   Map<Set<HNode>, Set<HNode>> mapCombineNodeSetToOutgoingNodeSet;
 
+  Map<HNode, Set<HNode>> mapNormalNodeToSCNodeReachToSet;
+
   Set<HNode> nodeSet;
 
   // for the lattice generation
@@ -63,6 +65,7 @@ public class HierarchyGraph {
 
     mapHNodeNameToCurrentHNode = new HashMap<String, HNode>();
 
+    mapNormalNodeToSCNodeReachToSet = new HashMap<HNode, Set<HNode>>();
   }
 
   public Descriptor getDesc() {
@@ -566,6 +569,68 @@ public class HierarchyGraph {
       }
     }
 
+  }
+
+  public Set<HNode> getReachableSCNodeSet(HNode startNode) {
+    // returns the set of hnodes which is reachable from the startNode and is either SC node or a
+    // node which is directly connected to the SC nodes
+    Set<HNode> reachable = new HashSet<HNode>();
+    Set<HNode> visited = new HashSet<HNode>();
+    visited.add(startNode);
+    recurReachableNodeSet(startNode, visited, reachable);
+    return reachable;
+  }
+
+  public Set<HNode> getSCNodeReachToSet(HNode node) {
+    if (!mapNormalNodeToSCNodeReachToSet.containsKey(node)) {
+      mapNormalNodeToSCNodeReachToSet.put(node, new HashSet<HNode>());
+    }
+    return mapNormalNodeToSCNodeReachToSet.get(node);
+  }
+
+  private void recurReachableNodeSet(HNode node, Set<HNode> visited, Set<HNode> reachable) {
+
+    Set<HNode> outSet = getOutgoingNodeSet(node);
+    for (Iterator iterator = outSet.iterator(); iterator.hasNext();) {
+      HNode out = (HNode) iterator.next();
+
+      if (!visited.contains(out)) {
+        visited.add(out);
+        Set<HNode> reachableFromSCNodeSet = reachableFromSCNode(out);
+        mapNormalNodeToSCNodeReachToSet.put(out, reachableFromSCNodeSet);
+        if (out.isSkeleton() || out.isCombinationNode() || reachableFromSCNodeSet.size() > 0) {
+          reachable.add(out);
+        } else {
+          visited.add(out);
+          recurReachableNodeSet(out, visited, reachable);
+        }
+
+      }
+
+    }
+
+  }
+
+  private Set<HNode> reachableFromSCNode(HNode node) {
+    Set<HNode> visited = new HashSet<HNode>();
+    visited.add(node);
+    Set<HNode> reachable = new HashSet<HNode>();
+    recurReachableFromSCNode(node, reachable, visited);
+    return reachable;
+  }
+
+  private void recurReachableFromSCNode(HNode node, Set<HNode> reachable, Set<HNode> visited) {
+    Set<HNode> inNodeSet = getIncomingNodeSet(node);
+    for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
+      HNode inNode = (HNode) iterator.next();
+      if (inNode.isSkeleton() || inNode.isCombinationNode()) {
+        visited.add(inNode);
+        reachable.add(inNode);
+      } else if (!visited.contains(inNode)) {
+        visited.add(inNode);
+        recurReachableFromSCNode(inNode, reachable, visited);
+      }
+    }
   }
 
   public Set<HNode> getDirectlyReachableSkeletonCombinationNodeFrom(HNode node,

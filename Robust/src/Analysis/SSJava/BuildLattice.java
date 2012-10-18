@@ -211,7 +211,6 @@ public class BuildLattice {
                 endCombNodeSet.add(bottomNode);
               }
 
-
               recurDFSNormalNode(desc, lattice, startNode, endCombNodeSet, visited,
                   mapIntermediateLoc, 1, locSummary, outNode);
             }
@@ -225,27 +224,31 @@ public class BuildLattice {
         System.out.println("n=" + node);
 
         // an intermediate node 'node' may be located between "TOP" location and a skeleton node
-        int sizeIncomingNode = simpleGraph.getIncomingNodeSet(node).size();
-
-        if (sizeIncomingNode == 0) {
+        if (simpleGraph.getIncomingNodeSet(node).size() == 0) {
           // this node will be directly connected to the TOP location
           // start adding the following nodes from this node
 
-          Set<HNode> endNodeSetFromSimpleGraph =
-              simpleGraph.getDirectlyReachableSkeletonCombinationNodeFrom(node, null);
+          // Set<HNode> endNodeSetFromSimpleGraph =
+          // simpleGraph.getDirectlyReachableSkeletonCombinationNodeFrom(node, null);
 
-          Set<HNode> endCombNodeSet = new HashSet<HNode>();
-          for (Iterator iterator3 = endNodeSetFromSimpleGraph.iterator(); iterator3.hasNext();) {
+          Set<HNode> endNodeSet = simpleGraph.getReachableSCNodeSet(node);
+
+          Set<HNode> endCombNormalNodeSet = new HashSet<HNode>();
+          for (Iterator iterator3 = endNodeSet.iterator(); iterator3.hasNext();) {
             HNode endNode = (HNode) iterator3.next();
-            endCombNodeSet.add(getCombinationNodeInSCGraph(desc, endNode));
+            if (endNode.isSkeleton() || endNode.isCombinationNode()) {
+              endCombNormalNodeSet.add(getCombinationNodeInSCGraph(desc, endNode));
+            } else {
+              endCombNormalNodeSet.addAll(simpleGraph.getSCNodeReachToSet(endNode));
+            }
           }
 
           HNode startNode = topNode;
           visited.add(startNode);
-          if (endCombNodeSet.size() > 0) {
+          if (endCombNormalNodeSet.size() > 0) {
             // follows the straight line up to another skeleton/combination node
             // endCombNodeSet = removeTransitivelyReachToNode(desc, node, endCombNodeSet);
-            recurDFSNormalNode(desc, lattice, startNode, endCombNodeSet, visited,
+            recurDFSNormalNode(desc, lattice, startNode, endCombNormalNodeSet, visited,
                 mapIntermediateLoc, 1, locSummary, node);
           }
 
@@ -292,7 +295,6 @@ public class BuildLattice {
       System.out.println("---endCombNodeSet=" + endCombNodeSet);
       endCombNodeSet =
           removeTransitivelyReachToNode(desc, combinationNodeInSCGraph, endCombNodeSet);
-
 
       recurDFS(desc, lattice, combinationNodeInSCGraph, endCombNodeSet, visited,
           mapIntermediateLoc, 1, locSummary, cnode);
@@ -433,9 +435,14 @@ public class BuildLattice {
       Set<String> belowSet = new HashSet<String>();
       for (Iterator iterator = endNodeSet.iterator(); iterator.hasNext();) {
         HNode endNode = (HNode) iterator.next();
-        belowSet.add(endNode.getName());
+        String locName;
+        if (locSummary.getMapHNodeNameToLocationName().containsKey(endNode.getName())) {
+          locName = locSummary.getLocationName(endNode.getName());
+        } else {
+          locName = endNode.getName();
+        }
+        belowSet.add(locName);
       }
-
       lattice.insertNewLocationBetween(above, belowSet, newLocName);
 
       mapIntermediateLoc.put(item, newLocName);
