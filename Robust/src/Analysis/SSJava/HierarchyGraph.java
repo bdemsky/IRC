@@ -149,10 +149,10 @@ public class HierarchyGraph {
         return;
       }
 
+      System.out.println("--- CYCLIC VALUE FLOW: " + srcHNode + " -> " + dstHNode);
       HNode newMergeNode = mergeNodes(possibleCycleSet, false);
       newMergeNode.setSharedNode(true);
-      System.out.println("### INTRODUCE A NEW MERGE NODE: " + newMergeNode);
-      System.out.println("### CYCLIC VALUE FLOW: " + srcHNode + " -> " + dstHNode + "\n");
+
     } else {
       getIncomingNodeSet(dstHNode).add(srcHNode);
       getOutgoingNodeSet(srcHNode).add(dstHNode);
@@ -188,6 +188,10 @@ public class HierarchyGraph {
       HNode newNode = new HNode(d);
 
       if (d instanceof FieldDescriptor) {
+        newNode.setSkeleton(true);
+      }
+
+      if (d.equals(LocationInference.TOPDESC)) {
         newNode.setSkeleton(true);
       }
 
@@ -424,16 +428,22 @@ public class HierarchyGraph {
 
     // if the input set contains a skeleton node, need to set a new merge node as skeleton also
     boolean hasSkeleton = false;
+    boolean hasShared = false;
     for (Iterator iterator = set.iterator(); iterator.hasNext();) {
       HNode inNode = (HNode) iterator.next();
       if (inNode.isSkeleton()) {
         hasSkeleton = true;
-        break;
+      }
+      if (inNode.isSharedNode()) {
+        hasShared = true;
       }
     }
-    System.out.println("--Set merging node=" + newMergeNode + " as a skeleton=" + set
-        + " hasSkeleton=" + hasSkeleton + " CUR DESC=" + desc);
+    // System.out.println("-----Set merging node=" + newMergeNode + " as a skeleton=" + set
+    // + " hasSkeleton=" + hasSkeleton + " CUR DESC=" + desc);
     newMergeNode.setSkeleton(hasSkeleton);
+    newMergeNode.setSharedNode(hasShared);
+
+    System.out.println("-----MERGING NODE=" + set + " new node=" + newMergeNode);
 
     for (Iterator iterator = set.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
@@ -477,13 +487,13 @@ public class HierarchyGraph {
       HNode mergedNode = (HNode) iterator.next();
       addMapHNodeToCurrentHNode(mergedNode, newMergeNode);
     }
-    System.out.println("###mergedSkeletonNode=" + mergedSkeletonNode);
-    System.out.println("###MERGING NODE=" + set + " new node=" + newMergeNode);
 
     for (Iterator iterator = set.iterator(); iterator.hasNext();) {
       HNode hNode = (HNode) iterator.next();
       System.out.println("old=" + hNode + "----->newNode=" + getCurrentHNode(hNode));
     }
+
+    System.out.println();
 
     return newMergeNode;
   }
@@ -492,8 +502,8 @@ public class HierarchyGraph {
     if (curNode.isMergeNode()) {
       Set<HNode> mergingSet = getMergingSet(curNode);
       mergingSet.add(curNode);
-      System.out.println("addMapHNodeToCurrentHNode curNode=" + curNode + " meringSet="
-          + mergingSet);
+      System.out.println("-------addMapHNodeToCurrentHNode curNode=" + curNode + " meringSet="
+          + mergingSet + " newNode=" + newNode);
       for (Iterator iterator = mergingSet.iterator(); iterator.hasNext();) {
         HNode mergingNode = (HNode) iterator.next();
         mapHNodeToCurrentHNode.put(mergingNode, newNode);

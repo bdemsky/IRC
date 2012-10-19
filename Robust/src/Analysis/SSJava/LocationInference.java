@@ -120,8 +120,6 @@ public class LocationInference {
 
   public static final String GLOBALLOC = "GLOBALLOC";
 
-  public static final String TOPLOC = "TOPLOC";
-
   public static final String INTERLOC = "INTERLOC";
 
   public static final String PCLOC = "_PCLOC_";
@@ -130,11 +128,17 @@ public class LocationInference {
 
   public static final Descriptor GLOBALDESC = new NameDescriptor(GLOBALLOC);
 
-  public static final Descriptor TOPDESC = new NameDescriptor(TOPLOC);
+  public static final Descriptor TOPDESC = new NameDescriptor(SSJavaAnalysis.TOP);
+
+  public static final Descriptor BOTTOMDESC = new NameDescriptor(SSJavaAnalysis.BOTTOM);
 
   public static final Descriptor RETURNLOC = new NameDescriptor(RLOC);
 
   public static final Descriptor LITERALDESC = new NameDescriptor("LITERAL");
+
+  public static final HNode TOPHNODE = new HNode(TOPDESC);
+
+  public static final HNode BOTTOMHNODE = new HNode(BOTTOMDESC);
 
   public static String newline = System.getProperty("line.separator");
 
@@ -356,10 +360,9 @@ public class LocationInference {
       String locName;
       if (!enclosingDesc.equals(GLOBALDESC)) {
         LocationSummary locSummary = getLocationSummary(enclosingDesc);
-        HierarchyGraph hierarchyGraph = getSimpleHierarchyGraph(enclosingDesc);
-        if (hierarchyGraph != null) {
-
-          HNode curNode = hierarchyGraph.getCurrentHNode(nodeIdentifier);
+        HierarchyGraph scGraph = getSkeletonCombinationHierarchyGraph(enclosingDesc);
+        if (scGraph != null) {
+          HNode curNode = scGraph.getCurrentHNode(nodeIdentifier);
           if (curNode != null) {
             nodeIdentifier = curNode.getName();
           }
@@ -1286,7 +1289,8 @@ public class LocationInference {
       // inferred composite location
       for (int paramIdx = 0; paramIdx < flowGraph.getNumParameters(); paramIdx++) {
         FlowNode flowNode = flowGraph.getParamFlowNode(paramIdx);
-        CompositeLocation inferredCompLoc = flowNode.getCompositeLocation();
+        CompositeLocation inferredCompLoc =
+            updateCompositeLocation(flowNode.getCompositeLocation());
         // NTuple<Descriptor> descTuple = flowNode.getDescTuple();
         //
         // CompositeLocation assignedCompLoc = flowNode.getCompositeLocation();
@@ -1299,8 +1303,8 @@ public class LocationInference {
         // loc.setLocDescriptor(locDesc);
         // inferredCompLoc = new CompositeLocation(loc);
         // }
-        System.out.println("-paramIdx=" + paramIdx + "   infer=" + inferredCompLoc);
-        System.out.println("-flowNode inferLoc=" + flowNode.getCompositeLocation());
+        System.out.println("-paramIdx=" + paramIdx + "   infer=" + inferredCompLoc + " original="
+            + flowNode.getCompositeLocation());
 
         Descriptor localVarDesc = flowNode.getDescTuple().get(0);
         methodSummary.addMapVarNameToInferCompLoc(localVarDesc, inferredCompLoc);
@@ -1514,10 +1518,10 @@ public class LocationInference {
     Set<Descriptor> keySet = mapDescriptorToHierarchyGraph.keySet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Descriptor desc = (Descriptor) iterator.next();
+      System.out.println("SSJAVA: remove redundant edges: " + desc);
       HierarchyGraph simpleHierarchyGraph = getHierarchyGraph(desc).clone();
       simpleHierarchyGraph.setName(desc + "_SIMPLE");
       simpleHierarchyGraph.removeRedundantEdges();
-      // simpleHierarchyGraph.simplifyHierarchyGraph();
       mapDescriptorToSimpleHierarchyGraph.put(desc, simpleHierarchyGraph);
     }
   }
@@ -1543,6 +1547,7 @@ public class LocationInference {
     Set<Descriptor> keySet = mapDescriptorToHierarchyGraph.keySet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Descriptor desc = (Descriptor) iterator.next();
+      System.out.println("SSJAVA: Constructing Skeleton Hierarchy Graph: " + desc);
       HierarchyGraph simpleGraph = getSimpleHierarchyGraph(desc);
       HierarchyGraph skeletonGraph = simpleGraph.generateSkeletonGraph();
       skeletonGraph.setMapDescToHNode(simpleGraph.getMapDescToHNode());
@@ -1687,6 +1692,29 @@ public class LocationInference {
           graph.getHNode(fieldDesc);
         }
       }
+    }
+
+    Set<Descriptor> keySet = mapDescriptorToHierarchyGraph.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      Descriptor key = (Descriptor) iterator.next();
+      HierarchyGraph graph = getHierarchyGraph(key);
+
+      Set<HNode> nodeToBeConnected = new HashSet<HNode>();
+      for (Iterator iterator2 = graph.getNodeSet().iterator(); iterator2.hasNext();) {
+        HNode node = (HNode) iterator2.next();
+        if (!node.isSkeleton() && !node.isCombinationNode()) {
+          if (graph.getIncomingNodeSet(node).size() == 0) {
+            nodeToBeConnected.add(node);
+          }
+        }
+      }
+
+      for (Iterator iterator2 = nodeToBeConnected.iterator(); iterator2.hasNext();) {
+        HNode node = (HNode) iterator2.next();
+        System.out.println("NEED TO BE CONNECTED TO TOP=" + node);
+        graph.addEdge(graph.getHNode(TOPDESC), node);
+      }
+
     }
 
   }
@@ -1925,7 +1953,8 @@ public class LocationInference {
     if (desc instanceof MethodDescriptor) {
       System.out.println("#EXTRA LOC DECLARATION GEN=" + desc);
 
-      MethodSummary methodSummary = getMethodSummary((MethodDescriptor) desc);
+      MethodDescriptor md = (MethodDescriptor) desc;
+      MethodSummary methodSummary = getMethodSummary(md);
 
       if (!ssjava.getMethodContainingSSJavaLoop().equals(desc)) {
         TypeDescriptor returnType = ((MethodDescriptor) desc).getReturnType();
@@ -1939,7 +1968,9 @@ public class LocationInference {
         }
       }
 
-      rtr += "\n@THISLOC(\"" + methodSummary.getThisLocName() + "\")";
+      if (!md.isStatic()) {
+        rtr += "\n@THISLOC(\"" + methodSummary.getThisLocName() + "\")";
+      }
       rtr += "\n@GLOBALLOC(\"" + methodSummary.getGlobalLocName() + "\")";
 
     }
@@ -4624,8 +4655,24 @@ public class LocationInference {
 
       nodeSet.addTupleSet(expNodeTupleSet);
     } else {
-      nodeSet.addTupleSet(expNodeTupleSet);
-      nodeSet.addTupleSet(idxNodeTupleSet);
+
+      NodeTupleSet nodeSetArrayAccessExp = new NodeTupleSet();
+
+      nodeSetArrayAccessExp.addTupleSet(expNodeTupleSet);
+      nodeSetArrayAccessExp.addTupleSet(idxNodeTupleSet);
+
+      if (needToGenerateInterLoc(nodeSetArrayAccessExp)) {
+        NTuple<Descriptor> interTuple = getFlowGraph(md).createIntermediateNode().getDescTuple();
+
+        for (Iterator<NTuple<Descriptor>> iter = nodeSetArrayAccessExp.iterator(); iter.hasNext();) {
+          NTuple<Descriptor> higherTuple = iter.next();
+          addFlowGraphEdge(md, higherTuple, interTuple);
+        }
+        nodeSetArrayAccessExp.clear();
+        nodeSetArrayAccessExp.addTuple(interTuple);
+      }
+
+      nodeSet.addTupleSet(nodeSetArrayAccessExp);
     }
   }
 

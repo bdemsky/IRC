@@ -700,8 +700,11 @@ public class FlowDownCheck {
         checkLocationFromExpressionNode(md, nametable, isn.getCondition(), new CompositeLocation(),
             constraint, false);
 
+    System.out.println("checkLocationFromIfStatementNode=" + isn.getCondition().printNode(0));
+    System.out.println("---old constraints=" + constraint);
     // addLocationType(isn.getCondition().getType(), condLoc);
     constraint = generateNewConstraint(constraint, condLoc);
+    System.out.println("---new constraints=" + constraint);
     checkLocationFromBlockNode(md, nametable, isn.getTrueBlock(), constraint);
 
     if (isn.getFalseBlock() != null) {
@@ -1203,8 +1206,8 @@ public class FlowDownCheck {
 
     MethodLattice<String> calleeLattice = ssjava.getMethodLattice(calleemd);
 
-    System.out.println("checkCalleeConstraints=" + calleemd + " calleeLattice.getThisLoc()="
-        + calleeLattice.getThisLoc());
+    // System.out.println("checkCalleeConstraints=" + calleemd + " calleeLattice.getThisLoc()="
+    // + calleeLattice.getThisLoc());
 
     CompositeLocation calleeThisLoc =
         new CompositeLocation(new Location(calleemd, calleeLattice.getThisLoc()));
@@ -1315,7 +1318,7 @@ public class FlowDownCheck {
 
   private CompositeLocation checkLocationFromArrayAccessNode(MethodDescriptor md,
       SymbolTable nametable, ArrayAccessNode aan, CompositeLocation constraint, boolean isLHS) {
-    System.out.println("aan=" + aan.printNode(0) + "  line#=" + aan.getNumLine());
+    // System.out.println("aan=" + aan.printNode(0) + "  line#=" + aan.getNumLine());
     ClassDescriptor cd = md.getClassDesc();
 
     CompositeLocation arrayLoc =
@@ -2092,7 +2095,7 @@ public class FlowDownCheck {
 
     public static CompositeLocation calculateGLB(Set<CompositeLocation> inputSet, String errMsg) {
 
-      // System.out.println("Calculating GLB=" + inputSet);
+      System.out.println("Calculating GLB=" + inputSet);
       CompositeLocation glbCompLoc = new CompositeLocation();
 
       // calculate GLB of the first(priority) element
@@ -2223,7 +2226,7 @@ public class FlowDownCheck {
         }
       }
 
-      // System.out.println("GLB=" + glbCompLoc);
+      System.out.println("GLB=" + glbCompLoc + "\n");
       return glbCompLoc;
 
     }

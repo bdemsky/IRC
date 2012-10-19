@@ -469,7 +469,7 @@ public class FlowGraph {
         Location interLoc = new Location(md, localDesc.getSymbol());
         interLoc.setLocDescriptor(localDesc);
         locTuple.add(interLoc);
-      } else if (localDesc.getSymbol().equals(LocationInference.TOPLOC)) {
+      } else if (localDesc.getSymbol().equals(SSJavaAnalysis.TOP)) {
         Location topLoc = new Location(md, Location.TOP);
         topLoc.setLocDescriptor(LocationInference.TOPDESC);
         locTuple.add(topLoc);
