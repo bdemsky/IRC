@@ -354,14 +354,19 @@ public class FlowDownCheck {
     if (!md.getReturnType().isVoid() && !ssjava.getMethodContainingSSJavaLoop().equals(md)) {
       MethodLattice<String> methodLattice = ssjava.getMethodLattice(md);
       String thisLocId = methodLattice.getThisLoc();
-      if ((!md.isStatic()) && thisLocId == null) {
-        throw new Error("Method '" + md + "' does not have the definition of 'this' location at "
-            + md.getClassDesc().getSourceFileName());
+      if ((!md.isStatic())) {
+
+        if (thisLocId == null) {
+          throw new Error("Method '" + md + "' does not have the definition of 'this' location at "
+              + md.getClassDesc().getSourceFileName());
+        }
+
+        CompositeLocation thisLoc = new CompositeLocation(new Location(md, thisLocId));
+        paramList.add(0, thisLoc);
+        md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), md, paramList, md
+            + " of " + cd.getSourceFileName()));
       }
-      CompositeLocation thisLoc = new CompositeLocation(new Location(md, thisLocId));
-      paramList.add(0, thisLoc);
-      md2ReturnLocGen.put(md, new ReturnLocGenerator(md2ReturnLoc.get(md), md, paramList, md
-          + " of " + cd.getSourceFileName()));
+
     }
 
     // fourth, check declarations inside of method
@@ -696,15 +701,14 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromIfStatementNode(MethodDescriptor md,
       SymbolTable nametable, IfStatementNode isn, CompositeLocation constraint) {
 
+    System.out.println("checkLocationFromIfStatementNode="+isn);
     CompositeLocation condLoc =
         checkLocationFromExpressionNode(md, nametable, isn.getCondition(), new CompositeLocation(),
             constraint, false);
 
-    System.out.println("checkLocationFromIfStatementNode=" + isn.getCondition().printNode(0));
-    System.out.println("---old constraints=" + constraint);
-    // addLocationType(isn.getCondition().getType(), condLoc);
+    System.out.println("-######old constraint="+constraint);
     constraint = generateNewConstraint(constraint, condLoc);
-    System.out.println("---new constraints=" + constraint);
+    System.out.println("-######new constraint="+constraint);
     checkLocationFromBlockNode(md, nametable, isn.getTrueBlock(), constraint);
 
     if (isn.getFalseBlock() != null) {
@@ -1016,7 +1020,10 @@ public class FlowDownCheck {
         for (int idx = 0; idx < callerArgList.size(); idx++) {
           CompositeLocation argLocation = callerArgList.get(idx);
 
-          // need to check that param is higher than PCLOC
+          // if the PC location is lower than an argument location
+          // then, need to check that the callee's the initial location for the PC is also lower
+          // than the corresponding parameter location
+
           if (!argLocation.get(0).isTop()
               && CompositeLattice.compare(argLocation, constraint, true,
                   generateErrorMessage(cd, min)) == ComparisonResult.GREATER) {
@@ -1024,10 +1031,23 @@ public class FlowDownCheck {
             CompositeLocation paramLocation = calleeParamList.get(idx);
 
             int paramCompareResult =
-                CompositeLattice.compare(calleePCLOC, paramLocation, true,
+                CompositeLattice.compare(paramLocation, calleePCLOC, true,
                     generateErrorMessage(cd, min));
+            // CompositeLattice.compare(calleePCLOC, paramLocation, true,
+            // generateErrorMessage(cd, min));
 
-            if (paramCompareResult == ComparisonResult.GREATER) {
+            System.out.println("-CHECKPCLOC:");
+            System.out.println("---ARG LOC="
+                + argLocation
+                + " callerPCLOC="
+                + constraint
+                + " result="
+                + CompositeLattice.compare(argLocation, constraint, true,
+                    generateErrorMessage(cd, min)));
+            System.out.println("---PARAM LOC=" + paramLocation + " calleePCLOC=" + calleePCLOC
+                + " paramCompareResult=" + paramCompareResult);
+
+            if (paramCompareResult != ComparisonResult.GREATER) {
               throw new Error(
                   "The program counter location "
                       + constraint
@@ -1206,11 +1226,8 @@ public class FlowDownCheck {
 
     MethodLattice<String> calleeLattice = ssjava.getMethodLattice(calleemd);
 
-    // System.out.println("checkCalleeConstraints=" + calleemd + " calleeLattice.getThisLoc()="
-    // + calleeLattice.getThisLoc());
-
-    CompositeLocation calleeThisLoc =
-        new CompositeLocation(new Location(calleemd, calleeLattice.getThisLoc()));
+    System.out.println("checkCalleeConstraints=" + calleemd + " calleeLattice.getThisLoc()="
+        + calleeLattice.getThisLoc());
 
     List<CompositeLocation> callerArgList = new ArrayList<CompositeLocation>();
     List<CompositeLocation> calleeParamList = new ArrayList<CompositeLocation>();
@@ -1234,8 +1251,11 @@ public class FlowDownCheck {
 
       // setup callee params set
       // first, add callee's this location
-      if (!calleemd.isStatic())
+      if (!calleemd.isStatic()) {
+        CompositeLocation calleeThisLoc =
+            new CompositeLocation(new Location(calleemd, calleeLattice.getThisLoc()));
         calleeParamList.add(calleeThisLoc);
+      }
       // second, add callee's parameters
       for (int i = 0; i < calleemd.numParameters(); i++) {
         VarDescriptor calleevd = (VarDescriptor) calleemd.getParameter(i);
@@ -1517,12 +1537,14 @@ public class FlowDownCheck {
 
       }
     }
+
     return loc;
   }
 
   private CompositeLocation checkLocationFromFieldAccessNode(MethodDescriptor md,
       SymbolTable nametable, FieldAccessNode fan, CompositeLocation loc,
       CompositeLocation constraint) {
+
 
     ExpressionNode left = fan.getExpression();
     TypeDescriptor ltd = left.getType();
@@ -1565,6 +1587,7 @@ public class FlowDownCheck {
 
     inputGLB.add(loc);
     loc = CompositeLattice.calculateGLB(inputGLB, generateErrorMessage(md.getClassDesc(), fan));
+
     return loc;
   }
 
@@ -1608,6 +1631,8 @@ public class FlowDownCheck {
 
   private CompositeLocation checkLocationFromAssignmentNode(MethodDescriptor md,
       SymbolTable nametable, AssignmentNode an, CompositeLocation loc, CompositeLocation constraint) {
+
+
     ClassDescriptor cd = md.getClassDesc();
 
     Set<CompositeLocation> inputGLBSet = new HashSet<CompositeLocation>();
@@ -1634,6 +1659,7 @@ public class FlowDownCheck {
       rhsLocation =
           checkLocationFromExpressionNode(md, nametable, an.getSrc(), new CompositeLocation(),
               constraint, false);
+
 
       if (an.getOperation().getOp() >= 2 && an.getOperation().getOp() <= 12) {
         // if assignment contains OP+EQ operator, need to merge location types

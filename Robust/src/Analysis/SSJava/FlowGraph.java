@@ -231,6 +231,10 @@ public class FlowGraph {
     FlowNode fromNode = getFlowNode(fromDescTuple);
     FlowNode toNode = getFlowNode(toDescTuple);
 
+    if (toNode.getDescTuple().get(0).equals(LocationInference.LITERALDESC)) {
+      return;
+    }
+
     // System.out.println("create an edge from " + fromNode + " to " + toNode);
 
     int fromTupleSize = fromDescTuple.size();
