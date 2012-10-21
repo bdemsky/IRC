@@ -1122,6 +1122,10 @@ public class FlowDownCheck {
 
     MethodDescriptor calleemd = min.getMethod();
 
+    if (calleemd.isStatic()) {
+      return;
+    }
+
     List<CompositeLocation> callerArgList = new ArrayList<CompositeLocation>();
     List<CompositeLocation> calleeParamList = new ArrayList<CompositeLocation>();
 

@@ -89,6 +89,30 @@ public class GlobalFlowGraph {
     return mapLocationToInferCompositeLocation.get(loc);
   }
 
+  public boolean hasValueFlowEdge(NTuple<Location> fromLocTuple, NTuple<Location> toLocTuple) {
+
+    // return true if the graph already has a flow edge
+
+    if (!mapLocTupleToNode.containsKey(fromLocTuple) || !mapLocTupleToNode.containsKey(toLocTuple)) {
+      return false;
+    }
+
+    GlobalFlowNode fromNode = getFlowNode(fromLocTuple);
+    GlobalFlowNode toNode = getFlowNode(toLocTuple);
+
+    if (!mapFlowNodeToOutNodeSet.containsKey(fromNode)
+        || !mapFlowNodeToInNodeSet.containsKey(toNode)) {
+      return false;
+    }
+
+    if (mapFlowNodeToOutNodeSet.get(fromNode).contains(toNode)
+        && mapFlowNodeToInNodeSet.get(toNode).contains(fromNode)) {
+      return true;
+    }
+
+    return false;
+  }
+
   public void addValueFlowEdge(NTuple<Location> fromLocTuple, NTuple<Location> toLocTuple) {
 
     Location lastElementfromLocTuple = fromLocTuple.get(fromLocTuple.size() - 1);

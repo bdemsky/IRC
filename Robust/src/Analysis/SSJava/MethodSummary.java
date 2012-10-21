@@ -58,16 +58,16 @@ public class MethodSummary extends LocationSummary {
     return mapParamIdxToInferLoc;
   }
 
-  public void setPCLoc(CompositeLocation pcLoc) {
-    this.pcLoc = pcLoc;
+  public void setPCLoc(CompositeLocation in) {
+    this.pcLoc = in;
   }
 
   public CompositeLocation getPCLoc() {
     return pcLoc;
   }
 
-  public void setRETURNLoc(CompositeLocation returnLoc) {
-    this.returnLoc = returnLoc;
+  public void setRETURNLoc(CompositeLocation in) {
+    this.returnLoc = in;
   }
 
   public CompositeLocation getRETURNLoc() {

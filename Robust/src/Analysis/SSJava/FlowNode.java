@@ -11,7 +11,7 @@ import IR.VarDescriptor;
 public class FlowNode {
 
   // descriptor tuple is a unique identifier of the flow node
-  private NTuple<Descriptor> descTuple;
+  protected NTuple<Descriptor> descTuple;
 
   // if the infer node represents the base type of field access,
   // this set contains fields of the base type

@@ -13,7 +13,9 @@ import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
+import IR.NameDescriptor;
 import IR.VarDescriptor;
+import IR.Tree.MethodInvokeNode;
 
 public class FlowGraph {
 
@@ -37,6 +39,8 @@ public class FlowGraph {
   // DS for the lattice generation
   Map<Integer, FlowNode> mapIdxToFlowNode;
 
+  Map<MethodInvokeNode, FlowReturnNode> mapMethodInvokeNodeToFlowReturnNode;
+
   public static int interseed = 0;
 
   boolean debug = true;
@@ -52,6 +56,7 @@ public class FlowGraph {
     this.mapIdxToFlowNode = new HashMap<Integer, FlowNode>();
     this.mapFlowNodeToOutEdgeSet = new HashMap<FlowNode, Set<FlowEdge>>();
     this.mapFlowNodeToInEdgeSet = new HashMap<FlowNode, Set<FlowEdge>>();
+    this.mapMethodInvokeNodeToFlowReturnNode = new HashMap<MethodInvokeNode, FlowReturnNode>();
 
     if (!md.isStatic()) {
       // create a node for 'this' varialbe
@@ -109,7 +114,26 @@ public class FlowGraph {
     mapDescTupleToInferNode.put(tuple, newNode);
     // nodeSet.add(newNode);
 
-     System.out.println("create new intermediate node= " + newNode);
+    System.out.println("create new intermediate node= " + newNode);
+
+    return newNode;
+  }
+
+  public FlowReturnNode getFlowReturnNode(MethodInvokeNode min) {
+    return mapMethodInvokeNodeToFlowReturnNode.get(min);
+  }
+
+  public FlowReturnNode createReturnNode(MethodInvokeNode min) {
+    NTuple<Descriptor> tuple = new NTuple<Descriptor>();
+    NameDescriptor n = new NameDescriptor("RETURNLOC" + (LocationInference.locSeed++));
+    tuple.add(n);
+
+    FlowReturnNode newNode = new FlowReturnNode(tuple, min);
+    mapDescTupleToInferNode.put(tuple, newNode);
+    mapMethodInvokeNodeToFlowReturnNode.put(min, newNode);
+    // nodeSet.add(newNode);
+
+    System.out.println("create new set node= " + newNode);
 
     return newNode;
   }
@@ -235,7 +259,7 @@ public class FlowGraph {
       return;
     }
 
-    System.out.println("create an edge from " + fromNode + " to " + toNode);
+    // System.out.println("create an edge from " + fromNode + " to " + toNode);
 
     int fromTupleSize = fromDescTuple.size();
     NTuple<Descriptor> curFromTuple = new NTuple<Descriptor>();
@@ -534,50 +558,28 @@ public class FlowGraph {
         if (node.equals(getFlowNode(flowEdge.getEndTuple()))) {
           FlowNode incomingNode = getFlowNode(flowEdge.getInitTuple());
 
-          if (!visited.contains(incomingNode)) {
-            visited.add(incomingNode);
-            getIncomingFlowNodeSet(incomingNode, visited);
-          }
-        }
-      }
-    }
-
-  }
-
-  public Set<NTuple<Location>> getIncomingFlowTupleSet(FlowNode fn) {
-
-    NTuple<Descriptor> dstTuple = fn.getDescTuple();
-
-    Set<NTuple<Location>> set = new HashSet<NTuple<Location>>();
-
-    ClassDescriptor cd = null;
-
-    for (Iterator iterator = getNodeSet().iterator(); iterator.hasNext();) {
-      FlowNode node = (FlowNode) iterator.next();
-
-      Set<FlowEdge> edgeSet = getOutEdgeSet(node);
-      for (Iterator iterator2 = edgeSet.iterator(); iterator2.hasNext();) {
-        FlowEdge flowEdge = (FlowEdge) iterator2.next();
-        if (dstTuple.equals(flowEdge.getEndTuple())) {
-          NTuple<Descriptor> initTuple = flowEdge.getInitTuple();
-          NTuple<Location> locTuple = new NTuple<Location>();
-          for (int i = 0; i < initTuple.size(); i++) {
-            Descriptor d = initTuple.get(i);
-            Location loc;
-            if (i == 0) {
-              loc = new Location(md, d.getSymbol());
-              cd = ((VarDescriptor) d).getType().getClassDesc();
-            } else {
-              loc = new Location(cd, d.getSymbol());
-              cd = ((FieldDescriptor) d).getType().getClassDesc();
+          if (incomingNode instanceof FlowReturnNode) {
+            FlowReturnNode rnode = (FlowReturnNode) incomingNode;
+            Set<NTuple<Descriptor>> nodeTupleSet = rnode.getTupleSet();
+            for (Iterator iterator3 = nodeTupleSet.iterator(); iterator3.hasNext();) {
+              NTuple<Descriptor> nodeTuple = (NTuple<Descriptor>) iterator3.next();
+              FlowNode fn = getFlowNode(nodeTuple);
+              if (!visited.contains(fn)) {
+                visited.add(fn);
+                getIncomingFlowNodeSet(fn, visited);
+              }
             }
-            locTuple.add(loc);
+          } else {
+            if (!visited.contains(incomingNode)) {
+              visited.add(incomingNode);
+              getIncomingFlowNodeSet(incomingNode, visited);
+            }
           }
-          set.add(locTuple);
+
         }
       }
     }
-    return set;
+
   }
 
   public boolean isParameter(NTuple<Descriptor> tuple) {
@@ -704,7 +706,13 @@ public class FlowGraph {
   }
 
   private void drawNode(FlowNode node, BufferedWriter bw) throws IOException {
-    bw.write(node.getID() + " [label=\"" + node.getPrettyID() + "\"]" + ";\n");
+    if (node instanceof FlowReturnNode) {
+      FlowReturnNode rnode = (FlowReturnNode) node;
+      bw.write(node.getID() + " [label=\"" + node.getPrettyID() + "\"]" + ";\n");
+    } else {
+      bw.write(node.getID() + " [label=\"" + node.getPrettyID() + "\"]" + ";\n");
+    }
+
   }
 
   public void writeGraph() throws java.io.IOException {
