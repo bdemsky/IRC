@@ -109,7 +109,7 @@ public class FlowGraph {
     mapDescTupleToInferNode.put(tuple, newNode);
     // nodeSet.add(newNode);
 
-    System.out.println("create new intermediate node= " + newNode);
+     System.out.println("create new intermediate node= " + newNode);
 
     return newNode;
   }
@@ -235,7 +235,7 @@ public class FlowGraph {
       return;
     }
 
-    // System.out.println("create an edge from " + fromNode + " to " + toNode);
+    System.out.println("create an edge from " + fromNode + " to " + toNode);
 
     int fromTupleSize = fromDescTuple.size();
     NTuple<Descriptor> curFromTuple = new NTuple<Descriptor>();
@@ -466,8 +466,6 @@ public class FlowGraph {
       ClassDescriptor cd = null;
 
       Descriptor localDesc = fn.getDescTuple().get(0);
-
-      System.out.println("descTuple=" + descTuple);
 
       if (fn.isIntermediate()) {
         Location interLoc = new Location(md, localDesc.getSymbol());

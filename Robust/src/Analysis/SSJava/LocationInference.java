@@ -98,6 +98,8 @@ public class LocationInference {
 
   private Map<MethodInvokeNode, NTuple<Descriptor>> mapMethodInvokeNodeToBaseTuple;
 
+  private Map<MethodInvokeNode, Set<NTuple<Location>>> mapMethodInvokeNodeToPCLocTupleSet;
+
   private Map<MethodDescriptor, MethodLocationInfo> mapMethodDescToMethodLocationInfo;
 
   private Map<ClassDescriptor, LocationInfo> mapClassToLocationInfo;
@@ -186,6 +188,9 @@ public class LocationInference {
     this.mapMethodInvokeNodeToMapCallerArgToCalleeArg =
         new HashMap<MethodInvokeNode, Map<NTuple<Descriptor>, NTuple<Descriptor>>>();
 
+    this.mapMethodInvokeNodeToPCLocTupleSet =
+        new HashMap<MethodInvokeNode, Set<NTuple<Location>>>();
+
   }
 
   public void setupToAnalyze() {
@@ -235,7 +240,9 @@ public class LocationInference {
     constructFlowGraph();
 
     assignCompositeLocation();
+    updateFlowGraph();
 
+    assignCompositeLocation();
     updateFlowGraph();
 
     // calculate RETURNLOC,PCLOC
@@ -421,6 +428,7 @@ public class LocationInference {
       // tuple of 'min'.
       translateMapLocationToInferCompositeLocationToCalleeGraph(callerGlobalFlowGraph, min);
       calleeSet.add(min.getMethod());
+
     }
 
     for (Iterator iterator = calleeSet.iterator(); iterator.hasNext();) {
@@ -428,6 +436,51 @@ public class LocationInference {
       translateCompositeLocationAssignmentToFlowGraph(callee);
     }
 
+    for (Iterator iterator = minSet.iterator(); iterator.hasNext();) {
+      MethodInvokeNode min = (MethodInvokeNode) iterator.next();
+      // add an additional ordering constraint
+      // if the first element of a parameter composite location matches 'this' reference,
+      // the corresponding argument in the caller is required to be higher than the translated
+      // parameter location in the caller lattice
+      // TODO
+      addOrderingConstraintFromCompLocParamToArg(mdCaller, min);
+    }
+
+  }
+
+  private void addOrderingConstraintFromCompLocParamToArg(MethodDescriptor mdCaller,
+      MethodInvokeNode min) {
+    System.out.println("-addOrderingConstraintFromCompLocParamToArg=" + min.printNode(0));
+
+    GlobalFlowGraph globalGraph = getSubGlobalFlowGraph(ssjava.getMethodContainingSSJavaLoop());
+
+    Set<NTuple<Location>> pcLocTupleSet = getPCLocTupleSet(min);
+
+    MethodDescriptor mdCallee = min.getMethod();
+
+    FlowGraph calleeFlowGraph = getFlowGraph(mdCallee);
+    for (int idx = 0; idx < calleeFlowGraph.getNumParameters(); idx++) {
+      FlowNode paramNode = calleeFlowGraph.getParamFlowNode(idx);
+      NTuple<Location> globalParamLocTuple =
+          translateToLocTuple(mdCallee, paramNode.getDescTuple());
+      translateToLocTuple(mdCallee, paramNode.getDescTuple());
+      CompositeLocation compLoc = paramNode.getCompositeLocation();
+      System.out.println("---paramNode=" + paramNode + "    compLoc=" + compLoc);
+      if (compLoc != null) {
+        NTuple<Descriptor> argTuple = getNodeTupleByArgIdx(min, idx);
+        NTuple<Location> globalArgLocTuple = translateToLocTuple(mdCaller, argTuple);
+        System.out.println("----- add global flow globalArgLocTuple=" + globalArgLocTuple
+            + "-> globalParamLocTuple=" + globalParamLocTuple);
+        globalGraph.addValueFlowEdge(globalArgLocTuple, globalParamLocTuple);
+
+        for (Iterator iterator = pcLocTupleSet.iterator(); iterator.hasNext();) {
+          NTuple<Location> pcLocTuple = (NTuple<Location>) iterator.next();
+          System.out.println("----- add global flow PCLOC=" + pcLocTuple
+              + "-> globalParamLocTuple=" + globalParamLocTuple);
+          globalGraph.addValueFlowEdge(pcLocTuple, globalParamLocTuple);
+        }
+      }
+    }
   }
 
   public void assignCompositeLocationToFlowGraph(FlowGraph flowGraph, Location loc,
@@ -710,6 +763,7 @@ public class LocationInference {
           globalFlowGraph.getReachableNodeSetByPrefix(node.getLocTuple().get(0));
       // Set<GlobalFlowNode> reachNodeSet = globalFlowGraph.getReachableNodeSetFrom(node);
 
+      System.out.println("node=" + node + "    prefixList=" + prefixList);
       // System.out.println("node=" + node + "    prefixList=" + prefixList + "   reachableNodeSet="
       // + reachableNodeSet);
 
@@ -717,12 +771,15 @@ public class LocationInference {
         NTuple<Location> curPrefix = prefixList.get(i);
         Set<NTuple<Location>> reachableCommonPrefixSet = new HashSet<NTuple<Location>>();
 
+        System.out.println("curPrefix=" + curPrefix);
         for (Iterator iterator2 = reachableNodeSet.iterator(); iterator2.hasNext();) {
           GlobalFlowNode reachNode = (GlobalFlowNode) iterator2.next();
+          System.out.println("reachNode=" + reachNode);
           if (reachNode.getLocTuple().startsWith(curPrefix)) {
             reachableCommonPrefixSet.add(reachNode.getLocTuple());
           }
         }
+        System.out.println("reachableCommonPrefixSet=" + reachableCommonPrefixSet);
 
         if (!reachableCommonPrefixSet.isEmpty()) {
 
@@ -731,6 +788,10 @@ public class LocationInference {
 
           MethodDescriptor nodePrefixLocFirstElementMethodDesc =
               (MethodDescriptor) prefixLoc.getDescriptor();
+
+          System.out.println("curPrefixFirstElementMethodDesc=" + curPrefixFirstElementMethodDesc);
+          System.out.println("nodePrefixLocFirstElementMethodDesc="
+              + nodePrefixLocFirstElementMethodDesc);
 
           if (curPrefixFirstElementMethodDesc.equals(nodePrefixLocFirstElementMethodDesc)
               || isTransitivelyCalledFrom(nodePrefixLocFirstElementMethodDesc,
@@ -791,24 +852,31 @@ public class LocationInference {
 
     Set<GlobalFlowNode> incomingNodeSetPrefix =
         graph.getIncomingNodeSetByPrefix(node.getLocTuple().get(0));
-    // System.out.println("incomingNodeSetPrefix=" + incomingNodeSetPrefix);
+    System.out.println("incomingNodeSetPrefix=" + incomingNodeSetPrefix);
     //
-    // Set<GlobalFlowNode> reachableNodeSetPrefix =
-    // graph.getReachableNodeSetByPrefix(node.getLocTuple().get(0));
-    // System.out.println("reachableNodeSetPrefix=" + reachableNodeSetPrefix);
+    Set<GlobalFlowNode> reachableNodeSetPrefix =
+        graph.getReachableNodeSetByPrefix(node.getLocTuple().get(0));
+    System.out.println("reachableNodeSetPrefix=" + reachableNodeSetPrefix);
 
     List<NTuple<Location>> prefixList = new ArrayList<NTuple<Location>>();
 
     for (Iterator iterator = incomingNodeSetPrefix.iterator(); iterator.hasNext();) {
       GlobalFlowNode inNode = (GlobalFlowNode) iterator.next();
       NTuple<Location> inNodeTuple = inNode.getLocTuple();
-
+      System.out.println("inNodetuple=" + inNodeTuple);
+      // if (inNodeTuple.size() == 1) {
+      // if (!prefixList.contains(inNodeTuple)) {
+      // prefixList.add(inNodeTuple);
+      // }
+      // } else {
       for (int i = 1; i < inNodeTuple.size(); i++) {
         NTuple<Location> prefix = inNodeTuple.subList(0, i);
+        System.out.println("-p=" + prefix);
         if (!prefixList.contains(prefix)) {
           prefixList.add(prefix);
         }
       }
+      // }
     }
 
     Collections.sort(prefixList, new Comparator<NTuple<Location>>() {
@@ -831,14 +899,16 @@ public class LocationInference {
     ClassDescriptor cd = md.getClassDesc();
 
     int idx = 0;
-
+    System.out.println("$$$$$$$$$$$prefixList=" + prefixList);
     Set<NTuple<Location>> toberemoved = new HashSet<NTuple<Location>>();
-    for (int i = 0; i < prefixList.size(); i++) {
-      NTuple<Location> prefixLocTuple = prefixList.get(i);
-      if (!containsClassDesc(cd, prefixLocTuple)) {
-        toberemoved.add(prefixLocTuple);
-      }
-    }
+    // for (int i = 0; i < prefixList.size(); i++) {
+    // NTuple<Location> prefixLocTuple = prefixList.get(i);
+    // if (!containsClassDesc(cd, prefixLocTuple)) {
+    // toberemoved.add(prefixLocTuple);
+    // }
+    // }
+
+    System.out.println("method class=" + cd + "  toberemoved=" + toberemoved);
 
     prefixList.removeAll(toberemoved);
 
@@ -892,7 +962,7 @@ public class LocationInference {
 
     MethodDescriptor md = flowGraph.getMethodDescriptor();
 
-    GlobalFlowGraph globalGraph = new GlobalFlowGraph(md);
+    GlobalFlowGraph globalGraph = getSubGlobalFlowGraph(md);
 
     // Set<FlowNode> nodeSet = flowGraph.getNodeSet();
     Set<FlowEdge> edgeSet = flowGraph.getEdgeSet();
@@ -1836,6 +1906,8 @@ public class LocationInference {
           NTuple<Descriptor> srcCurTuple = srcNode.getCurrentDescTuple();
           NTuple<Descriptor> dstCurTuple = dstNode.getCurrentDescTuple();
 
+          // System.out.println("-srcCurTuple=" + srcCurTuple + "  dstCurTuple=" + dstCurTuple);
+
           if ((srcCurTuple.size() > 1 && dstCurTuple.size() > 1)
               && srcCurTuple.get(0).equals(dstCurTuple.get(0))) {
 
@@ -1851,7 +1923,7 @@ public class LocationInference {
             }
             extractFlowsBetweenFields(classDesc, srcNode, dstNode, 1);
 
-          } else {
+          } else if (!srcCurTuple.get(0).equals(dstCurTuple.get(0))) {
             // value flow between local var - local var or local var - field
 
             Descriptor srcDesc = srcCurTuple.get(0);
@@ -2603,7 +2675,7 @@ public class LocationInference {
       NTuple<Location> returnLocTuple =
           generateLocTupleRelativeTo(md, tupleToBeHigherThanReturnLocSet, RLOC);
 
-      System.out.println("returnLocTuple=" + returnLocTuple);
+      // System.out.println("returnLocTuple=" + returnLocTuple);
 
       NTuple<Descriptor> returnDescTuple = translateToDescTuple(returnLocTuple);
       for (Iterator iterator = tupleToBeHigherThanReturnLocSet.iterator(); iterator.hasNext();) {
@@ -2612,7 +2684,7 @@ public class LocationInference {
       }
 
       fg.getFlowNode(returnDescTuple).setSkeleton(true);
-      System.out.println("fg node set=" + fg.getNodeSet());
+      // System.out.println("fg node set=" + fg.getNodeSet());
 
       methodSummary.setRETURNLoc(new CompositeLocation(returnLocTuple));
 
@@ -3094,6 +3166,10 @@ public class LocationInference {
   }
 
   private GlobalFlowGraph getSubGlobalFlowGraph(MethodDescriptor md) {
+
+    if (!mapMethodDescriptorToSubGlobalFlowGraph.containsKey(md)) {
+      mapMethodDescriptorToSubGlobalFlowGraph.put(md, new GlobalFlowGraph(md));
+    }
     return mapMethodDescriptorToSubGlobalFlowGraph.get(md);
   }
 
@@ -3165,208 +3241,31 @@ public class LocationInference {
     for (int idx = 0; idx < numParam; idx++) {
       FlowNode paramNode = calleeFlowGraph.getParamFlowNode(idx);
       CompositeLocation compLoc = paramNode.getCompositeLocation();
-      if (compLoc != null) {
+      if (compLoc != null && compLoc.get(0).getLocDescriptor().equals(min.getMethod().getThis())) {
         System.out.println("$$$COMPLOC CASE=" + compLoc);
         NTuple<Descriptor> argTuple = getNodeTupleByArgIdx(min, idx);
-        NTuple<Descriptor> translatedParamTuple = translateCompositeLocationToCaller(min, compLoc);
+        NTuple<Descriptor> translatedParamTuple =
+            translateCompositeLocationToCaller(idx, min, compLoc);
         System.out.println("add a flow edge= " + argTuple + "->" + translatedParamTuple);
         callerFlowGraph.addValueFlowEdge(argTuple, translatedParamTuple);
-      }
-    }
 
-  }
-
-  private void propagateFlowsToCaller(MethodInvokeNode min, MethodDescriptor mdCaller,
-      MethodDescriptor mdCallee) {
-
-    System.out.println("\n##PROPAGATE callee=" + mdCallee + "TO caller=" + mdCaller);
-
-    // if the parameter A reaches to the parameter B
-    // then, add an edge the argument A -> the argument B to the caller's flow
-    // graph
-
-    // TODO
-    // also if a parameter is a composite location and is started with "this"
-    // reference,
-    // need to make sure that the corresponding argument is higher than the
-    // translated location of
-    // the parameter.
-
-    FlowGraph calleeFlowGraph = getFlowGraph(mdCallee);
-    FlowGraph callerFlowGraph = getFlowGraph(mdCaller);
-    int numParam = calleeFlowGraph.getNumParameters();
-
-    for (int i = 0; i < numParam; i++) {
-      for (int k = 0; k < numParam; k++) {
-
-        if (i != k) {
-
-          FlowNode paramNode1 = calleeFlowGraph.getParamFlowNode(i);
-          FlowNode paramNode2 = calleeFlowGraph.getParamFlowNode(k);
-
-          System.out.println("param1=" + paramNode1 + " curDescTuple="
-              + paramNode1.getCurrentDescTuple());
-          System.out.println("param2=" + paramNode2 + " curDescTuple="
-              + paramNode2.getCurrentDescTuple());
-
-          // TODO: deprecated method
-          // NodeTupleSet tupleSetArg1 = getNodeTupleSetByArgIdx(min, i);
-          // NodeTupleSet tupleSetArg2 = getNodeTupleSetByArgIdx(min, k);
-          NodeTupleSet tupleSetArg1 = null;
-          NodeTupleSet tupleSetArg2 = null;
-
-          for (Iterator<NTuple<Descriptor>> iter1 = tupleSetArg1.iterator(); iter1.hasNext();) {
-            NTuple<Descriptor> arg1Tuple = iter1.next();
-
-            for (Iterator<NTuple<Descriptor>> iter2 = tupleSetArg2.iterator(); iter2.hasNext();) {
-              NTuple<Descriptor> arg2Tuple = iter2.next();
-
-              // check if the callee propagates an ordering constraints through
-              // parameters
-
-              Set<FlowNode> localReachSet =
-                  calleeFlowGraph.getLocalReachFlowNodeSetFrom(paramNode1);
-
-              if (localReachSet.contains(paramNode2)) {
-                // need to propagate an ordering relation s.t. arg1 is higher
-                // than arg2
-
-                System.out
-                    .println("-param1=" + paramNode1 + " is higher than param2=" + paramNode2);
-                System.out.println("-arg1Tuple=" + arg1Tuple + " is higher than arg2Tuple="
-                    + arg2Tuple);
-
-                if (!min.getMethod().isStatic()) {
-                  // check if this is the case that values flow to/from the
-                  // current object reference 'this'
-
-                  NTuple<Descriptor> baseTuple = mapMethodInvokeNodeToBaseTuple.get(min);
-                  Descriptor baseRef = baseTuple.get(baseTuple.size() - 1);
-
-                  System.out.println("paramNode1.getCurrentDescTuple()="
-                      + paramNode1.getCurrentDescTuple());
-                  // calculate the prefix of the argument
-
-                  if (arg2Tuple.size() == 1 && arg2Tuple.get(0).equals(baseRef)) {
-                    // in this case, the callee flow causes a caller flow to the
-                    // object whose method
-                    // is invoked.
-
-                    if (!paramNode1.getCurrentDescTuple().startsWith(mdCallee.getThis())) {
-                      // check whether ???
-
-                      NTuple<Descriptor> param1Prefix =
-                          calculatePrefixForParam(callerFlowGraph, calleeFlowGraph, min, arg1Tuple,
-                              paramNode1);
-
-                      if (param1Prefix != null && param1Prefix.startsWith(mdCallee.getThis())) {
-                        // in this case, we need to create a new edge
-                        // 'this.FIELD'->'this'
-                        // but we couldn't... instead we assign a new composite
-                        // location started
-                        // with 'this' reference to the corresponding parameter
-
-                        CompositeLocation compLocForParam1 =
-                            generateCompositeLocation(mdCallee, param1Prefix);
-
-                        System.out
-                            .println("set comp loc=" + compLocForParam1 + " to " + paramNode1);
-                        paramNode1.setCompositeLocation(compLocForParam1);
-
-                        // then, we need to make sure that the corresponding
-                        // argument in the caller
-                        // is required to be higher than or equal to the
-                        // translated parameter
-                        // location
-
-                        NTuple<Descriptor> translatedParamTuple =
-                            translateCompositeLocationToCaller(min, compLocForParam1);
-
-                        // TODO : check if the arg >= the tranlated parameter
-
-                        System.out.println("add a flow edge= " + arg1Tuple + "->"
-                            + translatedParamTuple);
-                        callerFlowGraph.addValueFlowEdge(arg1Tuple, translatedParamTuple);
-
-                        continue;
-
-                      }
-
-                    } else {
-                      // param1 has already been assigned a composite location
-
-                      System.out.println("--param1 has already been assigned a composite location");
-                      CompositeLocation compLocForParam1 = paramNode1.getCompositeLocation();
-                      NTuple<Descriptor> translatedParamTuple =
-                          translateCompositeLocationToCaller(min, compLocForParam1);
-
-                      // TODO : check if the arg >= the tranlated parameter
-
-                      System.out.println("add a flow edge= " + arg1Tuple + "->"
-                          + translatedParamTuple);
-                      callerFlowGraph.addValueFlowEdge(arg1Tuple, translatedParamTuple);
-
-                      continue;
-
-                    }
-
-                  } else if (arg1Tuple.size() == 1 && arg1Tuple.get(0).equals(baseRef)) {
-                    // in this case, the callee flow causes a caller flow
-                    // originated from the object
-                    // whose
-                    // method is invoked.
-
-                    System.out.println("###FROM CASE");
-
-                    if (!paramNode2.getCurrentDescTuple().startsWith(mdCallee.getThis())) {
-
-                      NTuple<Descriptor> param2Prefix =
-                          calculatePrefixForParam(callerFlowGraph, calleeFlowGraph, min, arg2Tuple,
-                              paramNode2);
-
-                      if (param2Prefix != null && param2Prefix.startsWith(mdCallee.getThis())) {
-                        // in this case, we need to create a new edge 'this' ->
-                        // 'this.FIELD' but we couldn't... instead we assign the
-                        // corresponding
-                        // parameter a new composite location started with
-                        // 'this' reference
-
-                        CompositeLocation compLocForParam2 =
-                            generateCompositeLocation(mdCallee, param2Prefix);
-
-                        // System.out.println("set comp loc=" + compLocForParam2
-                        // +
-                        // " to " + paramNode2);
-                        paramNode1.setCompositeLocation(compLocForParam2);
-                        continue;
-                      }
-                    }
-
-                  }
-                }
-
-                // otherwise, flows between method/field locations...
-                callerFlowGraph.addValueFlowEdge(arg1Tuple, arg2Tuple);
-                System.out.println("arg1=" + arg1Tuple + "   arg2=" + arg2Tuple);
-
-              }
-
-            }
-
-          }
-          System.out.println();
+        Set<NTuple<Location>> pcLocTupleSet = getPCLocTupleSet(min);
+        for (Iterator iterator = pcLocTupleSet.iterator(); iterator.hasNext();) {
+          NTuple<Location> pcLocTuple = (NTuple<Location>) iterator.next();
+          callerFlowGraph.addValueFlowEdge(translateToDescTuple(pcLocTuple), translatedParamTuple);
         }
+
       }
     }
-    System.out.println("##\n");
+
   }
 
-  private NTuple<Descriptor> translateCompositeLocationToCaller(MethodInvokeNode min,
+  private NTuple<Descriptor> translateCompositeLocationToCaller(int idx, MethodInvokeNode min,
       CompositeLocation compLocForParam1) {
+
     NTuple<Descriptor> baseTuple = mapMethodInvokeNodeToBaseTuple.get(min);
 
     NTuple<Descriptor> tuple = new NTuple<Descriptor>();
-
     for (int i = 0; i < baseTuple.size(); i++) {
       tuple.add(baseTuple.get(i));
     }
@@ -3904,12 +3803,11 @@ public class LocationInference {
         System.out.println("SSJAVA: Constructing a sub global flow graph: " + md);
 
         GlobalFlowGraph subGlobalFlowGraph = constructSubGlobalFlowGraph(getFlowGraph(md));
-        mapMethodDescriptorToSubGlobalFlowGraph.put(md, subGlobalFlowGraph);
 
         // TODO
         System.out.println("-add Value Flows From CalleeSubGlobalFlowGraph");
         addValueFlowsFromCalleeSubGlobalFlowGraph(md, subGlobalFlowGraph);
-        subGlobalFlowGraph.writeGraph("_SUBGLOBAL");
+        // subGlobalFlowGraph.writeGraph("_SUBGLOBAL");
 
         // System.out.println("-propagate Flows From Callees With No CompositeLocation");
         // propagateFlowsFromCalleesWithNoCompositeLocation(md);
@@ -4030,40 +3928,6 @@ public class LocationInference {
         for (Iterator iterator2 = setPossibleCallees.iterator(); iterator2.hasNext();) {
           MethodDescriptor possibleMdCallee = (MethodDescriptor) iterator2.next();
           propagateFlowsToCallerWithNoCompositeLocation(min, mdCaller, possibleMdCallee);
-        }
-
-      }
-    }
-
-  }
-
-  private void propagateFlowsFromCallees(MethodDescriptor mdCaller) {
-
-    // the transformation for a call site propagates flows through parameters
-    // if the method is virtual, it also grab all relations from any possible
-    // callees
-
-    Set<MethodInvokeNode> setMethodInvokeNode =
-        mapMethodDescriptorToMethodInvokeNodeSet.get(mdCaller);
-
-    if (setMethodInvokeNode != null) {
-
-      for (Iterator iterator = setMethodInvokeNode.iterator(); iterator.hasNext();) {
-        MethodInvokeNode min = (MethodInvokeNode) iterator.next();
-        MethodDescriptor mdCallee = min.getMethod();
-        Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
-        if (mdCallee.isStatic()) {
-          setPossibleCallees.add(mdCallee);
-        } else {
-          Set<MethodDescriptor> calleeSet = ssjava.getCallGraph().getMethods(mdCallee);
-          // removes method descriptors that are not invoked by the caller
-          calleeSet.retainAll(mapMethodToCalleeSet.get(mdCaller));
-          setPossibleCallees.addAll(calleeSet);
-        }
-
-        for (Iterator iterator2 = setPossibleCallees.iterator(); iterator2.hasNext();) {
-          MethodDescriptor possibleMdCallee = (MethodDescriptor) iterator2.next();
-          propagateFlowsToCaller(min, mdCaller, possibleMdCallee);
         }
 
       }
@@ -4383,7 +4247,7 @@ public class LocationInference {
   private void analyzeFlowIfStatementNode(MethodDescriptor md, SymbolTable nametable,
       IfStatementNode isn, NodeTupleSet implicitFlowTupleSet) {
 
-    System.out.println("analyzeFlowIfStatementNode=" + isn.printNode(0));
+    // System.out.println("analyzeFlowIfStatementNode=" + isn.printNode(0));
 
     NodeTupleSet condTupleNode = new NodeTupleSet();
     analyzeFlowExpressionNode(md, nametable, isn.getCondition(), condTupleNode, null,
@@ -4399,7 +4263,7 @@ public class LocationInference {
     // System.out.println("-newImplicitTupleSet=" + newImplicitTupleSet);
 
     if (needToGenerateInterLoc(newImplicitTupleSet)) {
-
+      System.out.println("2");
       // need to create an intermediate node for the GLB of conditional locations & implicit flows
       NTuple<Descriptor> interTuple = getFlowGraph(md).createIntermediateNode().getDescTuple();
       for (Iterator<NTuple<Descriptor>> idxIter = newImplicitTupleSet.iterator(); idxIter.hasNext();) {
@@ -4606,8 +4470,23 @@ public class LocationInference {
     return mapMethodDescToParamNodeFlowsToReturnValue.get(md);
   }
 
-  private void analyzeFlowMethodInvokeNode(MethodDescriptor md, SymbolTable nametable,
+  private Set<NTuple<Location>> getPCLocTupleSet(MethodInvokeNode min) {
+    if (!mapMethodInvokeNodeToPCLocTupleSet.containsKey(min)) {
+      mapMethodInvokeNodeToPCLocTupleSet.put(min, new HashSet<NTuple<Location>>());
+    }
+    return mapMethodInvokeNodeToPCLocTupleSet.get(min);
+  }
+
+  private void analyzeFlowMethodInvokeNode(MethodDescriptor mdCaller, SymbolTable nametable,
       MethodInvokeNode min, NodeTupleSet nodeSet, NodeTupleSet implicitFlowTupleSet) {
+
+    System.out.println("analyzeFlowMethodInvokeNode=" + min.printNode(0));
+
+    Set<NTuple<Location>> pcLocTupleSet = getPCLocTupleSet(min);
+    for (Iterator iterator = implicitFlowTupleSet.iterator(); iterator.hasNext();) {
+      NTuple<Descriptor> pcDescTuple = (NTuple<Descriptor>) iterator.next();
+      pcLocTupleSet.add(translateToLocTuple(mdCaller, pcDescTuple));
+    }
 
     mapMethodInvokeNodeToArgIdxMap.put(min, new HashMap<Integer, NTuple<Descriptor>>());
 
@@ -4615,7 +4494,7 @@ public class LocationInference {
       nodeSet = new NodeTupleSet();
     }
 
-    MethodDescriptor calleeMethodDesc = min.getMethod();
+    MethodDescriptor mdCallee = min.getMethod();
 
     NameDescriptor baseName = min.getBaseName();
     boolean isSystemout = false;
@@ -4623,20 +4502,27 @@ public class LocationInference {
       isSystemout = baseName.getSymbol().equals("System.out");
     }
 
-    if (!ssjava.isSSJavaUtil(calleeMethodDesc.getClassDesc())
-        && !ssjava.isTrustMethod(calleeMethodDesc) && !isSystemout) {
+    if (!ssjava.isSSJavaUtil(mdCallee.getClassDesc()) && !ssjava.isTrustMethod(mdCallee)
+        && !isSystemout) {
 
-      addMapCallerMethodDescToMethodInvokeNodeSet(md, min);
+      addMapCallerMethodDescToMethodInvokeNodeSet(mdCaller, min);
 
-      FlowGraph calleeFlowGraph = getFlowGraph(calleeMethodDesc);
+      FlowGraph calleeFlowGraph = getFlowGraph(mdCallee);
       Set<FlowNode> calleeReturnSet = calleeFlowGraph.getReturnNodeSet();
 
-      // System.out.println("-calleeReturnSet=" + calleeReturnSet);
+      System.out.println("---calleeReturnSet=" + calleeReturnSet);
+
+      for (Iterator iterator = calleeReturnSet.iterator(); iterator.hasNext();) {
+        FlowNode calleeReturnNode = (FlowNode) iterator.next();
+        NTuple<Location> calleeReturnLocTuple =
+            translateToLocTuple(mdCallee, calleeReturnNode.getDescTuple());
+        nodeSet.addGlobalFlowTuple(calleeReturnLocTuple);
+      }
 
       if (min.getExpression() != null) {
 
         NodeTupleSet baseNodeSet = new NodeTupleSet();
-        analyzeFlowExpressionNode(md, nametable, min.getExpression(), baseNodeSet, null,
+        analyzeFlowExpressionNode(mdCaller, nametable, min.getExpression(), baseNodeSet, null,
             implicitFlowTupleSet, false);
 
         assert (baseNodeSet.size() == 1);
@@ -4649,7 +4535,7 @@ public class LocationInference {
           for (Iterator iterator = calleeReturnSet.iterator(); iterator.hasNext();) {
             FlowNode returnNode = (FlowNode) iterator.next();
             NTuple<Descriptor> returnDescTuple = returnNode.getDescTuple();
-            if (returnDescTuple.startsWith(calleeMethodDesc.getThis())) {
+            if (returnDescTuple.startsWith(mdCallee.getThis())) {
               // the location type of the return value is started with 'this'
               // reference
               NTuple<Descriptor> inFlowTuple = new NTuple<Descriptor>(baseTuple.getList());
@@ -4661,7 +4547,7 @@ public class LocationInference {
               // System.out.println("inFlowSet=" + inFlowSet + "   from retrunNode=" + returnNode);
               for (Iterator iterator2 = inFlowSet.iterator(); iterator2.hasNext();) {
                 FlowNode inFlowNode = (FlowNode) iterator2.next();
-                if (inFlowNode.getDescTuple().startsWith(calleeMethodDesc.getThis())) {
+                if (inFlowNode.getDescTuple().startsWith(mdCallee.getThis())) {
                   nodeSet.addTupleSet(baseNodeSet);
                 }
               }
@@ -4685,16 +4571,17 @@ public class LocationInference {
           ExpressionNode en = min.getArg(i);
           int idx = i + offset;
           NodeTupleSet argTupleSet = new NodeTupleSet();
-          analyzeFlowExpressionNode(md, nametable, en, argTupleSet, false);
+          analyzeFlowExpressionNode(mdCaller, nametable, en, argTupleSet, false);
           // if argument is liternal node, argTuple is set to NULL
 
           NTuple<Descriptor> argTuple = new NTuple<Descriptor>();
           if (needToGenerateInterLoc(argTupleSet)) {
+            System.out.println("3");
             NTuple<Descriptor> interTuple =
-                getFlowGraph(md).createIntermediateNode().getDescTuple();
+                getFlowGraph(mdCaller).createIntermediateNode().getDescTuple();
             for (Iterator<NTuple<Descriptor>> idxIter = argTupleSet.iterator(); idxIter.hasNext();) {
               NTuple<Descriptor> tuple = idxIter.next();
-              addFlowGraphEdge(md, tuple, interTuple);
+              addFlowGraphEdge(mdCaller, tuple, interTuple);
             }
             argTuple = interTuple;
           } else if (argTupleSet.size() == 1) {
@@ -4720,8 +4607,8 @@ public class LocationInference {
           // }
 
           if (hasInFlowTo(calleeFlowGraph, paramNode, calleeReturnSet)
-              || calleeMethodDesc.getModifiers().isNative()) {
-            addParamNodeFlowingToReturnValue(calleeMethodDesc, paramNode);
+              || mdCallee.getModifiers().isNative()) {
+            addParamNodeFlowingToReturnValue(mdCallee, paramNode);
             nodeSet.addTupleSet(argTupleSet);
           }
         }
@@ -5079,6 +4966,7 @@ public class LocationInference {
       // creates edges from RHS to LHS
       NTuple<Descriptor> interTuple = null;
       if (needToGenerateInterLoc(nodeSetRHS)) {
+        System.out.println("1");
         interTuple = getFlowGraph(md).createIntermediateNode().getDescTuple();
       }
 
@@ -5096,6 +4984,21 @@ public class LocationInference {
         for (Iterator<NTuple<Descriptor>> iter2 = nodeSetLHS.iterator(); iter2.hasNext();) {
           NTuple<Descriptor> toTuple = iter2.next();
           addFlowGraphEdge(md, fromTuple, toTuple);
+        }
+      }
+
+      // create global flow edges if the callee gives return value flows to the caller
+      if (nodeSetRHS.globalLocTupleSize() > 0) {
+        GlobalFlowGraph globalFlowGraph = getSubGlobalFlowGraph(md);
+        for (Iterator<NTuple<Location>> iterator = nodeSetRHS.globalIterator(); iterator.hasNext();) {
+          NTuple<Location> calleeReturnLocTuple = iterator.next();
+          for (Iterator<NTuple<Descriptor>> iter2 = nodeSetLHS.iterator(); iter2.hasNext();) {
+            NTuple<Descriptor> callerLHSTuple = iter2.next();
+            globalFlowGraph.addValueFlowEdge(calleeReturnLocTuple,
+                translateToLocTuple(md, callerLHSTuple));
+            System.out.println("$$$ GLOBAL FLOW ADD=" + calleeReturnLocTuple + " -> "
+                + translateToLocTuple(md, callerLHSTuple));
+          }
         }
       }
 
@@ -5248,8 +5151,10 @@ public class LocationInference {
     for (Iterator<MethodDescriptor> iterator = keySet.iterator(); iterator.hasNext();) {
       MethodDescriptor md = (MethodDescriptor) iterator.next();
       FlowGraph fg = mapMethodDescriptorToFlowGraph.get(md);
+      GlobalFlowGraph subGlobalFlowGraph = getSubGlobalFlowGraph(md);
       try {
         fg.writeGraph();
+        subGlobalFlowGraph.writeGraph("_SUBGLOBAL");
       } catch (IOException e) {
         e.printStackTrace();
       }

@@ -31,7 +31,7 @@
  * @author MDM
  */
 @LATTICE("B<IDX,IDX<T,IDX*")
-@METHODDEFAULT("OUT<V,V<SH,SH<C,C<IN,SH*,THISLOC=IN,GLOBALLOC=IN")
+@METHODDEFAULT("OUT<V,V<SH,SH<C,C<IN,IN<P,C*,SH*,THISLOC=IN,GLOBALLOC=IN")
 public final class Equalizer {
   /**
    * Equalizer setting to denote that a given band will not be present in the
@@ -173,7 +173,7 @@ public final class Equalizer {
    * 
    */
   @RETURNLOC("C")
-  @PCLOC("C")
+  @PCLOC("P")
   float getBandFactor(@LOC("IN") float eq) {
     if (eq == BAND_NOT_PRESENT)
       return 0.0f;

@@ -91,6 +91,11 @@ public class GlobalFlowGraph {
 
   public void addValueFlowEdge(NTuple<Location> fromLocTuple, NTuple<Location> toLocTuple) {
 
+    Location lastElementfromLocTuple = fromLocTuple.get(fromLocTuple.size() - 1);
+    if (lastElementfromLocTuple.getLocDescriptor().equals(LocationInference.LITERALDESC)) {
+      return;
+    }
+
     GlobalFlowNode fromNode = getFlowNode(fromLocTuple);
     GlobalFlowNode toNode = getFlowNode(toLocTuple);
 

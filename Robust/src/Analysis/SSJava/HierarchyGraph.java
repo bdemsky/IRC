@@ -141,10 +141,13 @@ public class HierarchyGraph {
     if (possibleCycleSet.size() > 0) {
 
       if (possibleCycleSet.size() == 1) {
+        System.out.println("possibleCycleSet=" + possibleCycleSet + "  from src=" + srcHNode
+            + " dstHNode=" + dstHNode);
         if (dstHNode.isSharedNode()) {
           // it has already been assigned shared node.
         } else {
           dstHNode.setSharedNode(true);
+          System.out.println("$$$setShared=" + dstHNode);
         }
         return;
       }

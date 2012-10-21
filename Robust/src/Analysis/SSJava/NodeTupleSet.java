@@ -10,10 +10,13 @@ import IR.Descriptor;
 
 public class NodeTupleSet {
 
-  private List<NTuple<Descriptor>> list;
+  private ArrayList<NTuple<Descriptor>> list;
+
+  private ArrayList<NTuple<Location>> globalLocTupleList;
 
   public NodeTupleSet() {
     list = new ArrayList<NTuple<Descriptor>>();
+    globalLocTupleList = new ArrayList<NTuple<Location>>();
   }
 
   public void addTuple(NTuple<Descriptor> tuple) {
@@ -28,6 +31,14 @@ public class NodeTupleSet {
     list.add(tuple);
   }
 
+  public void addGlobalFlowTuple(NTuple<Location> tuple) {
+    globalLocTupleList.add(tuple);
+  }
+
+  public Iterator<NTuple<Location>> globalIterator() {
+    return globalLocTupleList.iterator();
+  }
+
   public void removeTuple(NTuple<Descriptor> tuple) {
     list.remove(tuple);
   }
@@ -37,7 +48,13 @@ public class NodeTupleSet {
   }
 
   public String toString() {
-    return list.toString();
+    String str = list.toString();
+
+    if (globalLocTupleList.size() > 0) {
+      str += " GlobalFlow=" + globalLocTupleList.toString();
+    }
+
+    return str;
   }
 
   public Set<NTuple<Descriptor>> getSet() {
@@ -61,5 +78,24 @@ public class NodeTupleSet {
 
   public void clear() {
     list.clear();
+  }
+
+  public int globalLocTupleSize() {
+    return globalLocTupleList.size();
+  }
+
+  private void setGlobalLocTupleList(ArrayList<NTuple<Location>> in) {
+    globalLocTupleList = in;
+  }
+
+  private void setDescTupleList(ArrayList<NTuple<Descriptor>> in) {
+    list = in;
+  }
+
+  public NodeTupleSet clone() {
+    NodeTupleSet set = new NodeTupleSet();
+    set.setDescTupleList((ArrayList<NTuple<Descriptor>>) list.clone());
+    set.setGlobalLocTupleList((ArrayList<NTuple<Location>>) globalLocTupleList.clone());
+    return set;
   }
 }
