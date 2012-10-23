@@ -1365,7 +1365,7 @@ public class FlowDownCheck {
 
   private CompositeLocation checkLocationFromArrayAccessNode(MethodDescriptor md,
       SymbolTable nametable, ArrayAccessNode aan, CompositeLocation constraint, boolean isLHS) {
-    // System.out.println("aan=" + aan.printNode(0) + "  line#=" + aan.getNumLine());
+    System.out.println("aan=" + aan.printNode(0) + "  line#=" + aan.getNumLine());
     ClassDescriptor cd = md.getClassDesc();
 
     CompositeLocation arrayLoc =
@@ -1420,7 +1420,7 @@ public class FlowDownCheck {
       // addTypeLocation(on.getRight().getType(), rightLoc);
     }
 
-    // System.out.println("\n# OP NODE=" + on.printNode(0));
+    System.out.println("\n# OP NODE=" + on.printNode(0));
     // System.out.println("# left loc=" + leftLoc + " from " +
     // on.getLeft().getClass());
     // if (on.getRight() != null) {
@@ -1487,6 +1487,7 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromNameNode(MethodDescriptor md, SymbolTable nametable,
       NameNode nn, CompositeLocation loc, CompositeLocation constraint) {
 
+    System.out.println("checkLocationFromNameNode nn=" + nn.printNode(0));
     NameDescriptor nd = nn.getName();
     if (nd.getBase() != null) {
       loc =
@@ -1518,6 +1519,7 @@ public class FlowDownCheck {
       } else if (d instanceof FieldDescriptor) {
         // the type of field descriptor has a location!
         FieldDescriptor fd = (FieldDescriptor) d;
+        System.out.println("fd=" + fd);
         if (fd.isStatic()) {
           if (fd.isFinal()) {
             // if it is 'static final', the location has TOP since no one can
@@ -1525,6 +1527,7 @@ public class FlowDownCheck {
             loc.addLocation(Location.createTopLocation(md));
             return loc;
           } else {
+
             // if 'static', the location has pre-assigned global loc
             MethodLattice<String> localLattice = ssjava.getMethodLattice(md);
             String globalLocId = localLattice.getGlobalLoc();
@@ -1532,7 +1535,7 @@ public class FlowDownCheck {
               throw new Error("Global location element is not defined in the method " + md);
             }
             Location globalLoc = new Location(md, globalLocId);
-
+            System.out.println("static=" + globalLoc);
             loc.addLocation(globalLoc);
           }
         } else {
@@ -2254,6 +2257,7 @@ public class FlowDownCheck {
           }
 
           if (innerGLBInput.size() > 0) {
+            System.out.println("######innerGLBInput=" + innerGLBInput);
             CompositeLocation innerGLB = CompositeLattice.calculateGLB(innerGLBInput, errMsg);
             for (int idx = 0; idx < innerGLB.getSize(); idx++) {
               glbCompLoc.addLocation(innerGLB.get(idx));

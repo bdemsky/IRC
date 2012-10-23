@@ -35,6 +35,10 @@ public class NodeTupleSet {
     globalLocTupleList.add(tuple);
   }
 
+  public void addGlobalFlowTupleSet(ArrayList<NTuple<Location>> in) {
+    globalLocTupleList.addAll(in);
+  }
+
   public Iterator<NTuple<Location>> globalIterator() {
     return globalLocTupleList.iterator();
   }
@@ -86,6 +90,10 @@ public class NodeTupleSet {
 
   private void setGlobalLocTupleList(ArrayList<NTuple<Location>> in) {
     globalLocTupleList = in;
+  }
+
+  public ArrayList<NTuple<Location>> getGlobalLocTupleSet() {
+    return globalLocTupleList;
   }
 
   private void setDescTupleList(ArrayList<NTuple<Descriptor>> in) {

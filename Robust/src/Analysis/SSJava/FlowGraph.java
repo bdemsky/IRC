@@ -173,6 +173,12 @@ public class FlowGraph {
     return edgeSet;
   }
 
+  public Set<FlowNode> getParamFlowNodeSet() {
+    Set<FlowNode> setParamFlowNode = new HashSet<FlowNode>();
+    setParamFlowNode.addAll(mapIdxToFlowNode.values());
+    return setParamFlowNode;
+  }
+
   public Set<FlowNode> getNodeSet() {
     Set<FlowNode> set = new HashSet<FlowNode>();
     set.addAll(mapDescTupleToInferNode.values());
