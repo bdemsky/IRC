@@ -91,7 +91,7 @@ public class NodeTupleSet {
   private void setGlobalLocTupleList(ArrayList<NTuple<Location>> in) {
     globalLocTupleList = in;
   }
-
+  
   public ArrayList<NTuple<Location>> getGlobalLocTupleSet() {
     return globalLocTupleList;
   }

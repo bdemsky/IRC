@@ -40,6 +40,10 @@ public class GlobalFlowGraph {
     return mapLocationToInferCompositeLocation;
   }
 
+  public boolean contains(NTuple<Location> locTuple) {
+    return mapLocTupleToNode.containsKey(locTuple);
+  }
+
   public GlobalFlowNode getFlowNode(NTuple<Location> locTuple) {
     if (!mapLocTupleToNode.containsKey(locTuple)) {
       GlobalFlowNode node = createNewGlobalFlowNode(locTuple);
@@ -49,6 +53,9 @@ public class GlobalFlowGraph {
   }
 
   private GlobalFlowNode createNewGlobalFlowNode(NTuple<Location> locTuple) {
+    if (locTuple.size() == 0) {
+      throw new Error();
+    }
     GlobalFlowNode node = new GlobalFlowNode(locTuple);
     return node;
   }
@@ -133,7 +140,7 @@ public class GlobalFlowGraph {
     }
     mapFlowNodeToInNodeSet.get(toNode).add(fromNode);
 
-    // System.out.println("create a global edge from " + fromNode + " to " + toNode);
+//    System.out.println("create a global edge from " + fromNode + " to " + toNode);
 
   }
 
@@ -256,7 +263,6 @@ public class GlobalFlowGraph {
 
       for (Iterator iterator2 = outNodeSet.iterator(); iterator2.hasNext();) {
         GlobalFlowNode outNode = (GlobalFlowNode) iterator2.next();
-
         if (outNode.getLocTuple().startsWith(prefix)) {
           incomingNodeSet.add(curNode);
           recurIncomingNodeSetByPrefix(prefix, curNode, incomingNodeSet);

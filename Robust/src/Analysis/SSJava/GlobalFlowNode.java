@@ -6,9 +6,19 @@ public class GlobalFlowNode {
 
   NTuple<Location> locTuple;
   CompositeLocation compLoc;
+  boolean isParamNodeWithIncomingFlows;
 
   public GlobalFlowNode(NTuple<Location> in) {
     locTuple = in;
+    isParamNodeWithIncomingFlows = false;
+  }
+
+  public void setParamNodeWithIncomingFlows(boolean in) {
+    isParamNodeWithIncomingFlows = in;
+  }
+
+  public boolean isParamNodeWithIncomingFlows() {
+    return isParamNodeWithIncomingFlows;
   }
 
   public int hashCode() {
