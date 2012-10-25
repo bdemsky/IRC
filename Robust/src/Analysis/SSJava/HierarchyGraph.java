@@ -401,7 +401,7 @@ public class HierarchyGraph {
   private void addEdgeWithNoCycleCheck(HNode srcHNode, HNode dstHNode) {
     getIncomingNodeSet(dstHNode).add(srcHNode);
     getOutgoingNodeSet(srcHNode).add(dstHNode);
-    System.out.println("addEdgeWithNoCycleCheck src=" + srcHNode + " -> " + dstHNode);
+//    System.out.println("addEdgeWithNoCycleCheck src=" + srcHNode + " -> " + dstHNode);
   }
 
   private HNode mergeNodes(Set<HNode> set, boolean onlyCombinationNodes) {

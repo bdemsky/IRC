@@ -60,6 +60,10 @@ public class GlobalFlowGraph {
     return node;
   }
 
+  public boolean contrainsInferCompositeLocationMapKey(Location loc) {
+    return mapLocationToInferCompositeLocation.containsKey(loc);
+  }
+
   public void addMapLocationToInferCompositeLocation(Location loc, CompositeLocation newCompLoc) {
     if (mapLocationToInferCompositeLocation.containsKey(loc)) {
       // need to do a sanity check
@@ -140,7 +144,7 @@ public class GlobalFlowGraph {
     }
     mapFlowNodeToInNodeSet.get(toNode).add(fromNode);
 
-//    System.out.println("create a global edge from " + fromNode + " to " + toNode);
+    // System.out.println("create a global edge from " + fromNode + " to " + toNode);
 
   }
 
