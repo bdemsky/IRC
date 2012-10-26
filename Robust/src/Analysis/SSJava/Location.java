@@ -85,7 +85,10 @@ public class Location implements TypeExtension {
           return true;
         }
       } else {
-        if (loc.getLocIdentifier().equals(getLocIdentifier())) {
+        if (loc.getLocDescriptor() != null && getLocDescriptor() != null
+            && loc.getLocDescriptor().equals(getLocDescriptor())) {
+          return true;
+        } else if (loc.getLocIdentifier().equals(getLocIdentifier())) {
           return true;
         }
       }
@@ -99,6 +102,9 @@ public class Location implements TypeExtension {
     int hash = d.hashCode();
     if (loc != null) {
       hash += loc.hashCode();
+    }
+    if (locDesc != null) {
+      hash += locDesc.hashCode();
     }
     return hash;
 

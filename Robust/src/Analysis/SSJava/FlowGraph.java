@@ -114,7 +114,7 @@ public class FlowGraph {
     mapDescTupleToInferNode.put(tuple, newNode);
     // nodeSet.add(newNode);
 
-    // System.out.println("create new intermediate node= " + newNode);
+    System.out.println("create new intermediate node= " + newNode);
 
     return newNode;
   }
