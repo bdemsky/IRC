@@ -13,9 +13,11 @@ import Util.Pair;
 public class BuildLattice {
 
   private LocationInference infer;
+  private Map<HNode, TripleItem> mapSharedNodeToTripleItem;
 
   public BuildLattice(LocationInference infer) {
     this.infer = infer;
+    this.mapSharedNodeToTripleItem = new HashMap<HNode, TripleItem>();
   }
 
   public SSJavaLattice<String> buildLattice(Descriptor desc) {
@@ -144,6 +146,8 @@ public class BuildLattice {
     // perform DFS that starts from each skeleton/combination node and ends by another
     // skeleton/combination node
 
+    mapSharedNodeToTripleItem.clear();
+
     HierarchyGraph simpleGraph = infer.getSimpleHierarchyGraph(desc);
     HierarchyGraph scGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
     LocationSummary locSummary = infer.getLocationSummary(desc);
@@ -249,8 +253,62 @@ public class BuildLattice {
       }
     }
 
+    // add shared locations
+    Set<HNode> sharedNodeSet = mapSharedNodeToTripleItem.keySet();
+    for (Iterator iterator = sharedNodeSet.iterator(); iterator.hasNext();) {
+      HNode sharedNode = (HNode) iterator.next();
+      TripleItem item = mapSharedNodeToTripleItem.get(sharedNode);
+      String nonSharedLocName = mapIntermediateLoc.get(item);
+      System.out.println("sharedNode=" + sharedNode + "    locName=" + nonSharedLocName);
+
+      String newLocName;
+      if (locSummary.getHNodeNameSetByLatticeLoationName(nonSharedLocName) != null
+          && !lattice.isSharedLoc(nonSharedLocName)) {
+        // need to generate a new shared location in the lattice, which is one level lower than the
+        // 'locName' location
+        newLocName = "ILOC" + (LocationInference.locSeed++);
+
+        // Set<String> aboveElementSet = getAboveElementSet(lattice, locName);
+        Set<String> belowElementSet = new HashSet<String>();
+        belowElementSet.addAll(lattice.get(nonSharedLocName));
+
+        System.out.println("nonSharedLocName=" + nonSharedLocName + "   belowElementSet="
+            + belowElementSet + "  newLocName=" + newLocName);
+
+        lattice.insertNewLocationBetween(nonSharedLocName, belowElementSet, newLocName);
+      } else {
+        newLocName = nonSharedLocName;
+      }
+
+      lattice.addSharedLoc(newLocName);
+      HierarchyGraph graph = infer.getSimpleHierarchyGraph(desc);
+      Set<Descriptor> descSet = graph.getDescSetOfNode(sharedNode);
+      for (Iterator iterator2 = descSet.iterator(); iterator2.hasNext();) {
+        Descriptor d = (Descriptor) iterator2.next();
+        locSummary.addMapHNodeNameToLocationName(d.getSymbol(), newLocName);
+      }
+      locSummary.addMapHNodeNameToLocationName(sharedNode.getName(), newLocName);
+
+    }
+
     return lattice;
 
+  }
+
+  private Set<String> getAboveElementSet(SSJavaLattice<String> lattice, String loc) {
+
+    Set<String> aboveSet = new HashSet<String>();
+
+    Map<String, Set<String>> latticeMap = lattice.getTable();
+    Set<String> keySet = latticeMap.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      String key = (String) iterator.next();
+      if (latticeMap.get(key).contains(loc)) {
+        aboveSet.add(key);
+      }
+    }
+
+    return aboveSet;
   }
 
   private void expandCombinationNode(Descriptor desc, SSJavaLattice<String> lattice,
@@ -442,22 +500,23 @@ public class BuildLattice {
     }
 
     String locName = mapIntermediateLoc.get(item);
-
     HierarchyGraph graph = infer.getSimpleHierarchyGraph(desc);
 
-    Set<Descriptor> descSet = graph.getDescSetOfNode(curNode);
-    for (Iterator iterator = descSet.iterator(); iterator.hasNext();) {
-      Descriptor d = (Descriptor) iterator.next();
-      locSummary.addMapHNodeNameToLocationName(d.getSymbol(), locName);
-    }
-    locSummary.addMapHNodeNameToLocationName(curNode.getName(), locName);
-
     if (curNode.isSharedNode()) {
-      lattice.addSharedLoc(locName);
+      // if the current node is shared location, add a shared location to the lattice later
+      mapSharedNodeToTripleItem.put(curNode, item);
+    } else {
+      Set<Descriptor> descSet = graph.getDescSetOfNode(curNode);
+      for (Iterator iterator = descSet.iterator(); iterator.hasNext();) {
+        Descriptor d = (Descriptor) iterator.next();
+        locSummary.addMapHNodeNameToLocationName(d.getSymbol(), locName);
+      }
+      locSummary.addMapHNodeNameToLocationName(curNode.getName(), locName);
     }
 
     System.out.println("-TripleItem=" + item);
-    System.out.println("-curNode=" + curNode.getName() + " locName=" + locName);
+    System.out.println("-curNode=" + curNode.getName() + " S=" + curNode.isSharedNode()
+        + " locName=" + locName);
 
     Set<HNode> outSet = graph.getOutgoingNodeSet(curNode);
     for (Iterator iterator2 = outSet.iterator(); iterator2.hasNext();) {
@@ -498,23 +557,33 @@ public class BuildLattice {
         }
         lattice.insertNewLocationBetween(above, belowSet, newLocName);
         mapIntermediateLoc.put(item, newLocName);
-
       }
 
     }
 
+    // TODO
+    // Do we need to skip the combination node and assign a shared location to the next node?
+    // if (idx == 1 && curNode.isSharedNode()) {
+    // System.out.println("THE FIRST COMBINATION NODE EXPANSION IS SHARED!");
+    // recurDFS(desc, lattice, combinationNodeInSCGraph, endNodeSet, visited, mapIntermediateLoc,
+    // idx + 1, locSummary, curNode);
+    // return;
+    // }
+
     HierarchyGraph graph = infer.getSimpleHierarchyGraph(desc);
     String locName = mapIntermediateLoc.get(item);
-    Set<Descriptor> descSet = graph.getDescSetOfNode(curNode);
-    for (Iterator iterator = descSet.iterator(); iterator.hasNext();) {
-      Descriptor d = (Descriptor) iterator.next();
-      locSummary.addMapHNodeNameToLocationName(d.getSymbol(), locName);
-    }
-    locSummary.addMapHNodeNameToLocationName(curNode.getName(), locName);
-
     if (curNode.isSharedNode()) {
-      lattice.addSharedLoc(locName);
+      // if the current node is shared location, add a shared location to the lattice later
+      mapSharedNodeToTripleItem.put(curNode, item);
+    } else {
+      Set<Descriptor> descSet = graph.getDescSetOfNode(curNode);
+      for (Iterator iterator = descSet.iterator(); iterator.hasNext();) {
+        Descriptor d = (Descriptor) iterator.next();
+        locSummary.addMapHNodeNameToLocationName(d.getSymbol(), locName);
+      }
+      locSummary.addMapHNodeNameToLocationName(curNode.getName(), locName);
     }
+
     System.out.println("-TripleItem=" + item);
     System.out.println("-curNode=" + curNode.getName() + " S=" + curNode.isSharedNode()
         + " locName=" + locName);
@@ -713,11 +782,21 @@ class TripleItem {
   public HNode higherNode;
   public Set<HNode> lowerNodeSet;
   public int idx;
+  public boolean isShared;
 
   public TripleItem(HNode h, Set<HNode> l, int i) {
     higherNode = h;
     lowerNodeSet = l;
     idx = i;
+    isShared = false;
+  }
+
+  public void setShared(boolean in) {
+    this.isShared = in;
+  }
+
+  public boolean isShared() {
+    return isShared;
   }
 
   public int hashCode() {
@@ -725,6 +804,10 @@ class TripleItem {
     int h = 0;
     if (higherNode != null) {
       h = higherNode.hashCode();
+    }
+
+    if (isShared) {
+      h++;
     }
 
     return h + lowerNodeSet.hashCode() + idx;
@@ -735,7 +818,7 @@ class TripleItem {
     if (obj instanceof TripleItem) {
       TripleItem in = (TripleItem) obj;
       if ((higherNode == null || (higherNode != null && higherNode.equals(in.higherNode)))
-          && lowerNodeSet.equals(in.lowerNodeSet) && idx == in.idx) {
+          && lowerNodeSet.equals(in.lowerNodeSet) && idx == in.idx && isShared == in.isShared()) {
         return true;
       }
     }
@@ -744,6 +827,10 @@ class TripleItem {
   }
 
   public String toString() {
-    return higherNode + "-" + idx + "->" + lowerNodeSet;
+    String rtr = higherNode + "-" + idx + "->" + lowerNodeSet;
+    if (isShared) {
+      rtr += " S";
+    }
+    return rtr;
   }
 }

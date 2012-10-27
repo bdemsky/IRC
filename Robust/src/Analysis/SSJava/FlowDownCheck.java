@@ -707,7 +707,7 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromIfStatementNode(MethodDescriptor md,
       SymbolTable nametable, IfStatementNode isn, CompositeLocation constraint) {
 
-    System.out.println("checkLocationFromIfStatementNode=" + isn);
+    System.out.println("\n\ncheckLocationFromIfStatementNode=" + isn.printNode(0));
     CompositeLocation condLoc =
         checkLocationFromExpressionNode(md, nametable, isn.getCondition(), new CompositeLocation(),
             constraint, false);
@@ -1367,16 +1367,17 @@ public class FlowDownCheck {
       SymbolTable nametable, ArrayAccessNode aan, CompositeLocation constraint, boolean isLHS) {
     System.out.println("aan=" + aan.printNode(0) + "  line#=" + aan.getNumLine());
     ClassDescriptor cd = md.getClassDesc();
-
+    System.out.println("aan.getExpression()=" +aan.getExpression().getClass());
     CompositeLocation arrayLoc =
         checkLocationFromExpressionNode(md, nametable, aan.getExpression(),
             new CompositeLocation(), constraint, isLHS);
-
+System.out.println("HERE?");
     // addTypeLocation(aan.getExpression().getType(), arrayLoc);
     CompositeLocation indexLoc =
         checkLocationFromExpressionNode(md, nametable, aan.getIndex(), new CompositeLocation(),
             constraint, isLHS);
     // addTypeLocation(aan.getIndex().getType(), indexLoc);
+    System.out.println("HERE2?");
 
     if (isLHS) {
       if (!CompositeLattice.isGreaterThan(indexLoc, arrayLoc, generateErrorMessage(cd, aan))) {
@@ -1388,7 +1389,11 @@ public class FlowDownCheck {
       Set<CompositeLocation> inputGLB = new HashSet<CompositeLocation>();
       inputGLB.add(arrayLoc);
       inputGLB.add(indexLoc);
-      return CompositeLattice.calculateGLB(inputGLB, generateErrorMessage(cd, aan));
+      System.out.println("arrayLoc=" + arrayLoc + "   indexLoc=" + indexLoc);
+      CompositeLocation comp =
+          CompositeLattice.calculateGLB(inputGLB, generateErrorMessage(cd, aan));
+      System.out.println("---aan=" + aan.printNode(0) + "  compLoc=" + comp);
+      return comp;
     }
 
   }
@@ -1487,7 +1492,7 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromNameNode(MethodDescriptor md, SymbolTable nametable,
       NameNode nn, CompositeLocation loc, CompositeLocation constraint) {
 
-    System.out.println("checkLocationFromNameNode nn=" + nn.printNode(0));
+    // System.out.println("checkLocationFromNameNode nn=" + nn.printNode(0));
     NameDescriptor nd = nn.getName();
     if (nd.getBase() != null) {
       loc =
@@ -1519,7 +1524,7 @@ public class FlowDownCheck {
       } else if (d instanceof FieldDescriptor) {
         // the type of field descriptor has a location!
         FieldDescriptor fd = (FieldDescriptor) d;
-        System.out.println("fd=" + fd);
+        // System.out.println("fd=" + fd);
         if (fd.isStatic()) {
           if (fd.isFinal()) {
             // if it is 'static final', the location has TOP since no one can
@@ -1661,6 +1666,8 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromAssignmentNode(MethodDescriptor md,
       SymbolTable nametable, AssignmentNode an, CompositeLocation loc, CompositeLocation constraint) {
 
+    System.out.println("\n\ncheckLocationFromAssignmentNode=" + an.printNode(0));
+
     ClassDescriptor cd = md.getClassDesc();
 
     Set<CompositeLocation> inputGLBSet = new HashSet<CompositeLocation>();
@@ -1712,8 +1719,7 @@ public class FlowDownCheck {
         // generateErrorMessage(cd, an));
       }
 
-      // System.out.println("src=" + srcLocation + "  dest=" + destLocation + "  const=" +
-      // constraint);
+      System.out.println("src=" + srcLocation + "  dest=" + destLocation + "  const=" + constraint);
 
       if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, generateErrorMessage(cd, an))) {
 
@@ -2257,7 +2263,7 @@ public class FlowDownCheck {
           }
 
           if (innerGLBInput.size() > 0) {
-            System.out.println("######innerGLBInput=" + innerGLBInput);
+            // System.out.println("######innerGLBInput=" + innerGLBInput);
             CompositeLocation innerGLB = CompositeLattice.calculateGLB(innerGLBInput, errMsg);
             for (int idx = 0; idx < innerGLB.getSize(); idx++) {
               glbCompLoc.addLocation(innerGLB.get(idx));
@@ -2280,7 +2286,7 @@ public class FlowDownCheck {
         }
       }
 
-      System.out.println("GLB=" + glbCompLoc + "\n");
+      System.out.println("GLB=" + glbCompLoc);
       return glbCompLoc;
 
     }
