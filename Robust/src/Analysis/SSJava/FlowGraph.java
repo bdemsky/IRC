@@ -383,12 +383,28 @@ public class FlowGraph {
     Set<FlowEdge> outEdgeSet = getOutEdgeSet(fn);
     for (Iterator iterator = outEdgeSet.iterator(); iterator.hasNext();) {
       FlowEdge edge = (FlowEdge) iterator.next();
-      FlowNode dstNode = edge.getDst();
+      FlowNode originalDstNode = edge.getDst();
 
-      if (!visited.contains(dstNode)) {
-        visited.add(dstNode);
-        recurLocalReachFlowNodeSet(dstNode, visited);
+      Set<FlowNode> dstNodeSet = new HashSet<FlowNode>();
+      if (originalDstNode instanceof FlowReturnNode) {
+        FlowReturnNode rnode = (FlowReturnNode) originalDstNode;
+        Set<NTuple<Descriptor>> rtupleSet = rnode.getReturnTupleSet();
+        for (Iterator iterator2 = rtupleSet.iterator(); iterator2.hasNext();) {
+          NTuple<Descriptor> rtuple = (NTuple<Descriptor>) iterator2.next();
+          dstNodeSet.add(getFlowNode(rtuple));
+        }
+      } else {
+        dstNodeSet.add(originalDstNode);
       }
+
+      for (Iterator iterator2 = dstNodeSet.iterator(); iterator2.hasNext();) {
+        FlowNode dstNode = (FlowNode) iterator2.next();
+        if (!visited.contains(dstNode)) {
+          visited.add(dstNode);
+          recurLocalReachFlowNodeSet(dstNode, visited);
+        }
+      }
+
     }
 
   }
@@ -421,10 +437,25 @@ public class FlowGraph {
 
     Set<FlowNode> nodeSet = getNodeSet();
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
-      FlowNode flowNode = (FlowNode) iterator.next();
-      if (flowNode.getCurrentDescTuple().startsWith(prefix)) {
-        recurReachableSetFrom(flowNode, reachableSet);
+      FlowNode originalSrcNode = (FlowNode) iterator.next();
+
+      Set<FlowNode> srcNodeSet = new HashSet<FlowNode>();
+      if (originalSrcNode instanceof FlowReturnNode) {
+        FlowReturnNode rnode = (FlowReturnNode) originalSrcNode;
+        Set<NTuple<Descriptor>> rtupleSet = rnode.getReturnTupleSet();
+        for (Iterator iterator2 = rtupleSet.iterator(); iterator2.hasNext();) {
+          NTuple<Descriptor> rtuple = (NTuple<Descriptor>) iterator2.next();
+          if (rtuple.startsWith(prefix)) {
+            System.out.println("rtuple=" + rtuple + "   give it to recur=" + originalSrcNode);
+            recurReachableSetFrom(originalSrcNode, reachableSet);
+          }
+        }
+      } else {
+        if (originalSrcNode.getCurrentDescTuple().startsWith(prefix)) {
+          recurReachableSetFrom(originalSrcNode, reachableSet);
+        }
       }
+
     }
 
     return reachableSet;
@@ -566,7 +597,7 @@ public class FlowGraph {
 
           if (incomingNode instanceof FlowReturnNode) {
             FlowReturnNode rnode = (FlowReturnNode) incomingNode;
-            Set<NTuple<Descriptor>> nodeTupleSet = rnode.getTupleSet();
+            Set<NTuple<Descriptor>> nodeTupleSet = rnode.getReturnTupleSet();
             for (Iterator iterator3 = nodeTupleSet.iterator(); iterator3.hasNext();) {
               NTuple<Descriptor> nodeTuple = (NTuple<Descriptor>) iterator3.next();
               FlowNode fn = getFlowNode(nodeTuple);

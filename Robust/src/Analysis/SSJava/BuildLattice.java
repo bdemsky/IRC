@@ -160,11 +160,11 @@ public class BuildLattice {
 
     Map<TripleItem, String> mapIntermediateLoc = new HashMap<TripleItem, String>();
 
-    System.out.println("*insert=" + desc);
-    System.out.println("***nodeSet=" + nodeSet);
+    // System.out.println("*insert=" + desc);
+    // System.out.println("***nodeSet=" + nodeSet);
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
-      System.out.println("node=" + node);
+      // System.out.println("node=" + node);
 
       if (node.isSkeleton() && (!visited.contains(node))) {
         visited.add(node);
@@ -259,7 +259,7 @@ public class BuildLattice {
       HNode sharedNode = (HNode) iterator.next();
       TripleItem item = mapSharedNodeToTripleItem.get(sharedNode);
       String nonSharedLocName = mapIntermediateLoc.get(item);
-      System.out.println("sharedNode=" + sharedNode + "    locName=" + nonSharedLocName);
+      // System.out.println("sharedNode=" + sharedNode + "    locName=" + nonSharedLocName);
 
       String newLocName;
       if (locSummary.getHNodeNameSetByLatticeLoationName(nonSharedLocName) != null
@@ -272,8 +272,8 @@ public class BuildLattice {
         Set<String> belowElementSet = new HashSet<String>();
         belowElementSet.addAll(lattice.get(nonSharedLocName));
 
-        System.out.println("nonSharedLocName=" + nonSharedLocName + "   belowElementSet="
-            + belowElementSet + "  newLocName=" + newLocName);
+        // System.out.println("nonSharedLocName=" + nonSharedLocName + "   belowElementSet="
+        // + belowElementSet + "  newLocName=" + newLocName);
 
         lattice.insertNewLocationBetween(nonSharedLocName, belowElementSet, newLocName);
       } else {
@@ -315,7 +315,7 @@ public class BuildLattice {
       Set<HNode> visited, Map<TripleItem, String> mapIntermediateLoc, LocationSummary locSummary,
       HNode cnode) {
 
-    System.out.println("expandCombinationNode=" + cnode);
+    // System.out.println("expandCombinationNode=" + cnode);
     // expand the combination node 'outNode'
     // here we need to expand the corresponding combination location in the lattice
     HNode combinationNodeInSCGraph = getCombinationNodeInSCGraph(desc, cnode);
@@ -343,7 +343,7 @@ public class BuildLattice {
 
     // follows the straight line up to another skeleton/combination node
     if (endCombNodeSet.size() > 0) {
-      System.out.println("---endCombNodeSet=" + endCombNodeSet);
+      // System.out.println("---endCombNodeSet=" + endCombNodeSet);
       endCombNodeSet =
           removeTransitivelyReachToNode(desc, combinationNodeInSCGraph, endCombNodeSet);
 
@@ -392,8 +392,9 @@ public class BuildLattice {
   private HNode getDirectlyReachableSCNodeFromEndNode(HierarchyGraph scGraph, HNode startNode,
       Set<HNode> endNodeSet) {
 
-    System.out.println("getDirectlyReachableSCNodeFromEndNode start=" + startNode + " endNodeSet="
-        + endNodeSet);
+    // System.out.println("getDirectlyReachableSCNodeFromEndNode start=" + startNode +
+    // " endNodeSet="
+    // + endNodeSet);
     Set<HNode> newStartNodeSet = new HashSet<HNode>();
 
     for (Iterator iterator = endNodeSet.iterator(); iterator.hasNext();) {
@@ -408,7 +409,7 @@ public class BuildLattice {
       }
     }
 
-    System.out.println("newStartNodeSet=" + newStartNodeSet);
+    // System.out.println("newStartNodeSet=" + newStartNodeSet);
 
     if (newStartNodeSet.size() == 0) {
       newStartNodeSet.add(startNode);
@@ -438,14 +439,14 @@ public class BuildLattice {
 
   private HNode getDirectlyReachableNodeFromStartNodeReachToEndNode(HierarchyGraph scGraph,
       HNode startNode, HNode endNode) {
-    System.out.println("getDirectlyReachableNodeFromStartNodeReachToEndNode start=" + startNode
-        + " end=" + endNode);
+    // System.out.println("getDirectlyReachableNodeFromStartNodeReachToEndNode start=" + startNode
+    // + " end=" + endNode);
     Set<HNode> connected = new HashSet<HNode>();
     recurDirectlyReachableNodeFromStartNodeReachToEndNode(scGraph, startNode, endNode, connected);
     if (connected.size() == 0) {
       connected.add(endNode);
     }
-    System.out.println("connected=" + connected);
+    // System.out.println("connected=" + connected);
 
     return connected.iterator().next();
   }
@@ -514,9 +515,9 @@ public class BuildLattice {
       locSummary.addMapHNodeNameToLocationName(curNode.getName(), locName);
     }
 
-    System.out.println("-TripleItem=" + item);
-    System.out.println("-curNode=" + curNode.getName() + " S=" + curNode.isSharedNode()
-        + " locName=" + locName);
+    // System.out.println("-TripleItem=" + item);
+    // System.out.println("-curNode=" + curNode.getName() + " S=" + curNode.isSharedNode()
+    // + " locName=" + locName);
 
     Set<HNode> outSet = graph.getOutgoingNodeSet(curNode);
     for (Iterator iterator2 = outSet.iterator(); iterator2.hasNext();) {
@@ -584,9 +585,9 @@ public class BuildLattice {
       locSummary.addMapHNodeNameToLocationName(curNode.getName(), locName);
     }
 
-    System.out.println("-TripleItem=" + item);
-    System.out.println("-curNode=" + curNode.getName() + " S=" + curNode.isSharedNode()
-        + " locName=" + locName);
+    // System.out.println("-TripleItem=" + item);
+    // System.out.println("-curNode=" + curNode.getName() + " S=" + curNode.isSharedNode()
+    // + " locName=" + locName);
 
     Set<HNode> outSet = graph.getOutgoingNodeSet(curNode);
     for (Iterator iterator2 = outSet.iterator(); iterator2.hasNext();) {

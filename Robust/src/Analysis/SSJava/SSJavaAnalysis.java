@@ -96,7 +96,7 @@ public class SSJavaAnalysis {
 
   // keep the field ownership from the linear type checking
   Hashtable<MethodDescriptor, Set<FieldDescriptor>> mapMethodToOwnedFieldSet;
-
+  
   Set<FlatNode> sameHeightWriteFlatNodeSet;
 
   CallGraph callgraph;

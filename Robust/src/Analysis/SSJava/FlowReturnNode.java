@@ -35,7 +35,7 @@ public class FlowReturnNode extends FlowNode {
     returnTupleSet.add(in);
   }
 
-  public Set<NTuple<Descriptor>> getTupleSet() {
+  public Set<NTuple<Descriptor>> getReturnTupleSet() {
     return returnTupleSet;
   }
 

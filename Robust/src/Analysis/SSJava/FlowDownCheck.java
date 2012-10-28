@@ -1032,7 +1032,7 @@ public class FlowDownCheck {
 
           if (!argLocation.get(0).isTop()
               && CompositeLattice.compare(argLocation, constraint, true,
-                  generateErrorMessage(cd, min)) == ComparisonResult.LESS) {
+                  generateErrorMessage(cd, min)) == ComparisonResult.GREATER) {
 
             CompositeLocation paramLocation = calleeParamList.get(idx);
 
@@ -1054,16 +1054,16 @@ public class FlowDownCheck {
                 + " paramCompareResult=" + paramCompareResult);
 
             if (!(paramLocation.get(0).equals(calleePCLOC.get(0)) && calleePCLOC.getSize() > 1)
-                && paramCompareResult != ComparisonResult.LESS) {
+                && paramCompareResult != ComparisonResult.GREATER) {
               throw new Error(
-                  "The program counter location "
-                      + constraint
-                      + " is lower than the argument(idx="
+                  "The argument(idx="
                       + idx
                       + ") location "
                       + argLocation
+                      + "is higher than the caller program counter location "
+                      + constraint
                       + ". Need to specify that the initial PC location of the callee, which is currently set to "
-                      + calleePCLOC + ", is lower than " + paramLocation + " in the method "
+                      + calleePCLOC + ", is not higher than " + paramLocation + " in the method "
                       + calleeMethodDesc.getSymbol() + ":" + min.getNumLine());
             }
 
@@ -1367,11 +1367,11 @@ public class FlowDownCheck {
       SymbolTable nametable, ArrayAccessNode aan, CompositeLocation constraint, boolean isLHS) {
     System.out.println("aan=" + aan.printNode(0) + "  line#=" + aan.getNumLine());
     ClassDescriptor cd = md.getClassDesc();
-    System.out.println("aan.getExpression()=" +aan.getExpression().getClass());
+    System.out.println("aan.getExpression()=" + aan.getExpression().getClass());
     CompositeLocation arrayLoc =
         checkLocationFromExpressionNode(md, nametable, aan.getExpression(),
             new CompositeLocation(), constraint, isLHS);
-System.out.println("HERE?");
+    System.out.println("HERE?");
     // addTypeLocation(aan.getExpression().getType(), arrayLoc);
     CompositeLocation indexLoc =
         checkLocationFromExpressionNode(md, nametable, aan.getIndex(), new CompositeLocation(),
