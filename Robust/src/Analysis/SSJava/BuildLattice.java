@@ -522,13 +522,20 @@ public class BuildLattice {
     Set<HNode> outSet = graph.getOutgoingNodeSet(curNode);
     for (Iterator iterator2 = outSet.iterator(); iterator2.hasNext();) {
       HNode outNode = (HNode) iterator2.next();
-      if (!outNode.isSkeleton() && !outNode.isCombinationNode() && !visited.contains(outNode)) {
-        visited.add(outNode);
-        recurDFSNormalNode(desc, lattice, startNode, endNodeSet, visited, mapIntermediateLoc,
-            idx + 1, locSummary, outNode);
-      } else if (!outNode.isSkeleton() && outNode.isCombinationNode() && !visited.contains(outNode)) {
-        expandCombinationNode(desc, lattice, visited, mapIntermediateLoc, locSummary, outNode);
+
+      Set<HNode> inNodeSetToOutNode = graph.getIncomingNodeSet(outNode);
+
+      if (visited.containsAll(inNodeSetToOutNode)) {
+        if (!outNode.isSkeleton() && !outNode.isCombinationNode() && !visited.contains(outNode)) {
+          visited.add(outNode);
+          recurDFSNormalNode(desc, lattice, startNode, endNodeSet, visited, mapIntermediateLoc,
+              idx + 1, locSummary, outNode);
+        } else if (!outNode.isSkeleton() && outNode.isCombinationNode()
+            && !visited.contains(outNode)) {
+          expandCombinationNode(desc, lattice, visited, mapIntermediateLoc, locSummary, outNode);
+        }
       }
+
     }
 
   }
@@ -596,19 +603,25 @@ public class BuildLattice {
       // System.out.println("---cur combinationNodeInSCGraph=" + combinationNodeInSCGraph);
       // System.out.println("---outNode combinationNodeInSCGraph="
       // + getCombinationNodeInSCGraph(desc, outNode));
-      if (!outNode.isSkeleton() && !visited.contains(outNode)) {
-        if (outNode.isCombinationNode()) {
-          // check whether the next combination node is different from the current node
-          if (combinationNodeInSCGraph.equals(getCombinationNodeInSCGraph(desc, outNode))) {
-            visited.add(outNode);
-            recurDFS(desc, lattice, combinationNodeInSCGraph, endNodeSet, visited,
-                mapIntermediateLoc, idx + 1, locSummary, outNode);
-          } else {
-            expandCombinationNode(desc, lattice, visited, mapIntermediateLoc, locSummary, outNode);
-          }
-        }
 
+      Set<HNode> inNodeSetToOutNode = graph.getIncomingNodeSet(outNode);
+
+      if (visited.containsAll(inNodeSetToOutNode)) {
+        if (!outNode.isSkeleton() && !visited.contains(outNode)) {
+          if (outNode.isCombinationNode()) {
+            // check whether the next combination node is different from the current node
+            if (combinationNodeInSCGraph.equals(getCombinationNodeInSCGraph(desc, outNode))) {
+              visited.add(outNode);
+              recurDFS(desc, lattice, combinationNodeInSCGraph, endNodeSet, visited,
+                  mapIntermediateLoc, idx + 1, locSummary, outNode);
+            } else {
+              expandCombinationNode(desc, lattice, visited, mapIntermediateLoc, locSummary, outNode);
+            }
+          }
+
+        }
       }
+
     }
 
   }

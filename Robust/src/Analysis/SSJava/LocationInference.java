@@ -1344,31 +1344,11 @@ public class LocationInference {
       for (Iterator iterator2 = keySet.iterator(); iterator2.hasNext();) {
         Integer argIdx = (Integer) iterator2.next();
         NTuple<Descriptor> argTuple = map.get(argIdx);
-        // System.out.println("argTuple=" + argTuple);
-        // if (argIdx == 0 && !min.getMethod().isStatic()) {
-        // ClassDescriptor currentMethodThisType = getClassTypeDescriptor(argTuple.get(0));
-        //
-        // for (int i = 0; i < curPrefix.size(); i++) {
-        // ClassDescriptor prefixType =
-        // getClassTypeDescriptor(curPrefix.get(i).getLocDescriptor());
-        // if (prefixType != null && prefixType.equals(currentMethodThisType)) {
-        // System.out.println("PREFIX TYPE MATCHES WITH=" + currentMethodThisType);
-        // for (Iterator iterator3 = subGlobalReachableSet.iterator(); iterator3.hasNext();) {
-        // GlobalFlowNode subGlobalReachalbeNode = (GlobalFlowNode) iterator3.next();
-        // if (subGlobalReachalbeNode.getLocTuple().get(0).getLocDescriptor()
-        // .equals(md.getThis())) {
-        // System.out.println("PREFIX FOUND=" + subGlobalReachalbeNode);
-        // System.out.println("here4?!");
-        //
-        // return true;
-        // }
-        // }
-        // }
-        // }
-        //
-        // }
+
         if (!(!md.isStatic() && argIdx == 0)) {
-          if (argTuple.get(argTuple.size() - 1).equals(lastLocationOfPrefix.getLocDescriptor())) {
+          // if the argTuple is empty, we don't need to do with anything(LITERAL CASE).
+          if (argTuple.size() > 0
+              && argTuple.get(argTuple.size() - 1).equals(lastLocationOfPrefix.getLocDescriptor())) {
             NTuple<Location> locTuple =
                 translateToLocTuple(md, flowGraph.getParamFlowNode(argIdx).getDescTuple());
             lastLocationOfPrefix = locTuple.get(0);
@@ -1771,6 +1751,17 @@ public class LocationInference {
       return ((VarDescriptor) desc).getType().isPrimitive();
     } else if (desc instanceof InterDescriptor) {
       return true;
+    }
+
+    return false;
+  }
+
+  public static boolean isReference(Descriptor desc) {
+
+    if (desc instanceof FieldDescriptor) {
+      return ((FieldDescriptor) desc).getType().isPtr();
+    } else if (desc instanceof VarDescriptor) {
+      return ((VarDescriptor) desc).getType().isPtr();
     }
 
     return false;
@@ -3255,7 +3246,8 @@ public class LocationInference {
     } else {
       // all parameter is started with 'this', so PCLOC will be set relative to the composite
       // location started with 'this'.
-      for (int idx = 0; idx < minSize - 1; idx++) {
+      // for (int idx = 0; idx < minSize - 1; idx++) {
+      for (int idx = 0; idx < 1; idx++) {
         Set<Descriptor> locDescSet = new HashSet<Descriptor>();
         Location curLoc = null;
         NTuple<Location> paramLocTuple = null;
@@ -3888,7 +3880,7 @@ public class LocationInference {
       if (!srcFieldDesc.equals(dstFieldDesc)) {
         // add a new edge
         getHierarchyGraph(cd).addEdge(srcFieldDesc, dstFieldDesc);
-      } else if (isPrimitive(srcFieldDesc) && isPrimitive(dstFieldDesc)) {
+      } else if (!isReference(srcFieldDesc) && !isReference(dstFieldDesc)) {
         getHierarchyGraph(cd).addEdge(srcFieldDesc, dstFieldDesc);
       }
 
@@ -4827,16 +4819,16 @@ public class LocationInference {
           // that node if needed
           if (argTuple.size() > 0
               && (argTuple.get(0).equals(GLOBALDESC) || argTuple.get(0).equals(LITERALDESC))) {
-            System.out.println("***GLOBAL ARG TUPLE CASE=" + argTuple);
-            System.out.println("8");
-
-            NTuple<Descriptor> interTuple =
-                getFlowGraph(mdCaller).createIntermediateNode().getDescTuple();
-            ((InterDescriptor) interTuple.get(0)).setMethodArgIdxPair(min, idx);
-            addFlowGraphEdge(mdCaller, argTuple, interTuple);
-            argTuple = interTuple;
-            addArgIdxMap(min, idx, argTuple);
-            System.out.println("new min mapping i=" + idx + "  ->" + argTuple);
+            /*
+             * System.out.println("***GLOBAL ARG TUPLE CASE=" + argTuple); System.out.println("8");
+             * 
+             * NTuple<Descriptor> interTuple =
+             * getFlowGraph(mdCaller).createIntermediateNode().getDescTuple(); ((InterDescriptor)
+             * interTuple.get(0)).setMethodArgIdxPair(min, idx); addFlowGraphEdge(mdCaller,
+             * argTuple, interTuple); argTuple = interTuple; addArgIdxMap(min, idx, argTuple);
+             * System.out.println("new min mapping i=" + idx + "  ->" + argTuple);
+             */
+            argTuple = new NTuple<Descriptor>();
           }
 
           addArgIdxMap(min, idx, argTuple);
@@ -5359,7 +5351,6 @@ public class LocationInference {
       NTuple<Descriptor> interTuple = null;
       if (needToGenerateInterLoc(nodeSetRHS)) {
         System.out.println("2");
-
         interTuple = getFlowGraph(md).createIntermediateNode().getDescTuple();
       }
 
@@ -5504,7 +5495,6 @@ public class LocationInference {
 
           String highLocId = pair.getFirst();
           String lowLocId = pair.getSecond();
-          System.out.println("addedLocSet=" + addedLocSet);
           if (!addedLocSet.contains(highLocId)) {
             addedLocSet.add(highLocId);
             drawNode(bw, locOrder, simpleHierarchyGraph, highLocId);
