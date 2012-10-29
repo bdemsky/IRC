@@ -914,24 +914,25 @@ public class FlowDownCheck {
     // System.out.println("# false=" + tn.getFalseExpr().printNode(0) + " Loc="
     // + falseLoc);
 
-    // check if condLoc is higher than trueLoc & falseLoc
-    if (!trueLoc.get(0).isTop()
-        && !CompositeLattice.isGreaterThan(condLoc, trueLoc, generateErrorMessage(cd, tn))) {
-      throw new Error(
-          "The location of the condition expression is lower than the true expression at "
-              + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
-    }
-
-    if (!falseLoc.get(0).isTop()
-        && !CompositeLattice.isGreaterThan(condLoc, falseLoc,
-            generateErrorMessage(cd, tn.getCond()))) {
-      throw new Error(
-          "The location of the condition expression is lower than the false expression at "
-              + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
-    }
+    // we don't need to check that condLoc is higher than trueLoc & falseLoc
+    // if (!trueLoc.get(0).isTop()
+    // && !CompositeLattice.isGreaterThan(condLoc, trueLoc, generateErrorMessage(cd, tn))) {
+    // throw new Error(
+    // "The location of the condition expression is lower than the true expression at "
+    // + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
+    // }
+    //
+    // if (!falseLoc.get(0).isTop()
+    // && !CompositeLattice.isGreaterThan(condLoc, falseLoc,
+    // generateErrorMessage(cd, tn.getCond()))) {
+    // throw new Error(
+    // "The location of the condition expression is lower than the false expression at "
+    // + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
+    // }
 
     // then, return glb of trueLoc & falseLoc
     Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
+    glbInputSet.add(condLoc);
     glbInputSet.add(trueLoc);
     glbInputSet.add(falseLoc);
 
@@ -1054,7 +1055,7 @@ public class FlowDownCheck {
                 + " paramCompareResult=" + paramCompareResult);
 
             if (!(paramLocation.get(0).equals(calleePCLOC.get(0)) && calleePCLOC.getSize() > 1)
-                && paramCompareResult != ComparisonResult.GREATER) {
+                && paramCompareResult == ComparisonResult.LESS) {
               throw new Error(
                   "The argument(idx="
                       + idx
@@ -2127,7 +2128,11 @@ public class FlowDownCheck {
         } else if (lattice.isGreaterThan(loc1.getLocIdentifier(), loc2.getLocIdentifier())) {
           return ComparisonResult.GREATER;
         } else {
-          return ComparisonResult.LESS;
+          if (lattice.isComparable(loc1.getLocIdentifier(), loc2.getLocIdentifier())) {
+            return ComparisonResult.LESS;
+          } else {
+            return ComparisonResult.INCOMPARABLE;
+          }
         }
 
       }
