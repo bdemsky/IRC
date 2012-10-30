@@ -1950,7 +1950,24 @@ final class LayerIIIDecoder implements FrameDecoder {
     float tmpf_16;
     float tmpf_17;
 
-    tmpf_0 = tmpf_1 = tmpf_2 = tmpf_3 = tmpf_4 = tmpf_5 = tmpf_6 = tmpf_7 = tmpf_8 = tmpf_9 = tmpf_10 = tmpf_11 = tmpf_12 = tmpf_13 = tmpf_14 = tmpf_15 = tmpf_16 = tmpf_17 = 0.0f;
+    tmpf_0 = 0.0f;
+    tmpf_1 = 0.0f;
+    tmpf_2 = 0.0f;
+    tmpf_3 = 0.0f;
+    tmpf_4 = 0.0f;
+    tmpf_5 = 0.0f;
+    tmpf_6 = 0.0f;
+    tmpf_7 = 0.0f;
+    tmpf_8 = 0.0f;
+    tmpf_9 = 0.0f;
+    tmpf_10 = 0.0f;
+    tmpf_11 = 0.0f;
+    tmpf_12 = 0.0f;
+    tmpf_13 = 0.0f;
+    tmpf_14 = 0.0f;
+    tmpf_15 = 0.0f;
+    tmpf_16 = 0.0f;
+    tmpf_17 = 0.0f;
 
     if (block_type == 2) {
 
@@ -2382,7 +2399,7 @@ final class LayerIIIDecoder implements FrameDecoder {
    * 12, 13, 14, 15, 16, 17 };
    */
 
-  private static/* final */int reorder_table[][]/* = loadReorderTable() */; // SZD:
+  private static final int reorder_table[][]/* = loadReorderTable() */; // SZD:
 
   // will
   // be

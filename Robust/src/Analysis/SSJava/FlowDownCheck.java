@@ -2207,7 +2207,10 @@ public class FlowDownCheck {
       }
 
       SSJavaLattice<String> locOrder = getLatticeByDescriptor(priorityDescriptor);
+      System.out.println("priorityDescriptor=" + priorityDescriptor);
+      System.out.println("GLB INPUT=" + priorityLocIdentifierSet);
       String glbOfPriorityLoc = locOrder.getGLB(priorityLocIdentifierSet);
+      System.out.println("GLB OUTPUT="+glbOfPriorityLoc);
       glbCompLoc.addLocation(new Location(priorityDescriptor, glbOfPriorityLoc));
       Set<CompositeLocation> compSet = locId2CompLocSet.get(glbOfPriorityLoc);
 

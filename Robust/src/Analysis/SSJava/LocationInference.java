@@ -1759,9 +1759,21 @@ public class LocationInference {
   public static boolean isReference(Descriptor desc) {
 
     if (desc instanceof FieldDescriptor) {
-      return ((FieldDescriptor) desc).getType().isPtr();
+
+      TypeDescriptor type = ((FieldDescriptor) desc).getType();
+      if (type.isArray()) {
+        return false;
+      } else {
+        return type.isPtr();
+      }
+
     } else if (desc instanceof VarDescriptor) {
-      return ((VarDescriptor) desc).getType().isPtr();
+      TypeDescriptor type = ((VarDescriptor) desc).getType();
+      if (type.isArray()) {
+        return false;
+      } else {
+        return type.isPtr();
+      }
     }
 
     return false;
@@ -3879,8 +3891,10 @@ public class LocationInference {
           + "   idx=" + idx);
       if (!srcFieldDesc.equals(dstFieldDesc)) {
         // add a new edge
+        System.out.println("-ADD EDGE");
         getHierarchyGraph(cd).addEdge(srcFieldDesc, dstFieldDesc);
       } else if (!isReference(srcFieldDesc) && !isReference(dstFieldDesc)) {
+        System.out.println("-ADD EDGE");
         getHierarchyGraph(cd).addEdge(srcFieldDesc, dstFieldDesc);
       }
 
@@ -5329,10 +5343,10 @@ public class LocationInference {
       analyzeFlowExpressionNode(md, nametable, an.getSrc(), nodeSetRHS, null, implicitFlowTupleSet,
           false);
 
-      // System.out.println("-analyzeFlowAssignmentNode=" + an.printNode(0));
-      // System.out.println("-nodeSetLHS=" + nodeSetLHS);
-      // System.out.println("-nodeSetRHS=" + nodeSetRHS);
-      // System.out.println("-implicitFlowTupleSet=" + implicitFlowTupleSet);
+      System.out.println("-analyzeFlowAssignmentNode=" + an.printNode(0));
+      System.out.println("-nodeSetLHS=" + nodeSetLHS);
+      System.out.println("-nodeSetRHS=" + nodeSetRHS);
+      System.out.println("-implicitFlowTupleSet=" + implicitFlowTupleSet);
       // System.out.println("-");
 
       if (an.getOperation().getOp() >= 2 && an.getOperation().getOp() <= 12) {

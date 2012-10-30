@@ -120,17 +120,18 @@ public class Player {
     sampleNumber = 1;
     System.out.println("Gobble sentinel: +++");
 
+    ret=play2(h);
     // int count = 0;
-    SSJAVA: while (true) {
-      if (h == null) {
-        break;
-      }
-      ret = decodeFrame(init, h);
-      if (!ret) {
-        break;
-      }
-      h = BitstreamWrapper.readFrame();
-    }
+//    SSJAVA: while (true) {
+//      if (h == null) {
+//        break;
+//      }
+//      ret = decodeFrame(init, h);
+//      if (!ret) {
+//        break;
+//      }
+//      h = BitstreamWrapper.readFrame();
+//    }
 
     /*
      * if (!ret) { // last frame, ensure all data flushed to the audio device.
@@ -140,6 +141,20 @@ public class Player {
     return ret;
   }
 
+  public boolean play2( Header h){
+    boolean ret;
+    SSJAVA: while (true) {
+      if (h == null) {
+        break;
+      }
+      ret = decodeFrame(true, h);
+      if (!ret) {
+        break;
+      }
+      h = BitstreamWrapper.readFrame();
+    }
+    return ret;
+  }
   /**
    * Cloases this player. Any audio currently playing is stopped immediately.
    */

@@ -401,7 +401,7 @@ public class HierarchyGraph {
   private void addEdgeWithNoCycleCheck(HNode srcHNode, HNode dstHNode) {
     getIncomingNodeSet(dstHNode).add(srcHNode);
     getOutgoingNodeSet(srcHNode).add(dstHNode);
-//    System.out.println("addEdgeWithNoCycleCheck src=" + srcHNode + " -> " + dstHNode);
+    // System.out.println("addEdgeWithNoCycleCheck src=" + srcHNode + " -> " + dstHNode);
   }
 
   private HNode mergeNodes(Set<HNode> set, boolean onlyCombinationNodes) {
@@ -777,9 +777,9 @@ public class HierarchyGraph {
     Set<Set<HNode>> keySet = simpleHierarchyGraph.getCombineNodeSet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Set<HNode> combineSet = (Set<HNode>) iterator.next();
-      System.out.println("--combineSet=" + combineSet);
+      // System.out.println("--combineSet=" + combineSet);
       HNode combinationNode = getCombinationNode(combineSet);
-      System.out.println("--combinationNode=" + combinationNode);
+      // System.out.println("--combinationNode=" + combinationNode);
       // add an edge from a skeleton node to a combination node
       for (Iterator iterator2 = combineSet.iterator(); iterator2.hasNext();) {
         HNode inSkeletonNode = (HNode) iterator2.next();
@@ -850,10 +850,10 @@ public class HierarchyGraph {
     Set<HNode> visited = new HashSet<HNode>();
     recurSkeletonReachTo(node, reachToSet, visited);
 
+    // obsolete!
     // if a node reaches to one of elements in the reachToSet, we do not need to keep it
     // because the node is not directly connected to the combination node
-
-    removeRedundantReachToNodes(reachToSet);
+    // removeRedundantReachToNodes(reachToSet);
 
     return reachToSet;
   }
@@ -967,6 +967,7 @@ public class HierarchyGraph {
       HNode node = (HNode) iterator.next();
       if (!node.isSkeleton()) {
         Set<HNode> reachToSet = getSkeleteNodeSetReachTo(node);
+        System.out.println("$node=" + node + "   reachToNodeSet=" + reachToSet);
         if (reachToSet.size() > 1) {
           // if (countSkeletonNodes(reachToSet) > 1) {
           System.out.println("-node=" + node + "  reachToSet=" + reachToSet);
@@ -1074,7 +1075,7 @@ public class HierarchyGraph {
 
   public void assignUniqueIndexToNode() {
     int idx = 1;
-    System.out.println("nodeSet=" + nodeSet);
+    // System.out.println("nodeSet=" + nodeSet);
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
       mapHNodeToUniqueIndex.put(node, idx);
@@ -1104,17 +1105,17 @@ public class HierarchyGraph {
       basis.addAll(BASISTOPELEMENT);
 
       Set<HNode> reachableNodeSet = getReachableNodeSetFrom(node);
-      System.out.println("node=" + node + "    reachableNodeSet=" + reachableNodeSet);
-      System.out.println("mapHNodeToUniqueIndex.get(node)=" + mapHNodeToUniqueIndex.get(node));
+      // System.out.println("node=" + node + "    reachableNodeSet=" + reachableNodeSet);
+      // System.out.println("mapHNodeToUniqueIndex.get(node)=" + mapHNodeToUniqueIndex.get(node));
       // if a node is reachable from the current node
       // need to remove the index of the reachable node from the basis
 
       basis.remove(getHNodeIndex(node));
       for (Iterator iterator2 = reachableNodeSet.iterator(); iterator2.hasNext();) {
         HNode reachableNode = (HNode) iterator2.next();
-        System.out.println("reachableNode=" + reachableNode);
-        System.out.println("getHNodeIndex(reachableNode))="
-            + mapHNodeToUniqueIndex.get(reachableNode));
+        // System.out.println("reachableNode=" + reachableNode);
+        // System.out.println("getHNodeIndex(reachableNode))="
+        // + mapHNodeToUniqueIndex.get(reachableNode));
         int idx = getHNodeIndex(reachableNode);
         basis.remove(idx);
       }
