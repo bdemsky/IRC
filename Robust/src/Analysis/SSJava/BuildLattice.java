@@ -81,6 +81,12 @@ public class BuildLattice {
 
       HNode higherNode = inputGraph.getHNode(higherName);
 
+      if (higherNode == null) {
+        NameDescriptor d = new NameDescriptor(higherName);
+        higherNode = inputGraph.getHNode(d);
+        higherNode.setSkeleton(true);
+      }
+
       if (higherNode != null && higherNode.isSharedNode()) {
         lattice.addSharedLoc(higherName);
       }
@@ -99,6 +105,16 @@ public class BuildLattice {
 
         String lowerName = generateElementName(basisSet, inputGraph, mapFToLocName, lower);
         HNode lowerNode = inputGraph.getHNode(lowerName);
+
+        if (lowerNode == null && !lowerName.equals(SSJavaAnalysis.BOTTOM)) {
+          NameDescriptor d = new NameDescriptor(lowerName);
+          lowerNode = inputGraph.getHNode(d);
+          lowerNode.setSkeleton(true);
+        }
+
+        if (lowerNode != null && !inputGraph.isDirectlyConnectedTo(higherNode, lowerNode)) {
+          inputGraph.addEdge(higherNode, lowerNode);
+        }
 
         if (lowerNode != null && lowerNode.isSharedNode()) {
           lattice.addSharedLoc(lowerName);
