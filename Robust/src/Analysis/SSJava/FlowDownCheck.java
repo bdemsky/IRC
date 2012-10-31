@@ -2172,6 +2172,7 @@ public class FlowDownCheck {
       // composite location
 
       int maxTupleSize = 0;
+      int minTupleSize = 0;
       CompositeLocation maxCompLoc = null;
 
       Location prevPriorityLoc = null;
@@ -2180,6 +2181,9 @@ public class FlowDownCheck {
         if (compLoc.getSize() > maxTupleSize) {
           maxTupleSize = compLoc.getSize();
           maxCompLoc = compLoc;
+        }
+        if (minTupleSize == 0 || compLoc.getSize() < minTupleSize) {
+          minTupleSize = compLoc.getSize();
         }
         Location priorityLoc = compLoc.get(0);
         String priorityLocId = priorityLoc.getLocIdentifier();
@@ -2207,10 +2211,7 @@ public class FlowDownCheck {
       }
 
       SSJavaLattice<String> locOrder = getLatticeByDescriptor(priorityDescriptor);
-      System.out.println("priorityDescriptor=" + priorityDescriptor);
-      System.out.println("GLB INPUT=" + priorityLocIdentifierSet);
       String glbOfPriorityLoc = locOrder.getGLB(priorityLocIdentifierSet);
-      System.out.println("GLB OUTPUT="+glbOfPriorityLoc);
       glbCompLoc.addLocation(new Location(priorityDescriptor, glbOfPriorityLoc));
       Set<CompositeLocation> compSet = locId2CompLocSet.get(glbOfPriorityLoc);
 
@@ -2221,7 +2222,8 @@ public class FlowDownCheck {
 
         // in this case, do not take care about delta
         // CompositeLocation inputComp = inputSet.iterator().next();
-        for (int i = 1; i < maxTupleSize; i++) {
+        // for (int i = 1; i < maxTupleSize; i++) {
+        for (int i = 1; i < minTupleSize; i++) {
           glbCompLoc.addLocation(Location.createTopLocation(maxCompLoc.get(i).getDescriptor()));
         }
       } else {

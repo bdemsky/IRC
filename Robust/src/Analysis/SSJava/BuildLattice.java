@@ -66,8 +66,6 @@ public class BuildLattice {
       HierarchyGraph inputGraph, LocationSummary locSummary,
       Map<Set<Integer>, Set<Set<Integer>>> mapImSucc) {
 
-    HierarchyGraph simpleHierarchyGraph = infer.getSimpleHierarchyGraph(desc);
-
     SSJavaLattice<String> lattice =
         new SSJavaLattice<String>(SSJavaAnalysis.TOP, SSJavaAnalysis.BOTTOM);
 
@@ -140,6 +138,7 @@ public class BuildLattice {
 
     }
 
+    inputGraph.removeRedundantEdges();
     return lattice;
   }
 

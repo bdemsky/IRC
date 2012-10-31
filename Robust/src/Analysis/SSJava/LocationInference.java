@@ -560,7 +560,6 @@ public class LocationInference {
       //
       // update return flow nodes in the caller
       CompositeLocation returnLoc = getMethodSummary(mdCallee).getRETURNLoc();
-
       System.out.println("### min=" + min.printNode(0) + "  returnLoc=" + returnLoc);
       if (returnLoc != null && returnLoc.get(0).getLocDescriptor().equals(mdCallee.getThis())
           && returnLoc.getSize() > 1) {
@@ -573,6 +572,20 @@ public class LocationInference {
         }
         System.out.println("###NEW RETURN TUPLE FOR CALLER=" + newReturnTuple);
         callerFlowGraph.getFlowReturnNode(min).setNewTuple(newReturnTuple);
+      } else {
+        // if the return loc set was empty and later pcloc was connected to the return loc
+        // need to make sure that return loc reflects to this changes.
+        FlowReturnNode flowReturnNode = callerFlowGraph.getFlowReturnNode(min);
+        if (flowReturnNode != null && flowReturnNode.getReturnTupleSet().isEmpty()) {
+
+          if (needToUpdateReturnLocHolder(min.getMethod(), flowReturnNode)) {
+            NTuple<Descriptor> baseTuple = mapMethodInvokeNodeToBaseTuple.get(min);
+            NTuple<Descriptor> newReturnTuple = baseTuple.clone();
+            flowReturnNode.addTuple(newReturnTuple);
+          }
+
+        }
+
       }
 
     }
@@ -582,6 +595,23 @@ public class LocationInference {
       addAddtionalOrderingConstraints(callee);
     }
 
+  }
+
+  private boolean needToUpdateReturnLocHolder(MethodDescriptor mdCallee,
+      FlowReturnNode flowReturnNode) {
+    FlowGraph fg = getFlowGraph(mdCallee);
+    MethodSummary summary = getMethodSummary(mdCallee);
+    CompositeLocation returnCompLoc = summary.getRETURNLoc();
+    NTuple<Descriptor> returnDescTuple = translateToDescTuple(returnCompLoc.getTuple());
+    Set<FlowNode> incomingNodeToReturnNode =
+        fg.getIncomingFlowNodeSet(fg.getFlowNode(returnDescTuple));
+    for (Iterator iterator = incomingNodeToReturnNode.iterator(); iterator.hasNext();) {
+      FlowNode inNode = (FlowNode) iterator.next();
+      if (inNode.getDescTuple().get(0).equals(mdCallee.getThis())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void addMapMethodDescToMethodInvokeNodeSet(MethodInvokeNode min) {
@@ -3149,9 +3179,11 @@ public class LocationInference {
     // calculate a return location:
     // the return location type is lower than all parameters and the location of return values
     MethodSummary methodSummary = getMethodSummary(md);
-    if (methodSummary.getRETURNLoc() != null) {
-      return;
-    }
+    // if (methodSummary.getRETURNLoc() != null) {
+    // System.out.println("$HERE?");
+    // return;
+    // }
+
     FlowGraph fg = getFlowGraph(md);
     Map<Integer, CompositeLocation> mapParamToLoc = methodSummary.getMapParamIdxToInferLoc();
     Set<Integer> paramIdxSet = mapParamToLoc.keySet();
@@ -3197,6 +3229,13 @@ public class LocationInference {
         }
         fg.getFlowNode(returnDescTuple).setSkeleton(true);
 
+      }
+
+      // makes sure that PCLOC is higher than RETURNLOC
+      CompositeLocation pcLoc = methodSummary.getPCLoc();
+      if (!pcLoc.get(0).isTop()) {
+        NTuple<Descriptor> pcLocDescTuple = translateToDescTuple(pcLoc.getTuple());
+        fg.addValueFlowEdge(pcLocDescTuple, returnDescTuple);
       }
 
     }
