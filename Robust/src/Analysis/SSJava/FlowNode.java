@@ -1,9 +1,9 @@
 package Analysis.SSJava;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
+import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FieldDescriptor;
 import IR.VarDescriptor;
@@ -65,6 +65,7 @@ public class FlowNode {
   }
 
   public void setCompositeLocation(CompositeLocation in) {
+    System.out.println("$$$set compLoc=" + in);
     compLoc = in;
   }
 

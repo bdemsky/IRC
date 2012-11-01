@@ -14,6 +14,8 @@ public class NodeTupleSet {
 
   private ArrayList<NTuple<Location>> globalLocTupleList;
 
+  private NTuple<Descriptor> baseDescTuple;
+
   public NodeTupleSet() {
     list = new ArrayList<NTuple<Descriptor>>();
     globalLocTupleList = new ArrayList<NTuple<Location>>();
@@ -31,11 +33,21 @@ public class NodeTupleSet {
     list.add(tuple);
   }
 
+  public void setMethodInvokeBaseDescTuple(NTuple<Descriptor> in) {
+    baseDescTuple = in;
+  }
+
+  public NTuple<Descriptor> getBaseDesc() {
+    return baseDescTuple;
+  }
+
   public void addGlobalFlowTuple(NTuple<Location> tuple) {
+    System.out.println("-----add global value flow tuple=" + tuple);
     globalLocTupleList.add(tuple);
   }
 
   public void addGlobalFlowTupleSet(ArrayList<NTuple<Location>> in) {
+    System.out.println("-----add global value flow in=" + in);
     globalLocTupleList.addAll(in);
   }
 
@@ -91,7 +103,7 @@ public class NodeTupleSet {
   private void setGlobalLocTupleList(ArrayList<NTuple<Location>> in) {
     globalLocTupleList = in;
   }
-  
+
   public ArrayList<NTuple<Location>> getGlobalLocTupleSet() {
     return globalLocTupleList;
   }

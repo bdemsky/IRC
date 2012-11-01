@@ -22,20 +22,17 @@
  * @author Florian
  */
 
-
 public class ScanArea {
 
-  
   private Point fromPoint;
-  
+
   private Point toPoint;
-  
+
   private float size;
 
   /**
-   * Imagine you want to classify an image with 100px x 100px what would be the
-   * scanarea in this kind of image. That size gets automatically scalled to fit
-   * bigger images
+   * Imagine you want to classify an image with 100px x 100px what would be the scanarea in this
+   * kind of image. That size gets automatically scalled to fit bigger images
    * 
    * @param fromPoint
    * @param toPoint
@@ -57,23 +54,23 @@ public class ScanArea {
     this(new Point(fromX, fromY), new Point(fromX + width, fromY + height));
   }
 
-  public int getFromX( float scaleFactor) {
+  public int getFromX(float scaleFactor) {
     return (int) (this.fromPoint.x * scaleFactor);
   }
 
-  public int getFromY( float scaleFactor) {
+  public int getFromY(float scaleFactor) {
     return (int) (this.fromPoint.y * scaleFactor);
   }
 
-  public int getToX( float scaleFactor) {
+  public int getToX(float scaleFactor) {
     return (int) (this.toPoint.x * scaleFactor);
   }
 
-  public int getToY( float scaleFactor) {
+  public int getToY(float scaleFactor) {
     return (int) (this.toPoint.y * scaleFactor);
   }
 
-  public int getSize( float scaleFactor) {
+  public int getSize(float scaleFactor) {
     return (int) (this.size * Math.pow(scaleFactor, 2));
   }
 
@@ -110,7 +107,7 @@ public class ScanArea {
   // }
 
   public String toString() {
-     String str = "";
+    String str = "";
     str += "fromPoint=(" + fromPoint.x + "," + fromPoint.y + ")";
     str += "toPoint=(" + toPoint.x + "," + toPoint.y + ")";
     str += "size=" + size;

@@ -23,12 +23,10 @@
  * @author Florian Frankenberger
  */
 
-
 public class FaceAndEyePosition {
 
-  
   private Rectangle2D facePosition;
-  
+
   private EyePosition eyePosition;
 
   public FaceAndEyePosition(Rectangle2D facePosition, EyePosition eyePosition) {

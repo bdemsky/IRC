@@ -41,6 +41,8 @@ public class FlowGraph {
 
   Map<MethodInvokeNode, FlowReturnNode> mapMethodInvokeNodeToFlowReturnNode;
 
+  Map<Descriptor, ClassDescriptor> mapIntersectionDescToEnclosingDescriptor;
+
   public static int interseed = 0;
 
   boolean debug = true;
@@ -57,6 +59,7 @@ public class FlowGraph {
     this.mapFlowNodeToOutEdgeSet = new HashMap<FlowNode, Set<FlowEdge>>();
     this.mapFlowNodeToInEdgeSet = new HashMap<FlowNode, Set<FlowEdge>>();
     this.mapMethodInvokeNodeToFlowReturnNode = new HashMap<MethodInvokeNode, FlowReturnNode>();
+    this.mapIntersectionDescToEnclosingDescriptor = new HashMap<Descriptor, ClassDescriptor>();
 
     if (!md.isStatic()) {
       // create a node for 'this' varialbe
@@ -72,6 +75,15 @@ public class FlowGraph {
 
     setupMapIdxToDesc();
 
+  }
+
+  public void addMapInterLocNodeToEnclosingDescriptor(Descriptor interDesc, ClassDescriptor desc) {
+    System.out.println("##### INTERLOC=" + interDesc + "    enclosing desc=" + desc);
+    mapIntersectionDescToEnclosingDescriptor.put(interDesc, desc);
+  }
+
+  public ClassDescriptor getEnclosingDescriptor(Descriptor interDesc) {
+    return mapIntersectionDescToEnclosingDescriptor.get(interDesc);
   }
 
   public Map<NTuple<Descriptor>, FlowNode> getMapDescTupleToInferNode() {
@@ -306,7 +318,7 @@ public class FlowGraph {
     addOutEdge(fromNode, edge);
     addInEdge(toNode, edge);
 
-    // System.out.println("add a new edge=" + edge);
+    System.out.println("add a new edge=" + edge);
   }
 
   private void addInEdge(FlowNode toNode, FlowEdge edge) {
@@ -338,6 +350,7 @@ public class FlowGraph {
 
   public FlowNode createNewFlowNode(NTuple<Descriptor> tuple) {
 
+    // System.out.println("createNewFlowNode=" + tuple);
     if (!mapDescTupleToInferNode.containsKey(tuple)) {
       FlowNode node = new FlowNode(tuple);
       mapDescTupleToInferNode.put(tuple, node);
@@ -388,7 +401,8 @@ public class FlowGraph {
       Set<FlowNode> dstNodeSet = new HashSet<FlowNode>();
       if (originalDstNode instanceof FlowReturnNode) {
         FlowReturnNode rnode = (FlowReturnNode) originalDstNode;
-        Set<NTuple<Descriptor>> rtupleSet = rnode.getReturnTupleSet();
+        Set<NTuple<Descriptor>> rtupleSetFromRNode = rnode.getReturnTupleSet();
+        Set<NTuple<Descriptor>> rtupleSet = getReturnTupleSet(rtupleSetFromRNode);
         for (Iterator iterator2 = rtupleSet.iterator(); iterator2.hasNext();) {
           NTuple<Descriptor> rtuple = (NTuple<Descriptor>) iterator2.next();
           dstNodeSet.add(getFlowNode(rtuple));
@@ -442,11 +456,13 @@ public class FlowGraph {
       Set<FlowNode> srcNodeSet = new HashSet<FlowNode>();
       if (originalSrcNode instanceof FlowReturnNode) {
         FlowReturnNode rnode = (FlowReturnNode) originalSrcNode;
-        Set<NTuple<Descriptor>> rtupleSet = rnode.getReturnTupleSet();
+        Set<NTuple<Descriptor>> rtupleSetFromRNode = rnode.getReturnTupleSet();
+        Set<NTuple<Descriptor>> rtupleSet = getReturnTupleSet(rtupleSetFromRNode);
+        System.out.println("#rnode=" + rnode + "  rtupleSet=" + rtupleSet);
         for (Iterator iterator2 = rtupleSet.iterator(); iterator2.hasNext();) {
           NTuple<Descriptor> rtuple = (NTuple<Descriptor>) iterator2.next();
           if (rtuple.startsWith(prefix)) {
-            System.out.println("rtuple=" + rtuple + "   give it to recur=" + originalSrcNode);
+            // System.out.println("rtuple=" + rtuple + "   give it to recur=" + originalSrcNode);
             recurReachableSetFrom(originalSrcNode, reachableSet);
           }
         }
@@ -459,6 +475,21 @@ public class FlowGraph {
     }
 
     return reachableSet;
+  }
+
+  public Set<NTuple<Descriptor>> getReturnTupleSet(Set<NTuple<Descriptor>> in) {
+
+    Set<NTuple<Descriptor>> normalTupleSet = new HashSet<NTuple<Descriptor>>();
+    for (Iterator iterator2 = in.iterator(); iterator2.hasNext();) {
+      NTuple<Descriptor> tuple = (NTuple<Descriptor>) iterator2.next();
+      FlowNode tupleNode = getFlowNode(tuple);
+      if (tupleNode instanceof FlowReturnNode) {
+        normalTupleSet.addAll(getReturnTupleSet(((FlowReturnNode) tupleNode).getReturnTupleSet()));
+      } else {
+        normalTupleSet.add(tuple);
+      }
+    }
+    return normalTupleSet;
   }
 
   // private void getReachFlowNodeSetFrom(FlowNode fn, Set<FlowNode> visited) {
@@ -528,7 +559,7 @@ public class FlowGraph {
 
       Descriptor localDesc = fn.getDescTuple().get(0);
 
-      if (fn.isIntermediate()) {
+      if (fn.isIntermediate() && fn.getDescTuple().size() == 1) {
         Location interLoc = new Location(md, localDesc.getSymbol());
         interLoc.setLocDescriptor(localDesc);
         locTuple.add(interLoc);
@@ -550,6 +581,8 @@ public class FlowGraph {
             loc.setLocDescriptor(curDesc);
             if (curDesc instanceof VarDescriptor) {
               cd = ((VarDescriptor) curDesc).getType().getClassDesc();
+            } else if (curDesc instanceof InterDescriptor) {
+              cd = mapIntersectionDescToEnclosingDescriptor.get(curDesc);
             } else {
               // otherwise it should be the last element
               cd = null;
@@ -598,7 +631,8 @@ public class FlowGraph {
           if (incomingNode instanceof FlowReturnNode) {
             FlowReturnNode rnode = (FlowReturnNode) incomingNode;
             Set<NTuple<Descriptor>> nodeTupleSet = rnode.getReturnTupleSet();
-            for (Iterator iterator3 = nodeTupleSet.iterator(); iterator3.hasNext();) {
+            Set<NTuple<Descriptor>> rtupleSet = getReturnTupleSet(nodeTupleSet);
+            for (Iterator iterator3 = rtupleSet.iterator(); iterator3.hasNext();) {
               NTuple<Descriptor> nodeTuple = (NTuple<Descriptor>) iterator3.next();
               FlowNode fn = getFlowNode(nodeTuple);
               if (!visited.contains(fn)) {

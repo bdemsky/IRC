@@ -1426,12 +1426,9 @@ public class FlowDownCheck {
       // addTypeLocation(on.getRight().getType(), rightLoc);
     }
 
-    System.out.println("\n# OP NODE=" + on.printNode(0));
-    // System.out.println("# left loc=" + leftLoc + " from " +
-    // on.getLeft().getClass());
+    // System.out.println("# left loc=" + leftLoc + " from " + on.getLeft().getClass());
     // if (on.getRight() != null) {
-    // System.out.println("# right loc=" + rightLoc + " from " +
-    // on.getRight().getClass());
+    // System.out.println("# right loc=" + rightLoc + " from " + on.getRight().getClass());
     // }
 
     Operation op = on.getOp();

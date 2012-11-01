@@ -22,19 +22,16 @@
  * @author Florian
  */
 
-
 public class Classifier {
 
-  
   private ScanArea[] scanAreas;
 
-  
   private float[] possibilities_FaceYes;
-  
+
   private float[] possibilities_FaceNo;
-  
+
   private int possibilityFaceYes = 0;
-  
+
   private int possibilityFaceNo = 0;
 
   public Classifier(int numScanAreas) {
@@ -68,23 +65,20 @@ public class Classifier {
    * 
    * @param image
    * @param scaleFactor
-   *          please be aware of the fact that the scanareas are scaled for use
-   *          with 100x100 px images
+   *          please be aware of the fact that the scanareas are scaled for use with 100x100 px
+   *          images
    * @param translationX
    * @param translationY
    * @return true if this region was classified as face, else false
    */
-  
-  
-  public boolean classifyFace( IntegralImageData image,
-       float scaleFactor,  int translationX,
-       int translationY,  float borderline) {
 
-     long values[] = new long[scanAreas.length];
+  public boolean classifyFace(IntegralImageData image, float scaleFactor, int translationX, int translationY, float borderline) {
 
-     float avg = 0f;
-     int avgItems = 0;
-    for ( int i = 0; i < scanAreas.length; ++i) {
+    long[] values = new long[scanAreas.length];
+
+    float avg = 0f;
+    int avgItems = 0;
+    for (int i = 0; i < scanAreas.length; ++i) {
       values[i] = 0l;
 
       values[i] +=
@@ -114,13 +108,13 @@ public class Classifier {
     // as we just maximize the args we don't actually calculate the accurate
     // possibility
 
-     float isFaceYes = 1.0f;// this.possibilityFaceYes /
-                                       // (float)amountYesNo;
-     float isFaceNo = 1.0f;// this.possibilityFaceNo /
-                                      // (float)amountYesNo;
+    float isFaceYes = 1.0f;// this.possibilityFaceYes /
+                           // (float)amountYesNo;
+    float isFaceNo = 1.0f;// this.possibilityFaceNo /
+                          // (float)amountYesNo;
 
-    for ( int i = 0; i < this.scanAreas.length; ++i) {
-       boolean bright = (values[i] >= avg);
+    for (int i = 0; i < this.scanAreas.length; ++i) {
+      boolean bright = (values[i] >= avg);
       isFaceYes *= (bright ? this.possibilities_FaceYes[i] : 1 - this.possibilities_FaceYes[i]);
       isFaceNo *= (bright ? this.possibilities_FaceNo[i] : 1 - this.possibilities_FaceNo[i]);
     }
@@ -163,8 +157,8 @@ public class Classifier {
 
   public String toString() {
 
-     String str = "";
-    for ( int i = 0; i < scanAreas.length; i++) {
+    String str = "";
+    for (int i = 0; i < scanAreas.length; i++) {
       str += scanAreas[i].toString() + "\n";
     }
 

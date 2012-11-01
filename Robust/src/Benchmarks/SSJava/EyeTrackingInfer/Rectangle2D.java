@@ -1,11 +1,9 @@
-
-
 public class Rectangle2D {
 
-   double x;
-   double y;
-   double width;
-   double height;
+  double x;
+  double y;
+  double width;
+  double height;
 
   public Rectangle2D(double x, double y, double w, double h) {
     this.x = x;

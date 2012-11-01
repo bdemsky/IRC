@@ -23,13 +23,12 @@
  * @author Florian Frankenberger
  */
 
-
 public class EyePosition {
-  
+
   private int x;
-  
+
   private int y;
-  
+
   private Rectangle2D faceRect;
 
   public EyePosition(Point p, Rectangle2D faceRect) {

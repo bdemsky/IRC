@@ -23,34 +23,28 @@
  * @author Florian Frankenberger
  */
 
-
 public class LEAImplementation {
 
-  
   private ClassifierTree classifierTree;
 
-  
   private Rectangle2D lastRectangle;
 
   public LEAImplementation() {
     this.loadFaceData();
   }
 
-  
-  
-  public FaceAndEyePosition getEyePosition( Image image) {
+  public FaceAndEyePosition getEyePosition(Image image) {
     if (image == null)
       return null;
-     Rectangle2D faceRect =
-        classifierTree.locateFaceRadial(image, lastRectangle);
+    Rectangle2D faceRect = classifierTree.locateFaceRadial(image, lastRectangle);
     if (faceRect.getWidth() > image.getWidth() || faceRect.getHeight() > image.getHeight()) {
       return null;
     }
-     EyePosition eyePosition = null;
+    EyePosition eyePosition = null;
     if (faceRect != null) {
       lastRectangle = faceRect;
       faceRect = null;
-       Point point = readEyes(image, lastRectangle);
+      Point point = readEyes(image, lastRectangle);
       if (point != null) {
         eyePosition = new EyePosition(point, lastRectangle);
       }
@@ -62,10 +56,8 @@ public class LEAImplementation {
     return new FaceAndEyePosition(lastRectangle, eyePosition);
   }
 
-  
-  
-  private Point readEyes( Image image,  Rectangle2D rect) {
-     EyeDetector ed = new EyeDetector(image, rect);
+  private Point readEyes(Image image, Rectangle2D rect) {
+    EyeDetector ed = new EyeDetector(image, rect);
     return ed.detectEye();
   }
 
@@ -74,8 +66,8 @@ public class LEAImplementation {
   }
 
   /**
-   * This method loads the faceData from a file called facedata.dat which should
-   * be within the jar-file
+   * This method loads the faceData from a file called facedata.dat which should be within the
+   * jar-file
    */
   private void loadFaceData() {
 

@@ -23,10 +23,8 @@
  * @author Florian Frankenberger
  */
 
-
 public class DeviationScanner {
 
-  
   private EyePosition eyePositions[];
 
   // LEFT_UP(+1, -1), UP(0, -1), RIGHT_UP(-1, -1), LEFT(+1, 0), NONE(0, 0),
@@ -47,8 +45,7 @@ public class DeviationScanner {
     eyePositions = new EyePosition[3];
   }
 
-  
-  public void addEyePosition( EyePosition eyePosition) {
+  public void addEyePosition(EyePosition eyePosition) {
 
     // for ( int i = 1; i < 3; i++) {
     // eyePositions[i - 1] = eyePositions[i];
@@ -60,24 +57,23 @@ public class DeviationScanner {
 
   }
 
-  // 
-  
-  
-  public int scanForDeviation( Rectangle2D faceRect) {
+  //
 
-     int deviation = NONE;
+  public int scanForDeviation(Rectangle2D faceRect) {
 
-    for ( int i = 0; i < 3; i++) {
+    int deviation = NONE;
+
+    for (int i = 0; i < 3; i++) {
       if (eyePositions[i] == null) {
         return deviation;
       }
     }
 
-     double deviationX = 0;
-     double deviationY = 0;
+    double deviationX = 0;
+    double deviationY = 0;
 
-     int lastIdx = -1;
-    for ( int i = 0; i < 3; ++i) {
+    int lastIdx = -1;
+    for (int i = 0; i < 3; ++i) {
       if (lastIdx != -1) {
         deviationX += (eyePositions[i].getX() - eyePositions[lastIdx].getX());
         deviationY += (eyePositions[i].getY() - eyePositions[lastIdx].getY());
@@ -85,14 +81,14 @@ public class DeviationScanner {
       lastIdx = i;
     }
 
-     final double deviationPercentX = 0.04;
-     final double deviationPercentY = 0.04;
+    final double deviationPercentX = 0.04;
+    final double deviationPercentY = 0.04;
 
     deviationX /= faceRect.getWidth();
     deviationY /= faceRect.getWidth();
 
-     int deviationAbsoluteX = 0;
-     int deviationAbsoluteY = 0;
+    int deviationAbsoluteX = 0;
+    int deviationAbsoluteY = 0;
     if (deviationX > deviationPercentX)
       deviationAbsoluteX = 1;
     if (deviationX < -deviationPercentX)
@@ -114,8 +110,7 @@ public class DeviationScanner {
     return deviation;
   }
 
-  
-  public int getDirectionFor( int directionX,  int directionY) {
+  public int getDirectionFor(int directionX, int directionY) {
 
     if (directionX == +1 && directionY == -1) {
       return LEFT_UP;
@@ -145,7 +140,7 @@ public class DeviationScanner {
     eyePositions = new EyePosition[3];
   }
 
-  public String toStringDeviation( int dev) {
+  public String toStringDeviation(int dev) {
     if (dev == LEFT_UP) {
       return "LEFT_UP";
     } else if (dev == UP) {
