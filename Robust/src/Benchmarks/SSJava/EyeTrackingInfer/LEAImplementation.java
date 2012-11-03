@@ -23,42 +23,21 @@
  * @author Florian Frankenberger
  */
 
+
 public class LEAImplementation {
 
+  
   private ClassifierTree classifierTree;
 
-  private Rectangle2D lastRectangle;
 
   public LEAImplementation() {
     this.loadFaceData();
   }
 
-  public FaceAndEyePosition getEyePosition(Image image) {
-    if (image == null)
-      return null;
-    Rectangle2D faceRect = classifierTree.locateFaceRadial(image, lastRectangle);
-    if (faceRect.getWidth() > image.getWidth() || faceRect.getHeight() > image.getHeight()) {
-      return null;
-    }
-    EyePosition eyePosition = null;
-    if (faceRect != null) {
-      lastRectangle = faceRect;
-      faceRect = null;
-      Point point = readEyes(image, lastRectangle);
-      if (point != null) {
-        eyePosition = new EyePosition(point, lastRectangle);
-      }
-    } else {
-      lastRectangle = null;
-    }
-    System.out.println("eyePosition=" + eyePosition);
-
-    return new FaceAndEyePosition(lastRectangle, eyePosition);
-  }
-
-  private Point readEyes(Image image, Rectangle2D rect) {
-    EyeDetector ed = new EyeDetector(image, rect);
-    return ed.detectEye();
+  
+  
+  public FaceAndEyePosition getEyePosition( Image image) {
+    return classifierTree.getEyePosition(image);
   }
 
   public boolean needsCalibration() {

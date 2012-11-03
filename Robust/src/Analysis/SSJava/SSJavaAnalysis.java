@@ -96,7 +96,7 @@ public class SSJavaAnalysis {
 
   // keep the field ownership from the linear type checking
   Hashtable<MethodDescriptor, Set<FieldDescriptor>> mapMethodToOwnedFieldSet;
-  
+
   Set<FlatNode> sameHeightWriteFlatNodeSet;
 
   CallGraph callgraph;
@@ -109,6 +109,8 @@ public class SSJavaAnalysis {
   private Hashtable<Descriptor, Set<MethodDescriptor>> mapDescriptorToSetDependents;
 
   private LinkedList<MethodDescriptor> sortedDescriptors;
+
+  private Map<Location, Set<Descriptor>> mapSharedLocToDescSet;
 
   public SSJavaAnalysis(State state, TypeUtil tu, BuildFlat bf, CallGraph callgraph) {
     this.state = state;
@@ -129,6 +131,7 @@ public class SSJavaAnalysis {
     this.mapDescriptorToSetDependents = new Hashtable<Descriptor, Set<MethodDescriptor>>();
     this.sortedDescriptors = new LinkedList<MethodDescriptor>();
     this.md2pcLoc = new HashMap<MethodDescriptor, CompositeLocation>();
+    this.mapSharedLocToDescSet = new HashMap<Location, Set<Descriptor>>();
   }
 
   public void doCheck() {
@@ -164,6 +167,17 @@ public class SSJavaAnalysis {
 
   public LinkedList<MethodDescriptor> getSortedDescriptors() {
     return (LinkedList<MethodDescriptor>) sortedDescriptors.clone();
+  }
+
+  public void addSharedDesc(Location loc, Descriptor fd) {
+    if (!mapSharedLocToDescSet.containsKey(loc)) {
+      mapSharedLocToDescSet.put(loc, new HashSet<Descriptor>());
+    }
+    mapSharedLocToDescSet.get(loc).add(fd);
+  }
+
+  public Set<Descriptor> getSharedDescSet(Location loc) {
+    return mapSharedLocToDescSet.get(loc);
   }
 
   private void inference() {

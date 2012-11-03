@@ -1,10 +1,12 @@
 
+
 public class Image {
 
+  
   int width;
-
+  
   int height;
-
+  
   int pixel[][];
 
   public Image(int width, int height) {

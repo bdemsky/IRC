@@ -29,9 +29,6 @@ public class LEAImplementation {
   @LOC("CT")
   private ClassifierTree classifierTree;
 
-  @LOC("R")
-  private Rectangle2D lastRectangle;
-
   public LEAImplementation() {
     this.loadFaceData();
   }
@@ -39,34 +36,7 @@ public class LEAImplementation {
   @LATTICE("OUT<V,V<THIS,THIS<IN,V*,THISLOC=THIS,RETURNLOC=OUT")
   @PCLOC("THIS")
   public FaceAndEyePosition getEyePosition(@LOC("IN") Image image) {
-    if (image == null)
-      return null;
-    @LOC("THIS,LEAImplementation.R") Rectangle2D faceRect =
-        classifierTree.locateFaceRadial(image, lastRectangle);
-    if (faceRect.getWidth() > image.getWidth() || faceRect.getHeight() > image.getHeight()) {
-      return null;
-    }
-    @LOC("V") EyePosition eyePosition = null;
-    if (faceRect != null) {
-      lastRectangle = faceRect;
-      faceRect = null;
-      @LOC("V") Point point = readEyes(image, lastRectangle);
-      if (point != null) {
-        eyePosition = new EyePosition(point, lastRectangle);
-      }
-    } else {
-      lastRectangle = null;
-    }
-    System.out.println("eyePosition=" + eyePosition);
-
-    return new FaceAndEyePosition(lastRectangle, eyePosition);
-  }
-
-  @LATTICE("OUT<P,P<IN,OUT<THIS,THISLOC=THIS,RETURNLOC=OUT")
-  @PCLOC("P")
-  private Point readEyes(@LOC("IN") Image image, @LOC("IN") Rectangle2D rect) {
-    @LOC("OUT") EyeDetector ed = new EyeDetector(image, rect);
-    return ed.detectEye();
+    return classifierTree.getEyePosition(image);
   }
 
   public boolean needsCalibration() {
@@ -74,8 +44,8 @@ public class LEAImplementation {
   }
 
   /**
-   * This method loads the faceData from a file called facedata.dat which should
-   * be within the jar-file
+   * This method loads the faceData from a file called facedata.dat which should be within the
+   * jar-file
    */
   private void loadFaceData() {
 

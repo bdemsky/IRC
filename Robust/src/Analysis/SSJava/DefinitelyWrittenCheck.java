@@ -67,6 +67,8 @@ public class DefinitelyWrittenCheck {
   // written to but not overwritten by the higher value
   private Hashtable<FlatMethod, SharedLocMap> mapFlatMethodToDeleteSet;
 
+  private Hashtable<FlatMethod, SharedLocMap> mapFlatMethodToMustClearMap;
+
   // maps a flat method to the S SET that is a set of heap path to shared
   // locations that are overwritten by the higher value
   private Hashtable<FlatMethod, SharedLocMap> mapFlatMethodToSharedLocMap;
@@ -113,6 +115,7 @@ public class DefinitelyWrittenCheck {
 
   private Hashtable<FlatNode, SharedLocMap> mapFlatNodeToSharedLocMapping;
   private Hashtable<FlatNode, SharedLocMap> mapFlatNodeToDeleteSet;
+  private Hashtable<FlatNode, SharedLocMap> mapFlatNodeToMustClearMap;
 
   private LoopFinder ssjavaLoop;
   private Set<FlatNode> loopIncElements;
@@ -122,6 +125,7 @@ public class DefinitelyWrittenCheck {
   private Set<NTuple<Descriptor>> calleeUnionBoundMayWriteSet;
   private SharedLocMap calleeUnionBoundDeleteSet;
   private SharedLocMap calleeIntersectBoundSharedSet;
+  private SharedLocMap calleeIntersectBoundMustClearSet;
 
   Set<TempDescriptor> liveInTempSetToEventLoop;
 
@@ -167,6 +171,9 @@ public class DefinitelyWrittenCheck {
     this.mapFlatNodeToDeleteSet = new Hashtable<FlatNode, SharedLocMap>();
     this.liveness = new Liveness();
     this.liveInTempSetToEventLoop = new HashSet<TempDescriptor>();
+    this.mapFlatNodeToMustClearMap = new Hashtable<FlatNode, SharedLocMap>();
+    this.calleeIntersectBoundMustClearSet = new SharedLocMap();
+    this.mapFlatMethodToMustClearMap = new Hashtable<FlatMethod, SharedLocMap>();
   }
 
   public void definitelyWrittenCheck() {
@@ -211,14 +218,18 @@ public class DefinitelyWrittenCheck {
 
       SharedLocMap sharedLocMap = new SharedLocMap();
       SharedLocMap deleteSet = new SharedLocMap();
+      SharedLocMap mustClearMap = new SharedLocMap();
 
-      sharedLoc_analyzeMethod(fm, sharedLocMap, deleteSet);
+      sharedLoc_analyzeMethod(fm, sharedLocMap, deleteSet, mustClearMap);
       SharedLocMap prevSharedLocMap = mapFlatMethodToSharedLocMap.get(fm);
       SharedLocMap prevDeleteSet = mapFlatMethodToDeleteSet.get(fm);
+      SharedLocMap prevMustClearMap = mapFlatMethodToMustClearMap.get(fm);
 
-      if (!(deleteSet.equals(prevDeleteSet) && sharedLocMap.equals(prevSharedLocMap))) {
+      if (!(deleteSet.equals(prevDeleteSet) && sharedLocMap.equals(prevSharedLocMap) && mustClearMap
+          .equals(prevMustClearMap))) {
         mapFlatMethodToSharedLocMap.put(fm, sharedLocMap);
         mapFlatMethodToDeleteSet.put(fm, deleteSet);
+        mapFlatMethodToMustClearMap.put(fm, mustClearMap);
 
         // results for callee changed, so enqueue dependents caller for
         // further
@@ -247,23 +258,24 @@ public class DefinitelyWrittenCheck {
     }
     SharedLocMap sharedLocMap = new SharedLocMap();
     SharedLocMap deleteSet = new SharedLocMap();
+    SharedLocMap mustClearMap = new SharedLocMap();
     sharedLoc_analyzeBody(state.getMethodFlat(methodContainingSSJavaLoop),
-        ssjava.getSSJavaLoopEntrance(), sharedLocMap, deleteSet, true);
+        ssjava.getSSJavaLoopEntrance(), sharedLocMap, deleteSet, mustClearMap, true);
 
   }
 
   private void sharedLoc_analyzeMethod(FlatMethod fm, SharedLocMap sharedLocMap,
-      SharedLocMap deleteSet) {
+      SharedLocMap deleteSet, SharedLocMap mustClearMap) {
     if (state.SSJAVADEBUG) {
       System.out.println("SSJAVA: Definite clearance for shared locations Analyzing: " + fm);
     }
 
-    sharedLoc_analyzeBody(fm, fm, sharedLocMap, deleteSet, false);
+    sharedLoc_analyzeBody(fm, fm, sharedLocMap, deleteSet, mustClearMap, false);
 
   }
 
   private void sharedLoc_analyzeBody(FlatMethod fm, FlatNode startNode, SharedLocMap sharedLocMap,
-      SharedLocMap deleteSet, boolean isEventLoopBody) {
+      SharedLocMap deleteSet, SharedLocMap mustClearMap, boolean isEventLoopBody) {
 
     // intraprocedural analysis
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
@@ -275,6 +287,7 @@ public class DefinitelyWrittenCheck {
 
       SharedLocMap currSharedSet = new SharedLocMap();
       SharedLocMap currDeleteSet = new SharedLocMap();
+      SharedLocMap currMustClearMap = new SharedLocMap();
 
       for (int i = 0; i < fn.numPrev(); i++) {
         FlatNode prevFn = fn.getPrev(i);
@@ -287,17 +300,26 @@ public class DefinitelyWrittenCheck {
         if (inDeleteLoc != null) {
           mergeDeleteSet(currDeleteSet, inDeleteLoc);
         }
+
+        SharedLocMap inMustClearMap = mapFlatNodeToMustClearMap.get(prevFn);
+        if (inMustClearMap != null) {
+          mergeSharedLocMap(currMustClearMap, inMustClearMap);
+        }
+
       }
 
-      sharedLoc_nodeActions(fm, fn, currSharedSet, currDeleteSet, sharedLocMap, deleteSet,
-          isEventLoopBody);
+      sharedLoc_nodeActions(fm, fn, currSharedSet, currDeleteSet, currMustClearMap, sharedLocMap,
+          deleteSet, mustClearMap, isEventLoopBody);
 
       SharedLocMap prevSharedSet = mapFlatNodeToSharedLocMapping.get(fn);
       SharedLocMap prevDeleteSet = mapFlatNodeToDeleteSet.get(fn);
+      SharedLocMap prevMustClearMap = mapFlatNodeToMustClearMap.get(fn);
 
-      if (!(currSharedSet.equals(prevSharedSet) && currDeleteSet.equals(prevDeleteSet))) {
+      if (!(currSharedSet.equals(prevSharedSet) && currDeleteSet.equals(prevDeleteSet) && currMustClearMap
+          .equals(prevMustClearMap))) {
         mapFlatNodeToSharedLocMapping.put(fn, currSharedSet);
         mapFlatNodeToDeleteSet.put(fn, currDeleteSet);
+        mapFlatNodeToMustClearMap.put(fn, currMustClearMap);
         for (int i = 0; i < fn.numNext(); i++) {
           FlatNode nn = fn.getNext(i);
           if ((!isEventLoopBody) || loopIncElements.contains(nn)) {
@@ -312,8 +334,8 @@ public class DefinitelyWrittenCheck {
   }
 
   private void sharedLoc_nodeActions(FlatMethod fm, FlatNode fn, SharedLocMap curr,
-      SharedLocMap currDeleteSet, SharedLocMap sharedLocMap, SharedLocMap deleteSet,
-      boolean isEventLoopBody) {
+      SharedLocMap currDeleteSet, SharedLocMap currMustClearMap, SharedLocMap sharedLocMap,
+      SharedLocMap deleteSet, SharedLocMap mustClearMap, boolean isEventLoopBody) {
 
     MethodDescriptor md = fm.getMethod();
 
@@ -323,6 +345,10 @@ public class DefinitelyWrittenCheck {
     TempDescriptor lhs;
     TempDescriptor rhs;
     FieldDescriptor fld;
+
+    NTuple<Location> fieldLocTuple = null;
+    Location fieldLoc = null;
+    boolean isHigherWriteCase = false;
 
     switch (fn.kind()) {
 
@@ -374,7 +400,6 @@ public class DefinitelyWrittenCheck {
     case FKind.FlatSetFieldNode:
     case FKind.FlatSetElementNode: {
 
-      Location fieldLoc;
       if (fn.kind() == FKind.FlatSetFieldNode) {
         FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
         lhs = fsfn.getDst();
@@ -391,7 +416,7 @@ public class DefinitelyWrittenCheck {
         break;
       }
 
-      NTuple<Location> fieldLocTuple = new NTuple<Location>();
+      fieldLocTuple = new NTuple<Location>();
       if (fld.isStatic()) {
         if (fld.isFinal()) {
           // in this case, fld has TOP location
@@ -433,6 +458,9 @@ public class DefinitelyWrittenCheck {
         if (!ssjava.isSameHeightWrite(fn)) {
           computeGENSetForHigherWrite(curr, genSet, fieldLocTuple, fldHeapPath);
           updateDeleteSetForHigherWrite(currDeleteSet, fieldLocTuple, fldHeapPath);
+
+          isHigherWriteCase = true;
+
         } else {
           computeGENSetForSameHeightWrite(curr, genSet, fieldLocTuple, fldHeapPath);
           updateDeleteSetForSameHeightWrite(currDeleteSet, fieldLocTuple, fldHeapPath);
@@ -452,6 +480,12 @@ public class DefinitelyWrittenCheck {
       generateKILLSetForFlatCall(curr, killSet);
       generateGENSetForFlatCall(curr, genSet);
 
+      Set<NTuple<Location>> locTupleSet = calleeIntersectBoundMustClearSet.keySet();
+      for (Iterator iterator = locTupleSet.iterator(); iterator.hasNext();) {
+        NTuple<Location> locTupleKey = (NTuple<Location>) iterator.next();
+        currMustClearMap.addWrite(locTupleKey, calleeIntersectBoundMustClearSet.get(locTupleKey));
+      }
+
     }
       break;
 
@@ -459,13 +493,38 @@ public class DefinitelyWrittenCheck {
       // merge the current delete/shared loc mapping
       mergeSharedLocMap(sharedLocMap, curr);
       mergeDeleteSet(deleteSet, currDeleteSet);
-
+      mergeSharedLocMap(mustClearMap, currMustClearMap);
     }
       break;
 
     }
 
     computeNewMapping(curr, killSet, genSet);
+    if (isHigherWriteCase) {
+      // check all locations with the same shared location are cleared out at this point
+      Set<NTuple<Descriptor>> writtenSet = curr.get(fieldLocTuple);
+      Set<Descriptor> requirementSet = ssjava.getSharedDescSet(fieldLoc);
+
+      if (checkAllSharedLocationsAreOverwritten(requirementSet, writtenSet)) {
+        currMustClearMap.addWrite(fieldLocTuple, writtenSet);
+      }
+    }
+  }
+
+  private boolean checkAllSharedLocationsAreOverwritten(Set<Descriptor> sharedDescSet,
+      Set<NTuple<Descriptor>> writtenSet) {
+
+    if (sharedDescSet == null || writtenSet == null) {
+      return false;
+    }
+    Set<Descriptor> writtenDescSet = new HashSet<Descriptor>();
+    for (Iterator iterator = writtenSet.iterator(); iterator.hasNext();) {
+      NTuple<Descriptor> tuple = (NTuple<Descriptor>) iterator.next();
+      writtenDescSet.add(tuple.get(tuple.size() - 1));
+    }
+
+    return writtenDescSet.containsAll(sharedDescSet);
+    // return sharedDescSet.containsAll(writtenDescSet);
 
   }
 
@@ -527,7 +586,6 @@ public class DefinitelyWrittenCheck {
     if (currWriteSet != null) {
       genSet.addWrite(locTuple, currWriteSet);
     }
-
     genSet.addWrite(locTuple, hp);
   }
 
@@ -604,7 +662,6 @@ public class DefinitelyWrittenCheck {
 
   private void computeSharedCoverSet_analyzeMethod(FlatMethod fm, boolean onlyVisitSSJavaLoop) {
 
-    // System.out.println("computeSharedCoverSet_analyzeMethod=" + fm);
     MethodDescriptor md = fm.getMethod();
 
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
@@ -1296,7 +1353,10 @@ public class DefinitelyWrittenCheck {
                 Set<NTuple<Descriptor>> writtenSet =
                     mapFlatNodeToSharedLocMapping.get(fn).get(varLocTuple);
 
-                if (isCovered(varLocTuple, writtenSet)) {
+                Set<NTuple<Descriptor>> mustClearSet =
+                    mapFlatNodeToMustClearMap.get(fn).get(varLocTuple);
+
+                if (isCovered(varLocTuple, writtenSet, mustClearSet)) {
                   computeKILLSetForSharedWrite(curr, writtenSet, readWriteKillSet);
                   computeGENSetForSharedAllCoverWrite(curr, writtenSet, readWriteGenSet);
                 } else {
@@ -1398,7 +1458,6 @@ public class DefinitelyWrittenCheck {
 
             Set<NTuple<Descriptor>> writtenSet =
                 mapFlatNodeToSharedLocMapping.get(fn).get(fieldLocTuple);
-
             if (isCovered(fieldLocTuple, writtenSet)) {
               computeKILLSetForSharedWrite(curr, writtenSet, readWriteKillSet);
               computeGENSetForSharedAllCoverWrite(curr, writtenSet, readWriteGenSet);
@@ -1418,10 +1477,10 @@ public class DefinitelyWrittenCheck {
 
       case FKind.FlatCall: {
         FlatCall fc = (FlatCall) fn;
-
         SharedLocMap sharedLocMap = mapFlatNodeToSharedLocMapping.get(fc);
-        generateKILLSetForFlatCall(fc, curr, sharedLocMap, readWriteKillSet);
-        generateGENSetForFlatCall(fc, sharedLocMap, readWriteGenSet);
+        SharedLocMap mustClearMap = mapFlatNodeToMustClearMap.get(fc);
+        generateKILLSetForFlatCall(fc, curr, sharedLocMap, mustClearMap, readWriteKillSet);
+        generateGENSetForFlatCall(fc, sharedLocMap, mustClearMap, readWriteGenSet);
 
       }
         break;
@@ -1479,22 +1538,37 @@ public class DefinitelyWrittenCheck {
 
   }
 
-  private boolean isCovered(NTuple<Location> locTuple, Set<NTuple<Descriptor>> inSet) {
-
-    if (inSet == null) {
-      return false;
-    }
+  private boolean isCovered(NTuple<Location> locTuple, Set<NTuple<Descriptor>> curWrittenSet) {
 
     Set<NTuple<Descriptor>> coverSet =
         mapMethodToSharedLocCoverSet.get(methodContainingSSJavaLoop).get(locTuple);
 
-    return inSet.containsAll(coverSet);
+    if (curWrittenSet == null) {
+      return false;
+    }
+
+    return curWrittenSet.containsAll(coverSet);
+  }
+
+  private boolean isCovered(NTuple<Location> locTuple, Set<NTuple<Descriptor>> curWrittenSet,
+      Set<NTuple<Descriptor>> mustClearSet) {
+
+    Set<NTuple<Descriptor>> coverSet =
+        mapMethodToSharedLocCoverSet.get(methodContainingSSJavaLoop).get(locTuple);
+
+    if (mustClearSet != null && mustClearSet.containsAll(coverSet)) {
+      return true;
+    }
+
+    if (curWrittenSet == null) {
+      return false;
+    }
+
+    return curWrittenSet.containsAll(coverSet);
   }
 
   private void checkManyRead(FlatCall fc, Hashtable<NTuple<Descriptor>, Set<WriteAge>> curr) {
-
     Set<NTuple<Descriptor>> boundReadSet = mapFlatNodeToBoundReadSet.get(fc);
-
     for (Iterator iterator = boundReadSet.iterator(); iterator.hasNext();) {
       NTuple<Descriptor> readHeapPath = (NTuple<Descriptor>) iterator.next();
       Set<WriteAge> writeAgeSet = curr.get(readHeapPath);
@@ -1540,7 +1614,7 @@ public class DefinitelyWrittenCheck {
   }
 
   private void generateGENSetForFlatCall(FlatCall fc, SharedLocMap sharedLocMap,
-      Hashtable<NTuple<Descriptor>, Set<WriteAge>> GENSet) {
+      SharedLocMap mustClearMap, Hashtable<NTuple<Descriptor>, Set<WriteAge>> GENSet) {
 
     Set<NTuple<Descriptor>> boundMayWriteSet = mapFlatNodeToBoundMayWriteSet.get(fc);
 
@@ -1556,10 +1630,9 @@ public class DefinitelyWrittenCheck {
 
         Set<NTuple<Descriptor>> sharedWriteHeapPathSet = sharedLocMap.get(locTuple);
 
-        if (isCovered(locTuple, sharedLocMap.get(locTuple))) {
+        if (isCovered(locTuple, sharedLocMap.get(locTuple), mustClearMap.get(locTuple))) {
           // if it is covered, add all of heap paths belong to the same shared
           // loc with write age 0
-
           for (Iterator iterator2 = sharedWriteHeapPathSet.iterator(); iterator2.hasNext();) {
             NTuple<Descriptor> sharedHeapPath = (NTuple<Descriptor>) iterator2.next();
             addWriteAgeToSet(sharedHeapPath, GENSet, new WriteAge(0));
@@ -1591,7 +1664,7 @@ public class DefinitelyWrittenCheck {
 
   private void generateKILLSetForFlatCall(FlatCall fc,
       Hashtable<NTuple<Descriptor>, Set<WriteAge>> curr, SharedLocMap sharedLocMap,
-      Hashtable<NTuple<Descriptor>, Set<WriteAge>> KILLSet) {
+      SharedLocMap mustClearMap, Hashtable<NTuple<Descriptor>, Set<WriteAge>> KILLSet) {
 
     Set<NTuple<Descriptor>> boundMustWriteSet = mapFlatNodeToBoundMustWriteSet.get(fc);
 
@@ -1601,7 +1674,8 @@ public class DefinitelyWrittenCheck {
       if (isSharedLocation(heapPath)) {
         NTuple<Location> locTuple = getLocationTuple(heapPath);
 
-        if (isCovered(locTuple, sharedLocMap.get(locTuple)) && curr.containsKey(heapPath)) {
+        if (isCovered(locTuple, sharedLocMap.get(locTuple), mustClearMap.get(locTuple))
+            && curr.containsKey(heapPath)) {
           // if it is shared loc and corresponding shared loc has been covered
           KILLSet.put(heapPath, curr.get(heapPath));
         }
@@ -1909,6 +1983,7 @@ public class DefinitelyWrittenCheck {
           NTuple<Location> calleeLocationPath = deriveLocationTuple(mdCallee, calleeParam);
           SharedLocMap calleeDeleteSet = mapFlatMethodToDeleteSet.get(calleeFlatMethod);
           SharedLocMap calleeSharedLocMap = mapFlatMethodToSharedLocMap.get(calleeFlatMethod);
+          SharedLocMap calleeMustClearMap = mapFlatMethodToMustClearMap.get(calleeFlatMethod);
 
           if (calleeDeleteSet != null) {
             createNewMappingOfDeleteSet(callerArgLocationPath, callerArgHeapPath,
@@ -1920,9 +1995,36 @@ public class DefinitelyWrittenCheck {
                 calleeLocationPath, calleeSharedLocMap);
           }
 
+          if (calleeMustClearMap != null) {
+            createNewMappingOfMustClearMap(callerArgLocationPath, callerArgHeapPath,
+                calleeLocationPath, calleeMustClearMap);
+          }
+
         }
 
       }
+    }
+
+  }
+
+  private void createNewMappingOfMustClearMap(NTuple<Location> callerArgLocationPath,
+      NTuple<Descriptor> callerArgHeapPath, NTuple<Location> calleeLocationPath,
+      SharedLocMap calleeMustClearMap) {
+
+    SharedLocMap calleeParamSharedSet =
+        calleeMustClearMap.getHeapPathStartedWith(calleeLocationPath);
+
+    Set<NTuple<Location>> keySet = calleeParamSharedSet.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      NTuple<Location> calleeLocTupleKey = (NTuple<Location>) iterator.next();
+      Set<NTuple<Descriptor>> heapPathSet = calleeParamSharedSet.get(calleeLocTupleKey);
+      Set<NTuple<Descriptor>> boundHeapPathSet = new HashSet<NTuple<Descriptor>>();
+      for (Iterator iterator2 = heapPathSet.iterator(); iterator2.hasNext();) {
+        NTuple<Descriptor> calleeHeapPath = (NTuple<Descriptor>) iterator2.next();
+        boundHeapPathSet.add(bindHeapPath(callerArgHeapPath, calleeHeapPath));
+      }
+      calleeIntersectBoundMustClearSet.intersect(
+          bindLocationPath(callerArgLocationPath, calleeLocTupleKey), boundHeapPathSet);
     }
 
   }

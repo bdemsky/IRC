@@ -57,7 +57,7 @@ public class LEA {
   @LOC("IMPL")
   private LEAImplementation implementation;
   @LOC("LAST")
-  private FaceAndEyePosition lastPositions = new FaceAndEyePosition(null, null);
+  private FaceAndEyePosition lastPositions = new FaceAndEyePosition(-1,-1,-1,-1, null);
   @LOC("DEV")
   private DeviationScanner deviationScanner = new DeviationScanner();
 

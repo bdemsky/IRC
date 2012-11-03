@@ -20,19 +20,22 @@
 /**
  * This is the main class of LEA.
  * <p>
- * It uses a face detection algorithm to find an a face within the provided image(s). Then it
- * searches for the eye in a region where it most likely located and traces its position relative to
- * the face and to the last known position. The movements are estimated by comparing more than one
- * movement. If a movement is distinctly pointing to a direction it is recognized and all listeners
- * get notified.
+ * It uses a face detection algorithm to find an a face within the provided
+ * image(s). Then it searches for the eye in a region where it most likely
+ * located and traces its position relative to the face and to the last known
+ * position. The movements are estimated by comparing more than one movement. If
+ * a movement is distinctly pointing to a direction it is recognized and all
+ * listeners get notified.
  * <p>
  * The notification is designed as observer pattern. You simply call
- * <code>addEyeMovementListener(IEyeMovementListener)</code> to add an implementation of
- * <code>IEyeMovementListener</code> to LEA. When a face is recognized/lost or whenever an eye
- * movement is detected LEA will call the appropriate methods of the listener
+ * <code>addEyeMovementListener(IEyeMovementListener)</code> to add an
+ * implementation of <code>IEyeMovementListener</code> to LEA. When a face is
+ * recognized/lost or whenever an eye movement is detected LEA will call the
+ * appropriate methods of the listener
  * <p>
- * LEA also needs an image source implementing the <code>ICaptureDevice</code>. One image source
- * proxy to the <code>Java Media Framework</code> is included ( <code>JMFCaptureDevice</code>).
+ * LEA also needs an image source implementing the <code>ICaptureDevice</code>.
+ * One image source proxy to the <code>Java Media Framework</code> is included (
+ * <code>JMFCaptureDevice</code>).
  * <p>
  * Example (for using LEA with <code>Java Media Framework</code>):
  * <p>
@@ -40,19 +43,22 @@
  * LEA lea = new LEA(new JMFCaptureDevice(), true);
  * </code>
  * <p>
- * This will start LEA with the first available JMF datasource with an extra status window showing
- * if face/eye has been detected successfully. Please note that face detection needs about 2 seconds
- * to find a face. After detection the following face detection is much faster.
+ * This will start LEA with the first available JMF datasource with an extra
+ * status window showing if face/eye has been detected successfully. Please note
+ * that face detection needs about 2 seconds to find a face. After detection the
+ * following face detection is much faster.
  * 
  * @author Florian Frankenberger
  */
 
+
 public class LEA {
 
+  
   private LEAImplementation implementation;
-
-  private FaceAndEyePosition lastPositions = new FaceAndEyePosition(null, null);
-
+  
+  private FaceAndEyePosition lastPositions = new FaceAndEyePosition(-1,-1,-1,-1, null);
+  
   private DeviationScanner deviationScanner = new DeviationScanner();
 
   public LEA() {
@@ -62,17 +68,18 @@ public class LEA {
   }
 
   /**
-   * Clears the internal movement buffer. If you just capture some of the eye movements you should
-   * call this every time you start recording the movements. Otherwise you may get notified for
-   * movements that took place BEFORE you started recording.
+   * Clears the internal movement buffer. If you just capture some of the eye
+   * movements you should call this every time you start recording the
+   * movements. Otherwise you may get notified for movements that took place
+   * BEFORE you started recording.
    */
   public void clear() {
     // this.imageProcessor.clearDeviationScanner();
   }
 
   /**
-   * @METHOD To test LEA with the first capture device from the <code>Java Media Framework</code>
-   *         just start from here.
+   * @METHOD To test LEA with the first capture device from the
+   *         <code>Java Media Framework</code> just start from here.
    * 
    * @param args
    * @throws Exception
@@ -82,12 +89,13 @@ public class LEA {
     lea.doRun();
   }
 
+  
   public void doRun() {
 
-    int i = 0;
+     int i = 0;
 
     SSJAVA: while (true) {
-      Image image = ImageReader.getImage();
+       Image image =  ImageReader.getImage();
       if (image == null) {
         break;
       }
@@ -97,12 +105,13 @@ public class LEA {
     System.out.println("Done.");
 
   }
+  
 
-  private void processImage(Image image) {
-    FaceAndEyePosition positions = implementation.getEyePosition(image);
+  private void processImage( Image image) {
+     FaceAndEyePosition positions = implementation.getEyePosition(image);
     // if (positions.getEyePosition() != null) {
     deviationScanner.addEyePosition(positions.getEyePosition());
-    int deviation = deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
+     int deviation = deviationScanner.scanForDeviation(positions.getFacePosition());// positions.getEyePosition().getDeviation(lastPositions.getEyePosition());
     if (deviation != DeviationScanner.NONE) {
       System.out.println("deviation=" + deviationScanner.toStringDeviation(deviation));
       // notifyEyeMovementListenerEyeMoved(deviation);

@@ -23,22 +23,33 @@
  * @author Florian Frankenberger
  */
 
+
 public class EyePosition {
-
+  
   private int x;
-
+  
   private int y;
+ 
+   private double facex;
+   private double facey;
+   private double facewidth;
+   private double faceheight;
 
-  private Rectangle2D faceRect;
+  // private Rectangle2D faceRect;
 
-  public EyePosition(Point p, Rectangle2D faceRect) {
-    this(p.x, p.y, faceRect);
-  }
+  // public EyePosition(Point p, Rectangle2D faceRect) {
+  // this(p.x, p.y, faceRect);
+  // }
+  //
+  // public EyePosition(int x, int y, Rectangle2D faceRect) {
+  // this.x = x;
+  // this.y = y;
+  // this.faceRect = faceRect;
+  // }
 
-  public EyePosition(int x, int y, Rectangle2D faceRect) {
+  public EyePosition(int x, int y) {
     this.x = x;
     this.y = y;
-    this.faceRect = faceRect;
   }
 
   public int getX() {

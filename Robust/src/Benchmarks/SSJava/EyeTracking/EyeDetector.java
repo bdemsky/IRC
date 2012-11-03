@@ -35,12 +35,16 @@ class EyeDetector {
   @LOC("IMG")
   double percent;
 
-  public EyeDetector(Image image, Rectangle2D faceRect) {
+  // public EyeDetector(Image image, Rectangle2D faceRect) {
+  public EyeDetector(Image image, double fx, double fy, double fwidth, double fheight) {
 
-    percent = 0.15 * faceRect.getWidth();
+    percent = 0.15 * fwidth;
     Rectangle2D adjustedFaceRect =
-        new Rectangle2D(faceRect.getX() + percent, faceRect.getY() + percent, faceRect.getWidth()
-            - percent, faceRect.getHeight() - 2 * percent);
+        new Rectangle2D(fx + percent, fy + percent, fwidth - percent, fheight - 2 * percent);
+    // percent = 0.15 * faceRect.getWidth();
+    // Rectangle2D adjustedFaceRect =
+    // new Rectangle2D(faceRect.getX() + percent, faceRect.getY() + percent, faceRect.getWidth()
+    // - percent, faceRect.getHeight() - 2 * percent);
 
     width = (int) adjustedFaceRect.getWidth() / 2;
     height = (int) adjustedFaceRect.getHeight() / 2;

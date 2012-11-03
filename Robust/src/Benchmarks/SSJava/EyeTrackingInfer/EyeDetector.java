@@ -23,22 +23,27 @@
  * @author Florian Frankenberger
  */
 
+
 class EyeDetector {
 
+  
   private int width;
-
+  
   private int height;
-
+  
   private int[] pixelBuffer;
-
+  
   double percent;
 
-  public EyeDetector(Image image, Rectangle2D faceRect) {
+  // public EyeDetector(Image image, Rectangle2D faceRect) {
+  public EyeDetector(Image image, double fx, double fy, double fwidth, double fheight) {
 
-    percent = 0.15 * faceRect.getWidth();
-    Rectangle2D adjustedFaceRect =
-        new Rectangle2D(faceRect.getX() + percent, faceRect.getY() + percent, faceRect.getWidth()
-            - percent, faceRect.getHeight() - 2 * percent);
+    percent = 0.15 * fwidth;
+    Rectangle2D adjustedFaceRect = new Rectangle2D(fx + percent, fy + percent, fwidth - percent, fheight - 2 * percent);
+    // percent = 0.15 * faceRect.getWidth();
+    // Rectangle2D adjustedFaceRect =
+    // new Rectangle2D(faceRect.getX() + percent, faceRect.getY() + percent, faceRect.getWidth()
+    // - percent, faceRect.getHeight() - 2 * percent);
 
     width = (int) adjustedFaceRect.getWidth() / 2;
     height = (int) adjustedFaceRect.getHeight() / 2;
@@ -55,15 +60,16 @@ class EyeDetector {
 
   }
 
+  
   public Point detectEye() {
-    Point eyePosition = null;
-    float brightness = 255f;
-    for (int y = 0; y < height; ++y) {
-      for (int x = 0; x < width; ++x) {
-        int position = y * width + x;
-        int[] color = new int[] { (pixelBuffer[position] & 0xFF0000) >> 16, (pixelBuffer[position] & 0x00FF00) >> 8, pixelBuffer[position] & 0x0000FF };
+     Point eyePosition = null;
+     float brightness = 255f;
+    for ( int y = 0; y < height; ++y) {
+      for ( int x = 0; x < width; ++x) {
+         int position = y * width + x;
+         int[] color =  new int[] { (pixelBuffer[position] & 0xFF0000) >> 16,(pixelBuffer[position] & 0x00FF00) >> 8, pixelBuffer[position] & 0x0000FF };
         // System.out.println("("+x+","+y+")="+color[0]+" "+color[1]+" "+color[2]);
-        float acBrightness = getBrightness(color);
+         final float acBrightness = getBrightness(color);
 
         if (acBrightness < brightness) {
           eyePosition = new Point(x + (int) percent, y + (int) percent);
@@ -75,9 +81,10 @@ class EyeDetector {
     return eyePosition;
   }
 
-  private static float getBrightness(int[] color) {
-    int min = Math.min(Math.min(color[0], color[1]), color[2]);
-    int max = Math.max(Math.max(color[0], color[1]), color[2]);
+  
+  private static float getBrightness( int[] color) {
+     int min = Math.min(Math.min(color[0], color[1]), color[2]);
+     int max = Math.max(Math.max(color[0], color[1]), color[2]);
 
     return 0.5f * (max + min);
   }

@@ -28,12 +28,22 @@ public class FlowNode {
 
   private boolean isSkeleton;
 
+  private boolean isFormHolder = false;
+
   public boolean isIntermediate() {
     return isIntermediate;
   }
 
   public void setIntermediate(boolean isIntermediate) {
     this.isIntermediate = isIntermediate;
+  }
+
+  public void setFormHolder(boolean in) {
+    isFormHolder = in;
+  }
+
+  public boolean isFromHolder() {
+    return isFormHolder;
   }
 
   public Set<FlowNode> getFieldNodeSet() {

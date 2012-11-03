@@ -1155,7 +1155,12 @@ public class FlowDownCheck {
     // System.out.println("base location=" + callerBaseLoc + " constraint=" +
     // constraint);
 
-    for (int i = 0; i < calleeParamList.size(); i++) {
+    System.out.println("calleeParamList=" + calleeParamList);
+    int offset = 0;
+    if (!md.isStatic()) {
+      offset = 1;
+    }
+    for (int i = offset; i < calleeParamList.size(); i++) {
       CompositeLocation calleeParamLoc = calleeParamList.get(i);
       if (calleeParamLoc.get(0).equals(calleeThisLoc) && calleeParamLoc.getSize() > 1) {
 
@@ -1182,6 +1187,8 @@ public class FlowDownCheck {
           continue;
         }
 
+        System.out.println("---idx=" + i + "  callerArgLoc=" + callerArgLoc + "   paramLocation="
+            + paramLocation);
         // if (!CompositeLattice.isGreaterThan(callerArgLoc, paramLocation, errorMsg)) {
         if (CompositeLattice.compare(callerArgLoc, paramLocation, true, errorMsg) == ComparisonResult.LESS) {
           throw new Error("Caller argument '" + min.getArg(i).printNode(0) + " : " + callerArgLoc
@@ -1736,9 +1743,12 @@ public class FlowDownCheck {
         Set<FlatNode> flatNodeSet = ssjava.getBuildFlat().getFlatNodeSet(an);
         for (Iterator iterator = flatNodeSet.iterator(); iterator.hasNext();) {
           FlatNode fn = (FlatNode) iterator.next();
+          System.out.println("SAMEHEIGHT!");
           ssjava.addSameHeightWriteFlatNode(fn);
         }
 
+      } else {
+        System.out.println("NOT SAME HEIGHT!");
       }
 
     } else {
@@ -1985,6 +1995,9 @@ public class FlowDownCheck {
 
         addLocationType(fd.getType(), loc);
 
+        if (ssjava.isSharedLocation(loc)) {
+          ssjava.addSharedDesc(loc, fd);
+        }
       }
     }
 

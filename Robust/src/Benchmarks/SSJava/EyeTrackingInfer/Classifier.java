@@ -81,19 +81,11 @@ public class Classifier {
     for (int i = 0; i < scanAreas.length; ++i) {
       values[i] = 0l;
 
-      values[i] +=
-          image.getIntegralAt(translationX + scanAreas[i].getToX(scaleFactor), translationY
-              + scanAreas[i].getToY(scaleFactor));
-      values[i] +=
-          image.getIntegralAt(translationX + scanAreas[i].getFromX(scaleFactor), translationY
-              + scanAreas[i].getFromY(scaleFactor));
+      values[i] += image.getIntegralAt(translationX + scanAreas[i].getToX(scaleFactor), translationY + scanAreas[i].getToY(scaleFactor));
+      values[i] += image.getIntegralAt(translationX + scanAreas[i].getFromX(scaleFactor), translationY + scanAreas[i].getFromY(scaleFactor));
 
-      values[i] -=
-          image.getIntegralAt(translationX + scanAreas[i].getToX(scaleFactor), translationY
-              + scanAreas[i].getFromY(scaleFactor));
-      values[i] -=
-          image.getIntegralAt(translationX + scanAreas[i].getFromX(scaleFactor), translationY
-              + scanAreas[i].getToY(scaleFactor));
+      values[i] -= image.getIntegralAt(translationX + scanAreas[i].getToX(scaleFactor), translationY + scanAreas[i].getFromY(scaleFactor));
+      values[i] -= image.getIntegralAt(translationX + scanAreas[i].getFromX(scaleFactor), translationY + scanAreas[i].getToY(scaleFactor));
 
       values[i] = (long) (values[i] / ((float) scanAreas[i].getSize(scaleFactor)));
       avg = ((avgItems * avg) + values[i]) / (++avgItems);

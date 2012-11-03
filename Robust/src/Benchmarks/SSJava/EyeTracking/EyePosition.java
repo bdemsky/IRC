@@ -29,17 +29,27 @@ public class EyePosition {
   private int x;
   @LOC("POS")
   private int y;
-  @LOC("POS")
-  private Rectangle2D faceRect;
+ 
+  @LOC("POS") private double facex;
+  @LOC("POS") private double facey;
+  @LOC("POS") private double facewidth;
+  @LOC("POS") private double faceheight;
 
-  public EyePosition(Point p, Rectangle2D faceRect) {
-    this(p.x, p.y, faceRect);
-  }
+  // private Rectangle2D faceRect;
 
-  public EyePosition(int x, int y, Rectangle2D faceRect) {
+  // public EyePosition(Point p, Rectangle2D faceRect) {
+  // this(p.x, p.y, faceRect);
+  // }
+  //
+  // public EyePosition(int x, int y, Rectangle2D faceRect) {
+  // this.x = x;
+  // this.y = y;
+  // this.faceRect = faceRect;
+  // }
+
+  public EyePosition(int x, int y) {
     this.x = x;
     this.y = y;
-    this.faceRect = faceRect;
   }
 
   public int getX() {

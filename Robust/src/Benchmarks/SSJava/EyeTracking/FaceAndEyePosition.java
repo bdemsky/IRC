@@ -31,8 +31,8 @@ public class FaceAndEyePosition {
   @LOC("POS")
   private EyePosition eyePosition;
 
-  public FaceAndEyePosition(Rectangle2D facePosition, EyePosition eyePosition) {
-    this.facePosition = facePosition;
+  public FaceAndEyePosition(double x, double y, double w, double h, EyePosition eyePosition) {
+    this.facePosition = new Rectangle2D(x, y, w, h);
     this.eyePosition = eyePosition;
   }
 

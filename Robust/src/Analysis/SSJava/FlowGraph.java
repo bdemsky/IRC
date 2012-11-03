@@ -458,7 +458,7 @@ public class FlowGraph {
         FlowReturnNode rnode = (FlowReturnNode) originalSrcNode;
         Set<NTuple<Descriptor>> rtupleSetFromRNode = rnode.getReturnTupleSet();
         Set<NTuple<Descriptor>> rtupleSet = getReturnTupleSet(rtupleSetFromRNode);
-        System.out.println("#rnode=" + rnode + "  rtupleSet=" + rtupleSet);
+        // System.out.println("#rnode=" + rnode + "  rtupleSet=" + rtupleSet);
         for (Iterator iterator2 = rtupleSet.iterator(); iterator2.hasNext();) {
           NTuple<Descriptor> rtuple = (NTuple<Descriptor>) iterator2.next();
           if (rtuple.startsWith(prefix)) {

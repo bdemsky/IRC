@@ -23,12 +23,14 @@
  * @author Florian Frankenberger
  */
 
+
 public class IntegralImageData {
 
+  
   private long[][] integral;
-
+  
   private int width;
-
+  
   private int hegith;
 
   // private Dimension dimension;
@@ -49,7 +51,7 @@ public class IntegralImageData {
 
   }
 
-  public long getIntegralAt(int x, int y) {
+  public long getIntegralAt( int x,  int y) {
     return this.integral[x][y];
   }
 
@@ -59,10 +61,6 @@ public class IntegralImageData {
 
   public int getHeight() {
     return hegith;
-  }
-
-  public String toString() {
-    super.toString();
   }
 
 }

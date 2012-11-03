@@ -17,34 +17,36 @@
  * along with LEA. If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 import java.awt.image.BufferedImage;
 
 /**
- * Describes a capture device. For now it is only tested with images in <code>640x480</code> at
- * <code>RGB</code> or <code>YUV</code> color space.
+ * Describes a capture device. For now it is only tested
+ * with images in <code>640x480</code> at <code>RGB</code> or <code>YUV</code> color space.
  * 
  * @author Florian Frankenberger
  */
 public interface ICaptureDevice {
 
-  /**
-   * Returns the frame rate of the image source per second
-   * 
-   * @return the frame rate (e.g. 15 = 15 frames per second)
-   */
-  public int getFrameRate();
+	/**
+	 * Returns the frame rate of the image source per second
+	 * 
+	 * @return the frame rate (e.g. 15 = 15 frames per second)
+	 */
+	public int getFrameRate();
 
-  /**
-   * Will be called a maximum of getFrameRate()-times in a second and returns the actual image of
-   * the capture device
-   * 
-   * @return the actual image of the capture device
-   */
-  public BufferedImage getImage();
-
-  /**
-   * LEA calls this when it cleans up. You should put your own cleanup code in here.
-   */
-  public void close();
-
+	/**
+	 * Will be called a maximum of getFrameRate()-times in a second and returns
+	 * the actual image of the capture device
+	 *  
+	 * @return the actual image of the capture device 
+	 */
+	public BufferedImage getImage();
+	
+	/**
+	 * LEA calls this when it cleans up. You should put your own cleanup code in here.
+	 */
+	public void close();
+	
+	
 }
