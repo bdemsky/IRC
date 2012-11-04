@@ -1941,7 +1941,7 @@ public class DefinitelyWrittenCheck {
 
       // arg idx is starting from 'this' arg
       if (fc.getThis() != null) {
-        NTuple<Location> thisLocationPath = deriveLocationTuple(mdCaller, fc.getThis());
+        NTuple<Location> thisLocationPath = deriveLocationTuple(fc.getMethod(), fc.getThis());
         if (thisLocationPath != null) {
           mapArgIdx2CallerAgLocationPath.put(Integer.valueOf(0), thisLocationPath);
         }
@@ -2621,7 +2621,6 @@ public class DefinitelyWrittenCheck {
   }
 
   private NTuple<Location> deriveLocationTuple(MethodDescriptor md, TempDescriptor td) {
-
     assert td.getType() != null;
 
     if (mapDescriptorToLocationPath.containsKey(td)) {

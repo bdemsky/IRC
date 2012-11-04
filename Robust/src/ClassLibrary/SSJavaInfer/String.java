@@ -321,7 +321,7 @@ public class String {
       length = length + 1;
     } while (tmp != 0);
 
-    char chararray[];
+    char[] chararray;
     if (x < 0)
       chararray = new char[length + 1];
     else

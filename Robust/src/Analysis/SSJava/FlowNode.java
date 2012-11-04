@@ -30,6 +30,8 @@ public class FlowNode {
 
   private boolean isFormHolder = false;
 
+  private NTuple<Descriptor> baseTuple;
+
   public boolean isIntermediate() {
     return isIntermediate;
   }
@@ -44,6 +46,14 @@ public class FlowNode {
 
   public boolean isFromHolder() {
     return isFormHolder;
+  }
+
+  public void setBaseTuple(NTuple<Descriptor> in) {
+    baseTuple = in;
+  }
+
+  public NTuple<Descriptor> getBaseTuple() {
+    return baseTuple;
   }
 
   public Set<FlowNode> getFieldNodeSet() {

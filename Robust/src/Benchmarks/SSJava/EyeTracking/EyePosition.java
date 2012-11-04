@@ -29,23 +29,6 @@ public class EyePosition {
   private int x;
   @LOC("POS")
   private int y;
- 
-  @LOC("POS") private double facex;
-  @LOC("POS") private double facey;
-  @LOC("POS") private double facewidth;
-  @LOC("POS") private double faceheight;
-
-  // private Rectangle2D faceRect;
-
-  // public EyePosition(Point p, Rectangle2D faceRect) {
-  // this(p.x, p.y, faceRect);
-  // }
-  //
-  // public EyePosition(int x, int y, Rectangle2D faceRect) {
-  // this.x = x;
-  // this.y = y;
-  // this.faceRect = faceRect;
-  // }
 
   public EyePosition(int x, int y) {
     this.x = x;
@@ -63,36 +46,6 @@ public class EyePosition {
   public String toString() {
     return "(" + x + "," + y + ")";
   }
-
-  // public Deviation getDeviation(EyePosition oldEyePosition) {
-  // if (oldEyePosition == null) return Deviation.NONE;
-  //
-  // //first we check if the faceRects are corresponding
-  // double widthChange = (this.faceRect.getWidth() -
-  // oldEyePosition.faceRect.getWidth()) / this.faceRect.getWidth();
-  // if (widthChange > 0.1) return Deviation.NONE;
-  //
-  // int maxDeviationX = (int)Math.round(this.faceRect.getWidth() / 4f);
-  // int maxDeviationY = (int)Math.round(this.faceRect.getWidth() / 8f);
-  // int minDeviation = (int)Math.round(this.faceRect.getWidth() / 16f);
-  //
-  // int deviationX = Math.abs(x - oldEyePosition.x);
-  // int directionX = sgn(x - oldEyePosition.x);
-  // if (deviationX < minDeviation || deviationX > maxDeviationX) directionX =
-  // 0;
-  //
-  // int deviationY = Math.abs(y - oldEyePosition.y);
-  // int directionY = sgn(y - oldEyePosition.y);
-  // if (deviationY < minDeviation || deviationY > maxDeviationY) directionY =
-  // 0;
-  //
-  // double deviationXPercent = deviationX / this.faceRect.getWidth();
-  // double deviationYPercent = deviationY / this.faceRect.getWidth();
-  //
-  // System.out.println(String.format("devX: %.2f | devY: %.2f",
-  // deviationXPercent*100f, deviationYPercent*100f));
-  // return Deviation.getDirectionFor(directionX, directionY);
-  // }
 
   private static int sgn(int i) {
     if (i > 0)

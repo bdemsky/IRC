@@ -61,9 +61,24 @@ public class SSJAVA {
   static void append(Object array[], Object item) {
     for (int i = 1; i < array.length; i++) {
       array[i - 1] = array[i];
-      array[i]=null;
+      array[i] = null;
     }
     array[array.length - 1] = item;
+  }
+  
+  static void append(int array[], int item) {
+    for (int i = 1; i < array.length; i++) {
+      array[i - 1] = array[i];
+      array[i] = 0;
+    }
+    array[array.length - 1] = item;
+  }
+
+
+  static void arrayinit(Object array[]) {
+    for (int i = 1; i < array.length; i++) {
+      array[i] = null;
+    }
   }
 
 }

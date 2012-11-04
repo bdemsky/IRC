@@ -27,11 +27,9 @@
 public class DeviationScanner {
 
   @LOC("DEV")
-  private EyePosition eyePositions[];
-
-  // LEFT_UP(+1, -1), UP(0, -1), RIGHT_UP(-1, -1), LEFT(+1, 0), NONE(0, 0),
-  // RIGHT(-1, 0), LEFT_DOWN(
-  // +1, +1), DOWN(0, +1), RIGHT_DOWN(-1, +1);
+  private int x[];
+  @LOC("DEV")
+  private int y[];
 
   public static final int LEFT_UP = 0;
   public static final int UP = 1;
@@ -44,23 +42,18 @@ public class DeviationScanner {
   public static final int RIGHT_DOWN = 8;
 
   public DeviationScanner() {
-    eyePositions = new EyePosition[3];
+    x = new int[3];
+    y = new int[3];
+    SSJAVA.arrayinit(x, -1);
+    SSJAVA.arrayinit(y, -1);
   }
 
-  @LATTICE("THIS<C,C<IN,THISLOC=THIS")
-  public void addEyePosition(@LOC("IN") EyePosition eyePosition) {
-
-    // for (@LOC("THIS,DeviationScanner.C") int i = 1; i < 3; i++) {
-    // eyePositions[i - 1] = eyePositions[i];
-    // eyePositions[i] = null;
-    // }
-    // eyePositions[eyePositions.length - 1] = eyePosition;
-
-    SSJAVA.append(eyePositions, eyePosition);
-
+  @LATTICE("THIS<IN,THISLOC=THIS")
+  public void addEyePosition(@LOC("IN") int inx, @LOC("IN") int iny) {
+    SSJAVA.append(x, inx);
+    SSJAVA.append(y, iny);
   }
 
-  // @LATTICE("OUT<DEV,DEV<C,C<THIS,THIS<IN,C*,DEV*,OUT*,THISLOC=THIS,RETURNLOC=OUT")
   @LATTICE("THIS<C,THIS<IN,THISLOC=THIS,C*")
   @RETURNLOC("THIS,DeviationScanner.DEV")
   public int scanForDeviation(@LOC("IN") Rectangle2D faceRect) {
@@ -68,7 +61,7 @@ public class DeviationScanner {
     @LOC("THIS,DeviationScanner.DEV") int deviation = NONE;
 
     for (@LOC("C") int i = 0; i < 3; i++) {
-      if (eyePositions[i] == null) {
+      if (x[i] == -1) {
         return deviation;
       }
     }
@@ -79,8 +72,8 @@ public class DeviationScanner {
     @LOC("THIS,DeviationScanner.DEV") int lastIdx = -1;
     for (@LOC("THIS,DeviationScanner.DEV") int i = 0; i < 3; ++i) {
       if (lastIdx != -1) {
-        deviationX += (eyePositions[i].getX() - eyePositions[lastIdx].getX());
-        deviationY += (eyePositions[i].getY() - eyePositions[lastIdx].getY());
+        deviationX += (x[i] - x[lastIdx]);
+        deviationY += (y[i] - y[lastIdx]);
       }
       lastIdx = i;
     }
@@ -105,11 +98,9 @@ public class DeviationScanner {
     deviation = getDirectionFor(deviationAbsoluteX, deviationAbsoluteY);
 
     if (deviation != NONE) {
-      eyePositions = new EyePosition[3];
+      SSJAVA.arrayinit(x, -1);
+      SSJAVA.arrayinit(y, -1);
     }
-    // System.out.println(String.format("%.2f%% | %.2f%% => %d and %d >>> %s",
-    // deviationX*100, deviationY*100, deviationAbsoluteX, deviationAbsoluteY,
-    // deviation.toString()));
 
     return deviation;
   }
@@ -138,11 +129,6 @@ public class DeviationScanner {
     }
 
     return -1;
-  }
-
-  public void clear() {
-    System.out.println("CLEAR");
-    eyePositions = new EyePosition[3];
   }
 
   public String toStringDeviation(@LOC("IN") int dev) {

@@ -1743,13 +1743,10 @@ public class FlowDownCheck {
         Set<FlatNode> flatNodeSet = ssjava.getBuildFlat().getFlatNodeSet(an);
         for (Iterator iterator = flatNodeSet.iterator(); iterator.hasNext();) {
           FlatNode fn = (FlatNode) iterator.next();
-          System.out.println("SAMEHEIGHT!");
           ssjava.addSameHeightWriteFlatNode(fn);
         }
 
-      } else {
-        System.out.println("NOT SAME HEIGHT!");
-      }
+      } 
 
     } else {
       destLocation =

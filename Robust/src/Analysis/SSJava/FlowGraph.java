@@ -318,7 +318,7 @@ public class FlowGraph {
     addOutEdge(fromNode, edge);
     addInEdge(toNode, edge);
 
-    System.out.println("add a new edge=" + edge);
+    // System.out.println("add a new edge=" + edge);
   }
 
   private void addInEdge(FlowNode toNode, FlowEdge edge) {
@@ -857,6 +857,22 @@ public class FlowGraph {
     }
 
     bw.write("}\n");
+  }
+
+  public void removeEdge(NTuple<Descriptor> from, NTuple<Descriptor> to) {
+
+    Set<FlowEdge> toberemoved = new HashSet<FlowEdge>();
+    Set<FlowEdge> edgeSet = getOutEdgeSet(getFlowNode(from));
+
+    for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
+      FlowEdge flowEdge = (FlowEdge) iterator.next();
+      if (flowEdge.getInitTuple().equals(from) && flowEdge.getEndTuple().equals(to)) {
+        toberemoved.add(flowEdge);
+      }
+    }
+
+    edgeSet.removeAll(toberemoved);
+
   }
 
 }
