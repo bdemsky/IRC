@@ -150,8 +150,7 @@ public class MotorControl {
       System.out.println("setSpeedTurnLeft: input-> " + Integer.toString(timePosition));
     }
      int timePosLocal = normalizeTime(timePosition);
-     int motorUpTime =
-        (timePosLocal * 100 + ((100 - timePosLocal) * (100 - agilityFactor))) * speedFactor;
+     int motorUpTime = (timePosLocal * 100 + ((100 - timePosLocal) * (100 - agilityFactor))) * speedFactor;
     if (motorUpTime == 0) {
       motorUpTime = 1;
       // System.out.println("returning....");
@@ -185,8 +184,7 @@ public class MotorControl {
       System.out.println("setSpeedTurnRight: input-> " + Integer.toString(timePosition));
     }
      int timePos = normalizeTime(timePosition);
-     int motorUpTime =
-        ((timePos * 100) + ((100 - timePos) * (100 - agilityFactor))) * speedFactor;
+     int motorUpTime = ((timePos * 100) + ((100 - timePos) * (100 - agilityFactor))) * speedFactor;
     if (motorUpTime == 0) {
       motorUpTime = 1;
       // System.out.println("returning....");

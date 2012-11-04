@@ -26,7 +26,7 @@
  * @author Michael Gesundheit
  * @version 1.0
  */
-@METHODDEFAULT("IN")
+@METHODDEFAULT("IN,THISLOC=IN")
 public class RCBridge {
 
   public void setManualMode() {

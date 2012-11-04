@@ -18,11 +18,10 @@
  */
 
 /**
- * PWMManager - Interface between robot strategy code and the various motors
- * PWMControl classes. Agility is a number between 0 to 100 and represent the
- * precentage of max speed to be applied to the turn side wheel. On left turn
- * the left wheel will receive less speed as % of "speed" value represented by
- * agility.
+ * PWMManager - Interface between robot strategy code and the various motors PWMControl classes.
+ * Agility is a number between 0 to 100 and represent the precentage of max speed to be applied to
+ * the turn side wheel. On left turn the left wheel will receive less speed as % of "speed" value
+ * represented by agility.
  * 
  * @author Michael Gesundheit
  * @version 1.0
@@ -57,8 +56,8 @@ public class PWMManager {
    */
   public PWMManager(String pwmSelection) {
     /*
-     * Instantiate PWM Makers one for each motor. motorPortId is 1 to 8 and is
-     * corresponding to 8 bits in a byte.
+     * Instantiate PWM Makers one for each motor. motorPortId is 1 to 8 and is corresponding to 8
+     * bits in a byte.
      */
     // if (pwmSelection.equals("rtsj"))
     // pwmControl = new PWMRtsj(this, MOTOR_PORTID_6, MOTOR_PORTID_7);
@@ -100,9 +99,8 @@ public class PWMManager {
     currentRegMask |= myValue;
     /*
      * // if (DEBUG){ // System.out.println("PWMM: writeToPort: myBit = 0x" +
-     * Integer.toHexString(myBit) + // " ~myBit = 0x" +
-     * Integer.toHexString(~myBit) + " myValue = 0x" + //
-     * Integer.toHexString(myValue) + " currentRegMask = 0x" + //
+     * Integer.toHexString(myBit) + // " ~myBit = 0x" + Integer.toHexString(~myBit) +
+     * " myValue = 0x" + // Integer.toHexString(myValue) + " currentRegMask = 0x" + //
      * Integer.toHexString(currentRegMask)); //}
      */
     // rawJEM.set(GPIO_E_OUT, currentRegMask);
@@ -112,20 +110,16 @@ public class PWMManager {
    * public void stop(){ if(DEBUG) System.out.println("PWMManager: stop....");
    * pwmControl.setSpeedLeft(zeroSpeed); pwmControl.setSpeedRight(zeroSpeed); }
    * 
-   * public void search(){ if(DEBUG)
-   * System.out.println("PWMManager: search...."); pwmControl.setSpeedLeft(70);
-   * pwmControl.setSpeedRight(50); }
+   * public void search(){ if(DEBUG) System.out.println("PWMManager: search....");
+   * pwmControl.setSpeedLeft(70); pwmControl.setSpeedRight(50); }
    * 
-   * public void straight(){ if(DEBUG)
-   * System.out.println("PWMManager: strait...."); pwmControl.setSpeedLeft(100);
-   * pwmControl.setSpeedRight(100); }
+   * public void straight(){ if(DEBUG) System.out.println("PWMManager: strait....");
+   * pwmControl.setSpeedLeft(100); pwmControl.setSpeedRight(100); }
    * 
-   * public void spinRight(){ if(DEBUG)
-   * System.out.println("PWMManager: spinRight....");
+   * public void spinRight(){ if(DEBUG) System.out.println("PWMManager: spinRight....");
    * pwmControl.setSpeedSpinLeft(100); pwmControl.setSpeedSpinRight(0); }
    * 
-   * public void spinLeft(){ if(DEBUG)
-   * System.out.println("PWMManager: spinLeft....");
+   * public void spinLeft(){ if(DEBUG) System.out.println("PWMManager: spinLeft....");
    * pwmControl.setSpeedSpinLeft(0); pwmControl.setSpeedSpinRight(100); }
    * 
    * public void spin180(){ int mod = (rand.nextInt() % 2);
@@ -140,23 +134,19 @@ public class PWMManager {
    * public void left(){ if(DEBUG) System.out.println("PWMManager: left....");
    * pwmControl.setSpeedLeft(zeroSpeed); pwmControl.setSpeedTurnRight(100); }
    * 
-   * public void bearRight(){ if(DEBUG)
-   * System.out.println("PWMManager: bearRight....");
+   * public void bearRight(){ if(DEBUG) System.out.println("PWMManager: bearRight....");
    * pwmControl.setSpeedTurnLeft(100); pwmControl.setSpeedTurnRight(60); }
    * 
-   * public void bearLeft(){ if(DEBUG)
-   * System.out.println("PWMManager: bearLeft....");
+   * public void bearLeft(){ if(DEBUG) System.out.println("PWMManager: bearLeft....");
    * pwmControl.setSpeedTurnLeft(60); pwmControl.setSpeedTurnRight(100); }
    * 
    * public void back(){ if(DEBUG) System.out.println("PWMManager: back....");
    * pwmControl.setSpeedLeft(0); pwmControl.setSpeedRight(0); }
    * 
-   * public void backBearLeft(){ if(DEBUG)
-   * System.out.println("PWMManager: backBearLeft....");
+   * public void backBearLeft(){ if(DEBUG) System.out.println("PWMManager: backBearLeft....");
    * pwmControl.setSpeedLeft(30); pwmControl.setSpeedRight(0); }
    * 
-   * public void backBearRight(){ if(DEBUG)
-   * System.out.println("PWMManager: backBearRight....");
+   * public void backBearRight(){ if(DEBUG) System.out.println("PWMManager: backBearRight....");
    * pwmControl.setSpeedLeft(0); pwmControl.setSpeedRight(30); }
    */
   public void resume() {
@@ -205,10 +195,10 @@ public class PWMManager {
   }
 
   /**
-   * Control debug messaging. true - Activate debug messages false - deactivate
-   * debug messages
+   * Control debug messaging. true - Activate debug messages false - deactivate debug messages
    */
   public void setDebug(boolean debug) {
     DEBUG = debug;
   }
+
 }

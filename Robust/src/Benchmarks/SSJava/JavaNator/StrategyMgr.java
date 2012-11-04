@@ -32,8 +32,6 @@ public class StrategyMgr {
   private MotorControl mc;
   private static final int zeroSpeed = 45;
   @LOC("T")
-  private Random rand;
-  @LOC("T")
   private boolean DEBUGL = true;
   // private boolean DEBUGL = false;
 
@@ -46,7 +44,7 @@ public class StrategyMgr {
    */
   public StrategyMgr(@DELEGATE MotorControl motorControl) {
     mc = motorControl;
-    rand = new Random();
+    RandomWrapper.init();
   }
 
   void processSonars(@LOC("IN") byte sonarSensors) {
@@ -206,7 +204,7 @@ public class StrategyMgr {
   }
 
   public void spin180() {
-    @LOC("THIS,StrategyMgr.V") int mod = (rand.nextInt() % 2);
+    @LOC("THIS,StrategyMgr.V") int mod = (RandomWrapper.nextInt() % 2);
 
     if (DEBUG)
       System.out.println("StrategyMgr: spin180....");
