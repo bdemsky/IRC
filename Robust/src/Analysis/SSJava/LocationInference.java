@@ -409,19 +409,19 @@ public class LocationInference {
       Set<FlowNode> nodeSet = flowGraph.getNodeSet();
       for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
         FlowNode node = (FlowNode) iterator.next();
-        // System.out.println("-node=" + node + "   node.getDescTuple=" + node.getDescTuple());
+        System.out.println("-node=" + node + "   node.getDescTuple=" + node.getDescTuple());
         if (node.getCompositeLocation() != null) {
           CompositeLocation compLoc = node.getCompositeLocation();
           CompositeLocation updatedCompLoc = updateCompositeLocation(compLoc);
           node.setCompositeLocation(updatedCompLoc);
-          // System.out.println("---updatedCompLoc1=" + updatedCompLoc);
+          System.out.println("---updatedCompLoc1=" + updatedCompLoc);
         } else {
           NTuple<Descriptor> descTuple = node.getDescTuple();
-          // System.out.println("update desc=" + descTuple);
+          System.out.println("update desc=" + descTuple);
           CompositeLocation compLoc = convertToCompositeLocation(md, descTuple);
           compLoc = updateCompositeLocation(compLoc);
           node.setCompositeLocation(compLoc);
-          // System.out.println("---updatedCompLoc2=" + compLoc);
+          System.out.println("---updatedCompLoc2=" + compLoc);
         }
 
         if (node.isDeclaratonNode()) {
@@ -452,9 +452,12 @@ public class LocationInference {
       String locName;
       if (!enclosingDesc.equals(GLOBALDESC)) {
         LocationSummary locSummary = getLocationSummary(enclosingDesc);
-        HierarchyGraph scGraph = getSkeletonCombinationHierarchyGraph(enclosingDesc);
+//        HierarchyGraph scGraph = getSkeletonCombinationHierarchyGraph(enclosingDesc);
+        HierarchyGraph scGraph = getSimpleHierarchyGraph(enclosingDesc);
         if (scGraph != null) {
           HNode curNode = scGraph.getCurrentHNode(nodeIdentifier);
+          System.out.println("nodeID=" + nodeIdentifier + " curNode=" + curNode
+              + "  enclosingDesc=" + enclosingDesc);
           if (curNode != null) {
             nodeIdentifier = curNode.getName();
           }
@@ -2193,6 +2196,7 @@ public class LocationInference {
       Descriptor desc = (Descriptor) iterator.next();
       getHierarchyGraph(desc).writeGraph();
       getSimpleHierarchyGraph(desc).writeGraph();
+      getSimpleHierarchyGraph(desc).writeGraph(true);
     }
 
   }
@@ -3279,35 +3283,48 @@ public class LocationInference {
     }
   }
 
+  private int countFirstDescriptorSetSize(Set<NTuple<Location>> set) {
+
+    Set<Descriptor> descSet = new HashSet<Descriptor>();
+
+    for (Iterator iterator = set.iterator(); iterator.hasNext();) {
+      NTuple<Location> locTuple = (NTuple<Location>) iterator.next();
+      descSet.add(locTuple.get(0).getLocDescriptor());
+    }
+
+    return descSet.size();
+  }
+
   private boolean coversAllParamters(MethodDescriptor md, FlowGraph fg,
       Set<NTuple<Location>> paramLocTupleHavingInFlowSet) {
 
     int numParam = fg.getNumParameters();
-    int size = paramLocTupleHavingInFlowSet.size();
+    // int size = paramLocTupleHavingInFlowSet.size();
+    int size = countFirstDescriptorSetSize(paramLocTupleHavingInFlowSet);
 
-    if (!md.isStatic()) {
-
-      // if the method is not static && there is a parameter composite location &&
-      // it is started with 'this',
-      // paramLocTupleHavingInFlowSet need to have 'this' parameter.
-
-      FlowNode thisParamNode = fg.getParamFlowNode(0);
-      NTuple<Location> thisParamLocTuple =
-          translateToLocTuple(md, thisParamNode.getCurrentDescTuple());
-
-      if (!paramLocTupleHavingInFlowSet.contains(thisParamLocTuple)) {
-
-        for (Iterator iterator = paramLocTupleHavingInFlowSet.iterator(); iterator.hasNext();) {
-          NTuple<Location> paramTuple = (NTuple<Location>) iterator.next();
-          if (paramTuple.size() > 1 && paramTuple.get(0).getLocDescriptor().equals(md.getThis())) {
-            // paramLocTupleHavingInFlowSet.add(thisParamLocTuple);
-            // break;
-            size++;
-          }
-        }
-
-      }
-    }
+    // if (!md.isStatic()) {
+    //
+    // // if the method is not static && there is a parameter composite location &&
+    // // it is started with 'this',
+    // // paramLocTupleHavingInFlowSet need to have 'this' parameter.
+    //
+    // FlowNode thisParamNode = fg.getParamFlowNode(0);
+    // NTuple<Location> thisParamLocTuple =
+    // translateToLocTuple(md, thisParamNode.getCurrentDescTuple());
+    //
+    // if (!paramLocTupleHavingInFlowSet.contains(thisParamLocTuple)) {
+    //
+    // for (Iterator iterator = paramLocTupleHavingInFlowSet.iterator(); iterator.hasNext();) {
+    // NTuple<Location> paramTuple = (NTuple<Location>) iterator.next();
+    // if (paramTuple.size() > 1 && paramTuple.get(0).getLocDescriptor().equals(md.getThis())) {
+    // // paramLocTupleHavingInFlowSet.add(thisParamLocTuple);
+    // // break;
+    // size++;
+    // }
+    // }
+    //
+    // }
+    // }
 
     if (size == numParam) {
       return true;

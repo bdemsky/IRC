@@ -252,6 +252,7 @@ public class HierarchyGraph {
     skeletonGraph.setMapHNodeToDescSet(getMapHNodeToDescSet());
     skeletonGraph.setMapHNodetoMergeSet(getMapHNodetoMergeSet());
     skeletonGraph.setMapHNodeToCurrentHNode(getMapHNodeToCurrentHNode());
+    skeletonGraph.setMapHNodeNameToCurrentHNode(getMapHNodeNameToCurrentHNode());
 
     return skeletonGraph;
 
@@ -502,6 +503,7 @@ public class HierarchyGraph {
   }
 
   private void addMapHNodeToCurrentHNode(HNode curNode, HNode newNode) {
+
     if (curNode.isMergeNode()) {
       Set<HNode> mergingSet = getMergingSet(curNode);
       mergingSet.add(curNode);
@@ -516,6 +518,7 @@ public class HierarchyGraph {
       mapHNodeToCurrentHNode.put(curNode, newNode);
       mapHNodeNameToCurrentHNode.put(curNode.getName(), newNode);
     }
+
   }
 
   public HNode getCurrentHNode(HNode node) {
@@ -779,7 +782,7 @@ public class HierarchyGraph {
       Set<HNode> combineSet = (Set<HNode>) iterator.next();
       // System.out.println("--combineSet=" + combineSet);
       HNode combinationNode = getCombinationNode(combineSet);
-      // System.out.println("--combinationNode=" + combinationNode);
+      System.out.println("--combinationNode=" + combinationNode + "   combineSet=" + combineSet);
       // add an edge from a skeleton node to a combination node
       for (Iterator iterator2 = combineSet.iterator(); iterator2.hasNext();) {
         HNode inSkeletonNode = (HNode) iterator2.next();
@@ -848,6 +851,7 @@ public class HierarchyGraph {
 
     Set<HNode> reachToSet = new HashSet<HNode>();
     Set<HNode> visited = new HashSet<HNode>();
+    // visited.add(node);
     recurSkeletonReachTo(node, reachToSet, visited);
 
     // obsolete!
@@ -882,6 +886,7 @@ public class HierarchyGraph {
       HNode inNode = (HNode) iterator.next();
 
       if (inNode.isSkeleton()) {
+        visited.add(inNode);
         reachToSet.add(inNode);
       } else if (!visited.contains(inNode)) {
         visited.add(inNode);
@@ -1166,9 +1171,17 @@ public class HierarchyGraph {
   }
 
   public void writeGraph() {
+    writeGraph(false);
+  }
+
+  public void writeGraph(boolean isSimple) {
 
     String graphName = "hierarchy" + name;
     graphName = graphName.replaceAll("[\\W]", "");
+
+    if (isSimple) {
+      graphName += "_PAPER";
+    }
 
     try {
       BufferedWriter bw = new BufferedWriter(new FileWriter(graphName + ".dot"));
@@ -1186,18 +1199,30 @@ public class HierarchyGraph {
 
         if (outSet.size() == 0) {
           if (!addedNodeSet.contains(u)) {
-            drawNode(bw, u);
+            if (!isSimple) {
+              drawNode(bw, u);
+            } else {
+              drawNodeName(bw, u);
+            }
             addedNodeSet.add(u);
           }
         } else {
           for (Iterator iterator = outSet.iterator(); iterator.hasNext();) {
             HNode v = (HNode) iterator.next();
             if (!addedNodeSet.contains(u)) {
-              drawNode(bw, u);
+              if (!isSimple) {
+                drawNode(bw, u);
+              } else {
+                drawNodeName(bw, u);
+              }
               addedNodeSet.add(u);
             }
             if (!addedNodeSet.contains(v)) {
-              drawNode(bw, v);
+              if (!isSimple) {
+                drawNode(bw, v);
+              } else {
+                drawNodeName(bw, v);
+              }
               addedNodeSet.add(v);
             }
             bw.write("" + u.getName() + " -> " + v.getName() + ";\n");
@@ -1233,6 +1258,11 @@ public class HierarchyGraph {
       }
     }
     return str;
+  }
+
+  private void drawNodeName(BufferedWriter bw, HNode node) throws IOException {
+    String nodeName = node.getNamePropertyString();
+    bw.write(node.getName() + " [label=\"" + nodeName + "\"]" + ";\n");
   }
 
   private void drawNode(BufferedWriter bw, HNode node) throws IOException {
