@@ -783,6 +783,9 @@ public class HierarchyGraph {
       // System.out.println("--combineSet=" + combineSet);
       HNode combinationNode = getCombinationNode(combineSet);
       System.out.println("--combinationNode=" + combinationNode + "   combineSet=" + combineSet);
+
+      System.out.println("--hierarchynodes="
+          + simpleHierarchyGraph.getCombinationNodeSetByCombineNodeSet(combineSet));
       // add an edge from a skeleton node to a combination node
       for (Iterator iterator2 = combineSet.iterator(); iterator2.hasNext();) {
         HNode inSkeletonNode = (HNode) iterator2.next();
@@ -972,7 +975,11 @@ public class HierarchyGraph {
       HNode node = (HNode) iterator.next();
       if (!node.isSkeleton()) {
         Set<HNode> reachToSet = getSkeleteNodeSetReachTo(node);
-        System.out.println("$node=" + node + "   reachToNodeSet=" + reachToSet);
+        // Set<HNode> tempSet = removeTransitivelyReachToSet(reachToSet);
+        // reachToSet = removeTransitivelyReachToSet(reachToSet);
+        Set<HNode> tempSet = reachToSet;
+        System.out.println("$node=" + node + "   reachToNodeSet=" + reachToSet + " tempSet="
+            + tempSet);
         if (reachToSet.size() > 1) {
           // if (countSkeletonNodes(reachToSet) > 1) {
           System.out.println("-node=" + node + "  reachToSet=" + reachToSet);
@@ -990,6 +997,38 @@ public class HierarchyGraph {
         Set<HNode> combineSet = mapCombinationNodeToCombineNodeSet.get(node);
         Set<HNode> outSet = getDirectlyReachableNodeSetFromCombinationNode(node);
         addMapCombineSetToOutgoingSet(combineSet, outSet);
+      }
+    }
+
+  }
+
+  private Set<HNode> removeTransitivelyReachToSet(Set<HNode> reachToSet) {
+
+    Set<HNode> toberemoved = new HashSet<HNode>();
+    Set<HNode> visited = new HashSet<HNode>();
+    for (Iterator iterator = reachToSet.iterator(); iterator.hasNext();) {
+      HNode node = (HNode) iterator.next();
+      visited.add(node);
+      recurIsReachingTo(node, reachToSet, toberemoved, visited);
+    }
+
+    Set<HNode> rSet = new HashSet<HNode>();
+    rSet.addAll(reachToSet);
+    rSet.removeAll(toberemoved);
+    return rSet;
+  }
+
+  private void recurIsReachingTo(HNode curNode, Set<HNode> reachToSet, Set<HNode> toberemoved,
+      Set<HNode> visited) {
+    Set<HNode> inNodeSet = getIncomingNodeSet(curNode);
+
+    for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
+      HNode inNode = (HNode) iterator.next();
+      if (reachToSet.contains(inNode)) {
+        toberemoved.add(inNode);
+      } else if (!visited.contains(inNode)) {
+        visited.add(inNode);
+        recurIsReachingTo(inNode, reachToSet, toberemoved, visited);
       }
     }
 

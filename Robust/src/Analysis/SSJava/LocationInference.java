@@ -452,7 +452,7 @@ public class LocationInference {
       String locName;
       if (!enclosingDesc.equals(GLOBALDESC)) {
         LocationSummary locSummary = getLocationSummary(enclosingDesc);
-//        HierarchyGraph scGraph = getSkeletonCombinationHierarchyGraph(enclosingDesc);
+        // HierarchyGraph scGraph = getSkeletonCombinationHierarchyGraph(enclosingDesc);
         HierarchyGraph scGraph = getSimpleHierarchyGraph(enclosingDesc);
         if (scGraph != null) {
           HNode curNode = scGraph.getCurrentHNode(nodeIdentifier);
@@ -2150,15 +2150,17 @@ public class LocationInference {
     Set<Descriptor> keySet = mapDescriptorToSkeletonHierarchyGraph.keySet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Descriptor desc = (Descriptor) iterator.next();
-      System.out.println("\nSSJAVA: Insering Combination Nodes:" + desc);
+      System.out.println("\nSSJAVA: Inserting Combination Nodes:" + desc);
       HierarchyGraph skeletonGraph = getSkeletonHierarchyGraph(desc);
       HierarchyGraph skeletonGraphWithCombinationNode = skeletonGraph.clone();
       skeletonGraphWithCombinationNode.setName(desc + "_SC");
 
       HierarchyGraph simpleHierarchyGraph = getSimpleHierarchyGraph(desc);
-      System.out.println("Identifying Combination Nodes:");
       skeletonGraphWithCombinationNode.insertCombinationNodesToGraph(simpleHierarchyGraph);
-      skeletonGraphWithCombinationNode.simplifySkeletonCombinationHierarchyGraph();
+      // skeletonGraphWithCombinationNode.insertCombinationNodesToGraph(simpleHierarchyGraph,
+      // skeletonGraph);
+      // skeletonGraphWithCombinationNode.simplifySkeletonCombinationHierarchyGraph();
+      skeletonGraphWithCombinationNode.removeRedundantEdges();
       mapDescriptorToCombineSkeletonHierarchyGraph.put(desc, skeletonGraphWithCombinationNode);
     }
   }
@@ -3301,6 +3303,8 @@ public class LocationInference {
     int numParam = fg.getNumParameters();
     // int size = paramLocTupleHavingInFlowSet.size();
     int size = countFirstDescriptorSetSize(paramLocTupleHavingInFlowSet);
+
+    System.out.println("numParam=" + numParam + "     size=" + size);
 
     // if (!md.isStatic()) {
     //
@@ -4660,7 +4664,7 @@ public class LocationInference {
   private void analyzeFlowIfStatementNode(MethodDescriptor md, SymbolTable nametable,
       IfStatementNode isn, NodeTupleSet implicitFlowTupleSet) {
 
-    System.out.println("analyzeFlowIfStatementNode=" + isn.printNode(0));
+    // System.out.println("analyzeFlowIfStatementNode=" + isn.printNode(0));
 
     NodeTupleSet condTupleNode = new NodeTupleSet();
     analyzeFlowExpressionNode(md, nametable, isn.getCondition(), condTupleNode, null,
