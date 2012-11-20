@@ -293,7 +293,7 @@ public class BuildLattice {
       HNode sharedNode = (HNode) iterator.next();
       TripleItem item = mapSharedNodeToTripleItem.get(sharedNode);
       String nonSharedLocName = mapIntermediateLoc.get(item);
-      
+
       System.out.println("sharedNode=" + sharedNode + "    locName=" + nonSharedLocName);
 
       String newLocName;
@@ -572,6 +572,7 @@ public class BuildLattice {
 
     if (curNode.isSharedNode()) {
       // if the current node is shared location, add a shared location to the lattice later
+      System.out.println("###SHARED ITEM=" + item);
       mapSharedNodeToTripleItem.put(curNode, item);
     } else {
       Set<Descriptor> descSet = simpleHierarchyGraph.getDescSetOfNode(curNode);
@@ -664,6 +665,7 @@ public class BuildLattice {
     String locName = mapIntermediateLoc.get(item);
     if (curNode.isSharedNode()) {
       // if the current node is shared location, add a shared location to the lattice later
+      System.out.println("###SHARED ITEM=" + item);
       mapSharedNodeToTripleItem.put(curNode, item);
     } else {
       Set<Descriptor> descSet = simpleHierarchyGraph.getDescSetOfNode(curNode);

@@ -155,6 +155,14 @@ public class SSJavaAnalysis {
       doDefinitelyWrittenCheck();
       doLoopCheck();
     }
+
+    for (Iterator iterator = annotationRequireSet.iterator(); iterator.hasNext();) {
+      MethodDescriptor md = (MethodDescriptor) iterator.next();
+      MethodLattice<String> locOrder = getMethodLattice(md);
+      writeLatticeDotFile(md.getClassDesc(), md, getMethodLattice(md));
+      // System.out.println("~~~\t" + md.getClassDesc() + "_" + md + "\t"
+      // + locOrder.getKeySet().size());
+    }
   }
 
   public void init() {
@@ -314,6 +322,7 @@ public class SSJavaAnalysis {
           if (state.SSJAVADEBUG) {
             // generate lattice dot file
             writeLatticeDotFile(cd, null, locOrder);
+            System.out.println("~~~\t" + cd + "\t" + locOrder.getKeySet().size());
           }
 
         } else if (marker.equals(METHODDEFAULT)) {
@@ -321,6 +330,7 @@ public class SSJavaAnalysis {
               new MethodLattice<String>(SSJavaAnalysis.TOP, SSJavaAnalysis.BOTTOM);
           cd2methodDefault.put(cd, locOrder);
           parseMethodDefaultLatticeDefinition(cd, an.getValue(), locOrder);
+          // writeLatticeDotFile(cd, null, locOrder, "METHOD_DEFAULT");
         }
       }
 
@@ -339,6 +349,7 @@ public class SSJavaAnalysis {
                     new MethodLattice<String>(SSJavaAnalysis.TOP, SSJavaAnalysis.BOTTOM);
                 md2lattice.put(md, locOrder);
                 parseMethodDefaultLatticeDefinition(cd, an.getValue(), locOrder);
+                writeLatticeDotFile(cd, md, locOrder, "");
               } else if (an.getMarker().equals(TERMINATE)) {
                 // developer explicitly wants to skip loop termination analysis
                 String value = an.getValue();

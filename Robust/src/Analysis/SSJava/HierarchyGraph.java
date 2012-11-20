@@ -1222,6 +1222,8 @@ public class HierarchyGraph {
       graphName += "_PAPER";
     }
 
+    // System.out.println("***graphName=" + graphName + "   node siz=" + nodeSet.size());
+
     try {
       BufferedWriter bw = new BufferedWriter(new FileWriter(graphName + ".dot"));
 
