@@ -189,7 +189,7 @@ public class SSJavaAnalysis {
   }
 
   private void inference() {
-    LocationInference inferEngine = new LocationInference(this, state);
+    LocationInference inferEngine = new LocationInference(this, state, tu);
     inferEngine.inference();
   }
 

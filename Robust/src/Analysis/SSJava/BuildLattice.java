@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.MethodDescriptor;
 import IR.NameDescriptor;
@@ -17,6 +18,8 @@ public class BuildLattice {
   private Map<HNode, TripleItem> mapSharedNodeToTripleItem;
   private Map<HNode, Integer> mapHNodeToHighestIndex;
 
+  private Map<Descriptor, Map<TripleItem, String>> mapDescToIntermediateLocMap;
+
   private Map<Pair<HNode, HNode>, Integer> mapItemToHighestIndex;
 
   public BuildLattice(LocationInference infer) {
@@ -24,7 +27,7 @@ public class BuildLattice {
     this.mapSharedNodeToTripleItem = new HashMap<HNode, TripleItem>();
     this.mapHNodeToHighestIndex = new HashMap<HNode, Integer>();
     this.mapItemToHighestIndex = new HashMap<Pair<HNode, HNode>, Integer>();
-
+    this.mapDescToIntermediateLocMap = new HashMap<Descriptor, Map<TripleItem, String>>();
   }
 
   public SSJavaLattice<String> buildLattice(Descriptor desc) {
@@ -64,6 +67,27 @@ public class BuildLattice {
     SSJavaLattice<String> lattice = buildLattice(desc, basisSet, inputGraph, locSummary, mapImSucc);
     return lattice;
 
+  }
+
+  public void setIntermediateLocMap(Descriptor desc, Map<TripleItem, String> map) {
+    mapDescToIntermediateLocMap.put(desc, map);
+  }
+
+  public Map<TripleItem, String> getIntermediateLocMap(Descriptor desc) {
+    if (!mapDescToIntermediateLocMap.containsKey(desc)) {
+      mapDescToIntermediateLocMap.put(desc, new HashMap<TripleItem, String>());
+    }
+    return mapDescToIntermediateLocMap.get(desc);
+  }
+
+  private Descriptor getParent(Descriptor desc) {
+    if (desc instanceof MethodDescriptor) {
+      MethodDescriptor md = (MethodDescriptor) desc;
+      ClassDescriptor cd = md.getClassDesc();
+      return infer.getParentMethodDesc(cd, md);
+    } else {
+      return ((ClassDescriptor) desc).getSuperDesc();
+    }
   }
 
   private SSJavaLattice<String> buildLattice(Descriptor desc, BasisSet basisSet,
@@ -170,6 +194,34 @@ public class BuildLattice {
   public SSJavaLattice<String> insertIntermediateNodesToStraightLine(Descriptor desc,
       SSJavaLattice<String> skeletonLattice) {
 
+    // ////
+    // copy nodes/edges from the parent method/class if possible
+    SSJavaLattice<String> lattice = skeletonLattice.clone();
+
+    Descriptor parentDesc = getParent(desc);
+    if (parentDesc != null) {
+      SSJavaLattice<String> parentLattice = infer.getLattice(parentDesc);
+
+      Map<String, Set<String>> parentMap = parentLattice.getTable();
+      Set<String> parentKeySet = parentMap.keySet();
+      for (Iterator iterator = parentKeySet.iterator(); iterator.hasNext();) {
+        String parentKey = (String) iterator.next();
+        Set<String> parentValueSet = parentMap.get(parentKey);
+        for (Iterator iterator2 = parentValueSet.iterator(); iterator2.hasNext();) {
+          String value = (String) iterator2.next();
+          lattice.put(parentKey, value);
+        }
+      }
+
+      Set<String> parentSharedLocSet = parentLattice.getSharedLocSet();
+      for (Iterator iterator = parentSharedLocSet.iterator(); iterator.hasNext();) {
+        String parentSharedLoc = (String) iterator.next();
+        lattice.addSharedLoc(parentSharedLoc);
+      }
+    }
+
+    // ////
+
     // perform DFS that starts from each skeleton/combination node and ends by another
     // skeleton/combination node
 
@@ -179,13 +231,12 @@ public class BuildLattice {
     HierarchyGraph scGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
     LocationSummary locSummary = infer.getLocationSummary(desc);
 
-    SSJavaLattice<String> lattice = skeletonLattice.clone();
-
     Set<HNode> visited = new HashSet<HNode>();
 
     Set<HNode> nodeSet = simpleGraph.getNodeSet();
 
-    Map<TripleItem, String> mapIntermediateLoc = new HashMap<TripleItem, String>();
+    Map<TripleItem, String> mapIntermediateLoc = getIntermediateLocMap(desc);
+    // Map<TripleItem, String> mapIntermediateLoc = new HashMap<TripleItem, String>();
 
     // System.out.println("*insert=" + desc);
     // System.out.println("***nodeSet=" + nodeSet);

@@ -181,7 +181,7 @@ public class FlowGraph {
       FlowNode flowNode = (FlowNode) iterator.next();
       edgeSet.addAll(getOutEdgeSet(flowNode));
     }
-
+    System.out.println("EDGESET=" + edgeSet);
     return edgeSet;
   }
 
@@ -194,6 +194,7 @@ public class FlowGraph {
   public Set<FlowNode> getNodeSet() {
     Set<FlowNode> set = new HashSet<FlowNode>();
     set.addAll(mapDescTupleToInferNode.values());
+    System.out.println("NODESET=" + set);
     return set;
   }
 
@@ -875,4 +876,62 @@ public class FlowGraph {
 
   }
 
+  public void removeNode(FlowNode node) {
+
+    NTuple<Descriptor> tuple = node.getCurrentDescTuple();
+
+    Set<FlowEdge> inEdgeSet = getInEdgeSet(node);
+    for (Iterator iterator = inEdgeSet.iterator(); iterator.hasNext();) {
+      FlowEdge flowEdge = (FlowEdge) iterator.next();
+      if (flowEdge.getEndTuple().equals(tuple)) {
+
+        Set<FlowEdge> outSet = getOutEdgeSet(getFlowNode(flowEdge.getInitTuple()));
+        Set<FlowEdge> toberemoved = new HashSet<FlowEdge>();
+        for (Iterator iterator2 = outSet.iterator(); iterator2.hasNext();) {
+          FlowEdge outEdge = (FlowEdge) iterator2.next();
+          if (outEdge.getEndTuple().equals(tuple)) {
+            toberemoved.add(outEdge);
+          }
+        }
+        outSet.removeAll(toberemoved);
+      }
+    }
+
+    Set<FlowEdge> outEdgeSet = getOutEdgeSet(node);
+    for (Iterator iterator = outEdgeSet.iterator(); iterator.hasNext();) {
+      FlowEdge flowEdge = (FlowEdge) iterator.next();
+      if (flowEdge.getInitTuple().equals(tuple)) {
+
+        Set<FlowEdge> inSet = getInEdgeSet(getFlowNode(flowEdge.getEndTuple()));
+        Set<FlowEdge> toberemoved = new HashSet<FlowEdge>();
+        for (Iterator iterator2 = inSet.iterator(); iterator2.hasNext();) {
+          FlowEdge inEdge = (FlowEdge) iterator2.next();
+          if (inEdge.getInitTuple().equals(tuple)) {
+            toberemoved.add(inEdge);
+          }
+        }
+        inSet.removeAll(toberemoved);
+      }
+    }
+
+    for (Iterator iterator = getNodeSet().iterator(); iterator.hasNext();) {
+      FlowNode flowNode = (FlowNode) iterator.next();
+      Set<FlowEdge> outSet = getOutEdgeSet(flowNode);
+      Set<FlowEdge> toberemoved = new HashSet<FlowEdge>();
+      for (Iterator iterator2 = outSet.iterator(); iterator2.hasNext();) {
+        FlowEdge flowEdge = (FlowEdge) iterator2.next();
+        if (flowEdge.getInitTuple().equals(tuple) || flowEdge.getEndTuple().equals(tuple)) {
+          toberemoved.add(flowEdge);
+        }
+      }
+      outSet.removeAll(toberemoved);
+    }
+
+    mapFlowNodeToOutEdgeSet.remove(node);
+    mapFlowNodeToInEdgeSet.remove(node);
+    System.out.println("REMOVING NODE=" + mapDescTupleToInferNode.get(tuple) + " from tuple="
+        + tuple);
+    mapDescTupleToInferNode.remove(tuple);
+    System.out.println("mapDescTupleToInferNode=" + mapDescTupleToInferNode);
+  }
 }

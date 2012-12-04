@@ -17,6 +17,7 @@ public class TypeUtil {
   State state;
   Hashtable supertable;
   Hashtable subclasstable;
+  Hashtable directSubClassTable;
   BuildIR bir;
 
   // for interfaces
@@ -284,6 +285,7 @@ NextMethod:
 
   public void createFullTable() {
     subclasstable=new Hashtable();
+    directSubClassTable=new Hashtable();
     HashSet tovisit=new HashSet();
     HashSet visited=new HashSet();
 
@@ -304,6 +306,14 @@ NextMethod:
           }
         }
       }
+
+      if(tmp!=null){
+        if(!directSubClassTable.containsKey(tmp)){
+          directSubClassTable.put(tmp, new HashSet());
+        }
+        ((Set)directSubClassTable.get(tmp)).add(cd);        
+      }
+      
 
       while(tmp!=null) {
         if (!subclasstable.containsKey(tmp))
@@ -345,7 +355,12 @@ NextMethod:
       }
     }
   }
-
+  
+  public Set getDirectSubClasses(ClassDescriptor cd) {
+    System.out.println("$$$cd="+cd+"  children="+directSubClassTable.get(cd));
+    return (Set)directSubClassTable.get(cd);
+  }
+  
   public Set getSubClasses(ClassDescriptor cd) {
     return (Set)subclasstable.get(cd);
   }

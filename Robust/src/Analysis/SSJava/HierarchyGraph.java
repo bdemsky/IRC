@@ -1216,6 +1216,7 @@ public class HierarchyGraph {
   public void writeGraph(boolean isSimple) {
 
     String graphName = "hierarchy" + name;
+    System.out.println("#GRAPHNAME=" + graphName);
     graphName = graphName.replaceAll("[\\W]", "");
 
     if (isSimple) {
@@ -1311,6 +1312,7 @@ public class HierarchyGraph {
     if (node.isMergeNode()) {
       nodeName = node.getNamePropertyString();
       Set<HNode> mergeSet = mapMergeNodetoMergingSet.get(node);
+      System.out.println("node=" + node + "   mergeSet=" + mergeSet);
       nodeName += ":" + convertMergeSetToString(mergeSet);
     } else {
       nodeName = node.getNamePropertyString();
