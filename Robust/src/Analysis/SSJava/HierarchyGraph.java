@@ -298,21 +298,16 @@ public class HierarchyGraph {
 
   }
 
-  public void simplifyHierarchyGraph() {
+  public void simplifyHierarchyGraph(LocationInference infer) {
     removeRedundantEdges();
-    combineRedundantNodes(false);
+    combineRedundantNodes(false, infer);
   }
 
-  public void simplifySkeletonCombinationHierarchyGraph() {
-    removeRedundantEdges();
-    combineRedundantNodes(true);
-  }
-
-  public void combineRedundantNodes(boolean onlyCombinationNodes) {
+  public void combineRedundantNodes(boolean onlyCombinationNodes, LocationInference infer) {
     // Combine field/parameter nodes who have the same set of incoming/outgoing edges.
     boolean isUpdated = false;
     do {
-      isUpdated = combineTwoRedundatnNodes(onlyCombinationNodes);
+      isUpdated = combineTwoRedundatnNodes(onlyCombinationNodes, infer);
     } while (isUpdated);
   }
 
@@ -330,7 +325,7 @@ public class HierarchyGraph {
     return mapHNodeToOutgoingSet.get(node);
   }
 
-  private boolean combineTwoRedundatnNodes(boolean onlyCombinationNodes) {
+  private boolean combineTwoRedundatnNodes(boolean onlyCombinationNodes, LocationInference infer) {
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode node1 = (HNode) iterator.next();
 
@@ -363,9 +358,16 @@ public class HierarchyGraph {
               && outgoingNodeSet1.equals(outgoingNodeSet2)) {
             // need to merge node1 and node2
 
+            // ///////////////
+            // merge two nodes only if every hierarchy graph in the inheritance hierarchy
+            // that includes both nodes allows the merging of them...
             Set<HNode> mergeSet = new HashSet<HNode>();
             mergeSet.add(node1);
             mergeSet.add(node2);
+            infer.isValidMergeInheritanceCheck(desc, mergeSet);
+
+            // ///////////////
+
             mergeNodes(mergeSet, onlyCombinationNodes);
             return true;
           }

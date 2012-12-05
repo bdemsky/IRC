@@ -135,8 +135,6 @@ public class LocationInference {
 
   private Map<MethodDescriptor, Set<MethodDescriptor>> mapHighestOverriddenMethodDescToMethodDescSet;
 
-  private Map<MethodDescriptor, Set<NTuple<Descriptor>>> mapHighestOverriddenMethodDescToSetHigherThanRLoc;
-
   private Map<MethodDescriptor, NTuple<Descriptor>> mapHighestOverriddenMethodDescToReturnLocTuple;
 
   private Map<MethodDescriptor, NTuple<Descriptor>> mapHighestOverriddenMethodDescToPCLocTuple;
@@ -232,9 +230,6 @@ public class LocationInference {
     this.mapMethodDescriptorToCompositeReturnCase = new HashMap<MethodDescriptor, Boolean>();
 
     mapMethodDescToHighestOverriddenMethodDesc = new HashMap<MethodDescriptor, MethodDescriptor>();
-
-    mapHighestOverriddenMethodDescToSetHigherThanRLoc =
-        new HashMap<MethodDescriptor, Set<NTuple<Descriptor>>>();
 
     mapHighestOverriddenMethodDescToSetLowerThanPCLoc =
         new HashMap<MethodDescriptor, Set<NTuple<Descriptor>>>();
@@ -645,10 +640,6 @@ public class LocationInference {
 
   }
 
-  private void addTupleLowerThanPCLoc(NTuple<Descriptor> tuple) {
-
-  }
-
   private MethodDescriptor getHighestOverriddenMethod(ClassDescriptor curClassDesc,
       MethodDescriptor curMethodDesc) {
 
@@ -1044,46 +1035,6 @@ public class LocationInference {
       translateCompositeLocationAssignmentToFlowGraph(callee);
     }
 
-  }
-
-  private CompositeLocation translateArgCompLocToParamCompLoc(MethodInvokeNode min,
-      CompositeLocation argCompLoc) {
-
-    System.out.println("--------translateArgCompLocToParamCompLoc argCompLoc=" + argCompLoc);
-    MethodDescriptor mdCallee = min.getMethod();
-    FlowGraph calleeFlowGraph = getFlowGraph(mdCallee);
-
-    NTuple<Location> argLocTuple = argCompLoc.getTuple();
-    Location argLocalLoc = argLocTuple.get(0);
-
-    Map<Integer, NTuple<Descriptor>> mapIdxToArgTuple = mapMethodInvokeNodeToArgIdxMap.get(min);
-    Set<Integer> idxSet = mapIdxToArgTuple.keySet();
-    for (Iterator iterator2 = idxSet.iterator(); iterator2.hasNext();) {
-      Integer idx = (Integer) iterator2.next();
-
-      if (idx == 0 && !min.getMethod().isStatic()) {
-        continue;
-      }
-
-      NTuple<Descriptor> argTuple = mapIdxToArgTuple.get(idx);
-      if (argTuple.size() > 0 && argTuple.get(0).equals(argLocalLoc.getLocDescriptor())) {
-        // it matches with the current argument composite location
-        // so what is the corresponding parameter local descriptor?
-        FlowNode paramNode = calleeFlowGraph.getParamFlowNode(idx);
-        // System.out.println("----------found paramNode=" + paramNode);
-        NTuple<Descriptor> paramDescTuple = paramNode.getCurrentDescTuple();
-
-        NTuple<Location> newParamTupleFromArgTuple = translateToLocTuple(mdCallee, paramDescTuple);
-        for (int i = 1; i < argLocTuple.size(); i++) {
-          newParamTupleFromArgTuple.add(argLocTuple.get(i));
-        }
-
-        // System.out.println("-----------newParamTuple=" + newParamTupleFromArgTuple);
-        return new CompositeLocation(newParamTupleFromArgTuple);
-
-      }
-    }
-    return null;
   }
 
   private void addAddtionalOrderingConstraints(MethodDescriptor mdCaller) {
@@ -2148,20 +2099,6 @@ public class LocationInference {
 
   }
 
-  private boolean containsClassDesc(ClassDescriptor cd, NTuple<Location> prefixLocTuple) {
-    for (int i = 0; i < prefixLocTuple.size(); i++) {
-      Location loc = prefixLocTuple.get(i);
-      Descriptor locDesc = loc.getLocDescriptor();
-      if (locDesc != null) {
-        ClassDescriptor type = getClassTypeDescriptor(locDesc);
-        if (type != null && type.equals(cd)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
   private GlobalFlowGraph constructSubGlobalFlowGraph(FlowGraph flowGraph) {
 
     MethodDescriptor md = flowGraph.getMethodDescriptor();
@@ -2438,6 +2375,9 @@ public class LocationInference {
       System.out.println("\nSSJAVA: generate method summary: " + md);
 
       FlowGraph flowGraph = getFlowGraph(md);
+      if (flowGraph == null) {
+        continue;
+      }
       MethodSummary methodSummary = getMethodSummary(md);
 
       HierarchyGraph scGraph = getSkeletonCombinationHierarchyGraph(md);
@@ -2551,31 +2491,6 @@ public class LocationInference {
     }
 
     return false;
-  }
-
-  private CompositeLocation translateCompositeLocation(CompositeLocation compLoc) {
-    CompositeLocation newCompLoc = new CompositeLocation();
-
-    // System.out.println("compLoc=" + compLoc);
-    for (int i = 0; i < compLoc.getSize(); i++) {
-      Location loc = compLoc.get(i);
-      Descriptor enclosingDescriptor = loc.getDescriptor();
-      Descriptor locDescriptor = loc.getLocDescriptor();
-
-      HNode hnode = getHierarchyGraph(enclosingDescriptor).getHNode(locDescriptor);
-      // System.out.println("-hnode=" + hnode + "    from=" + locDescriptor +
-      // " enclosingDescriptor="
-      // + enclosingDescriptor);
-      // System.out.println("-getLocationSummary(enclosingDescriptor)="
-      // + getLocationSummary(enclosingDescriptor));
-      String locName = getLocationSummary(enclosingDescriptor).getLocationName(hnode.getName());
-      // System.out.println("-locName=" + locName);
-      Location newLoc = new Location(enclosingDescriptor, locName);
-      newLoc.setLocDescriptor(locDescriptor);
-      newCompLoc.addLocation(newLoc);
-    }
-
-    return newCompLoc;
   }
 
   private void debug_writeLattices() {
@@ -2787,11 +2702,122 @@ public class LocationInference {
       HierarchyGraph skeletonGraph = simpleGraph.generateSkeletonGraph();
       skeletonGraph.setMapDescToHNode(simpleGraph.getMapDescToHNode());
       skeletonGraph.setMapHNodeToDescSet(simpleGraph.getMapHNodeToDescSet());
-      skeletonGraph.simplifyHierarchyGraph();
-      // skeletonGraph.combineRedundantNodes(false);
-      // skeletonGraph.removeRedundantEdges();
+      skeletonGraph.simplifyHierarchyGraph(this);
       mapDescriptorToSkeletonHierarchyGraph.put(desc, skeletonGraph);
     }
+  }
+
+  private void recurUpAccumulateInheritanceDesc(Descriptor curDesc, Set<Descriptor> set) {
+
+    if (curDesc instanceof ClassDescriptor) {
+      ClassDescriptor cd = (ClassDescriptor) curDesc;
+      ClassDescriptor parentClassDesc = cd.getSuperDesc();
+      if (parentClassDesc != null && !parentClassDesc.equals(rootClassDescriptor)) {
+        set.add(parentClassDesc);
+        recurUpAccumulateInheritanceDesc(parentClassDesc, set);
+      }
+    } else {
+      MethodDescriptor md = (MethodDescriptor) curDesc;
+      ClassDescriptor cd = md.getClassDesc();
+
+      // traverse up
+      ClassDescriptor parentClassDesc = cd.getSuperDesc();
+      if (parentClassDesc != null && !parentClassDesc.equals(rootClassDescriptor)) {
+
+        Set<MethodDescriptor> methodDescSet =
+            parentClassDesc.getMethodTable().getSet(md.getSymbol());
+        for (Iterator iterator = methodDescSet.iterator(); iterator.hasNext();) {
+          MethodDescriptor parentMethodDesc = (MethodDescriptor) iterator.next();
+          if (parentMethodDesc.matches(md)) {
+            set.add(parentMethodDesc);
+            recurUpAccumulateInheritanceDesc(parentMethodDesc, set);
+          }
+        }
+      }
+
+    }
+
+  }
+
+  private void recurDownAccumulateInheritanceDesc(Descriptor curDesc, Set<Descriptor> set) {
+
+    if (curDesc instanceof ClassDescriptor) {
+      ClassDescriptor cd = (ClassDescriptor) curDesc;
+      ClassDescriptor parentClassDesc = cd.getSuperDesc();
+      Set<ClassDescriptor> directSubClasses = tu.getDirectSubClasses(cd);
+      for (Iterator iterator = directSubClasses.iterator(); iterator.hasNext();) {
+        ClassDescriptor child = (ClassDescriptor) iterator.next();
+        recurDownAccumulateInheritanceDesc(child, set);
+      }
+    } else {
+      MethodDescriptor md = (MethodDescriptor) curDesc;
+      ClassDescriptor cd = md.getClassDesc();
+
+      // traverse down
+      Set<ClassDescriptor> directSubClasses = tu.getDirectSubClasses(cd);
+      for (Iterator iterator = directSubClasses.iterator(); iterator.hasNext();) {
+        ClassDescriptor child = (ClassDescriptor) iterator.next();
+
+        Set<MethodDescriptor> methodDescSet = child.getMethodTable().getSet(md.getSymbol());
+        for (Iterator iterator2 = methodDescSet.iterator(); iterator2.hasNext();) {
+          MethodDescriptor childMethodDesc = (MethodDescriptor) iterator2.next();
+          if (childMethodDesc.matches(md)) {
+            set.add(childMethodDesc);
+            recurDownAccumulateInheritanceDesc(childMethodDesc, set);
+          }
+        }
+      }
+
+    }
+
+  }
+
+  private void accumulateInheritanceDesc(Descriptor curDesc, Set<Descriptor> set) {
+
+    recurUpAccumulateInheritanceDesc(curDesc, set);
+    recurDownAccumulateInheritanceDesc(curDesc, set);
+
+  }
+
+  public boolean isValidMergeInheritanceCheck(Descriptor desc, Set<HNode> mergeSet) {
+
+    // set up inheritance chain set...
+    Set<Descriptor> inheritanceDescSet = new HashSet<Descriptor>();
+    recurUpAccumulateInheritanceDesc(desc, inheritanceDescSet);
+
+    nextgraph: for (Iterator iterator = inheritanceDescSet.iterator(); iterator.hasNext();) {
+      Descriptor inheritDesc = (Descriptor) iterator.next();
+
+      if (!desc.equals(inheritDesc)) {
+        HierarchyGraph graph = getSkeletonCombinationHierarchyGraph(inheritDesc);
+
+        // first check whether this graph includes all elements of the merge set
+        for (Iterator iterator2 = mergeSet.iterator(); iterator2.hasNext();) {
+          HNode node = (HNode) iterator2.next();
+          if (!graph.contains(node)) {
+            continue nextgraph;
+          }
+        }
+
+        HNode firstNode = mergeSet.iterator().next();
+
+        Set<HNode> incomingNode = graph.getIncomingNodeSet(firstNode);
+        Set<HNode> outgoingNode = graph.getOutgoingNodeSet(firstNode);
+
+        for (Iterator iterator2 = mergeSet.iterator(); iterator2.hasNext();) {
+          HNode node = (HNode) iterator2.next();
+
+          if (!graph.getIncomingNodeSet(node).equals(incomingNode)
+              || !graph.getOutgoingNodeSet(node).equals(outgoingNode)) {
+            return false;
+          }
+
+        }
+      }
+
+    }
+
+    return true;
   }
 
   private void debug_writeHierarchyDotFiles() {
