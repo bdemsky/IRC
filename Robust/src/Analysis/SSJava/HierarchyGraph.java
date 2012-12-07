@@ -1218,7 +1218,6 @@ public class HierarchyGraph {
   public void writeGraph(boolean isSimple) {
 
     String graphName = "hierarchy" + name;
-    System.out.println("#GRAPHNAME=" + graphName);
     graphName = graphName.replaceAll("[\\W]", "");
 
     if (isSimple) {

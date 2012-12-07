@@ -49,6 +49,10 @@ public class FlowEdge {
     this.initTuple = initTuple;
   }
 
+  public void setEndTuple(NTuple<Descriptor> endTuple) {
+    this.endTuple = endTuple;
+  }
+
   public int hashCode() {
     return src.hashCode() + dst.hashCode() + initTuple.hashCode() + endTuple.hashCode();
   }

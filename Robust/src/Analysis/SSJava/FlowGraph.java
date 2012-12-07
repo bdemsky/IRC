@@ -194,7 +194,6 @@ public class FlowGraph {
   public Set<FlowNode> getNodeSet() {
     Set<FlowNode> set = new HashSet<FlowNode>();
     set.addAll(mapDescTupleToInferNode.values());
-    System.out.println("NODESET=" + set);
     return set;
   }
 
@@ -873,6 +872,29 @@ public class FlowGraph {
     }
 
     edgeSet.removeAll(toberemoved);
+
+  }
+
+  public void updateTuple(FlowNode node, NTuple<Descriptor> newTuple) {
+
+    NTuple<Descriptor> curTuple = node.getCurrentDescTuple();
+    Set<FlowEdge> inEdgeSet = getInEdgeSet(node);
+    for (Iterator iterator = inEdgeSet.iterator(); iterator.hasNext();) {
+      FlowEdge flowEdge = (FlowEdge) iterator.next();
+      if (flowEdge.getEndTuple().equals(curTuple)) {
+        flowEdge.setEndTuple(newTuple);
+      }
+    }
+
+    Set<FlowEdge> outEdgeSet = getOutEdgeSet(node);
+    for (Iterator iterator = outEdgeSet.iterator(); iterator.hasNext();) {
+      FlowEdge flowEdge = (FlowEdge) iterator.next();
+      if (flowEdge.getInitTuple().equals(curTuple)) {
+        flowEdge.setInitTuple(newTuple);
+      }
+    }
+
+    node.setBaseTuple(newTuple);
 
   }
 
