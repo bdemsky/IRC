@@ -138,9 +138,9 @@ public class SSJavaAnalysis {
     doMethodAnnotationCheck();
 
     if (state.SSJAVA && !state.SSJAVAINFER) {
+      init();
       computeLinearTypeCheckMethodSet();
       doLinearTypeCheck();
-      init();
     }
 
     if (state.SSJAVADEBUG) {
@@ -266,6 +266,8 @@ public class SSJavaAnalysis {
         linearTypeCheckMethodSet.add(md);
       }
     }
+    
+    linearTypeCheckMethodSet.addAll(sortedDescriptors);
 
   }
 

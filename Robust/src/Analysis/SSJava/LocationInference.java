@@ -312,8 +312,6 @@ public class LocationInference {
     buildInheritanceTree();
     calculateReturnPCLocInheritance();
 
-//    System.exit(0);
-
     constructHierarchyGraph();
 
     addInheritanceConstraintsToHierarchyGraph();
@@ -389,12 +387,14 @@ public class LocationInference {
       NTuple<Descriptor> highestRETURNLocDescTuple =
           mapHighestOverriddenMethodDescToReturnLocTuple.get(highestMethodDesc);
 
-      System.out.println("---updateFlowGraphPCReturnLocInheritance=" + highestMethodDesc);
+      System.out.println("\n$$$$$$$$$$$$$$$$updateFlowGraphPCReturnLocInheritance="
+          + highestMethodDesc);
       System.out.println("-----highestPCLoc=" + highestPCLocDescTuple);
       System.out.println("-----highestRETURNLoc=" + highestRETURNLocDescTuple);
 
       for (Iterator iterator2 = methodDescSet.iterator(); iterator2.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) iterator2.next();
+        System.out.println("\n --------MD=" + md);
         FlowGraph flowGraph = getFlowGraph(md);
 
         MethodSummary summary = getMethodSummary(md);
@@ -423,10 +423,8 @@ public class LocationInference {
             FlowNode pcFlowNode = flowGraph.getFlowNode(curPCDescTuple);
             flowGraph.updateTuple(pcFlowNode, newPCDescTuple);
             // flowGraph.removeNode(pcFlowNode);
-            System.out.println("####UPDATE PCLOC=" + newPCDescTuple);
             Set<NTuple<Descriptor>> descSetLowerThanPCLoc =
                 mapHighestOverriddenMethodDescToSetLowerThanPCLoc.get(highestMethodDesc);
-            System.out.println("####descSetLowerThanPCLoc=" + descSetLowerThanPCLoc);
             for (Iterator iterator3 = descSetLowerThanPCLoc.iterator(); iterator3.hasNext();) {
               NTuple<Descriptor> lowerNTuple = (NTuple<Descriptor>) iterator3.next();
               flowGraph.addValueFlowEdge(newPCDescTuple, lowerNTuple);
@@ -434,8 +432,6 @@ public class LocationInference {
             CompositeLocation newPCCompLoc =
                 new CompositeLocation(translateToLocTuple(md, newPCDescTuple));
             summary.setPCLoc(newPCCompLoc);
-          } else {
-            System.out.println("####DO NOTHING!:)");
           }
 
         }
@@ -444,7 +440,6 @@ public class LocationInference {
         if (highestRETURNLocDescTuple != null) {
           CompositeLocation curRETURNLoc = summary.getRETURNLoc();
           NTuple<Descriptor> curReturnDescTuple = translateToDescTuple(curRETURNLoc.getTuple());
-          System.out.println("curRETURNLoc=" + curRETURNLoc);
 
           if (!curReturnDescTuple.equals(highestRETURNLocDescTuple)) {
             // handle the case that RETURNLOC is started with 'this'...
@@ -457,12 +452,10 @@ public class LocationInference {
             }
 
             FlowNode returnFlowNode = flowGraph.getFlowNode(curReturnDescTuple);
-            System.out.println("####UPDATE RETURNLOC=" + newRETURNLocDescTuple);
             flowGraph.updateTuple(returnFlowNode, newRETURNLocDescTuple);
 
             Set<NTuple<Descriptor>> descSetHigherThanRETURNLoc =
                 mapHighestOverriddenMethodDescToSetHigherThanRETURNLoc.get(highestMethodDesc);
-            System.out.println("####descSetLowerThanPCLoc=" + descSetHigherThanRETURNLoc);
             for (Iterator iterator3 = descSetHigherThanRETURNLoc.iterator(); iterator3.hasNext();) {
               NTuple<Descriptor> higherNTuple = (NTuple<Descriptor>) iterator3.next();
               flowGraph.addValueFlowEdge(higherNTuple, newRETURNLocDescTuple);
@@ -470,20 +463,9 @@ public class LocationInference {
 
             CompositeLocation newRETURNLocCompLoc =
                 new CompositeLocation(translateToLocTuple(md, newRETURNLocDescTuple));
-            summary.setPCLoc(newRETURNLocCompLoc);
-            System.out.println("md=" + md + "###newRETURNLocCompLoc=" + newRETURNLocCompLoc);
-          } else {
-            System.out.println("####DO NOTHING!:)");
+            summary.setRETURNLoc(newRETURNLocCompLoc);
           }
         }
-
-
-//        try {
-//          flowGraph.writeGraph("2");
-//        } catch (IOException e) {
-//          // TODO Auto-generated catch block
-//          e.printStackTrace();
-//        }
       }
     }
   }
@@ -539,10 +521,8 @@ public class LocationInference {
               if (flowGraph.getReachableSetFrom(pcFlowNode.getCurrentDescTuple().subList(0, 1))
                   .contains(paramNode)) {
                 count++;
-                System.out.println("-------" + pcFlowNode + " -> " + paramNode);
               }
             }
-            System.out.println("$$$ pcLOC=" + pcLOC + "    count higher=" + count);
             mapMethodDescToParamCount.put(md, count);
 
           } else {
@@ -559,8 +539,6 @@ public class LocationInference {
               FlowNode flowNode = (FlowNode) iterator3.next();
               descTupleSetLowerThanPC.add(flowNode.getCurrentDescTuple());
             }
-            System.out.println("###TOP CASE");
-            System.out.println("descTupleSetLowerThanPC=" + descTupleSetLowerThanPC);
             mapHighestOverriddenMethodDescToSetLowerThanPCLoc.put(highestMethodDesc,
                 descTupleSetLowerThanPC);
 
@@ -568,7 +546,6 @@ public class LocationInference {
           }
         }
 
-        System.out.println("#INDENTIFY WHICH METHOD...");
         // identify which method in the inheritance chain has the highest PCLOC
         // basically, finds a method that has the highest count or TOP location
         int highestCount = -1;
@@ -598,8 +575,6 @@ public class LocationInference {
               reachableParamNodeSet.add(flowNode);
             }
 
-            System.out.println(flowNode + " is PARAM="
-                + flowGraph.isParameter(flowNode.getCurrentDescTuple()));
           }
 
           Set<NTuple<Descriptor>> descTupleSetLowerThanPC = new HashSet<NTuple<Descriptor>>();
@@ -615,11 +590,11 @@ public class LocationInference {
 
       }
 
-      System.out.println("####################################");
-      System.out.println("  highest=" + highestMethodDesc + "  HIGHEST PCLOC="
-          + mapHighestOverriddenMethodDescToPCLocTuple.get(highestMethodDesc));
-      System.out.println("  setLowerThanPCLoc="
-          + mapHighestOverriddenMethodDescToSetLowerThanPCLoc.get(highestMethodDesc));
+      // System.out.println("####################################");
+      // System.out.println("  highest=" + highestMethodDesc + "  HIGHEST PCLOC="
+      // + mapHighestOverriddenMethodDescToPCLocTuple.get(highestMethodDesc));
+      // System.out.println("  setLowerThanPCLoc="
+      // + mapHighestOverriddenMethodDescToSetLowerThanPCLoc.get(highestMethodDesc));
     }
 
   }
@@ -631,86 +606,79 @@ public class LocationInference {
     Map<MethodDescriptor, Integer> mapMethodDescToParamCount =
         new HashMap<MethodDescriptor, Integer>();
 
-    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+    next: for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       MethodDescriptor highestMethodDesc = (MethodDescriptor) iterator.next();
 
-      NTuple<Descriptor> tempTuple = null;
+      Set<MethodDescriptor> methodDescSet =
+          mapHighestOverriddenMethodDescToMethodDescSet.get(highestMethodDesc);
 
-      if (getMethodSummary(highestMethodDesc).getRETURNLoc() != null) {
+      if (methodDescSet.size() > 1 && getMethodSummary(highestMethodDesc).getRETURNLoc() != null) {
+      } else {
+        continue next;
+      }
 
-        System.out.println("---calculateLowestReturnLocInheritance=" + highestMethodDesc);
+      for (Iterator iterator2 = methodDescSet.iterator(); iterator2.hasNext();) {
+        MethodDescriptor md = (MethodDescriptor) iterator2.next();
 
-        Set<MethodDescriptor> methodDescSet =
-            mapHighestOverriddenMethodDescToMethodDescSet.get(highestMethodDesc);
+        FlowGraph flowGraph = getFlowGraph(md);
+        Set<FlowNode> paramNodeSet = flowGraph.getParamFlowNodeSet();
 
-        for (Iterator iterator2 = methodDescSet.iterator(); iterator2.hasNext();) {
-          MethodDescriptor md = (MethodDescriptor) iterator2.next();
+        CompositeLocation returnLoc = getMethodSummary(md).getRETURNLoc();
 
-          FlowGraph flowGraph = getFlowGraph(md);
-          Set<FlowNode> paramNodeSet = flowGraph.getParamFlowNodeSet();
-          System.out.println("###md=" + md + "   paramNodeSet=" + paramNodeSet + "  returnLoc="
-              + getMethodSummary(md).getRETURNLoc());
+        FlowNode returnFlowNode = flowGraph.getFlowNode(translateToDescTuple(returnLoc.getTuple()));
 
-          CompositeLocation returnLoc = getMethodSummary(md).getRETURNLoc();
-
-          FlowNode returnFlowNode =
-              flowGraph.getFlowNode(translateToDescTuple(returnLoc.getTuple()));
-
-          int count = 0;
-          for (Iterator iterator3 = paramNodeSet.iterator(); iterator3.hasNext();) {
-            FlowNode paramNode = (FlowNode) iterator3.next();
-            if (flowGraph.getReachableSetFrom(paramNode.getCurrentDescTuple().subList(0, 1))
-                .contains(returnFlowNode)) {
-              count++;
-            }
-          }
-          mapMethodDescToParamCount.put(md, count);
-          System.out.println("###returnLoc=" + returnLoc + "    count higher=" + count);
-        }
-
-        System.out.println("#INDENTIFY WHICH METHOD...");
-        // identify which method in the inheritance chain has the highest PCLOC
-        // basically, finds a method that has the highest count or TOP location
-        int highestCount = -1;
-        MethodDescriptor methodDescHighestCount = null;
-        for (Iterator iterator2 = methodDescSet.iterator(); iterator2.hasNext();) {
-          MethodDescriptor methodDesc = (MethodDescriptor) iterator2.next();
-          int curCount = mapMethodDescToParamCount.get(methodDesc).intValue();
-          if (highestCount < curCount) {
-            highestCount = curCount;
-            methodDescHighestCount = methodDesc;
+        int count = 0;
+        for (Iterator iterator3 = paramNodeSet.iterator(); iterator3.hasNext();) {
+          FlowNode paramNode = (FlowNode) iterator3.next();
+          if (flowGraph.getReachableSetFrom(paramNode.getCurrentDescTuple().subList(0, 1))
+              .contains(returnFlowNode)) {
+            count++;
           }
         }
+        mapMethodDescToParamCount.put(md, count);
+        // System.out.println("###returnLoc=" + returnLoc + "    count higher=" + count);
+      }
 
-        if (methodDescHighestCount != null) {
-          FlowGraph flowGraph = getFlowGraph(methodDescHighestCount);
-          CompositeLocation returnLOC = getMethodSummary(methodDescHighestCount).getRETURNLoc();
-          NTuple<Descriptor> returnLocTuple = translateToDescTuple(returnLOC.getTuple());
-          FlowNode returnFlowNode = flowGraph.getFlowNode(returnLocTuple);
+      // identify which method in the inheritance chain has the highest PCLOC
+      // basically, finds a method that has the highest count or TOP location
+      int highestCount = -1;
+      MethodDescriptor methodDescHighestCount = null;
+      for (Iterator iterator2 = methodDescSet.iterator(); iterator2.hasNext();) {
+        MethodDescriptor methodDesc = (MethodDescriptor) iterator2.next();
+        int curCount = mapMethodDescToParamCount.get(methodDesc).intValue();
+        if (highestCount < curCount) {
+          highestCount = curCount;
+          methodDescHighestCount = methodDesc;
+        }
+      }
 
-          Set<FlowNode> curMethodParamNodeSet = flowGraph.getParamFlowNodeSet();
-          Set<NTuple<Descriptor>> descTupleSetHigherThanPC = new HashSet<NTuple<Descriptor>>();
-          for (Iterator iterator3 = curMethodParamNodeSet.iterator(); iterator3.hasNext();) {
-            FlowNode paramNode = (FlowNode) iterator3.next();
-            if (flowGraph.getReachableSetFrom(paramNode.getCurrentDescTuple().subList(0, 1))
-                .contains(returnFlowNode)) {
-              descTupleSetHigherThanPC.add(paramNode.getCurrentDescTuple());
-            }
+      if (methodDescHighestCount != null) {
+        FlowGraph flowGraph = getFlowGraph(methodDescHighestCount);
+        CompositeLocation returnLOC = getMethodSummary(methodDescHighestCount).getRETURNLoc();
+        NTuple<Descriptor> returnLocTuple = translateToDescTuple(returnLOC.getTuple());
+        FlowNode returnFlowNode = flowGraph.getFlowNode(returnLocTuple);
+
+        Set<FlowNode> curMethodParamNodeSet = flowGraph.getParamFlowNodeSet();
+        Set<NTuple<Descriptor>> descTupleSetHigherThanPC = new HashSet<NTuple<Descriptor>>();
+        for (Iterator iterator3 = curMethodParamNodeSet.iterator(); iterator3.hasNext();) {
+          FlowNode paramNode = (FlowNode) iterator3.next();
+          if (flowGraph.getReachableSetFrom(paramNode.getCurrentDescTuple().subList(0, 1))
+              .contains(returnFlowNode)) {
+            descTupleSetHigherThanPC.add(paramNode.getCurrentDescTuple());
           }
-
-          mapHighestOverriddenMethodDescToReturnLocTuple.put(highestMethodDesc, returnLocTuple);
-          mapHighestOverriddenMethodDescToSetHigherThanRETURNLoc.put(highestMethodDesc,
-              descTupleSetHigherThanPC);
-
         }
 
-        System.out.println("####################################");
-        System.out.println("  highest=" + highestMethodDesc + "  LOWEST RETURNLOC="
-            + mapHighestOverriddenMethodDescToReturnLocTuple.get(highestMethodDesc));
-        System.out.println("  setHigherThanReturnLoc="
-            + mapHighestOverriddenMethodDescToSetHigherThanRETURNLoc.get(highestMethodDesc));
+        mapHighestOverriddenMethodDescToReturnLocTuple.put(highestMethodDesc, returnLocTuple);
+        mapHighestOverriddenMethodDescToSetHigherThanRETURNLoc.put(highestMethodDesc,
+            descTupleSetHigherThanPC);
 
       }
+
+      // System.out.println("####################################");
+      // System.out.println("  highest=" + highestMethodDesc + "  LOWEST RETURNLOC="
+      // + mapHighestOverriddenMethodDescToReturnLocTuple.get(highestMethodDesc));
+      // System.out.println("  setHigherThanReturnLoc="
+      // + mapHighestOverriddenMethodDescToSetHigherThanRETURNLoc.get(highestMethodDesc));
 
     }
 
@@ -939,6 +907,14 @@ public class LocationInference {
 
   }
 
+  private void addSuperClasses(ClassDescriptor cd) {
+    ClassDescriptor parentClassDesc = cd.getSuperDesc();
+    if (parentClassDesc != null) {
+      toanalyze_classDescSet.add(parentClassDesc);
+      addSuperClasses(parentClassDesc);
+    }
+  }
+
   private void updateFlowGraph() {
 
     LinkedList<MethodDescriptor> methodDescList =
@@ -960,7 +936,9 @@ public class LocationInference {
         for (int i = 0; i < locTuple.size(); i++) {
           Location loc = locTuple.get(i);
           if (loc.getDescriptor() instanceof ClassDescriptor) {
-            toanalyze_classDescSet.add((ClassDescriptor) loc.getDescriptor());
+            ClassDescriptor classDesc = (ClassDescriptor) loc.getDescriptor();
+            toanalyze_classDescSet.add(classDesc);
+            addSuperClasses(classDesc);
           } else if (loc.getDescriptor() instanceof MethodDescriptor) {
             toanalyze_classDescSet.add(((MethodDescriptor) loc.getDescriptor()).getClassDesc());
           }
@@ -2716,7 +2694,6 @@ public class LocationInference {
 
   public Set<ClassDescriptor> getDirectSubClasses(ClassDescriptor parent) {
 
-    System.out.println("$$$toanalyze_classDescSet=" + toanalyze_classDescSet);
     Set<ClassDescriptor> result = new HashSet<ClassDescriptor>();
 
     Set<ClassDescriptor> children = tu.getDirectSubClasses(parent);
@@ -2758,13 +2735,18 @@ public class LocationInference {
     }
 
     // traverse children
-    Set<ClassDescriptor> children = getDirectSubClasses(cd);
-    for (Iterator iterator = children.iterator(); iterator.hasNext();) {
-      ClassDescriptor classDescriptor = (ClassDescriptor) iterator.next();
-      if (toanalyze_classDescSet.contains(classDescriptor)) {
-        DFSBuildLatticeInheritanceTree(classDescriptor);
+    Set<ClassDescriptor> children = tu.getDirectSubClasses(cd);
+    if (children != null) {
+      for (Iterator iterator = children.iterator(); iterator.hasNext();) {
+        ClassDescriptor classDescriptor = (ClassDescriptor) iterator.next();
+        if (toanalyze_classDescSet.contains(classDescriptor)) {
+          DFSBuildLatticeInheritanceTree(classDescriptor);
+        } else {
+          if (classDescriptor.isAbstract()) {
+            DFSBuildLatticeInheritanceTree(classDescriptor);
+          }
+        }
       }
-
     }
 
   }
@@ -3449,6 +3431,9 @@ public class LocationInference {
 
     Map<String, Set<String>> map = lattice.getTable();
     Set<String> keySet = map.keySet();
+
+    System.out.println("@generateLatticeDefinition=" + desc + "      map=" + map);
+
     boolean first = true;
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       String key = (String) iterator.next();
@@ -3595,6 +3580,7 @@ public class LocationInference {
         }
 
         SSJavaLattice<String> methodLattice = md2lattice.get(md);
+        System.out.println("md=" + md + " methodLattice=" + methodLattice);
         if (methodLattice != null) {
 
           int methodDefLine = md.getLineNum();
@@ -3607,7 +3593,7 @@ public class LocationInference {
 
           Map<Descriptor, CompositeLocation> mapVarDescToInferLoc =
               methodSummary.getMapVarDescToInferCompositeLocation();
-          System.out.println("-----md=" + md);
+          System.out.println("-----md=" + md + " methodDefLine=" + methodDefLine);
           System.out.println("-----mapVarDescToInferLoc=" + mapVarDescToInferLoc);
 
           Set<Descriptor> localVarDescSet = mapVarDescToInferLoc.keySet();
@@ -4030,7 +4016,6 @@ public class LocationInference {
         fg.getFlowNode(translateToDescTuple(pcLocTuple)).setSkeleton(true);
 
         if (pcLocTuple.get(0).getLocDescriptor().equals(md.getThis())) {
-          System.out.println("#########################################");
           for (Iterator iterator = flowNodeLowerthanPCLocSet.iterator(); iterator.hasNext();) {
             FlowNode lowerNode = (FlowNode) iterator.next();
             if (lowerNode.getDescTuple().size() == 1 && lowerNode.getCompositeLocation() == null) {
@@ -4969,18 +4954,26 @@ public class LocationInference {
 
     // hack... it seems that there is a problem with topological sorting.
     // so String.toString(Object o) is appeared too higher in the call chain.
-    // MethodDescriptor mdToString = null;
-    // for (Iterator iterator = toanalyze_methodDescList.iterator(); iterator.hasNext();) {
-    // MethodDescriptor md = (MethodDescriptor) iterator.next();
-    // if (md.toString().equals("public static String String.valueOf(Object o)")) {
-    // mdToString = md;
-    // break;
-    // }
-    // }
-    // if (mdToString != null) {
-    // toanalyze_methodDescList.remove(mdToString);
-    // toanalyze_methodDescList.addLast(mdToString);
-    // }
+    MethodDescriptor mdToString1 = null;
+    MethodDescriptor mdToString2 = null;
+    for (Iterator iterator = toanalyze_methodDescList.iterator(); iterator.hasNext();) {
+      MethodDescriptor md = (MethodDescriptor) iterator.next();
+      if (md.toString().equals("public static String String.valueOf(Object o)")) {
+        mdToString1 = md;
+      }
+      if (md.toString().equals("public String Object.toString()")) {
+        mdToString2 = md;
+      }
+    }
+
+    if (mdToString1 != null) {
+      toanalyze_methodDescList.remove(mdToString1);
+      toanalyze_methodDescList.addLast(mdToString1);
+    }
+    if (mdToString2 != null) {
+      toanalyze_methodDescList.remove(mdToString2);
+      toanalyze_methodDescList.addLast(mdToString2);
+    }
 
     LinkedList<MethodDescriptor> methodDescList =
         (LinkedList<MethodDescriptor>) toanalyze_methodDescList.clone();
@@ -5595,7 +5588,7 @@ public class LocationInference {
       break;
 
     case Kind.CreateObjectNode:
-      analyzeCreateObjectNode(md, nametable, (CreateObjectNode) en);
+      analyzeCreateObjectNode(md, nametable, (CreateObjectNode) en, nodeSet, implicitFlowTupleSet);
       break;
 
     case Kind.ArrayAccessNode:
@@ -6179,9 +6172,20 @@ public class LocationInference {
   }
 
   private void analyzeCreateObjectNode(MethodDescriptor md, SymbolTable nametable,
-      CreateObjectNode en) {
-    // TODO Auto-generated method stub
+      CreateObjectNode en, NodeTupleSet nodeSet, NodeTupleSet implicitFlowTupleSet) {
+    System.out.println("#analyzeCreateObjectNode=" + en.printNode(0));
+    int numArgs = en.numArgs();
+    NodeTupleSet argSet = new NodeTupleSet();
 
+    for (int i = 0; i < numArgs; i++) {
+      analyzeFlowExpressionNode(md, nametable, en.getArg(i), argSet, null, implicitFlowTupleSet,
+          false);
+    }
+
+    System.out.println("###argSet=" + argSet);
+    nodeSet.addTupleSet(argSet);
+
+    // TODO Auto-generated method stub
   }
 
   private void analyzeFlowOpNode(MethodDescriptor md, SymbolTable nametable, OpNode on,
