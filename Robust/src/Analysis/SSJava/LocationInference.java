@@ -2728,7 +2728,13 @@ public class LocationInference {
         MethodDescriptor parentMethodDesc = getParentMethodDesc(md.getClassDesc(), md);
         if (parentMethodDesc != null) {
           Map<TripleItem, String> parentMap = buildLattice.getIntermediateLocMap(parentMethodDesc);
-          buildLattice.setIntermediateLocMap(md, parentMap);
+          Map<TripleItem, String> childMap = new HashMap<TripleItem, String>();
+          Set<TripleItem> keySet = parentMap.keySet();
+          for (Iterator iterator2 = keySet.iterator(); iterator2.hasNext();) {
+            TripleItem key = (TripleItem) iterator2.next();
+            childMap.put(key, parentMap.get(key));
+          }
+          buildLattice.setIntermediateLocMap(md, childMap);
         }
         buildLattice(md);
       }
