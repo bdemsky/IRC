@@ -141,18 +141,18 @@ public class HierarchyGraph {
     if (possibleCycleSet.size() > 0) {
 
       if (possibleCycleSet.size() == 1) {
-        System.out.println("possibleCycleSet=" + possibleCycleSet + "  from src=" + srcHNode
-            + " dstHNode=" + dstHNode);
+        // System.out.println("possibleCycleSet=" + possibleCycleSet + "  from src=" + srcHNode
+        // + " dstHNode=" + dstHNode);
         if (dstHNode.isSharedNode()) {
           // it has already been assigned shared node.
         } else {
           dstHNode.setSharedNode(true);
-          System.out.println("$$$setShared=" + dstHNode);
+          // System.out.println("$$$setShared=" + dstHNode);
         }
         return;
       }
 
-      System.out.println("--- CYCLIC VALUE FLOW: " + srcHNode + " -> " + dstHNode);
+      // System.out.println("--- CYCLIC VALUE FLOW: " + srcHNode + " -> " + dstHNode);
       HNode newMergeNode = mergeNodes(possibleCycleSet, false);
       newMergeNode.setSharedNode(true);
 
@@ -449,7 +449,7 @@ public class HierarchyGraph {
     newMergeNode.setSkeleton(hasSkeleton);
     newMergeNode.setSharedNode(hasShared);
 
-    System.out.println("-----MERGING NODE=" + set + " new node=" + newMergeNode);
+    // System.out.println("-----MERGING NODE=" + set + " new node=" + newMergeNode);
 
     for (Iterator iterator = set.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
@@ -496,10 +496,10 @@ public class HierarchyGraph {
 
     for (Iterator iterator = set.iterator(); iterator.hasNext();) {
       HNode hNode = (HNode) iterator.next();
-      System.out.println("old=" + hNode + "----->newNode=" + getCurrentHNode(hNode));
+      // System.out.println("old=" + hNode + "----->newNode=" + getCurrentHNode(hNode));
     }
 
-    System.out.println();
+    // System.out.println();
 
     return newMergeNode;
   }
@@ -509,8 +509,8 @@ public class HierarchyGraph {
     if (curNode.isMergeNode()) {
       Set<HNode> mergingSet = getMergingSet(curNode);
       mergingSet.add(curNode);
-      System.out.println("-------addMapHNodeToCurrentHNode curNode=" + curNode + " meringSet="
-          + mergingSet + " newNode=" + newNode);
+      // System.out.println("-------addMapHNodeToCurrentHNode curNode=" + curNode + " meringSet="
+      // + mergingSet + " newNode=" + newNode);
       for (Iterator iterator = mergingSet.iterator(); iterator.hasNext();) {
         HNode mergingNode = (HNode) iterator.next();
         mapHNodeToCurrentHNode.put(mergingNode, newNode);
@@ -784,10 +784,10 @@ public class HierarchyGraph {
       Set<HNode> combineSet = (Set<HNode>) iterator.next();
       // System.out.println("--combineSet=" + combineSet);
       HNode combinationNode = getCombinationNode(combineSet);
-      System.out.println("--combinationNode=" + combinationNode + "   combineSet=" + combineSet);
+      // System.out.println("--combinationNode=" + combinationNode + "   combineSet=" + combineSet);
 
-      System.out.println("--hierarchynodes="
-          + simpleHierarchyGraph.getCombinationNodeSetByCombineNodeSet(combineSet));
+      // System.out.println("--hierarchynodes="
+      // + simpleHierarchyGraph.getCombinationNodeSetByCombineNodeSet(combineSet));
       // add an edge from a skeleton node to a combination node
       for (Iterator iterator2 = combineSet.iterator(); iterator2.hasNext();) {
         HNode inSkeletonNode = (HNode) iterator2.next();
@@ -821,7 +821,7 @@ public class HierarchyGraph {
         }
       }
 
-      System.out.println("--");
+      // System.out.println("--");
 
     }
 
@@ -980,12 +980,12 @@ public class HierarchyGraph {
         // Set<HNode> tempSet = removeTransitivelyReachToSet(reachToSet);
         // reachToSet = removeTransitivelyReachToSet(reachToSet);
         Set<HNode> tempSet = reachToSet;
-        System.out.println("$node=" + node + "   reachToNodeSet=" + reachToSet + " tempSet="
-            + tempSet);
+        // System.out.println("$node=" + node + "   reachToNodeSet=" + reachToSet + " tempSet="
+        // + tempSet);
         if (reachToSet.size() > 1) {
           // if (countSkeletonNodes(reachToSet) > 1) {
-          System.out.println("-node=" + node + "  reachToSet=" + reachToSet);
-          System.out.println("-set combinationnode=" + node);
+          // System.out.println("-node=" + node + "  reachToSet=" + reachToSet);
+          // System.out.println("-set combinationnode=" + node);
           node.setCombinationNode(true);
           mapCombinationNodeToCombineNodeSet.put(node, reachToSet);
         }
@@ -1313,7 +1313,7 @@ public class HierarchyGraph {
     if (node.isMergeNode()) {
       nodeName = node.getNamePropertyString();
       Set<HNode> mergeSet = mapMergeNodetoMergingSet.get(node);
-      System.out.println("node=" + node + "   mergeSet=" + mergeSet);
+      // System.out.println("node=" + node + "   mergeSet=" + mergeSet);
       nodeName += ":" + convertMergeSetToString(mergeSet);
     } else {
       nodeName = node.getNamePropertyString();

@@ -252,7 +252,6 @@ public class RobotMain {
 
   
   public void doit() {
-     boolean active = true;
     /**
      * RealTime management of the robot behaviour based on sensors and commands input.
      */
@@ -279,12 +278,21 @@ public class RobotMain {
      * on the granularity of timing for the PWM pulse (quantization).
      */
     pwmm.setSpeedAgilityFactors(100, 100);
-
+  
+    start();
     /*
      * Robot's initial state is "ON" by default. Set this parameter to "OFF" if the robot is to be
      * started over the TCP/IP link.
      */
     // issueCommand("OFF");
+
+ 
+    System.exit(0);
+  }
+  
+  public void start(){
+    
+    boolean active = true;
 
     SSJAVA: while (active) {
 
@@ -303,7 +311,6 @@ public class RobotMain {
       // erase current settings
       initialize();
     }
-    System.exit(0);
   }
 
   public void initialize() {

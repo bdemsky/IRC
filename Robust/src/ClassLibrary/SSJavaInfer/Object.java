@@ -14,9 +14,10 @@ public class Object {
     return false;
   }
 
-  @TRUST
+//  @TRUST
   public String toString() {
-    return "Object" + hashCode();
+//    return "Object" + hashCode();
+    return "o";
   }
 
 }

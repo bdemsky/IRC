@@ -42,12 +42,10 @@ public class NodeTupleSet {
   }
 
   public void addGlobalFlowTuple(NTuple<Location> tuple) {
-    System.out.println("-----add global value flow tuple=" + tuple);
     globalLocTupleList.add(tuple);
   }
 
   public void addGlobalFlowTupleSet(ArrayList<NTuple<Location>> in) {
-    System.out.println("-----add global value flow in=" + in);
     globalLocTupleList.addAll(in);
   }
 

@@ -35,6 +35,10 @@ public class BuildLattice {
     HierarchyGraph inputGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
     LocationSummary locSummary = infer.getLocationSummary(desc);
 
+    HierarchyGraph naiveGraph = infer.getSimpleHierarchyGraph(desc);
+
+    // I don't think we need to keep the below if statement anymore
+    // because hierarchy graph does not have any composite location
     Set<HNode> nodeSetWithCompositeLocation = new HashSet<HNode>();
     if (desc instanceof MethodDescriptor) {
       FlowGraph flowGraph = infer.getFlowGraph((MethodDescriptor) desc);
@@ -58,8 +62,21 @@ public class BuildLattice {
 
     }
 
+    // lattice generation for the native approach
+    BasisSet naiveBasisSet = naiveGraph.computeBasisSet(nodeSetWithCompositeLocation);
+    // debug_print(inputGraph);
+
+    Family naiveFamily = generateFamily(naiveBasisSet);
+    Map<Set<Integer>, Set<Set<Integer>>> naive_mapImSucc =
+        coveringGraph(naiveBasisSet, naiveFamily);
+
+    SSJavaLattice<String> naive_lattice =
+        buildLattice(desc, naiveBasisSet, naiveGraph, null, naive_mapImSucc);
+    LocationInference.numLocationsNaive += naive_lattice.getKeySet().size();
+
+    // lattice generation for the proposed approach
     BasisSet basisSet = inputGraph.computeBasisSet(nodeSetWithCompositeLocation);
-    debug_print(inputGraph);
+    // debug_print(inputGraph);
 
     Family family = generateFamily(basisSet);
     Map<Set<Integer>, Set<Set<Integer>>> mapImSucc = coveringGraph(basisSet, family);
@@ -94,6 +111,8 @@ public class BuildLattice {
       HierarchyGraph inputGraph, LocationSummary locSummary,
       Map<Set<Integer>, Set<Set<Integer>>> mapImSucc) {
 
+    System.out.println("\nBuild Lattice:" + inputGraph.getName());
+
     SSJavaLattice<String> lattice =
         new SSJavaLattice<String>(SSJavaAnalysis.TOP, SSJavaAnalysis.BOTTOM);
 
@@ -119,10 +138,14 @@ public class BuildLattice {
       Set<Descriptor> descSet = inputGraph.getDescSetOfNode(higherNode);
       // System.out.println("higherName=" + higherName + "  higherNode=" + higherNode + "  descSet="
       // + descSet);
-      for (Iterator iterator2 = descSet.iterator(); iterator2.hasNext();) {
-        Descriptor d = (Descriptor) iterator2.next();
-        locSummary.addMapHNodeNameToLocationName(d.getSymbol(), higherName);
+
+      if (locSummary != null) {
+        for (Iterator iterator2 = descSet.iterator(); iterator2.hasNext();) {
+          Descriptor d = (Descriptor) iterator2.next();
+          locSummary.addMapHNodeNameToLocationName(d.getSymbol(), higherName);
+        }
       }
+
       // locSummary.addMapHNodeNameToLocationName(higherName, higherName);
 
       Set<Set<Integer>> lowerSet = mapImSucc.get(higher);
@@ -149,9 +172,11 @@ public class BuildLattice {
         Set<Descriptor> lowerDescSet = inputGraph.getDescSetOfNode(lowerNode);
         // System.out.println("lowerName=" + lowerName + "  lowerNode=" + lowerNode + "  descSet="
         // + lowerDescSet);
-        for (Iterator iterator3 = lowerDescSet.iterator(); iterator3.hasNext();) {
-          Descriptor d = (Descriptor) iterator3.next();
-          locSummary.addMapHNodeNameToLocationName(d.getSymbol(), lowerName);
+        if (locSummary != null) {
+          for (Iterator iterator3 = lowerDescSet.iterator(); iterator3.hasNext();) {
+            Descriptor d = (Descriptor) iterator3.next();
+            locSummary.addMapHNodeNameToLocationName(d.getSymbol(), lowerName);
+          }
         }
         // locSummary.addMapHNodeNameToLocationName(lowerName, lowerName);
 
@@ -193,8 +218,6 @@ public class BuildLattice {
 
   public SSJavaLattice<String> insertIntermediateNodesToStraightLine(Descriptor desc,
       SSJavaLattice<String> skeletonLattice) {
-
-    // ////
     // copy nodes/edges from the parent method/class if possible
     SSJavaLattice<String> lattice = skeletonLattice.clone();
 
@@ -242,7 +265,7 @@ public class BuildLattice {
     // System.out.println("***nodeSet=" + nodeSet);
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
-      System.out.println("node=" + node);
+      // System.out.println("node=" + node);
 
       if (node.isSkeleton() && (!visited.contains(node))) {
         visited.add(node);
@@ -968,8 +991,8 @@ public class BuildLattice {
 
   private void debug_print(HierarchyGraph inputGraph) {
     System.out.println("\nBuild Lattice:" + inputGraph.getName());
-    // System.out.println("Node2Index:\n" + inputGraph.getMapHNodeToUniqueIndex());
-    // System.out.println("Node2Basis:\n" + inputGraph.getMapHNodeToBasis());
+    System.out.println("Node2Index:\n" + inputGraph.getMapHNodeToUniqueIndex());
+    System.out.println("Node2Basis:\n" + inputGraph.getMapHNodeToBasis());
   }
 
 }

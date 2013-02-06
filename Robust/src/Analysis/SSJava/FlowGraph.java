@@ -78,7 +78,6 @@ public class FlowGraph {
   }
 
   public void addMapInterLocNodeToEnclosingDescriptor(Descriptor interDesc, ClassDescriptor desc) {
-    System.out.println("##### INTERLOC=" + interDesc + "    enclosing desc=" + desc);
     mapIntersectionDescToEnclosingDescriptor.put(interDesc, desc);
   }
 
@@ -126,7 +125,7 @@ public class FlowGraph {
     mapDescTupleToInferNode.put(tuple, newNode);
     // nodeSet.add(newNode);
 
-    System.out.println("create new intermediate node= " + newNode);
+    // System.out.println("create new intsermediate node= " + newNode);
 
     return newNode;
   }
@@ -145,7 +144,7 @@ public class FlowGraph {
     mapMethodInvokeNodeToFlowReturnNode.put(min, newNode);
     // nodeSet.add(newNode);
 
-    System.out.println("create new set node= " + newNode);
+    // System.out.println("create new set node= " + newNode);
 
     return newNode;
   }
@@ -181,7 +180,6 @@ public class FlowGraph {
       FlowNode flowNode = (FlowNode) iterator.next();
       edgeSet.addAll(getOutEdgeSet(flowNode));
     }
-    System.out.println("EDGESET=" + edgeSet);
     return edgeSet;
   }
 

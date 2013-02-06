@@ -357,7 +357,6 @@ NextMethod:
   }
   
   public Set getDirectSubClasses(ClassDescriptor cd) {
-    System.out.println("$$$cd="+cd+"  children="+directSubClassTable.get(cd));
     return (Set)directSubClassTable.get(cd);
   }
   

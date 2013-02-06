@@ -252,7 +252,6 @@ public class RobotMain {
 
   @LATTICE("THIS<C,THIS<MC,MC<IN,C<IN,IN<T,C*,THISLOC=THIS,GLOBALLOC=THIS")
   public void doit() {
-    @LOC("T") boolean active = true;
     /**
      * RealTime management of the robot behaviour based on sensors and commands input.
      */
@@ -286,6 +285,15 @@ public class RobotMain {
      */
     // issueCommand("OFF");
 
+    start();
+
+    System.exit(0);
+  }
+
+  @LATTICE("THIS<IN,IN<T,THISLOC=THIS,GLOBALLOC=THIS")
+  public void start() {
+    @LOC("T") boolean active = true;
+
     SSJAVA: while (active) {
 
       @LOC("IN") Command com = HWSimulator.getCommand();
@@ -303,7 +311,6 @@ public class RobotMain {
       // erase current settings
       initialize();
     }
-    System.exit(0);
   }
 
   public void initialize() {

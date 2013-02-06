@@ -85,7 +85,6 @@ public class FlowNode {
   }
 
   public void setCompositeLocation(CompositeLocation in) {
-    System.out.println("$$$set compLoc=" + in);
     compLoc = in;
   }
 
