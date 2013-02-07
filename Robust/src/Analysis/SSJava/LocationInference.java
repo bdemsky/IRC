@@ -77,6 +77,9 @@ public class LocationInference {
   // keep current descriptors to visit in fixed-point interprocedural analysis,
   private Stack<MethodDescriptor> methodDescriptorsToVisitStack;
 
+  // map a descriptor to a naive lattice
+  private Map<Descriptor, SSJavaLattice<String>> desc2naiveLattice;
+
   // map a class descriptor to a field lattice
   private Map<ClassDescriptor, SSJavaLattice<String>> cd2lattice;
 
@@ -194,6 +197,8 @@ public class LocationInference {
     this.mapMethodDescriptorToFlowGraph = new HashMap<MethodDescriptor, FlowGraph>();
     this.cd2lattice = new HashMap<ClassDescriptor, SSJavaLattice<String>>();
     this.md2lattice = new HashMap<MethodDescriptor, SSJavaLattice<String>>();
+    this.desc2naiveLattice = new HashMap<Descriptor, SSJavaLattice<String>>();
+
     this.methodDescriptorsToVisitStack = new Stack<MethodDescriptor>();
     this.mapMethodDescriptorToMethodInvokeNodeSet =
         new HashMap<MethodDescriptor, Set<MethodInvokeNode>>();
@@ -2565,19 +2570,35 @@ public class LocationInference {
     for (Iterator iterator = cdKeySet.iterator(); iterator.hasNext();) {
       ClassDescriptor cd = (ClassDescriptor) iterator.next();
       // System.out.println("########cd=" + cd);
-      writeInferredLatticeDotFile((ClassDescriptor) cd, getSkeletonCombinationHierarchyGraph(cd),
-          cd2lattice.get(cd), "");
+      writeInferredLatticeDotFile((ClassDescriptor) cd, cd2lattice.get(cd), "");
       COUNT += cd2lattice.get(cd).getKeySet().size();
     }
 
     Set<MethodDescriptor> mdKeySet = md2lattice.keySet();
     for (Iterator iterator = mdKeySet.iterator(); iterator.hasNext();) {
       MethodDescriptor md = (MethodDescriptor) iterator.next();
-      writeInferredLatticeDotFile(md.getClassDesc(), md, getSkeletonCombinationHierarchyGraph(md),
-          md2lattice.get(md), "");
+      writeInferredLatticeDotFile(md.getClassDesc(), md, md2lattice.get(md), "");
       COUNT += md2lattice.get(md).getKeySet().size();
     }
     System.out.println("###COUNT=" + COUNT);
+
+    Set<Descriptor> descKeySet = desc2naiveLattice.keySet();
+    for (Iterator iterator = descKeySet.iterator(); iterator.hasNext();) {
+      Descriptor desc = (Descriptor) iterator.next();
+      // System.out.println("########cd=" + cd);
+
+      ClassDescriptor cd_naive;
+      MethodDescriptor md_naive;
+      if (desc instanceof ClassDescriptor) {
+        cd_naive = (ClassDescriptor) desc;
+        md_naive = null;
+      } else {
+        md_naive = (MethodDescriptor) desc;
+        cd_naive = md_naive.getClassDesc();
+      }
+
+      writeInferredLatticeDotFile(cd_naive, md_naive, desc2naiveLattice.get(desc), "_naive");
+    }
   }
 
   private void buildLattice(Descriptor desc) {
@@ -2593,6 +2614,8 @@ public class LocationInference {
         buildLattice.insertIntermediateNodesToStraightLine(desc, simpleLattice);
     lattice.removeRedundantEdges();
 
+    LocationInference.numLocationsSInfer += lattice.getKeySet().size();
+
     if (desc instanceof ClassDescriptor) {
       // field lattice
       cd2lattice.put((ClassDescriptor) desc, lattice);
@@ -2607,6 +2630,7 @@ public class LocationInference {
 
   }
 
+  // deprecated: it builds method/class lattices without considering class inheritance
   private void buildLattice() {
 
     Set<Descriptor> keySet = mapDescriptorToCombineSkeletonHierarchyGraph.keySet();
@@ -6568,15 +6592,15 @@ public class LocationInference {
 
   }
 
-  public void writeInferredLatticeDotFile(ClassDescriptor cd, HierarchyGraph simpleHierarchyGraph,
-      SSJavaLattice<String> locOrder, String nameSuffix) {
+  public void writeInferredLatticeDotFile(ClassDescriptor cd, SSJavaLattice<String> locOrder,
+      String nameSuffix) {
     // System.out.println("@cd=" + cd);
     // System.out.println("@sharedLoc=" + locOrder.getSharedLocSet());
-    writeInferredLatticeDotFile(cd, null, simpleHierarchyGraph, locOrder, nameSuffix);
+    writeInferredLatticeDotFile(cd, null, locOrder, nameSuffix);
   }
 
   public void writeInferredLatticeDotFile(ClassDescriptor cd, MethodDescriptor md,
-      HierarchyGraph simpleHierarchyGraph, SSJavaLattice<String> locOrder, String nameSuffix) {
+      SSJavaLattice<String> locOrder, String nameSuffix) {
 
     String fileName = "lattice_";
     if (md != null) {
@@ -6608,12 +6632,12 @@ public class LocationInference {
           String lowLocId = pair.getSecond();
           if (!addedLocSet.contains(highLocId)) {
             addedLocSet.add(highLocId);
-            drawNode(bw, locOrder, simpleHierarchyGraph, highLocId);
+            drawNode(bw, locOrder, highLocId);
           }
 
           if (!addedLocSet.contains(lowLocId)) {
             addedLocSet.add(lowLocId);
-            drawNode(bw, locOrder, simpleHierarchyGraph, lowLocId);
+            drawNode(bw, locOrder, lowLocId);
           }
 
           bw.write(highLocId + " -> " + lowLocId + ";\n");
@@ -6642,8 +6666,12 @@ public class LocationInference {
     return str;
   }
 
-  private void drawNode(BufferedWriter bw, SSJavaLattice<String> lattice, HierarchyGraph graph,
-      String locName) throws IOException {
+  public void addNaiveLattice(Descriptor desc, SSJavaLattice<String> lattice) {
+    desc2naiveLattice.put(desc, lattice);
+  }
+
+  private void drawNode(BufferedWriter bw, SSJavaLattice<String> lattice, String locName)
+      throws IOException {
 
     String prettyStr;
     if (lattice.isSharedLoc(locName)) {

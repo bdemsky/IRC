@@ -62,6 +62,7 @@ public class BuildLattice {
 
     }
 
+    // /////////////////////////////////////////////////////////////////////////////////////
     // lattice generation for the native approach
     BasisSet naiveBasisSet = naiveGraph.computeBasisSet(nodeSetWithCompositeLocation);
     // debug_print(inputGraph);
@@ -73,6 +74,8 @@ public class BuildLattice {
     SSJavaLattice<String> naive_lattice =
         buildLattice(desc, naiveBasisSet, naiveGraph, null, naive_mapImSucc);
     LocationInference.numLocationsNaive += naive_lattice.getKeySet().size();
+    infer.addNaiveLattice(desc, naive_lattice);
+    // /////////////////////////////////////////////////////////////////////////////////////
 
     // lattice generation for the proposed approach
     BasisSet basisSet = inputGraph.computeBasisSet(nodeSetWithCompositeLocation);
@@ -265,7 +268,7 @@ public class BuildLattice {
     // System.out.println("***nodeSet=" + nodeSet);
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode node = (HNode) iterator.next();
-      // System.out.println("node=" + node);
+      System.out.println("node=" + node);
 
       if (node.isSkeleton() && (!visited.contains(node))) {
         visited.add(node);
