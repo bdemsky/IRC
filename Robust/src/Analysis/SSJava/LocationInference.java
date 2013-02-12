@@ -366,8 +366,10 @@ public class LocationInference {
       // + locOrder.getKeySet().size() + "\t" + hg.getNodeSet().size());
     }
 
-    System.out.println("The number of elements: Naive=" + numLocationsNaive + " SInfer="
-        + numLocationsSInfer);
+    if (state.SSJAVA_INFER_NAIVE_WRITEDOTS) {
+      System.out.println("The number of elements: Naive=" + numLocationsNaive);
+    }
+    System.out.println("The number of elements: SInfer=" + numLocationsSInfer);
 
     System.exit(0);
 

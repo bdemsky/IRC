@@ -151,6 +151,7 @@ public class State {
   public boolean SSJAVAINFER=false;
   public boolean SSJAVA_GENCODE_PREVENT_CRASHES=false;
   public boolean SSJAVA_INJECT_ERROR=false;
+  public boolean SSJAVA_INFER_NAIVE_WRITEDOTS=false;
   public int     SSJAVA_INV_ERROR_PROB=0;
   public int     SSJAVA_ERROR_SEED=0;
   public Set<MethodDescriptor> annotationRequireSet;

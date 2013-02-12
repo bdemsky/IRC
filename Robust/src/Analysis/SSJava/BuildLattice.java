@@ -64,17 +64,20 @@ public class BuildLattice {
 
     // /////////////////////////////////////////////////////////////////////////////////////
     // lattice generation for the native approach
-    BasisSet naiveBasisSet = naiveGraph.computeBasisSet(nodeSetWithCompositeLocation);
-    // debug_print(inputGraph);
 
-    Family naiveFamily = generateFamily(naiveBasisSet);
-    Map<Set<Integer>, Set<Set<Integer>>> naive_mapImSucc =
-        coveringGraph(naiveBasisSet, naiveFamily);
+    if (infer.state.SSJAVA_INFER_NAIVE_WRITEDOTS) {
+      BasisSet naiveBasisSet = naiveGraph.computeBasisSet(nodeSetWithCompositeLocation);
 
-    SSJavaLattice<String> naive_lattice =
-        buildLattice(desc, naiveBasisSet, naiveGraph, null, naive_mapImSucc);
-    LocationInference.numLocationsNaive += naive_lattice.getKeySet().size();
-    infer.addNaiveLattice(desc, naive_lattice);
+      Family naiveFamily = generateFamily(naiveBasisSet);
+      Map<Set<Integer>, Set<Set<Integer>>> naive_mapImSucc =
+          coveringGraph(naiveBasisSet, naiveFamily);
+
+      SSJavaLattice<String> naive_lattice =
+          buildLattice(desc, naiveBasisSet, naiveGraph, null, naive_mapImSucc);
+      LocationInference.numLocationsNaive += naive_lattice.getKeySet().size();
+      infer.addNaiveLattice(desc, naive_lattice);
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////
 
     // lattice generation for the proposed approach
