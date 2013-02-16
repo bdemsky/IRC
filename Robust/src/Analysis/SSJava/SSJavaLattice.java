@@ -325,7 +325,7 @@ public class SSJavaLattice<T> extends Lattice<T> {
     Set<T> connectedSet = get(higher);
     if (connectedSet == null) {
       connectedSet = new HashSet<T>();
-    }else{
+    } else {
       connectedSet.removeAll(lowerSet);
     }
     connectedSet.add(newLoc);
@@ -335,6 +335,8 @@ public class SSJavaLattice<T> extends Lattice<T> {
       put(newLoc, lower);
     }
   }
+
+ 
 
   public SSJavaLattice<T> clone() {
 

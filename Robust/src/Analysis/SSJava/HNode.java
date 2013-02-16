@@ -12,11 +12,15 @@ public class HNode {
   private boolean isSharedNode;
   private boolean isMergeNode;
 
+  // set true if hnode is the first node of the combination chain
+  private boolean isDirectCombinationNode;
+
   public HNode() {
     this.isSkeleton = false;
     this.isCombinationNode = false;
     this.isSharedNode = false;
     this.isMergeNode = false;
+    this.isDirectCombinationNode = false;
   }
 
   public boolean isMergeNode() {
@@ -64,6 +68,14 @@ public class HNode {
 
   public String getName() {
     return name;
+  }
+
+  public boolean isDirectCombinationNode() {
+    return isDirectCombinationNode;
+  }
+
+  public void setDirectCombinationNode(boolean isDirectCombinationNode) {
+    this.isDirectCombinationNode = isDirectCombinationNode;
   }
 
   public boolean equals(Object o) {

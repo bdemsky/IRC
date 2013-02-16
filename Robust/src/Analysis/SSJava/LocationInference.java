@@ -2556,12 +2556,10 @@ public class LocationInference {
       // HierarchyGraph simpleHierarchyGraph = getSimpleHierarchyGraph(key);
       HierarchyGraph scHierarchyGraph = getSkeletonCombinationHierarchyGraph(key);
       if (key instanceof ClassDescriptor) {
-        // writeInferredLatticeDotFile((ClassDescriptor) key, scHierarchyGraph, simpleLattice,
-        // "_SIMPLE");
+        writeInferredLatticeDotFile((ClassDescriptor) key, simpleLattice, "_SIMPLE");
       } else if (key instanceof MethodDescriptor) {
         MethodDescriptor md = (MethodDescriptor) key;
-        // writeInferredLatticeDotFile(md.getClassDesc(), md, scHierarchyGraph, simpleLattice,
-        // "_SIMPLE");
+        writeInferredLatticeDotFile(md.getClassDesc(), md, simpleLattice, "_SIMPLE");
       }
 
       LocationSummary ls = getLocationSummary(key);
@@ -2614,6 +2612,10 @@ public class LocationInference {
     // + simpleHierarchyGraph.getName());
     SSJavaLattice<String> lattice =
         buildLattice.insertIntermediateNodesToStraightLine(desc, simpleLattice);
+
+    if (lattice == null) {
+      return;
+    }
     lattice.removeRedundantEdges();
 
     LocationInference.numLocationsSInfer += lattice.getKeySet().size();

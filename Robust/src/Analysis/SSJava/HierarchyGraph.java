@@ -38,6 +38,8 @@ public class HierarchyGraph {
 
   Map<HNode, Set<HNode>> mapNormalNodeToSCNodeReachToSet;
 
+  Map<Set<HNode>, Set<HNode>> mapCombineNodeSetToFirstNodeOfChainSet;
+
   Set<HNode> nodeSet;
 
   // for the lattice generation
@@ -66,6 +68,8 @@ public class HierarchyGraph {
     mapHNodeNameToCurrentHNode = new HashMap<String, HNode>();
 
     mapNormalNodeToSCNodeReachToSet = new HashMap<HNode, Set<HNode>>();
+
+    mapCombineNodeSetToFirstNodeOfChainSet = new HashMap<Set<HNode>, Set<HNode>>();
   }
 
   public Descriptor getDesc() {
@@ -153,7 +157,7 @@ public class HierarchyGraph {
       }
 
       // System.out.println("--- CYCLIC VALUE FLOW: " + srcHNode + " -> " + dstHNode);
-      HNode newMergeNode = mergeNodes(possibleCycleSet, false);
+      HNode newMergeNode = mergeNodes(possibleCycleSet);
       newMergeNode.setSharedNode(true);
 
     } else {
@@ -300,14 +304,14 @@ public class HierarchyGraph {
 
   public void simplifyHierarchyGraph(LocationInference infer) {
     removeRedundantEdges();
-    combineRedundantNodes(false, infer);
+    combineRedundantNodes(infer);
   }
 
-  public void combineRedundantNodes(boolean onlyCombinationNodes, LocationInference infer) {
+  public void combineRedundantNodes(LocationInference infer) {
     // Combine field/parameter nodes who have the same set of incoming/outgoing edges.
     boolean isUpdated = false;
     do {
-      isUpdated = combineTwoRedundatnNodes(onlyCombinationNodes, infer);
+      isUpdated = combineTwoRedundatnNodes(infer);
     } while (isUpdated);
   }
 
@@ -325,12 +329,16 @@ public class HierarchyGraph {
     return mapHNodeToOutgoingSet.get(node);
   }
 
-  private boolean combineTwoRedundatnNodes(boolean onlyCombinationNodes, LocationInference infer) {
+  private boolean combineTwoRedundatnNodes(LocationInference infer) {
     for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
       HNode node1 = (HNode) iterator.next();
 
-      if ((onlyCombinationNodes && (!node1.isCombinationNode()))
-          || (!onlyCombinationNodes && (!node1.isSkeleton()))) {
+      // if ((onlyCombinationNodes && (!node1.isCombinationNode()))
+      // || (!onlyCombinationNodes && (!node1.isSkeleton()))) {
+      // continue;
+      // }
+
+      if (!node1.isSkeleton()) {
         continue;
       }
 
@@ -340,8 +348,12 @@ public class HierarchyGraph {
       for (Iterator iterator2 = nodeSet.iterator(); iterator2.hasNext();) {
         HNode node2 = (HNode) iterator2.next();
 
-        if ((onlyCombinationNodes && (!node2.isCombinationNode()))
-            || (!onlyCombinationNodes && (!node2.isSkeleton()))) {
+        // if ((onlyCombinationNodes && (!node2.isCombinationNode()))
+        // || (!onlyCombinationNodes && (!node2.isSkeleton()))) {
+        // continue;
+        // }
+
+        if (!node2.isSkeleton()) {
           continue;
         }
 
@@ -368,7 +380,7 @@ public class HierarchyGraph {
 
             // ///////////////
 
-            mergeNodes(mergeSet, onlyCombinationNodes);
+            mergeNodes(mergeSet);
             return true;
           }
 
@@ -407,7 +419,7 @@ public class HierarchyGraph {
     // System.out.println("addEdgeWithNoCycleCheck src=" + srcHNode + " -> " + dstHNode);
   }
 
-  private HNode mergeNodes(Set<HNode> set, boolean onlyCombinationNodes) {
+  private HNode mergeNodes(Set<HNode> set) {
 
     Set<HNode> incomingNodeSet = new HashSet<HNode>();
     Set<HNode> outgoingNodeSet = new HashSet<HNode>();
@@ -420,12 +432,9 @@ public class HierarchyGraph {
 
     String nodeName;
     boolean isMergeNode = false;
-    if (onlyCombinationNodes) {
-      nodeName = "Comb" + (LocationInference.locSeed++);
-    } else {
-      nodeName = "Node" + (LocationInference.locSeed++);
-      isMergeNode = true;
-    }
+    nodeName = "MNode" + (LocationInference.locSeed++);
+    isMergeNode = true;
+
     HNode newMergeNode = new HNode(nodeName);
     newMergeNode.setMergeNode(isMergeNode);
 
@@ -782,12 +791,13 @@ public class HierarchyGraph {
     Set<Set<HNode>> keySet = simpleHierarchyGraph.getCombineNodeSet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Set<HNode> combineSet = (Set<HNode>) iterator.next();
-      // System.out.println("--combineSet=" + combineSet);
+      System.out.println("--combineSet=" + combineSet);
       HNode combinationNode = getCombinationNode(combineSet);
-      // System.out.println("--combinationNode=" + combinationNode + "   combineSet=" + combineSet);
+      System.out.println("--combinationNode=" + combinationNode + "   combineSet=" + combineSet);
 
       // System.out.println("--hierarchynodes="
       // + simpleHierarchyGraph.getCombinationNodeSetByCombineNodeSet(combineSet));
+
       // add an edge from a skeleton node to a combination node
       for (Iterator iterator2 = combineSet.iterator(); iterator2.hasNext();) {
         HNode inSkeletonNode = (HNode) iterator2.next();
@@ -827,32 +837,7 @@ public class HierarchyGraph {
 
   }
 
-  private void addCombinationNode(HNode curNode, Set<HNode> reachToSet, Set<HNode> reachableSet) {
-    if (!mapSkeletonNodeSetToCombinationNode.containsKey(reachToSet)) {
-      // need to create a new combination node
-      String nodeName = "Comb" + (LocationInference.locSeed++);
-      HNode newCombinationNode = new HNode(nodeName);
-      newCombinationNode.setCombinationNode(true);
-
-      nodeSet.add(newCombinationNode);
-      mapSkeletonNodeSetToCombinationNode.put(reachToSet, newCombinationNode);
-
-      for (Iterator iterator = reachToSet.iterator(); iterator.hasNext();) {
-        HNode reachToNode = (HNode) iterator.next();
-        addEdge(reachToNode, newCombinationNode);
-      }
-
-    }
-
-    HNode combinationNode = mapSkeletonNodeSetToCombinationNode.get(reachToSet);
-    for (Iterator iterator = reachableSet.iterator(); iterator.hasNext();) {
-      HNode reachableNode = (HNode) iterator.next();
-      addEdge(combinationNode, reachableNode);
-    }
-
-  }
-
-  private Set<HNode> getSkeleteNodeSetReachTo(HNode node) {
+  public Set<HNode> getSkeleteNodeSetReachTo(HNode node) {
 
     Set<HNode> reachToSet = new HashSet<HNode>();
     Set<HNode> visited = new HashSet<HNode>();
@@ -865,23 +850,6 @@ public class HierarchyGraph {
     // removeRedundantReachToNodes(reachToSet);
 
     return reachToSet;
-  }
-
-  private void removeRedundantReachToNodes(Set<HNode> reachToSet) {
-
-    Set<HNode> toberemoved = new HashSet<HNode>();
-    for (Iterator iterator = reachToSet.iterator(); iterator.hasNext();) {
-      HNode cur = (HNode) iterator.next();
-
-      for (Iterator iterator2 = reachToSet.iterator(); iterator2.hasNext();) {
-        HNode dst = (HNode) iterator2.next();
-        if (!cur.equals(dst) && reachTo(cur, dst)) {
-          // it is redundant
-          toberemoved.add(cur);
-        }
-      }
-    }
-    reachToSet.removeAll(toberemoved);
   }
 
   private void recurSkeletonReachTo(HNode node, Set<HNode> reachToSet, Set<HNode> visited) {
@@ -984,10 +952,32 @@ public class HierarchyGraph {
         // + tempSet);
         if (reachToSet.size() > 1) {
           // if (countSkeletonNodes(reachToSet) > 1) {
-          // System.out.println("-node=" + node + "  reachToSet=" + reachToSet);
-          // System.out.println("-set combinationnode=" + node);
+          System.out.println("-node=" + node + "  reachToSet=" + reachToSet);
+          System.out.println("-set combinationnode=" + node);
           node.setCombinationNode(true);
           mapCombinationNodeToCombineNodeSet.put(node, reachToSet);
+
+          // check if this node is the first node of the chain
+          boolean isFirstNodeOfChain = false;
+          Set<HNode> inNodeSet = getIncomingNodeSet(node);
+          for (Iterator iterator2 = inNodeSet.iterator(); iterator2.hasNext();) {
+            HNode inNode = (HNode) iterator2.next();
+            if (inNode.isSkeleton()) {
+              isFirstNodeOfChain = true;
+            } else if (inNode.isCombinationNode()) {
+              Set<HNode> inNodeReachToSet = getSkeleteNodeSetReachTo(inNode);
+              if (!reachToSet.equals(inNodeReachToSet)) {
+                isFirstNodeOfChain = true;
+              }
+            }
+          }
+
+          if (isFirstNodeOfChain) {
+            node.setDirectCombinationNode(true);
+            addFirstNodeOfChain(reachToSet, node);
+            // System.out.println("IT IS DIRECTLY CONNECTED WITH SC NODES:" + node);
+          }
+
         }
       }
     }
@@ -1002,6 +992,20 @@ public class HierarchyGraph {
       }
     }
 
+  }
+
+  public void addFirstNodeOfChain(Set<HNode> combineSet, HNode firstNode) {
+
+    if (!mapCombineNodeSetToFirstNodeOfChainSet.containsKey(combineSet)) {
+      mapCombineNodeSetToFirstNodeOfChainSet.put(combineSet, new HashSet<HNode>());
+    }
+
+    mapCombineNodeSetToFirstNodeOfChainSet.get(combineSet).add(firstNode);
+
+  }
+
+  public Set<HNode> getFirstNodeOfCombinationNodeChainSet(Set<HNode> combineNodeSet) {
+    return mapCombineNodeSetToFirstNodeOfChainSet.get(combineNodeSet);
   }
 
   private Set<HNode> removeTransitivelyReachToSet(Set<HNode> reachToSet) {
@@ -1348,4 +1352,33 @@ public class HierarchyGraph {
     return max;
   }
 
+  public int countNonSharedNode(HNode startNode, Set<HNode> endNodeSet) {
+    System.out.println("countNonSharedNode startNode=" + startNode + " endNode=" + endNodeSet);
+    return recur_countNonSharedNode(startNode, endNodeSet, 0);
+  }
+
+  private int recur_countNonSharedNode(HNode startNode, Set<HNode> endNodeSet, int count) {
+
+    Set<HNode> inNodeSet = getIncomingNodeSet(startNode);
+
+    if (inNodeSet.size() == 0) {
+      // it is directly connected to the TOP node
+    }
+
+    for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
+      HNode inNode = (HNode) iterator.next();
+      if (endNodeSet.contains(inNode)) {
+        return count;
+      } else {
+        if (!inNode.isSharedNode()) {
+          count++;
+        }
+        return recur_countNonSharedNode(inNode, endNodeSet, count);
+      }
+    }
+
+    // System.out.println("startNode=" + startNode + " inNodeSet=" + inNodeSet);
+    // HNode inNode = inNodeSet.iterator().next();
+    return -1;
+  }
 }
