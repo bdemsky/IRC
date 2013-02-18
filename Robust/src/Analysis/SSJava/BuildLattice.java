@@ -276,6 +276,7 @@ public class BuildLattice {
           if (hNode.isCombinationNode()) {
             Set<HNode> combineSkeletonNodeSet =
                 hierarchyGraph.getCombineSetByCombinationNode(hNode);
+
             aboveSet.addAll(hierarchyGraph
                 .getFirstNodeOfCombinationNodeChainSet(combineSkeletonNodeSet));
             SCNode = scGraph.getCombinationNode(combineSkeletonNodeSet);
@@ -288,9 +289,16 @@ public class BuildLattice {
             SCNode = aboveSet.iterator().next();
           }
 
-          numNonSharedNodes = hierarchyGraph.countNonSharedNode(hNode, aboveSet);
+          // update above set w.r.t the hierarchy graph with SC nodes
+          // because the skeleton nodes in the origianl hierarchy graph may merged to a new node
+          Set<HNode> endSet = new HashSet<HNode>();
+          for (Iterator iterator2 = aboveSet.iterator(); iterator2.hasNext();) {
+            HNode aboveNode = (HNode) iterator2.next();
+            endSet.add(scGraph.getCurrentHNode(aboveNode));
+          }
+          numNonSharedNodes = hierarchyGraph.countNonSharedNode(hNode, endSet);
 
-          System.out.println("   node=" + hNode + " above=" + aboveSet + " distance="
+          System.out.println("   node=" + hNode + " above=" + endSet + " distance="
               + numNonSharedNodes + "   SCNode=" + SCNode);
         }
 
@@ -326,6 +334,7 @@ public class BuildLattice {
 
   private String recur_getNewLocation(SSJavaLattice<String> lattice, String cur,
       Set<String> endSet, int dist, boolean isShared) {
+    System.out.println("H");
     Set<String> connectedSet = lattice.get(cur);
     if (connectedSet == null) {
       connectedSet = new HashSet<String>();

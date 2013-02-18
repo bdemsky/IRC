@@ -2607,7 +2607,15 @@ public class LocationInference {
 
     addMapDescToSimpleLattice(desc, simpleLattice);
 
+    if (desc instanceof ClassDescriptor) {
+      writeInferredLatticeDotFile((ClassDescriptor) desc, null, simpleLattice, "_SC");
+    } else {
+      MethodDescriptor md = (MethodDescriptor) desc;
+      writeInferredLatticeDotFile(md.getClassDesc(), md, simpleLattice, "_SC");
+    }
+
     HierarchyGraph simpleHierarchyGraph = getSimpleHierarchyGraph(desc);
+
     // System.out.println("\n## insertIntermediateNodesToStraightLine:"
     // + simpleHierarchyGraph.getName());
     SSJavaLattice<String> lattice =

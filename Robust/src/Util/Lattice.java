@@ -66,12 +66,12 @@ public class Lattice<T> {
   }
 
   public boolean put(T key, T value) {
-    
-    if(isGreaterThan(key, value)){
+
+    if (isComparable(key, value) && isGreaterThan(key, value)) {
       // this relation already exists
       return false;
     }
-    
+
     Set<T> s;
 
     Set<T> topNeighbor = table.get(top);
@@ -95,10 +95,9 @@ public class Lattice<T> {
       }
 
       // if value is already connected with top, it is no longer to be
-      if(!key.equals(top)){
-        topNeighbor.remove(value);  
+      if (!key.equals(top)) {
+        topNeighbor.remove(value);
       }
-      
 
       // if key is already connected with bottom,, it is no longer to be
       if (!value.equals(getBottomItem())) {
