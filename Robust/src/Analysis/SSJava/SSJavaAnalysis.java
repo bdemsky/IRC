@@ -266,7 +266,7 @@ public class SSJavaAnalysis {
         linearTypeCheckMethodSet.add(md);
       }
     }
-    
+
     linearTypeCheckMethodSet.addAll(sortedDescriptors);
 
   }
@@ -350,6 +350,7 @@ public class SSJavaAnalysis {
                 MethodLattice<String> locOrder =
                     new MethodLattice<String>(SSJavaAnalysis.TOP, SSJavaAnalysis.BOTTOM);
                 md2lattice.put(md, locOrder);
+                System.out.println("parsing method lattice=" + md);
                 parseMethodDefaultLatticeDefinition(cd, an.getValue(), locOrder);
                 writeLatticeDotFile(cd, md, locOrder, "");
               } else if (an.getMarker().equals(TERMINATE)) {

@@ -97,8 +97,8 @@ public class LocationInference {
   // map a method/class descriptor to a skeleton hierarchy graph with combination nodes
   private Map<Descriptor, HierarchyGraph> mapDescriptorToCombineSkeletonHierarchyGraph;
 
-  // map a descriptor to a simple lattice
-  private Map<Descriptor, SSJavaLattice<String>> mapDescriptorToSimpleLattice;
+  // map a descriptor to a skeleton lattice
+  private Map<Descriptor, SSJavaLattice<String>> mapDescriptorToSkeletonLattice;
 
   // map a method descriptor to the set of method invocation nodes which are
   // invoked by the method descriptor
@@ -220,7 +220,7 @@ public class LocationInference {
     this.mapDescriptorToCombineSkeletonHierarchyGraph = new HashMap<Descriptor, HierarchyGraph>();
     this.mapDescriptorToSimpleHierarchyGraph = new HashMap<Descriptor, HierarchyGraph>();
 
-    this.mapDescriptorToSimpleLattice = new HashMap<Descriptor, SSJavaLattice<String>>();
+    this.mapDescriptorToSkeletonLattice = new HashMap<Descriptor, SSJavaLattice<String>>();
 
     this.mapDescToLocationSummary = new HashMap<Descriptor, LocationSummary>();
 
@@ -2549,17 +2549,17 @@ public class LocationInference {
 
   private void debug_writeLattices() {
 
-    Set<Descriptor> keySet = mapDescriptorToSimpleLattice.keySet();
+    Set<Descriptor> keySet = mapDescriptorToSkeletonLattice.keySet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Descriptor key = (Descriptor) iterator.next();
-      SSJavaLattice<String> simpleLattice = mapDescriptorToSimpleLattice.get(key);
+      SSJavaLattice<String> skeletonLattice = mapDescriptorToSkeletonLattice.get(key);
       // HierarchyGraph simpleHierarchyGraph = getSimpleHierarchyGraph(key);
       HierarchyGraph scHierarchyGraph = getSkeletonCombinationHierarchyGraph(key);
       if (key instanceof ClassDescriptor) {
-        writeInferredLatticeDotFile((ClassDescriptor) key, simpleLattice, "_SIMPLE");
+        writeInferredLatticeDotFile((ClassDescriptor) key, skeletonLattice, "_SKELETON");
       } else if (key instanceof MethodDescriptor) {
         MethodDescriptor md = (MethodDescriptor) key;
-        writeInferredLatticeDotFile(md.getClassDesc(), md, simpleLattice, "_SIMPLE");
+        writeInferredLatticeDotFile(md.getClassDesc(), md, skeletonLattice, "_SKELETON");
       }
 
       LocationSummary ls = getLocationSummary(key);
@@ -2603,15 +2603,16 @@ public class LocationInference {
 
   private void buildLattice(Descriptor desc) {
     // System.out.println("buildLattice=" + desc);
-    SSJavaLattice<String> simpleLattice = buildLattice.buildLattice(desc);
+    SSJavaLattice<String> skeletonLattice = buildLattice.buildLattice(desc);
 
-    addMapDescToSimpleLattice(desc, simpleLattice);
+    addMapDescToSkeletonLattice(desc, skeletonLattice);
 
+    // write a dot file before everything is done
     if (desc instanceof ClassDescriptor) {
-      writeInferredLatticeDotFile((ClassDescriptor) desc, null, simpleLattice, "_SC");
+      writeInferredLatticeDotFile((ClassDescriptor) desc, null, skeletonLattice, "_SC");
     } else {
       MethodDescriptor md = (MethodDescriptor) desc;
-      writeInferredLatticeDotFile(md.getClassDesc(), md, simpleLattice, "_SC");
+      writeInferredLatticeDotFile(md.getClassDesc(), md, skeletonLattice, "_SC");
     }
 
     HierarchyGraph simpleHierarchyGraph = getSimpleHierarchyGraph(desc);
@@ -2619,7 +2620,7 @@ public class LocationInference {
     // System.out.println("\n## insertIntermediateNodesToStraightLine:"
     // + simpleHierarchyGraph.getName());
     SSJavaLattice<String> lattice =
-        buildLattice.insertIntermediateNodesToStraightLine(desc, simpleLattice);
+        buildLattice.insertIntermediateNodesToStraightLine(desc, skeletonLattice);
 
     if (lattice == null) {
       return;
@@ -2631,13 +2632,13 @@ public class LocationInference {
     if (desc instanceof ClassDescriptor) {
       // field lattice
       cd2lattice.put((ClassDescriptor) desc, lattice);
-      // ssjava.writeLatticeDotFile((ClassDescriptor) desc, null, lattice);
+      ssjava.writeLatticeDotFile((ClassDescriptor) desc, null, lattice);
     } else if (desc instanceof MethodDescriptor) {
       // method lattice
       md2lattice.put((MethodDescriptor) desc, lattice);
       MethodDescriptor md = (MethodDescriptor) desc;
       ClassDescriptor cd = md.getClassDesc();
-      // ssjava.writeLatticeDotFile(cd, md, lattice);
+      ssjava.writeLatticeDotFile(cd, md, lattice);
     }
 
   }
@@ -2651,7 +2652,7 @@ public class LocationInference {
 
       SSJavaLattice<String> simpleLattice = buildLattice.buildLattice(desc);
 
-      addMapDescToSimpleLattice(desc, simpleLattice);
+      addMapDescToSkeletonLattice(desc, simpleLattice);
 
       HierarchyGraph simpleHierarchyGraph = getSimpleHierarchyGraph(desc);
       System.out.println("\n## insertIntermediateNodesToStraightLine:"
@@ -2749,12 +2750,12 @@ public class LocationInference {
 
   }
 
-  public void addMapDescToSimpleLattice(Descriptor desc, SSJavaLattice<String> lattice) {
-    mapDescriptorToSimpleLattice.put(desc, lattice);
+  public void addMapDescToSkeletonLattice(Descriptor desc, SSJavaLattice<String> lattice) {
+    mapDescriptorToSkeletonLattice.put(desc, lattice);
   }
 
-  public SSJavaLattice<String> getSimpleLattice(Descriptor desc) {
-    return mapDescriptorToSimpleLattice.get(desc);
+  public SSJavaLattice<String> getSkeletonLattice(Descriptor desc) {
+    return mapDescriptorToSkeletonLattice.get(desc);
   }
 
   private void simplifyHierarchyGraph() {
@@ -2776,6 +2777,7 @@ public class LocationInference {
       System.out.println("\nSSJAVA: Inserting Combination Nodes:" + desc);
       HierarchyGraph skeletonGraph = getSkeletonHierarchyGraph(desc);
       HierarchyGraph skeletonGraphWithCombinationNode = skeletonGraph.clone();
+      skeletonGraphWithCombinationNode.setSCGraph(true);
       skeletonGraphWithCombinationNode.setName(desc + "_SC");
 
       HierarchyGraph simpleHierarchyGraph = getSimpleHierarchyGraph(desc);

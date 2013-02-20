@@ -258,7 +258,7 @@ public class BuildLattice {
       HNode hNode = (HNode) iterator.next();
       if (!hNode.isSkeleton()) {
         // here we need to insert an intermediate node for the hNode
-        System.out.println("local node=" + hNode);
+        System.out.println("\n#local node=" + hNode);
 
         // 1) find the lowest node m in the lattice that is above hnode in the lattice
         // 2) count the number of non-shared nodes d between the hnode and the node m
@@ -268,22 +268,36 @@ public class BuildLattice {
         if (hNode.isDirectCombinationNode()) {
           // this node itself is the lowest node m. it is the first node of the chain
           Set<HNode> combineSet = hierarchyGraph.getCombineSetByCombinationNode(hNode);
+
+          System.out.println("     # direct combine node::combineSkeletonNodeSet=" + combineSet);
+
           SCNode = scGraph.getCombinationNode(combineSet);
           numNonSharedNodes = -1;
         } else {
 
           Set<HNode> aboveSet = new HashSet<HNode>();
           if (hNode.isCombinationNode()) {
+            // the current node is a combination node
             Set<HNode> combineSkeletonNodeSet =
                 hierarchyGraph.getCombineSetByCombinationNode(hNode);
+            System.out.println("     combineSkeletonNodeSet=" + combineSkeletonNodeSet
+                + " combinationNode=" + scGraph.getCombinationNode(combineSkeletonNodeSet));
 
+            scGraph.getCombinationNode(combineSkeletonNodeSet);
+
+            System.out.println("        firstnode="
+                + hierarchyGraph.getFirstNodeOfCombinationNodeChainSet(combineSkeletonNodeSet));
             aboveSet.addAll(hierarchyGraph
                 .getFirstNodeOfCombinationNodeChainSet(combineSkeletonNodeSet));
-            SCNode = scGraph.getCombinationNode(combineSkeletonNodeSet);
-          } else {
-            System.out.println("   #######hierarchyGraph.getSkeleteNodeSetReachTo(" + hNode + ")="
-                + hierarchyGraph.getSkeleteNodeSetReachTo(hNode));
 
+            SCNode = scGraph.getCombinationNode(combineSkeletonNodeSet);
+
+          } else {
+            // the current node is not a combination node
+            // there is only one parent node which should be skeleton node.
+
+            System.out.println("   hierarchyGraph.getSkeleteNodeSetReachTo(" + hNode + ")="
+                + hierarchyGraph.getSkeleteNodeSetReachTo(hNode));
             aboveSet.addAll(hierarchyGraph.getSkeleteNodeSetReachTo(hNode));
             // assert aboveSet.size() == 1;
             SCNode = aboveSet.iterator().next();
@@ -304,14 +318,23 @@ public class BuildLattice {
 
         // 3) convert the node m into a chain of nodes with the last node in the chain having m’s
         // outgoing edges.
-        Set<String> outgoingElements = skeletonLattice.get(SCNode.getName());
-        System.out.println("   SCNODE outgoing=" + outgoingElements);
+        Set<HNode> outgoingSCNodeSet = scGraph.getOutgoingNodeSet(SCNode);
+        System.out.println("   SCNODE outgoing hnode set=" + outgoingSCNodeSet);
+
+        Set<String> outgoingLocNameSet = new HashSet<String>();
+        for (Iterator iterator2 = outgoingSCNodeSet.iterator(); iterator2.hasNext();) {
+          HNode outSCNode = (HNode) iterator2.next();
+          String locName = locSummary.getLocationName(outSCNode.getName());
+          System.out.println("                         outSCNode=" + outSCNode + " -> locName="
+              + locName);
+          outgoingLocNameSet.add(locName);
+        }
 
         // 4) If hnode is not a shared location, check if there already exists a local variable
         // node that has distance d below m along this chain. If such a node
         // does not exist, insert it.
         String locName =
-            getNewLocation(lattice, SCNode.getName(), outgoingElements, numNonSharedNodes,
+            getNewLocation(lattice, SCNode.getName(), outgoingLocNameSet, numNonSharedNodes,
                 hNode.isSharedNode());
         System.out.println("       locName=" + locName);
         locSummary.addMapHNodeNameToLocationName(hNode.getName(), locName);
@@ -346,9 +369,10 @@ public class BuildLattice {
     if (dist == 0 && isShared) {
       // if the node is shared,
       // check if there already exists a shared node that has distance d + 1 on the chain
-      connectedSet = lattice.get(cur);
-      if (connectedSet.equals(endSet)) {
+      if ((cur.equals(lattice.getTopItem()) && connectedSet.containsAll(endSet))
+          || connectedSet.equals(endSet)) {
         // need to insert a new shared location
+        // it is done after this if statement
       } else {
         assert connectedSet.size() == 1;
         String below = connectedSet.iterator().next();
@@ -358,12 +382,15 @@ public class BuildLattice {
       }
 
       // need to insert a new shared location
+      Set<String> newChildSet = new HashSet<String>();
+      newChildSet.addAll(connectedSet);
+
       String newLocName = "ILOC" + (LocationInference.locSeed++);
-      for (Iterator iterator = connectedSet.iterator(); iterator.hasNext();) {
+      for (Iterator iterator = newChildSet.iterator(); iterator.hasNext();) {
         String outNode = (String) iterator.next();
         lattice.put(newLocName, outNode);
       }
-      connectedSet.clear();
+      lattice.get(cur).clear();
       lattice.put(cur, newLocName);
 
       System.out.println("       INSERT NEW SHARED NODE=" + newLocName + " above=" + cur
@@ -376,12 +403,20 @@ public class BuildLattice {
     }
 
     String next;
-    if (connectedSet.equals(endSet)) {
+
+    if (cur.equals(lattice.getTopItem()) || connectedSet.equals(endSet) || endSet.isEmpty()) {
+
+      // if ( (cur.equals(lattice.getTopItem()) && connectedSet.containsAll(endSet))
+      // || connectedSet.equals(endSet)) {
+
       // need to insert a new location
       String newLocName = "ILOC" + (LocationInference.locSeed++);
       connectedSet.clear();
       lattice.put(cur, newLocName);
-      System.out.println("NEW RELATION=" + lattice.get(cur));
+
+      System.out.println("#INSERT NEW RELATION cur=" + cur + " newLocName=" + newLocName + "::"
+          + lattice.get(cur));
+
       for (Iterator iterator = endSet.iterator(); iterator.hasNext();) {
         String endNode = (String) iterator.next();
         lattice.put(newLocName, endNode);

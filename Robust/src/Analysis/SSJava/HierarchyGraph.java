@@ -17,6 +17,8 @@ public class HierarchyGraph {
 
   Descriptor desc;
 
+  boolean isSCgraph;
+
   String name;
 
   // graph structure
@@ -70,6 +72,16 @@ public class HierarchyGraph {
     mapNormalNodeToSCNodeReachToSet = new HashMap<HNode, Set<HNode>>();
 
     mapCombineNodeSetToFirstNodeOfChainSet = new HashMap<Set<HNode>, Set<HNode>>();
+
+    isSCgraph = false;
+  }
+
+  public void setSCGraph(boolean in) {
+    isSCgraph = in;
+  }
+
+  public boolean isSCGraph() {
+    return isSCgraph;
   }
 
   public Descriptor getDesc() {
@@ -763,8 +775,10 @@ public class HierarchyGraph {
   }
 
   public HNode getCombinationNode(Set<HNode> combineSet) {
+    assert isSCGraph();
     if (!mapCombineNodeSetToCombinationNode.containsKey(combineSet)) {
       String name = "COMB" + (LocationInference.locSeed++);
+      System.out.println("-NEW COMB NODE=" + name);
       HNode node = new HNode(name);
       node.setCombinationNode(true);
       nodeSet.add(node);
@@ -795,8 +809,36 @@ public class HierarchyGraph {
       HNode combinationNode = getCombinationNode(combineSet);
       System.out.println("--combinationNode=" + combinationNode + "   combineSet=" + combineSet);
 
-      // System.out.println("--hierarchynodes="
-      // + simpleHierarchyGraph.getCombinationNodeSetByCombineNodeSet(combineSet));
+      System.out.println("--hierarchynodes="
+          + simpleHierarchyGraph.getCombinationNodeSetByCombineNodeSet(combineSet));
+
+      Set<HNode> simpleHNodeSet =
+          simpleHierarchyGraph.getCombinationNodeSetByCombineNodeSet(combineSet);
+
+      // check whether a hnode in the simple hierarchy graph is the first node of the chain
+      // if all incoming combination nodes to the hnode have a different combination set from the
+      // hnode, it is the first node of the chain
+      for (Iterator iterator2 = simpleHNodeSet.iterator(); iterator2.hasNext();) {
+        HNode simpleHNode = (HNode) iterator2.next();
+        boolean isFirstNodeOfChain = true;
+        Set<HNode> incomingNodeSet = simpleHierarchyGraph.getIncomingNodeSet(simpleHNode);
+        for (Iterator iterator3 = incomingNodeSet.iterator(); iterator3.hasNext();) {
+          HNode inNode = (HNode) iterator3.next();
+          if (inNode.isCombinationNode()) {
+            Set<HNode> inNodeCombineSet =
+                simpleHierarchyGraph.getCombineSetByCombinationNode(inNode);
+            if (inNodeCombineSet.equals(combineSet)) {
+              isFirstNodeOfChain = false;
+              break;
+            }
+          }
+        }
+        simpleHNode.setDirectCombinationNode(isFirstNodeOfChain);
+        if (isFirstNodeOfChain) {
+          simpleHierarchyGraph.addFirstNodeOfChain(combineSet, simpleHNode);
+          System.out.println("IT IS THE FIRST NODE OF THE CHAIN:" + simpleHNode);
+        }
+      }
 
       // add an edge from a skeleton node to a combination node
       for (Iterator iterator2 = combineSet.iterator(); iterator2.hasNext();) {
@@ -922,6 +964,10 @@ public class HierarchyGraph {
     return clone;
   }
 
+  public void setMapCombineNodeSetToCombinationNode(Map<Set<HNode>, HNode> in) {
+    mapCombineNodeSetToCombinationNode = in;
+  }
+
   public Map<HNode, Set<HNode>> getMapHNodetoMergeSet() {
     return mapMergeNodetoMergingSet;
   }
@@ -952,31 +998,30 @@ public class HierarchyGraph {
         // + tempSet);
         if (reachToSet.size() > 1) {
           // if (countSkeletonNodes(reachToSet) > 1) {
-          System.out.println("-node=" + node + "  reachToSet=" + reachToSet);
+          System.out.println("\n-node=" + node + "  reachToSet=" + reachToSet);
           System.out.println("-set combinationnode=" + node);
           node.setCombinationNode(true);
           mapCombinationNodeToCombineNodeSet.put(node, reachToSet);
 
           // check if this node is the first node of the chain
-          boolean isFirstNodeOfChain = false;
-          Set<HNode> inNodeSet = getIncomingNodeSet(node);
-          for (Iterator iterator2 = inNodeSet.iterator(); iterator2.hasNext();) {
-            HNode inNode = (HNode) iterator2.next();
-            if (inNode.isSkeleton()) {
-              isFirstNodeOfChain = true;
-            } else if (inNode.isCombinationNode()) {
-              Set<HNode> inNodeReachToSet = getSkeleteNodeSetReachTo(inNode);
-              if (!reachToSet.equals(inNodeReachToSet)) {
-                isFirstNodeOfChain = true;
-              }
-            }
-          }
-
-          if (isFirstNodeOfChain) {
-            node.setDirectCombinationNode(true);
-            addFirstNodeOfChain(reachToSet, node);
-            // System.out.println("IT IS DIRECTLY CONNECTED WITH SC NODES:" + node);
-          }
+          // boolean isFirstNodeOfChain = false;
+          // Set<HNode> inNodeSet = getIncomingNodeSet(node);
+          // for (Iterator iterator2 = inNodeSet.iterator(); iterator2.hasNext();) {
+          // HNode inNode = (HNode) iterator2.next();
+          // if (inNode.isSkeleton()) {
+          // isFirstNodeOfChain = true;
+          // } else if (inNode.isCombinationNode()) {
+          // Set<HNode> inNodeReachToSet = getSkeleteNodeSetReachTo(inNode);
+          // if (!reachToSet.equals(inNodeReachToSet)) {
+          // isFirstNodeOfChain = true;
+          // }
+          // }
+          // }
+          //
+          // if (isFirstNodeOfChain) {
+          // node.setDirectCombinationNode(true);
+          // addFirstNodeOfChain(reachToSet, node);
+          // }
 
         }
       }
