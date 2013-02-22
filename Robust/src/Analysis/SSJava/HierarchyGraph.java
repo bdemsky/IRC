@@ -1397,12 +1397,79 @@ public class HierarchyGraph {
     return max;
   }
 
+  public int computeDistance(HNode startNode, Set<HNode> endNodeSet) {
+    System.out.println("#####computeDistance startNode=" + startNode + " endNode=" + endNodeSet);
+    return recur_computeDistance(startNode, startNode, endNodeSet, 0, 0);
+  }
+
+  private int recur_computeDistance(HNode startNode, HNode curNode, Set<HNode> endNodeSet,
+      int sharedCount, int nonSharedCount) {
+
+    if (!curNode.equals(startNode)) {
+      // do not count the start node
+      if (curNode.isSharedNode()) {
+        sharedCount++;
+      } else {
+        nonSharedCount++;
+      }
+    }
+
+    if (endNodeSet.contains(curNode)) {
+      // it reaches to one of endNodeSet
+      if (sharedCount > nonSharedCount) {
+        return sharedCount;
+      } else {
+        return nonSharedCount;
+      }
+    }
+
+    Set<HNode> inNodeSet = getIncomingNodeSet(curNode);
+
+    int curMaxDistance = 0;
+    for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
+      HNode inNode = (HNode) iterator.next();
+      // traverse more...
+      System.out.println("    traverse more to" + inNode + "  sC=" + sharedCount + " nC="
+          + nonSharedCount);
+      int dist = recur_computeDistance(startNode, inNode, endNodeSet, sharedCount, nonSharedCount);
+      if (dist > curMaxDistance) {
+        curMaxDistance = dist;
+      }
+    }
+    return curMaxDistance;
+  }
+
   public int countNonSharedNode(HNode startNode, Set<HNode> endNodeSet) {
     System.out.println("countNonSharedNode startNode=" + startNode + " endNode=" + endNodeSet);
     return recur_countNonSharedNode(startNode, endNodeSet, 0);
   }
 
   private int recur_countNonSharedNode(HNode startNode, Set<HNode> endNodeSet, int count) {
+
+    Set<HNode> inNodeSet = getIncomingNodeSet(startNode);
+
+    for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
+      HNode inNode = (HNode) iterator.next();
+      if (endNodeSet.contains(inNode)) {
+        count++;
+        return count;
+      } else {
+        if (!inNode.isSharedNode()) {
+          count++;
+        }
+        return recur_countNonSharedNode2(inNode, endNodeSet, count);
+      }
+    }
+
+    return 0;
+  }
+
+  public int countNonSharedNode2(HNode startNode, Set<HNode> endNodeSet) {
+    System.out.println("countNonSharedNode startNode=" + startNode + " endNode=" + endNodeSet);
+    return recur_countNonSharedNode2(startNode, endNodeSet, 0);
+  }
+
+  private int recur_countNonSharedNode2(HNode startNode, Set<HNode> endNodeSet, int count) {
 
     Set<HNode> inNodeSet = getIncomingNodeSet(startNode);
 
@@ -1418,7 +1485,7 @@ public class HierarchyGraph {
         if (!inNode.isSharedNode()) {
           count++;
         }
-        return recur_countNonSharedNode(inNode, endNodeSet, count);
+        return recur_countNonSharedNode2(inNode, endNodeSet, count);
       }
     }
 

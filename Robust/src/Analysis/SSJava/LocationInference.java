@@ -1030,7 +1030,7 @@ public class LocationInference {
     while (!methodDescList.isEmpty()) {
       MethodDescriptor md = methodDescList.removeLast();
 
-      // System.out.println("\n#updateCompositeLocationAssignments=" + md);
+      System.out.println("\n#updateCompositeLocationAssignments=" + md);
 
       FlowGraph flowGraph = getFlowGraph(md);
 
@@ -1039,12 +1039,12 @@ public class LocationInference {
       Set<FlowNode> nodeSet = flowGraph.getNodeSet();
       for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
         FlowNode node = (FlowNode) iterator.next();
-        // System.out.println("-node=" + node + "   node.getDescTuple=" + node.getDescTuple());
+        System.out.println("-node=" + node + "   node.getDescTuple=" + node.getDescTuple());
         if (node.getCompositeLocation() != null) {
           CompositeLocation compLoc = node.getCompositeLocation();
           CompositeLocation updatedCompLoc = updateCompositeLocation(compLoc);
           node.setCompositeLocation(updatedCompLoc);
-          // System.out.println("---updatedCompLoc1=" + updatedCompLoc);
+          System.out.println("---updatedCompLoc1=" + updatedCompLoc);
         } else {
           NTuple<Descriptor> descTuple = node.getDescTuple();
           // System.out.println("update desc=" + descTuple);
@@ -1086,8 +1086,8 @@ public class LocationInference {
         HierarchyGraph scGraph = getSimpleHierarchyGraph(enclosingDesc);
         if (scGraph != null) {
           HNode curNode = scGraph.getCurrentHNode(nodeIdentifier);
-          // System.out.println("nodeID=" + nodeIdentifier + " curNode=" + curNode
-          // + "  enclosingDesc=" + enclosingDesc);
+          System.out.println("     nodeID=" + nodeIdentifier + " curNode=" + curNode
+              + "  enclosingDesc=" + enclosingDesc);
           if (curNode != null) {
             nodeIdentifier = curNode.getName();
           }
