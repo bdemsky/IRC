@@ -1773,6 +1773,12 @@ public class LocationInference {
             globalFlowGraph.addMapLocationToInferCompositeLocation(targetLocalLoc, newCompLoc);
             // }
 
+            // if (node.getLocTuple().get(0).getDescriptor().getSymbol().equals("get_scale_factors")
+            // || node.getLocTuple().get(0).getDescriptor().getSymbol()
+            // .equals("get_LSF_scale_data")){
+            // Set<GlobalFlowNode> debugInNodeSet =
+            // globalFlowGraph.debug_getIncomingNodeSetFromPrefix(node, curPrefix);
+            // }
             continue next;
             // }
 

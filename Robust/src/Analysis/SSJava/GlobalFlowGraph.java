@@ -349,4 +349,20 @@ public class GlobalFlowGraph {
     }
   }
 
+  public Set<GlobalFlowNode> debug_getIncomingNodeSetFromPrefix(GlobalFlowNode node,
+      NTuple<Location> curPrefix) {
+
+    Set<GlobalFlowNode> result = new HashSet<GlobalFlowNode>();
+
+    Set<GlobalFlowNode> allIncomingNodeSet = getIncomingNodeSet(node);
+    for (Iterator iterator = allIncomingNodeSet.iterator(); iterator.hasNext();) {
+      GlobalFlowNode incomingNode = (GlobalFlowNode) iterator.next();
+      if (incomingNode.getLocTuple().startsWith(curPrefix)) {
+        result.add(incomingNode);
+      }
+    }
+
+    return result;
+  }
+
 }

@@ -1397,13 +1397,55 @@ public class HierarchyGraph {
     return max;
   }
 
-  public int computeDistance(HNode startNode, Set<HNode> endNodeSet) {
+  public int computeDistance(HNode startNode, Set<HNode> endNodeSet, Set<HNode> combineSet) {
     System.out.println("#####computeDistance startNode=" + startNode + " endNode=" + endNodeSet);
-    return recur_computeDistance(startNode, startNode, endNodeSet, 0, 0);
+    return recur_computeDistance(startNode, startNode, endNodeSet, 0, combineSet);
   }
 
   private int recur_computeDistance(HNode startNode, HNode curNode, Set<HNode> endNodeSet,
-      int sharedCount, int nonSharedCount) {
+      int count, Set<HNode> combineSet) {
+
+    if (!curNode.equals(startNode)) {
+      // do not count the start node
+      count++;
+    }
+
+    if (endNodeSet.contains(curNode)) {
+      // it reaches to one of endNodeSet
+      return count;
+    }
+
+    Set<HNode> inNodeSet = getIncomingNodeSet(curNode);
+
+    int curMaxDistance = 0;
+    for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
+      HNode inNode = (HNode) iterator.next();
+      // traverse more...
+
+      if (inNode.isCombinationNode() && combineSet != null) {
+        // check if inNode have the same combination set of the starting node
+        Set<HNode> inNodeCombineSet = getCombineSetByCombinationNode(inNode);
+        if (!inNodeCombineSet.equals(combineSet)) {
+          continue;
+        }
+      }
+
+      System.out.println("    traverse more to" + inNode + "  before-count=" + count);
+      int dist = recur_computeDistance(startNode, inNode, endNodeSet, count, combineSet);
+      if (dist > curMaxDistance) {
+        curMaxDistance = dist;
+      }
+    }
+    return curMaxDistance;
+  }
+
+  public int computeDistance2(HNode startNode, Set<HNode> endNodeSet, Set<HNode> combineSet) {
+    System.out.println("#####computeDistance startNode=" + startNode + " endNode=" + endNodeSet);
+    return recur_computeDistance2(startNode, startNode, endNodeSet, 0, 0, combineSet);
+  }
+
+  private int recur_computeDistance2(HNode startNode, HNode curNode, Set<HNode> endNodeSet,
+      int sharedCount, int nonSharedCount, Set<HNode> combineSet) {
 
     if (!curNode.equals(startNode)) {
       // do not count the start node
@@ -1429,9 +1471,20 @@ public class HierarchyGraph {
     for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
       HNode inNode = (HNode) iterator.next();
       // traverse more...
+
+      if (inNode.isCombinationNode() && combineSet != null) {
+        // check if inNode have the same combination set of the starting node
+        Set<HNode> inNodeCombineSet = getCombineSetByCombinationNode(inNode);
+        if (!inNodeCombineSet.equals(combineSet)) {
+          continue;
+        }
+      }
+
       System.out.println("    traverse more to" + inNode + "  sC=" + sharedCount + " nC="
           + nonSharedCount);
-      int dist = recur_computeDistance(startNode, inNode, endNodeSet, sharedCount, nonSharedCount);
+      int dist =
+          recur_computeDistance2(startNode, inNode, endNodeSet, sharedCount, nonSharedCount,
+              combineSet);
       if (dist > curMaxDistance) {
         curMaxDistance = dist;
       }
