@@ -3,8 +3,10 @@ package Analysis.SSJava;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import IR.ClassDescriptor;
 import IR.Descriptor;
@@ -20,9 +22,13 @@ public class BuildLattice {
 
   private Map<Descriptor, Map<TripleItem, String>> mapDescToIntermediateLocMap;
 
+  private Map<Descriptor, Map<InterLocItem, String>> mapDescToInterLocMap;
+
   private Map<Pair<HNode, HNode>, Integer> mapItemToHighestIndex;
 
   private Map<SSJavaLattice<String>, Set<String>> mapLatticeToLocalLocSet;
+
+  private Map<Descriptor, Map<LineIdentifier, LinkedList<LocPair>>> mapDescToLineListMap;
 
   public BuildLattice(LocationInference infer) {
     this.infer = infer;
@@ -31,6 +37,8 @@ public class BuildLattice {
     this.mapItemToHighestIndex = new HashMap<Pair<HNode, HNode>, Integer>();
     this.mapDescToIntermediateLocMap = new HashMap<Descriptor, Map<TripleItem, String>>();
     this.mapLatticeToLocalLocSet = new HashMap<SSJavaLattice<String>, Set<String>>();
+    this.mapDescToInterLocMap = new HashMap<Descriptor, Map<InterLocItem, String>>();
+    this.mapDescToLineListMap = new HashMap<Descriptor, Map<LineIdentifier, LinkedList<LocPair>>>();
   }
 
   public SSJavaLattice<String> buildLattice(Descriptor desc) {
@@ -266,10 +274,11 @@ public class BuildLattice {
         // 1) find the lowest node m in the lattice that is above hnode in the lattice
         // 2) count the number of non-shared nodes d between the hnode and the node m
         // int numNonSharedNodes;
-        int dist;
+        int dist = 0;
 
         HNode SCNode;
         Set<HNode> combineSkeletonNodeSet = null;
+        Stack<String> trace = new Stack<String>();
         if (hNode.isDirectCombinationNode()) {
           // this node itself is the lowest node m. it is the first node of the chain
           Set<HNode> combineSet = hierarchyGraph.getCombineSetByCombinationNode(hNode);
@@ -279,6 +288,11 @@ public class BuildLattice {
           SCNode = scGraph.getCombinationNode(combineSet);
           // numNonSharedNodes = -1;
           dist = 0;
+          if (hNode.isSharedNode()) {
+            trace.add("S");
+          } else {
+            trace.add("N");
+          }
         } else {
 
           Set<HNode> aboveSet = new HashSet<HNode>();
@@ -317,13 +331,10 @@ public class BuildLattice {
             endSet.add(hierarchyGraph.getCurrentHNode(aboveNode));
           }
 
-          dist = hierarchyGraph.computeDistance(hNode, endSet, combineSkeletonNodeSet);
-          System.out.println("##### " + hNode + "::dist=" + dist);
+          trace = hierarchyGraph.computeDistance(hNode, endSet, combineSkeletonNodeSet);
 
-          // numNonSharedNodes = hierarchyGraph.countNonSharedNode(hNode, endSet);
-
-          System.out.println("   COUNT-RESULT::node=" + hNode + " above=" + endSet + " distance="
-              + dist + "   SCNode=" + SCNode);
+          System.out.println("   COUNT-RESULT::node=" + hNode + " above=" + endSet + " trace="
+              + trace + "   SCNode=" + SCNode);
         }
 
         // 3) convert the node m into a chain of nodes with the last node in the chain having m’s
@@ -348,18 +359,73 @@ public class BuildLattice {
           outgoingLocNameSet.add(lattice.getBottomItem());
         }
 
+        if (hNode.isCombinationNode()) {
+          System.out.println("make sure that the first node corresponds to the COMB node="
+              + startLocName);
+          LineIdentifier lineId = new LineIdentifier(startLocName, outgoingLocNameSet);
+          LinkedList<LocPair> list = getLineList(desc, lineId);
+          // make sure that the first node corresponds to the COMB node
+          if (list.size() <= 0) {
+            list.add(new LocPair());
+          }
+          LocPair firstPair = list.get(0);
+          firstPair.nonShared = startLocName;
+        }
+
         // 4) If hnode is not a shared location, check if there already exists a local variable
         // node that has distance d below m along this chain. If such a node
         // does not exist, insert it.
         String locName =
-            getNewLocation(lattice, startLocName, outgoingLocNameSet, dist, hNode.isSharedNode());
+            getNewLocation(desc, startLocName, outgoingLocNameSet, trace, hNode.isSharedNode());
+
         System.out.println("       ###hNode=" + hNode + "---->locName=" + locName);
         locSummary.addMapHNodeNameToLocationName(hNode.getName(), locName);
 
       }
     }
 
+    insertLocalLocations(desc, lattice);
+
     return lattice;
+  }
+
+  private void insertLocalLocations(Descriptor desc, SSJavaLattice<String> lattice) {
+
+    Map<LineIdentifier, LinkedList<LocPair>> map = getLineListMap(desc);
+    System.out.println("####MAP=" + map);
+
+    Set<LineIdentifier> lineIdSet = map.keySet();
+    for (Iterator iterator = lineIdSet.iterator(); iterator.hasNext();) {
+      LineIdentifier lineId = (LineIdentifier) iterator.next();
+
+      LinkedList<LocPair> list = map.get(lineId);
+
+      String higherLocName = lineId.startLoc;
+      Set<String> endLocNameSet = lineId.lowerLocSet;
+
+      for (int i = 0; i < list.size(); i++) {
+        LocPair pair = list.get(i);
+
+        if (pair.nonShared != null) {
+
+          if (!lattice.getKeySet().contains(pair.nonShared)) {
+            lattice.insertNewLocationBetween(higherLocName, endLocNameSet, pair.nonShared);
+          }
+          higherLocName = pair.nonShared;
+        }
+
+        if (pair.shared != null) {
+          if (!lattice.getKeySet().contains(pair.shared)) {
+            lattice.insertNewLocationBetween(higherLocName, endLocNameSet, pair.shared);
+            lattice.addSharedLoc(pair.shared);
+          }
+          higherLocName = pair.shared;
+        }
+
+      }
+
+    }
+
   }
 
   private void addLocalLocation(SSJavaLattice<String> lattice, String localLoc) {
@@ -376,114 +442,100 @@ public class BuildLattice {
     return false;
   }
 
-  public String getNewLocation(SSJavaLattice<String> lattice, String start, Set<String> endSet,
-      int dist, boolean isShared) {
-    System.out.println("       #GETNEWLOCATION:: start=" + start + "  endSet=" + endSet + " dist="
-        + dist + " isShared=" + isShared);
-    return recur_getNewLocation(lattice, start, start, endSet, dist, isShared);
+  public Map<InterLocItem, String> getInterLocMap(Descriptor desc) {
+    if (!mapDescToInterLocMap.containsKey(desc)) {
+      mapDescToInterLocMap.put(desc, new HashMap<InterLocItem, String>());
+    }
+    return mapDescToInterLocMap.get(desc);
   }
 
-  private String recur_getNewLocation(SSJavaLattice<String> lattice, String start, String cur,
-      Set<String> endSet, int dist, boolean isShared) {
+  public Map<LineIdentifier, LinkedList<LocPair>> getLineListMap(Descriptor desc) {
+    if (!mapDescToLineListMap.containsKey(desc)) {
+      mapDescToLineListMap.put(desc, new HashMap<LineIdentifier, LinkedList<LocPair>>());
+    }
+    return mapDescToLineListMap.get(desc);
+  }
 
-    System.out.println("          recur_getNewLocation cur=" + cur + " dist=" + dist);
+  public LinkedList<LocPair> getLineList(Descriptor desc, LineIdentifier lineId) {
+    Map<LineIdentifier, LinkedList<LocPair>> map = getLineListMap(desc);
+    if (!map.containsKey(lineId)) {
+      map.put(lineId, new LinkedList<LocPair>());
+    }
+    return map.get(lineId);
+  }
 
-    if (dist == 0) {
+  private String generateNewLocName() {
+    String newLocName = "ILOC" + (LocationInference.locSeed++);
+    System.out.println("newLocName=" + newLocName);
+    return newLocName;
+  }
+
+  public String getNewLocation(Descriptor desc, String start, Set<String> endSet,
+      Stack<String> trace, boolean isShared) {
+
+    System.out.println("   #GetNewLocation start=" + start + " endSet=" + endSet + " trace="
+        + trace);
+
+    LineIdentifier lineId = new LineIdentifier(start, endSet);
+    LinkedList<LocPair> list = getLineList(desc, lineId);
+
+    int locPairIdx = trace.size() - 1;
+
+    LocPair pair;
+    if (list.size() > locPairIdx) {
+      // there already exsits a list of nodes up to the current one
+      pair = list.get(locPairIdx);
+      // check if we need to add a new shared or non-shred node to the pair
       if (isShared) {
-        // first check if there already exists a non-shared node at distance d
-        if (!isLocalLocation(lattice, cur) && !start.equals(cur)) {
-          // if not, need to insert a new SHARED local location at this point
-          System.out.println("if not, need to insert a new SHARED local location at this point");
-          String newLocName = "ILOC" + (LocationInference.locSeed++);
-          Set<String> lowerSet = new HashSet<String>();
-          lowerSet.addAll(lattice.get(cur));
-          lattice.insertNewLocationBetween(cur, lowerSet, newLocName);
-          lattice.addSharedLoc(newLocName);
-          addLocalLocation(lattice, newLocName);
-          return newLocName;
+        if (pair.shared == null) {
+          pair.shared = generateNewLocName();
         }
-        // if there exists a non-shared node at distance d
-        // then try to add a new SHARED loc at distance d+1
-
-        Set<String> connectedSet = lattice.get(cur);
-        if (connectedSet == null) {
-          connectedSet = new HashSet<String>();
-        }
-        System.out.println("cur=" + cur + "  connectedSet=" + connectedSet);
-
-        // check if there already exists a shared node that has distance d + 1 on the chain
-        boolean needToInsertSharedNode = false;
-        if (connectedSet.equals(endSet)) {
-          needToInsertSharedNode = true;
-        } else {
-          // in this case, the current node is in the middle of the chain
-          assert connectedSet.size() == 1;
-          String below = connectedSet.iterator().next();
-          if (lattice.isSharedLoc(below)) {
-            return below;
-          } else {
-            needToInsertSharedNode = true;
-          }
-        }
-
-        if (needToInsertSharedNode) {
-          // no shared local location at d+1, need to insert it!
-          String newSharedLocName = "ILOC" + (LocationInference.locSeed++);
-          Set<String> lowerSet = new HashSet<String>();
-          lowerSet.addAll(connectedSet);
-          lattice.insertNewLocationBetween(cur, lowerSet, newSharedLocName);
-          lattice.addSharedLoc(newSharedLocName);
-          addLocalLocation(lattice, newSharedLocName);
-          System.out.println("          INSERT NEW SHARED LOC=" + newSharedLocName);
-          cur = newSharedLocName;
-        }
-
-        return cur;
-
+        return pair.shared;
       } else {
-        // if the node is not a shared one,
-        // check if the cur node is a shared node
-        if (lattice.isSharedLoc(cur)) {
-          // here, we need to add a new local NONSHARED node above cur
-
-          String newLocName = "ILOC" + (LocationInference.locSeed++);
-          lattice.insertNewLocationAtOneLevelHigher(cur, newLocName);
-          addLocalLocation(lattice, newLocName);
-          System.out.println("          INSERT NEW LOC=" + newLocName + " ABOVE=" + cur);
-          return newLocName;
-        } else {
-          // if cur is not shared, return it!
-          return cur;
+        if (pair.nonShared == null) {
+          pair.nonShared = generateNewLocName();
         }
+        return pair.nonShared;
+      }
+
+    } else {
+      // we need to set up a chain of intermediate nodes to the current one.
+      return recur_getNewLocation(0, list, trace);
+    }
+
+  }
+
+  private String recur_getNewLocation(int idx, LinkedList<LocPair> list, Stack<String> trace) {
+
+    String curType = trace.pop();
+    boolean isCurShared = false;
+    if (curType.equals("S")) {
+      isCurShared = true;
+    }
+
+    if (list.size() <= idx) {
+      // need to insert a new pair for the idx
+      list.add(new LocPair());
+    }
+
+    // here, the list already has a pair for the idx
+    LocPair pair = list.get(idx);
+    if (isCurShared && pair.shared == null) {
+      pair.shared = generateNewLocName();
+    } else if (!isCurShared && pair.nonShared == null) {
+      pair.nonShared = generateNewLocName();
+    }
+
+    if (trace.isEmpty()) {
+      if (isCurShared) {
+        return pair.shared;
+      } else {
+        return pair.nonShared;
       }
     }
 
-    Set<String> connectedSet = lattice.get(cur);
-    if (connectedSet == null) {
-      connectedSet = new HashSet<String>();
-    }
-
-    System.out.println("cur=" + cur + " connected set=" + connectedSet);
-    if (cur.equals(lattice.getTopItem()) || connectedSet.equals(endSet)) {
-      // if not, need to insert a new local location at this point
-      System.out.println("NEED TO INSERT A NEW LOCAL LOC FOR NEXT connectedSet=" + connectedSet);
-      String newLocName = "ILOC" + (LocationInference.locSeed++);
-      Set<String> lowerSet = new HashSet<String>();
-      lowerSet.addAll(connectedSet);
-      lattice.insertNewLocationBetween(cur, lowerSet, newLocName);
-      addLocalLocation(lattice, newLocName);
-      cur = newLocName;
-    } else {
-      // in this case, the current node is in the middle of the chain
-      assert connectedSet.size() == 1;
-      cur = connectedSet.iterator().next();
-    }
-
-    if (!lattice.isSharedLoc(cur)) {
-      dist--;
-    }
-    return recur_getNewLocation(lattice, start, cur, endSet, dist, isShared);
-
+    idx++;
+    return recur_getNewLocation(idx, list, trace);
   }
 
   private Set<String> getAboveElementSet(SSJavaLattice<String> lattice, String loc) {
@@ -1106,6 +1158,123 @@ class Identifier {
 
 }
 
+class LocPair {
+  public String nonShared;
+  public String shared;
+
+  public int hashCode() {
+    int h = 0;
+    if (nonShared != null) {
+      h = nonShared.hashCode();
+    }
+    if (shared != null) {
+      h = shared.hashCode();
+    }
+    return h;
+  }
+
+  public boolean equals(Object obj) {
+
+    if (obj instanceof LocPair) {
+      LocPair in = (LocPair) obj;
+
+      if ((nonShared == null && in.nonShared == null)
+          || (nonShared != null && nonShared.equals(in.nonShared))) {
+
+        if ((shared == null && in.shared == null) || (shared != null && shared.equals(in.shared))) {
+          return true;
+        }
+
+      }
+
+    }
+
+    return false;
+  }
+
+  public String toString() {
+    String rtr = "<" + nonShared + "," + shared + ">";
+    return rtr;
+  }
+}
+
+class LineIdentifier {
+  public String startLoc;
+  public Set<String> lowerLocSet;
+
+  public LineIdentifier(String s, Set<String> lSet) {
+    startLoc = s;
+    lowerLocSet = lSet;
+  }
+
+  public int hashCode() {
+    int h = 0;
+    h = startLoc.hashCode();
+    return h + lowerLocSet.hashCode();
+  }
+
+  public boolean equals(Object obj) {
+
+    if (obj instanceof LineIdentifier) {
+      LineIdentifier in = (LineIdentifier) obj;
+      if (startLoc.equals(in.startLoc) && lowerLocSet.equals(in.lowerLocSet)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  public String toString() {
+    String rtr = startLoc + "->" + lowerLocSet;
+    return rtr;
+  }
+
+}
+
+class InterLocItem {
+  public String startLoc;
+  public Set<String> lowerLocSet;
+  public int idx;
+
+  public InterLocItem(String h, Set<String> l, int i) {
+    startLoc = h;
+    lowerLocSet = l;
+    idx = i;
+  }
+
+  public int hashCode() {
+
+    int h = 0;
+    if (startLoc != null) {
+      h = startLoc.hashCode();
+    }
+
+    return h + lowerLocSet.hashCode() + idx;
+  }
+
+  public boolean equals(Object obj) {
+
+    if (obj instanceof InterLocItem) {
+      InterLocItem in = (InterLocItem) obj;
+      if ((startLoc == null || (startLoc != null && startLoc.equals(in.startLoc)))
+          && lowerLocSet.equals(in.lowerLocSet) && idx == in.idx) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  public String toString() {
+    String rtr = startLoc + "-" + idx + "->" + lowerLocSet;
+    if (idx % 2 != 0) {
+      rtr += " S";
+    }
+    return rtr;
+  }
+}
+
 class TripleItem {
   public HNode higherNode;
   public Set<HNode> lowerNodeSet;
@@ -1161,4 +1330,5 @@ class TripleItem {
     }
     return rtr;
   }
+
 }

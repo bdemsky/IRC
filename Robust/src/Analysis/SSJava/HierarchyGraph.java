@@ -8,10 +8,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import IR.Descriptor;
 import IR.FieldDescriptor;
-import IR.VarDescriptor;
 
 public class HierarchyGraph {
 
@@ -369,6 +369,7 @@ public class HierarchyGraph {
           continue;
         }
 
+        // System.out.println("node1=" + node1 + " vs node2=" + node2);
         if (!isEligibleForMerging(node1, node2)) {
           continue;
         }
@@ -378,10 +379,15 @@ public class HierarchyGraph {
           Set<HNode> incomingNodeSet2 = getIncomingNodeSet(node2);
           Set<HNode> outgoingNodeSet2 = getOutgoingNodeSet(node2);
 
+          // System.out.println(node1 + " " + node2 + " MERGING incoming?=" + incomingNodeSet1
+          // + " vs " + incomingNodeSet2);
+          // System.out.println(node1 + " " + node2 + " MERGING outgoing?=" + outgoingNodeSet1
+          // + " vs " + outgoingNodeSet2);
+
           if (incomingNodeSet1.equals(incomingNodeSet2)
               && outgoingNodeSet1.equals(outgoingNodeSet2)) {
             // need to merge node1 and node2
-
+            // System.out.println("MERGE!!!!!!!!!!!!!");
             // ///////////////
             // merge two nodes only if every hierarchy graph in the inheritance hierarchy
             // that includes both nodes allows the merging of them...
@@ -422,7 +428,7 @@ public class HierarchyGraph {
       }
       return true;
     }
-    return false;
+    return true;
   }
 
   private void addEdgeWithNoCycleCheck(HNode srcHNode, HNode dstHNode) {
@@ -993,7 +999,16 @@ public class HierarchyGraph {
         Set<HNode> reachToSet = getSkeleteNodeSetReachTo(node);
         // Set<HNode> tempSet = removeTransitivelyReachToSet(reachToSet);
         // reachToSet = removeTransitivelyReachToSet(reachToSet);
-        Set<HNode> tempSet = reachToSet;
+
+        Set<HNode> curReachToSet = new HashSet<HNode>();
+        for (Iterator iterator2 = reachToSet.iterator(); iterator2.hasNext();) {
+          HNode reachSkeletonNode = (HNode) iterator2.next();
+          curReachToSet.add(getCurrentHNode(reachSkeletonNode));
+        }
+
+        System.out.println("-curReachToSet=" + curReachToSet + "  reachToSet=" + reachToSet);
+
+        reachToSet = curReachToSet;
         // System.out.println("$node=" + node + "   reachToNodeSet=" + reachToSet + " tempSet="
         // + tempSet);
         if (reachToSet.size() > 1) {
@@ -1397,12 +1412,61 @@ public class HierarchyGraph {
     return max;
   }
 
-  public int computeDistance(HNode startNode, Set<HNode> endNodeSet, Set<HNode> combineSet) {
+  public Stack<String> computeDistance(HNode startNode, Set<HNode> endNodeSet, Set<HNode> combineSet) {
     System.out.println("#####computeDistance startNode=" + startNode + " endNode=" + endNodeSet);
-    return recur_computeDistance(startNode, startNode, endNodeSet, 0, combineSet);
+    Stack<String> trace = new Stack<String>();
+    return recur_computeDistance(startNode, endNodeSet, 0, combineSet, trace);
   }
 
-  private int recur_computeDistance(HNode startNode, HNode curNode, Set<HNode> endNodeSet,
+  private Stack<String> recur_computeDistance(HNode curNode, Set<HNode> endNodeSet, int count,
+      Set<HNode> combineSet, Stack<String> trace) {
+
+    if (!curNode.isSkeleton()) {
+      if (curNode.isSharedNode()) {
+        trace.add("S");
+      } else {
+        trace.add("N");
+      }
+    }
+
+
+    if (endNodeSet.contains(curNode)) {
+      // it reaches to one of endNodeSet
+      return trace;
+    }
+
+    Set<HNode> inNodeSet = getIncomingNodeSet(curNode);
+
+    int curMaxDistance = 0;
+    Stack<String> curMaxTrace = (Stack<String>) trace.clone();
+    ;
+    for (Iterator iterator = inNodeSet.iterator(); iterator.hasNext();) {
+      HNode inNode = (HNode) iterator.next();
+      // traverse more...
+
+      if (inNode.isCombinationNode() && combineSet != null) {
+        // check if inNode have the same combination set of the starting node
+        Set<HNode> inNodeCombineSet = getCombineSetByCombinationNode(inNode);
+        if (!inNodeCombineSet.equals(combineSet)) {
+          continue;
+        }
+      }
+
+      System.out.println("    traverse more to" + inNode + "  before-trace=" + trace);
+      Stack<String> newTrace = (Stack<String>) trace.clone();
+      Stack<String> curTrace =
+          recur_computeDistance(inNode, endNodeSet, count, combineSet, newTrace);
+      System.out.println("curTrace=" + curTrace);
+
+      if (curTrace != null && curTrace.size() > curMaxDistance) {
+        curMaxTrace = curTrace;
+        curMaxDistance = curTrace.size();
+      }
+    }
+    return curMaxTrace;
+  }
+
+  private int recur_computeDistance2(HNode startNode, HNode curNode, Set<HNode> endNodeSet,
       int count, Set<HNode> combineSet) {
 
     if (!curNode.equals(startNode)) {
@@ -1431,7 +1495,7 @@ public class HierarchyGraph {
       }
 
       System.out.println("    traverse more to" + inNode + "  before-count=" + count);
-      int dist = recur_computeDistance(startNode, inNode, endNodeSet, count, combineSet);
+      int dist = recur_computeDistance2(startNode, inNode, endNodeSet, count, combineSet);
       if (dist > curMaxDistance) {
         curMaxDistance = dist;
       }
