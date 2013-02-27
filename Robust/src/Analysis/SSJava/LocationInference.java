@@ -2634,6 +2634,7 @@ public class LocationInference {
     lattice.removeRedundantEdges();
 
     LocationInference.numLocationsSInfer += lattice.getKeySet().size();
+    System.out.println(desc + " numPaths=" + lattice.countPaths());
 
     if (desc instanceof ClassDescriptor) {
       // field lattice
@@ -2772,6 +2773,7 @@ public class LocationInference {
       HierarchyGraph simpleHierarchyGraph = getHierarchyGraph(desc).clone();
       simpleHierarchyGraph.setName(desc + "_SIMPLE");
       simpleHierarchyGraph.removeRedundantEdges();
+      // simpleHierarchyGraph.removeIsolatedNodes();
       mapDescriptorToSimpleHierarchyGraph.put(desc, simpleHierarchyGraph);
     }
   }
@@ -3202,6 +3204,7 @@ public class LocationInference {
         // if the srcNode is started with the global descriptor
         // need to set as a skeleton node
         if (!hasGlobalAccess && srcNode.getDescTuple().startsWith(GLOBALDESC)) {
+          System.out.println("SRCNODE=" + srcNode);
           hasGlobalAccess = true;
         }
 
@@ -3313,8 +3316,8 @@ public class LocationInference {
     // set hasGloabalAccess true in the method summary.
     if (hasGlobalAccess) {
       getMethodSummary(md).setHasGlobalAccess();
+      methodGraph.getHNode(GLOBALDESC).setSkeleton(true);
     }
-    methodGraph.getHNode(GLOBALDESC).setSkeleton(true);
 
     if (ssjava.getMethodContainingSSJavaLoop().equals(md)) {
       // if the current method contains the event loop

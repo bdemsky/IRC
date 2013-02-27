@@ -811,11 +811,10 @@ public class HierarchyGraph {
     Set<Set<HNode>> keySet = simpleHierarchyGraph.getCombineNodeSet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Set<HNode> combineSet = (Set<HNode>) iterator.next();
-      System.out.println("--combineSet=" + combineSet);
       HNode combinationNode = getCombinationNode(combineSet);
-      System.out.println("--combinationNode=" + combinationNode + "   combineSet=" + combineSet);
-
-      System.out.println("--hierarchynodes="
+      System.out.println("\n@INSERT COMBINATION NODE FOR combineSet=" + combineSet
+          + "  --combinationNode=" + combinationNode);
+      System.out.println("      --hierarchynodes="
           + simpleHierarchyGraph.getCombinationNodeSetByCombineNodeSet(combineSet));
 
       Set<HNode> simpleHNodeSet =
@@ -843,6 +842,14 @@ public class HierarchyGraph {
         if (isFirstNodeOfChain) {
           simpleHierarchyGraph.addFirstNodeOfChain(combineSet, simpleHNode);
           System.out.println("IT IS THE FIRST NODE OF THE CHAIN:" + simpleHNode);
+          // System.out.println("--->INCOMING NODES=");
+          // Set<HNode> inNodeSet = simpleHierarchyGraph.getIncomingNodeSet(simpleHNode);
+          // for (Iterator iterator3 = inNodeSet.iterator(); iterator3.hasNext();) {
+          // HNode inNode = (HNode) iterator3.next();
+          // System.out.println("          inNode=" + inNode + "   combineSet="
+          // + simpleHierarchyGraph.getCombineSetByCombinationNode(inNode) + " SKELETON TO SET="
+          // + simpleHierarchyGraph.getSkeleteNodeSetReachTo(inNode));
+          // }
         }
       }
 
@@ -859,6 +866,7 @@ public class HierarchyGraph {
           srcNode = getHNode(inSkeletonNode.getDescriptor());
         }
         // System.out.println("--srcNode=" + srcNode);
+        System.out.println("     ADD EDGE SRC=" + srcNode + " -> " + combinationNode);
         addEdgeWithNoCycleCheck(srcNode, combinationNode);
       }
 
@@ -897,7 +905,8 @@ public class HierarchyGraph {
     // because the node is not directly connected to the combination node
     // removeRedundantReachToNodes(reachToSet);
 
-    return reachToSet;
+    return removeTransitivelyReachToSet(reachToSet);
+    // return reachToSet;
   }
 
   private void recurSkeletonReachTo(HNode node, Set<HNode> reachToSet, Set<HNode> visited) {
@@ -998,6 +1007,7 @@ public class HierarchyGraph {
       if (!node.isSkeleton()) {
         Set<HNode> reachToSet = getSkeleteNodeSetReachTo(node);
         // Set<HNode> tempSet = removeTransitivelyReachToSet(reachToSet);
+        // System.out.println("ALL REACH SET=" + reachToSet);
         // reachToSet = removeTransitivelyReachToSet(reachToSet);
 
         Set<HNode> curReachToSet = new HashSet<HNode>();
@@ -1006,7 +1016,7 @@ public class HierarchyGraph {
           curReachToSet.add(getCurrentHNode(reachSkeletonNode));
         }
 
-        System.out.println("-curReachToSet=" + curReachToSet + "  reachToSet=" + reachToSet);
+        // System.out.println("-curReachToSett=" + curReachToSet + "  reachToSet=" + reachToSet);
 
         reachToSet = curReachToSet;
         // System.out.println("$node=" + node + "   reachToNodeSet=" + reachToSet + " tempSet="
@@ -1413,7 +1423,8 @@ public class HierarchyGraph {
   }
 
   public Stack<String> computeDistance(HNode startNode, Set<HNode> endNodeSet, Set<HNode> combineSet) {
-    System.out.println("#####computeDistance startNode=" + startNode + " endNode=" + endNodeSet);
+    // System.out.println("#####computeDistanceance startNode=" + startNode + " endNode=" +
+    // endNodeSet);
     Stack<String> trace = new Stack<String>();
     return recur_computeDistance(startNode, endNodeSet, 0, combineSet, trace);
   }
@@ -1428,7 +1439,6 @@ public class HierarchyGraph {
         trace.add("N");
       }
     }
-
 
     if (endNodeSet.contains(curNode)) {
       // it reaches to one of endNodeSet
@@ -1452,11 +1462,11 @@ public class HierarchyGraph {
         }
       }
 
-      System.out.println("    traverse more to" + inNode + "  before-trace=" + trace);
+      // System.out.println("    traverse more to" + inNode + "  before-trace=" + trace);
       Stack<String> newTrace = (Stack<String>) trace.clone();
       Stack<String> curTrace =
           recur_computeDistance(inNode, endNodeSet, count, combineSet, newTrace);
-      System.out.println("curTrace=" + curTrace);
+      // System.out.println("curTracerTrace=" + curTrace);
 
       if (curTrace != null && curTrace.size() > curMaxDistance) {
         curMaxTrace = curTrace;
@@ -1609,5 +1619,16 @@ public class HierarchyGraph {
     // System.out.println("startNode=" + startNode + " inNodeSet=" + inNodeSet);
     // HNode inNode = inNodeSet.iterator().next();
     return -1;
+  }
+
+  public void removeIsolatedNodes() {
+    Set<HNode> toberemoved = new HashSet<HNode>();
+    for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+      HNode node = (HNode) iterator.next();
+      if (getIncomingNodeSet(node).isEmpty() && getOutgoingNodeSet(node).isEmpty()) {
+        toberemoved.add(node);
+      }
+    }
+    nodeSet.removeAll(toberemoved);
   }
 }

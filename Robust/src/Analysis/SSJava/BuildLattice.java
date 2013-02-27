@@ -315,11 +315,15 @@ public class BuildLattice {
             // the current node is not a combination node
             // there is only one parent node which should be skeleton node.
 
-            System.out.println("   hierarchyGraph.getSkeleteNodeSetReachTo(" + hNode + ")="
-                + hierarchyGraph.getSkeleteNodeSetReachTo(hNode));
-            aboveSet.addAll(hierarchyGraph.getSkeleteNodeSetReachTo(hNode));
-            System.out.println("   aboveset of " + hNode + "=" + aboveSet);
-            // assert aboveSet.size() == 1;
+            // System.out.println("   hierarchyGraph.getSkeleteNodeSetReachTo(" + hNode + ")="
+            // + hierarchyGraph.getSkeleteNodeSetReachTo(hNode));
+
+            Set<HNode> reachToSet = hierarchyGraph.getSkeleteNodeSetReachTo(hNode);
+            for (Iterator iterator2 = reachToSet.iterator(); iterator2.hasNext();) {
+              HNode reachToNode = (HNode) iterator2.next();
+              aboveSet.add(scGraph.getCurrentHNode(reachToNode));
+            }
+
             SCNode = aboveSet.iterator().next();
           }
 
@@ -333,8 +337,8 @@ public class BuildLattice {
 
           trace = hierarchyGraph.computeDistance(hNode, endSet, combineSkeletonNodeSet);
 
-          System.out.println("   COUNT-RESULT::node=" + hNode + " above=" + endSet + " trace="
-              + trace + "   SCNode=" + SCNode);
+          System.out.println("   COUNT-RESULT::start=" + hNode + " end=" + endSet + " trace="
+              + trace);
         }
 
         // 3) convert the node m into a chain of nodes with the last node in the chain having m’s

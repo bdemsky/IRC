@@ -336,8 +336,6 @@ public class SSJavaLattice<T> extends Lattice<T> {
     }
   }
 
- 
-
   public SSJavaLattice<T> clone() {
 
     SSJavaLattice<T> clone = new SSJavaLattice<T>(getTopItem(), getBottomItem());
@@ -346,4 +344,39 @@ public class SSJavaLattice<T> extends Lattice<T> {
     return clone;
   }
 
+  public int countPaths() {
+    T bottom = getBottomItem();
+
+    Map<T, Set<T>> map = getIncomingElementMap();
+    Map<T, Integer> countMap = new HashMap<T, Integer>();
+
+    Set<T> visited = new HashSet<T>();
+    visited.add(bottom);
+
+    countMap.put(bottom, new Integer(1));
+    recur_countPaths(bottom, map, countMap, visited);
+    if (countMap.containsKey(getTopItem())) {
+      return countMap.get(getTopItem());
+    }
+    return 0;
+  }
+
+  private void recur_countPaths(T cur, Map<T, Set<T>> map, Map<T, Integer> countMap, Set<T> visited) {
+    int curCount = countMap.get(cur).intValue();
+    Set<T> inSet = map.get(cur);
+
+    for (Iterator iterator = inSet.iterator(); iterator.hasNext();) {
+      T in = (T) iterator.next();
+      int inCount = 0;
+      if (countMap.containsKey(in)) {
+        inCount = countMap.get(in).intValue();
+      }
+      inCount += curCount;
+      countMap.put(in, inCount);
+      if (visited.containsAll(get(in))) {
+        visited.add(in);
+        recur_countPaths(in, map, countMap, visited);
+      }
+    }
+  }
 }
