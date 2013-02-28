@@ -46,7 +46,8 @@ public class BuildLattice {
     HierarchyGraph inputGraph = infer.getSkeletonCombinationHierarchyGraph(desc);
     LocationSummary locSummary = infer.getLocationSummary(desc);
 
-    HierarchyGraph naiveGraph = infer.getSimpleHierarchyGraph(desc);
+    HierarchyGraph simpleGraph = infer.getSimpleHierarchyGraph(desc);
+    HierarchyGraph naiveGraph = simpleGraph.clone();
 
     // I don't think we need to keep the below if statement anymore
     // because hierarchy graph does not have any composite location
@@ -85,7 +86,16 @@ public class BuildLattice {
 
       SSJavaLattice<String> naive_lattice =
           buildLattice(desc, naiveBasisSet, naiveGraph, null, naive_mapImSucc);
-      LocationInference.numLocationsNaive += naive_lattice.getKeySet().size();
+      int numLocs = naive_lattice.getKeySet().size();
+      LocationInference.numLocationsNaive += numLocs;
+      infer.mapNumLocsMapNaive.put(desc, new Integer(numLocs));
+
+      int numPaths = naive_lattice.countPaths();
+      infer.mapNumPathsMapNaive.put(desc, new Integer(numPaths));
+
+      System.out.println(desc + " numPaths=" + numPaths + " numLocs="
+          + naive_lattice.getKeySet().size());
+
       infer.addNaiveLattice(desc, naive_lattice);
     }
 

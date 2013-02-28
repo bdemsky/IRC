@@ -187,6 +187,15 @@ public class LocationInference {
   public static int numLocationsSInfer = 0;
   public static int numLocationsNaive = 0;
 
+  public static int numPathsSInfer = 0;
+  public static int numPathsNaive = 0;
+
+  public Map<Descriptor, Integer> mapNumPathsMapSInfer;
+  public Map<Descriptor, Integer> mapNumLocsMapSInfer;
+
+  public Map<Descriptor, Integer> mapNumPathsMapNaive;
+  public Map<Descriptor, Integer> mapNumLocsMapNaive;
+
   public LocationInference(SSJavaAnalysis ssjava, State state, TypeUtil tu) {
     this.ssjava = ssjava;
     this.state = state;
@@ -255,6 +264,12 @@ public class LocationInference {
 
     mapHighestOverriddenMethodDescToSetHigherThanRETURNLoc =
         new HashMap<MethodDescriptor, Set<NTuple<Descriptor>>>();
+
+    mapNumPathsMapSInfer = new HashMap<Descriptor, Integer>();
+    mapNumLocsMapSInfer = new HashMap<Descriptor, Integer>();
+
+    mapNumPathsMapNaive = new HashMap<Descriptor, Integer>();
+    mapNumLocsMapNaive = new HashMap<Descriptor, Integer>();
 
     this.buildLattice = new BuildLattice(this);
 
@@ -370,6 +385,8 @@ public class LocationInference {
       System.out.println("The number of elements: Naive=" + numLocationsNaive);
     }
     System.out.println("The number of elements: SInfer=" + numLocationsSInfer);
+
+    writeNumLocsPathsCSVFile();
 
     System.exit(0);
 
@@ -2633,8 +2650,15 @@ public class LocationInference {
     }
     lattice.removeRedundantEdges();
 
-    LocationInference.numLocationsSInfer += lattice.getKeySet().size();
-    System.out.println(desc + " numPaths=" + lattice.countPaths());
+    int numLocs = lattice.getKeySet().size();
+    LocationInference.numLocationsSInfer += numLocs;
+    mapNumLocsMapSInfer.put(desc, new Integer(numLocs));
+
+    int numPaths = lattice.countPaths();
+    LocationInference.numLocationsSInfer += numPaths;
+    mapNumPathsMapSInfer.put(desc, new Integer(numPaths));
+
+    System.out.println(desc + " numPaths=" + numPaths + " numLocs=" + numLocs);
 
     if (desc instanceof ClassDescriptor) {
       // field lattice
@@ -6620,6 +6644,39 @@ public class LocationInference {
     // System.out.println("@cd=" + cd);
     // System.out.println("@sharedLoc=" + locOrder.getSharedLocSet());
     writeInferredLatticeDotFile(cd, null, locOrder, nameSuffix);
+  }
+
+  public void writeNumLocsPathsCSVFile() {
+
+    try {
+      BufferedWriter bw = new BufferedWriter(new FileWriter("sinfernumbers.csv"));
+
+      Set<Descriptor> keySet = mapNumLocsMapSInfer.keySet();
+      for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+        Descriptor desc = (Descriptor) iterator.next();
+        int numLocs = mapNumLocsMapSInfer.get(desc);
+        int numPaths = mapNumPathsMapSInfer.get(desc);
+        bw.write(desc.getSymbol().replaceAll("[,]", "") + "," + numLocs + "," + numPaths + "\n");
+      }
+      bw.close();
+
+      if (state.SSJAVA_INFER_NAIVE_WRITEDOTS) {
+        BufferedWriter bw2 = new BufferedWriter(new FileWriter("naivenumbers.csv"));
+        Set<Descriptor> keySet2 = mapNumLocsMapNaive.keySet();
+        for (Iterator iterator = keySet2.iterator(); iterator.hasNext();) {
+          Descriptor desc = (Descriptor) iterator.next();
+          int numLocs = mapNumLocsMapNaive.get(desc);
+          int numPaths = mapNumPathsMapNaive.get(desc);
+          bw2.write(desc.getSymbol().replaceAll("[,]", "") + "," + numLocs + "," + numPaths + "\n");
+        }
+        bw2.close();
+      }
+
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
   }
 
   public void writeInferredLatticeDotFile(ClassDescriptor cd, MethodDescriptor md,
