@@ -1462,7 +1462,7 @@ public class HierarchyGraph {
         }
       }
 
-      // System.out.println("    traverse more to" + inNode + "  before-trace=" + trace);
+      System.out.println("    traverse more to" + inNode + "  before-trace=" + trace);
       Stack<String> newTrace = (Stack<String>) trace.clone();
       Stack<String> curTrace =
           recur_computeDistance(inNode, endNodeSet, count, combineSet, newTrace);
