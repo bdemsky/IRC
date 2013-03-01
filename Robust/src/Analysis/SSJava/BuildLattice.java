@@ -351,7 +351,7 @@ public class BuildLattice {
               + trace);
         }
 
-        // 3) convert the node m into a chain of nodes with the last node in the chain having m’s
+        // 3) convert the node m into a chain of nodes with the last node in the chain having m's
         // outgoing edges.
         Set<HNode> outgoingSCNodeSet = scGraph.getOutgoingNodeSet(SCNode);
         System.out.println("   outgoing scnode set from " + SCNode + "=" + outgoingSCNodeSet);
