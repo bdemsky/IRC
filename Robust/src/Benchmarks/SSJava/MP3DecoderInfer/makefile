@@ -6,7 +6,7 @@ SOURCE_FILES=MP3Player.java Player.java
 SSJAVA= -ssjava -ssjavainfer -ssjavadebug
 BSFLAGS= -32bit -mainclass $(PROGRAM)  -heapsize-mb 1350 -nooptimize -debug -garbagestats #-printlinenum #-joptimize
 
-#NAIVELAG= -ssjava-infer-naive-writedots
+#NAIVEFLAG= -ssjava-infer-naive-writedots
 
 default: $(PROGRAM)s.bin
 
