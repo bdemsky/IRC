@@ -40,103 +40,101 @@
  * <b>REVIEW:</b> much of the parsing currently occurs in the various decoders.
  * This should be moved into this class and associated inner classes.
  */
-@LATTICE("FB<F,FF<F,WP<BI,FF*,WP*,BI*")
-@METHODDEFAULT("OUT<THIS,THIS<VAR,VAR<IN,VAR*,THISLOC=THIS,GLOBALLOC=IN")
 public final class Bitstream implements BitstreamErrors {
   /**
    * Synchronization control constant for the initial synchronization to the
    * start of a frame.
    */
-  @LOC("F")
+  
   static byte INITIAL_SYNC = 0;
 
   /**
    * Synchronization control constant for non-initial frame synchronizations.
    */
 
-  @LOC("F")
+  
   static byte STRICT_SYNC = 1;
 
   // max. 1730 bytes per frame: 144 * 384kbit/s / 32000 Hz + 2 Bytes CRC
   /**
    * Maximum size of the frame buffer.
    */
-  @LOC("F")
+  
   private static final int BUFFER_INT_SIZE = 433;
 
   /**
    * The frame buffer that holds the data for the current frame.
    */
-  @LOC("FB")
+  
   private final int[] framebuffer = new int[BUFFER_INT_SIZE];
 
   /**
    * Number of valid bytes in the frame buffer.
    */
-  @LOC("F")
+  
   private int framesize;
 
   /**
    * The bytes read from the stream.
    */
-  @LOC("FB")
+  
   private byte[] frame_bytes = new byte[BUFFER_INT_SIZE * 4];
 
   /**
    * Index into <code>framebuffer</code> where the next bits are retrieved.
    */
-  @LOC("WP")
+  
   private int wordpointer;
 
   /**
    * Number (0-31, from MSB to LSB) of next bit for get_bits()
    */
-  @LOC("BI")
+  
   private int bitindex;
 
   /**
    * The current specified syncword
    */
-  @LOC("F")
+  
   private int syncword;
 
   /**
    * Audio header position in stream.
    */
-  @LOC("F")
+  
   private int header_pos = 0;
 
   /**
       *
       */
-  @LOC("F")
+  
   private boolean single_ch_mode;
   // private int current_frame_number;
   // private int last_frame_number;
 
-  @LOC("F")
+  
   private final int bitmask[] = {
       0, // dummy
       0x00000001, 0x00000003, 0x00000007, 0x0000000F, 0x0000001F, 0x0000003F, 0x0000007F,
       0x000000FF, 0x000001FF, 0x000003FF, 0x000007FF, 0x00000FFF, 0x00001FFF, 0x00003FFF,
       0x00007FFF, 0x0000FFFF, 0x0001FFFF };
 
-  @LOC("F")
+  
   private final PushbackInputStream source;
 
-  @LOC("F")
+  
   private final Header header = new Header();
 
-  @LOC("F")
+  
   private final byte syncbuf[] = new byte[4];
 
-  @LOC("F")
+  
   private Crc16[] crc = new Crc16[1];
 
-  @LOC("F")
+  
   private byte[] rawid3v2 = null;
 
-  @LOC("FF")
+  
   private boolean firstframe = true;
 
   private BitReserve br;
@@ -528,12 +526,12 @@ public final class Bitstream implements BitstreamErrors {
   /**
    * Parses the data previously read with read_frame_data().
    */
-  @LATTICE("GLOBAL<B,B<BNUM,BNUM<K,K<BYTE,BYTE<THIS,B*,K*,THISLOC=THIS,GLOBALLOC=GLOBAL")
+  
   void parse_frame() throws BitstreamException {
     // Convert Bytes read to int
-    @LOC("B") int b = 0;
-    @LOC("BYTE") byte[] byteread = frame_bytes;
-    @LOC("BYTE") int bytesize = framesize;
+     int b = 0;
+     byte[] byteread = frame_bytes;
+     int bytesize = framesize;
 
     // Check ID3v1 TAG (True only if last frame).
     // for (int t=0;t<(byteread.length)-2;t++)
@@ -545,12 +543,12 @@ public final class Bitstream implements BitstreamErrors {
     // }
     // }
 
-    for (@LOC("K") int k = 0; k < bytesize; k = k + 4) {
-      @LOC("BYTE") int convert = 0;
-      @LOC("BNUM") byte b0 = 0;
-      @LOC("BNUM") byte b1 = 0;
-      @LOC("BNUM") byte b2 = 0;
-      @LOC("BNUM") byte b3 = 0;
+    for ( int k = 0; k < bytesize; k = k + 4) {
+       int convert = 0;
+       byte b0 = 0;
+       byte b1 = 0;
+       byte b2 = 0;
+       byte b3 = 0;
       b0 = byteread[k];
       if (k + 1 < bytesize)
         b1 = byteread[k + 1];
@@ -570,11 +568,11 @@ public final class Bitstream implements BitstreamErrors {
    * Read bits from buffer into the lower bits of an unsigned int. The LSB
    * contains the latest read bit of the stream. (1 <= number_of_bits <= 16)
    */
-  @LATTICE("OUT<RL,RL<THIS,THIS<IN,OUT*,THISLOC=THIS,RETURNLOC=OUT")
-  public int get_bits(@LOC("IN") int number_of_bits) {
+  
+  public int get_bits( int number_of_bits) {
 
-    @LOC("OUT") int returnvalue = 0;
-    @LOC("THIS,Bitstream.BI") int sum = bitindex + number_of_bits;
+     int returnvalue = 0;
+     int sum = bitindex + number_of_bits;
 
     // E.B
     // There is a problem here, wordpointer could be -1 ?!
@@ -597,9 +595,9 @@ public final class Bitstream implements BitstreamErrors {
     // ((short[])&returnvalue)[0] = ((short[])wordpointer + 1)[0];
     // wordpointer++; // Added by me!
     // ((short[])&returnvalue + 1)[0] = ((short[])wordpointer)[0];
-    @LOC("RL") int Right = (framebuffer[wordpointer] & 0x0000FFFF);
+     int Right = (framebuffer[wordpointer] & 0x0000FFFF);
     wordpointer++;
-    @LOC("RL") int Left = (framebuffer[wordpointer] & 0xFFFF0000);
+     int Left = (framebuffer[wordpointer] & 0xFFFF0000);
     returnvalue = ((Right << 16) & 0xFFFF0000) | ((Left >>> 16) & 0x0000FFFF);
 
     returnvalue >>>= 48 - sum; // returnvalue >>= 16 - (number_of_bits - (32 -
@@ -612,7 +610,7 @@ public final class Bitstream implements BitstreamErrors {
   /**
    * Set the word we want to sync the header to. In Big-Endian byte order
    */
-  void set_syncword(@LOC("IN") int syncword0) {
+  void set_syncword( int syncword0) {
     syncword = syncword0 & 0xFFFFFF3F;
     single_ch_mode = ((syncword0 & 0x000000C0) == 0x000000C0);
   }
@@ -632,14 +630,14 @@ public final class Bitstream implements BitstreamErrors {
    *              is thrown if the specified number of bytes could not be read
    *              from the stream.
    */
-  @LATTICE("OUT<VAR,VAR<THIS,THIS<IN,IN*,VAR*,THISLOC=THIS")
-  @RETURNLOC("OUT")
-  private int readFully(@LOC("OUT") byte[] b, @LOC("IN") int offs, @LOC("IN") int len)
+  
+  
+  private int readFully( byte[] b,  int offs,  int len)
       throws BitstreamException {
-    @LOC("VAR") int nRead = 0;
+     int nRead = 0;
     try {
       while (len > 0) {
-        @LOC("IN") int bytesread = source.read(b, offs, len);
+         int bytesread = source.read(b, offs, len);
         if (bytesread == -1) {
           while (len-- > 0) {
             b[offs++] = 0;
@@ -660,14 +658,14 @@ public final class Bitstream implements BitstreamErrors {
   /**
    * Simlar to readFully, but doesn't throw exception when EOF is reached.
    */
-  @LATTICE("OUT<VAR,VAR<THIS,THIS<IN,IN*,VAR*,THISLOC=THIS")
-  @RETURNLOC("OUT")
-  private int readBytes(@LOC("OUT") byte[] b, @LOC("IN") int offs, @LOC("IN") int len)
+  
+  
+  private int readBytes( byte[] b,  int offs,  int len)
       throws BitstreamException {
-    @LOC("VAR") int totalBytesRead = 0;
+     int totalBytesRead = 0;
     try {
       while (len > 0) {
-        @LOC("IN") int bytesread = source.read(b, offs, len);
+         int bytesread = source.read(b, offs, len);
         if (bytesread == -1) {
           break;
         }

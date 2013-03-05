@@ -26,12 +26,12 @@
 /**
  * 16-Bit CRC checksum
  */
-@LATTICE("B<T,B*")
-@METHODDEFAULT("OUT<V,V<SH,SH<IN,SH*,THISLOC=V,GLOBALLOC=V")
+
+
 public final class Crc16
 {
-  @LOC("T") private static	short polynomial=(short)0x8005;
-  @LOC("B") private			short crc;
+   private static	short polynomial=(short)0x8005;
+   private			short crc;
 
   /**
    * Dummy Constructor
@@ -45,10 +45,10 @@ public final class Crc16
    * Feed a bitstring to the crc calculation (0 < length <= 32).
    */
   //ssjava
- @LATTICE("OUT<V,V<SH,SH<IN,SH*,THISLOC=V,GLOBALLOC=V")
-  public void add_bits (@LOC("IN") int bitstring, @LOC("IN") int length)
+ 
+  public void add_bits ( int bitstring,  int length)
   {
-    @LOC("SH") int bitmask = 1 << (length - 1);
+     int bitmask = 1 << (length - 1);
     do{
       if (((crc & 0x8000) == 0) ^ ((bitstring & bitmask) == 0 ))
       {
@@ -65,10 +65,10 @@ public final class Crc16
    * Return the calculated checksum.
    * Erase it for next calls to add_bits().
    */
-  @RETURNLOC("OUT")
+  
   public short	checksum()
   {
-    @LOC("OUT") short sum = crc;
+     short sum = crc;
     crc = (short) 0xFFFF;
     return sum;
   }

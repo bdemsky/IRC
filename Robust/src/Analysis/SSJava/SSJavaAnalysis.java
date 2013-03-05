@@ -244,7 +244,7 @@ public class SSJavaAnalysis {
 
     SSJavaLattice<String> completeLattice = buildLattice.buildLattice(hierarchyGraph);
 
-    int numLocs = completeLattice.getKeySet().size() + 1;
+    int numLocs = completeLattice.getKeySet().size();
     LocationInference.numLocationsSInfer += numLocs;
     mapNumLocsMapManual.put(desc, new Integer(numLocs));
 
