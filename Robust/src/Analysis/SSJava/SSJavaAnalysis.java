@@ -26,6 +26,7 @@ import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
+import IR.NameDescriptor;
 import IR.State;
 import IR.SymbolTable;
 import IR.TypeUtil;
@@ -112,6 +113,10 @@ public class SSJavaAnalysis {
 
   private Map<Location, Set<Descriptor>> mapSharedLocToDescSet;
 
+  private Map<Descriptor, SSJavaLattice<String>> mapDescToCompleteLattice;
+  public Map<Descriptor, Integer> mapNumLocsMapManual;
+  public Map<Descriptor, Integer> mapNumPathsMapManual;
+
   public SSJavaAnalysis(State state, TypeUtil tu, BuildFlat bf, CallGraph callgraph) {
     this.state = state;
     this.tu = tu;
@@ -132,6 +137,9 @@ public class SSJavaAnalysis {
     this.sortedDescriptors = new LinkedList<MethodDescriptor>();
     this.md2pcLoc = new HashMap<MethodDescriptor, CompositeLocation>();
     this.mapSharedLocToDescSet = new HashMap<Location, Set<Descriptor>>();
+    this.mapDescToCompleteLattice = new HashMap<Descriptor, SSJavaLattice<String>>();
+    this.mapNumLocsMapManual = new HashMap<Descriptor, Integer>();
+    this.mapNumPathsMapManual = new HashMap<Descriptor, Integer>();
   }
 
   public void doCheck() {
@@ -151,6 +159,8 @@ public class SSJavaAnalysis {
       System.exit(0);
     } else {
       parseLocationAnnotation();
+      debug_countNumLocations();
+      // System.exit(0);
       doFlowDownCheck();
       doDefinitelyWrittenCheck();
       doLoopCheck();
@@ -160,9 +170,113 @@ public class SSJavaAnalysis {
       MethodDescriptor md = (MethodDescriptor) iterator.next();
       MethodLattice<String> locOrder = getMethodLattice(md);
       writeLatticeDotFile(md.getClassDesc(), md, getMethodLattice(md));
-      // System.out.println("~~~\t" + md.getClassDesc() + "_" + md + "\t"
-      // + locOrder.getKeySet().size());
+      System.out.println("~~~\t" + md.getClassDesc() + "_" + md + "\t"
+          + locOrder.getKeySet().size());
     }
+
+  }
+
+  private void debug_countNumLocations() {
+
+    BuildLattice buildLattice = new BuildLattice();
+
+    for (Iterator iterator = cd2lattice.keySet().iterator(); iterator.hasNext();) {
+      ClassDescriptor cd = (ClassDescriptor) iterator.next();
+      SSJavaLattice<String> lattice = cd2lattice.get(cd).clone();
+      SSJavaLattice<String> completeLattice = debug_buildCompleteLattice(buildLattice, cd, lattice);
+      mapDescToCompleteLattice.put(cd, completeLattice);
+      writeLatticeDotFile(cd, null, completeLattice);
+    }
+
+    for (Iterator iterator = md2lattice.keySet().iterator(); iterator.hasNext();) {
+      MethodDescriptor md = (MethodDescriptor) iterator.next();
+      SSJavaLattice<String> lattice = md2lattice.get(md).clone();
+      SSJavaLattice<String> completeLattice = debug_buildCompleteLattice(buildLattice, md, lattice);
+      mapDescToCompleteLattice.put(md, completeLattice);
+      writeLatticeDotFile(md.getClassDesc(), md, completeLattice);
+    }
+
+    for (Iterator iterator = annotationRequireSet.iterator(); iterator.hasNext();) {
+      MethodDescriptor md = (MethodDescriptor) iterator.next();
+      SSJavaLattice<String> lattice = getMethodLattice(md).clone();
+      if (!mapDescToCompleteLattice.containsKey(md)) {
+        System.out.println("@NOT FOUND!");
+        SSJavaLattice<String> completeLattice =
+            debug_buildCompleteLattice(buildLattice, md, lattice);
+        mapDescToCompleteLattice.put(md, completeLattice);
+        writeLatticeDotFile(md.getClassDesc(), md, completeLattice);
+      }
+    }
+
+    writeNumLocsPathsCSVFile();
+
+  }
+
+  public SSJavaLattice<String> debug_buildCompleteLattice(BuildLattice buildLattice,
+      Descriptor desc, SSJavaLattice<String> lattice) {
+
+    // First, create a hierarchy graph
+    HierarchyGraph hierarchyGraph = new HierarchyGraph();
+    Set<String> keySet = lattice.getKeySet();
+
+    Map<String, Descriptor> mapLocNameToDesc = new HashMap<String, Descriptor>();
+
+    for (Iterator iterator2 = keySet.iterator(); iterator2.hasNext();) {
+      String higher = (String) iterator2.next();
+      Set<String> lowerSet = lattice.get(higher);
+      if (!mapLocNameToDesc.containsKey(higher)) {
+        mapLocNameToDesc.put(higher, new NameDescriptor(higher));
+      }
+
+      Descriptor higherDesc = mapLocNameToDesc.get(higher);
+
+      for (Iterator iterator3 = lowerSet.iterator(); iterator3.hasNext();) {
+        String lower = (String) iterator3.next();
+        if (!mapLocNameToDesc.containsKey(lower)) {
+          mapLocNameToDesc.put(lower, new NameDescriptor(lower));
+        }
+        Descriptor lowerDesc = mapLocNameToDesc.get(lower);
+        hierarchyGraph.addEdge(higherDesc, lowerDesc);
+      }
+    }
+
+    BasisSet basisSet = hierarchyGraph.computeBasisSet(new HashSet<HNode>());
+
+    SSJavaLattice<String> completeLattice = buildLattice.buildLattice(hierarchyGraph);
+
+    int numLocs = completeLattice.getKeySet().size() + 1;
+    LocationInference.numLocationsSInfer += numLocs;
+    mapNumLocsMapManual.put(desc, new Integer(numLocs));
+
+    System.out.println(desc + "::" + "lattice=" + lattice.getKeySet().size() + " complete="
+        + numLocs);
+
+    int numPaths = completeLattice.countPaths();
+    LocationInference.numLocationsSInfer += numPaths;
+    mapNumPathsMapManual.put(desc, new Integer(numPaths));
+
+    return completeLattice;
+  }
+
+  public void writeNumLocsPathsCSVFile() {
+
+    try {
+      BufferedWriter bw = new BufferedWriter(new FileWriter("manualnumbers.csv"));
+
+      Set<Descriptor> keySet = mapNumLocsMapManual.keySet();
+      for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+        Descriptor desc = (Descriptor) iterator.next();
+        int numLocs = mapNumLocsMapManual.get(desc);
+        int numPaths = mapNumPathsMapManual.get(desc);
+        bw.write(desc.getSymbol().replaceAll("[,]", "") + "," + numLocs + "," + numPaths + "\n");
+      }
+      bw.close();
+
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
   }
 
   public void init() {

@@ -30,6 +30,10 @@ public class BuildLattice {
 
   private Map<Descriptor, Map<LineIdentifier, LinkedList<LocPair>>> mapDescToLineListMap;
 
+  public BuildLattice() {
+    this(null);
+  }
+
   public BuildLattice(LocationInference infer) {
     this.infer = infer;
     this.mapSharedNodeToTripleItem = new HashMap<HNode, TripleItem>();
@@ -86,7 +90,7 @@ public class BuildLattice {
 
       SSJavaLattice<String> naive_lattice =
           buildLattice(desc, naiveBasisSet, naiveGraph, null, naive_mapImSucc);
-      int numLocs = naive_lattice.getKeySet().size();
+      int numLocs = naive_lattice.getKeySet().size() ;
       LocationInference.numLocationsNaive += numLocs;
       infer.mapNumLocsMapNaive.put(desc, new Integer(numLocs));
 
@@ -97,6 +101,15 @@ public class BuildLattice {
           + naive_lattice.getKeySet().size());
 
       infer.addNaiveLattice(desc, naive_lattice);
+
+      // write a dot file before everything is done
+      if (desc instanceof ClassDescriptor) {
+        infer.writeInferredLatticeDotFile((ClassDescriptor) desc, null, naive_lattice, "_naive");
+      } else {
+        MethodDescriptor md = (MethodDescriptor) desc;
+        infer.writeInferredLatticeDotFile(md.getClassDesc(), md, naive_lattice, "_naive");
+      }
+
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////
@@ -132,6 +145,79 @@ public class BuildLattice {
     } else {
       return ((ClassDescriptor) desc).getSuperDesc();
     }
+  }
+
+  private SSJavaLattice<String> buildLattice(BasisSet basisSet, HierarchyGraph inputGraph,
+      Map<Set<Integer>, Set<Set<Integer>>> mapImSucc) {
+
+    System.out.println("\nBuild Complete Lattice:" + inputGraph.getName());
+
+    SSJavaLattice<String> completeLattice =
+        new SSJavaLattice<String>(SSJavaAnalysis.TOP, SSJavaAnalysis.BOTTOM);
+
+    Map<Set<Integer>, String> mapFToLocName = new HashMap<Set<Integer>, String>();
+
+    Set<Set<Integer>> keySet = mapImSucc.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      Set<Integer> higher = (Set<Integer>) iterator.next();
+
+      String higherName = generateElementName(basisSet, inputGraph, mapFToLocName, higher);
+
+      HNode higherNode = inputGraph.getHNode(higherName);
+
+      if (higherNode == null) {
+        NameDescriptor d = new NameDescriptor(higherName);
+        higherNode = inputGraph.getHNode(d);
+        higherNode.setSkeleton(true);
+      }
+
+      if (higherNode != null && higherNode.isSharedNode()) {
+        completeLattice.addSharedLoc(higherName);
+      }
+      Set<Descriptor> descSet = inputGraph.getDescSetOfNode(higherNode);
+      // System.out.println("higherName=" + higherName + "  higherNode=" + higherNode + "  descSet="
+      // + descSet);
+
+      // locSummary.addMapHNodeNameToLocationName(higherName, higherName);
+
+      Set<Set<Integer>> lowerSet = mapImSucc.get(higher);
+      for (Iterator iterator2 = lowerSet.iterator(); iterator2.hasNext();) {
+        Set<Integer> lower = (Set<Integer>) iterator2.next();
+
+        String lowerName = generateElementName(basisSet, inputGraph, mapFToLocName, lower);
+        HNode lowerNode = inputGraph.getHNode(lowerName);
+
+        if (lowerNode == null && !lowerName.equals(SSJavaAnalysis.BOTTOM)) {
+          NameDescriptor d = new NameDescriptor(lowerName);
+          lowerNode = inputGraph.getHNode(d);
+          lowerNode.setSkeleton(true);
+        }
+
+        if (lowerNode != null && !inputGraph.isDirectlyConnectedTo(higherNode, lowerNode)) {
+          inputGraph.addEdge(higherNode, lowerNode);
+        }
+
+        if (lowerNode != null && lowerNode.isSharedNode()) {
+          completeLattice.addSharedLoc(lowerName);
+        }
+
+        Set<Descriptor> lowerDescSet = inputGraph.getDescSetOfNode(lowerNode);
+        // System.out.println("lowerName=" + lowerName + "  lowerNode=" + lowerNode + "  descSet="
+        // + lowerDescSet);
+        // locSummary.addMapHNodeNameToLocationName(lowerName, lowerName);
+
+        if (higher.size() == 0) {
+          // empty case
+          completeLattice.put(lowerName);
+        } else {
+          completeLattice.addRelationHigherToLower(higherName, lowerName);
+        }
+
+      }
+
+    }
+
+    return completeLattice;
   }
 
   private SSJavaLattice<String> buildLattice(Descriptor desc, BasisSet basisSet,
@@ -328,7 +414,11 @@ public class BuildLattice {
             // System.out.println("   hierarchyGraph.getSkeleteNodeSetReachTo(" + hNode + ")="
             // + hierarchyGraph.getSkeleteNodeSetReachTo(hNode));
 
+            
+            //TODO attempt to use  non-transitive reachToSet
+//            Set<HNode> reachToSet = hierarchyGraph.getSkeleteNodeSetReachToNoTransitive(hNode);
             Set<HNode> reachToSet = hierarchyGraph.getSkeleteNodeSetReachTo(hNode);
+//            System.out.println("reachToSet=" + reachToSet);
             for (Iterator iterator2 = reachToSet.iterator(); iterator2.hasNext();) {
               HNode reachToNode = (HNode) iterator2.next();
               aboveSet.add(scGraph.getCurrentHNode(reachToNode));
@@ -345,7 +435,7 @@ public class BuildLattice {
             endSet.add(hierarchyGraph.getCurrentHNode(aboveNode));
           }
 
-          trace = hierarchyGraph.computeDistance(hNode, endSet, combineSkeletonNodeSet);
+          trace = hierarchyGraph.computeDistance(hNode, endSet, scGraph, combineSkeletonNodeSet);
 
           System.out.println("   COUNT-RESULT::start=" + hNode + " end=" + endSet + " trace="
               + trace);
@@ -1141,6 +1231,16 @@ public class BuildLattice {
     System.out.println("\nBuild Lattice:" + inputGraph.getName());
     System.out.println("Node2Index:\n" + inputGraph.getMapHNodeToUniqueIndex());
     System.out.println("Node2Basis:\n" + inputGraph.getMapHNodeToBasis());
+  }
+
+  public SSJavaLattice<String> buildLattice(HierarchyGraph hierarchyGraph) {
+    BasisSet basisSet = hierarchyGraph.computeBasisSet(new HashSet<HNode>());
+
+    Family family = generateFamily(basisSet);
+    Map<Set<Integer>, Set<Set<Integer>>> mapImSucc = coveringGraph(basisSet, family);
+
+    SSJavaLattice<String> completeLattice = buildLattice(basisSet, hierarchyGraph, mapImSucc);
+    return completeLattice;
   }
 
 }
