@@ -1743,7 +1743,7 @@ public class LocationInference {
 
         if (!reachableCommonPrefixSet.isEmpty()) {
           
-          System.out.println("WARNING:: The algorithm is going to nondeterministicly inline " +
+          System.out.println("WARNING:: The algorithm is going to nondeterministically inline " +
           		" a cylce in between following prefixes="+reachableCommonPrefixSet +
           		" for the current node="+node);
 
