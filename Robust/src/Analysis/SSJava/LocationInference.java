@@ -1742,6 +1742,10 @@ public class LocationInference {
         // System.out.println("reachableCommonPrefixSet=" + reachableCommonPrefixSet);
 
         if (!reachableCommonPrefixSet.isEmpty()) {
+          
+          System.out.println("WARNING:: The algorithm is going to nondeterministicly inline " +
+          		" a cylce in between following prefixes="+reachableCommonPrefixSet +
+          		" for the current node="+node);
 
           MethodDescriptor curPrefixFirstElementMethodDesc =
               (MethodDescriptor) curPrefix.get(0).getDescriptor();
